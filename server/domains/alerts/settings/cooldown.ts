@@ -214,6 +214,7 @@ async function atomicClaimAlertSlotSQLite(
       .limit(1);
     if (existing.length > 0) {
       const row = existing[0];
+      if (!row) throw new Error("atomicClaimAlertSlotSQLite: row missing despite length>0");
       if (row.lastEmailAt && new Date(row.lastEmailAt) >= cooldownThreshold) {
         return { claimed: false, reason: "Cooldown active" };
       }
@@ -247,6 +248,7 @@ async function atomicClaimAlertSlotSQLite(
         alertCount: 1,
       })
       .returning({ id: alertCooldown.id });
+    if (!newRow) throw new Error("claimCooldown: no row returned");
     return {
       claimed: true,
       cooldownId: newRow.id,

@@ -19,8 +19,8 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
   let denom2 = 0;
 
   for (let i = 0; i < n; i++) {
-    const diff1 = values[i] - mean1;
-    const diff2 = values[i + lag] - mean2;
+    const diff1 = (values[i] ?? 0) - mean1;
+    const diff2 = (values[i + lag] ?? 0) - mean2;
 
     numerator += diff1 * diff2;
     denom1 += diff1 * diff1;
@@ -71,7 +71,7 @@ export function calculateSeasonalPhase(
 
     for (let i = phase; i < values.length - period; i += period) {
       if (i + period < values.length) {
-        correlation += values[i] * values[i + period];
+        correlation += (values[i] ?? 0) * (values[i + period] ?? 0);
         count++;
       }
     }

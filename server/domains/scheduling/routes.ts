@@ -117,6 +117,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         for (let j = i + 1; j < schedules.length; j++) {
           const s1 = schedules[i];
           const s2 = schedules[j];
+          if (!s1 || !s2) continue;
           const s1Bag: Record<string, unknown> = s1 as object as Record<string, unknown>;
           const s2Bag: Record<string, unknown> = s2 as object as Record<string, unknown>;
           if (
@@ -159,14 +160,14 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         const raw: Date | string = schedule.scheduledDate as Date | string;
         const dateKey =
           raw instanceof Date
-            ? raw.toISOString().split("T")[0]
+            ? (raw.toISOString().split("T")[0] ?? "")
             : typeof raw === "string"
-              ? raw.split("T")[0]
+              ? (raw.split("T")[0] ?? "")
               : String(raw);
         if (!calendarData[dateKey]) {
           calendarData[dateKey] = [];
         }
-        calendarData[dateKey].push(schedule);
+        calendarData[dateKey]?.push(schedule);
       });
 
       res.json(calendarData);

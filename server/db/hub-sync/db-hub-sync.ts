@@ -111,11 +111,11 @@ export class DatabaseHubSyncStorage {
       (e) => e.status === "completed" || e.status === "synced"
     ).length;
     const failed = entries.filter((e) => e.status === "failed").length;
-    const lastSync =
+    const sortedEntries =
       entries.length > 0
-        ? entries.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))[0]
-            .createdAt
-        : null;
+        ? entries.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+        : [];
+    const lastSync = sortedEntries[0]?.createdAt ?? null;
     return {
       totalEntries: entries.length,
       successfulSyncs: successful,
@@ -220,6 +220,7 @@ export class DatabaseHubSyncStorage {
         set: data,
       })
       .returning();
+    if (!r) throw new Error("upsertDeviceRegistry: returned no row");
     return r;
   }
 
@@ -237,6 +238,7 @@ export class DatabaseHubSyncStorage {
 
   async createReplayRequest(data: InsertReplayIncoming): Promise<ReplayIncoming> {
     const [r] = await db.insert(replayIncoming).values(data).returning();
+    if (!r) throw new Error("createReplayRequest: returned no row");
     return r;
   }
 
@@ -278,6 +280,7 @@ export class DatabaseHubSyncStorage {
         set: data,
       })
       .returning();
+    if (!r) throw new Error("acquireSheetLock: returned no row");
     return r;
   }
 
@@ -315,21 +318,24 @@ export class DatabaseHubSyncStorage {
       .from(sheetVersion)
       .where(eq(sheetVersion.sheetKey, key))
       .limit(1);
-    if (existing[0]) {
+    const existingRow = existing[0];
+    if (existingRow) {
       const [r] = await db
         .update(sheetVersion)
         .set({
-          version: (existing[0].version ?? 0) + 1,
+          version: (existingRow.version ?? 0) + 1,
           lastModifiedBy: d.lastModifiedBy,
         } as never)
         .where(eq(sheetVersion.sheetKey, key))
         .returning();
+      if (!r) throw new Error("incrementSheetVersion: update returned no row");
       return r;
     }
     const [r] = await db
       .insert(sheetVersion)
       .values({ ...data, sheetKey: key, version: 1 } as never)
       .returning();
+    if (!r) throw new Error("incrementSheetVersion: insert returned no row");
     return r;
   }
 
@@ -376,6 +382,7 @@ export class DatabaseHubSyncStorage {
 
   async createDevice(device: InsertDevice): Promise<Device> {
     const [n] = await db.insert(devices).values(device).returning();
+    if (!n) throw new Error("createDevice: returned no row");
     return n;
   }
 

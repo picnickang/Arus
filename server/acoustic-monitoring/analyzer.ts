@@ -71,14 +71,15 @@ export function analyzeAcoustic(
   }
 
   let maxMagIndex = 0;
-  let maxMag = magnitudes[0];
+  let maxMag = magnitudes[0] ?? 0;
   for (let i = 1; i < magnitudes.length; i++) {
-    if (magnitudes[i] > maxMag) {
-      maxMag = magnitudes[i];
+    const m = magnitudes[i];
+    if (m !== undefined && m > maxMag) {
+      maxMag = m;
       maxMagIndex = i;
     }
   }
-  const dominantFrequency = frequencies[maxMagIndex];
+  const dominantFrequency = frequencies[maxMagIndex] ?? 0;
 
   const spectralCentroid = calculateSpectralCentroid(frequencies, magnitudes);
   const spectralRolloff = calculateSpectralRolloff(frequencies, magnitudes);
@@ -92,6 +93,7 @@ export function analyzeAcoustic(
   for (let i = 0; i < frequencies.length; i++) {
     const freq = frequencies[i];
     const energy = magnitudes[i];
+    if (freq === undefined || energy === undefined) continue;
     if (freq < 500) {
       frequencyBands.lowFreq += energy;
     } else if (freq < 2000) {

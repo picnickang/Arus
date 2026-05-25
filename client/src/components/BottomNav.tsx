@@ -21,7 +21,7 @@ function getBottomNavItems(roleId: string | null): string[] {
       /* fall through */
     }
   }
-  return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS['default'];
+  return ROLE_DEFAULTS[roleId || "default"] || ROLE_DEFAULTS['default'] || [];
 }
 
 export function BottomNav() {
@@ -33,7 +33,7 @@ export function BottomNav() {
 
   const visibleCategories = visibleCategoryIds.map((id) => getCategoryById(id)).filter(Boolean);
 
-  const currentPath = location.split("?")[0];
+  const currentPath = location.split("?")[0] ?? "";
 
   const isCategoryActive = (category: NavigationCategory) => {
     if (currentPath === category.hubRoute || currentPath.startsWith(`${category.hubRoute}/`)) {

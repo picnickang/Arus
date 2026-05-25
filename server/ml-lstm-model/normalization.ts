@@ -21,24 +21,27 @@ export function normalizeFeatures(
     mean = new Array(featureCount).fill(0);
     std = new Array(featureCount).fill(0);
 
+    const meanLocal = mean;
     for (const row of data) {
       for (let i = 0; i < featureCount; i++) {
-        mean[i] += row[i];
+        meanLocal[i] = (meanLocal[i] ?? 0) + (row[i] ?? 0);
       }
     }
-    mean = mean.map((m) => m / data.length);
+    mean = meanLocal.map((m) => m / data.length);
 
+    const stdLocal = std;
+    const meanRef = mean;
     for (const row of data) {
       for (let i = 0; i < featureCount; i++) {
-        std[i] += Math.pow(row[i] - mean[i], 2);
+        stdLocal[i] = (stdLocal[i] ?? 0) + Math.pow((row[i] ?? 0) - (meanRef[i] ?? 0), 2);
       }
     }
-    std = std.map((s) => Math.sqrt(s / data.length));
+    std = stdLocal.map((s) => Math.sqrt(s / data.length));
     std = std.map((s) => (s === 0 ? 1 : s));
   }
 
   const finalMean = mean;
   const finalStd = std;
-  const normalized = data.map((row) => row.map((val, i) => (val - finalMean[i]) / finalStd[i]));
+  const normalized = data.map((row) => row.map((val, i) => (val - (finalMean[i] ?? 0)) / (finalStd[i] ?? 1)));
   return { normalized, mean: finalMean, std: finalStd };
 }

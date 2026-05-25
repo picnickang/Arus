@@ -85,8 +85,10 @@ export function timeToHourPattern(startTime: string, endTime: string): number[] 
     return pattern;
   }
 
-  const [startHour] = startTime.split(":").map(Number);
-  const [endHour] = endTime.split(":").map(Number);
+  const [startHourRaw] = startTime.split(":").map(Number);
+  const [endHourRaw] = endTime.split(":").map(Number);
+  const startHour = startHourRaw ?? 0;
+  const endHour = endHourRaw ?? 0;
 
   if (endHour <= startHour) {
     for (let h = startHour; h < 24; h++) {
@@ -111,7 +113,8 @@ export function getSevenDayRestTotal(dayIndex: number, rows: DayRow[]): number {
   let total = 0;
   const startIdx = Math.max(0, dayIndex - 6);
   for (let i = startIdx; i <= dayIndex; i++) {
-    total += sum24(rows[i]);
+    const row = rows[i];
+    if (row) total += sum24(row);
   }
   return total;
 }

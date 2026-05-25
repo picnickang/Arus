@@ -9,7 +9,9 @@ export function quantile(arr: number[], p: number): number {
   const pos = (sorted.length - 1) * p;
   const base = Math.floor(pos);
   const rest = pos - base;
-  return sorted[base] + ((sorted[base + 1] ?? sorted[base]) - sorted[base]) * rest;
+  const baseVal = sorted[base] ?? 0;
+  const nextVal = sorted[base + 1] ?? baseVal;
+  return baseVal + (nextVal - baseVal) * rest;
 }
 
 export function movingAverage(arr: number[], windowSize: number = 7): number[] {
@@ -50,7 +52,7 @@ export async function computeVPSKPIs(
 
   const rho = config.fuel_density_kg_per_l ?? 0.84;
   const fuelKgh = fuelLh.map((x) => (x ?? 0) * rho);
-  const sfoc = powerKw.map((p, i) => (p > 1e-6 ? (fuelKgh[i] * 1000) / p : NaN));
+  const sfoc = powerKw.map((p, i) => (p > 1e-6 ? ((fuelKgh[i] ?? 0) * 1000) / p : NaN));
   const sfocSmoothed = movingAverage(sfoc, 7);
 
   const stw =
@@ -63,12 +65,12 @@ export async function computeVPSKPIs(
   for (const load of loadPct) {
     let binIndex = counts.length - 1;
     for (let i = 0; i < bins.length; i++) {
-      if (load <= bins[i]) {
+      if (load <= (bins[i] ?? Infinity)) {
         binIndex = i;
         break;
       }
     }
-    counts[binIndex] += 1;
+    counts[binIndex] = (counts[binIndex] ?? 0) + 1;
   }
   const hours = counts.map((c) => c / 3600);
   const xTime = t.length > 0 ? t : rpm.map((_, i) => i);
@@ -77,11 +79,11 @@ export async function computeVPSKPIs(
     meta: { max_torque_nm: maxTorque, fuel_density_kg_per_l: rho, torque_unit: unit },
     series: {
       load_vs_sfoc: loadPct
-        .map((load, i) => ({ x: load, y: sfocSmoothed[i] }))
+        .map((load, i) => ({ x: load, y: sfocSmoothed[i] ?? 0 }))
         .filter((d) => Number.isFinite(d.y)),
       fuel_vs_time: xTime.map((time, i) => ({ x: time, y: fuelLh[i] ?? 0 })),
       power_vs_stw: stw.map((speed, i) => ({ x: speed, y: powerKw[i] ?? 0 })),
-      load_hist: bins.map((bin, i) => ({ bin, hours: hours[i] })),
+      load_hist: bins.map((bin, i) => ({ bin, hours: hours[i] ?? 0 })),
     },
   };
 }

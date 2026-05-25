@@ -125,7 +125,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     writeOperationRateLimit,
     auditAdminAction("UPDATE_SYSTEM_SETTING"),
     withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const validatedData = (
         insertAdminSystemSettingSchema as object as import("zod").AnyZodObject
       ).partial().parse(req.body);
@@ -140,7 +140,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     criticalOperationRateLimit,
     auditAdminAction("DELETE_SYSTEM_SETTING"),
     withErrorHandling("delete admin system setting", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       await dbSystemAdminStorage.deleteAdminSystemSetting(id);
       sendDeleted(res);
     })
@@ -152,7 +152,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     generalApiRateLimit,
     auditAdminAction("VIEW_SETTINGS_BY_CATEGORY"),
     withErrorHandling("fetch settings by category", async (req: Request, res: Response) => {
-      const { orgId, category } = req.params;
+      const { orgId = '', category = '' } = req.params;
       const settings = await dbSystemAdminStorage.getSettingsByCategory(orgId, category);
       res.json(settings);
     })

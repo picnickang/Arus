@@ -68,6 +68,7 @@ export class DbSensorsStorage {
         updatedAt: new Date(),
       } as never)
       .returning();
+    if (!r) throw new Error("createSensorConfiguration: returned no row");
     return r;
   }
   async bulkCreateSensorConfigurations(
@@ -107,11 +108,12 @@ export class DbSensorsStorage {
                 )
               )
               .returning();
-            if (updated.length > 0) {
-              created.push(updated[0]);
+            const firstUpdated = updated[0];
+            if (firstUpdated) {
+              created.push(firstUpdated);
               await publishEvent(
                 "sensor_configuration.updated" as Parameters<typeof publishEvent>[0],
-                { id: updated[0].id, data: updated[0] }
+                { id: firstUpdated.id, data: firstUpdated }
               );
             }
           }
@@ -120,11 +122,12 @@ export class DbSensorsStorage {
             .insert(sensorConfigurations)
             .values({ ...config, orgId, createdAt: new Date(), updatedAt: new Date() })
             .returning();
-          if (result.length > 0) {
-            created.push(result[0]);
+          const firstResult = result[0];
+          if (firstResult) {
+            created.push(firstResult);
             await publishEvent(
               "sensor_configuration.created" as Parameters<typeof publishEvent>[0],
-              { id: result[0].id, data: result[0] }
+              { id: firstResult.id, data: firstResult }
             );
           }
         }
@@ -225,6 +228,7 @@ export class DbSensorsStorage {
         },
       })
       .returning();
+    if (!r) throw new Error("upsertSensorState: returned no row");
     return r;
   }
 
@@ -257,6 +261,7 @@ export class DbSensorsStorage {
         updatedAt: new Date(),
       })
       .returning();
+    if (!r) throw new Error("createJ1939Configuration: returned no row");
     return r;
   }
   async updateJ1939Configuration(

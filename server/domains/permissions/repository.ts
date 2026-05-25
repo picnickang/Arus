@@ -107,6 +107,7 @@ export async function getRoleByName(name: string, orgId: string): Promise<Role |
 
 export async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
+  if (!role) throw new Error("Failed to create role");
   return role;
 }
 
@@ -161,7 +162,7 @@ export async function setPermissionGrant(
     )
     .limit(1);
 
-  if (existing.length > 0) {
+  if (existing.length > 0 && existing[0]) {
     await db
       .update(permissionGrants)
       .set({ isGranted })
@@ -278,6 +279,7 @@ export async function assignRoleToUser(
   data: InsertUserRoleAssignment
 ): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
+  if (!assignment) throw new Error("Failed to assign role to user");
   return assignment;
 }
 

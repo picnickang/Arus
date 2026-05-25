@@ -72,6 +72,19 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     return this.columns()[name];
   }
 
+  /**
+   * Returns a required column or throws. Used for orgId/id and other
+   * statically-known columns so the noUncheckedIndexedAccess lookup
+   * never leaks an undefined into Drizzle helpers (eq/ilike/and).
+   */
+  protected requireCol(name: string): PgColumn {
+    const c = this.columns()[name];
+    if (!c) {
+      throw new Error(`BaseRepository: required column '${name}' missing on table`);
+    }
+    return c;
+  }
+
   private columns(): Record<string, PgColumn> {
     return getTableColumns(this.table) as Record<string, PgColumn>;
   }
@@ -97,16 +110,17 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async list(orgId: string, filters?: FilterOptions): Promise<T[]> {
-    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.requireCol(this.orgIdColumn), orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && this.columns()[key]) {
-          if (typeof value === "string" && key.toLowerCase().includes("search")) {
-            conditions.push(ilike(this.columns()[key], `%${value}%`));
-          } else {
-            conditions.push(eq(this.columns()[key], value));
-          }
+        if (value === undefined || value === null) continue;
+        const column = this.columns()[key];
+        if (!column) continue;
+        if (typeof value === "string" && key.toLowerCase().includes("search")) {
+          conditions.push(ilike(column, `%${value}%`));
+        } else {
+          conditions.push(eq(column, value));
         }
       }
     }
@@ -129,16 +143,17 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     const pageSize = pagination.pageSize ?? pagination.limit ?? 20;
     const offset = pagination.offset ?? (page - 1) * pageSize;
 
-    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.requireCol(this.orgIdColumn), orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && this.columns()[key]) {
-          if (typeof value === "string" && key.toLowerCase().includes("search")) {
-            conditions.push(ilike(this.columns()[key], `%${value}%`));
-          } else {
-            conditions.push(eq(this.columns()[key], value));
-          }
+        if (value === undefined || value === null) continue;
+        const column = this.columns()[key];
+        if (!column) continue;
+        if (typeof value === "string" && key.toLowerCase().includes("search")) {
+          conditions.push(ilike(column, `%${value}%`));
+        } else {
+          conditions.push(eq(column, value));
         }
       }
     }
@@ -154,11 +169,13 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     let query = db.select().from(this.table).where(whereClause).limit(pageSize).offset(offset);
 
-    if (sort?.sortBy && this.columns()[sort.sortBy]) {
+    if (sort?.sortBy) {
       const sortColumn = this.columns()[sort.sortBy];
-      query = query.orderBy(
-        sort.sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)
-      ) as typeof query;
+      if (sortColumn) {
+        query = query.orderBy(
+          sort.sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)
+        ) as typeof query;
+      }
     }
 
     const items = await query;
@@ -178,8 +195,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .from(this.table)
       .where(
         and(
-          eq(this.columns()[this.idColumn], id),
-          eq(this.columns()[this.orgIdColumn], orgId)
+          eq(this.requireCol(this.idColumn), id),
+          eq(this.requireCol(this.orgIdColumn), orgId)
         )
       )
       .limit(1);
@@ -208,8 +225,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .set(setValues(updateData))
       .where(
         and(
-          eq(this.columns()[this.idColumn], id),
-          eq(this.columns()[this.orgIdColumn], orgId)
+          eq(this.requireCol(this.idColumn), id),
+          eq(this.requireCol(this.orgIdColumn), orgId)
         )
       )
       .returning();
@@ -226,8 +243,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .delete(this.table)
       .where(
         and(
-          eq(this.columns()[this.idColumn], id),
-          eq(this.columns()[this.orgIdColumn], orgId)
+          eq(this.requireCol(this.idColumn), id),
+          eq(this.requireCol(this.orgIdColumn), orgId)
         )
       )
       .returning();
@@ -241,8 +258,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .from(this.table)
       .where(
         and(
-          eq(this.columns()[this.idColumn], id),
-          eq(this.columns()[this.orgIdColumn], orgId)
+          eq(this.requireCol(this.idColumn), id),
+          eq(this.requireCol(this.orgIdColumn), orgId)
         )
       )
       .limit(1);
@@ -251,13 +268,14 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async count(orgId: string, filters?: FilterOptions): Promise<number> {
-    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.requireCol(this.orgIdColumn), orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && this.columns()[key]) {
-          conditions.push(eq(this.columns()[key], value));
-        }
+        if (value === undefined || value === null) continue;
+        const column = this.columns()[key];
+        if (!column) continue;
+        conditions.push(eq(column, value));
       }
     }
 

@@ -138,7 +138,11 @@ function getStatusBadge(status: string) {
     unknown: { variant: "outline", label: "Unknown", icon: Package },
   };
 
-  const config = statusConfig[status] || statusConfig['unknown'];
+  const config = statusConfig[status] || statusConfig['unknown'] || {
+    variant: "outline" as const,
+    label: "Unknown",
+    icon: Package,
+  };
   const Icon = config.icon;
 
   return (
@@ -323,6 +327,7 @@ export function VirtualizedInventoryTable({
         >
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
+            if (!item) return null;
             const status = getStockStatus(item);
             const available = item.stock
               ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved)

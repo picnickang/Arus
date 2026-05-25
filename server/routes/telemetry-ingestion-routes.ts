@@ -38,8 +38,8 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.post(
   "/archive/:id/retry",
   withErrorHandling("retry archive", async (req, res) => {
-    await rawTelemetryArchiveAdapter.retryFailed(req.params['id']);
-    return res.json({ success: true, archiveId: req.params['id'] });
+    await rawTelemetryArchiveAdapter.retryFailed((req.params['id'] ?? ''));
+    return res.json({ success: true, archiveId: (req.params['id'] ?? '') });
   })
 );
 
@@ -84,7 +84,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/heartbeat/:equipmentId",
   withErrorHandling("get equipment heartbeat", async (req, res) => {
-    const heartbeat = await equipmentHeartbeatAdapter.getHeartbeat(req.params['equipmentId']);
+    const heartbeat = await equipmentHeartbeatAdapter.getHeartbeat((req.params['equipmentId'] ?? ''));
     if (!heartbeat) {
       return res.status(404).json({ message: "Equipment heartbeat not found" });
     }
@@ -148,7 +148,7 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.get(
   "/batch/:batchId",
   withErrorHandling("get batch", async (req, res) => {
-    const batch = await telemetryBatchAckAdapter.getBatch(req.params['batchId']);
+    const batch = await telemetryBatchAckAdapter.getBatch((req.params['batchId'] ?? ''));
     if (!batch) {
       return res.status(404).json({ message: "Batch not found" });
     }
@@ -159,8 +159,8 @@ telemetryIngestionRouter.get(
 telemetryIngestionRouter.post(
   "/batch/:batchId/retry",
   withErrorHandling("retry batch", async (req, res) => {
-    await telemetryBatchAckAdapter.retryBatch(req.params['batchId']);
-    return res.json({ success: true, batchId: req.params['batchId'] });
+    await telemetryBatchAckAdapter.retryBatch((req.params['batchId'] ?? ''));
+    return res.json({ success: true, batchId: (req.params['batchId'] ?? '') });
   })
 );
 
@@ -187,8 +187,8 @@ telemetryIngestionRouter.get(
   withErrorHandling("get schema", async (req, res) => {
     const version = req.query['version'] ? Number(req.query['version']) : undefined;
     const schema = version
-      ? await schemaRegistryAdapter.getSchema(req.params['protocol'], version)
-      : await schemaRegistryAdapter.getActiveSchema(req.params['protocol']);
+      ? await schemaRegistryAdapter.getSchema((req.params['protocol'] ?? ''), version)
+      : await schemaRegistryAdapter.getActiveSchema((req.params['protocol'] ?? ''));
     if (!schema) {
       return res.status(404).json({ message: "Schema not found" });
     }
@@ -207,7 +207,7 @@ telemetryIngestionRouter.post(
 telemetryIngestionRouter.post(
   "/schema/:protocol/:version/deprecate",
   withErrorHandling("deprecate schema", async (req, res) => {
-    await schemaRegistryAdapter.deprecateSchema(req.params['protocol'], Number(req.params['version']));
+    await schemaRegistryAdapter.deprecateSchema((req.params['protocol'] ?? ''), Number((req.params['version'] ?? '')));
     return res.json({ success: true });
   })
 );
@@ -215,7 +215,7 @@ telemetryIngestionRouter.post(
 telemetryIngestionRouter.post(
   "/schema/:protocol/:version/activate",
   withErrorHandling("activate schema", async (req, res) => {
-    await schemaRegistryAdapter.activateSchema(req.params['protocol'], Number(req.params['version']));
+    await schemaRegistryAdapter.activateSchema((req.params['protocol'] ?? ''), Number((req.params['version'] ?? '')));
     return res.json({ success: true });
   })
 );

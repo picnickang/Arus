@@ -60,6 +60,7 @@ export class DatabaseAlertStorage {
       .insert(alertConfigurations)
       .values({ id: randomUUID(), ...config, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create alert configuration");
     return n;
   }
   async updateAlertConfiguration(
@@ -177,6 +178,7 @@ export class DatabaseAlertStorage {
         createdAt: new Date(),
       })
       .returning();
+    if (!n) throw new Error("Failed to create alert notification");
     return n;
   }
   async acknowledgeAlert(
@@ -209,6 +211,7 @@ export class DatabaseAlertStorage {
       .insert(alertComments)
       .values({ id: randomUUID(), ...commentData, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create alert comment");
     return n;
   }
   async getAlertComments(alertId: string): Promise<AlertComment[]> {
@@ -224,6 +227,7 @@ export class DatabaseAlertStorage {
       .insert(alertSuppressions)
       .values({ id: randomUUID(), ...suppressionData, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create alert suppression");
     return n;
   }
   async getActiveSuppressions(orgId?: string): Promise<AlertSuppression[]> {

@@ -35,7 +35,7 @@ function computeStats(values: number[]): SensorStats {
   const max = Math.max(...values);
   const rms = Math.sqrt(values.reduce((sum, v) => sum + v * v, 0) / n);
   const delta = max - min;
-  const rateOfChange = n > 1 ? (values[0] - values[n - 1]) / n : 0;
+  const rateOfChange = n > 1 ? ((values[0] ?? 0) - (values[n - 1] ?? 0)) / n : 0;
 
   return {
     mean: round(mean),
@@ -111,6 +111,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
+    if (!result) throw new Error("computeAndStore: equipmentFeatures insert returned no row");
     logger.info("[FeatureStore] Stored features", {
       orgId,
       equipmentId,

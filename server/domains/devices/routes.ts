@@ -48,7 +48,7 @@ export function registerDeviceRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch device", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const device = await deviceService.getDeviceById(req.params['id'], orgId);
+      const device = await deviceService.getDeviceById(req.params['id'] ?? '', orgId);
 
       if (!device) {
         return sendNotFound(res, "Device");
@@ -80,7 +80,7 @@ export function registerDeviceRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const deviceData = insertDeviceSchema.partial().parse(req.body);
       const device = await deviceService.updateDevice(
-        req.params['id'],
+        req.params['id'] ?? '',
         deviceData,
         orgId,
         req.user?.id
@@ -97,7 +97,7 @@ export function registerDeviceRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete device", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      await deviceService.deleteDevice(req.params['id'], orgId, req.user?.id);
+      await deviceService.deleteDevice(req.params['id'] ?? '', orgId, req.user?.id);
 
       sendDeleted(res);
     })

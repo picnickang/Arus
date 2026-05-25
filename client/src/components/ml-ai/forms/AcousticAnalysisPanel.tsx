@@ -73,10 +73,14 @@ function WaveformTooltip({ active, payload }: TooltipProps<number, string>) {
     return null;
   }
 
+  const first = payload[0];
+  if (!first) {
+    return null;
+  }
   return (
     <div className="bg-popover border rounded-lg shadow-lg p-2 text-xs">
-      <p>Sample: {payload[0].payload.index}</p>
-      <p>Amplitude: {payload[0].value?.toFixed(3)}</p>
+      <p>Sample: {first.payload.index}</p>
+      <p>Amplitude: {first.value?.toFixed(3)}</p>
     </div>
   );
 }

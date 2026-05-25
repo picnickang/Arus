@@ -241,8 +241,8 @@ class WorkOrderHistoryHashService {
             expectedHash: expectedPreviousHash ?? "GENESIS",
             actualHash: entry.previousHash ?? "null",
           },
-          chainStartDate: entries[0].createdAt ?? undefined,
-          chainEndDate: entries[entries.length - 1].createdAt ?? undefined,
+          chainStartDate: entries[0]?.createdAt ?? undefined,
+          chainEndDate: entries[entries.length - 1]?.createdAt ?? undefined,
         };
       }
 
@@ -275,8 +275,8 @@ class WorkOrderHistoryHashService {
             expectedHash: computedHash,
             actualHash: entry.entryHash,
           },
-          chainStartDate: entries[0].createdAt ?? undefined,
-          chainEndDate: entries[entries.length - 1].createdAt ?? undefined,
+          chainStartDate: entries[0]?.createdAt ?? undefined,
+          chainEndDate: entries[entries.length - 1]?.createdAt ?? undefined,
         };
       }
 
@@ -288,8 +288,8 @@ class WorkOrderHistoryHashService {
       isValid: true,
       totalEntries: entries.length,
       verifiedCount,
-      chainStartDate: entries[0].createdAt ?? undefined,
-      chainEndDate: entries[entries.length - 1].createdAt ?? undefined,
+      chainStartDate: entries[0]?.createdAt ?? undefined,
+      chainEndDate: entries[entries.length - 1]?.createdAt ?? undefined,
     };
   }
 

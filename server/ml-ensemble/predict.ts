@@ -46,9 +46,9 @@ export async function ensemblePredict(
     throw new Error("Ensemble predictions are disabled. Enable via feature flags.");
   }
 
-  const weights = ensembleConfig.useAdaptiveWeights
+  const weights = (ensembleConfig.useAdaptiveWeights
     ? await getAdaptiveWeights(orgId, equipmentType)
-    : STATIC_WEIGHTS['default'];
+    : STATIC_WEIGHTS['default']) ?? { lstm: 0.4, rf: 0.3, xgb: 0.3 };
 
   logger.debug(
     "MlEnsemble",
@@ -110,14 +110,15 @@ export async function ensemblePredict(
       "active"
     );
 
-    if (calibrationCurves.length > 0) {
-      const latestCurve = calibrationCurves[0];
+    const latestCurve = calibrationCurves[0];
+    if (latestCurve) {
       calibrationMethod = latestCurve.method;
       const calibratedArr = applyCalibration([finalPrediction], latestCurve.method);
       const calibratedProbability = calibratedArr[0] ?? finalPrediction;
+      const methodLabel = latestCurve.method;
       logger.debug(
         "MlEnsemble",
-        `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${latestCurve.method})`
+        `Calibration applied: ${(finalPrediction * 100).toFixed(1)}% → ${(calibratedProbability * 100).toFixed(1)}% (${methodLabel})`
       );
       finalPrediction = calibratedProbability;
     } else {

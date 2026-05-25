@@ -34,6 +34,9 @@ export function analyzeFailurePatterns(
 
   equipmentFailures.forEach((orders, equipmentId) => {
     if (orders.length >= 2) {
+      const firstOrder = orders[0];
+      const lastOrder = orders[orders.length - 1];
+      if (!firstOrder || !lastOrder) return;
       const eq = equipment.find((e) => e.id === equipmentId);
       const avgDaysBetween = calculateAverageDaysBetween(orders);
 
@@ -41,13 +44,13 @@ export function analyzeFailurePatterns(
       const correlatedMetrics = identifyCorrelatedMetrics(relatedTelemetry, orders);
 
       patterns.push({
-        vesselId: orders[0].vesselId || "",
+        vesselId: firstOrder.vesselId || "",
         patternType: "failure",
         description: `Recurring ${eq?.type || "equipment"} failures observed ${orders.length} times over ${Math.round(avgDaysBetween * orders.length)} days`,
         frequency: orders.length,
         confidence: Math.min(0.9, orders.length / 10),
-        firstObserved: new Date(orders[orders.length - 1].createdAt ?? 0),
-        lastObserved: new Date(orders[0].createdAt ?? 0),
+        firstObserved: new Date(lastOrder.createdAt ?? 0),
+        lastObserved: new Date(firstOrder.createdAt ?? 0),
         affectedEquipment: [equipmentId],
         correlatedMetrics,
         recommendedActions: generateFailureRecommendations(eq?.type ?? undefined, orders.length, avgDaysBetween),
@@ -68,7 +71,9 @@ export function analyzeMaintenancePatterns(
     (wo) => wo.workOrderType === "scheduled" || wo.workOrderType === "preventive"
   );
 
-  if (scheduledWork.length > 0) {
+  const firstScheduled = scheduledWork[0];
+  const lastScheduled = scheduledWork[scheduledWork.length - 1];
+  if (scheduledWork.length > 0 && firstScheduled && lastScheduled) {
     const adherenceRate =
       (scheduledWork.filter((wo) => wo.status === "completed").length / scheduledWork.length) * 100;
     const avgCompletionTime = calculateAverageResolutionTime(
@@ -76,13 +81,13 @@ export function analyzeMaintenancePatterns(
     );
 
     patterns.push({
-      vesselId: scheduledWork[0].vesselId || "",
+      vesselId: firstScheduled.vesselId || "",
       patternType: "maintenance",
       description: `Scheduled maintenance adherence at ${adherenceRate.toFixed(1)}% with average completion time of ${avgCompletionTime} hours`,
       frequency: scheduledWork.length,
       confidence: adherenceRate > 80 ? 0.9 : 0.6,
-      firstObserved: new Date(scheduledWork[scheduledWork.length - 1].createdAt ?? 0),
-      lastObserved: new Date(scheduledWork[0].createdAt ?? 0),
+      firstObserved: new Date(lastScheduled.createdAt ?? 0),
+      lastObserved: new Date(firstScheduled.createdAt ?? 0),
       affectedEquipment: [...new Set(scheduledWork.map((wo) => wo.equipmentId))],
       correlatedMetrics: ["maintenance_schedule_adherence", "completion_time"],
       recommendedActions:

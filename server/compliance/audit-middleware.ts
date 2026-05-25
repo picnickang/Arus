@@ -133,14 +133,14 @@ function parseEntityFromPath(path: string): { entityType: string; entityId?: str
     return { entityType: "api" };
   }
 
-  const entityType = segments[0].replaceAll("-", "_");
+  const entityType = (segments[0] ?? "").replaceAll("-", "_");
 
   // Check if second segment looks like an ID (UUID or numeric)
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const numericPattern = /^\d+$/;
 
   if (segments.length > 1) {
-    const potentialId = segments[1];
+    const potentialId = segments[1] ?? "";
     if (uuidPattern.test(potentialId) || numericPattern.test(potentialId)) {
       return { entityType, entityId: potentialId };
     }
@@ -181,7 +181,7 @@ function redactSensitiveData(obj: unknown, sensitiveFields: string[]): unknown {
 function getClientIP(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    return Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0].trim();
+    return Array.isArray(forwarded) ? (forwarded[0] ?? "unknown") : (forwarded.split(",")[0] ?? "").trim();
   }
   return req.ip || req.socket.remoteAddress || "unknown";
 }

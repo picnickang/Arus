@@ -16,6 +16,7 @@ export function checkMonthCompliance(days: RestDay[]): MonthComplianceResult {
 
   for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
     const day = days[dayIndex];
+    if (!day) continue;
     const chunks = chunksFromDay(day);
 
     const totalRest = (() => {
@@ -63,8 +64,10 @@ export function checkMonthCompliance(days: RestDay[]): MonthComplianceResult {
       }
     }
 
+    const endDay = days[i];
+    if (!endDay) continue;
     rolling7d.push({
-      end_date: days[i].date,
+      end_date: endDay.date,
       rest_7d: totalRest7d,
       ok: totalRest7d >= STCW_MIN_REST_7D,
     });

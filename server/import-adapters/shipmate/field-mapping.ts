@@ -59,7 +59,7 @@ const parseShipmateDate = (v: string): Date | null => {
 
   // DD-MMM-YYYY (e.g., "15-Jan-2024")
   const dmy = trimmed.match(/^(\d{1,2})-(\w{3})-(\d{4})$/);
-  if (dmy) {
+  if (dmy && dmy[1] && dmy[2] && dmy[3]) {
     const month = MONTH_MAP[dmy[2].toLowerCase()];
     if (month) {
       return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);
@@ -68,7 +68,7 @@ const parseShipmateDate = (v: string): Date | null => {
 
   // DD/MM/YYYY
   const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slash) {
+  if (slash && slash[1] && slash[2] && slash[3]) {
     return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);
   }
 

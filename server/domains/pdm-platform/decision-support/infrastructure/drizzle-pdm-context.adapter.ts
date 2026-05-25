@@ -167,10 +167,10 @@ export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
       return null;
     }
 
-    const accurateRate = rate(feedbackValue(row, "accurate"), total);
-    const falsePositiveRate = rate(feedbackValue(row, "falsePositive"), total);
-    const falseNegativeRate = rate(feedbackValue(row, "falseNegative"), total);
-    const confirmedFailureRate = rate(feedbackValue(row, "confirmedFailure"), total);
+    const accurateRate = rate(feedbackValue(row ?? {}, "accurate"), total);
+    const falsePositiveRate = rate(feedbackValue(row ?? {}, "falsePositive"), total);
+    const falseNegativeRate = rate(feedbackValue(row ?? {}, "falseNegative"), total);
+    const confirmedFailureRate = rate(feedbackValue(row ?? {}, "confirmedFailure"), total);
     const scoreBias = Math.round(clamp(falseNegativeRate - falsePositiveRate, -0.2, 0.2) * 1000) / 1000;
     const confidenceMultiplier = Math.round(clamp(0.78 + accurateRate * 0.22, 0.65, 1.05) * 1000) / 1000;
 

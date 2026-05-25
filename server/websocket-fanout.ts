@@ -89,8 +89,8 @@ export function makeEventId(timestampMs: number, seq: number): string {
 }
 
 export function compareEventIds(a: string, b: string): number {
-  const [aMs, aSeq] = a.split("-").map((n) => Number.parseInt(n, 10));
-  const [bMs, bSeq] = b.split("-").map((n) => Number.parseInt(n, 10));
+  const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
+  const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
   if (aMs !== bMs) return aMs - bMs;
   return aSeq - bSeq;
 }
@@ -131,7 +131,7 @@ class ReplayRing {
     if (!bucket) return [];
 
     const cutoff = Date.now() - this.windowMs;
-    while (bucket.length > 0 && bucket[0].timestampMs < cutoff) {
+    while (bucket.length > 0 && (bucket[0]?.timestampMs ?? 0) < cutoff) {
       bucket.shift();
     }
     if (bucket.length === 0) {
@@ -146,7 +146,7 @@ class ReplayRing {
   trimAll(): void {
     const cutoff = Date.now() - this.windowMs;
     for (const [key, bucket] of this.buckets) {
-      while (bucket.length > 0 && bucket[0].timestampMs < cutoff) {
+      while (bucket.length > 0 && (bucket[0]?.timestampMs ?? 0) < cutoff) {
         bucket.shift();
       }
       if (bucket.length === 0) this.buckets.delete(key);

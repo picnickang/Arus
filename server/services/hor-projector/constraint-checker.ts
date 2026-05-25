@@ -71,7 +71,7 @@ function calculateRestInLast24h(
 
   for (let h = 0; h < 24; h++) {
     const checkTime = new Date(target.getTime() - h * 60 * 60 * 1000);
-    const checkDate = checkTime.toISOString().split("T")[0];
+    const checkDate = checkTime.toISOString().split("T")[0] ?? "";
     const checkHour = checkTime.getHours();
 
     const dayFlags = daysMap.get(checkDate);
@@ -93,7 +93,7 @@ function calculateWorkInLast7Days(daysMap: Map<string, RestHourFlags>, targetDat
   for (let d = 0; d < 7; d++) {
     const checkDate = new Date(target);
     checkDate.setDate(checkDate.getDate() - d);
-    const dateStr = checkDate.toISOString().split("T")[0];
+    const dateStr = checkDate.toISOString().split("T")[0] ?? "";
 
     const dayFlags = daysMap.get(dateStr);
     if (dayFlags) {
@@ -128,7 +128,7 @@ export async function canAssignCrew(
         proposedAssignment.vesselId &&
         rosterVesselId !== proposedAssignment.vesselId
       ) {
-        const assignmentDate = new Date(proposedAssignment.start).toISOString().split("T")[0];
+        const assignmentDate = new Date(proposedAssignment.start).toISOString().split("T")[0] ?? "";
         violations.push({
           crewId,
           date: assignmentDate,
@@ -152,8 +152,8 @@ export async function canAssignCrew(
   const lookbackEnd = new Date(proposedEnd);
   lookbackEnd.setDate(lookbackEnd.getDate() + 1);
 
-  const startStr = lookbackStart.toISOString().split("T")[0];
-  const endStr = lookbackEnd.toISOString().split("T")[0];
+  const startStr = lookbackStart.toISOString().split("T")[0] ?? "";
+  const endStr = lookbackEnd.toISOString().split("T")[0] ?? "";
 
   const existingRestDays = await getCrewExistingRestDays(crewId, startStr, endStr);
 
@@ -196,7 +196,7 @@ export async function canAssignCrew(
   const projectedMap = projectRestHoursFromAssignments(allAssignments, crewExistingMap);
   const crewDays = projectedMap.get(crewId) || new Map();
 
-  const proposedDateStr = proposedStart.toISOString().split("T")[0];
+  const proposedDateStr = proposedStart.toISOString().split("T")[0] ?? "";
   const proposedHour = proposedStart.getHours();
 
   const projectedRest = calculateRestInLast24h(crewDays, proposedDateStr, proposedHour);

@@ -65,11 +65,13 @@ export async function getPurchaseRequestWithItems(
   const suppliersMap = new Map<string, string>();
 
   if (partIds.length > 0) {
+    const partsCols = parts as object as Record<string, never>;
     const partRows = await db
-      .select({ id: parts.id, name: parts.name, partNumber: (parts as object as Record<string, never>)["partNumber"] })
+      .select({ id: parts.id, name: parts.name, partNumber: partsCols['partNumber'] })
       .from(parts)
       .where(inArray(parts.id, partIds));
-    for (const p of partRows) {
+    type PartRow = { id: string; name: string; partNumber: string };
+    for (const p of partRows as object as PartRow[]) {
       partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });
     }
   }

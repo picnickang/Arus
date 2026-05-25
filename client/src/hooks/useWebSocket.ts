@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
  *  Lexicographic ordering matches numeric ordering for same-length
  *  millisecond strings only, so parse before compare. */
 function compareEventIds(a: string, b: string): number {
-  const [aMs, aSeq] = a.split("-").map((n) => Number.parseInt(n, 10));
-  const [bMs, bSeq] = b.split("-").map((n) => Number.parseInt(n, 10));
+  const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
+  const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
   if (aMs !== bMs) return aMs - bMs;
   return aSeq - bSeq;
 }

@@ -105,9 +105,12 @@ export function SchematicConfigPanel({
       const sorted = d.zones.sort((a, b) => a.order - b.order);
       const idx = sorted.findIndex((z) => z.zoneId === zoneId);
       if (idx > 0) {
-        const tmp = sorted[idx].order;
-        sorted[idx].order = sorted[idx - 1].order;
-        sorted[idx - 1].order = tmp;
+        const cur = sorted[idx];
+        const prev = sorted[idx - 1];
+        if (!cur || !prev) return;
+        const tmp = cur.order;
+        cur.order = prev.order;
+        prev.order = tmp;
       }
     });
   };
@@ -116,10 +119,13 @@ export function SchematicConfigPanel({
     updateDraft((d) => {
       const sorted = d.zones.sort((a, b) => a.order - b.order);
       const idx = sorted.findIndex((z) => z.zoneId === zoneId);
-      if (idx < sorted.length - 1) {
-        const tmp = sorted[idx].order;
-        sorted[idx].order = sorted[idx + 1].order;
-        sorted[idx + 1].order = tmp;
+      if (idx >= 0 && idx < sorted.length - 1) {
+        const cur = sorted[idx];
+        const next = sorted[idx + 1];
+        if (!cur || !next) return;
+        const tmp = cur.order;
+        cur.order = next.order;
+        next.order = tmp;
       }
     });
   };

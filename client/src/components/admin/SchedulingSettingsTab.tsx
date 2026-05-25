@@ -478,7 +478,7 @@ function AiWeightsSection() {
                 </div>
                 <Slider
                   value={[settings.aiWeights[key]]}
-                  onValueChange={([v]) => handleUpdateAiWeight(key, v)}
+                  onValueChange={([v]) => handleUpdateAiWeight(key, v ?? 0)}
                   min={0}
                   max={100}
                   step={5}

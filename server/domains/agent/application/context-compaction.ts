@@ -227,17 +227,23 @@ export function buildCompactedMessages(
   let i = 0;
   while (i < mappedMessages.length) {
     const msg = mappedMessages[i];
+    if (!msg) {
+      i++;
+      continue;
+    }
     if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length > 0) {
       const group: LLMMessage[] = [msg];
       const headerText = typeof msg.content === "string" ? msg.content : "";
       let groupTokens = estimateTokens(headerText + JSON.stringify(msg.toolCalls));
       let j = i + 1;
-      while (j < mappedMessages.length && mappedMessages[j].role === "tool") {
-        group.push(mappedMessages[j]);
+      while (j < mappedMessages.length) {
+        const next = mappedMessages[j];
+        if (!next || next.role !== "tool") break;
+        group.push(next);
         const toolContent =
-          typeof mappedMessages[j].content === "string"
-            ? (mappedMessages[j].content as string)
-            : JSON.stringify(mappedMessages[j].content || "");
+          typeof next.content === "string"
+            ? next.content
+            : JSON.stringify(next.content || "");
         groupTokens += estimateTokens(toolContent);
         j++;
       }
@@ -255,12 +261,16 @@ export function buildCompactedMessages(
   let trimFromFront = totalGroupTokens - budgetRemaining;
   let startIdx = 0;
   while (startIdx < groups.length && trimFromFront > 0) {
-    trimFromFront -= groups[startIdx].tokens;
+    const g = groups[startIdx];
+    if (!g) break;
+    trimFromFront -= g.tokens;
     startIdx++;
   }
 
   for (let k = startIdx; k < groups.length; k++) {
-    result.push(...groups[k].messages);
+    const g = groups[k];
+    if (!g) continue;
+    result.push(...g.messages);
   }
 
   return result;

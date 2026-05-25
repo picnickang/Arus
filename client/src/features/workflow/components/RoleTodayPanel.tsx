@@ -74,7 +74,7 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
           <Metric icon={Clock} label="Waiting parts" value={waitingParts} />
         </div>
         <div className="grid gap-2 md:grid-cols-3">
-          {actions.map((action) => (
+          {(actions ?? []).map((action) => (
             <Button key={action.href} variant="secondary" className="justify-between" onClick={() => setLocation(action.href)}>
               {action.label}
               <CheckCircle2 className="h-4 w-4" />

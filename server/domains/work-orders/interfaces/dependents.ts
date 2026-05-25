@@ -33,7 +33,7 @@ export function registerDependentsRoutes(app: Express) {
       "fetch work order dependents",
       async (req: Request, res: Response) => {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const id = req.params['id'];
+        const id = req.params['id'] ?? '';
 
         const [wo] = await db
           .select({ id: workOrders.id, orgId: workOrders.orgId })

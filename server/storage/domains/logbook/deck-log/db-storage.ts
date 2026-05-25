@@ -153,6 +153,7 @@ export class DbDeckLogStorage {
       })
       .where(and(eq(deckLogDaily.id, id), eq(deckLogDaily.orgId, orgId)))
       .returning();
+    if (!updated) throw new Error("lockDeckLogDaily: update returned no row");
     return updated;
   }
 
@@ -212,9 +213,11 @@ export class DbDeckLogStorage {
         .set({ ...entry, updatedAt: new Date() })
         .where(eq(deckLogHourly.id, existing.id))
         .returning();
+      if (!updated) throw new Error("upsertDeckLogHourly: update returned no row");
       return updated;
     }
     const [created] = await db.insert(deckLogHourly).values(entry).returning();
+    if (!created) throw new Error("upsertDeckLogHourly: insert returned no row");
     return created;
   }
 
@@ -222,7 +225,9 @@ export class DbDeckLogStorage {
     if (entries.length === 0) {
       return [];
     }
-    this.validateOrgId(entries[0].orgId, "bulkUpsertDeckLogHourly");
+    const firstEntry = entries[0];
+    if (!firstEntry) return [];
+    this.validateOrgId(firstEntry.orgId, "bulkUpsertDeckLogHourly");
     const results: DeckLogHourly[] = [];
     for (const entry of entries) {
       results.push(await this.upsertDeckLogHourly(entry));
@@ -277,9 +282,11 @@ export class DbDeckLogStorage {
         .set({ ...entry, updatedAt: new Date() })
         .where(eq(deckLogWatch.id, existing.id))
         .returning();
+      if (!updated) throw new Error("upsertDeckLogWatch: update returned no row");
       return updated;
     }
     const [created] = await db.insert(deckLogWatch).values(entry).returning();
+    if (!created) throw new Error("upsertDeckLogWatch: insert returned no row");
     return created;
   }
 
@@ -365,6 +372,7 @@ export class DbDeckLogStorage {
       }
     }
     const [created] = await db.insert(deckLogEvents).values(event).returning();
+    if (!created) throw new Error("createDeckLogEvent: insert returned no row");
     return created;
   }
 

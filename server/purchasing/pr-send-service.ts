@@ -67,14 +67,14 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
     const itemsBySupplier = new Map<string, { supplierId: string; items: PRItem[] }>();
 
     for (const item of prItems) {
-      let supplierId = item.supplierId;
+      let supplierId: string | null = item.supplierId;
       if (!supplierId) {
         const linked = await tx
           .select({ supplierId: itemSuppliers.supplierId, isPrimary: itemSuppliers.isPrimary })
           .from(itemSuppliers)
           .where(and(eq(itemSuppliers.partId, item.partId), eq(itemSuppliers.orgId, orgId)));
         const primary = linked.find((s) => s.isPrimary);
-        supplierId = primary?.supplierId ?? linked[0]?.supplierId;
+        supplierId = primary?.supplierId ?? linked[0]?.supplierId ?? null;
       }
       if (!supplierId) {
         throw new Error(`No supplier assigned for part: ${item.partName || item.partId}`);
@@ -129,6 +129,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
           notes: `Generated from PR ${pr.requestNumber}`,
         })
         .returning();
+      if (!po) throw new Error("sendPR: purchaseOrders insert returned no row");
 
       for (const { item, unitCost } of itemsWithCosts) {
         await tx.insert(purchaseOrderItems).values({

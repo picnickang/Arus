@@ -92,6 +92,7 @@ export class DatabaseTelemetryStorage {
       .insert(equipmentTelemetry)
       .values({ id: randomUUID(), ...reading, ts: reading.ts || new Date() })
       .returning();
+    if (!n) throw new Error("createTelemetryReading: insert returned no row");
     return n;
   }
   async getLatestTelemetryReadings(
@@ -173,7 +174,7 @@ export class DatabaseTelemetryStorage {
     }
     const trends: TelemetryTrend[] = [];
     for (const [key, group] of grouped) {
-      const [eqId, sensorType] = key.split(":");
+      const [eqId = "", sensorType = ""] = key.split(":");
       const values = group.map((r) => r.value ?? 0);
       trends.push({
         equipmentId: eqId,
@@ -212,6 +213,7 @@ export class DatabaseTelemetryStorage {
       .insert(pdmScoreLogs)
       .values({ id: randomUUID(), ts: new Date(), ...score })
       .returning();
+    if (!n) throw new Error("createPdmScore: insert returned no row");
     return n;
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
@@ -248,12 +250,14 @@ export class DatabaseTelemetryStorage {
         .set({ ...heartbeat, ts: new Date() } as never)
         .where(eq(idCol as never, eRow.id as never))
         .returning();
+      if (!u) throw new Error("upsertHeartbeat: update returned no row");
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
       .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as never)
       .returning();
+    if (!n) throw new Error("upsertHeartbeat: insert returned no row");
     return n;
   }
 }

@@ -36,6 +36,7 @@ export class DbOptimizerStorage {
     config: InsertOptimizerConfiguration
   ): Promise<OptimizerConfiguration> {
     const [n] = await db.insert(optimizerConfigurations).values(config).returning();
+    if (!n) throw new Error("Failed to create optimizer configuration");
     return {
       ...n,
       createdAt: n.createdAt?.toISOString() || new Date().toISOString(),
@@ -85,6 +86,7 @@ export class DbOptimizerStorage {
     constraint: InsertResourceConstraint
   ): Promise<ResourceConstraint> {
     const [n] = await db.insert(resourceConstraints).values(constraint).returning();
+    if (!n) throw new Error("Failed to create resource constraint");
     return n;
   }
   async updateResourceConstraint(
@@ -139,6 +141,7 @@ export class DbOptimizerStorage {
       .insert(optimizationResults)
       .values({ ...result, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("createOptimizationResult: insert returned no row");
     return n;
   }
   async updateOptimizationResult(
@@ -176,6 +179,7 @@ export class DbOptimizerStorage {
       .insert(scheduleOptimizations)
       .values({ ...optimization, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("createScheduleOptimization: insert returned no row");
     return n;
   }
   async deleteScheduleOptimizationsByResult(optimizationResultId: string): Promise<void> {

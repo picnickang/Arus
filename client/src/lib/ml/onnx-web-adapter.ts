@@ -80,18 +80,30 @@ function riskLevel(p: number): WebOnnxScore["riskLevel"] {
 }
 
 function extractProbability(data: Float32Array | BigInt64Array): number {
-  if (data instanceof BigInt64Array) return Number(data[0]) > 0 ? 0.8 : 0.1;
+  if (data instanceof BigInt64Array) {
+    const v0 = data[0];
+    return v0 !== undefined && Number(v0) > 0 ? 0.8 : 0.1;
+  }
   if (data.length === 1) {
     const v = data[0];
+    if (v === undefined) return 0;
     return v >= 0 && v <= 1 ? v : 1 / (1 + Math.exp(-v));
   }
-  let positive = data[data.length - 1];
+  const last = data[data.length - 1];
+  if (last === undefined) return 0;
+  let positive: number = last;
   if (!(positive >= 0 && positive <= 1)) {
     let max = -Infinity;
-    for (let i = 0; i < data.length; i++) if (data[i] > max) max = data[i];
+    for (let i = 0; i < data.length; i++) {
+      const di = data[i];
+      if (di !== undefined && di > max) max = di;
+    }
     let sum = 0;
-    for (let i = 0; i < data.length; i++) sum += Math.exp(data[i] - max);
-    positive = Math.exp(data[data.length - 1] - max) / sum;
+    for (let i = 0; i < data.length; i++) {
+      const di = data[i];
+      if (di !== undefined) sum += Math.exp(di - max);
+    }
+    positive = Math.exp(last - max) / sum;
   }
   return Math.min(Math.max(positive, 0), 1);
 }
@@ -104,15 +116,22 @@ export async function scoreInBrowser(
   const session = await getSession(modelVersionId);
   const arr = new Float32Array(FEATURE_ORDER.length);
   for (let i = 0; i < FEATURE_ORDER.length; i++) {
-    const v = features[FEATURE_ORDER[i]];
+    const key = FEATURE_ORDER[i];
+    if (key === undefined) continue;
+    const v = features[key];
     arr[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
   }
   const tensor = new ort.Tensor("float32", arr, [1, FEATURE_ORDER.length]);
-  const feeds: Record<string, typeof tensor> = { [session.inputNames[0]]: tensor };
+  const inputName = session.inputNames[0];
+  if (inputName === undefined) throw new Error("ONNX session has no input names");
+  const feeds: Record<string, typeof tensor> = { [inputName]: tensor };
   const out = await session.run(feeds);
   const probName =
     session.outputNames.find((n: string) => /prob|score|fail/i.test(n)) ?? session.outputNames[0];
-  const data = out[probName].data as Float32Array | BigInt64Array;
+  if (probName === undefined) throw new Error("ONNX session has no output names");
+  const outTensor = out[probName];
+  if (outTensor === undefined) throw new Error(`ONNX output '${probName}' missing`);
+  const data = outTensor.data as Float32Array | BigInt64Array;
   const failureProbability = extractProbability(data);
   return {
     failureProbability,

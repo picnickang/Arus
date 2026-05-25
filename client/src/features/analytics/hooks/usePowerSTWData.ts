@@ -111,11 +111,15 @@ export function usePowerSTWData({
     let deviation = 0;
     if (data.baseline.length > 0 && data.actual.length > 0) {
       const deviations: number[] = [];
+      const first = data.baseline[0];
+      if (!first) {
+        return { enrichedData: [], avgDeviation: 0 };
+      }
       for (const actualPoint of data.actual) {
-        const nearestBaseline = data.baseline.reduce(
+        const nearestBaseline = data.baseline.reduce<typeof first>(
           (prev, curr) =>
             Math.abs(curr.x - actualPoint.x) < Math.abs(prev.x - actualPoint.x) ? curr : prev,
-          data.baseline[0]
+          first
         );
         if (nearestBaseline.y > 0) {
           const dev = ((actualPoint.y - nearestBaseline.y) / nearestBaseline.y) * 100;

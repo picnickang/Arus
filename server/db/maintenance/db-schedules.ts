@@ -79,6 +79,7 @@ export class DbMaintenanceSchedules {
         updatedAt: new Date(),
       })
       .returning();
+    if (!n) throw new Error("Failed to create maintenance schedule");
     return n;
   }
   async updateMaintenanceSchedule(
@@ -162,6 +163,7 @@ export class DbMaintenanceSchedules {
       .insert(maintenanceRecords)
       .values({ id: randomUUID(), ...record, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
+    if (!n) throw new Error("Failed to create maintenance record");
     return n;
   }
   async updateMaintenanceRecord(

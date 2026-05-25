@@ -100,7 +100,7 @@ export function registerConfigManagementRoutes(
     auditAdminAction("VIEW_CONFIG_VALUE"),
     withErrorHandling("get configuration value", async (req: Request, res: Response) => {
       const { configManager } = await import("../../services/config-manager");
-      const { key } = req.params;
+      const { key = '' } = req.params;
       const value = configManager.get(key);
       const isCritical = configManager.isCritical(key);
 
@@ -127,7 +127,7 @@ export function registerConfigManagementRoutes(
     auditAdminAction("UPDATE_CONFIG_VALUE"),
     withErrorHandling("update configuration value", async (req: Request, res: Response) => {
       const { configManager } = await import("../../services/config-manager");
-      const { key } = req.params;
+      const { key = '' } = req.params;
       const { value } = req.body;
 
       if (value === undefined || value === null) {
@@ -165,7 +165,7 @@ export function registerConfigManagementRoutes(
     auditAdminAction("DELETE_CONFIG_VALUE"),
     withErrorHandling("delete configuration value", async (req: Request, res: Response) => {
       const { configManager } = await import("../../services/config-manager");
-      const { key } = req.params;
+      const { key = '' } = req.params;
       const orgId = DEFAULT_ORG_ID;
 
       const result = await configManager.delete(key, {

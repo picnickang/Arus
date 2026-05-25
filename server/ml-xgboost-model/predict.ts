@@ -18,8 +18,8 @@ export function predictWithXGBoost(
   for (let classIdx = 0; classIdx < numClasses; classIdx++) {
     for (let treeIdx = 0; treeIdx < treesPerClass; treeIdx++) {
       const globalTreeIdx = treeIdx * numClasses + classIdx;
-      if (globalTreeIdx < model.trees.length) {
-        const tree = model.trees[globalTreeIdx];
+      const tree = model.trees[globalTreeIdx];
+      if (tree) {
         logits[classIdx] += tree.treeWeight * predictTree(tree.root, featureVector);
       }
     }
@@ -38,9 +38,9 @@ export function predictWithXGBoost(
   const criticalIdx = model.classLabels.indexOf("critical");
 
   const probabilities = {
-    healthy: healthyIdx >= 0 ? classProbs[healthyIdx] : 0,
-    warning: warningIdx >= 0 ? classProbs[warningIdx] : 0,
-    critical: criticalIdx >= 0 ? classProbs[criticalIdx] : 0,
+    healthy: (healthyIdx >= 0 ? classProbs[healthyIdx] : 0) ?? 0,
+    warning: (warningIdx >= 0 ? classProbs[warningIdx] : 0) ?? 0,
+    critical: (criticalIdx >= 0 ? classProbs[criticalIdx] : 0) ?? 0,
   };
 
   const failureRisk = probabilities.warning + probabilities.critical;

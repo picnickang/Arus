@@ -16,7 +16,10 @@ const prepareClassWeightsForTF = (labels: number[]): Record<number, number> => {
   for (const l of labels) counts[l] = (counts[l] ?? 0) + 1;
   const total = labels.length;
   const weights: Record<number, number> = {};
-  for (const k of Object.keys(counts)) weights[Number(k)] = total / (counts[Number(k)] * Object.keys(counts).length);
+  for (const k of Object.keys(counts)) {
+    const c = counts[Number(k)] ?? 1;
+    weights[Number(k)] = total / (c * Object.keys(counts).length);
+  }
   return weights;
 };
 import type { LSTMConfig, TrainedLSTMModel } from "./types.js";
@@ -107,7 +110,7 @@ async function trainStandard(
     callbacks: {
       onEpochEnd: (epoch, logs) => {
         if (verbose) {
-          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${logs?.['loss'].toFixed(4)}`);
+          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${(logs?.['loss'] ?? 0).toFixed(4)}`);
         }
       },
     },
@@ -127,8 +130,11 @@ function calculatePrecisionRecallF1(
     fn = 0;
 
   for (let i = 0; i < valPredData.length; i++) {
-    const pred = valPredData[i][0] >= 0.5 ? 1 : 0;
-    const actual = valLabelsData[i][0];
+    const predRow = valPredData[i];
+    const labelRow = valLabelsData[i];
+    if (!predRow || !labelRow) continue;
+    const pred = (predRow[0] ?? 0) >= 0.5 ? 1 : 0;
+    const actual = labelRow[0] ?? 0;
     if (pred === 1 && actual === 1) {
       tp++;
     }
@@ -236,11 +242,14 @@ export async function trainLSTMModel(
   }
 
   const lastEpoch = useEarlyStopping ? bestEpoch : config.epochs - 1;
-  const loss = Array.isArray(history['loss']) ? history['loss'][lastEpoch] : 0;
-  const accuracy = Array.isArray(history['acc'])
-    ? history['acc'][lastEpoch]
-    : Array.isArray(history['val_acc'])
-      ? history['val_acc'][lastEpoch]
+  const lossArr = history['loss'];
+  const loss = Array.isArray(lossArr) ? (lossArr[lastEpoch] ?? 0) : 0;
+  const accArr = history['acc'];
+  const valAccArr = history['val_acc'];
+  const accuracy = Array.isArray(accArr)
+    ? (accArr[lastEpoch] ?? 0)
+    : Array.isArray(valAccArr)
+      ? (valAccArr[lastEpoch] ?? 0)
       : 0;
 
   const valPred = model.predict(xVal) as tf.Tensor;

@@ -95,6 +95,9 @@ export class DatabaseEquipmentStorage {
         updatedAt: new Date(),
       } as never)
       .returning();
+    if (!newEquipment) {
+      throw new Error("createEquipment: insert returned no row");
+    }
     // Push A2 — project new equipment into the knowledge graph. No-op
     // when GRAPH_ENABLED=false; never throws (best-effort wrapper).
     // Failures are logged at warn level (with orgId/equipmentId) so
@@ -344,6 +347,7 @@ export class DatabaseEquipmentStorage {
       .set({ vesselId, vesselName: vessel.name, updatedAt: new Date() })
       .where(eq(equipment.id, equipmentId))
       .returning();
+    if (!updated) throw new Error(`Equipment ${equipmentId} update returned no row`);
     // Task #81 — keep graph INSTALLED_ON edge in lockstep. Retract
     // the old edge first (projectEquipment only ADDs), then re-project.
     // Best-effort; never blocks the relational write.
@@ -447,6 +451,9 @@ export class DatabaseEquipmentStorage {
         updatedAt: new Date(),
       } as never)
       .returning();
+    if (!n) {
+      throw new Error("upsertEquipmentLifecycle: insert returned no row");
+    }
     return n;
   }
   async getReplacementRecommendations(): Promise<EquipmentLifecycle[]> {

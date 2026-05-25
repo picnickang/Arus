@@ -33,7 +33,7 @@ export function registerInventoryOptimizationRoutes(
     "/api/parts/:id/sync-costs-legacy",
     writeOperationRateLimit,
     withErrorHandling("sync part costs", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       try {
         await dbInventoryStorage.syncPartCostToStock(id);
         res.json({
@@ -80,7 +80,7 @@ export function registerInventoryOptimizationRoutes(
       })(req, res, next);
     },
     withErrorHandling("find part substitutions", async (req, res) => {
-      const { partNo } = req.params;
+      const { partNo = '' } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");
@@ -115,7 +115,7 @@ export function registerInventoryOptimizationRoutes(
 
       const currentStockByPart: Record<string, number> = currentStock ?? {};
 
-      const firstPart = Object.keys(costs)[0];
+      const firstPart = Object.keys(costs)[0] ?? "";
       const costParams = {
         orderingCost: costs[firstPart]?.ordering || costs.orderingCost || 25,
         holdingCostRate: costs[firstPart]?.holding || costs.holdingCostRate || 0.1,

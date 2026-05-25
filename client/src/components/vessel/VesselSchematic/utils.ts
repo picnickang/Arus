@@ -113,7 +113,10 @@ export function assignEquipmentToSlots(
   const unmatched = equipment.filter((eq) => !assigned.has(eq.id));
   const emptySlots = assignments.filter((a) => !a.equipment);
   for (let i = 0; i < Math.min(unmatched.length, emptySlots.length); i++) {
-    emptySlots[i].equipment = unmatched[i];
+    const slot = emptySlots[i];
+    if (slot) {
+      slot.equipment = unmatched[i] ?? null;
+    }
   }
 
   return assignments;

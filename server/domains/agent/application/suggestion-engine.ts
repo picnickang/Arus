@@ -534,15 +534,16 @@ export class SuggestionEngine {
         const lines = aiContent.split("\n").filter((l) => l.trim());
         for (let i = 0; i < suggestions.length; i++) {
           const recLine = lines.find((l) => l.trim().startsWith(`${i + 1}.`));
-          if (recLine) {
-            await this.repo.suggestions.update(suggestions[i].id, {
-              summary: `${suggestions[i].summary} AI recommendation: ${recLine.replace(/^\d+\.\s*/, "")}`,
+          const sug = suggestions[i];
+          if (recLine && sug) {
+            await this.repo.suggestions.update(sug.id, {
+              summary: `${sug.summary} AI recommendation: ${recLine.replace(/^\d+\.\s*/, "")}`,
             } as Partial<AgentSuggestion>);
           }
         }
 
         await this.repo.suggestions.create({
-          orgId: suggestions[0].orgId,
+          orgId: suggestions[0]!.orgId,
           triggerType: "ai_summary",
           title: `AI Summary: ${suggestions.length} new conditions detected`,
           summary: aiContent,

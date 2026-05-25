@@ -126,9 +126,9 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
   ): Promise<CrewAssignmentProjection[]> {
     const now = new Date();
     const defaultStart =
-      startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      startDate || (new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] ?? "");
     const defaultEnd =
-      endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      endDate || (new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] ?? "");
 
     try {
       const result = await db
@@ -182,9 +182,9 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
   ): Promise<CrewAssignmentProjection[]> {
     const now = new Date();
     const defaultStart =
-      startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      startDate || (new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] ?? "");
     const defaultEnd =
-      endDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      endDate || (new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] ?? "");
 
     try {
       const result = await db

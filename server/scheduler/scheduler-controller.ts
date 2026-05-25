@@ -107,7 +107,7 @@ export async function planAndMaybeExecute({
   const portCalls = await loadPortCalls(orgId, vessels);
   const drydocks = await loadDrydocks(orgId, vessels);
   const certifications = await loadCertifications(orgId);
-  const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1]);
+  const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1] ?? since);
 
   // Calculate input hash for deduplication
   const inputHash = crypto
@@ -153,8 +153,8 @@ export async function planAndMaybeExecute({
     if (mode === "execute" || mode === "auto") {
       // Clear old assignments in the date range to prevent conflicts
       if (mode === "auto" && daysArr.length > 0) {
-        const startDate = new Date(daysArr[0]);
-        const endDate = new Date(daysArr[daysArr.length - 1]);
+        const startDate = new Date(daysArr[0] ?? since);
+        const endDate = new Date(daysArr[daysArr.length - 1] ?? since);
         endDate.setHours(23, 59, 59, 999); // End of last day
 
         const deletedCount = await dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(
@@ -352,7 +352,7 @@ export async function simulateSchedule({
   const crewList = await loadCrewWithSkills(orgId);
   const leaves = await loadCrewLeaves(orgId);
   const vesselsList = await vesselService.getVessels(orgId);
-  const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1]);
+  const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1] ?? since);
 
   // Build lookup maps
   const crewMap = new Map(crewList.map((c) => [c.id, c]));

@@ -150,7 +150,7 @@ export function StatusBadge({
       icon: CheckCircle,
     },
   };
-  const config = variants[status] || variants['new'];
+  const config = variants[status] || variants['new']!;
   const Icon = config.icon;
 
   return (

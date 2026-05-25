@@ -79,8 +79,8 @@ export class ConfigManager {
       // Parse KEY=VALUE format
       const match = line.match(/^([^=]+)=(.*)$/);
       if (match) {
-        const key = match[1].trim();
-        let value = match[2].trim();
+        const key = (match[1] ?? "").trim();
+        let value = (match[2] ?? "").trim();
 
         // Remove quotes if present
         if (
@@ -354,7 +354,7 @@ export class ConfigManager {
       let found = false;
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = (lines[i] ?? "").trim();
         if (line.startsWith(`${key}=`)) {
           // Preserve quotes if value has spaces
           const quotedValue = value.includes(" ") ? `"${value}"` : value;

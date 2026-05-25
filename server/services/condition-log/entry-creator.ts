@@ -34,10 +34,11 @@ export async function getPreviousHealthIndex(
     .orderBy(sql`${conditionLogSummary.periodEnd} DESC`)
     .limit(1);
 
-  if (previous.length === 0 || previous[0].healthIndex === null) {
+  const first = previous[0];
+  if (!first || first.healthIndex === null) {
     return null;
   }
-  return { healthIndex: previous[0].healthIndex, periodStart: previous[0].periodStart! };
+  return { healthIndex: first.healthIndex, periodStart: first.periodStart! };
 }
 
 export async function createConditionLogEntry(

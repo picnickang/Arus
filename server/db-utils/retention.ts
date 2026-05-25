@@ -26,7 +26,7 @@ export async function applyTelemetryRetention(): Promise<{
     }
 
     const policy = policies[0];
-    const retentionDays = policy.retentionDays ?? 365;
+    const retentionDays = policy?.retentionDays ?? 365;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
@@ -63,9 +63,9 @@ export async function getRetentionPolicy(): Promise<{
     }
     const policy = policies[0];
     return {
-      retentionDays: policy.retentionDays ?? 365,
-      rollupEnabled: policy.rollupEnabled ?? false,
-      compressionEnabled: policy.compressionEnabled ?? false,
+      retentionDays: policy?.retentionDays ?? 365,
+      rollupEnabled: policy?.rollupEnabled ?? false,
+      compressionEnabled: policy?.compressionEnabled ?? false,
     };
   } catch {
     return null;

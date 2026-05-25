@@ -16,7 +16,7 @@ const reportTypeLabels: Record<string, { label: string; icon: typeof BarChart3 }
 };
 
 export function ReportSummaryCards({ content, reportType, audience }: ReportSummaryCardsProps) {
-  const typeInfo = reportTypeLabels[reportType] || reportTypeLabels['health'];
+  const typeInfo = reportTypeLabels[reportType] || reportTypeLabels['health'] || { label: "Health Report", icon: CheckCircle2 };
   const Icon = typeInfo.icon;
   const recommendationCount = content.recommendations?.length ?? 0;
 

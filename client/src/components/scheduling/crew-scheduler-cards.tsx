@@ -161,8 +161,8 @@ export function calcDuration(start: string, end: string): number {
   if (!start || !end) {
     return 0;
   }
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
+  const [sh = 0, sm = 0] = start.split(":").map(Number);
+  const [eh = 0, em = 0] = end.split(":").map(Number);
   let mins = eh * 60 + em - (sh * 60 + sm);
   if (mins <= 0) {
     mins += 24 * 60;

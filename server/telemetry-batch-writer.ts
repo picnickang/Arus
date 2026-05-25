@@ -224,7 +224,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    */
   private getVesselId(equipmentId: string): string {
     const match = equipmentId.match(/^(vessel-\d+)/);
-    return match ? match[1] : "unknown";
+    return match?.[1] ?? "unknown";
   }
 
   /**
@@ -290,7 +290,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     this.stats.totalEvicted += evicted.length;
     batchWriterEvictedTotal.inc(evicted.length);
 
-    if (evicted.length > 0) {
+    if (evicted.length > 0 && evicted[0]) {
       const orgId = evicted[0].orgId || "unknown";
       const equipmentId = evicted[0].equipmentId;
       telemetryBufferEvictions.inc({ org_id: orgId, equipment_id: equipmentId }, evicted.length);
@@ -382,7 +382,7 @@ export class TelemetryBatchWriter extends EventEmitter {
       }
 
       if (readingsToRetry.length > 0) {
-        const retryAttempt = readingsToRetry[0]._retryCount ?? 1;
+        const retryAttempt = readingsToRetry[0]?._retryCount ?? 1;
 
         batchWriterRetriesTotal.inc(
           { retry_attempt: String(retryAttempt) },

@@ -99,12 +99,13 @@ export function ymd(year: number, mIdx: number, d: number): string {
 
 export function emptyMonth(year: number, monthLabel: string): DayRow[] {
   const idx = MONTHS.findIndex((m) => m.label === monthLabel);
+  const month = MONTHS[idx];
   const days =
     idx === 1
       ? year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
         ? 29
         : 28
-      : MONTHS[idx].days;
+      : month?.days ?? 30;
   const rows: DayRow[] = [];
   for (let d = 1; d <= days; d++) {
     const row = { date: ymd(year, idx, d) } as Record<string, string | number>;
@@ -133,16 +134,26 @@ export function parseCSV(text: string): DayRow[] {
   if (lines.length < 2) {
     return [];
   }
-  const header = lines[0].split(",").map((s) => s.trim());
+  const firstLine = lines[0];
+  if (firstLine === undefined) return [];
+  const header = firstLine.split(",").map((s) => s.trim());
   const out: DayRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const col = lines[i].split(",");
+    const line = lines[i];
+    if (line === undefined) continue;
+    const col = line.split(",");
     const row = {} as Record<string, string | number>;
-    header.forEach(
-      (h, j) =>
-        (row[h] =
-          j < col.length ? (h === "date" ? col[j] : Number(col[j] || 0)) : h === "date" ? "" : 0)
-    );
+    header.forEach((h, j) => {
+      const raw = col[j];
+      row[h] =
+        j < col.length
+          ? h === "date"
+            ? raw ?? ""
+            : Number(raw || 0)
+          : h === "date"
+          ? ""
+          : 0;
+    });
     out.push(row as DayRow);
   }
   return out;

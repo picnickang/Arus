@@ -38,8 +38,10 @@ export function calculateBandEnergy(
   let count = 0;
 
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= minFreq && frequencies[i] <= maxFreq) {
-      energy += magnitudes[i] * magnitudes[i];
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f !== undefined && m !== undefined && f >= minFreq && f <= maxFreq) {
+      energy += m * m;
       count++;
     }
   }
@@ -66,8 +68,10 @@ export function calculateISOBands(fftResult: FFTResult): Record<string, number> 
     let bandCount = 0;
 
     for (let i = 0; i < frequencies.length; i++) {
-      if (frequencies[i] >= range.min && frequencies[i] <= range.max) {
-        bandEnergy += magnitudes[i] * magnitudes[i];
+      const f = frequencies[i];
+      const m = magnitudes[i];
+      if (f !== undefined && m !== undefined && f >= range.min && f <= range.max) {
+        bandEnergy += m * m;
         bandCount++;
       }
     }

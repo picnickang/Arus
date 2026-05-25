@@ -231,8 +231,8 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         title: `SO ${r.soNumber}`,
         status: r.status,
         vendorName: r.vendorName,
-        eta: r.eta ? new Date(r.eta).toISOString().split("T")[0] : null,
-        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
+        eta: r.eta ? (new Date(r.eta).toISOString().split("T")[0] ?? null) : null,
+        createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
       }));
     } catch (error) {
       logger.warn("[EquipmentHub]", "Failed to fetch service orders", { error: String(error) });
@@ -261,7 +261,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         analysisType: r.analysisType,
         status: r.status,
         summary: r.summary,
-        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
+        createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
       }));
     } catch (error) {
       logger.warn("[EquipmentHub]", "Failed to fetch diagnostic runs", { error: String(error) });
@@ -283,7 +283,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         analysisType,
         status: "completed",
         summary,
-        createdAt: new Date().toISOString().split("T")[0],
+        createdAt: new Date().toISOString().split("T")[0] ?? "",
       };
     }
     const [row] = await db
@@ -303,13 +303,14 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         summary: diagnosticRuns.summary,
         createdAt: diagnosticRuns.createdAt,
       });
+    if (!row) throw new Error("saveDiagnosticRun: no row returned");
 
     return {
       id: row.id,
       analysisType: row.analysisType,
       status: row.status,
       summary: row.summary,
-      createdAt: row.createdAt ? new Date(row.createdAt).toISOString().split("T")[0] : "",
+      createdAt: row.createdAt ? (new Date(row.createdAt).toISOString().split("T")[0] ?? "") : "",
     };
   }
 

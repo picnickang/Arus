@@ -15,13 +15,14 @@ export function detectBearingFault(
   const bearingBandLow = rotationFreq * 2;
   const bearingBandHigh = rotationFreq * 10;
   let maxMagnitude = 0;
-  let faultFreq = null;
+  let faultFreq: number | null = null;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= bearingBandLow && frequencies[i] <= bearingBandHigh) {
-      if (magnitudes[i] > maxMagnitude) {
-        maxMagnitude = magnitudes[i];
-        faultFreq = frequencies[i];
-      }
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    if (f >= bearingBandLow && f <= bearingBandHigh && m > maxMagnitude) {
+      maxMagnitude = m;
+      faultFreq = f;
     }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
@@ -43,13 +44,14 @@ export function detectGearFault(
   const gearBandLow = rotationFreq * 10;
   const gearBandHigh = rotationFreq * 50;
   let maxMagnitude = 0;
-  let faultFreq = null;
+  let faultFreq: number | null = null;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= gearBandLow && frequencies[i] <= gearBandHigh) {
-      if (magnitudes[i] > maxMagnitude) {
-        maxMagnitude = magnitudes[i];
-        faultFreq = frequencies[i];
-      }
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    if (f >= gearBandLow && f <= gearBandHigh && m > maxMagnitude) {
+      maxMagnitude = m;
+      faultFreq = f;
     }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
@@ -67,8 +69,11 @@ export function detectCavitation(
   const cavitationBandHigh = 10000;
   let bandEnergy = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= cavitationBandLow && frequencies[i] <= cavitationBandHigh) {
-      bandEnergy += magnitudes[i];
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    if (f >= cavitationBandLow && f <= cavitationBandHigh) {
+      bandEnergy += m;
     }
   }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
@@ -85,8 +90,11 @@ export function detectLeakage(
   const ultrasonicThreshold = 10000;
   let ultrasonicEnergy = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (frequencies[i] >= ultrasonicThreshold) {
-      ultrasonicEnergy += magnitudes[i];
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    if (f >= ultrasonicThreshold) {
+      ultrasonicEnergy += m;
     }
   }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
@@ -112,8 +120,11 @@ export function detectImbalance(
   const tolerance = rotationFreq * 0.1;
   let maxMagnitude = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    if (Math.abs(frequencies[i] - rotationFreq) < tolerance) {
-      maxMagnitude = Math.max(maxMagnitude, magnitudes[i]);
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    if (Math.abs(f - rotationFreq) < tolerance) {
+      maxMagnitude = Math.max(maxMagnitude, m);
     }
   }
   const avgMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;

@@ -78,8 +78,9 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         let imagSum = 0;
         for (let t = 0; t < n; t++) {
           const angle = (2 * Math.PI * k * t) / n;
-          realSum += data[t] * Math.cos(angle);
-          imagSum -= data[t] * Math.sin(angle);
+          const dt = data[t] ?? 0;
+          realSum += dt * Math.cos(angle);
+          imagSum -= dt * Math.sin(angle);
         }
         const amplitude = Math.sqrt(realSum * realSum + imagSum * imagSum) / n;
         const frequency = (k * (sampleRate || 1000)) / n;
@@ -141,7 +142,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         default: { warning: 4.5, critical: 7.1 },
       };
 
-      const limits = thresholds[equipmentType] || thresholds['default'];
+      const limits = thresholds[equipmentType] ?? thresholds['default'] ?? { warning: 4.5, critical: 7.1 };
       let severity = "normal";
       if (rmsValue > limits.critical) {
         severity = "critical";
@@ -192,7 +193,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         class4: { A: 2.8, B: 7.1, C: 18, D: 45 },
       };
 
-      const limits = isoLimits[machineClass] || isoLimits['class2'];
+      const limits = isoLimits[machineClass] ?? isoLimits['class2'] ?? { A: 1.12, B: 2.8, C: 7.1, D: 18 };
       let zone = "A";
       if (rmsVelocity > limits.D) {
         zone = "D";
@@ -257,12 +258,14 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
               (f: number) => Math.abs(f - searchFreq) < tolerance
             );
 
-            if (matchIdx !== -1 && amplitudes[matchIdx] > 0.1) {
+            const ampAt = matchIdx !== -1 ? amplitudes[matchIdx] : undefined;
+            const freqAt = matchIdx !== -1 ? frequencies[matchIdx] : undefined;
+            if (ampAt !== undefined && freqAt !== undefined && ampAt > 0.1) {
               detectedFaults.push({
                 faultType,
                 harmonic,
-                frequency: frequencies[matchIdx],
-                amplitude: amplitudes[matchIdx],
+                frequency: freqAt,
+                amplitude: ampAt,
                 expectedFrequency: searchFreq,
               });
             }

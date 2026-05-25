@@ -111,7 +111,7 @@ export function decryptSecret(encryptedValue: string): string {
     throw new Error("Invalid encrypted value format");
   }
 
-  const [ivHex, authTagHex, encrypted] = parts;
+  const [ivHex = "", authTagHex = "", encrypted = ""] = parts;
   const key = getEncryptionKey();
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
@@ -147,7 +147,7 @@ export function isEncrypted(value: string): boolean {
     return false;
   }
   const parts = value.split(":");
-  return parts.length === 3 && parts[0].length === IV_LENGTH * 2;
+  return parts.length === 3 && (parts[0]?.length ?? 0) === IV_LENGTH * 2;
 }
 
 export interface EncryptedCredential {

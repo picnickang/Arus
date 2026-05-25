@@ -27,9 +27,9 @@ export async function fetchFMCCFuelForDay(
     }
 
     const dateParts = logDate.split("-");
-    const year = Number.parseInt(dateParts[0], 10);
-    const month = Number.parseInt(dateParts[1], 10) - 1;
-    const day = Number.parseInt(dateParts[2], 10);
+    const year = Number.parseInt(dateParts[0] ?? "0", 10);
+    const month = Number.parseInt(dateParts[1] ?? "1", 10) - 1;
+    const day = Number.parseInt(dateParts[2] ?? "1", 10);
 
     const periodStart = new Date(year, month, day, 0, 0, 0, 0);
     const periodEnd = new Date(year, month, day, 23, 59, 59, 999);

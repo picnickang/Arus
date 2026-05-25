@@ -22,7 +22,7 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
     generalApiRateLimit,
     withErrorHandling("fetch notification settings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { crewId } = req.params;
+      const { crewId = '' } = req.params;
 
       const crew = await crewService.getCrewById(crewId, orgId);
       if (!crew) {
@@ -53,7 +53,7 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
     writeOperationRateLimit,
     withErrorHandling("update notification settings", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const { crewId } = req.params;
+      const { crewId = '' } = req.params;
 
       const crew = await crewService.getCrewById(crewId, orgId);
       if (!crew) {

@@ -6,7 +6,10 @@
 export function calculateZeroCrossingRate(values: number[]): number {
   let crossings = 0;
   for (let i = 1; i < values.length; i++) {
-    if ((values[i] >= 0 && values[i - 1] < 0) || (values[i] < 0 && values[i - 1] >= 0)) {
+    const a = values[i];
+    const b = values[i - 1];
+    if (a === undefined || b === undefined) continue;
+    if ((a >= 0 && b < 0) || (a < 0 && b >= 0)) {
       crossings++;
     }
   }
@@ -17,8 +20,11 @@ export function calculateSpectralCentroid(frequencies: number[], magnitudes: num
   let weightedSum = 0;
   let totalMagnitude = 0;
   for (let i = 0; i < frequencies.length; i++) {
-    weightedSum += frequencies[i] * magnitudes[i];
-    totalMagnitude += magnitudes[i];
+    const f = frequencies[i];
+    const m = magnitudes[i];
+    if (f === undefined || m === undefined) continue;
+    weightedSum += f * m;
+    totalMagnitude += m;
   }
   return totalMagnitude > 0 ? weightedSum / totalMagnitude : 0;
 }
@@ -28,12 +34,14 @@ export function calculateSpectralRolloff(frequencies: number[], magnitudes: numb
   const threshold = 0.85 * totalEnergy;
   let cumulativeEnergy = 0;
   for (let i = 0; i < magnitudes.length; i++) {
-    cumulativeEnergy += magnitudes[i];
+    const m = magnitudes[i];
+    if (m === undefined) continue;
+    cumulativeEnergy += m;
     if (cumulativeEnergy >= threshold) {
-      return frequencies[i];
+      return frequencies[i] ?? 0;
     }
   }
-  return frequencies[frequencies.length - 1];
+  return frequencies[frequencies.length - 1] ?? 0;
 }
 
 export function calculateHarmonicRatio(magnitudes: number[], dominantIdx: number): number {
@@ -41,11 +49,11 @@ export function calculateHarmonicRatio(magnitudes: number[], dominantIdx: number
     return 0;
   }
   const totalEnergy = magnitudes.reduce((sum, mag) => sum + mag, 0);
-  let harmonicEnergy = magnitudes[dominantIdx];
+  let harmonicEnergy = magnitudes[dominantIdx] ?? 0;
   const harmonicIndices = [dominantIdx * 2, dominantIdx * 3, dominantIdx * 4];
   for (const idx of harmonicIndices) {
     if (idx < magnitudes.length) {
-      harmonicEnergy += magnitudes[idx];
+      harmonicEnergy += magnitudes[idx] ?? 0;
     }
   }
   return totalEnergy > 0 ? harmonicEnergy / totalEnergy : 0;

@@ -118,8 +118,8 @@ export class DbStockStorage {
         .limit(5);
     }
 
-    if (linkedSuppliers.length > 0) {
-      const chosen = linkedSuppliers.find((s) => s.isPreferred) ?? linkedSuppliers[0];
+    const chosen = linkedSuppliers.find((s) => s.isPreferred) ?? linkedSuppliers[0];
+    if (chosen) {
       preferredSupplier = {
         id: chosen.id,
         name: chosen.name,
@@ -161,6 +161,7 @@ export class DbStockStorage {
       .insert(suppliers)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create supplier");
     return n;
   }
 
@@ -221,6 +222,7 @@ export class DbStockStorage {
       .insert(stock)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create stock");
     return n;
   }
 
@@ -264,6 +266,7 @@ export class DbStockStorage {
       .insert(partSubstitutions)
       .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
+    if (!n) throw new Error("Failed to create part substitution");
     return n;
   }
 

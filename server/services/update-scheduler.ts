@@ -49,8 +49,8 @@ function isInMaintenanceWindow(
     const currentTimeMinutes = currentHour * 60 + currentMin;
 
     // Parse window times
-    const [startHour, startMin] = windowStart.split(":").map(Number);
-    const [endHour, endMin] = windowEnd.split(":").map(Number);
+    const [startHour = 0, startMin = 0] = windowStart.split(":").map(Number);
+    const [endHour = 0, endMin = 0] = windowEnd.split(":").map(Number);
     const startTimeMinutes = startHour * 60 + startMin;
     const endTimeMinutes = endHour * 60 + endMin;
 

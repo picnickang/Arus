@@ -40,6 +40,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
 
   async createVersion(data: InsertModelVersion): Promise<ModelVersion> {
     const [result] = await db.insert(modelVersions).values(data).returning();
+    if (!result) throw new Error("Failed to create model version");
     logger.info("[ModelRegistry] Version created", {
       modelId: data.modelId,
       version: data.version,
@@ -93,6 +94,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       })
       .returning();
 
+    if (!result) throw new Error("Failed to create deployment");
     logger.info("[ModelRegistry] Model deployed", {
       orgId,
       modelId,
@@ -136,6 +138,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
         .set({ deploymentStatus: "active", deprecatedAt: null })
         .where(eq(modelDeployments.id, previous.id))
         .returning();
+      if (!restored) throw new Error("Failed to restore deployment");
       logger.info("[ModelRegistry] Rolled back", { deploymentId, restoredId: previous.id });
       return restored;
     }

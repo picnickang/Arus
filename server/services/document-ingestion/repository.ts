@@ -39,6 +39,7 @@ export async function createDocument(params: {
     })
     .returning();
 
+  if (!doc) throw new Error("Failed to create document");
   return doc;
 }
 
@@ -211,6 +212,8 @@ export async function updateDocumentVersion(
     .where(and(eq(kbDocs.id, docId), eq(kbDocs.orgId, orgId)))
     .returning();
 
+  if (!updatedDoc) throw new Error("Failed to update document");
+  if (!versionRecord) throw new Error("Failed to create version record");
   return { doc: updatedDoc, version: versionRecord };
 }
 

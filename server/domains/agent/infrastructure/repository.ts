@@ -36,6 +36,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     conversations: {
       async create(data: InsertAgentConversation): Promise<AgentConversation> {
         const [conv] = await db.insert(agentConversations).values(data).returning();
+        if (!conv) throw new Error("agentConversations.create: no row returned");
         return conv;
       },
       async get(id: string, orgId: string): Promise<AgentConversation | undefined> {
@@ -63,6 +64,7 @@ export function createAgentRepository(): AgentRepositoryPort {
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentConversations.id, id))
           .returning();
+        if (!conv) throw new Error(`agentConversations.update ${id}: not found`);
         return conv;
       },
       async incrementMessageCount(id: string, tokenCount = 0): Promise<void> {
@@ -87,6 +89,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     messages: {
       async create(data: InsertAgentMessage): Promise<AgentMessage> {
         const [msg] = await db.insert(agentMessages).values(data).returning();
+        if (!msg) throw new Error("agentMessages.create: no row returned");
         return msg;
       },
       async list(conversationId: string, limit = 50): Promise<AgentMessage[]> {
@@ -111,6 +114,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     toolCalls: {
       async create(data) {
         const [tc] = await db.insert(agentToolCalls).values(data).returning();
+        if (!tc) throw new Error("agentToolCalls.create: no row returned");
         return tc;
       },
       async list(conversationId: string) {
@@ -125,6 +129,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     drafts: {
       async create(data: InsertAgentDraft): Promise<AgentDraft> {
         const [draft] = await db.insert(agentDrafts).values(data).returning();
+        if (!draft) throw new Error("agentDrafts.create: no row returned");
         return draft;
       },
       async get(id: string, orgId: string): Promise<AgentDraft | undefined> {
@@ -151,6 +156,7 @@ export function createAgentRepository(): AgentRepositoryPort {
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentDrafts.id, id))
           .returning();
+        if (!draft) throw new Error(`agentDrafts.update ${id}: not found`);
         return draft;
       },
     },
@@ -158,6 +164,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     approvals: {
       async create(data: InsertAgentApproval): Promise<AgentApproval> {
         const [approval] = await db.insert(agentApprovals).values(data).returning();
+        if (!approval) throw new Error("agentApprovals.create: no row returned");
         return approval;
       },
       async list(orgId: string, draftId?: string): Promise<AgentApproval[]> {
@@ -189,9 +196,11 @@ export function createAgentRepository(): AgentRepositoryPort {
             .set({ ...data, updatedAt: new Date() })
             .where(eq(agentConfig.id, existing.id))
             .returning();
+          if (!config) throw new Error("agentConfig.upsert update: no row returned");
           return config;
         }
         const [config] = await db.insert(agentConfig).values(data).returning();
+        if (!config) throw new Error("agentConfig.upsert insert: no row returned");
         return config;
       },
     },
@@ -199,6 +208,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     suggestions: {
       async create(data: InsertAgentSuggestion): Promise<AgentSuggestion> {
         const [sug] = await db.insert(agentSuggestions).values(data).returning();
+        if (!sug) throw new Error("agentSuggestions.create: no row returned");
         return sug;
       },
       async list(orgId: string, status?: string, limit = 50): Promise<AgentSuggestion[]> {
@@ -227,6 +237,7 @@ export function createAgentRepository(): AgentRepositoryPort {
           .set(data)
           .where(eq(agentSuggestions.id, id))
           .returning();
+        if (!sug) throw new Error(`agentSuggestions.update ${id}: not found`);
         return sug;
       },
       async listResolved(orgId: string, since: Date): Promise<AgentSuggestion[]> {
@@ -315,6 +326,7 @@ export function createAgentRepository(): AgentRepositoryPort {
     schedules: {
       async create(data: InsertAgentSchedule): Promise<AgentSchedule> {
         const [sched] = await db.insert(agentSchedules).values(data).returning();
+        if (!sched) throw new Error("agentSchedules.create: no row returned");
         return sched;
       },
       async get(id: string, orgId: string): Promise<AgentSchedule | undefined> {
@@ -337,6 +349,7 @@ export function createAgentRepository(): AgentRepositoryPort {
           .set({ ...data, updatedAt: new Date() })
           .where(eq(agentSchedules.id, id))
           .returning();
+        if (!sched) throw new Error(`agentSchedules.update ${id}: not found`);
         return sched;
       },
       async delete(id: string): Promise<void> {
@@ -344,6 +357,7 @@ export function createAgentRepository(): AgentRepositoryPort {
       },
       async createRun(data: { scheduleId: string; status: string }): Promise<AgentScheduleRun> {
         const [run] = await db.insert(agentScheduleRuns).values(data).returning();
+        if (!run) throw new Error("agentScheduleRuns.create: no row returned");
         return run;
       },
       async getRuns(scheduleId: string, limit = 20): Promise<AgentScheduleRun[]> {
@@ -360,6 +374,7 @@ export function createAgentRepository(): AgentRepositoryPort {
           .set(data)
           .where(eq(agentScheduleRuns.id, id))
           .returning();
+        if (!run) throw new Error(`agentScheduleRuns.update ${id}: not found`);
         return run;
       },
     },

@@ -541,7 +541,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       return undefined;
     }
     const stockRows = rows.map((r) => r.stock).filter((s): s is Stock => s !== null);
-    return partAndStockToPartsInventory(rows[0].parts, stockRows);
+    const first = rows[0];
+    if (!first) return undefined;
+    return partAndStockToPartsInventory(first.parts, stockRows);
   }
 
   async getLowStockParts(orgId?: string): Promise<PartsInventory[]> {
@@ -708,6 +710,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 updatedAt: new Date(),
               } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
+            if (!updated) throw new Error("addBulkParts: update returned no row");
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -726,6 +729,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 createdAt: new Date(),
                 updatedAt: new Date(),
               } as never)              .returning();
+            if (!newPart) throw new Error("addBulkParts: insert returned no row");
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -836,6 +840,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 updatedAt: new Date(),
               } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
+            if (!updated) throw new Error("addBulkPartsAndReserveInventory: update returned no row");
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -854,6 +859,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 createdAt: new Date(),
                 updatedAt: new Date(),
               } as never)              .returning();
+            if (!newPart) throw new Error("addBulkPartsAndReserveInventory: insert returned no row");
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }

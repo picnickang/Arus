@@ -6,8 +6,14 @@
 import type { OilAnalysis } from "@shared/schema";
 import type { OilConditionAssessment } from "./types.js";
 
+type ScoreKey =
+  | "viscosity"
+  | "contamination"
+  | "wearMetals"
+  | "additive"
+  | "oxidation";
 type AssessmentState = {
-  scores: Record<string, number>;
+  scores: Record<ScoreKey, number>;
   concerns: string[];
   recs: string[];
   changeNeeded: boolean;

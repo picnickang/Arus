@@ -422,16 +422,19 @@ export class AnomalyCorrelator {
    * Anomalies within correlationWindowMs of each other are grouped together.
    */
   private temporalCluster(sorted: RawAnomaly[]): RawAnomaly[][] {
-    if (sorted.length === 0) {
+    const first = sorted[0];
+    if (!first) {
       return [];
     }
 
-    const clusters: RawAnomaly[][] = [[sorted[0]]];
+    const clusters: RawAnomaly[][] = [[first]];
 
     for (let i = 1; i < sorted.length; i++) {
       const current = sorted[i];
       const lastCluster = clusters[clusters.length - 1];
+      if (!current || !lastCluster) continue;
       const lastInCluster = lastCluster[lastCluster.length - 1];
+      if (!lastInCluster) continue;
 
       const timeDiff =
         current.detectionTimestamp.getTime() - lastInCluster.detectionTimestamp.getTime();

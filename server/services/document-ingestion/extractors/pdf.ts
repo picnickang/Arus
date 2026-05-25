@@ -72,7 +72,7 @@ export class PdfExtractor implements TextExtractor {
     let columnSeparatorPattern: RegExp | null = null;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      const line = (lines[i] ?? "").trim();
 
       const isTableLine = this.isLikelyTableRow(line);
 
@@ -191,12 +191,13 @@ export class PdfExtractor implements TextExtractor {
 
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
+      if (!table) continue;
       const header = table.headerRow?.join(" | ") || "";
       const tableMarker = `\n[TABLE ${i + 1}: ${header}]\n`;
 
       const tableContent = table.rows.map((row) => row.join(" | ")).join("\n");
 
-      if (header && enhancedText.includes(header.split(" | ")[0])) {
+      if (header && enhancedText.includes(header.split(" | ")[0] ?? "")) {
         enhancedText = enhancedText.replace(
           tableContent,
           `${tableMarker}${tableContent}\n[END TABLE ${i + 1}]\n`

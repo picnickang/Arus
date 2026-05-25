@@ -49,6 +49,9 @@ function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
   }
 
   const data = payload[0];
+  if (!data) {
+    return null;
+  }
   const originalDate = data.payload.originalDate;
   const accuracy = data.value;
 

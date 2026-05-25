@@ -74,6 +74,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(mlModels)
       .values({ ...model, orgId, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createMlModel: insert returned no row");
+    }
     return n;
   }
   async updateMlModel(
@@ -134,6 +137,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(anomalyDetections)
       .values({ ...detection, orgId, detectionTimestamp: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createAnomalyDetection: insert returned no row");
+    }
     if (detection.modelId && detection.equipmentId) {
       const d = detection as InsertAnomalyDetection & {
         value?: unknown;
@@ -214,6 +220,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(failurePredictions)
       .values({ ...prediction, orgId, predictionTimestamp: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createFailurePrediction: insert returned no row");
+    }
     if (prediction.modelId && prediction.equipmentId) {
       const p = prediction as InsertFailurePrediction & {
         predictedDate?: Date | string;
@@ -263,6 +272,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(failureHistory)
       .values({ ...data, orgId, createdAt: new Date() } as never)
       .returning();
+    if (!row) {
+      throw new Error("createFailureHistory: insert returned no row");
+    }
     try {
       await projectFailureHistory(orgId, {
         failureHistoryId: row.id,
@@ -317,6 +329,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(thresholdOptimizations)
       .values({ ...optimization, orgId, optimizationTimestamp: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createThresholdOptimization: insert returned no row");
+    }
     return n;
   }
   async applyThresholdOptimization(id: number, orgId: string): Promise<ThresholdOptimization> {
@@ -358,6 +373,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(table)
       .values({ ...importance, calculatedAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createFeatureImportance: insert returned no row");
+    }
     return n;
   }
   async getFeatureImportancesByPrediction(
@@ -470,6 +488,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(table)
       .values({ ...curve, orgId, createdAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createCalibrationCurve: insert returned no row");
+    }
     return n;
   }
   async updateCalibrationCurve(
@@ -543,6 +564,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(table)
       .values({ ...override, orgId, id: randomUUID(), createdAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createEngineerOverride: insert returned no row");
+    }
     return n;
   }
   async updateEngineerOverride(
@@ -607,6 +631,9 @@ export class DatabaseMlAnalyticsStorage {
       .insert(table)
       .values({ ...model, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) {
+      throw new Error("createRulModel: insert returned no row");
+    }
     return n;
   }
 }

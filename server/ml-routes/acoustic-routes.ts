@@ -54,16 +54,17 @@ router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Resp
     let maxMagnitude = 0,
       peakFrequencyIndex = 0;
     for (let i = 1; i < validMagnitudes.length; i++) {
-      if (validMagnitudes[i] > maxMagnitude) {
-        maxMagnitude = validMagnitudes[i];
+      const mag = validMagnitudes[i] ?? 0;
+      if (mag > maxMagnitude) {
+        maxMagnitude = mag;
         peakFrequencyIndex = i;
       }
     }
-    const peakFrequency = validFrequencies[peakFrequencyIndex];
+    const peakFrequency = validFrequencies[peakFrequencyIndex] ?? 0;
 
     const freqMagPairs = validFrequencies
       .slice(1)
-      .map((freq, i) => ({ frequency: freq, magnitude: validMagnitudes[i + 1] }));
+      .map((freq, i) => ({ frequency: freq, magnitude: validMagnitudes[i + 1] ?? 0 }));
     freqMagPairs.sort((a, b) => b.magnitude - a.magnitude);
     const dominantFrequencies = freqMagPairs.slice(0, 5).map((p) => Math.round(p.frequency));
 
@@ -114,7 +115,7 @@ router.post("/ml/acoustic-analysis", async (req: AuthenticatedRequest, res: Resp
       }
     }
 
-    const f1 = dominantFrequencies[0] || peakFrequency;
+    const f1 = dominantFrequencies[0] ?? peakFrequency;
     const strongHarmonics = dominantFrequencies.filter((f) => {
       if (f === f1) {
         return false;

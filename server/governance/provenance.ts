@@ -30,7 +30,9 @@ async function lastHash(): Promise<string | null> {
       return null;
     }
 
-    const last = JSON.parse(lines[lines.length - 1]);
+    const lastLine = lines[lines.length - 1];
+    if (!lastLine) return null;
+    const last = JSON.parse(lastLine);
     return last.hash as string;
   } catch (error: unknown) {
     const errorCode =
@@ -382,10 +384,11 @@ export async function verifyChain(
     const errors: Array<{ index: number; eventId: string; reason: string }> = [];
 
     // Verify first event
-    if (events[0].prevHash !== null) {
+    const firstEvent = events[0];
+    if (firstEvent && firstEvent.prevHash !== null) {
       errors.push({
         index: 0,
-        eventId: events[0].hash || "unknown",
+        eventId: firstEvent.hash || "unknown",
         reason: "First event should have prevHash=null",
       });
     }
@@ -393,6 +396,7 @@ export async function verifyChain(
     // Verify chain integrity
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
+      if (!event) continue;
 
       // Verify hash
       const copy = { ...event };
@@ -411,7 +415,7 @@ export async function verifyChain(
       // Verify chain link (except for first event)
       if (i > 0) {
         const prevEvent = events[i - 1];
-        if (event.prevHash !== prevEvent.hash) {
+        if (prevEvent && event.prevHash !== prevEvent.hash) {
           errors.push({
             index: i,
             eventId: expectedHash || "unknown",
@@ -421,12 +425,14 @@ export async function verifyChain(
       }
     }
 
+    const firstError = errors[0];
+    const lastEvent = events[events.length - 1];
     return {
       ok: errors.length === 0,
       totalEvents: events.length,
-      brokenAt: errors.length > 0 ? errors[0].index : undefined,
+      brokenAt: firstError ? firstError.index : undefined,
       errors: errors.length > 0 ? errors : undefined,
-      lastHash: events[events.length - 1].hash,
+      lastHash: lastEvent ? lastEvent.hash : undefined,
     };
   } catch (error) {
     logger.error("[Provenance] Failed to verify chain:", undefined, error);

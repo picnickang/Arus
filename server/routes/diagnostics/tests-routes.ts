@@ -160,7 +160,7 @@ export function registerTestsRoutes(router: Router) {
   });
 
   router.post("/test-suites/:name/run", async (req: Request, res: Response) => {
-    const { name } = req.params;
+    const { name = "" } = req.params;
     const suite = testSuites.find((s) => s.name === name);
     if (!suite) {
       res.status(404).json({ error: `Test suite '${name}' not found` });
@@ -224,7 +224,7 @@ export function registerTestsRoutes(router: Router) {
   });
 
   router.get("/test-suites/:name/status", (req: Request, res: Response) => {
-    const { name } = req.params;
+    const { name = "" } = req.params;
     const result = testResults.get(name);
     if (!result) {
       res.json({ status: "not_run", message: "Test has not been run yet" });

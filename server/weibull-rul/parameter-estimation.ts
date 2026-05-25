@@ -118,9 +118,11 @@ export function calculateWeibullGoodnessOfFit(
     sumY2 = 0;
 
   for (let i = 0; i < n; i++) {
+    const ft = failureTimes[i];
+    if (ft === undefined) continue;
     const rank = (i + 1) / (n + 1);
     const observedX = Math.log(Math.log(1 / (1 - rank)));
-    const theoreticalY = Math.log(Math.max(0.01, failureTimes[i] - location)) - Math.log(scale);
+    const theoreticalY = Math.log(Math.max(0.01, ft - location)) - Math.log(scale);
 
     sumXY += observedX * theoreticalY;
     sumX += observedX;

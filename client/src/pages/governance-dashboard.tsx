@@ -419,7 +419,7 @@ export default function GovernanceDashboard() {
                     <div className="space-y-4">
                       {provenanceEvents.map((event, index) => {
                         const config =
-                          EVENT_TYPE_CONFIG[event.type] || EVENT_TYPE_CONFIG['prediction'];
+                          EVENT_TYPE_CONFIG[event.type] || EVENT_TYPE_CONFIG['prediction']!;
                         const Icon = config.icon;
                         return (
                           <div

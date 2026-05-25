@@ -47,8 +47,8 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
 
   const handleEditClick = (record: EmploymentHistoryRecord) => {
     setEditingRecord(record);
-    setEditStartDate(record.startDate ? record.startDate.split("T")[0] : "");
-    setEditEndDate(record.endDate ? record.endDate.split("T")[0] : "");
+    setEditStartDate(record.startDate ? record.startDate.split("T")[0] ?? "" : "");
+    setEditEndDate(record.endDate ? record.endDate.split("T")[0] ?? "" : "");
     setEditNotes(record.terminationNotes || "");
   };
 

@@ -65,6 +65,7 @@ export class DatabaseVesselStorage {
       .insert(vessels)
       .values({ id: randomUUID(), ...vesselData, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create vessel");
     return n;
   }
   async updateVessel(id: string, updates: Partial<InsertVessel>, orgId?: string): Promise<Vessel> {
@@ -129,6 +130,7 @@ export class DatabaseVesselStorage {
       .insert(portCallTable)
       .values({ id: randomUUID(), ...portCallData, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create port call");
     return n;
   }
   async updatePortCall(
@@ -179,6 +181,7 @@ export class DatabaseVesselStorage {
       .insert(drydockWindowTable)
       .values({ id: randomUUID(), ...window, createdAt: new Date() })
       .returning();
+    if (!n) throw new Error("Failed to create drydock window");
     return n;
   }
   async updateDrydockWindow(

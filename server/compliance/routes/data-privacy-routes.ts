@@ -137,6 +137,7 @@ router.get(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { exportId } = req.params;
+      if (!exportId) return res.status(400).json({ error: "Missing exportId" });
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -248,6 +249,7 @@ router.get(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -315,6 +317,7 @@ router.post(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -367,6 +370,7 @@ router.post(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       const { identifierType } = req.body as { identifierType: "email" | "userId" | "crewId" };
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -438,6 +442,7 @@ router.post(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       const { confirmErasure, reason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -492,6 +497,7 @@ router.post(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       const { notes } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -530,6 +536,7 @@ router.post(
     try {
       const orgId = DEFAULT_ORG_ID;
       const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing id" });
       const { reason, rejectionReason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });

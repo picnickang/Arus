@@ -9,13 +9,15 @@ export function getSFOC(loadPercent: number): number {
     .map(Number)
     .sort((a, b) => a - b);
 
-  let lowerLoad = loads[0];
-  let upperLoad = loads[loads.length - 1];
+  let lowerLoad = loads[0] ?? 0;
+  let upperLoad = loads[loads.length - 1] ?? 0;
 
   for (let i = 0; i < loads.length - 1; i++) {
-    if (loadPercent >= loads[i] && loadPercent <= loads[i + 1]) {
-      lowerLoad = loads[i];
-      upperLoad = loads[i + 1];
+    const lo = loads[i];
+    const hi = loads[i + 1];
+    if (lo !== undefined && hi !== undefined && loadPercent >= lo && loadPercent <= hi) {
+      lowerLoad = lo;
+      upperLoad = hi;
       break;
     }
   }

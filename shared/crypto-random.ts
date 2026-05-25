@@ -28,7 +28,7 @@ function getCrypto(): CryptoShim {
 export function cryptoRandom(): number {
   const array = new Uint32Array(1);
   getCrypto().getRandomValues(array);
-  return array[0] / 0xffffffff;
+  return (array[0] ?? 0) / 0xffffffff;
 }
 
 export function cryptoRandomInt(max: number): number {
@@ -44,14 +44,27 @@ export function cryptoRandomId(length: number = 8): string {
 }
 
 export function cryptoRandomChoice<T>(array: T[]): T {
-  return array[cryptoRandomInt(array.length)];
+  if (array.length === 0) {
+    throw new Error("cryptoRandomChoice: array must be non-empty");
+  }
+  const idx = cryptoRandomInt(array.length);
+  const value = array[idx];
+  if (value === undefined) {
+    // Unreachable: idx ∈ [0, array.length); preserved for type safety.
+    throw new Error("cryptoRandomChoice: unexpected undefined slot");
+  }
+  return value;
 }
 
 export function cryptoShuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = cryptoRandomInt(i + 1);
-    [result[i], result[j]] = [result[j], result[i]];
+    const a = result[i];
+    const b = result[j];
+    if (a === undefined || b === undefined) continue;
+    result[i] = b;
+    result[j] = a;
   }
   return result;
 }

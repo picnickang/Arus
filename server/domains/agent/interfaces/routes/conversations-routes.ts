@@ -31,7 +31,7 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const conversation = await agentRepo.conversations.get(req.params['id'], orgId);
+        const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
         }
@@ -48,12 +48,12 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const conversation = await agentRepo.conversations.get(req.params['id'], orgId);
+        const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
         }
-        const messages = await agentRepo.messages.list(req.params['id']);
-        const toolCalls = await agentRepo.toolCalls.list(req.params['id']);
+        const messages = await agentRepo.messages.list((req.params['id'] ?? ''));
+        const toolCalls = await agentRepo.toolCalls.list((req.params['id'] ?? ''));
         return res.json({ messages, toolCalls });
       } catch (error: unknown) {
         return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -67,11 +67,11 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const conversation = await agentRepo.conversations.get(req.params['id'], orgId);
+        const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
         }
-        await agentRepo.conversations.delete(req.params['id']);
+        await agentRepo.conversations.delete((req.params['id'] ?? ''));
         return res.json({ success: true });
       } catch (error: unknown) {
         return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });

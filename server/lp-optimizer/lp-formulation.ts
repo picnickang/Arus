@@ -21,6 +21,7 @@ function initializeConstraintMap(
 
   for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
     const crew = constraints.crewAvailability[crewIdx];
+    if (!crew) continue;
     for (let day = 0; day < constraints.timeHorizonDays; day++) {
       constraintMap.set(`crew_capacity_c${crewIdx}_d${day}`, { max: crew.maxHoursPerDay });
     }
@@ -159,10 +160,11 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
 
   for (let jobIdx = 0; jobIdx < jobs.length; jobIdx++) {
     const job = jobs[jobIdx];
+    if (!job) continue;
 
     for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
       const crew = constraints.crewAvailability[crewIdx];
-      if (crew.skillLevel < job.requiredSkillLevel) {
+      if (!crew || crew.skillLevel < job.requiredSkillLevel) {
         continue;
       }
 
@@ -299,12 +301,11 @@ function extractScheduleFromSolution(
     totalCost += laborCost + partsCost;
     partsUsedBudget += partsCost;
 
-    const dayKey = scheduledDate.toISOString().split("T")[0];
-    if (!dailyWorkload[dayKey]) {
-      dailyWorkload[dayKey] = { hours: 0, jobs: 0 };
-    }
-    dailyWorkload[dayKey].hours += job.estimatedDuration / 60;
-    dailyWorkload[dayKey].jobs += 1;
+    const dayKey = scheduledDate.toISOString().split("T")[0] ?? "";
+    const dayEntry = dailyWorkload[dayKey] ?? { hours: 0, jobs: 0 };
+    dayEntry.hours += job.estimatedDuration / 60;
+    dayEntry.jobs += 1;
+    dailyWorkload[dayKey] = dayEntry;
   }
 
   return { schedule, crewUtilization, dailyWorkload, totalCost, partsUsedBudget };

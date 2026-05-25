@@ -184,7 +184,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("get RAG conversation", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const orgId = DEFAULT_ORG_ID;
 
       const conversationService = getConversationService();
@@ -207,7 +207,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id/messages",
     generalApiRateLimit,
     withErrorHandling("get conversation messages", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const limit = parseInt(req.query['limit'] as string) || 100;
 
       const conversationService = getConversationService();
@@ -221,7 +221,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("update RAG conversation", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const parsed = conversationUpdateSchema.parse(req.body);
 
       const conversationService = getConversationService();
@@ -239,7 +239,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("delete RAG conversation", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
 
       const conversationService = getConversationService();
       const deleted = await conversationService.deleteConversation(id);
@@ -519,7 +519,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id/export",
     generalApiRateLimit,
     withErrorHandling("export conversation", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const format = (req.query['format'] as "pdf" | "markdown") || "markdown";
       const includeCitations = req.query['includeCitations'] !== "false";
       const includeTimestamps = req.query['includeTimestamps'] !== "false";
@@ -619,7 +619,7 @@ export function registerRagRoutes(
     "/api/rag/alerts/:alertId/acknowledge",
     generalApiRateLimit,
     withErrorHandling("acknowledge alert", async (req, res) => {
-      const { alertId } = req.params;
+      const { alertId = '' } = req.params;
 
       const acknowledged = confidenceDetector.acknowledgeAlert(alertId);
 

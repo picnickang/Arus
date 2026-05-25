@@ -142,9 +142,11 @@ export function useMultiPartSelectorData(
       const existingIndex = prev.findIndex((p) => p.partId === part.id);
       if (existingIndex >= 0) {
         const updated = [...prev];
-        updated[existingIndex].quantity += 1;
-        updated[existingIndex].totalCost =
-          updated[existingIndex].quantity * updated[existingIndex].unitCost;
+        const row = updated[existingIndex];
+        if (row) {
+          row.quantity += 1;
+          row.totalCost = row.quantity * row.unitCost;
+        }
         return updated;
       }
       const unitCost = part.stock?.unitCost || part.standardCost || 0;

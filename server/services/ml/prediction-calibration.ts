@@ -141,16 +141,20 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
 
   // PAV algorithm
   const n = sorted.length;
-  const values = sorted.map((d) => d.actualOutcome as number);
-  const weights = new Array(n).fill(1);
+  const values: number[] = sorted.map((d) => d.actualOutcome as number);
+  const weights: number[] = new Array(n).fill(1);
 
   // Pool adjacent violators
   let i = 0;
   while (i < n - 1) {
-    if (values[i] > values[i + 1]) {
+    const vi = values[i] ?? 0;
+    const vj = values[i + 1] ?? 0;
+    if (vi > vj) {
       // Pool these two blocks
-      const totalWeight = weights[i] + weights[i + 1];
-      const pooledValue = (values[i] * weights[i] + values[i + 1] * weights[i + 1]) / totalWeight;
+      const wi = weights[i] ?? 1;
+      const wj = weights[i + 1] ?? 1;
+      const totalWeight = wi + wj;
+      const pooledValue = (vi * wi + vj * wj) / totalWeight;
 
       values[i] = pooledValue;
       weights[i] = totalWeight;
@@ -181,11 +185,18 @@ function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMappin
   if (thresholds.length === 0) {
     return rawProbability;
   }
-  if (rawProbability <= thresholds[0]) {
-    return values[0];
+  const t0 = thresholds[0];
+  const v0 = values[0];
+  const tLast = thresholds[thresholds.length - 1];
+  const vLast = values[values.length - 1];
+  if (t0 === undefined || v0 === undefined || tLast === undefined || vLast === undefined) {
+    return rawProbability;
   }
-  if (rawProbability >= thresholds[thresholds.length - 1]) {
-    return values[values.length - 1];
+  if (rawProbability <= t0) {
+    return v0;
+  }
+  if (rawProbability >= tLast) {
+    return vLast;
   }
 
   // Binary search for the right interval
@@ -193,16 +204,22 @@ function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMappin
   let hi = thresholds.length - 1;
   while (lo < hi - 1) {
     const mid = Math.floor((lo + hi) / 2);
-    if (thresholds[mid] <= rawProbability) {
+    const tm = thresholds[mid] ?? 0;
+    if (tm <= rawProbability) {
       lo = mid;
     } else {
       hi = mid;
     }
   }
 
+  const tLo = thresholds[lo] ?? 0;
+  const tHi = thresholds[hi] ?? 1;
+  const vLo = values[lo] ?? 0;
+  const vHi = values[hi] ?? 0;
   // Linear interpolation between the two nearest points
-  const t = (rawProbability - thresholds[lo]) / (thresholds[hi] - thresholds[lo]);
-  const calibrated = values[lo] + t * (values[hi] - values[lo]);
+  const denom = tHi - tLo;
+  const t = denom === 0 ? 0 : (rawProbability - tLo) / denom;
+  const calibrated = vLo + t * (vHi - vLo);
   return Math.max(0, Math.min(1, calibrated));
 }
 

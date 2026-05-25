@@ -117,16 +117,17 @@ export function registerLlmAnalysisRoutes(
         "../../../openai"
       );
 
+      const eqIdStr = equipmentId ?? '';
       const [device, equipmentHealth, alerts, telemetryTrends, pdmScore] = await Promise.all([
-        dbDevicesStorage.getDevice(equipmentId),
+        dbDevicesStorage.getDevice(eqIdStr),
         dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID),
         dbAlertStorage.getAlertNotifications(),
-        dbTelemetryStorage.getTelemetryTrends(equipmentId, Number.parseInt(hours as string)),
-        dbDevicesStorage.getLatestPdmScore(equipmentId),
+        dbTelemetryStorage.getTelemetryTrends(eqIdStr, Number.parseInt(hours as string)),
+        dbDevicesStorage.getLatestPdmScore(eqIdStr),
       ]);
 
-      const recentAlerts = alerts.filter((alert) => alert.equipmentId === equipmentId).slice(0, 10);
-      const equipmentHealthData = equipmentHealth.find((h) => h.equipmentId === equipmentId);
+      const recentAlerts = alerts.filter((alert) => alert.equipmentId === eqIdStr).slice(0, 10);
+      const equipmentHealthData = equipmentHealth.find((h) => h.equipmentId === eqIdStr);
 
       if (telemetryTrends.length === 0) {
         return res.status(404).json({
@@ -135,7 +136,7 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
-      const analysis = await analyzeEquipmentHealth(telemetryTrends, equipmentId, device?.deviceType ?? undefined);
+      const analysis = await analyzeEquipmentHealth(telemetryTrends, eqIdStr, device?.deviceType ?? undefined);
 
       let alertRecommendations: Awaited<ReturnType<typeof generateMaintenanceRecommendations>>[] = [];
       if (includeRecommendations === "true" && recentAlerts.length > 0) {
@@ -150,7 +151,7 @@ export function registerLlmAnalysisRoutes(
 
           const combinedRecommendation = await generateMaintenanceRecommendations(
             "combined_analysis",
-            equipmentId,
+            eqIdStr,
             { recentAlerts: combinedAlertContext },
             device?.deviceType ?? undefined
           );
@@ -242,7 +243,7 @@ export function registerLlmAnalysisRoutes(
         failurePredictions: pdmScores.filter((s) => (s.pFail30d ?? 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
-          telemetry.length > 0 && telemetry[0].ts
+          telemetry.length > 0 && telemetry[0]?.ts
             ? new Date(telemetry[0].ts).toISOString()
             : null,
         topIssues: alerts

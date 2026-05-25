@@ -17,6 +17,14 @@ function getOrgIdFromRequest(req: Request & { orgId?: string }): string {
   return req.orgId || DEFAULT_ORG_ID;
 }
 
+function requireParam(req: Request, name: string): string {
+  const v = req.params[name];
+  if (typeof v !== "string" || v.length === 0) {
+    throw new Error(`Missing required route param: ${name}`);
+  }
+  return v;
+}
+
 export interface RateLimiters {
   writeOperationRateLimit: RequestHandler;
   criticalOperationRateLimit: RequestHandler;
@@ -64,7 +72,7 @@ export function registerFleetRegistryVesselRoutes(
     "/api/vessels/:id",
     generalApiRateLimit,
     withErrorHandling("fetch vessel", async (req, res) => {
-      const vessel = await service.getVesselById(req.params['id']);
+      const vessel = await service.getVesselById(requireParam(req, 'id'));
       if (!vessel) {
         return sendNotFound(res, "Vessel");
       }
@@ -84,7 +92,7 @@ export function registerFleetRegistryVesselRoutes(
         return handleApiError(res, validationResult.error, "update vessel");
       }
 
-      const vessel = await service.updateVessel(req.params['id'], validationResult.data);
+      const vessel = await service.updateVessel(requireParam(req, 'id'), validationResult.data);
       if (!vessel) {
         return sendNotFound(res, "Vessel");
       }
@@ -100,7 +108,7 @@ export function registerFleetRegistryVesselRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete vessel", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      await service.deleteVessel(req.params['id'], true, orgId);
+      await service.deleteVessel(requireParam(req, 'id'), true, orgId);
       sendDeleted(res);
     })
   );
@@ -112,12 +120,12 @@ export function registerFleetRegistryVesselRoutes(
     criticalOperationRateLimit,
     withErrorHandling("export vessel", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const exportData = await service.exportVessel(req.params['id'], orgId);
+      const exportData = await service.exportVessel(requireParam(req, 'id'), orgId);
 
       res.setHeader("Content-Type", "application/json");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="vessel-${req.params['id']}-export.json"`
+        `attachment; filename="vessel-${requireParam(req, 'id')}-export.json"`
       );
       res.json(exportData);
     })
@@ -141,7 +149,7 @@ export function registerFleetRegistryVesselRoutes(
     writeOperationRateLimit,
     withErrorHandling("reset vessel downtime", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
-      const result = await service.resetDowntime(req.params['id'], orgId);
+      const result = await service.resetDowntime(requireParam(req, 'id'), orgId);
       res.json(result);
     })
   );
@@ -152,7 +160,7 @@ export function registerFleetRegistryVesselRoutes(
     writeOperationRateLimit,
     withErrorHandling("reset vessel operation", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
-      const result = await service.resetOperation(req.params['id'], orgId);
+      const result = await service.resetOperation(requireParam(req, 'id'), orgId);
       res.json(result);
     })
   );
@@ -164,7 +172,7 @@ export function registerFleetRegistryVesselRoutes(
     criticalOperationRateLimit,
     withErrorHandling("wipe vessel data", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const result = await service.wipeData(req.params['id'], orgId);
+      const result = await service.wipeData(requireParam(req, 'id'), orgId);
       res.json(result);
     })
   );
@@ -175,7 +183,7 @@ export function registerFleetRegistryVesselRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch vessel equipment", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
-      const equipment = await service.getVesselEquipment(req.params['id'], orgId);
+      const equipment = await service.getVesselEquipment(requireParam(req, 'id'), orgId);
       res.json(equipment);
     })
   );
@@ -186,7 +194,8 @@ export function registerFleetRegistryVesselRoutes(
     writeOperationRateLimit,
     withErrorHandling("assign equipment to vessel", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
-      const { vesselId, equipmentId } = req.params;
+      const vesselId = requireParam(req, 'vesselId');
+      const equipmentId = requireParam(req, 'equipmentId');
       const result = await service.assignEquipment(vesselId, equipmentId, orgId);
       res.json(result);
     })
@@ -198,7 +207,8 @@ export function registerFleetRegistryVesselRoutes(
     writeOperationRateLimit,
     withErrorHandling("unassign equipment from vessel", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
-      const { vesselId, equipmentId } = req.params;
+      const vesselId = requireParam(req, 'vesselId');
+      const equipmentId = requireParam(req, 'equipmentId');
       await service.unassignEquipment(vesselId, equipmentId, orgId);
       res.json({ success: true });
     })

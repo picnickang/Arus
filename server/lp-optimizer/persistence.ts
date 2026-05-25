@@ -49,7 +49,11 @@ export async function persistOptimizationResults(
       })
       .returning({ id: optimizationResults.id });
 
-    const resultId = optimizationRecord[0].id;
+    const firstRec = optimizationRecord[0];
+    if (!firstRec) {
+      throw new Error("Failed to persist optimization result");
+    }
+    const resultId = firstRec.id;
     logger.info(`[LP Optimizer] Persisted optimization result ${resultId}`);
 
     for (const scheduleItem of result.schedule) {
@@ -92,6 +96,9 @@ export async function getOptimizationResults(resultId: string): Promise<unknown>
     }
 
     const result = optimizationRecord[0];
+    if (!result) {
+      throw new Error(`Optimization result ${resultId} not found`);
+    }
 
     const scheduleRecords = await db
       .select()

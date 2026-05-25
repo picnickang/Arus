@@ -106,8 +106,8 @@ export function CrewScheduler() {
               {p.selectedDays.length > 0 && (
                 <p className="text-sm text-muted-foreground mt-2">
                   {p.selectedDays.length} days selected:{" "}
-                  {format(new Date(p.selectedDays[0]), "MMM d")} -{" "}
-                  {format(new Date(p.selectedDays[p.selectedDays.length - 1]), "MMM d")}
+                  {format(new Date(p.selectedDays[0] ?? ""), "MMM d")} -{" "}
+                  {format(new Date(p.selectedDays[p.selectedDays.length - 1] ?? ""), "MMM d")}
                 </p>
               )}
             </div>
@@ -191,7 +191,7 @@ export function CrewScheduler() {
                         onValueChange={(val) =>
                           p.setPreferences({
                             ...p.preferences,
-                            weights: { ...p.preferences.weights, fairness: val[0] },
+                            weights: { ...p.preferences.weights, fairness: val[0] ?? 0 },
                           })
                         }
                         min={0}
@@ -227,7 +227,7 @@ export function CrewScheduler() {
                         onValueChange={(val) =>
                           p.setPreferences({
                             ...p.preferences,
-                            weights: { ...p.preferences.weights, night_over: val[0] },
+                            weights: { ...p.preferences.weights, night_over: val[0] ?? 0 },
                           })
                         }
                         min={0}
@@ -263,7 +263,7 @@ export function CrewScheduler() {
                         onValueChange={(val) =>
                           p.setPreferences({
                             ...p.preferences,
-                            weights: { ...p.preferences.weights, pref_off: val[0] },
+                            weights: { ...p.preferences.weights, pref_off: val[0] ?? 0 },
                           })
                         }
                         min={0}

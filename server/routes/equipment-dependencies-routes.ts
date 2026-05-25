@@ -228,7 +228,7 @@ router.patch(
         .where(
           and(
             eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id)
+            eq(equipmentDependencies.id, id ?? '')
           )
         )
         .returning();
@@ -268,7 +268,7 @@ router.delete(
         .where(
           and(
             eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id)
+            eq(equipmentDependencies.id, id ?? '')
           )
         )
         .returning();
@@ -326,7 +326,7 @@ router.post(
     );
     const check = await validateEquipmentBelongsToVessel(
       authReq.orgId,
-      vesselId,
+      vesselId ?? '',
       allEquipmentIds
     );
     if (!check.ok) {
@@ -343,7 +343,7 @@ router.post(
         .values(
           rows.map((r) => ({
             orgId: authReq.orgId,
-            vesselId,
+            vesselId: vesselId ?? '',
             upstreamEquipmentId: r.upstreamEquipmentId,
             downstreamEquipmentId: r.downstreamEquipmentId,
             notes: r.notes ?? null,
@@ -455,7 +455,7 @@ router.put(
         .values({
           orgId: authReq.orgId,
           userId,
-          vesselId,
+          vesselId: vesselId ?? '',
           positions,
           updatedAt: new Date(),
         })

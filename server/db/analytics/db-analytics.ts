@@ -84,6 +84,7 @@ export class DatabaseAnalyticsStorage {
 
   async createMaintenanceCost(cost: InsertMaintenanceCost): Promise<MaintenanceCost> {
     const [n] = await db.insert(maintenanceCosts).values(cost).returning();
+    if (!n) throw new Error("createMaintenanceCost: no row returned");
     return n;
   }
 
@@ -119,12 +120,13 @@ export class DatabaseAnalyticsStorage {
     const costs = await query;
     const summary: Record<string, { totalCost: number; costByType: Record<string, number> }> = {};
     costs.forEach((cost: MaintenanceCost) => {
-      if (!summary[cost.equipmentId]) {
-        summary[cost.equipmentId] = { totalCost: 0, costByType: {} };
+      let entry = summary[cost.equipmentId];
+      if (!entry) {
+        entry = { totalCost: 0, costByType: {} };
+        summary[cost.equipmentId] = entry;
       }
-      summary[cost.equipmentId].totalCost += cost.amount;
-      summary[cost.equipmentId].costByType[cost.costType] =
-        (summary[cost.equipmentId].costByType[cost.costType] || 0) + cost.amount;
+      entry.totalCost += cost.amount;
+      entry.costByType[cost.costType] = (entry.costByType[cost.costType] || 0) + cost.amount;
     });
     return Object.entries(summary).map(([equipmentId, data]) => ({
       equipmentId,
@@ -220,6 +222,9 @@ export class DatabaseAnalyticsStorage {
       throw new Error(`Part ${partId} not found`);
     }
     const part = currentPart[0];
+    if (!part) {
+      throw new Error(`Part ${partId} not found`);
+    }
     const [currentStockRow] = await db
       .select()
       .from(stock)
@@ -322,6 +327,7 @@ export class DatabaseAnalyticsStorage {
 
   async createLaborRate(rate: InsertLaborRate): Promise<LaborRate> {
     const [n] = await db.insert(laborRates).values(rate).returning();
+    if (!n) throw new Error("createLaborRate: no row returned");
     return n;
   }
 
@@ -345,6 +351,7 @@ export class DatabaseAnalyticsStorage {
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
     const [n] = await db.insert(expenses).values(expense).returning();
+    if (!n) throw new Error("createExpense: no row returned");
     return n;
   }
 
@@ -385,10 +392,12 @@ export class DatabaseAnalyticsStorage {
       .from(equipmentLifecycle)
       .where(eq(equipmentLifecycle.equipmentId, lifecycle.equipmentId))
       .limit(1);
-    if (existing.length > 0) {
-      return this.updateEquipmentLifecycle(existing[0].id, lifecycle);
+    const existingFirst = existing[0];
+    if (existingFirst) {
+      return this.updateEquipmentLifecycle(existingFirst.id, lifecycle);
     }
     const [n] = await db.insert(equipmentLifecycle).values(lifecycle).returning();
+    if (!n) throw new Error("upsertEquipmentLifecycle: no row returned");
     return n;
   }
 
@@ -451,6 +460,7 @@ export class DatabaseAnalyticsStorage {
 
   async createPerformanceMetric(metric: InsertPerformanceMetric): Promise<PerformanceMetric> {
     const [n] = await db.insert(performanceMetrics).values(metric).returning();
+    if (!n) throw new Error("createPerformanceMetric: no row returned");
     return n;
   }
 
@@ -461,10 +471,12 @@ export class DatabaseAnalyticsStorage {
     if (metrics.length > 0) {
       const equipmentMetrics: Record<string, PerformanceMetric[]> = {};
       metrics.forEach((metric: PerformanceMetric) => {
-        if (!equipmentMetrics[metric.equipmentId]) {
-          equipmentMetrics[metric.equipmentId] = [];
+        let bucket = equipmentMetrics[metric.equipmentId];
+        if (!bucket) {
+          bucket = [];
+          equipmentMetrics[metric.equipmentId] = bucket;
         }
-        equipmentMetrics[metric.equipmentId].push(metric);
+        bucket.push(metric);
       });
       const equipmentIds = Object.keys(equipmentMetrics);
       const equipmentData = await db

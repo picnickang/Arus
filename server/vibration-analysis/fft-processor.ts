@@ -37,10 +37,11 @@ function extractHarmonics(
     const closestIndex = frequencies.findIndex((freq) => Math.abs(freq - targetFreq) < tolerance);
 
     if (closestIndex !== -1) {
-      harmonics.push({
-        freq: frequencies[closestIndex],
-        magnitude: magnitudes[closestIndex],
-      });
+      const fq = frequencies[closestIndex];
+      const mg = magnitudes[closestIndex];
+      if (fq !== undefined && mg !== undefined) {
+        harmonics.push({ freq: fq, magnitude: mg });
+      }
     }
   }
 
@@ -61,16 +62,17 @@ export function performFFT(data: VibrationData[]): FFTResult {
   const frequencyResolution = nyquist / (WINDOW_SIZE / 2);
 
   for (let i = 0; i < WINDOW_SIZE / 2; i++) {
-    const real = fftOutput[i][0];
-    const imag = fftOutput[i][1];
+    const bin = fftOutput[i];
+    const real = bin?.[0] ?? 0;
+    const imag = bin?.[1] ?? 0;
     const magnitude = Math.sqrt(real * real + imag * imag);
     frequencies.push(i * frequencyResolution);
     magnitudes.push(magnitude);
   }
 
   const maxMagnitudeIndex = magnitudes.indexOf(Math.max(...magnitudes));
-  const dominantFreq = frequencies[maxMagnitudeIndex];
-  const dominantMagnitude = magnitudes[maxMagnitudeIndex];
+  const dominantFreq = frequencies[maxMagnitudeIndex] ?? 0;
+  const dominantMagnitude = magnitudes[maxMagnitudeIndex] ?? 0;
   const harmonics = extractHarmonics(frequencies, magnitudes, dominantFreq);
 
   return { frequencies, magnitudes, dominantFreq, dominantMagnitude, harmonics };

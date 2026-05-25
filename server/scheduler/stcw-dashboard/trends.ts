@@ -127,9 +127,11 @@ function computeTrendSummary(trends: TrendDataPoint[]): {
       ? secondHalf.reduce((sum, t) => sum + t.highFatigueRate, 0) / secondHalf.length
       : 0;
 
+  const lastTrend = trends[trends.length - 1];
+  const firstTrend = trends[0];
   return {
     complianceRateChange:
-      trends.length > 1 ? trends[trends.length - 1].complianceRate - trends[0].complianceRate : 0,
+      trends.length > 1 && lastTrend && firstTrend ? lastTrend.complianceRate - firstTrend.complianceRate : 0,
     violationTrend: determineTrendDirection(avgViolationsSecond, avgViolationsFirst),
     fatigueRiskTrend: determineTrendDirection(avgFatigueSecond, avgFatigueFirst),
   };
@@ -159,8 +161,8 @@ export async function getSTCWComplianceTrends(
 
   const fullRangeStart = new Date(endDate);
   fullRangeStart.setDate(fullRangeStart.getDate() - lookbackDays - 7);
-  const fullStartStr = fullRangeStart.toISOString().split("T")[0];
-  const fullEndStr = endDate.toISOString().split("T")[0];
+  const fullStartStr = fullRangeStart.toISOString().split("T")[0] ?? '';
+  const fullEndStr = endDate.toISOString().split("T")[0] ?? '';
 
   const vesselDataPromises = vessels.map((vessel) =>
     getCrewRestDataForVessel(orgId, vessel.id, fullStartStr, fullEndStr).then((crewData) => ({
@@ -173,11 +175,11 @@ export async function getSTCWComplianceTrends(
   for (let i = dataPointCount - 1; i >= 0; i--) {
     const pointDate = new Date(endDate);
     pointDate.setDate(pointDate.getDate() - i * intervalDays);
-    const dateStr = pointDate.toISOString().split("T")[0];
+    const dateStr = pointDate.toISOString().split("T")[0] ?? '';
 
     const weekStartDate = new Date(pointDate);
     weekStartDate.setDate(weekStartDate.getDate() - 7);
-    const startStr = weekStartDate.toISOString().split("T")[0];
+    const startStr = weekStartDate.toISOString().split("T")[0] ?? '';
 
     const metrics = collectMetricsForDate(allVesselData, startStr, dateStr);
     trends.push(buildTrendDataPoint(dateStr, metrics));

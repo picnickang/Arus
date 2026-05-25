@@ -10,7 +10,7 @@ export function percentile(sortedValues: number[], pct: number): number {
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   const weight = index - lower;
-  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+  return (sortedValues[lower] ?? 0) * (1 - weight) + (sortedValues[upper] ?? 0) * weight;
 }
 
 export function calculateSkewness(values: number[], meanVal: number, stdDev: number): number {
@@ -70,14 +70,14 @@ export function calculateTrend(values: number[], timestamps: Date[]): TrendResul
 
   const sumX = x.reduce((sum, val) => sum + val, 0);
   const sumY = y.reduce((sum, val) => sum + val, 0);
-  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+  const sumXY = x.reduce((sum, val, i) => sum + val * (y[i] ?? 0), 0);
   const sumXX = x.reduce((sum, val) => sum + val * val, 0);
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
 
   const meanY = sumY / n;
-  const ssRes = y.reduce((sum, val, i) => sum + Math.pow(val - (slope * x[i] + intercept), 2), 0);
+  const ssRes = y.reduce((sum, val, i) => sum + Math.pow(val - (slope * (x[i] ?? 0) + intercept), 2), 0);
   const ssTot = y.reduce((sum, val) => sum + Math.pow(val - meanY, 2), 0);
   const rSquared = ssTot === 0 ? 0 : 1 - ssRes / ssTot;
 
@@ -152,8 +152,8 @@ export function calculatePearsonCorrelation(x: number[], y: number[]): number {
   let denomY = 0;
 
   for (let i = 0; i < n; i++) {
-    const diffX = x[i] - meanX;
-    const diffY = y[i] - meanY;
+    const diffX = (x[i] ?? 0) - meanX;
+    const diffY = (y[i] ?? 0) - meanY;
     numerator += diffX * diffY;
     denomX += diffX * diffX;
     denomY += diffY * diffY;

@@ -60,9 +60,13 @@ export function validateManifest(sqliteInitContent: string): {
   extraIndexes: string[];
 } {
   const tableMatches = sqliteInitContent.matchAll(/CREATE TABLE IF NOT EXISTS ([a-z0-9_]+)/gi);
-  const sqliteTables = new Set([...tableMatches].map((m) => m[1]).filter((t) => t.length > 2));
+  const sqliteTables = new Set(
+    [...tableMatches].map((m) => m[1] ?? "").filter((t): t is string => t.length > 2)
+  );
   const indexMatches = sqliteInitContent.matchAll(/CREATE INDEX IF NOT EXISTS ([a-z0-9_]+)/gi);
-  const sqliteIndexes = new Set([...indexMatches].map((m) => m[1]).filter((i) => i.length > 5));
+  const sqliteIndexes = new Set(
+    [...indexMatches].map((m) => m[1] ?? "").filter((i): i is string => i.length > 5)
+  );
   const manifestTables = new Set(getAllTables()),
     manifestIndexes = new Set(getAllIndexes());
   return {

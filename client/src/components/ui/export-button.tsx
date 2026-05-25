@@ -169,7 +169,7 @@ export function ExportButton({
       <Button
         variant={variant}
         size={size}
-        onClick={() => handleExport(formats[0])}
+        onClick={() => formats[0] && handleExport(formats[0])}
         disabled={disabled || isExporting || !data}
         className={className}
         data-testid={testId}

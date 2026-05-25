@@ -71,7 +71,7 @@ function mergeTimeSeriesData(sensors: SensorData[]): Record<string, number>[] {
     });
   });
 
-  return Object.values(merged).sort((a, b) => a['timestamp'] - b['timestamp']);
+  return Object.values(merged).sort((a, b) => (a['timestamp'] ?? 0) - (b['timestamp'] ?? 0));
 }
 
 function getUniqueUnits(sensors: SensorData[]): string[] {
@@ -108,7 +108,7 @@ export function MultiSensorChart({
 
   const toggleAll = () => {
     if (visibleSensors.size === sensors.length) {
-      setVisibleSensors(new Set([sensors[0]?.sensorType].filter(Boolean)));
+      setVisibleSensors(new Set([sensors[0]?.sensorType].filter((s): s is string => Boolean(s))));
     } else {
       setVisibleSensors(new Set(sensors.map((s) => s.sensorType)));
     }
@@ -143,6 +143,9 @@ export function MultiSensorChart({
     }
 
     const timestamp = payload[0]?.payload?.timestamp;
+    if (!timestamp) {
+      return null;
+    }
 
     return (
       <div className="bg-background border border-border rounded-lg p-3 shadow-lg max-w-xs">

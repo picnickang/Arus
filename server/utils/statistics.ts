@@ -34,14 +34,18 @@ export function calculateSummaryStats(values: number[]) {
   }
 
   const sorted = [...values].sort((a, b) => a - b);
+  // values.length > 0 verified above, so sorted is non-empty; defaults are unreachable.
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
+  const min = sorted[0] ?? 0;
+  const max = sorted[sorted.length - 1] ?? 0;
 
   return {
     count: values.length,
     mean: mean(values),
-    median: sorted[Math.floor(sorted.length / 2)],
+    median,
     std: standardDeviation(values),
-    min: sorted[0],
-    max: sorted[sorted.length - 1],
+    min,
+    max,
   };
 }
 
@@ -211,7 +215,9 @@ export function absEnvelope(x: Series, windowSize: number = 5): number[] {
 
     for (let j = i - windowSize; j <= i + windowSize; j++) {
       if (j >= 0 && j < rectified.length) {
-        sum += rectified[j];
+        const r = rectified[j];
+        if (r === undefined) continue;
+        sum += r;
         count++;
       }
     }
@@ -237,8 +243,9 @@ export function bandRMS(
 
     for (let i = 0; i < freq.length; i++) {
       const f = freq[i];
+      if (f === undefined) continue;
       if (f >= band.lo && f < band.hi) {
-        const magnitude = mag[i] || 0;
+        const magnitude = mag[i] ?? 0;
         energySum += magnitude * magnitude;
         count++;
       }
@@ -262,7 +269,10 @@ export function linearRegression(x: number[], y: number[]) {
   const n = x.length;
   const sumX = x.reduce((a, b) => a + b, 0);
   const sumY = y.reduce((a, b) => a + b, 0);
-  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumXY = x.reduce((sum, xi, i) => {
+    const yi = y[i];
+    return yi === undefined ? sum : sum + xi * yi;
+  }, 0);
   const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
@@ -272,7 +282,9 @@ export function linearRegression(x: number[], y: number[]) {
   const yMean = sumY / n;
   const ssTotal = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
   const ssResidual = y.reduce((sum, yi, i) => {
-    const predicted = slope * x[i] + intercept;
+    const xi = x[i];
+    if (xi === undefined) return sum;
+    const predicted = slope * xi + intercept;
     return sum + Math.pow(yi - predicted, 2);
   }, 0);
   const rSquared = 1 - ssResidual / ssTotal;
@@ -301,9 +313,14 @@ export function exponentialMovingAverage(values: number[], alpha: number = 0.3):
     return [];
   }
 
-  const result: number[] = [values[0]];
+  const first = values[0];
+  if (first === undefined) return [];
+  const result: number[] = [first];
   for (let i = 1; i < values.length; i++) {
-    result.push(alpha * values[i] + (1 - alpha) * result[i - 1]);
+    const v = values[i];
+    const prev = result[i - 1];
+    if (v === undefined || prev === undefined) continue;
+    result.push(alpha * v + (1 - alpha) * prev);
   }
   return result;
 }
@@ -323,11 +340,16 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
   let denominator = 0;
 
   for (let i = 0; i < n - lag; i++) {
-    numerator += (values[i] - meanVal) * (values[i + lag] - meanVal);
+    const vi = values[i];
+    const vil = values[i + lag];
+    if (vi === undefined || vil === undefined) continue;
+    numerator += (vi - meanVal) * (vil - meanVal);
   }
 
   for (let i = 0; i < n; i++) {
-    denominator += Math.pow(values[i] - meanVal, 2);
+    const vi = values[i];
+    if (vi === undefined) continue;
+    denominator += Math.pow(vi - meanVal, 2);
   }
 
   return denominator !== 0 ? numerator / denominator : 0;
@@ -354,8 +376,11 @@ export function calculatePearsonCorrelation(x: number[], y: number[]): number {
   let denomY = 0;
 
   for (let i = 0; i < n; i++) {
-    const dx = x[i] - meanX;
-    const dy = y[i] - meanY;
+    const xi = x[i];
+    const yi = y[i];
+    if (xi === undefined || yi === undefined) continue;
+    const dx = xi - meanX;
+    const dy = yi - meanY;
     numerator += dx * dy;
     denomX += dx * dx;
     denomY += dy * dy;
@@ -470,7 +495,10 @@ export function calculateMAE(actual: number[], predicted: number[]): number {
 
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    sum += Math.abs(actual[i] - predicted[i]);
+    const a = actual[i];
+    const p = predicted[i];
+    if (a === undefined || p === undefined) continue;
+    sum += Math.abs(a - p);
   }
 
   return sum / n;
@@ -487,7 +515,10 @@ export function calculateRMSE(actual: number[], predicted: number[]): number {
 
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    sum += Math.pow(actual[i] - predicted[i], 2);
+    const a = actual[i];
+    const p = predicted[i];
+    if (a === undefined || p === undefined) continue;
+    sum += Math.pow(a - p, 2);
   }
 
   return Math.sqrt(sum / n);
@@ -506,8 +537,11 @@ export function calculateMAPE(actual: number[], predicted: number[]): number {
   let count = 0;
 
   for (let i = 0; i < n; i++) {
-    if (actual[i] !== 0) {
-      sum += Math.abs((actual[i] - predicted[i]) / actual[i]);
+    const a = actual[i];
+    const p = predicted[i];
+    if (a === undefined || p === undefined) continue;
+    if (a !== 0) {
+      sum += Math.abs((a - p) / a);
       count++;
     }
   }

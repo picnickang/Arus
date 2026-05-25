@@ -115,7 +115,7 @@ export function getAvatarColor(name: string): string {
     "bg-cyan-600",
   ];
   const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
+  return colors[index] ?? "bg-slate-500";
 }
 
 export function getDeltaIcon(delta: number, metric: "proposed" | "unfilled" | "collisions") {

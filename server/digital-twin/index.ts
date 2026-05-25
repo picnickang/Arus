@@ -98,6 +98,7 @@ export class DigitalTwinService extends EventEmitter {
       } as never)
       .returning();
     const twin = digitalTwin[0];
+    if (!twin) throw new Error("createDigitalTwin: insert returned no row");
     this.activeTwins.set(twin.id, twin);
     await this.createDefaultVisualizationAssets(twin.id, specifications);
     this.emit("twin_created", twin);
@@ -165,6 +166,7 @@ export class DigitalTwinService extends EventEmitter {
       })
       .returning();
     const sim = simulation[0];
+    if (!sim) throw new Error("runSimulation: insert returned no row");
     this.simulationQueue.set(sim.id, sim);
     setImmediate(() => this.processSimulation(sim.id, twin, scenario));
     this.emit("simulation_started", sim);

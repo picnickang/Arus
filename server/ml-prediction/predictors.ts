@@ -308,7 +308,7 @@ export async function predictWithHybridModel(
       rfPrediction,
     ].filter((p): p is MLPredictionResult => p !== null);
     if (availablePredictions.length === 1) {
-      return availablePredictions[0];
+      return availablePredictions[0] ?? null;
     }
     const weights = availablePredictions.map((p) => {
       let w = 1;
@@ -321,16 +321,16 @@ export async function predictWithHybridModel(
     });
     const totalWeight = weights.reduce((sum, w) => sum + w, 0);
     const failureProbability = availablePredictions.reduce(
-      (sum, p, idx) => sum + p.failureProbability * (weights[idx] / totalWeight),
+      (sum, p, idx) => sum + p.failureProbability * ((weights[idx] ?? 0) / totalWeight),
       0
     );
     const confidence = availablePredictions.reduce(
-      (sum, p, idx) => sum + p.confidence * (weights[idx] / totalWeight),
+      (sum, p, idx) => sum + p.confidence * ((weights[idx] ?? 0) / totalWeight),
       0
     );
     const remainingDays = Math.round(
       availablePredictions.reduce(
-        (sum, p, idx) => sum + p.remainingDays * (weights[idx] / totalWeight),
+        (sum, p, idx) => sum + p.remainingDays * ((weights[idx] ?? 0) / totalWeight),
         0
       )
     );

@@ -26,23 +26,36 @@ export function findBestSplitXGBoost(
   let bestRightCover = 0;
 
   for (const featureIndex of featureIndices) {
-    const values = data.map((row) => row[featureIndex]);
+    const values: number[] = [];
+    for (const row of data) {
+      const v = row[featureIndex];
+      if (v !== undefined) values.push(v);
+    }
     const uniqueValues = Array.from(new Set(values)).sort((a, b) => a - b);
 
     for (let i = 0; i < uniqueValues.length - 1; i++) {
-      const threshold = (uniqueValues[i] + uniqueValues[i + 1]) / 2;
+      const a = uniqueValues[i];
+      const b = uniqueValues[i + 1];
+      if (a === undefined || b === undefined) continue;
+      const threshold = (a + b) / 2;
       let leftGradSum = 0,
         leftHessSum = 0,
         rightGradSum = 0,
         rightHessSum = 0;
 
       for (let j = 0; j < data.length; j++) {
-        if (data[j][featureIndex] <= threshold) {
-          leftGradSum += gradients[j];
-          leftHessSum += hessians[j];
+        const row = data[j];
+        const g = gradients[j];
+        const h = hessians[j];
+        if (!row || g === undefined || h === undefined) continue;
+        const v = row[featureIndex];
+        if (v === undefined) continue;
+        if (v <= threshold) {
+          leftGradSum += g;
+          leftHessSum += h;
         } else {
-          rightGradSum += gradients[j];
-          rightHessSum += hessians[j];
+          rightGradSum += g;
+          rightHessSum += h;
         }
       }
 
@@ -97,7 +110,9 @@ export function buildGradientTree(
   const selectedIndices: number[] = [];
   for (let i = 0; i < numFeatures; i++) {
     const randomIndex = cryptoRandomInt(availableIndices.length);
-    selectedIndices.push(availableIndices[randomIndex]);
+    const picked = availableIndices[randomIndex];
+    if (picked === undefined) continue;
+    selectedIndices.push(picked);
     availableIndices.splice(randomIndex, 1);
   }
 
@@ -117,21 +132,27 @@ export function buildGradientTree(
     rightHessians: number[] = [];
 
   for (let i = 0; i < data.length; i++) {
-    if (data[i][split.featureIndex] <= split.threshold) {
-      leftData.push(data[i]);
-      leftGradients.push(gradients[i]);
-      leftHessians.push(hessians[i]);
+    const row = data[i];
+    const g = gradients[i];
+    const h = hessians[i];
+    if (!row || g === undefined || h === undefined) continue;
+    const v = row[split.featureIndex];
+    if (v === undefined) continue;
+    if (v <= split.threshold) {
+      leftData.push(row);
+      leftGradients.push(g);
+      leftHessians.push(h);
     } else {
-      rightData.push(data[i]);
-      rightGradients.push(gradients[i]);
-      rightHessians.push(hessians[i]);
+      rightData.push(row);
+      rightGradients.push(g);
+      rightHessians.push(h);
     }
   }
 
   return {
     isLeaf: false,
     featureIndex: split.featureIndex,
-    featureName: featureNames[split.featureIndex],
+    featureName: featureNames[split.featureIndex] ?? "",
     threshold: split.threshold,
     left: buildGradientTree(leftData, leftGradients, leftHessians, featureNames, config, depth + 1),
     right: buildGradientTree(
@@ -154,7 +175,9 @@ export function predictTree(tree: TreeNode, sample: number[]): number {
   if (tree.featureIndex === undefined || tree.threshold === undefined) {
     return 0;
   }
-  if (sample[tree.featureIndex] <= tree.threshold) {
+  const v = sample[tree.featureIndex];
+  if (v === undefined) return 0;
+  if (v <= tree.threshold) {
     return tree.left ? predictTree(tree.left, sample) : 0;
   }
   return tree.right ? predictTree(tree.right, sample) : 0;

@@ -226,7 +226,7 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
       }
 
       if (readings.length > 0) {
-        const oldestFrameTs = frames[0].ts;
+        const oldestFrameTs = frames[0]?.ts;
         const commitStart = Date.now();
         const frameIds = frames.map((f) => f.id);
 
@@ -240,9 +240,10 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
             "Circuit breaker open - PostgreSQL unavailable",
             "sqlite-bridge"
           );
-          const maxId = frames[frames.length - 1].id;
-          const maxTs = frames[frames.length - 1].ts;
-          cursor.setCursor(maxId, maxTs);
+          const lastFrame = frames[frames.length - 1];
+          if (lastFrame) {
+            cursor.setCursor(lastFrame.id, lastFrame.ts);
+          }
           await sleep(backoffMs);
           continue;
         }
@@ -296,9 +297,10 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
               errorMsg,
               "sqlite-bridge"
             );
-            const maxId = frames[frames.length - 1].id;
-            const maxTs = frames[frames.length - 1].ts;
-            cursor.setCursor(maxId, maxTs);
+            const lastFrame = frames[frames.length - 1];
+            if (lastFrame) {
+              cursor.setCursor(lastFrame.id, lastFrame.ts);
+            }
           } else {
             logger.warn("SqliteBridge", "Postgres write failed, will retry", {
               error: err,
@@ -313,9 +315,10 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
         }
       }
 
-      const maxId = frames[frames.length - 1].id;
-      const maxTs = frames[frames.length - 1].ts;
-      cursor.setCursor(maxId, maxTs);
+      const lastFrame = frames[frames.length - 1];
+      if (lastFrame) {
+        cursor.setCursor(lastFrame.id, lastFrame.ts);
+      }
     } catch (err) {
       logger.error("SqliteBridge", "Unexpected error in bridge loop", { error: err });
       await sleep(2000);

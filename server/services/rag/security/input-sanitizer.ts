@@ -74,8 +74,9 @@ export class InputSanitizer {
     // Check for blocked patterns
     for (let i = 0; i < this.compiledPatterns.length; i++) {
       const pattern = this.compiledPatterns[i];
+      if (!pattern) continue;
       if (pattern.test(sanitized)) {
-        blockedPatterns.push(this.config.blockedPatterns[i]);
+        blockedPatterns.push(this.config.blockedPatterns[i] ?? '');
         sanitized = sanitized.replace(pattern, "[FILTERED]");
         wasModified = true;
       }

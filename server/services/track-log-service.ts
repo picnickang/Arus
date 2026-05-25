@@ -94,19 +94,20 @@ export class TrackLogService {
       .orderBy(sql`${vesselTrackLog.timestamp} DESC`)
       .limit(1);
 
-    if (lastPos.length === 0) {
+    const first = lastPos[0];
+    if (!first) {
       return null;
     }
 
     return {
-      latitude: lastPos[0].latitude,
-      longitude: lastPos[0].longitude,
-      timestamp: lastPos[0].timestamp,
-      sog: lastPos[0].sog ?? undefined,
-      cog: lastPos[0].cog ?? undefined,
-      heading: lastPos[0].heading ?? undefined,
-      source: lastPos[0].source as string,
-      equipmentId: lastPos[0].equipmentId ?? undefined,
+      latitude: first.latitude,
+      longitude: first.longitude,
+      timestamp: first.timestamp,
+      sog: first.sog ?? undefined,
+      cog: first.cog ?? undefined,
+      heading: first.heading ?? undefined,
+      source: first.source as string,
+      equipmentId: first.equipmentId ?? undefined,
     };
   }
 

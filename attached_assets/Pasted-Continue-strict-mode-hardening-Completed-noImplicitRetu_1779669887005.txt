@@ -1,0 +1,93 @@
+Continue strict-mode hardening.
+
+Completed:
+- noImplicitReturns = permanent and clean
+- noPropertyAccessFromIndexSignature = permanent and clean
+- default tsc clean
+- explicit-any = 0
+- cast count = 1 documented justified boundary cast
+
+Next active flag:
+noUncheckedIndexedAccess
+
+Mission:
+Reduce all noUncheckedIndexedAccess errors to 0 and make the flag permanent safely.
+
+IMPORTANT:
+This lane is NOT a codemod lane.
+Do not blindly add non-null assertions (!).
+Do not suppress errors.
+Fix the underlying undefined-risk semantics correctly.
+
+Typical affected patterns:
+- array[index]
+- Map.get(...)
+- object[key]
+- optional dictionary lookups
+- queue/task retrieval
+- cache access
+- split()[0]
+- regex matches
+- ORM/query row indexing
+
+Preferred fixes:
+- guards
+- early returns
+- invariant helpers
+- defaulting
+- narrowing
+- typed helper functions
+- safer iteration patterns
+- explicit undefined handling
+- tuple typing where appropriate
+
+Avoid:
+- !
+- unsafe casts
+- fake defaults that alter behavior
+- swallowing undefined states
+- broad rewrites
+
+High-risk areas:
+- realtime/event systems
+- schedulers/queues
+- ML prediction flows
+- import pipelines
+- websocket/session handling
+- repository/query helpers
+
+Execution strategy:
+1. collect errors
+2. cluster by directory
+3. pick safest dense lane
+4. fix one lane at a time
+5. validate
+6. commit/merge
+7. continue automatically
+
+Validation after every lane:
+- npx tsc --noEmit
+- strict check for noUncheckedIndexedAccess
+- scoped eslint
+- explicit-any baseline remains 0
+- cast count remains 1 unless newly justified
+- architect/code review if diff exists
+
+If validation fails:
+- repair automatically
+- retry up to 3 times
+- otherwise revert lane and continue with safer target
+
+Stop only if:
+1. noUncheckedIndexedAccess errors = 0
+2. a true unsafe architectural blocker requires manual intervention
+
+Final report only when stopping:
+- errors before → after
+- whether flag became permanent
+- runtime bugs uncovered/fixed
+- files changed
+- blockers
+- tsc result
+- explicit-any result
+- cast result

@@ -36,7 +36,7 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     "/api/j1939/configurations/:id",
     requireOrgId,
     withErrorHandling("fetch J1939 configuration", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const configuration = await dbSensorsStorage.getJ1939Configuration(id, orgId);
       if (!configuration) {
@@ -66,7 +66,7 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("update J1939 configuration", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const configData = insertJ1939ConfigurationSchema.partial().parse(req.body);
       const existing = await dbSensorsStorage.getJ1939Configuration(id, orgId);
@@ -83,7 +83,7 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete J1939 configuration", async (req, res) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await dbSensorsStorage.getJ1939Configuration(id, orgId);
       if (!existing) {

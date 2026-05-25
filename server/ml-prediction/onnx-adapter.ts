@@ -97,7 +97,8 @@ function buildFeatureTensor(
 ): InstanceType<OrtModuleLike["Tensor"]> {
   const arr = new Float32Array(ONNX_FEATURE_ORDER.length);
   for (let i = 0; i < ONNX_FEATURE_ORDER.length; i++) {
-    const v = features[ONNX_FEATURE_ORDER[i]];
+    const key = ONNX_FEATURE_ORDER[i];
+    const v = key ? features[key] : undefined;
     arr[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
   }
   return new ort.Tensor("float32", arr, [1, ONNX_FEATURE_ORDER.length]);
@@ -110,16 +111,19 @@ function extractProbability(out: { data: Float32Array | BigInt64Array }): number
     return Number(data[0]) > 0 ? 0.8 : 0.1;
   }
   if (data.length === 1) {
-    const v = data[0];
+    const v = data[0] ?? 0;
     return v >= 0 && v <= 1 ? v : 1 / (1 + Math.exp(-v));
   }
-  let positive = data[data.length - 1];
+  let positive = data[data.length - 1] ?? 0;
   if (!(positive >= 0 && positive <= 1)) {
     let max = -Infinity;
-    for (let i = 0; i < data.length; i++) if (data[i] > max) max = data[i];
+    for (let i = 0; i < data.length; i++) {
+      const di = data[i] ?? 0;
+      if (di > max) max = di;
+    }
     let sum = 0;
-    for (let i = 0; i < data.length; i++) sum += Math.exp(data[i] - max);
-    positive = Math.exp(data[data.length - 1] - max) / sum;
+    for (let i = 0; i < data.length; i++) sum += Math.exp((data[i] ?? 0) - max);
+    positive = Math.exp((data[data.length - 1] ?? 0) - max) / sum;
   }
   return Math.min(Math.max(positive, 0), 1);
 }
@@ -156,6 +160,9 @@ export class OnnxInferenceAdapter implements InferenceRunnerPort {
     const ort = await loadOrt();
     const tensor = buildFeatureTensor(ort, features);
     const inputName = session.inputNames[0];
+    if (!inputName) {
+      throw new Error("ONNX session has no input names");
+    }
     const feeds: Record<string, unknown> = { [inputName]: tensor };
 
     let outputs: Record<string, { data: Float32Array | BigInt64Array }>;
@@ -170,20 +177,30 @@ export class OnnxInferenceAdapter implements InferenceRunnerPort {
       throw err;
     }
 
+    const firstOut = session.outputNames[0];
+    if (!firstOut) {
+      throw new Error("ONNX session has no output names");
+    }
     const probName =
       this.opts.probabilityOutputName ??
       session.outputNames.find((n) => /prob|score|fail/i.test(n)) ??
-      session.outputNames[0];
+      firstOut;
     const rulName =
       this.opts.rulOutputName ?? session.outputNames.find((n) => /rul|days|life/i.test(n));
 
-    const failureProbability = extractProbability(outputs[probName] ?? outputs[session.outputNames[0]]);
+    const probOut = outputs[probName] ?? outputs[firstOut];
+    if (!probOut) {
+      throw new Error(`ONNX outputs missing probability tensor for ${probName}`);
+    }
+    const failureProbability = extractProbability(probOut);
 
     let remainingUsefulLife: number;
-    if (rulName && outputs[rulName] && outputs[rulName].data.length > 0) {
-      const raw = outputs[rulName].data;
+    const rulOut = rulName ? outputs[rulName] : undefined;
+    if (rulOut && rulOut.data.length > 0) {
+      const raw = rulOut.data;
+      const first = raw[0] ?? 0;
       remainingUsefulLife = Math.max(
-        Math.floor(raw instanceof BigInt64Array ? Number(raw[0]) : raw[0]),
+        Math.floor(raw instanceof BigInt64Array ? Number(first) : (first as number)),
         1
       );
     } else {

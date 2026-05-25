@@ -30,7 +30,7 @@ router.get("/ml/models", async (req: AuthenticatedRequest, res: Response) => {
 
 router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
@@ -50,7 +50,7 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
  */
 router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) return sendNotFound(res, "ML model");
     if (model.status !== "deployed") {
       return sendBadRequest(res, "Only deployed models expose artifacts");
@@ -195,7 +195,7 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
 
 router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
@@ -206,7 +206,7 @@ router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Resp
       return sendBadRequest(res, "Cannot deploy a failed model");
     }
     const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
-      req.params['id'],
+      (req.params['id'] ?? ''),
       { status: "deployed", deployedOn: new Date() },
       req.orgId
     );
@@ -218,12 +218,12 @@ router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Resp
 
 router.post("/ml/models/:id/archive", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
     const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
-      req.params['id'],
+      (req.params['id'] ?? ''),
       { status: "archived", archivedOn: new Date() },
       req.orgId
     );
@@ -235,11 +235,11 @@ router.post("/ml/models/:id/archive", async (req: AuthenticatedRequest, res: Res
 
 router.delete("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
-    await dbMlAnalyticsStorage.deleteMlModel(req.params['id'], req.orgId);
+    await dbMlAnalyticsStorage.deleteMlModel((req.params['id'] ?? ''), req.orgId);
     sendSuccess(res, { message: "Model deleted successfully" });
   } catch (error) {
     handleError(error, res, "delete ML model");
@@ -248,14 +248,14 @@ router.delete("/ml/models/:id", async (req: AuthenticatedRequest, res: Response)
 
 router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
     const { accuracy, validationAccuracy, testAccuracy, datasetSize } = req.body;
     const historyEntry = await (dbMlAnalyticsStorage as object as { addMlModelAccuracyHistory: (entry: Record<string, unknown>, orgId: string) => Promise<unknown> }).addMlModelAccuracyHistory(
       {
-        modelId: req.params['id'],
+        modelId: (req.params['id'] ?? ''),
         accuracy,
         validationAccuracy: validationAccuracy || null,
         testAccuracy: testAccuracy || null,
@@ -283,7 +283,7 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
 
 router.post("/ml/models/:id/promote", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const candidate = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const candidate = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!candidate) return sendNotFound(res, "ML model");
     if (candidate.status === "training") return sendBadRequest(res, "Cannot promote a training model");
     if (candidate.status === "failed") return sendBadRequest(res, "Cannot promote a failed model");
@@ -322,7 +322,7 @@ router.post("/ml/models/:id/promote", async (req: AuthenticatedRequest, res: Res
 
 router.post("/ml/models/:id/rollback", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const current = await dbMlAnalyticsStorage.getMlModel(req.params['id'], req.orgId);
+    const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!current) return sendNotFound(res, "ML model");
     if (current.status !== "deployed") return sendBadRequest(res, "Only deployed models can be rolled back");
     if (!current.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");

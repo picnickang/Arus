@@ -40,15 +40,15 @@ export async function computeEquipmentLoadDistribution(
   for (const load of loadPct) {
     let binIndex = counts.length - 1;
     for (let i = 0; i < bins.length; i++) {
-      if (load <= bins[i]) {
+      if (load <= (bins[i] ?? 0)) {
         binIndex = i;
         break;
       }
     }
-    counts[binIndex] += 1;
+    counts[binIndex] = (counts[binIndex] ?? 0) + 1;
   }
 
-  return bins.map((bin, i) => ({ bin, hours: counts[i] / 3600 }));
+  return bins.map((bin, i) => ({ bin, hours: (counts[i] ?? 0) / 3600 }));
 }
 
 export async function computeFleetLoadBenchmarks(

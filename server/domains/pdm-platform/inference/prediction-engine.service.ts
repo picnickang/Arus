@@ -63,6 +63,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         status: "running",
       })
       .returning();
+    if (!run) throw new Error("predictionEngine: inferenceRuns insert returned no row");
 
     try {
       const features = await this.fetchLatestFeatures(orgId, equipmentId);
@@ -100,6 +101,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           featureSnapshotId: features?.id ?? null,
         })
         .returning();
+      if (!predictionRecord) throw new Error("predictionEngine: failurePredictions insert returned no row");
 
       const explanationRows = await this.generateExplanations(
         predictionRecord.id,
@@ -123,6 +125,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         })
         .where(eq(inferenceRuns.id, run.id))
         .returning();
+      if (!updatedRun) throw new Error("predictionEngine: inferenceRuns update returned no row");
 
       logger.info("[PredictionEngine] Inference completed", undefined, {
         orgId,

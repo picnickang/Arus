@@ -37,7 +37,7 @@ export async function predictWithLSTM(
   const inputTensor = tf.tensor3d([normalized]);
 
   const prediction = model.model.predict(inputTensor) as tf.Tensor;
-  const failureProbability = (await prediction.data())[0];
+  const failureProbability = (await prediction.data())[0] ?? 0;
 
   inputTensor.dispose();
   prediction.dispose();

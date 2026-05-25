@@ -103,7 +103,7 @@ router.get("/suppliers/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const supplier = await repo.getSupplierById(req.params['id'], orgId);
+    const supplier = await repo.getSupplierById(req.params['id'] ?? '', orgId);
     if (!supplier) {
       return res.status(404).json({ error: "Supplier not found" });
     }
@@ -132,7 +132,7 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
       }
     }
 
-    const supplier = await repo.updateSupplier(req.params['id'], orgId, parsed.data);
+    const supplier = await repo.updateSupplier(req.params['id'] ?? '', orgId, parsed.data);
     if (!supplier) {
       return res.status(404).json({ error: "Supplier not found" });
     }
@@ -148,7 +148,7 @@ router.delete("/suppliers/:id", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const deleted = await repo.deleteSupplier(req.params['id'], orgId);
+    const deleted = await repo.deleteSupplier(req.params['id'] ?? '', orgId);
     if (!deleted) {
       return res.status(404).json({ error: "Supplier not found" });
     }

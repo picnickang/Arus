@@ -200,12 +200,11 @@ export function getRequestSpanSummary(requestId?: string): {
       continue;
     }
 
-    if (!byCategory[span.category]) {
-      byCategory[span.category] = { count: 0, totalMs: 0, maxMs: 0 };
-    }
-    byCategory[span.category].count++;
-    byCategory[span.category].totalMs += span.durationMs;
-    byCategory[span.category].maxMs = Math.max(byCategory[span.category].maxMs, span.durationMs);
+    const cat = byCategory[span.category] ?? { count: 0, totalMs: 0, maxMs: 0 };
+    cat.count++;
+    cat.totalMs += span.durationMs;
+    cat.maxMs = Math.max(cat.maxMs, span.durationMs);
+    byCategory[span.category] = cat;
 
     if (span.durationMs > 50) {
       slowSpans.push(span);
@@ -259,7 +258,10 @@ export function cleanupOldSpans(): void {
 
     const excess = requestSpans.size - SPAN_MAX_REQUESTS;
     for (let i = 0; i < excess; i++) {
-      requestSpans.delete(entries[i][0]);
+      const entry = entries[i];
+      if (entry) {
+        requestSpans.delete(entry[0]);
+      }
     }
   }
 }
@@ -288,6 +290,7 @@ export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
 
     const firstSpan = context.spans[0];
     const lastSpan = context.spans[context.spans.length - 1];
+    if (!firstSpan || !lastSpan) continue;
     const totalDuration = (lastSpan.endTime || Date.now()) - firstSpan.startTime;
 
     if (totalDuration > thresholdMs) {

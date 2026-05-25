@@ -239,10 +239,12 @@ export class SemanticChunker {
       );
     } else if (chunks.length > 0 && currentContent.trim().length > 0) {
       const lastChunk = chunks[chunks.length - 1];
-      lastChunk.content += `\n\n${currentContent.trim()}`;
-      lastChunk.endIndex = chunkStartIndex + currentContent.length;
-      lastChunk.metadata.sentenceCount += currentSentences;
-      lastChunk.metadata.paragraphCount += currentParagraphs;
+      if (lastChunk) {
+        lastChunk.content += `\n\n${currentContent.trim()}`;
+        lastChunk.endIndex = chunkStartIndex + currentContent.length;
+        lastChunk.metadata.sentenceCount += currentSentences;
+        lastChunk.metadata.paragraphCount += currentParagraphs;
+      }
     } else if (currentContent.trim().length > 0) {
       chunks.push(
         this.createChunk(
@@ -289,14 +291,17 @@ export class SemanticChunker {
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
+      if (!chunk) continue;
       let content = chunk.content;
 
       if (i > 0) {
         const prevChunk = chunks[i - 1];
-        const overlapSize = Math.floor(prevChunk.content.length * this.config.overlapPercentage);
-        const overlapText = this.getEndingContext(prevChunk.content, overlapSize);
-        if (overlapText) {
-          content = `...${overlapText}\n\n${content}`;
+        if (prevChunk) {
+          const overlapSize = Math.floor(prevChunk.content.length * this.config.overlapPercentage);
+          const overlapText = this.getEndingContext(prevChunk.content, overlapSize);
+          if (overlapText) {
+            content = `...${overlapText}\n\n${content}`;
+          }
         }
       }
 

@@ -66,7 +66,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const orgId = DEFAULT_ORG_ID;
-      const { id } = req.params;
+      const { id = '' } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -153,7 +153,7 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const orgId = DEFAULT_ORG_ID;
-      const { id } = req.params;
+      const { id = '' } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }

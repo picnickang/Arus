@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/:modelId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await registry.getModel(orgId, req.params['modelId']);
+    const result = await registry.getModel(orgId, req.params['modelId'] ?? '');
     if (!result) {
       return res.status(404).json({ error: "Model not found" });
     }
@@ -45,7 +45,7 @@ router.get("/:modelId", async (req: Request, res: Response) => {
 router.get("/:modelId/versions", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await registry.listVersions(orgId, req.params['modelId']);
+    const result = await registry.listVersions(orgId, req.params['modelId'] ?? '');
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -62,7 +62,7 @@ router.post("/:modelId/versions", async (req: Request, res: Response) => {
     }
     const result = await registry.createVersion({
       orgId,
-      modelId: req.params['modelId'],
+      modelId: req.params['modelId'] ?? '',
       ...parsed.data,
     });
     return res.status(201).json(result);
@@ -75,7 +75,7 @@ router.post("/:modelId/versions", async (req: Request, res: Response) => {
 router.get("/:modelId/deployment", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await registry.getActiveDeployment(orgId, req.params['modelId']);
+    const result = await registry.getActiveDeployment(orgId, req.params['modelId'] ?? '');
     return res.json(result ?? { message: "No active deployment" });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -91,7 +91,7 @@ router.post("/:modelId/deploy", async (req: Request, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
     const { modelVersionId, target } = parsed.data;
-    const result = await registry.deploy(orgId, req.params['modelId'], modelVersionId, target);
+    const result = await registry.deploy(orgId, req.params['modelId'] ?? '', modelVersionId, target);
     return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -102,7 +102,7 @@ router.post("/:modelId/deploy", async (req: Request, res: Response) => {
 router.post("/deployments/:deploymentId/rollback", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await registry.rollback(orgId, parseInt(req.params['deploymentId']));
+    const result = await registry.rollback(orgId, parseInt(req.params['deploymentId'] ?? '0'));
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

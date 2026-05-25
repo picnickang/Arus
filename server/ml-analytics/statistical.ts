@@ -45,11 +45,11 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
   let denominator = 0;
 
   for (let i = 0; i < n; i++) {
-    numerator += (values[i] - mean) * (values[i + lag] - mean);
+    numerator += ((values[i] ?? 0) - mean) * ((values[i + lag] ?? 0) - mean);
   }
 
   for (let i = 0; i < values.length; i++) {
-    denominator += Math.pow(values[i] - mean, 2);
+    denominator += Math.pow((values[i] ?? 0) - mean, 2);
   }
 
   return denominator === 0 ? 0 : numerator / denominator;

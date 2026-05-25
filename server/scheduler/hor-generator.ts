@@ -147,7 +147,8 @@ export function getDatesInRange(start: Date, end: Date): string[] {
   endDate.setHours(0, 0, 0, 0);
 
   while (current <= endDate) {
-    dates.push(current.toISOString().split("T")[0]);
+    const iso = current.toISOString().split("T")[0];
+    if (iso) dates.push(iso);
     current.setDate(current.getDate() + 1);
   }
 
@@ -169,7 +170,7 @@ function getMonthName(month: number): string {
     "NOVEMBER",
     "DECEMBER",
   ];
-  return months[month];
+  return months[month] ?? "";
 }
 
 export async function generateHoRFromSchedule(
@@ -227,7 +228,7 @@ export async function generateHoRFromSchedule(
       const datesAffected = getDatesInRange(startTime, endTime);
 
       for (const dateStr of datesAffected) {
-        const [yearStr, monthStr] = dateStr.split("-");
+        const [yearStr = "0", monthStr = "1"] = dateStr.split("-");
         const year = Number.parseInt(yearStr);
         const monthNum = Number.parseInt(monthStr) - 1;
         const monthName = getMonthName(monthNum);

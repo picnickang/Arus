@@ -55,6 +55,7 @@ export function calculateFatigueMetrics(days: RestDay[]): FatigueMetrics {
 
   for (let i = days.length - 1; i >= 0; i--) {
     const day = days[i];
+    if (!day) continue;
     const restHours = countRestHours(day);
     const workHours = countWorkHours(day);
     const nightWorkHours = countNightWorkHours(day);
@@ -198,7 +199,8 @@ export function calculateVesselFatigueSummary(crewFatigueResults: FatigueRiskRes
     totalScore += result.score;
     const counterKey = riskCounters[result.riskLevel];
     if (counterKey) {
-      (summary as object as Record<string, number>)[counterKey]++;
+      const bag = summary as object as Record<string, number>;
+      bag[counterKey] = (bag[counterKey] ?? 0) + 1;
     }
   }
 

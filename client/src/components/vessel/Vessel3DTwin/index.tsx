@@ -179,16 +179,18 @@ export default function Vessel3DTwin({
         const cb = onPlaceAtRef.current;
         if (!root || !cb) return;
         const meshHits = raycaster.intersectObject(root, true);
-        if (meshHits.length > 0) {
-          const p = meshHits[0].point;
+        const firstHit = meshHits[0];
+        if (firstHit) {
+          const p = firstHit.point;
           cb({ x: p.x, y: p.y, z: p.z });
         }
         return;
       }
 
       const hits = raycaster.intersectObjects(pinGroup.children, false);
-      if (hits.length > 0) {
-        const data = hits[0].object.userData as { equipmentId?: string };
+      const firstHit = hits[0];
+      if (firstHit) {
+        const data = firstHit.object.userData as { equipmentId?: string };
         const cb = onSelectRef.current;
         if (data.equipmentId && cb) cb(data.equipmentId);
       }

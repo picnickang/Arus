@@ -25,6 +25,20 @@ import { Router, Request, Response } from "express";
 function getOrgId(req: Request): string {
   return (req as Request & { orgId?: string }).orgId || DEFAULT_ORG_ID;
 }
+
+/**
+ * Express types req.params as `Record<string, string | undefined>` under
+ * noUncheckedIndexedAccess, but the underlying route pattern guarantees the
+ * matched segment is present. Funnel each path-param lookup through this
+ * helper so the unreachable-undefined branch is collapsed in one place.
+ */
+function pathParam(req: Request, name: string): string {
+  const v = req.params[name];
+  if (typeof v !== "string" || v === "") {
+    throw new Error(`Missing required path parameter: ${name}`);
+  }
+  return v;
+}
 import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema";
 import * as repo from "./repository";
 import { SERVICE_ORDER_STATUS_TRANSITIONS, ServiceOrderStatus } from "./types";
@@ -95,7 +109,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/:id", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const order = await repo.getServiceOrderById(req.params['id'], orgId);
+  const order = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!order) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -137,7 +151,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   const userId = req.headers["x-user-id"] as string | undefined;
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -152,7 +166,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
   }
 
   const data = sanitize(req.body);
-  const updated = await repo.updateServiceOrder(req.params['id'], orgId, data);
+  const updated = await repo.updateServiceOrder(pathParam(req, 'id'), orgId, data);
 
   const newStatus = data['status'] ?? existing.status;
   if (
@@ -186,7 +200,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
   }
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -198,7 +212,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
     });
   }
 
-  const updated = await repo.updateServiceOrder(req.params['id'], orgId, {
+  const updated = await repo.updateServiceOrder(pathParam(req, 'id'), orgId, {
     revisedAmount: parsed.data.revisedAmount,
     revisionNotes: parsed.data.revisionNotes,
     revisedAt: new Date(),
@@ -206,7 +220,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
 
   // Record a cost_revised event for audit trail
   await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     existing.status as ServiceOrderStatus,
     userId,
@@ -225,7 +239,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
 router.post("/:id/send", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -235,7 +249,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     "sent",
     req.body.userId
@@ -285,7 +299,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
 router.post("/:id/confirm", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -297,7 +311,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     "confirmed",
     req.body.userId
@@ -309,7 +323,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
 router.post("/:id/start", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -321,7 +335,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     "in_progress",
     req.body.userId
@@ -333,7 +347,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
 router.post("/:id/complete", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -346,11 +360,11 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
 
   const { actualAmount, actualDurationHours } = req.body;
   if (actualAmount !== undefined || actualDurationHours !== undefined) {
-    await repo.updateServiceOrder(req.params['id'], orgId, { actualAmount, actualDurationHours });
+    await repo.updateServiceOrder(pathParam(req, 'id'), orgId, { actualAmount, actualDurationHours });
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     "completed",
     req.body.userId
@@ -373,7 +387,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
 router.post("/:id/cancel", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -385,7 +399,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
   }
 
   const updated = await repo.updateServiceOrderStatus(
-    req.params['id'],
+    pathParam(req, 'id'),
     orgId,
     "cancelled",
     req.body.userId,
@@ -399,7 +413,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
 router.get("/:id/events", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const events = await repo.getServiceOrderEvents(req.params['id'], orgId);
+  const events = await repo.getServiceOrderEvents(pathParam(req, 'id'), orgId);
   return res.json(events);
 });
 
@@ -408,7 +422,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   const userId = req.headers["x-user-id"] as string | undefined;
 
-  const existing = await repo.getServiceOrderById(req.params['id'], orgId);
+  const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
     return res.status(404).json({ error: "Service order not found" });
   }
@@ -422,7 +436,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     }
   }
 
-  const result = await repo.deleteServiceOrder(req.params['id'], orgId);
+  const result = await repo.deleteServiceOrder(pathParam(req, 'id'), orgId);
   if (!result.success) {
     const status = result.error === "Service order not found" ? 404 : 400;
     return res.status(status).json({ error: result.error });
@@ -435,7 +449,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 router.delete("/bulk/by-work-order/:workOrderId", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
-  const result = await repo.deleteAllServiceOrdersByWorkOrder(req.params['workOrderId'], orgId);
+  const result = await repo.deleteAllServiceOrdersByWorkOrder(pathParam(req, 'workOrderId'), orgId);
   return res.json(result);
 });
 

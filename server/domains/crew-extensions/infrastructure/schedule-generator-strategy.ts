@@ -98,8 +98,8 @@ export class BalancedScheduleGenerator implements IScheduleGeneratorStrategy {
             return hoursA - hoursB;
           });
 
-          if (availableCrew.length > 0) {
-            const selected = availableCrew[0];
+          const selected = availableCrew[0];
+          if (selected) {
             const shiftHours = this.getShiftHours(shift);
 
             proposedAssignments.push({
@@ -167,7 +167,7 @@ export class BalancedScheduleGenerator implements IScheduleGeneratorStrategy {
   }
 
   private formatDate(date: Date): string {
-    return date.toISOString().split("T")[0];
+    return date.toISOString().split("T")[0] ?? "";
   }
 
   private getShiftHours(shift: "day" | "night" | "full_day"): number {

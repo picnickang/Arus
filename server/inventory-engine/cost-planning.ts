@@ -73,7 +73,7 @@ export async function planMaintenanceCosts(
           "available";
         let leadTime: number | undefined;
 
-        if (partAvail.available < quantity) {
+        if (partAvail && partAvail.available < quantity) {
           if (partAvail.onHand === 0) {
             availabilityStatus = "out_of_stock";
           } else {
@@ -107,7 +107,7 @@ export async function planMaintenanceCosts(
               );
             }
           } else {
-            leadTime = partAvail.leadTimeDays;
+            leadTime = partAvail?.leadTimeDays;
             recommendations.push({
               type: "expedited_delivery",
               description: `Expedite delivery of ${requiredPart.partNo} - current lead time: ${leadTime} days`,

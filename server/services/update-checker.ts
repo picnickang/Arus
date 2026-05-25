@@ -112,7 +112,7 @@ export class UpdateChecker {
         .where(and(eq(patchesTable.orgId, orgId), eq(patchesTable.version, manifest.version)))
         .limit(1);
 
-      if (existing.length > 0 && existing[0].status === "applied") {
+      if (existing.length > 0 && existing[0]?.status === "applied") {
         logger.info(`[UpdateChecker] Version ${manifest.version} already applied`);
         return null;
       }
@@ -218,7 +218,7 @@ export class UpdateChecker {
     };
 
     const [patch] = await db.insert(softwarePatches).values(patchData).returning();
-
+    if (!patch) throw new Error("recordAvailableUpdate: insert returned no row");
     return patch;
   }
 
@@ -346,6 +346,7 @@ export class UpdateChecker {
           totalBytes: patch.fileSize || 0,
         })
         .returning();
+      if (!download) throw new Error("downloadPatch: downloads insert returned no row");
 
       // Download to temporary file
       const filename = `patch-${patch.version}.tar.gz`;

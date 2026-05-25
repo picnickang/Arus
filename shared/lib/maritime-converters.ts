@@ -104,7 +104,8 @@ export function bearingToDirection(bearing: number): string {
     "NNW",
   ];
   const index = Math.round(bearing / 22.5) % 16;
-  return directions[index];
+  // index ∈ [0, 16) and directions has exactly 16 entries; default unreachable.
+  return directions[index] ?? "N";
 }
 
 /**

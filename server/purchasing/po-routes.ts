@@ -115,6 +115,9 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing required path parameter: id" });
+    }
 
     const [po] = await db
       .select({
@@ -173,6 +176,9 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing required path parameter: id" });
+    }
 
     const schema = z.object({
       items: z.array(
@@ -263,6 +269,9 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing required path parameter: id" });
+    }
 
     const schema = z.object({
       items: z.array(
@@ -343,6 +352,9 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
   try {
     const orgId = getOrgId(req);
     const { id, itemId } = req.params;
+    if (!id || !itemId) {
+      return res.status(400).json({ error: "Missing required path parameters" });
+    }
 
     const schema = z.object({
       unitPrice: z.number().min(0, "Unit price must be non-negative"),
@@ -428,6 +440,9 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing required path parameter: id" });
+    }
     const userId = (req as AuthenticatedRequest).user?.id;
 
     const [po] = await db
@@ -536,6 +551,9 @@ router.get("/:id/events", requireOrgId, generalLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing required path parameter: id" });
+    }
 
     const events = await db
       .select()

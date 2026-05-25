@@ -38,6 +38,7 @@ export async function createServiceOrder(
   executor: { insert: typeof db.insert } = db
 ): Promise<ServiceOrder> {
   const [so] = await executor.insert(serviceOrders).values(data).returning();
+  if (!so) throw new Error("createServiceOrder: no row returned");
   await executor.insert(serviceOrderEvents).values({
     orgId: data.orgId,
     soId: so.id,
@@ -76,10 +77,10 @@ export async function getServiceOrderById(
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)))
     .limit(1);
 
-  if (result.length === 0) {
+  const row = result[0];
+  if (!row) {
     return null;
   }
-  const row = result[0];
   return {
     ...row.so,
     workOrderNumber: row.workOrderNumber ?? undefined,

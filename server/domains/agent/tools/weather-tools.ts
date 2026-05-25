@@ -205,7 +205,7 @@ function degreesToCardinal(deg: number): string {
     "NW",
     "NNW",
   ];
-  return dirs[Math.round(deg / 22.5) % 16];
+  return dirs[Math.round(deg / 22.5) % 16] ?? "N";
 }
 
 /**
@@ -358,9 +358,10 @@ registerTool({
           ORDER BY fetched_at DESC LIMIT 1
         `);
         const posRows = (posResult as { rows?: Array<Record<string, unknown>> }).rows || [];
-        if (posRows.length > 0) {
-          lat = Number(posRows[0]['latitude']);
-          lng = Number(posRows[0]['longitude']);
+        const firstPos = posRows[0];
+        if (firstPos) {
+          lat = Number(firstPos['latitude']);
+          lng = Number(firstPos['longitude']);
         }
       } catch {
         // weather_cache may not exist in local/SQLite mode — fall through to error
@@ -478,7 +479,7 @@ registerTool({
       general: { maxWind: 30, maxWave: 3.0 },
     };
 
-    const t = thresholds[activity] || thresholds['general'];
+    const t = thresholds[activity] ?? thresholds['general'] ?? { maxWind: 30, maxWave: 3.0 };
     const windOk = wind <= t.maxWind;
     const waveOk = wave <= t.maxWave;
     const goNoGo = windOk && waveOk ? "GO" : "NO-GO";

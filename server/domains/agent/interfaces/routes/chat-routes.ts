@@ -142,7 +142,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
         const userId = (req as AuthenticatedRequest).user?.id;
-        const conversationId = req.params['id'];
+        const conversationId = req.params['id'] ?? '';
 
         const existing = await agentRepo.conversations.get(conversationId, orgId);
         if (!existing) {
@@ -215,7 +215,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = (req as AuthenticatedRequest).orgId;
-        const conversationId = req.params['id'];
+        const conversationId = req.params['id'] ?? '';
         const files = await listConversationFiles(conversationId, orgId);
         return res.json({
           files: files.map((f) => ({

@@ -67,15 +67,15 @@ export function parseAmosCSV(
   }
 
   // Parse header row
-  const headers = parseCSVLine(lines[0], delimiter).map((h) => h.trim().toUpperCase());
+  const headers = parseCSVLine(lines[0] ?? "", delimiter).map((h) => h.trim().toUpperCase());
 
   // Parse data rows
   const rows: Record<string, string>[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i], delimiter);
+    const values = parseCSVLine(lines[i] ?? "", delimiter);
 
-    if (values.length === 0 || (values.length === 1 && values[0].trim() === "")) {
+    if (values.length === 0 || (values.length === 1 && (values[0] ?? "").trim() === "")) {
       continue; // Skip empty rows
     }
 
@@ -87,7 +87,9 @@ export function parseAmosCSV(
 
     const row: Record<string, string> = {};
     for (let j = 0; j < headers.length; j++) {
-      row[headers[j]] = (values[j] || "").trim();
+      const headerName = headers[j];
+      if (!headerName) continue;
+      row[headerName] = (values[j] || "").trim();
     }
     rows.push(row);
   }
@@ -155,7 +157,7 @@ export function parseAmosXML(content: string): ParseResult {
       // Extract all record blocks
       const blockRegex = new RegExp(`<${tag}[^>]*>(.*?)</${tag}>`, "gis");
       const matches = text.matchAll(blockRegex);
-      records = [...matches].map((m) => m[1]);
+      records = [...matches].map((m) => m[1] ?? "");
       break;
     }
   }
@@ -164,11 +166,12 @@ export function parseAmosXML(content: string): ParseResult {
     // Try generic approach: look for repeated sibling elements
     const topLevelMatch = text.match(/<(\w+)>[\s\S]*<\/\1>/g);
     if (topLevelMatch && topLevelMatch.length > 1) {
-      const tagMatch = topLevelMatch[0].match(/^<(\w+)/);
-      if (tagMatch) {
+      const first = topLevelMatch[0];
+      const tagMatch = first ? first.match(/^<(\w+)/) : null;
+      if (tagMatch && tagMatch[1]) {
         recordTag = tagMatch[1];
         const blockRegex = new RegExp(`<${recordTag}[^>]*>(.*?)</${recordTag}>`, "gis");
-        records = [...text.matchAll(blockRegex)].map((m) => m[1]);
+        records = [...text.matchAll(blockRegex)].map((m) => m[1] ?? "");
       }
     }
   }
@@ -191,7 +194,9 @@ export function parseAmosXML(content: string): ParseResult {
     // Extract child elements: <FIELD_NAME>value</FIELD_NAME>
     const fieldRegex = /<(\w+)(?:\s[^>]*)?>(?:<!\[CDATA\[(.*?)\]\]>|(.*?))<\/\1>/gs;
     for (const match of record.matchAll(fieldRegex)) {
-      const fieldName = match[1].toUpperCase();
+      const rawName = match[1];
+      if (!rawName) continue;
+      const fieldName = rawName.toUpperCase();
       const value = (match[2] ?? match[3] ?? "").trim();
       row[fieldName] = value;
       allHeaders.add(fieldName);
@@ -201,9 +206,11 @@ export function parseAmosXML(content: string): ParseResult {
     const attrRegex = /(\w+)="([^"]*)"/g;
     const recordStart = text.substring(text.indexOf(record) - 200, text.indexOf(record));
     for (const attrMatch of recordStart.matchAll(attrRegex)) {
-      const attrName = attrMatch[1].toUpperCase();
+      const rawAttr = attrMatch[1];
+      if (!rawAttr) continue;
+      const attrName = rawAttr.toUpperCase();
       if (!row[attrName]) {
-        row[attrName] = attrMatch[2];
+        row[attrName] = attrMatch[2] ?? "";
         allHeaders.add(attrName);
       }
     }

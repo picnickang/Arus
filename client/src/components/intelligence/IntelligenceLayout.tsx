@@ -20,7 +20,7 @@ const tabs: IntelligenceTab[] = [
 ];
 
 function isActiveTab(tabHref: string, currentPath: string): boolean {
-  const path = currentPath.split("?")[0];
+  const path = currentPath.split("?")[0] ?? "";
   if (tabHref === "/equipment-intelligence") {
     return path === "/equipment-intelligence";
   }

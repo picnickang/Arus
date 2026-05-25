@@ -38,6 +38,7 @@ export class DbWorkOrderNested {
       .insert(workOrderParts)
       .values({ id: randomUUID(), ...part, createdAt: new Date() })
       .returning();
+    if (!newPart) throw new Error("Failed to add work order part");
     return newPart;
   }
   async updateWorkOrderPart(
@@ -70,6 +71,7 @@ export class DbWorkOrderNested {
       .insert(workOrderTasks)
       .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!newTask) throw new Error("Failed to add work order task");
     return newTask;
   }
   async updateWorkOrderTask(
@@ -102,6 +104,7 @@ export class DbWorkOrderNested {
       .insert(workOrderChecklists)
       .values({ id: randomUUID(), ...checklist, createdAt: new Date() })
       .returning();
+    if (!newChecklist) throw new Error("Failed to add work order checklist");
     return newChecklist;
   }
   async updateWorkOrderChecklist(
@@ -134,6 +137,7 @@ export class DbWorkOrderNested {
       .insert(workOrderWorklogs)
       .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() })
       .returning();
+    if (!newWorklog) throw new Error("Failed to add work order worklog");
     return newWorklog;
   }
   async updateWorkOrderWorklog(

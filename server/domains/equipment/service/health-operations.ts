@@ -64,17 +64,19 @@ export async function getEquipmentHealth(
           ? "warning"
           : "critical";
 
-    if (!vesselHealthCounts[vesselIdKey]) {
-      vesselHealthCounts[vesselIdKey] = { healthy: 0, warning: 0, critical: 0 };
+    let bucket = vesselHealthCounts[vesselIdKey];
+    if (!bucket) {
+      bucket = { healthy: 0, warning: 0, critical: 0 };
+      vesselHealthCounts[vesselIdKey] = bucket;
     }
-    vesselHealthCounts[vesselIdKey][status]++;
+    bucket[status]++;
     recordPdmScore(equipment.id, equipment.vessel ?? "", equipment.healthIndex);
   });
 
   Object.entries(vesselHealthCounts).forEach(([vesselId, counts]) => {
-    updateEquipmentHealthStatus("healthy", counts['healthy'], vesselId);
-    updateEquipmentHealthStatus("warning", counts['warning'], vesselId);
-    updateEquipmentHealthStatus("critical", counts['critical'], vesselId);
+    updateEquipmentHealthStatus("healthy", counts['healthy'] ?? 0, vesselId);
+    updateEquipmentHealthStatus("warning", counts['warning'] ?? 0, vesselId);
+    updateEquipmentHealthStatus("critical", counts['critical'] ?? 0, vesselId);
   });
 
   return health;

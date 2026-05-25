@@ -128,7 +128,7 @@ function isCrewEligible(
   if (state.scheduled.some((a) => a.date === day && a.crewId === crewMember.id)) {
     return false;
   }
-  if (isNight && state.nightShiftCounts[crewMember.id] >= config.rules.max_nights_per_week) {
+  if (isNight && (state.nightShiftCounts[crewMember.id] ?? 0) >= config.rules.max_nights_per_week) {
     return false;
   }
   return true;
@@ -145,24 +145,24 @@ function calculateCrewPenalty(
   crewCount: number
 ): number {
   let penalty = 0;
-  const currentAssignments = state.crewAssignments[crewMember.id].length;
+  const currentAssignments = (state.crewAssignments[crewMember.id] ?? []).length;
   const avgAssignments =
     Object.values(state.crewAssignments).reduce((s, a) => s + a.length, 0) / crewCount;
   penalty += Math.max(0, currentAssignments - avgAssignments) * config.weights.fairness;
 
   if (isNight) {
-    const nightCount = state.nightShiftCounts[crewMember.id];
+    const nightCount = state.nightShiftCounts[crewMember.id] ?? 0;
     if (nightCount >= config.rules.max_nights_per_week) {
       penalty += (nightCount - config.rules.max_nights_per_week + 1) * config.weights.night_over;
     }
     const yesterday = new Date(shiftDate);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const yesterdayStr = yesterday.toISOString().split("T")[0] ?? "";
     const hadNightYesterday = state.scheduled.some(
       (a) =>
         a.date === yesterdayStr &&
         a.crewId === crewMember.id &&
-        isNightShift(a.start.split("T")[1].split("Z")[0])
+        isNightShift((a.start.split("T")[1] ?? "").split("Z")[0] ?? "")
     );
     if (hadNightYesterday) {
       penalty += config.weights.consec_night;
@@ -263,7 +263,9 @@ export function scheduleWithConstraints(
       const assignedCount = Math.min(needed, scoredCrew.length);
 
       for (let i = 0; i < assignedCount; i++) {
-        const { crewMember } = scoredCrew[i];
+        const scored = scoredCrew[i];
+        if (!scored) continue;
+        const { crewMember } = scored;
         const assignment: Assignment = {
           date: day,
           shiftId: shift.id!,
@@ -274,9 +276,10 @@ export function scheduleWithConstraints(
           role: shift.role,
         };
         state.scheduled.push(assignment);
-        state.crewAssignments[crewMember.id].push(assignment);
+        const list = state.crewAssignments[crewMember.id];
+        if (list) list.push(assignment);
         if (isNight) {
-          state.nightShiftCounts[crewMember.id]++;
+          state.nightShiftCounts[crewMember.id] = (state.nightShiftCounts[crewMember.id] ?? 0) + 1;
         }
       }
 

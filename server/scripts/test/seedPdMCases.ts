@@ -89,13 +89,21 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     logger.error("[SeedPdM] Could not ensure 4 equipment on vessel. Aborting.");
     return;
   }
+  const eq0 = vesselEquipment[0];
+  const eq1 = vesselEquipment[1];
+  const eq2 = vesselEquipment[2];
+  const eq3 = vesselEquipment[3];
+  if (!eq0 || !eq1 || !eq2 || !eq3) {
+    logger.error("[SeedPdM] vesselEquipment slice undefined. Aborting.");
+    return;
+  }
 
   logger.info(`[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`);
 
   const testCases = [
     {
       orgId: DEFAULT_ORG_ID,
-      equipmentId: vesselEquipment[0].id,
+      equipmentId: eq0.id,
       predictionTimestamp: now,
       failureProbability: 0.25,
       predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
@@ -107,7 +115,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     },
     {
       orgId: DEFAULT_ORG_ID,
-      equipmentId: vesselEquipment[1].id,
+      equipmentId: eq1.id,
       predictionTimestamp: now,
       failureProbability: 0.4,
       predictedFailureDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000),
@@ -119,7 +127,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     },
     {
       orgId: DEFAULT_ORG_ID,
-      equipmentId: vesselEquipment[2].id,
+      equipmentId: eq2.id,
       predictionTimestamp: now,
       failureProbability: 0.35,
       predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
@@ -131,7 +139,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     },
     {
       orgId: DEFAULT_ORG_ID,
-      equipmentId: vesselEquipment[3].id,
+      equipmentId: eq3.id,
       predictionTimestamp: now,
       failureProbability: 0.4,
       predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
@@ -143,7 +151,7 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     },
     {
       orgId: DEFAULT_ORG_ID,
-      equipmentId: vesselEquipment[0].id,
+      equipmentId: eq0.id,
       predictionTimestamp: new Date(now.getTime() - 1000),
       failureProbability: 0.75,
       predictedFailureDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),

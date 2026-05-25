@@ -64,20 +64,19 @@ export class SemanticCache {
       )
       .limit(1);
 
-    if (exactMatch.length > 0) {
-      const entry = exactMatch[0];
-
+    const exactEntry = exactMatch[0];
+    if (exactEntry) {
       await db
         .update(ragSemanticCache)
         .set({
           hitCount: sql`hit_count + 1`,
           lastAccessedAt: new Date(),
         })
-        .where(eq(ragSemanticCache.id, entry.id));
+        .where(eq(ragSemanticCache.id, exactEntry.id));
 
       logger.info(`[SemanticCache] Exact cache hit for query hash ${queryHash.substring(0, 8)}`);
 
-      return this.toEntry(entry);
+      return this.toEntry(exactEntry);
     }
 
     if (this.useSemanticLookup) {
@@ -120,9 +119,8 @@ export class SemanticCache {
         LIMIT 1
       `);
 
-      if (results.rows.length > 0) {
-        const entry = results.rows[0];
-
+      const entry = results.rows[0];
+      if (entry) {
         await db
           .update(ragSemanticCache)
           .set({

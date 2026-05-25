@@ -266,6 +266,9 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
       return null;
     }
     const [baseline, candidate] = selectedRunsArray;
+    if (!baseline || !candidate) {
+      return null;
+    }
     const statsBaseline = baseline.stats || { proposed: 0, unfilled: 0, collisions: 0 };
     const statsCandidate = candidate.stats || { proposed: 0, unfilled: 0, collisions: 0 };
 

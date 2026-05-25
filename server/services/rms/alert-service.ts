@@ -316,10 +316,13 @@ class RmsAlertService {
   ): boolean {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].lat,
-        yi = polygon[i].lon;
-      const xj = polygon[j].lat,
-        yj = polygon[j].lon;
+      const pi = polygon[i];
+      const pj = polygon[j];
+      if (!pi || !pj) continue;
+      const xi = pi.lat,
+        yi = pi.lon;
+      const xj = pj.lat,
+        yj = pj.lon;
       const intersect = yi > lon !== yj > lon && lat < ((xj - xi) * (lon - yi)) / (yj - yi) + xi;
       if (intersect) {
         inside = !inside;

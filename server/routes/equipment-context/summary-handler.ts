@@ -17,7 +17,7 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export async function handleEquipmentSummary(req: Request, res: Response) {
   try {
-    const { equipmentId } = req.params;
+    const { equipmentId = '' } = req.params;
     const { orgId } = req.query;
 
     if (!orgId || typeof orgId !== "string") {

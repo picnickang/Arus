@@ -15,7 +15,15 @@ export function linearForecast(
   const trend = calculateTrend(values, timestamps);
   const predictions: ForecastPoint[] = [];
 
-  const lastTimestamp = timestamps[timestamps.length - 1].getTime();
+  const lastTs = timestamps[timestamps.length - 1];
+  if (!lastTs) {
+    return {
+      predictions,
+      confidence: 0,
+      metrics: { mae: 0, rmse: 0, mape: 0 },
+    };
+  }
+  const lastTimestamp = lastTs.getTime();
   const meanValue = mean(values);
   const stdDev = standardDeviation(values);
 
@@ -54,15 +62,27 @@ export function exponentialSmoothing(
   const alpha = 0.3;
   const predictions: ForecastPoint[] = [];
 
-  const smoothed = [values[0]];
+  const firstValue = values[0];
+  const lastTs = timestamps[timestamps.length - 1];
+  if (firstValue === undefined || !lastTs) {
+    return {
+      predictions,
+      confidence: 0,
+      metrics: { mae: 0, rmse: 0, mape: 0 },
+    };
+  }
+  const smoothed: number[] = [firstValue];
   for (let i = 1; i < values.length; i++) {
-    smoothed[i] = alpha * values[i] + (1 - alpha) * smoothed[i - 1];
+    const v = values[i];
+    const prev = smoothed[i - 1];
+    if (v === undefined || prev === undefined) continue;
+    smoothed[i] = alpha * v + (1 - alpha) * prev;
   }
 
-  const lastSmoothed = smoothed[smoothed.length - 1];
-  const lastTimestamp = timestamps[timestamps.length - 1].getTime();
+  const lastSmoothed = smoothed[smoothed.length - 1] ?? firstValue;
+  const lastTimestamp = lastTs.getTime();
 
-  const residuals = values.map((val, i) => Math.abs(val - smoothed[i]));
+  const residuals = values.map((val, i) => Math.abs(val - (smoothed[i] ?? val)));
   const meanAbsoluteError = mean(residuals);
 
   for (let h = 1; h <= hours; h++) {
@@ -105,9 +125,13 @@ export function seasonalForecast(
   }
 
   const dominantCycle = seasonality.cycles[0];
+  const lastTs = timestamps[timestamps.length - 1];
+  if (!dominantCycle || !lastTs) {
+    return linearForecast(values, timestamps, hours);
+  }
   const period = dominantCycle.period;
   const predictions: ForecastPoint[] = [];
-  const lastTimestamp = timestamps[timestamps.length - 1].getTime();
+  const lastTimestamp = lastTs.getTime();
 
   const meanValue = mean(values);
   const trend = calculateTrend(values, timestamps);

@@ -108,11 +108,15 @@ export function groupTelemetryByDay<T extends TelemetryDayReading>(
   const groups = new Map<string, T[]>();
 
   telemetry.forEach((reading) => {
-    const day = reading.ts?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0];
-    if (!groups.has(day)) {
-      groups.set(day, []);
+    const dayFromReading = reading.ts?.toISOString().split("T")[0];
+    const dayFromNow = new Date().toISOString().split("T")[0] ?? "1970-01-01";
+    const day = dayFromReading || dayFromNow;
+    let bucket = groups.get(day);
+    if (!bucket) {
+      bucket = [];
+      groups.set(day, bucket);
     }
-    groups.get(day)!.push(reading);
+    bucket.push(reading);
   });
 
   return groups;

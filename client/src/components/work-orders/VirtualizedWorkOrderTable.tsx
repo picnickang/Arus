@@ -110,6 +110,7 @@ export function VirtualizedWorkOrderTable({
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const order = workOrders[virtualRow.index];
+                  if (!order) return null;
                   return (
                     <WorkOrderRow
                       key={order.id}
@@ -200,8 +201,8 @@ function WorkOrderRow({
   onEdit,
   onDelete,
 }: WorkOrderRowProps) {
-  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG['open'];
-  const priorityConfig = PRIORITY_CONFIG[order.priority] || PRIORITY_CONFIG[3];
+  const statusConfig = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['open'] ?? { label: order.status, className: '', icon: () => null };
+  const priorityConfig = PRIORITY_CONFIG[order.priority] ?? PRIORITY_CONFIG[3] ?? { label: String(order.priority), className: '' };
   const StatusIcon = statusConfig.icon;
 
   return (

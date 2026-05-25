@@ -35,12 +35,14 @@ export function detectIQRAnomalies(values: number[], timestamps: Date[]): Anomal
 
   values.forEach((value, i) => {
     if (value < lowerBound || value > upperBound) {
+      const ts = timestamps[i];
+      if (!ts) return;
       const expectedValue = (q1 + q3) / 2;
       const deviation = Math.abs(value - expectedValue);
       const severity = classifyAnomalySeverity(deviation, iqr);
 
       anomalies.push({
-        timestamp: timestamps[i],
+        timestamp: ts,
         value,
         expectedValue,
         deviation,
@@ -63,11 +65,13 @@ export function detectZScoreAnomalies(values: number[], timestamps: Date[]): Ano
     const zScore = Math.abs((value - meanValue) / stdDev);
 
     if (zScore > 2.5) {
+      const ts = timestamps[i];
+      if (!ts) return;
       const deviation = Math.abs(value - meanValue);
       const severity = classifyAnomalySeverity(deviation, stdDev);
 
       anomalies.push({
-        timestamp: timestamps[i],
+        timestamp: ts,
         value,
         expectedValue: meanValue,
         deviation,
@@ -90,8 +94,9 @@ export function detectIsolationAnomalies(values: number[], timestamps: Date[]): 
     const windowMean = mean(window);
     const windowStd = standardDeviation(window);
     const currentValue = values[i];
+    const ts = timestamps[i];
 
-    if (windowStd === 0) {
+    if (windowStd === 0 || currentValue === undefined || !ts) {
       continue;
     }
     const isolationScore = Math.abs((currentValue - windowMean) / windowStd);
@@ -101,7 +106,7 @@ export function detectIsolationAnomalies(values: number[], timestamps: Date[]): 
       const severity = classifyAnomalySeverity(deviation, windowStd);
 
       anomalies.push({
-        timestamp: timestamps[i],
+        timestamp: ts,
         value: currentValue,
         expectedValue: windowMean,
         deviation,

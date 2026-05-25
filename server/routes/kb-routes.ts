@@ -244,7 +244,7 @@ export async function registerKnowledgeBaseRoutes(
   // Job status endpoint
   router.get("/jobs/:jobId", generalApiRateLimit, async (req, res) => {
     try {
-      const { jobId } = req.params;
+      const { jobId = '' } = req.params;
       const orgId = req.orgId;
 
       const job = await jobQueueService.getJobStatus(jobId);
@@ -351,7 +351,7 @@ export async function registerKnowledgeBaseRoutes(
   router.delete("/documents/:id", writeOperationRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id } = req.params;
+      const { id = '' } = req.params;
 
       const [docRow] = await db
         .select({ sizeBytes: kbDocs.sizeBytes })
@@ -397,7 +397,7 @@ export async function registerKnowledgeBaseRoutes(
   router.get("/documents/:id/versions", generalApiRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id } = req.params;
+      const { id = '' } = req.params;
 
       const versions = await getDocumentVersionHistory(id, orgId);
       return res.json({ documentId: id, versions, count: versions.length });
@@ -416,7 +416,7 @@ export async function registerKnowledgeBaseRoutes(
     try {
       const orgId = req.orgId;
       const userId = req.user?.id;
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const { changeType, changeNotes } = req.body;
 
       if (!userId) {
@@ -447,7 +447,7 @@ export async function registerKnowledgeBaseRoutes(
   router.patch("/documents/:id/visibility", writeOperationRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const { visibility, allowedRoles } = req.body;
 
       if (!visibility || !["org", "private", "role-based"].includes(visibility)) {

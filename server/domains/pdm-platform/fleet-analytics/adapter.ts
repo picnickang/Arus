@@ -31,10 +31,12 @@ function percentile(sorted: number[], p: number): number {
   const idx = (p / 100) * (sorted.length - 1);
   const lower = Math.floor(idx);
   const upper = Math.ceil(idx);
+  const lo = sorted[lower] ?? 0;
+  const hi = sorted[upper] ?? 0;
   if (lower === upper) {
-    return sorted[lower];
+    return lo;
   }
-  return sorted[lower] + (idx - lower) * (sorted[upper] - sorted[lower]);
+  return lo + (idx - lower) * (hi - lo);
 }
 
 export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
@@ -122,6 +124,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
           },
         })
         .returning();
+      if (!result) throw new Error("computeBaselines: insert returned no row");
       results.push(result);
     }
 

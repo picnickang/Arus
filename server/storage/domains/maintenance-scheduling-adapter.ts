@@ -120,7 +120,7 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
     const avg =
       r.reduce(
         (a, m, i) =>
-          i === 0 ? a : a + ((m.performanceScore || 0) - (r[i - 1].performanceScore || 0)),
+          i === 0 ? a : a + ((m.performanceScore || 0) - (r[i - 1]?.performanceScore || 0)),
         0
       ) / Math.max(1, r.length - 1);
     if (avg < -5) {
@@ -180,8 +180,8 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
       compressor: [12, 96, 240],
       generic: [24, 168, 336],
     };
-    const ws = w[eqType] || w["generic"];
-    return ws[Math.min(priority - 1, ws.length - 1)];
+    const ws = w[eqType] ?? w["generic"] ?? [24, 168, 336];
+    return ws[Math.min(priority - 1, ws.length - 1)] ?? 24;
   }
   private shouldSchedulePreventive(lc?: EquipmentLifecycle, recs?: MaintenanceRecord[]): boolean {
     if (!lc) {
@@ -198,7 +198,7 @@ abstract class BaseMaintenanceSchedulingAdapter implements IMaintenanceSchedulin
       generic: { hours: 1000, days: 90 },
     };
     const t = this.getEquipmentType(lc.equipmentId);
-    const i = itvl[t] || itvl["generic"];
+    const i = itvl[t] ?? itvl["generic"] ?? { hours: 1000, days: 90 };
     return days >= i.days || (hrs % i.hours < 10 && hrs > i.hours);
   }
 

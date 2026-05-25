@@ -522,13 +522,15 @@ class WorkOrderService {
           .from(equipment)
           .where(eq(equipment.id, workOrder.equipmentId))
           .limit(1);
-        if (eqRes.length > 0 && eqRes[0].vesselId) {
-          const vesselId = eqRes[0].vesselId;
+        const firstEq = eqRes[0];
+        if (firstEq && firstEq.vesselId) {
+          const vesselId = firstEq.vesselId;
           const startTime = new Date(workOrder.vesselDowntimeStartedAt);
           const downtimeDays = (new Date().getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24);
           const vessel = await tx.select().from(vessels).where(eq(vessels.id, vesselId)).limit(1);
-          if (vessel.length > 0) {
-            const cd = Number.parseFloat(vessel[0].downtimeDays || "0");
+          const firstVessel = vessel[0];
+          if (firstVessel) {
+            const cd = Number.parseFloat(firstVessel.downtimeDays || "0");
             await tx
               .update(vessels)
               .set({ downtimeDays: (cd + downtimeDays).toFixed(2), updatedAt: new Date() })
@@ -632,6 +634,7 @@ class WorkOrderService {
           updatedAt: now,
         })
         .returning();
+      if (!clonedOrder) throw new Error("cloneWorkOrder: insert returned no row");
       if (options?.includeTasks !== false) {
         const originalTasks = await tx
           .select()

@@ -32,6 +32,7 @@ export class DbCrewExtensionsStorage {
   }
   async createCrewCertification(cert: InsertCrewCertification): Promise<SelectCrewCertification> {
     const [n] = await db.insert(crewCertification).values(cert).returning();
+    if (!n) throw new Error("createCrewCertification: insert returned no row");
     return n;
   }
   async updateCrewCertification(
@@ -146,6 +147,7 @@ export class DbCrewExtensionsStorage {
   }
   async createCrewDocument(doc: InsertCrewDocument): Promise<SelectCrewDocument> {
     const [n] = await db.insert(crewDocuments).values(doc).returning();
+    if (!n) throw new Error("createCrewDocument: insert returned no row");
     return n;
   }
   async updateCrewDocument(
@@ -275,6 +277,7 @@ export class DbCrewExtensionsStorage {
         .set({ ...data, updatedAt: new Date() })
         .where(eq(crewNotificationSettings.id, existing.id))
         .returning();
+      if (!u) throw new Error("upsertCrewNotificationSettings: update returned no row");
       return u;
     }
     const [c] = await db
@@ -289,6 +292,7 @@ export class DbCrewExtensionsStorage {
         overrideEmail: data.overrideEmail,
       })
       .returning();
+    if (!c) throw new Error("upsertCrewNotificationSettings: insert returned no row");
     return c;
   }
   async getAllCrewNotificationSettings(orgId: string): Promise<CrewNotificationSettings[]> {
@@ -307,6 +311,7 @@ export class DbCrewExtensionsStorage {
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
     const [n] = await db.insert(portCall).values(portCallData).returning();
+    if (!n) throw new Error("createPortCall: insert returned no row");
     return n;
   }
   async updatePortCall(id: string, portCallData: Partial<InsertPortCall>): Promise<SelectPortCall> {
@@ -332,6 +337,7 @@ export class DbCrewExtensionsStorage {
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {
     const [n] = await db.insert(drydockWindow).values(drydockData).returning();
+    if (!n) throw new Error("createDrydockWindow: insert returned no row");
     return n;
   }
   async updateDrydockWindow(

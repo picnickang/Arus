@@ -171,7 +171,7 @@ async function resolveVesselId(
     .from(vessels)
     .where(and(eq(vessels.orgId, orgId), sql`LOWER(${vessels.name}) = LOWER(${trimmedName})`));
 
-  if (matches.length === 1) {
+  if (matches.length === 1 && matches[0]) {
     return matches[0].id;
   }
 
@@ -258,8 +258,10 @@ class ShipmateImportService {
       const normalized: Record<string, string> = {};
       const originalHeaders = Object.keys(row);
       for (let i = 0; i < originalHeaders.length; i++) {
-        const newKey = normalizedHeaders[i] || originalHeaders[i];
-        normalized[newKey] = row[originalHeaders[i]];
+        const origKey = originalHeaders[i];
+        if (!origKey) continue;
+        const newKey = normalizedHeaders[i] || origKey;
+        normalized[newKey] = row[origKey] ?? "";
       }
       return normalized;
     });
@@ -371,6 +373,7 @@ class ShipmateImportService {
           })
           .returning({ id: importManifest.id });
 
+        if (!manifest) throw new Error("import: manifest insert returned no row");
         manifestId = manifest.id;
 
         // Upsert each valid row within the same transaction.
@@ -482,6 +485,7 @@ class ShipmateImportService {
             initiatedBy: options.initiatedBy ?? null,
           })
           .returning({ id: importManifest.id });
+        if (!failedManifest) throw new Error("import: failed-manifest insert returned no row");
         manifestId = failedManifest.id;
       } catch (manifestErr) {
         // Can't even record the failure — log and carry on so the caller
@@ -820,6 +824,7 @@ class ShipmateImportService {
           updatedAt: new Date(),
         } as object as never)
         .returning({ id: parts.id });
+      if (!inserted) throw new Error("import: parts insert returned no row");
       partId = inserted.id;
     }
 

@@ -125,7 +125,7 @@ export function calculateAverageDaysBetween(orders: WorkOrder[]): number {
 
   for (let i = 1; i < sorted.length; i++) {
     const days =
-      (new Date(sorted[i].createdAt ?? 0).getTime() - new Date(sorted[i - 1].createdAt ?? 0).getTime()) /
+      (new Date(sorted[i]?.createdAt ?? 0).getTime() - new Date(sorted[i - 1]?.createdAt ?? 0).getTime()) /
       (24 * 60 * 60 * 1000);
     totalDays += days;
   }
@@ -293,7 +293,7 @@ export function calculatePredictiveLeadTime(
       const normalAvg = beforeFailure.slice(-10).reduce((sum, r) => sum + r.value, 0) / 10;
 
       if (Math.abs(recentAvg - normalAvg) / normalAvg > 0.2) {
-        const anomalyTime = new Date(beforeFailure[0].ts).getTime();
+        const anomalyTime = new Date(beforeFailure[0]?.ts ?? 0).getTime();
         const hoursLead = (failureTime - anomalyTime) / (60 * 60 * 1000);
         leadTimes.push(hoursLead);
       }

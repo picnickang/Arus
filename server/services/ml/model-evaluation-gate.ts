@@ -156,7 +156,7 @@ function computeAUROC(predictions: Array<{ predicted: number; actual: 0 | 1 }>):
     fp = 0;
 
   for (let i = 0; i < sorted.length; i++) {
-    if (sorted[i].actual === 1) {
+    if (sorted[i]?.actual === 1) {
       tp++;
     } else {
       fp++;
@@ -283,7 +283,7 @@ export class ModelEvaluationGate {
 
     let reason: string;
     if (approved) {
-      reason = `Model meets all thresholds${currentMetrics ? ` and improves F1 by ${(improvements["f1Score"] * 100).toFixed(1)}%` : ""}`;
+      reason = `Model meets all thresholds${currentMetrics ? ` and improves F1 by ${((improvements["f1Score"] ?? 0) * 100).toFixed(1)}%` : ""}`;
     } else if (!meetsAbsoluteThreshold) {
       const failures: string[] = [];
       if (newMetrics.accuracy < this.config.minAccuracy) {
@@ -309,7 +309,7 @@ export class ModelEvaluationGate {
       }
       reason = `Below absolute thresholds: ${failures.join("; ")}`;
     } else {
-      reason = `Does not improve over current model: F1 change = ${(improvements["f1Score"] * 100).toFixed(1)}% (need ≥${(this.config.minImprovementF1 * 100).toFixed(1)}%)`;
+      reason = `Does not improve over current model: F1 change = ${((improvements["f1Score"] ?? 0) * 100).toFixed(1)}% (need ≥${(this.config.minImprovementF1 * 100).toFixed(1)}%)`;
     }
 
     // 7. Record the evaluation

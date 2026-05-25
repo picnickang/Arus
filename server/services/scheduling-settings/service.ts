@@ -135,6 +135,7 @@ class SchedulingSettingsService {
         })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("createOrUpdateSettings: update returned no row");
 
       logger.info("[SchedulingSettings] Updated settings", {
         id: existing.id,
@@ -144,6 +145,7 @@ class SchedulingSettingsService {
     }
 
     const [created] = await db.insert(schedulingSettings).values(validated).returning();
+    if (!created) throw new Error("createOrUpdateSettings: insert returned no row");
 
     logger.info("[SchedulingSettings] Created settings", {
       id: created.id,
@@ -166,6 +168,7 @@ class SchedulingSettingsService {
         .set({ notificationSettings: validatedNotifications, updatedAt: new Date() })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("updateNotificationSettings: update returned no row");
       return updated;
     }
 
@@ -196,6 +199,7 @@ class SchedulingSettingsService {
         })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("updateRuleThresholds: update returned no row");
       return updated;
     }
 
@@ -221,6 +225,7 @@ class SchedulingSettingsService {
         .set({ aiWeights: validatedWeights, updatedAt: new Date() })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("updateAiWeights: update returned no row");
       return updated;
     }
 
@@ -245,6 +250,7 @@ class SchedulingSettingsService {
         .set({ publishBehavior: validatedBehavior, updatedAt: new Date() })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("updatePublishBehavior: update returned no row");
       return updated;
     }
 
@@ -269,6 +275,7 @@ class SchedulingSettingsService {
         .set({ rotationTemplates: validatedTemplates, updatedAt: new Date() })
         .where(eq(schedulingSettings.id, existing.id))
         .returning();
+      if (!updated) throw new Error("updateRotationTemplates: update returned no row");
       return updated;
     }
 

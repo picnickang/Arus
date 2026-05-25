@@ -439,7 +439,7 @@ export function AgentChatPanel({
               }
 
               try {
-                const chunk: StreamChunk = JSON.parse(dataMatch[1]);
+                const chunk: StreamChunk = JSON.parse(dataMatch[1] ?? "{}");
 
                 if (chunk.type === "tool_call") {
                   const trace: ToolCallTrace = {

@@ -71,7 +71,7 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     writeOperationRateLimit,
     auditAdminAction("UPDATE_MAINTENANCE_WINDOW"),
     withErrorHandling("update maintenance window", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       const validatedData = (
         insertMaintenanceWindowSchema as object as import("zod").AnyZodObject
       ).partial().parse(req.body);
@@ -86,7 +86,7 @@ export function registerWindowsRoutes(app: Express, deps: SystemAdminDependencie
     criticalOperationRateLimit,
     auditAdminAction("DELETE_MAINTENANCE_WINDOW"),
     withErrorHandling("delete maintenance window", async (req: Request, res: Response) => {
-      const { id } = req.params;
+      const { id = '' } = req.params;
       await dbSystemAdminStorage.deleteMaintenanceWindow(id);
       sendDeleted(res);
     })

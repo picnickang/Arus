@@ -135,7 +135,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-      const { vesselId } = req.params;
+      const { vesselId = "" } = req.params;
       const file = req.file;
       if (!file) return res.status(400).json({ error: "No file uploaded" });
 
@@ -235,7 +235,7 @@ router.post(
 router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) => {
   try {
     const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-    const { vesselId } = req.params;
+    const { vesselId = "" } = req.params;
     const [row] = await db
       .select()
       .from(vessel3dModels)
@@ -256,7 +256,7 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
 router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Response) => {
   try {
     const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-    const { modelId } = req.params;
+    const { modelId = "" } = req.params;
     const [row] = await db
       .select()
       .from(vessel3dModels)
@@ -291,7 +291,7 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
 router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
     const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-    const { modelId } = req.params;
+    const { modelId = "" } = req.params;
     const parsed = pinsSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -318,7 +318,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-      const { vesselId } = req.params;
+      const { vesselId = "" } = req.params;
       const rows = await db
         .select()
         .from(vessel3dModels)
@@ -345,7 +345,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-      const { modelId } = req.params;
+      const { modelId = "" } = req.params;
       const now = new Date();
       const [row] = await db
         .update(vessel3dModels)
@@ -374,7 +374,7 @@ router.delete(
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-      const { modelId } = req.params;
+      const { modelId = "" } = req.params;
       const [row] = await db
         .select()
         .from(vessel3dModels)
@@ -432,7 +432,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-      const { equipmentId } = req.params;
+      const { equipmentId = "" } = req.params;
       const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
         .safeParse(req.query['maxHops'] ?? 3);
       if (!hopsParsed.success) {

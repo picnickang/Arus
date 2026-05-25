@@ -430,8 +430,10 @@ export function validateTelemetryBatch(points: TelemetryPoint[]): {
   const sortedPoints = [...points].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   for (let i = 0; i < sortedPoints.length; i++) {
+    const current = sortedPoints[i];
+    if (current === undefined) continue;
     const previousPoint = i > 0 ? sortedPoints[i - 1] : undefined;
-    const result = validateTelemetryQuality(sortedPoints[i], previousPoint);
+    const result = validateTelemetryQuality(current, previousPoint);
 
     results.push(result);
     totalQualityScore += result.qualityScore;

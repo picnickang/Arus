@@ -28,7 +28,7 @@ function average(values: number[]): number {
 }
 
 function latest(features: EquipmentFeatureSnapshot[]): EquipmentFeatureSnapshot | null {
-  return features.length > 0 ? features[0] : null;
+  return features.length > 0 ? (features[0] ?? null) : null;
 }
 
 export function computePerformanceIndicators(
@@ -100,10 +100,10 @@ export function computeDecisionScore(
   const peakScore = clamp((peakToPeak - 6) / 16);
   const pressureScore = clamp((140 - pressure) / 140);
 
-  const tempTrend = historicalTemps.length >= 3 ? clamp((historicalTemps[0] - average(historicalTemps.slice(1))) / 20) : 0;
+  const tempTrend = historicalTemps.length >= 3 ? clamp(((historicalTemps[0] ?? 0) - average(historicalTemps.slice(1))) / 20) : 0;
   const vibrationTrend =
     historicalVibration.length >= 3
-      ? clamp((historicalVibration[0] - average(historicalVibration.slice(1))) / 3)
+      ? clamp(((historicalVibration[0] ?? 0) - average(historicalVibration.slice(1))) / 3)
       : 0;
 
   const contextAdjustment = clamp(context.weatherSeverity * 0.12 + (context.loadFactor - 0.6) * 0.18, 0, 0.2);
