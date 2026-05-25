@@ -1,0 +1,5 @@
+Component No,Component Name,System,Vessel,Status
+1.9.1,,Cooling,SHIPMATE-FIXT-001,Active
+,Pump without component number,Cooling,SHIPMATE-FIXT-001,Active
+1.9.3,,Power,SHIPMATE-FIXT-001,Active
+VALID-1,Valid record,Power,SHIPMATE-FIXT-001,Active

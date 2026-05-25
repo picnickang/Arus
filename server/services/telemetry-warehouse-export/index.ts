@@ -23,6 +23,7 @@ import { loadManifest, mergeEntry, saveManifest } from "./manifest";
 import { pruneOldExports } from "./retention";
 import { recordRun } from "./last-run";
 import { previousUtcDate, dateStrToUtcStart } from "./date-utils";
+import { recordWarehouseExportOutcome } from "../../observability/warehouse-export-metrics";
 import type {
   WarehouseExportJobSummary,
   WarehouseExportRunSummary,
@@ -77,6 +78,14 @@ export async function runTelemetryWarehouseExport(
       durationMs: Date.now() - start,
       perOrg: [],
     };
+    // Harness-level enumeration failure counts as a failed run.
+    recordWarehouseExportOutcome({
+      date: dateStr,
+      orgsFailed: 1,
+      rowsExported: 0,
+      bytesExported: 0,
+      durationMs: summary.durationMs,
+    });
     await recordRun(summary);
     return summary;
   }
@@ -172,6 +181,14 @@ export async function runTelemetryWarehouseExport(
       durationMs: summary.durationMs,
     });
   }
+
+  recordWarehouseExportOutcome({
+    date: summary.date,
+    orgsFailed: summary.orgsFailed,
+    rowsExported: summary.rowsExported,
+    bytesExported: summary.bytesExported,
+    durationMs: summary.durationMs,
+  });
 
   await recordRun(summary);
   return summary;

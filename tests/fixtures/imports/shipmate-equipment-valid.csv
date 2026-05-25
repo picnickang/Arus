@@ -1,0 +1,6 @@
+Component No,Component Name,Description,System,Equipment Type,Criticality,Vessel,Location,Manufacturer,Model,Serial No,Install Date,Running Hours,Status
+1.1.1,Main Engine,MAN B&W 6S60ME-C8.2,Propulsion,Diesel Engine,High,SHIPMATE-FIXT-001,Engine Room,MAN Energy,6S60ME-C8.2,SHP-ME-001,15/03/2018,18500,Active
+1.1.2,Aux Engine 1,Caterpillar 3516C,Power,Diesel Generator,High,SHIPMATE-FIXT-001,Engine Room,Caterpillar,3516C,SHP-AE-001,20/03/2018,12300,Active
+1.2.1,SW Cooling Pump,Centrifugal pump - port side,Cooling,Pump,Medium,SHIPMATE-FIXT-001,Engine Room,Allweiler,NTT-200,SHP-PMP-101,10/04/2018,9800,Active
+1.2.2,FW Cooling Pump,Centrifugal pump - port side,Cooling,Pump,Medium,SHIPMATE-FIXT-001,Engine Room,Allweiler,NTT-150,SHP-PMP-102,10/04/2018,9800,Active
+2.1.1,Starting Air Compressor,Sperre HV2/270,Starting Air,Compressor,High,SHIPMATE-FIXT-001,Engine Room,Sperre,HV2/270,SHP-CMP-201,01/05/2018,4500,Active

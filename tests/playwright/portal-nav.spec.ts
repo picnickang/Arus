@@ -157,3 +157,95 @@ test.describe("Feedback page", () => {
     await expect(page.getByTestId("error-feedback-description")).toBeVisible();
   });
 });
+
+/**
+ * LR-2 — Switch-portal affordance.
+ *
+ * Once a user is inside a portal (user OR admin) there must always be
+ * a single, test-id-stable way back to /portal-login so they can re-
+ * pick the other surface. This pins it for both portals to prevent the
+ * affordance silently regressing when nav is refactored.
+ */
+test.describe("Switch-portal affordance", () => {
+  test.beforeEach(async ({ page }) => {
+    await resetClientState(page);
+  });
+
+  test("user portal exposes a switch-portal button that returns to /portal-login", async ({
+    page,
+  }) => {
+    await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("button-card-portal-user").click();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const switchBtn = page.getByTestId("button-switch-portal");
+    await expect(switchBtn).toBeVisible();
+    await switchBtn.click();
+
+    await expect(page).toHaveURL(/\/portal-login$/);
+    await expect(page.getByTestId("page-portal-login")).toBeVisible();
+  });
+
+  test("admin portal exposes a switch-portal button that returns to /portal-login", async ({
+    page,
+  }) => {
+    await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("button-card-portal-admin").click();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const switchBtn = page.getByTestId("button-switch-portal");
+    await expect(switchBtn).toBeVisible();
+    await switchBtn.click();
+
+    await expect(page).toHaveURL(/\/portal-login$/);
+    await expect(page.getByTestId("page-portal-login")).toBeVisible();
+  });
+});
+
+/**
+ * LR-2 — Empty-state coverage.
+ *
+ * Three empty states added in Polish Slice 3:
+ *   - `empty-attention` on /attention-inbox when there are no flagged items.
+ *   - `empty-my-tasks` on the user-portal home when there are no assigned tasks.
+ *   - `empty-feedback-history` on /feedback when this browser has no
+ *      previously-submitted entries.
+ *
+ * The first two require backend state; we assert they appear via the
+ * baseline empty DB the dev workflow ships with. The feedback-history
+ * empty state is purely client-side (sessionStorage-backed list), so
+ * we land on /feedback in a fresh session and pin the empty pane
+ * without depending on backend state at all.
+ */
+test.describe("Empty states", () => {
+  test.beforeEach(async ({ page }) => {
+    await resetClientState(page);
+  });
+
+  test("attention inbox renders empty state when there is nothing to act on", async ({
+    page,
+  }) => {
+    await page.goto("/attention-inbox", { waitUntil: "domcontentloaded" });
+    // Either the empty-state test-id is visible, or the page hasn't
+    // rendered yet — `toBeVisible` with the default 5s expect timeout
+    // covers the cold-cache fetch.
+    await expect(page.getByTestId("empty-attention")).toBeVisible();
+  });
+
+  test("user-portal home renders empty-my-tasks when no tasks are assigned", async ({
+    page,
+  }) => {
+    await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
+    await page.getByTestId("button-card-portal-user").click();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("empty-my-tasks")).toBeVisible();
+  });
+
+  test("feedback page renders empty-feedback-history on a fresh session", async ({
+    page,
+  }) => {
+    await page.goto("/feedback", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("empty-feedback-history")).toBeVisible();
+  });
+});
