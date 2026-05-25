@@ -167,7 +167,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
 
   private readonly originId = `node-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
-  async publish(
+  override async publish(
     channel: string,
     payload: unknown,
     orgId: string = SYSTEM_ORG_ID,
@@ -260,7 +260,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     publisher.xadd(streamName, "MINID", "~", minId, "*", "trim", "1").catch(() => {});
   }
 
-  subscribe(channel: string, orgId: string, handler: FanoutHandler): () => void {
+  override subscribe(channel: string, orgId: string, handler: FanoutHandler): () => void {
     const localUnsub = super.subscribe(channel, orgId, handler);
     const wireChannel = pubSubChannel(orgId, channel);
     const count = (this.subscribedChannels.get(wireChannel) ?? 0) + 1;
@@ -291,7 +291,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     };
   }
 
-  async replaySince(
+  override async replaySince(
     channel: string,
     orgId: string,
     lastEventId: string | null,
@@ -341,7 +341,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     }
   }
 
-  async close(): Promise<void> {
+  override async close(): Promise<void> {
     await super.close();
     if (this.subscriber) {
       try {

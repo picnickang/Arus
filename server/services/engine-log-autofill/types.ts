@@ -26,7 +26,7 @@ export class AutoFillServiceError extends Error {
     message: string,
     public readonly operation: string,
     public readonly context: Record<string, unknown>,
-    public readonly cause?: Error
+    public override readonly cause?: Error
   ) {
     super(message);
     this.name = "AutoFillServiceError";
