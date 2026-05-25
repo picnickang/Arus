@@ -11,6 +11,21 @@ import { loginRateLimit } from "../../../middleware/rate-limiters.js";
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
 
+/**
+ * P2 #32 — Constant-time comparison for the legacy plaintext admin
+ * token fallback. `===` short-circuits on the first differing byte
+ * and leaks token bytes to a network-timing attacker who can issue
+ * repeated verify attempts (the per-IP rate limit slows but does not
+ * eliminate the channel). We always hash both sides to a fixed-size
+ * digest so `timingSafeEqual` sees equal-length buffers regardless
+ * of the candidate password length, then compare the digests.
+ */
+function constantTimeEqualString(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a, "utf8").digest();
+  const hb = crypto.createHash("sha256").update(b, "utf8").digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
 function isLoopbackAddress(address: string): boolean {
   const normalized = address.replace(/^::ffff:/, "");
   return normalized === "127.0.0.1" || normalized === "::1" || normalized === "localhost";
@@ -242,7 +257,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
       if (credential.hash) {
         isValid = await bcrypt.compare(password, credential.hash);
       } else if (credential.legacyPlaintext) {
-        isValid = password === credential.legacyPlaintext;
+        isValid = constantTimeEqualString(password, credential.legacyPlaintext);
         if (isValid) {
           try {
             const hash = await bcrypt.hash(password, BCRYPT_COST);
@@ -394,7 +409,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
       if (credential.hash) {
         isValid = await bcrypt.compare(currentPassword, credential.hash);
       } else if (credential.legacyPlaintext) {
-        isValid = currentPassword === credential.legacyPlaintext;
+        isValid = constantTimeEqualString(currentPassword, credential.legacyPlaintext);
       }
 
       if (!isValid) {

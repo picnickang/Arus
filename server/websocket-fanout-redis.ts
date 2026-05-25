@@ -171,13 +171,14 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     channel: string,
     payload: unknown,
     orgId: string = SYSTEM_ORG_ID,
+    options?: import("./websocket-fanout").FanoutPublishOptions,
   ): Promise<FanoutEvent> {
     const clients = await this.ensureClients();
     if (!clients) {
       // Graceful degradation: Redis unavailable, fall back to the
       // single-node in-process path. Cross-node delivery stops; local
       // delivery and the in-memory replay ring keep working.
-      return super.publish(channel, payload, orgId);
+      return super.publish(channel, payload, orgId, options);
     }
 
     const wireChannel = pubSubChannel(orgId, channel);
@@ -193,6 +194,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
       channel,
       payload,
       timestampMs: now,
+      ...(options?.correlationId !== undefined && { correlationId: options.correlationId }),
     };
 
     let streamId: string;
@@ -219,7 +221,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
         err: String(err),
         channel,
       });
-      return super.publish(channel, payload, orgId);
+      return super.publish(channel, payload, orgId, options);
     }
 
     const event: FanoutEvent = { ...baseEvent, eventId: streamId };

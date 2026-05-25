@@ -12,11 +12,50 @@ import type {
   InsertAdminSession,
 } from "@shared/schema";
 
+/**
+ * P2 #34 — Bounded pagination for admin audit reads. Every audit
+ * read endpoint historically returned `SELECT * ORDER BY createdAt
+ * DESC` with no defensive cap; an orgId with many years of audit
+ * history could blow the API response, the WAL, and the JSON
+ * serializer in one request. We enforce a hard ceiling on `limit`
+ * (DEFAULT_AUDIT_PAGE_SIZE if unset, MAX_AUDIT_PAGE_SIZE otherwise)
+ * and accept an offset for cursor-style paging.
+ */
+const DEFAULT_AUDIT_PAGE_SIZE = 100;
+const MAX_AUDIT_PAGE_SIZE = 1000;
+
+export interface AuditPagination {
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
+function normalizePagination(p: AuditPagination | undefined): {
+  limit: number;
+  offset: number;
+} {
+  const rawLimit = p?.limit;
+  const rawOffset = p?.offset;
+  const limit =
+    typeof rawLimit === "number" && Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(Math.floor(rawLimit), MAX_AUDIT_PAGE_SIZE)
+      : DEFAULT_AUDIT_PAGE_SIZE;
+  const offset =
+    typeof rawOffset === "number" && Number.isFinite(rawOffset) && rawOffset >= 0
+      ? Math.floor(rawOffset)
+      : 0;
+  return { limit, offset };
+}
+
 export class DbAuditStorage {
+  /** Exposed for tests and route input validation. */
+  static readonly DEFAULT_PAGE_SIZE = DEFAULT_AUDIT_PAGE_SIZE;
+  static readonly MAX_PAGE_SIZE = MAX_AUDIT_PAGE_SIZE;
+
   async getAdminAuditEvents(
     orgId?: string,
     action?: string,
-    limit?: number
+    limit?: number,
+    offset?: number
   ): Promise<AdminAuditEvent[]> {
     const conditions = [];
     if (orgId) {
@@ -30,9 +69,8 @@ export class DbAuditStorage {
       query = query.where(and(...conditions));
     }
     query = query.orderBy(sql`${adminAuditEvents.createdAt} DESC`);
-    if (limit) {
-      query = query.limit(limit);
-    }
+    const page = normalizePagination({ limit, offset });
+    query = query.limit(page.limit).offset(page.offset);
     return query;
   }
   async createAdminAuditEvent(event: InsertAdminAuditEvent): Promise<AdminAuditEvent> {
@@ -59,21 +97,29 @@ export class DbAuditStorage {
     }
     return updated;
   }
-  async getAuditEventsByUser(userId: string, orgId?: string): Promise<AdminAuditEvent[]> {
+  async getAuditEventsByUser(
+    userId: string,
+    orgId?: string,
+    pagination?: AuditPagination
+  ): Promise<AdminAuditEvent[]> {
     const conditions = [eq(adminAuditEvents.userId, userId)];
     if (orgId) {
       conditions.push(eq(adminAuditEvents.orgId, orgId));
     }
+    const page = normalizePagination(pagination);
     return db
       .select()
       .from(adminAuditEvents)
       .where(and(...conditions))
-      .orderBy(sql`${adminAuditEvents.createdAt} DESC`);
+      .orderBy(sql`${adminAuditEvents.createdAt} DESC`)
+      .limit(page.limit)
+      .offset(page.offset);
   }
   async getAuditEventsByResource(
     resourceType: string,
     resourceId: string,
-    orgId?: string
+    orgId?: string,
+    pagination?: AuditPagination
   ): Promise<AdminAuditEvent[]> {
     const conditions = [
       eq(adminAuditEvents.resourceType, resourceType),
@@ -82,11 +128,14 @@ export class DbAuditStorage {
     if (orgId) {
       conditions.push(eq(adminAuditEvents.orgId, orgId));
     }
+    const page = normalizePagination(pagination);
     return db
       .select()
       .from(adminAuditEvents)
       .where(and(...conditions))
-      .orderBy(sql`${adminAuditEvents.createdAt} DESC`);
+      .orderBy(sql`${adminAuditEvents.createdAt} DESC`)
+      .limit(page.limit)
+      .offset(page.offset);
   }
 
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> {

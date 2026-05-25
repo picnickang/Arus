@@ -6,6 +6,31 @@
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
+import { z } from "zod";
+
+/**
+ * P2 #34 — Parse `limit` / `offset` from query strings with the
+ * same defaults the storage layer enforces. The storage layer also
+ * clamps, so this validator is the friendly outer fence (returns 400
+ * on garbage input) rather than the security boundary.
+ */
+const paginationSchema = z.object({
+  limit: z.coerce.number().int().positive().max(1000).optional(),
+  offset: z.coerce.number().int().nonnegative().optional(),
+});
+
+function parsePaginationQuery(
+  query: Request["query"]
+): { limit?: number | undefined; offset?: number | undefined } {
+  const parsed = paginationSchema.safeParse({
+    limit: query["limit"],
+    offset: query["offset"],
+  });
+  if (!parsed.success) {
+    return {};
+  }
+  return parsed.data;
+}
 
 export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
@@ -22,13 +47,15 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     generalApiRateLimit,
     auditAdminAction("VIEW_AUDIT_EVENTS"),
     withErrorHandling("fetch admin audit events", async (req: Request, res: Response) => {
-      const { orgId, action, limit } = req.query;
+      const { orgId, action } = req.query;
+      const { limit, offset } = parsePaginationQuery(req.query);
       const events = await dbSystemAdminStorage.getAdminAuditEvents(
         orgId as string,
         action as string,
-        limit ? Number.parseInt(limit as string) : undefined
+        limit,
+        offset
       );
-      res.json(events);
+      res.json({ events, pagination: { limit, offset, count: events.length } });
     })
   );
 
@@ -52,8 +79,13 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     withErrorHandling("fetch user audit events", async (req: Request, res: Response) => {
       const { userId = '' } = req.params;
       const { orgId } = req.query;
-      const events = await dbSystemAdminStorage.getAuditEventsByUser(userId, orgId as string);
-      res.json(events);
+      const page = parsePaginationQuery(req.query);
+      const events = await dbSystemAdminStorage.getAuditEventsByUser(
+        userId,
+        orgId as string,
+        page
+      );
+      res.json({ events, pagination: { ...page, count: events.length } });
     })
   );
 
@@ -65,12 +97,14 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     withErrorHandling("fetch resource audit events", async (req: Request, res: Response) => {
       const { resourceType = '', resourceId = '' } = req.params;
       const { orgId } = req.query;
+      const page = parsePaginationQuery(req.query);
       const events = await dbSystemAdminStorage.getAuditEventsByResource(
         resourceType,
         resourceId,
-        orgId as string
+        orgId as string,
+        page
       );
-      res.json(events);
+      res.json({ events, pagination: { ...page, count: events.length } });
     })
   );
 }

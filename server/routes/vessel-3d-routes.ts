@@ -19,7 +19,7 @@ import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin } from "@shared/schema";
+import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin, type Vessel3dModel } from "@shared/schema";
 import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
 import { failurePropagation } from "../graph/adapter";
@@ -29,6 +29,31 @@ import { quotaService } from "../tenancy/quota-service";
 import type { AuthenticatedRequest } from "../middleware/auth";
 
 const logger = createLogger("Routes:Vessel3D");
+
+/**
+ * P2 #33 — Validate the `equipment_pins` JSONB column at the route
+ * boundary. Writes already go through `pinsSchema`, but historical
+ * rows (and any direct SQL fix) are typed `unknown` by drizzle's
+ * jsonb. We narrow on read so the JSON returned to the 3D viewer
+ * carries the documented `{equipmentId,x,y,z,label?}[]` contract.
+ * A malformed row degrades to `[]` with a warning instead of
+ * throwing — the model render still works without phantom pins.
+ */
+const equipmentPinsReadSchema = z.array(equipmentPinSchema);
+function narrowEquipmentPins(value: unknown): EquipmentPin[] {
+  if (value === null || value === undefined) return [];
+  const parsed = equipmentPinsReadSchema.safeParse(value);
+  if (!parsed.success) {
+    logger.warn("Discarding malformed vessel_3d_models.equipment_pins JSONB", {
+      issues: parsed.error.issues.slice(0, 3),
+    });
+    return [];
+  }
+  return parsed.data;
+}
+function narrowVessel3dModel<T extends Vessel3dModel>(row: T): T {
+  return { ...row, equipmentPins: narrowEquipmentPins(row.equipmentPins) };
+}
 
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 // Self-contained binary glTF only. We deliberately reject `.gltf` because that
@@ -70,21 +95,26 @@ function orgDir(orgId: string): string {
   return dir;
 }
 
+/**
+ * P2 #23 — Pre-write validation. The previous diskStorage variant
+ * wrote the uploaded file to disk first and only ran the magic-byte
+ * + vessel-ownership + pin-Zod checks afterward, then unlinked on
+ * failure. That left two real failure modes:
+ *
+ *   (a) Disk fills from invalid uploads when unlink racing fails
+ *       (ENOSPC, mid-write OS crash), leaking up to MAX_BYTES per
+ *       attempt before the validator gets a chance to reject.
+ *   (b) An attacker who can hit the endpoint can keep writing and
+ *       being-rejected, never persisting a row but always burning
+ *       inode + bytes on the host's storage volume.
+ *
+ * Switching to memoryStorage keeps the multer fileSize guard (so
+ * RAM is bounded by MAX_BYTES) and lets us run every validation
+ * step before any disk I/O. The disk write becomes the LAST step
+ * — and only happens if everything else passed.
+ */
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, _file, cb) => {
-      try {
-        const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
-        cb(null, orgDir(orgId));
-      } catch (e) {
-        cb(e instanceof Error ? e : new Error(String(e)), "");
-      }
-    },
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `${Date.now()}-${randomUUID()}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -133,59 +163,69 @@ router.post(
   enforceQuota("storage_bytes"),
   uploadSingleModel,
   async (req: Request, res: Response) => {
+    let writtenPath: string | null = null;
     try {
       const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
       const { vesselId = "" } = req.params;
       const file = req.file;
       if (!file) return res.status(400).json({ error: "No file uploaded" });
-
-      // Magic-byte check: GLB files start with ASCII "glTF" (0x67 0x6C 0x54 0x46).
-      // Extension alone is spoofable; verify the on-disk bytes before trusting it.
-      try {
-        const fd = fs.openSync(file.path, "r");
-        const header = Buffer.alloc(4);
-        fs.readSync(fd, header, 0, 4, 0);
-        fs.closeSync(fd);
-        if (header.toString("ascii") !== "glTF") {
-          try { fs.unlinkSync(file.path); } catch { /* noop */ }
-          return res.status(400).json({ error: "File is not a valid GLB (missing glTF magic header)" });
-        }
-      } catch (err) {
-        try { fs.unlinkSync(file.path); } catch { /* noop */ }
-        return res.status(400).json({ error: "Could not read uploaded file" });
+      if (!file.buffer || file.buffer.length === 0) {
+        return res.status(400).json({ error: "Uploaded file is empty" });
       }
 
-      // Verify vessel belongs to org.
+      // P2 #23 — All validation runs against the in-memory buffer.
+      // Nothing touches disk until every check passes.
+
+      // 1) Magic-byte check on the in-memory buffer. GLB files start
+      //    with ASCII "glTF" (0x67 0x6C 0x54 0x46).
+      if (file.buffer.length < 4 || file.buffer.subarray(0, 4).toString("ascii") !== "glTF") {
+        return res.status(400).json({
+          error: "File is not a valid GLB (missing glTF magic header)",
+        });
+      }
+
+      // 2) Verify vessel belongs to org.
       const [vessel] = await db
         .select({ id: vessels.id })
         .from(vessels)
         .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, orgId)));
       if (!vessel) {
-        // Clean up the orphan file.
-        try { fs.unlinkSync(file.path); } catch { /* noop */ }
         return res.status(404).json({ error: "Vessel not found" });
       }
 
-      // Parse optional equipment pins from JSON body field. Reject malformed
-      // input with 400 so admins notice typos instead of silently shipping
-      // an empty pin set.
+      // 3) Parse optional equipment pins.
       let pins: EquipmentPin[] = [];
       if (typeof req.body?.equipmentPins === "string" && req.body.equipmentPins.length > 0) {
         let parsed: unknown;
         try {
           parsed = JSON.parse(req.body.equipmentPins);
         } catch {
-          try { fs.unlinkSync(file.path); } catch { /* noop */ }
           return res.status(400).json({ error: "equipmentPins is not valid JSON" });
         }
         const v = z.array(equipmentPinSchema).max(2000).safeParse(parsed);
         if (!v.success) {
-          try { fs.unlinkSync(file.path); } catch { /* noop */ }
           return res.status(400).json({ error: v.error.flatten().fieldErrors });
         }
         pins = v.data;
       }
 
+      // 4) ONLY NOW commit the bytes to disk. If the disk write fails
+      //    we have nothing to unlink — buffer is GC'd.
+      const ext = path.extname(file.originalname).toLowerCase();
+      const targetDir = orgDir(orgId);
+      const targetPath = path.join(targetDir, `${Date.now()}-${randomUUID()}${ext}`);
+      try {
+        await fs.promises.writeFile(targetPath, file.buffer, { mode: 0o600 });
+        writtenPath = targetPath;
+      } catch (writeErr) {
+        logger.error("Failed to persist validated 3D model to disk", {
+          error: writeErr instanceof Error ? writeErr.message : String(writeErr),
+          vesselId,
+        });
+        return res.status(500).json({ error: "Failed to persist uploaded file" });
+      }
+
+      // 5) Insert metadata row. On failure, unlink the file we just wrote.
       let row;
       try {
         [row] = await db
@@ -199,13 +239,12 @@ router.post(
             // header so it's safe to assert this on serve.
             mimetype: "model/gltf-binary",
             sizeBytes: file.size,
-            storedPath: file.path,
+            storedPath: writtenPath,
             equipmentPins: pins,
           })
           .returning();
       } catch (dbErr) {
-        // Avoid orphaning the on-disk GLB if the metadata insert fails.
-        try { fs.unlinkSync(file.path); } catch { /* noop */ }
+        try { fs.unlinkSync(writtenPath); writtenPath = null; } catch { /* noop */ }
         logger.error("Vessel 3D model DB insert failed; uploaded file removed", {
           error: dbErr instanceof Error ? dbErr.message : String(dbErr),
           vesselId,
@@ -220,9 +259,10 @@ router.post(
 
       return res.status(201).json(row);
     } catch (error) {
-      // Last-resort cleanup if anything above the DB insert threw unexpectedly.
-      if (req.file?.path) {
-        try { fs.unlinkSync(req.file.path); } catch { /* noop */ }
+      // Last-resort cleanup: only relevant if disk write succeeded but
+      // an unexpected error fired before the metadata row was created.
+      if (writtenPath) {
+        try { fs.unlinkSync(writtenPath); } catch { /* noop */ }
       }
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Upload failed", { error: message });
@@ -244,7 +284,7 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
       .limit(1);
     if (!row) return res.status(404).json({ error: "No 3D model attached" });
     // Do not leak storedPath.
-    const { storedPath: _omit, ...safe } = row;
+    const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -302,7 +342,7 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
       .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)))
       .returning();
     if (!row) return res.status(404).json({ error: "Model not found" });
-    const { storedPath: _omit, ...safe } = row;
+    const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -326,7 +366,10 @@ router.get(
           and(eq(vessel3dModels.orgId, orgId), eq(vessel3dModels.vesselId, vesselId))
         )
         .orderBy(desc(vessel3dModels.createdAt));
-      const safe = rows.map(({ storedPath: _omit, ...rest }) => rest);
+      const safe = rows.map((r) => {
+        const { storedPath: _omit, ...rest } = narrowVessel3dModel(r);
+        return rest;
+      });
       return res.json(safe);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -355,7 +398,7 @@ router.post(
         )
         .returning();
       if (!row) return res.status(404).json({ error: "Model not found" });
-      const { storedPath: _omit, ...safe } = row;
+      const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
       return res.json(safe);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";

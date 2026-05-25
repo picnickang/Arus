@@ -1,7 +1,165 @@
 import { randomUUID } from "node:crypto";
+import { and, eq, sql } from "drizzle-orm";
+import { db } from "../../db-config";
+import { telemetryDeadLetter } from "@shared/schema/telemetry";
 import type { DeadLetterEntry, DeadLetterQueueMetrics } from "./types";
+import { logger } from "../../utils/logger";
 
 const inMemoryStore: Map<string, DeadLetterEntry[]> = new Map();
+
+/**
+ * P2 #19 — Persistent DLQ storage. Historically every entry lived
+ * only in `inMemoryStore`, so a process restart silently dropped
+ * every queued failure: the data was lost, the metrics counter
+ * still showed nothing, and operators had no replay handle. We now
+ * write-through to the `telemetry_dead_letter` table (already
+ * present in the schema and used as a generic store keyed by
+ * `queue_name`) as a fire-and-forget side effect on every
+ * mutating call. The in-memory map remains the hot read path —
+ * sync API is unchanged — so callers don't have to await DB I/O on
+ * the failure-handling hot path. On startup `hydrateFromDatabase()`
+ * reloads the surviving rows so replay handlers can see them.
+ *
+ * Persistence is best-effort: a DB outage degrades us back to
+ * pre-#19 behaviour (in-memory only, lost on restart) instead of
+ * propagating the failure to the caller, who is already in an
+ * error path. Errors are logged but never thrown.
+ */
+const PERSISTENCE_DISABLED =
+  process.env["DLQ_PERSISTENCE_DISABLED"] === "true" ||
+  process.env["LOCAL_MODE"] === "true" ||
+  process.env["EMBEDDED_MODE"] === "true";
+
+function persistAdd(
+  queueName: string,
+  entry: DeadLetterEntry,
+): void {
+  if (PERSISTENCE_DISABLED) return;
+  void db
+    .insert(telemetryDeadLetter)
+    .values({
+      id: entry.id,
+      queueName,
+      payload: entry.payload,
+      error: entry.error,
+      source: entry.source,
+      retryCount: entry.retryCount,
+      metadata: entry.metadata ?? null,
+      createdAt: entry.createdAt,
+      lastRetryAt: entry.lastRetryAt,
+    })
+    .catch((err: unknown) => {
+      logger.warn("DLQ", "Failed to persist dead-letter entry", {
+        queueName,
+        entryId: entry.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+function persistRemove(queueName: string, id: string): void {
+  if (PERSISTENCE_DISABLED) return;
+  void db
+    .delete(telemetryDeadLetter)
+    .where(
+      and(eq(telemetryDeadLetter.id, id), eq(telemetryDeadLetter.queueName, queueName)),
+    )
+    .catch((err: unknown) => {
+      logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
+        queueName,
+        id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
+  if (PERSISTENCE_DISABLED) return;
+  void db
+    .update(telemetryDeadLetter)
+    .set({ retryCount: entry.retryCount, lastRetryAt: entry.lastRetryAt })
+    .where(
+      and(
+        eq(telemetryDeadLetter.id, entry.id),
+        eq(telemetryDeadLetter.queueName, queueName),
+      ),
+    )
+    .catch((err: unknown) => {
+      logger.warn("DLQ", "Failed to persist retry bump", {
+        queueName,
+        id: entry.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+function persistClearOlder(queueName: string, cutoff: Date): void {
+  if (PERSISTENCE_DISABLED) return;
+  void db
+    .delete(telemetryDeadLetter)
+    .where(
+      and(
+        eq(telemetryDeadLetter.queueName, queueName),
+        sql`${telemetryDeadLetter.createdAt} < ${cutoff}`,
+      ),
+    )
+    .catch((err: unknown) => {
+      logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
+        queueName,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+function persistClearQueue(queueName: string): void {
+  if (PERSISTENCE_DISABLED) return;
+  void db
+    .delete(telemetryDeadLetter)
+    .where(eq(telemetryDeadLetter.queueName, queueName))
+    .catch((err: unknown) => {
+      logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
+        queueName,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+/**
+ * Hydrate the in-memory store for a queue from the persistent
+ * table. Safe to call multiple times — re-loading the same queue
+ * resets the in-memory state to whatever's in the DB. Returns the
+ * number of entries reloaded (0 on DB error so callers can log).
+ */
+export async function hydrateFromDatabase(queueName: string): Promise<number> {
+  if (PERSISTENCE_DISABLED) return 0;
+  try {
+    const rows = await db
+      .select()
+      .from(telemetryDeadLetter)
+      .where(eq(telemetryDeadLetter.queueName, queueName));
+    const entries: DeadLetterEntry[] = rows.map((row) => ({
+      id: row.id,
+      payload: row.payload as unknown,
+      error: row.error,
+      source: row.source,
+      createdAt: row.createdAt,
+      retryCount: row.retryCount,
+      lastRetryAt: row.lastRetryAt,
+      metadata:
+        row.metadata && typeof row.metadata === "object"
+          ? (row.metadata as Record<string, unknown>)
+          : undefined,
+    }));
+    inMemoryStore.set(queueName, entries);
+    return entries.length;
+  } catch (err) {
+    logger.warn("DLQ", "Failed to hydrate dead-letter queue from database", {
+      queueName,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return 0;
+  }
+}
 
 export function getQueue(name: string): DeadLetterEntry[] {
   if (!inMemoryStore.has(name)) {
@@ -29,6 +187,7 @@ export function addEntry<T>(
     metadata,
   };
   queue.push(entry);
+  persistAdd(queueName, entry as DeadLetterEntry);
   return entry;
 }
 
@@ -42,6 +201,7 @@ export function removeEntry(queueName: string, id: string): boolean {
   const index = queue.findIndex((e) => e.id === id);
   if (index >= 0) {
     queue.splice(index, 1);
+    persistRemove(queueName, id);
     return true;
   }
   return false;
@@ -52,6 +212,7 @@ export function incrementRetry(queueName: string, id: string): void {
   if (entry) {
     entry.retryCount++;
     entry.lastRetryAt = new Date();
+    persistRetryBump(queueName, entry);
   }
 }
 
@@ -109,6 +270,9 @@ export function clearOldEntries(queueName: string, retentionDays: number): numbe
   const filtered = queue.filter((e) => e.createdAt >= cutoff);
   inMemoryStore.set(queueName, filtered);
 
+  if (originalLength !== filtered.length) {
+    persistClearOlder(queueName, cutoff);
+  }
   return originalLength - filtered.length;
 }
 
@@ -116,5 +280,8 @@ export function clearQueue(queueName: string): number {
   const queue = getQueue(queueName);
   const count = queue.length;
   inMemoryStore.set(queueName, []);
+  if (count > 0) {
+    persistClearQueue(queueName);
+  }
   return count;
 }

@@ -70,12 +70,33 @@ export interface FanoutEvent {
   payload: unknown;
   /** Wall-clock at publish time; used for window trimming. */
   timestampMs: number;
+  /**
+   * P2 #30 — Correlation ID threaded through the event spine so
+   * downstream subscribers (audit, tool-call traces, log
+   * aggregation) can stitch a single user action across services.
+   * Optional because legacy publishers may not yet pass it; when
+   * absent the event is still valid. Producers that already build
+   * `DomainEventEnvelope` should forward `envelope.correlationId`.
+   */
+  correlationId?: string | undefined;
 }
 
 export type FanoutHandler = (event: FanoutEvent) => void;
 
+/** Optional metadata for `publish`. Producers can omit it entirely
+ *  for backwards compatibility; populating `correlationId` lets the
+ *  receiver join the event back to the originating request. */
+export interface FanoutPublishOptions {
+  correlationId?: string | undefined;
+}
+
 export interface FanoutBus {
-  publish(channel: string, payload: unknown, orgId?: string): Promise<FanoutEvent>;
+  publish(
+    channel: string,
+    payload: unknown,
+    orgId?: string,
+    options?: FanoutPublishOptions,
+  ): Promise<FanoutEvent>;
   subscribe(channel: string, orgId: string, handler: FanoutHandler): () => void;
   replaySince(channel: string, orgId: string, lastEventId: string | null): Promise<FanoutEvent[]>;
   close(): Promise<void>;
@@ -95,16 +116,73 @@ export function compareEventIds(a: string, b: string): number {
   return aSeq - bSeq;
 }
 
+/** Default per-bucket byte budget for the WS replay ring. A long-lived
+ *  process with thousands of subscribed (org, channel) tuples and large
+ *  event payloads (telemetry batches, ML explainability blobs) could
+ *  retain hundreds of MB even with the 10k-event count cap. The byte
+ *  cap is checked on append; oldest events are evicted until the
+ *  bucket fits the budget. Read with `REPLAY_RING_MAX_BYTES_PER_BUCKET`
+ *  at module load so ops can tune without a code change. */
+const DEFAULT_REPLAY_BYTES_PER_BUCKET = 5 * 1024 * 1024;
+function envBytes(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Best-effort byte cost of a FanoutEvent. We don't JSON.stringify on
+ *  every append (hot path) — instead we estimate by walking primitive
+ *  shapes and falling back to a coarse stringify only when the payload
+ *  is non-primitive. The estimate intentionally over-counts slightly
+ *  (object overhead, key strings) so we evict early rather than late. */
+function estimateEventBytes(event: FanoutEvent): number {
+  let bytes = 64; // eventId + orgId + channel + timestamp overhead
+  bytes += event.eventId.length * 2;
+  bytes += event.orgId.length * 2;
+  bytes += event.channel.length * 2;
+  const p = event.payload;
+  if (p == null) {
+    return bytes;
+  }
+  if (typeof p === "string") {
+    return bytes + p.length * 2;
+  }
+  if (typeof p === "number" || typeof p === "boolean") {
+    return bytes + 8;
+  }
+  try {
+    return bytes + JSON.stringify(p).length * 2;
+  } catch {
+    return bytes + 256;
+  }
+}
+
+interface RingBucket {
+  events: FanoutEvent[];
+  bytes: number;
+}
+
 /** Bounded ring buffer keyed by (orgId, channel). Drops events older
- *  than the configured window on every read so memory cannot grow
- *  unboundedly in long-lived processes. */
+ *  than the configured window on every read AND enforces a hard
+ *  per-bucket byte budget on every append so memory cannot grow
+ *  unboundedly in long-lived processes — even with large payloads. */
 class ReplayRing {
-  private readonly buckets = new Map<string, FanoutEvent[]>();
+  private readonly buckets = new Map<string, RingBucket>();
+  private readonly maxBytesPerBucket: number;
 
   constructor(
     private readonly windowMs: number,
     private readonly maxPerBucket: number = 10_000,
-  ) {}
+    maxBytesPerBucket: number = envBytes(
+      "WS_REPLAY_RING_BYTES_PER_BUCKET",
+      DEFAULT_REPLAY_BYTES_PER_BUCKET,
+    ),
+  ) {
+    this.maxBytesPerBucket = maxBytesPerBucket;
+  }
 
   private key(orgId: string, channel: string): string {
     return `${orgId}::${channel}`;
@@ -114,12 +192,27 @@ class ReplayRing {
     const key = this.key(event.orgId, event.channel);
     let bucket = this.buckets.get(key);
     if (!bucket) {
-      bucket = [];
+      bucket = { events: [], bytes: 0 };
       this.buckets.set(key, bucket);
     }
-    bucket.push(event);
-    if (bucket.length > this.maxPerBucket) {
-      bucket.splice(0, bucket.length - this.maxPerBucket);
+    const eventBytes = estimateEventBytes(event);
+    bucket.events.push(event);
+    bucket.bytes += eventBytes;
+    // Enforce count cap.
+    while (bucket.events.length > this.maxPerBucket && bucket.events.length > 0) {
+      const dropped = bucket.events.shift();
+      if (dropped) {
+        bucket.bytes = Math.max(0, bucket.bytes - estimateEventBytes(dropped));
+      }
+    }
+    // Enforce byte cap. Always keep at least the just-appended event
+    // so a single oversize payload doesn't disappear before any reader
+    // can replay it — newest-message preservation.
+    while (bucket.bytes > this.maxBytesPerBucket && bucket.events.length > 1) {
+      const dropped = bucket.events.shift();
+      if (dropped) {
+        bucket.bytes = Math.max(0, bucket.bytes - estimateEventBytes(dropped));
+      }
     }
   }
 
@@ -130,27 +223,41 @@ class ReplayRing {
     const bucket = this.buckets.get(key);
     if (!bucket) return [];
 
-    const cutoff = Date.now() - this.windowMs;
-    while (bucket.length > 0 && (bucket[0]?.timestampMs ?? 0) < cutoff) {
-      bucket.shift();
-    }
-    if (bucket.length === 0) {
+    this.trimExpired(bucket);
+    if (bucket.events.length === 0) {
       this.buckets.delete(key);
       return [];
     }
 
-    if (!lastEventId) return bucket.slice();
-    return bucket.filter((e) => compareEventIds(e.eventId, lastEventId) > 0);
+    if (!lastEventId) return bucket.events.slice();
+    return bucket.events.filter((e) => compareEventIds(e.eventId, lastEventId) > 0);
+  }
+
+  private trimExpired(bucket: RingBucket): void {
+    const cutoff = Date.now() - this.windowMs;
+    while (bucket.events.length > 0 && (bucket.events[0]?.timestampMs ?? 0) < cutoff) {
+      const dropped = bucket.events.shift();
+      if (dropped) {
+        bucket.bytes = Math.max(0, bucket.bytes - estimateEventBytes(dropped));
+      }
+    }
   }
 
   trimAll(): void {
-    const cutoff = Date.now() - this.windowMs;
     for (const [key, bucket] of this.buckets) {
-      while (bucket.length > 0 && (bucket[0]?.timestampMs ?? 0) < cutoff) {
-        bucket.shift();
-      }
-      if (bucket.length === 0) this.buckets.delete(key);
+      this.trimExpired(bucket);
+      if (bucket.events.length === 0) this.buckets.delete(key);
     }
+  }
+
+  /** Test/observability hook: total bytes currently retained across
+   *  all buckets. Not part of the FanoutBus public contract. */
+  totalBytes(): number {
+    let sum = 0;
+    for (const bucket of this.buckets.values()) {
+      sum += bucket.bytes;
+    }
+    return sum;
   }
 }
 
@@ -203,13 +310,19 @@ export class InProcessFanoutBus implements FanoutBus {
     return makeEventId(now, gen.next(now));
   }
 
-  async publish(channel: string, payload: unknown, orgId: string = SYSTEM_ORG_ID): Promise<FanoutEvent> {
+  async publish(
+    channel: string,
+    payload: unknown,
+    orgId: string = SYSTEM_ORG_ID,
+    options?: FanoutPublishOptions,
+  ): Promise<FanoutEvent> {
     const event: FanoutEvent = {
       eventId: this.nextEventId(orgId, channel),
       orgId,
       channel,
       payload,
       timestampMs: Date.now(),
+      ...(options?.correlationId !== undefined && { correlationId: options.correlationId }),
     };
     this.ring.append(event);
     this.dispatch(event);

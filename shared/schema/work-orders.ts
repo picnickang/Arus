@@ -343,6 +343,27 @@ export const insertWorkOrderCompletionSchema = createInsertSchema(workOrderCompl
   createdAt: true,
 });
 
+/**
+ * P2 #33 — Typed validation for the `parts_used` JSONB column on
+ * `work_order_completions`. Persisted by the closeout wizard as an
+ * array of `{ partId, quantity, ... }` records, but reads landed in
+ * application code as `unknown` and were spread into AI prompts and
+ * cost-roll-up queries unvalidated. We pin the shape at the repo
+ * boundary so a malformed historical row (manual SQL fix, partial
+ * migration) cannot poison downstream consumers. Unknown extra keys
+ * are passthrough'd — only the contract fields are guaranteed.
+ */
+export const partsUsedEntrySchema = z
+  .object({
+    partId: z.string().min(1),
+    quantity: z.number().nonnegative(),
+    unitCost: z.number().nonnegative().optional(),
+    description: z.string().optional(),
+  })
+  .passthrough();
+export const partsUsedSchema = z.array(partsUsedEntrySchema);
+export type PartsUsedEntry = z.infer<typeof partsUsedEntrySchema>;
+
 // Types
 export type WorkOrder = typeof workOrders.$inferSelect;
 export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;

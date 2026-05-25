@@ -3,8 +3,58 @@ import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/a
 import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route-utils";
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { z } from "zod";
 
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+
+/**
+ * P2 #22 — Zod-validated closeout payload for the
+ * `complete-with-feedback` endpoint. Before this the route only
+ * checked `predictionFeedback.outcome` and trusted the rest of the
+ * body verbatim, so a client could send `actualHours: -10`,
+ * `laborHours: Number.MAX_SAFE_INTEGER`, or arbitrary objects in
+ * `closeout.partsUsed` and the persisted completion would carry
+ * those values straight into reporting / cost rollups.
+ *
+ * Bounds chosen: a single work order rarely consumes more than one
+ * shift × a few days × generous slack — 1000 hours is more than
+ * enough headroom for a multi-week voyage repair and still rejects
+ * obvious garbage. String fields are length-bounded to protect the
+ * downstream column widths and JSON payload size.
+ */
+const MAX_HOURS = 1000;
+const MAX_TEXT_LEN = 2000;
+const MAX_NOTES_LEN = 4000;
+
+const closeoutSchema = z
+  .object({
+    workPerformed: z.string().max(MAX_TEXT_LEN).optional(),
+    causeFound: z.string().max(MAX_TEXT_LEN).optional(),
+    partsUsed: z.string().max(MAX_TEXT_LEN).optional(),
+    laborHours: z.number().finite().min(0).max(MAX_HOURS).nullable().optional(),
+    downtimeHours: z.number().finite().min(0).max(MAX_HOURS).nullable().optional(),
+    evidenceNote: z.string().max(MAX_NOTES_LEN).optional(),
+    checklistVerified: z.boolean().optional(),
+    supervisorVerified: z.boolean().optional(),
+  })
+  .strict();
+
+const predictionFeedbackSchema = z.object({
+  predictionId: z.union([z.string(), z.number(), z.null()]).optional(),
+  outcome: z.enum(["confirmed", "partial", "false_alarm"]),
+  notes: z.string().max(MAX_NOTES_LEN).optional(),
+});
+
+export const completeWithFeedbackSchema = z
+  .object({
+    completionNotes: z.string().max(MAX_NOTES_LEN).optional(),
+    actualHours: z.number().finite().min(0).max(MAX_HOURS).optional(),
+    actualDowntimeHours: z.number().finite().min(0).max(MAX_HOURS).optional(),
+    closeout: closeoutSchema.optional(),
+    predictionFeedback: predictionFeedbackSchema.optional(),
+  })
+  .strict();
+export { closeoutSchema as _closeoutSchemaForTests };
 
 function getOrgId(req: Request): string {
   return (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
@@ -76,17 +126,19 @@ export function registerWorkOrderWorkflowRoutes(
       const userId = getUserId(req);
       const workOrderId = req.params['id'] ?? '';
 
-      const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } = req.body;
-
-      if (predictionFeedback) {
-        const validOutcomes = ["confirmed", "partial", "false_alarm"];
-        if (!validOutcomes.includes(predictionFeedback.outcome)) {
-          return res.status(400).json({
-            error: `predictionFeedback.outcome must be one of: ${validOutcomes.join(", ")}`,
-          });
-        }
+      const parsed = completeWithFeedbackSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid completion payload",
+          details: parsed.error.flatten(),
+        });
       }
+      const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } = parsed.data;
 
+      // P2 #28 — Keep the explicit `!== undefined` pattern so that
+      // explicit zeros and null clear-outs survive the spread. Zod
+      // already accepted them; this guard is solely about whether
+      // the key reaches the service input.
       const result = await service.completeWithFeedback(
         {
           workOrderId,
@@ -98,9 +150,9 @@ export function registerWorkOrderWorkflowRoutes(
           predictionFeedback: predictionFeedback
             ? {
                 workOrderId,
-                predictionId: predictionFeedback.predictionId,
+                predictionId: predictionFeedback.predictionId ?? null,
                 outcome: predictionFeedback.outcome,
-                notes: predictionFeedback.notes,
+                ...(predictionFeedback.notes !== undefined && { notes: predictionFeedback.notes }),
               }
             : undefined,
         },

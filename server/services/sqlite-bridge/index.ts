@@ -182,6 +182,23 @@ export async function runSqliteBridge(config: BridgeConfig): Promise<void> {
 
   bridgeState.isRunning = true;
   bridgeBackoffGauge.set(backoffMs);
+
+  // P2 #19 — Rehydrate the in-memory DLQ from the persisted
+  // `telemetry_dead_letter` rows so failures captured before a
+  // restart can still be replayed. Best-effort: a DB miss logs and
+  // continues with an empty in-memory store (pre-#19 behaviour).
+  try {
+    const { hydrateFromDatabase } = await import("../dead-letter-queue/repository");
+    const reloaded = await hydrateFromDatabase("sqlite-bridge");
+    if (reloaded > 0) {
+      logger.info("SqliteBridge", "Rehydrated dead-letter queue from database", { reloaded });
+    }
+  } catch (err) {
+    logger.warn("SqliteBridge", "DLQ hydrate failed (continuing with empty in-memory queue)", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   logger.info("SqliteBridge", "Started", { sqlitePath: config.sqlitePath });
 
   while (bridgeState.isRunning) {

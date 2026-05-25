@@ -42,6 +42,54 @@ export const cacheMetrics = {
   }),
 };
 
+/**
+ * P2 #29 — Sampled cache-error observability. The counters in
+ * `cacheMetrics.errors` already track frequency for Prometheus, but
+ * the cache wrappers historically either swallowed errors silently
+ * (CacheClient) or logged every failure (cachedAnalytics) — both
+ * extremes are bad. Silent swallow hides outages; per-call logging
+ * lets a flapping Redis turn into log storms that obscure unrelated
+ * problems and inflate ingestion cost. We log the first failure per
+ * (operation,window) immediately and then sample at 1/N for the
+ * remainder of the window so operators see the signal without the
+ * flood.
+ */
+const CACHE_ERROR_LOG_WINDOW_MS = 60_000;
+const CACHE_ERROR_LOG_SAMPLE_DENOMINATOR = 50;
+interface CacheErrorWindow {
+  count: number;
+  windowStartMs: number;
+}
+const cacheErrorWindows = new Map<string, CacheErrorWindow>();
+
+function recordCacheError(
+  keyPrefix: string,
+  operation: string,
+  error: unknown,
+): void {
+  cacheMetrics.errors.inc({ cache_type: keyPrefix, operation });
+  const windowKey = `${keyPrefix}::${operation}`;
+  const now = Date.now();
+  let window = cacheErrorWindows.get(windowKey);
+  if (!window || now - window.windowStartMs >= CACHE_ERROR_LOG_WINDOW_MS) {
+    window = { count: 0, windowStartMs: now };
+    cacheErrorWindows.set(windowKey, window);
+  }
+  window.count += 1;
+  const isFirst = window.count === 1;
+  const isSample = window.count % CACHE_ERROR_LOG_SAMPLE_DENOMINATOR === 0;
+  if (isFirst || isSample) {
+    logger.warn("Cache operation failed", {
+      cacheType: keyPrefix,
+      operation,
+      errorCountInWindow: window.count,
+      windowMs: CACHE_ERROR_LOG_WINDOW_MS,
+      sampled: !isFirst,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export class CacheClient {
   private redis: Redis | null = null;
   private defaultTTL: number;
@@ -85,7 +133,7 @@ export class CacheClient {
 
       return result;
     } catch (error) {
-      cacheMetrics.errors.inc({ cache_type: this.keyPrefix, operation: "get" });
+      recordCacheError(this.keyPrefix, "get", error);
       return null;
     } finally {
       timer();
@@ -103,7 +151,7 @@ export class CacheClient {
       const ttl = ttlSeconds ?? this.defaultTTL;
       await redis.setex(this.prefixKey(key), ttl, JSON.stringify(value));
     } catch (error) {
-      cacheMetrics.errors.inc({ cache_type: this.keyPrefix, operation: "set" });
+      recordCacheError(this.keyPrefix, "set", error);
     } finally {
       timer();
     }
@@ -123,7 +171,7 @@ export class CacheClient {
         await redis.del(...prefixedKeys);
       }
     } catch (error) {
-      cacheMetrics.errors.inc({ cache_type: this.keyPrefix, operation: "del" });
+      recordCacheError(this.keyPrefix, "del", error);
     } finally {
       timer();
     }
@@ -142,7 +190,7 @@ export class CacheClient {
         await redis.del(...keys);
       }
     } catch (error) {
-      cacheMetrics.errors.inc({ cache_type: this.keyPrefix, operation: "invalidate_pattern" });
+      recordCacheError(this.keyPrefix, "invalidate_pattern", error);
     } finally {
       timer();
     }
@@ -335,7 +383,20 @@ export async function cachedAnalytics<T>(
     await analyticsCache.set(cacheKey, result, ttlSeconds);
     return result;
   } catch (error) {
-    logger.error("[Cache] Analytics caching error, falling back to direct fetch:", undefined, error);
+    // P2 #29 — Route through the sampled logger so a flapping Redis
+    // does not flood logs. The underlying cache ops already record
+    // metrics; this catch is for unexpected errors in the wrapper
+    // itself (JSON parse, etc.), so we sample with a synthetic op.
+    recordCacheError("analytics_wrapper", "cached_analytics", error);
     return fetchFn();
   }
+}
+
+/**
+ * Test-only: reset sampling windows so tests can deterministically
+ * observe first-vs-sampled behaviour without leaking state between
+ * specs. Not exported from any barrel; tests import directly.
+ */
+export function __resetCacheErrorWindowsForTests(): void {
+  cacheErrorWindows.clear();
 }
