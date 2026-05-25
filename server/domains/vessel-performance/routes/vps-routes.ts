@@ -3,9 +3,9 @@
  * Power vs Speed Through Water + Fleet Benchmarks
  */
 
-import type { Express, Request, Response } from "express";
+import type { Express, Response } from "express";
 import { z } from "zod";
-import type { VesselPerformanceRoutesConfig } from "./types.js";
+import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 const dateRangeQuerySchema = z.object({
@@ -19,14 +19,15 @@ import { withErrorHandling } from "../../../lib/route-utils.js";
 import { vesselService } from "../../../services/domains/vessel-service.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
 import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { requireOrgId } from "../../../middleware/auth.js";
 
-export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
+export function registerVPSRoutes(app: Express, _config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/power-stw-analysis",
-    withErrorHandling("compute power-STW analysis", async (req: Request, res: Response) => {
-      const vesselId = idParamSchema.parse(req.params).id,
-        orgId = DEFAULT_ORG_ID;
+    requireOrgId,
+    withErrorHandling("compute power-STW analysis", async (req: AuthenticatedRequest, res: Response) => {
+      const vesselId = idParamSchema.parse(req.params).id;
+      const orgId = req.orgId;
 
       const vessel = await vesselService.getVessel(vesselId, orgId);
       if (!vessel) {
@@ -110,7 +111,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         }
       }
 
-      res.setHeader("Cache-Control", "public, max-age=300");
+      res.setHeader("Cache-Control", "private, max-age=300");
       return res.json({
         actual: actualCurve,
         baseline: baselineCurve,
@@ -129,8 +130,9 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
 
   app.get(
     "/api/fleet/benchmarks",
-    withErrorHandling("compute fleet benchmarks", async (req: Request, res: Response) => {
-      const orgId = DEFAULT_ORG_ID;
+    requireOrgId,
+    withErrorHandling("compute fleet benchmarks", async (req: AuthenticatedRequest, res: Response) => {
+      const orgId = req.orgId;
 
       const q = fleetQuerySchema.parse(req.query);
       const now = new Date(),
@@ -158,7 +160,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
         ? vessels.filter((v) => (v as { vesselType?: string | null }).vesselType === vesselType).length
         : vessels.length;
 
-      res.setHeader("Cache-Control", "public, max-age=300");
+      res.setHeader("Cache-Control", "private, max-age=300");
       return res.json({
         loadDistribution: loadBenchmarks,
         powerSTW: powerSTWBenchmarks,

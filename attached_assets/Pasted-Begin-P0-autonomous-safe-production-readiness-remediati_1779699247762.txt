@@ -1,0 +1,89 @@
+Begin P0 autonomous-safe production readiness remediation.
+
+Scope:
+Only fix autonomous-safe P0 items:
+
+#1 Vessel Performance routes unauthenticated/cross-tenant
+#4 Telemetry batch quota increment fire-and-forget
+
+Do NOT modify:
+#2 setup token policy
+#3 websocket tenant strict-mode default
+#14 production encryption-key fail-fast
+
+Those require product/security decisions.
+
+==================================================
+FIX #1 — Vessel Performance tenant/auth hardening
+==================================================
+
+Locations:
+server/domains/vessel-performance/routes/vps-routes.ts
+server/domains/vessel-performance/routes/cii-routes.ts
+server/domains/vessel-performance/routes/mode-routes.ts
+server/domains/vessel-performance/routes/narrative-routes.ts
+registerVesselPerformanceRoutes
+
+Required:
+- Mount routes behind requireAuth and requireOrgId.
+- Replace DEFAULT_ORG_ID usage with req.user.orgId or equivalent authenticated org context.
+- Use AuthenticatedRequest typing.
+- Reject unauthenticated requests with 401.
+- Reject missing orgId with 403/401 according to existing app convention.
+- Ensure tenant scoping is applied to all vessel performance/CII/mode/narrative reads.
+- Add/adjust integration tests:
+  - unauthenticated request fails
+  - authenticated wrong-org vessel access fails
+  - authenticated same-org access succeeds or reaches domain handler
+
+Preserve existing route behavior otherwise.
+
+==================================================
+FIX #4 — Telemetry quota increment reliability
+==================================================
+
+Location:
+server/telemetry-batch-writer.ts around quotaService.incrementUsage
+
+Required:
+- Stop using fire-and-forget `void quotaService.incrementUsage(...)`.
+- Await the quota increment with a bounded timeout.
+- If quota increment fails/times out:
+  - do not block telemetry ingestion unless current policy already blocks it
+  - log warn with orgId and batchId
+  - emit/increment metric:
+    arus_telemetry_quota_increment_failed_total
+- Preserve fail-open request behavior.
+- Do not change quota semantics beyond making failed increments observable.
+
+==================================================
+VALIDATION
+==================================================
+
+Run:
+- npx tsc --noEmit
+- strict checks already enabled
+- scoped eslint for touched files
+- relevant integration tests, or add tests if missing
+- explicit-any remains 0
+- cast count remains 1 justified boundary cast
+
+Rules:
+- No explicit any
+- No as any
+- No ts-ignore
+- No eslint-disable
+- No unsafe casts
+- Preserve strict-mode cleanliness
+- Keep changes minimal and scoped
+
+Code review required.
+
+Final report:
+- files changed
+- #1 behavior before/after
+- #4 behavior before/after
+- tests added/updated
+- tsc result
+- lint result
+- remaining P0 decisions needed for #2/#3/#14

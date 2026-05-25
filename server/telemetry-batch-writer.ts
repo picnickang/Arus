@@ -112,6 +112,19 @@ const batchWriterQuotaBlockedTotal = new client.Counter({
   labelNames: ["org_id"],
 });
 
+// Production-readiness P0 #4: observability for failed quota increments.
+// `incrementUsage` is awaited with a bounded timeout below. We deliberately
+// stay fail-open on the ingest path (billing/quota is not the correctness
+// boundary — RLS is), but a persistent failure here means tenant usage is
+// being undercounted and operators must see it.
+const batchWriterQuotaIncrementFailedTotal = new client.Counter({
+  name: "arus_telemetry_quota_increment_failed_total",
+  help: "Per-org failures to record telemetry_rows_today usage after a successful batch write (timeout or quota service error). Ingest is not blocked; this counter signals undercounting.",
+  labelNames: ["org_id", "reason"],
+});
+
+import { withQuotaTimeout } from "./telemetry-batch-writer-quota-timeout";
+
 export class TelemetryBatchWriter extends EventEmitter {
   private vesselBuffers: Map<string, TelemetryBatchReading[]> = new Map();
   private flushTimer: NodeJS.Timeout | null = null;
@@ -475,7 +488,9 @@ export class TelemetryBatchWriter extends EventEmitter {
   private async filterOverQuotaReadings(
     readings: TelemetryBatchReading[],
   ): Promise<TelemetryBatchReading[]> {
-    if (readings.length === 0) return readings;
+    if (readings.length === 0) {
+      return readings;
+    }
 
     const perOrgCounts = new Map<string, number>();
     for (const r of readings) {
@@ -488,14 +503,18 @@ export class TelemetryBatchWriter extends EventEmitter {
       Array.from(perOrgCounts.keys()).map(async (orgId) => {
         try {
           const check = await quotaService.check(orgId, "telemetry_rows_today");
-          if (check.exceeded) overQuotaOrgs.add(orgId);
+          if (check.exceeded) {
+            overQuotaOrgs.add(orgId);
+          }
         } catch {
           // Fail-open per the doc comment above.
         }
       }),
     );
 
-    if (overQuotaOrgs.size === 0) return readings;
+    if (overQuotaOrgs.size === 0) {
+      return readings;
+    }
 
     const allowed: TelemetryBatchReading[] = [];
     let totalDropped = 0;
@@ -604,22 +623,42 @@ export class TelemetryBatchWriter extends EventEmitter {
       // Task #89: this is the only active telemetry ingest path
       // (sqlite-bridge worker → writeBatch → PostgreSQL). Increment
       // `telemetry_rows_today` per orgId AFTER the rows commit, so a
-      // failed write doesn't burn quota. Fire-and-forget — quota is
-      // commercial, not on the critical correctness path. Readings
-      // without an orgId fall back to the bridge default so usage isn't
-      // silently lost.
-      try {
-        const perOrg = new Map<string, number>();
-        for (const r of allowedReadings) {
-          const org = r.orgId || "default-org-id";
-          perOrg.set(org, (perOrg.get(org) ?? 0) + 1);
-        }
-        for (const [orgId, count] of perOrg) {
-          void quotaService.incrementUsage(orgId, "telemetry_rows_today", count);
-        }
-      } catch {
-        // Quota accounting must never break ingest.
+      // failed write doesn't burn quota. Readings without an orgId fall
+      // back to the bridge default so usage isn't silently lost.
+      //
+      // P0 #4: previously this was fire-and-forget (`void
+      // quotaService.incrementUsage(...)`), which silently allowed
+      // tenants to exceed `telemetry_rows_today` whenever the quota
+      // store had a hiccup. We now await each increment with a bounded
+      // timeout. The request path stays fail-open (we never throw out
+      // of this block — quota is commercial, RLS is the correctness
+      // perimeter), but every miss is now counted on
+      // `arus_telemetry_quota_increment_failed_total{org_id,reason}`
+      // and logged with the batch ID so operators can react.
+      const perOrg = new Map<string, number>();
+      for (const r of allowedReadings) {
+        const org = r.orgId || "default-org-id";
+        perOrg.set(org, (perOrg.get(org) ?? 0) + 1);
       }
+      const batchId = options.source ?? "unknown";
+      await Promise.all(
+        Array.from(perOrg.entries()).map(async ([orgId, count]) => {
+          try {
+            await withQuotaTimeout(
+              quotaService.incrementUsage(orgId, "telemetry_rows_today", count),
+            );
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const reason = message.startsWith("quota_increment_timeout") ? "timeout" : "error";
+            batchWriterQuotaIncrementFailedTotal.inc({ org_id: orgId, reason }, 1);
+            logger.warn(
+              "TelemetryBatchWriter",
+              "Quota increment failed; usage may be undercounted (ingest not blocked)",
+              { orgId, batchId, count, reason, error: message },
+            );
+          }
+        }),
+      );
 
       this.emit("batchWritten", {
         count: allowedReadings.length,

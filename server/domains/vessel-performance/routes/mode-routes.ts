@@ -2,19 +2,20 @@
  * Vessel Performance Routes - Operating Mode Detection
  */
 
-import type { Express, Request, Response } from "express";
-import type { VesselPerformanceRoutesConfig } from "./types.js";
+import type { Express, Response } from "express";
+import type { VesselPerformanceRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { dbEquipmentStorage } from "../../../db/equipment/index.js";
 import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { requireOrgId } from "../../../middleware/auth.js";
 
-export function registerModeRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
+export function registerModeRoutes(app: Express, _config: VesselPerformanceRoutesConfig): void {
   app.get(
     "/api/vessels/:id/operating-mode",
-    withErrorHandling("detect operating mode", async (req: Request, res: Response) => {
-      const { id: vesselId } = req.params,
-        orgId = DEFAULT_ORG_ID;
+    requireOrgId,
+    withErrorHandling("detect operating mode", async (req: AuthenticatedRequest, res: Response) => {
+      const { id: vesselId } = req.params;
+      const orgId = req.orgId;
 
       const now = new Date(),
         oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
@@ -54,7 +55,7 @@ export function registerModeRoutes(app: Express, config: VesselPerformanceRoutes
         });
       }
 
-      res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader("Cache-Control", "private, max-age=60");
       return res.json({
         ...latestMode,
         timestamp: latestMode.timestamp.toISOString(),
