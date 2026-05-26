@@ -1,7 +1,7 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Response } from "express";
 import { z } from "zod";
 import { TrainingPipelineService } from "./training-pipeline.service";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { requireRole } from "../../../middleware/role-auth";
 
 const router = Router();
@@ -43,9 +43,21 @@ const runsListQuerySchema = z.object({
 const idParamSchema = z.object({ id: z.string().min(1) });
 const artifactsQuerySchema = z.object({ modelVersionId: z.string().optional() });
 
-router.post("/datasets", async (req: Request, res: Response) => {
+// LR-3.5 / PdM tenancy hardening: `requireOrgId` is mounted on this router
+// in `server/routes/domain-router-registry.ts` (mountPath `/api/pdm/training`).
+// That middleware (a) rejects unauthenticated requests with 401
+// UNAUTHENTICATED, (b) rejects authenticated users missing an org claim
+// with 401 TENANT_CLAIM_MISSING, and (c) populates `req.orgId`. Handlers
+// therefore read `orgId` exclusively from the authenticated request
+// context — no single-tenant constant fallback — and a missing claim
+// cannot reach this layer.
+function getOrgId(req: AuthenticatedRequest): string {
+  return req.orgId;
+}
+
+router.post("/datasets", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const parsed = createDatasetSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -64,9 +76,9 @@ router.post("/datasets", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/datasets", async (req: Request, res: Response) => {
+router.get("/datasets", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const { status } = statusQuerySchema.parse(req.query);
     const result = await service.listDatasets(orgId, status);
     return res.json(result);
@@ -76,9 +88,9 @@ router.get("/datasets", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/datasets/:id", async (req: Request, res: Response) => {
+router.get("/datasets/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const { id } = idParamSchema.parse(req.params);
     const result = await service.getDataset(orgId, id);
     if (!result) {
@@ -91,9 +103,9 @@ router.get("/datasets/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/runs", async (req: Request, res: Response) => {
+router.post("/runs", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const parsed = startRunSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -116,9 +128,9 @@ router.post("/runs", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/runs", async (req: Request, res: Response) => {
+router.get("/runs", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const { status, datasetId } = runsListQuerySchema.parse(req.query);
     const result = await service.listRuns(orgId, {
       ...(status !== undefined && { status }),
@@ -131,9 +143,9 @@ router.get("/runs", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/runs/:id", async (req: Request, res: Response) => {
+router.get("/runs/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const { id } = idParamSchema.parse(req.params);
     const result = await service.getRunStatus(orgId, id);
     if (!result) {
@@ -148,9 +160,9 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
 
 // LR-3.5 / ML-1: model promotion is a write-once production swap; gate
 // behind admin/chief_engineer (parallel to /api/ml/models/:id/promote).
-router.post("/runs/:id/promote", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
+router.post("/runs/:id/promote", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const parsed = promoteSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -174,9 +186,9 @@ router.post("/runs/:id/promote", requireRole("admin", "chief_engineer"), async (
   }
 });
 
-router.get("/artifacts", async (req: Request, res: Response) => {
+router.get("/artifacts", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const orgId = DEFAULT_ORG_ID;
+    const orgId = getOrgId(req);
     const { modelVersionId } = artifactsQuerySchema.parse(req.query);
     if (!modelVersionId) {
       return res.status(400).json({ error: "modelVersionId query param required" });

@@ -39,9 +39,24 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
   }
 
   async createVersion(data: InsertModelVersion): Promise<ModelVersion> {
+    // LR-3.5 / PdM tenancy hardening: validate that the foreign
+    // `modelId` actually belongs to the caller's org BEFORE inserting
+    // a new version row. Without this check, a caller in org A who
+    // knows (or guesses) a `modelId` from org B could create a
+    // modelVersion row carrying `orgId=A, modelId=<B's model>` —
+    // poisoning org B's model registry with org A's lineage. The FK
+    // is on `modelId` alone, not `(orgId, modelId)`, so DB constraints
+    // do not catch this. Fail closed with the same "not found" shape
+    // that getModel() uses so the caller cannot probe model existence
+    // across orgs.
+    const owner = await this.getModel(data.orgId, data.modelId);
+    if (!owner) {
+      throw new Error(`Model ${data.modelId} not found`);
+    }
     const [result] = await db.insert(modelVersions).values(data).returning();
     if (!result) throw new Error("Failed to create model version");
     logger.info("[ModelRegistry] Version created", {
+      orgId: data.orgId,
       modelId: data.modelId,
       version: data.version,
     });
@@ -70,6 +85,34 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
     modelVersionId: string,
     target: string
   ): Promise<ModelDeployment> {
+    // LR-3.5 / PdM tenancy hardening: validate ownership of BOTH the
+    // path `modelId` and the body `modelVersionId` before any write.
+    // Without these checks an admin in org A who knows a `modelId`
+    // and `modelVersionId` from org B could deploy a cross-tenant
+    // model into org A's active routing — at minimum poisoning org A's
+    // inference path with org B's lineage, and (because the
+    // subsequent UPDATE deprecates by (orgId,modelId,active)) leaving
+    // an inconsistent state if `modelId` does not actually live in
+    // the caller's org. FK constraints don't help: FKs are on the
+    // id alone, not on `(orgId, id)`.
+    const owningModel = await this.getModel(orgId, modelId);
+    if (!owningModel) {
+      throw new Error(`Model ${modelId} not found`);
+    }
+    const [owningVersion] = await db
+      .select()
+      .from(modelVersions)
+      .where(
+        and(
+          eq(modelVersions.id, modelVersionId),
+          eq(modelVersions.orgId, orgId),
+          eq(modelVersions.modelId, modelId)
+        )
+      );
+    if (!owningVersion) {
+      throw new Error(`Model version ${modelVersionId} not found`);
+    }
+
     await db
       .update(modelDeployments)
       .set({ deploymentStatus: "deprecated", deprecatedAt: new Date() })
@@ -105,10 +148,23 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
   }
 
   async rollback(orgId: string, deploymentId: number): Promise<ModelDeployment> {
+    // LR-3.5 / PdM tenancy hardening: every read and write must be
+    // scoped by `orgId` AS WELL AS `id`. Without the orgId predicate
+    // an admin in org A could pass a deploymentId belonging to org B
+    // and force-deprecate org B's active deployment (cross-tenant
+    // IDOR flagged by architect review). The route layer already
+    // sources `orgId` from `req.orgId` via `requireOrgId`, but the
+    // adapter must fail closed in its own right rather than trust
+    // the caller.
     const [current] = await db
       .select()
       .from(modelDeployments)
-      .where(eq(modelDeployments.id, deploymentId));
+      .where(
+        and(
+          eq(modelDeployments.id, deploymentId),
+          eq(modelDeployments.orgId, orgId)
+        )
+      );
 
     if (!current) {
       throw new Error(`Deployment ${deploymentId} not found`);
@@ -117,7 +173,12 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
     await db
       .update(modelDeployments)
       .set({ deploymentStatus: "deprecated", deprecatedAt: new Date() })
-      .where(eq(modelDeployments.id, deploymentId));
+      .where(
+        and(
+          eq(modelDeployments.id, deploymentId),
+          eq(modelDeployments.orgId, orgId)
+        )
+      );
 
     const [previous] = await db
       .select()
@@ -136,10 +197,19 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       const [restored] = await db
         .update(modelDeployments)
         .set({ deploymentStatus: "active", deprecatedAt: null })
-        .where(eq(modelDeployments.id, previous.id))
+        .where(
+          and(
+            eq(modelDeployments.id, previous.id),
+            eq(modelDeployments.orgId, orgId)
+          )
+        )
         .returning();
       if (!restored) throw new Error("Failed to restore deployment");
-      logger.info("[ModelRegistry] Rolled back", { deploymentId, restoredId: previous.id });
+      logger.info("[ModelRegistry] Rolled back", {
+        orgId,
+        deploymentId,
+        restoredId: previous.id,
+      });
       return restored;
     }
 
