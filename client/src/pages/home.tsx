@@ -11,7 +11,19 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import { ChevronRight, History, Plus, Flag, CheckCircle2, Bell } from "lucide-react";
+import {
+  ChevronRight,
+  History,
+  Plus,
+  Flag,
+  CheckCircle2,
+  Bell,
+  Ship,
+  Clock,
+  ShieldAlert,
+  Wrench,
+  AlertTriangle,
+} from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
@@ -22,6 +34,14 @@ import {
 } from "@/application/navigation/role-navigation-policy";
 import { Button } from "@/components/ui/button";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
+import {
+  useUserDashboardViewModel,
+  type ActiveAlertSlot,
+  type CurrentVesselSlot,
+  type SafetyNoticeSlot,
+  type ShiftStatusSlot,
+  type UpcomingMaintenanceSlot,
+} from "@/application/user-dashboard/user-dashboard-view-model";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -257,6 +277,301 @@ function MyTasks({ emptyState }: MyTasksProps = {}) {
   );
 }
 
+function CurrentVesselCard({ vessel }: { vessel: CurrentVesselSlot | undefined }) {
+  if (!vessel) {
+    return (
+      <div
+        className="rounded-lg border bg-card p-4"
+        data-testid="card-current-vessel-empty"
+      >
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Ship className="h-4 w-4" />
+          No vessel assigned yet.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border bg-card p-4" data-testid="card-current-vessel">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <Ship className="h-3.5 w-3.5" /> Current Vessel
+      </div>
+      <div className="mt-1 text-base font-semibold" data-testid="text-current-vessel-name">
+        {vessel.name}
+      </div>
+    </div>
+  );
+}
+
+function ShiftStatusCard({ shift }: { shift: ShiftStatusSlot }) {
+  const hours = Math.floor(shift.remainingMinutes / 60);
+  const minutes = shift.remainingMinutes % 60;
+  return (
+    <div className="rounded-lg border bg-card p-4" data-testid="card-shift-status">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <Clock className="h-3.5 w-3.5" /> My Shift
+      </div>
+      <div className="mt-1 text-base font-semibold">{shift.windowLabel}</div>
+      <div className="mt-1 text-xs text-muted-foreground" data-testid="text-shift-remaining">
+        {shift.label === "On duty"
+          ? `${hours}h ${minutes}m remaining`
+          : "Off duty"}
+      </div>
+      <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
+        <div
+          className="h-1.5 rounded-full bg-primary"
+          style={{ width: `${shift.progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActiveAlertsCard({ alerts }: { alerts: ActiveAlertSlot[] }) {
+  if (alerts.length === 0) {
+    return (
+      <div
+        className="rounded-lg border bg-card p-4"
+        data-testid="card-active-alerts-empty"
+      >
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">No active alerts.</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border bg-card p-4" data-testid="card-active-alerts">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
+      </div>
+      <ul className="mt-2 space-y-2">
+        {alerts.map((a) => (
+          <li
+            key={a.id}
+            className="flex items-start justify-between gap-2 text-sm"
+            data-testid={`row-active-alert-${a.id}`}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium">{a.title}</div>
+              {a.source && (
+                <div className="truncate text-xs text-muted-foreground">{a.source}</div>
+              )}
+            </div>
+            <span
+              className={cn(
+                "rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
+                a.severity === "critical" || a.severity === "high"
+                  ? "bg-destructive/10 text-destructive"
+                  : a.severity === "medium"
+                    ? "bg-yellow-500/10 text-yellow-600"
+                    : "bg-muted text-muted-foreground",
+              )}
+            >
+              {a.severity}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SafetyNoticesCard({ notices }: { notices: SafetyNoticeSlot[] }) {
+  if (notices.length === 0) {
+    return (
+      <div
+        className="rounded-lg border bg-card p-4"
+        data-testid="card-safety-notices-empty"
+      >
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <ShieldAlert className="h-3.5 w-3.5" /> Safety Notices
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">No safety notices.</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border bg-card p-4" data-testid="card-safety-notices">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <ShieldAlert className="h-3.5 w-3.5" /> Safety Notices
+      </div>
+      <ul className="mt-2 space-y-2">
+        {notices.map((n) => (
+          <li
+            key={n.id}
+            className="text-sm"
+            data-testid={`row-safety-notice-${n.id}`}
+          >
+            <div className="truncate font-medium">{n.title}</div>
+            {n.postedAt && (
+              <div className="text-xs text-muted-foreground">
+                {new Date(n.postedAt).toLocaleDateString()}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function UpcomingMaintenanceCard({
+  items,
+  onViewAll,
+}: {
+  items: UpcomingMaintenanceSlot[];
+  onViewAll: () => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div
+        className="rounded-lg border bg-card p-4"
+        data-testid="card-upcoming-maintenance-empty"
+      >
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">
+          Nothing scheduled in the next 7 days.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border bg-card p-4" data-testid="card-upcoming-maintenance">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
+        </div>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-xs text-primary hover:underline"
+          data-testid="link-user-view-maintenance"
+        >
+          View schedule
+        </button>
+      </div>
+      <ul className="mt-2 space-y-2">
+        {items.map((m) => (
+          <li
+            key={m.id}
+            className="flex items-center justify-between gap-2 text-sm"
+            data-testid={`row-upcoming-maintenance-${m.id}`}
+          >
+            <span className="min-w-0 flex-1 truncate font-medium">{m.title}</span>
+            <span className="text-xs text-muted-foreground">
+              {m.scheduledDate.toLocaleDateString()}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function UserPortalHome({
+  role,
+  roleLabel,
+  onSwitchRole,
+}: {
+  role: string;
+  roleLabel: string | undefined;
+  onSwitchRole: () => void;
+}) {
+  const [, setLocation] = useLocation();
+  const { attentionItems, sinceLastVisit } = useAttentionItems();
+  const vm = useUserDashboardViewModel();
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-4">
+      <PageHeader
+        title="ARUS"
+        subtitle={roleLabel ?? "User Portal"}
+        showHome={false}
+        showBack={true}
+        onBack={onSwitchRole}
+      />
+
+      <div className="px-4 lg:px-6 pt-2">
+        <div className="flex justify-end mb-3">
+          <SwitchPortalButton />
+        </div>
+
+        {attentionItems.length > 0 ? (
+          <AttentionBanner items={attentionItems} className="mb-4" />
+        ) : (
+          <div
+            className="mb-4 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
+            data-testid="empty-attention"
+          >
+            <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div>
+              <div className="text-sm font-medium">No active alerts</div>
+              <div className="text-xs text-muted-foreground">
+                We'll surface anything urgent here.
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <CurrentVesselCard vessel={vm.currentVessel} />
+          <ShiftStatusCard shift={vm.shiftStatus} />
+        </div>
+
+        <RoleTodayPanel roleId={role} />
+        {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
+
+        <MyTasks
+          emptyState={
+            <div
+              className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
+              data-testid="empty-my-tasks"
+            >
+              <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <div>
+                <div className="text-sm font-medium">You're all caught up</div>
+                <div className="text-xs text-muted-foreground">
+                  No open work orders assigned to you.
+                </div>
+              </div>
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 gap-3 mb-4">
+          <ActiveAlertsCard alerts={vm.activeAlerts} />
+          <SafetyNoticesCard notices={vm.safetyNotices} />
+          <UpcomingMaintenanceCard
+            items={vm.upcomingMaintenance}
+            onViewAll={() => setLocation("/maint?tab=schedules")}
+          />
+        </div>
+
+        <div
+          className="mt-2 rounded-lg border border-dashed bg-card p-6 text-center"
+          data-testid="card-user-feedback-cta"
+        >
+          <Flag className="h-6 w-6 text-primary mx-auto mb-2" />
+          <h3 className="text-sm font-semibold mb-1">Spot something off?</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Submit feedback or flag a concern for the team.
+          </p>
+          <Button
+            onClick={() => setLocation("/feedback")}
+            data-testid="button-user-open-feedback"
+          >
+            Submit Feedback / Flag
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [role, setRole] = useState<string | null>(() => {
     try {
@@ -295,85 +610,17 @@ export default function HomePage() {
 
   const portal = getPortalForRole(role);
 
-  // User portal: drastically simplified surface per the pilot mockup —
-  // attention banner + tasks + a Feedback / Flags CTA. No 8-category
-  // grid, no admin workflow command center. All visibility policy
-  // comes from role-navigation-policy.ts.
+  // User portal: re-skinned per UI Align Phase 4 (preview panel 2 /
+  // mobile panel 9). Cards bind to the view-model in
+  // client/src/application/user-dashboard. The page renders only —
+  // it does not call useQuery directly and contains no RBAC checks.
+  // Empty-state ids `empty-attention` / `empty-my-tasks` are
+  // preserved verbatim because other surfaces and tests key off them.
   if (portal === "user") {
-    return (
-      <div className="min-h-screen bg-background pb-20 md:pb-4">
-        <PageHeader
-          title="ARUS"
-          subtitle={roleConfig?.label ?? "User Portal"}
-          showHome={false}
-          showBack={true}
-          onBack={() => {
-            localStorage.removeItem(STORAGE_KEY);
-            setRole(null);
-          }}
-        />
-
-        <div className="px-4 lg:px-6 pt-2">
-          <div className="flex justify-end mb-3">
-            <SwitchPortalButton />
-          </div>
-
-          {attentionItems.length > 0 ? (
-            <AttentionBanner items={attentionItems} className="mb-4" />
-          ) : (
-            <div
-              className="mb-4 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
-              data-testid="empty-attention"
-            >
-              <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <div>
-                <div className="text-sm font-medium">No active alerts</div>
-                <div className="text-xs text-muted-foreground">
-                  We'll surface anything urgent here.
-                </div>
-              </div>
-            </div>
-          )}
-
-          <RoleTodayPanel roleId={role} />
-          {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
-
-          <MyTasks
-            emptyState={
-              <div
-                className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
-                data-testid="empty-my-tasks"
-              >
-                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <div>
-                  <div className="text-sm font-medium">You're all caught up</div>
-                  <div className="text-xs text-muted-foreground">
-                    No open work orders assigned to you.
-                  </div>
-                </div>
-              </div>
-            }
-          />
-
-          <div
-            className="mt-6 rounded-lg border border-dashed bg-card p-6 text-center"
-            data-testid="card-user-feedback-cta"
-          >
-            <Flag className="h-6 w-6 text-primary mx-auto mb-2" />
-            <h3 className="text-sm font-semibold mb-1">Spot something off?</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Submit feedback or flag a concern for the team.
-            </p>
-            <Button
-              onClick={() => setLocation("/feedback")}
-              data-testid="button-user-open-feedback"
-            >
-              Submit Feedback / Flag
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <UserPortalHome role={role} roleLabel={roleConfig?.label} onSwitchRole={() => {
+      localStorage.removeItem(STORAGE_KEY);
+      setRole(null);
+    }} />;
   }
 
   // Admin portal: anchor the home-grid to the same 5 categories the

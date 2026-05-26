@@ -7,6 +7,7 @@ export default {
     "^@shared/schema-runtime$": "<rootDir>/tests/mocks/schema-runtime.ts",
     "^@shared/(.*)\\.js$": "<rootDir>/shared/$1",
     "^@shared/(.*)$": "<rootDir>/shared/$1",
+    "^@/(.*)$": "<rootDir>/client/src/$1",
   },
   transform: {
     "^.+\\.tsx?$": [
