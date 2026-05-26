@@ -146,6 +146,108 @@ describe("UI Align Phase 6 — AI Intelligence (panel 7) on analytics hub", () =
   });
 });
 
+/**
+ * Behavioral RBAC coverage for the hubs the new pages live behind.
+ *
+ * The task brief is explicit: "Role gating stays in
+ * `role-navigation-policy.ts`" — the hub pages themselves are not
+ * supposed to re-decide visibility. So the meaningful behavioral
+ * test is the policy: do admin roles actually receive the five
+ * hub categories, and do user-portal roles actually NOT receive
+ * them (so a tampered localStorage override can't smuggle them in)?
+ *
+ * These tests import the real policy module (no mocks) and
+ * exercise it the same way `BottomNav` / `HomePage` do, which is
+ * the only enforcement point the architecture actually has for
+ * the hub surface. Mounting React for the hub pages themselves
+ * would assert nothing about access control — there is no
+ * page-level guard to assert against, by design.
+ */
+describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gate)", () => {
+  const HUB_IDS = ["maintenance", "crew", "logistics", "analytics", "system"] as const;
+  const ADMIN_ROLES = [
+    "system_admin",
+    "company_admin",
+    "chief_engineer",
+    "fleet_manager",
+    "captain",
+  ] as const;
+  const USER_ROLES = ["deck_officer", "viewer", "unknown_role", null] as const;
+
+  // Lazy import so the policy module's side-effects (icon imports
+  // from lucide-react) only resolve when the test actually runs.
+  // The module is pure TS — node ESM/swc handles it via the same
+  // jest transform the other LR-3.5 source-scan tests use.
+  async function loadPolicy() {
+    return import(
+      "../../client/src/application/navigation/role-navigation-policy"
+    );
+  }
+
+  it.each(ADMIN_ROLES)(
+    "admin role %s sees all five hub categories",
+    async (role) => {
+      const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
+      expect(getPortalForRole(role)).toBe("admin");
+      const cats = getPrimaryCategoriesForRole(role);
+      const ids = cats.map((c: { id: string }) => c.id);
+      for (const hubId of HUB_IDS) {
+        expect(ids).toContain(hubId);
+      }
+    },
+  );
+
+  it.each(USER_ROLES)(
+    "non-admin role %s does NOT receive any hub category in its primary nav",
+    async (role) => {
+      const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
+      expect(getPortalForRole(role)).toBe("user");
+      const ids = getPrimaryCategoriesForRole(role).map(
+        (c: { id: string }) => c.id,
+      );
+      for (const hubId of HUB_IDS) {
+        expect(ids).not.toContain(hubId);
+      }
+    },
+  );
+
+  it("a tampered override cannot smuggle hub categories into a user-portal session", async () => {
+    const { intersectOverrideWithPolicy, getPrimaryCategoriesForRole } =
+      await loadPolicy();
+    const tampered = ["maintenance", "system", "crew", "logistics", "analytics"];
+    const result = intersectOverrideWithPolicy("viewer", tampered);
+    const ids = result.map((c: { id: string }) => c.id);
+    for (const hubId of HUB_IDS) {
+      expect(ids).not.toContain(hubId);
+    }
+    // falls back to the user-portal default rather than going blank
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).toEqual(getPrimaryCategoriesForRole("viewer"));
+  });
+
+  it("each hub category's hubRoute points to a real registered route", async () => {
+    const expected: Record<(typeof HUB_IDS)[number], { file: string; path: string }> = {
+      maintenance: { file: "client/src/routes/maintenance.ts", path: "/maint" },
+      crew: { file: "client/src/routes/crew.ts", path: "/crew" },
+      logistics: { file: "client/src/routes/logistics.ts", path: "/logistics" },
+      analytics: { file: "client/src/routes/analytics.ts", path: "/analytics" },
+      system: { file: "client/src/routes/system.ts", path: "/system" },
+    };
+    const { getPrimaryCategoriesForRole } = await loadPolicy();
+    const cats = getPrimaryCategoriesForRole("system_admin");
+    const byId = new Map(cats.map((c: { id: string; hubRoute: string }) => [c.id, c]));
+    for (const hubId of HUB_IDS) {
+      const cat = byId.get(hubId) as { hubRoute: string } | undefined;
+      expect(cat).toBeDefined();
+      expect(cat?.hubRoute).toBe(expected[hubId].path);
+      const routeFile = await readFile(resolve(REPO_ROOT, expected[hubId].file), "utf8");
+      // The hub path is registered in its respective routes module —
+      // this is what makes the deep-link route reachable.
+      expect(routeFile).toContain(`"${expected[hubId].path}"`);
+    }
+  });
+});
+
 describe("UI Align Phase 6 — integrity checks", () => {
   it("no hub invents data via setInterval / fake polling", async () => {
     for (const key of ["maintenance", "crew", "logistics", "system"] as const) {
