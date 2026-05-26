@@ -447,6 +447,109 @@
   --sidebar-ring: hsl(0, 60%, 40%);
 }
 
+/*
+ * ARUS Ops command-center theme utilities (UI Align Phase 1).
+ * Additive only — does not redefine existing CSS variables. These
+ * classes layer dark navy/charcoal gradients, card glow, severity
+ * accents, and mobile safe-area padding onto the existing surface
+ * tokens so the rest of the app continues to work unchanged.
+ */
+@layer components {
+  .ops-surface {
+    background:
+      radial-gradient(
+        circle at 12% 0%,
+        hsl(210 60% 18% / 0.55) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        circle at 100% 100%,
+        hsl(195 70% 22% / 0.35) 0%,
+        transparent 50%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(220 25% 7%) 0%,
+        hsl(220 30% 5%) 100%
+      );
+    color: hsl(var(--foreground));
+  }
+
+  .ops-card {
+    background-color: hsl(220 25% 10% / 0.85);
+    border: 1px solid hsl(220 20% 22% / 0.7);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow:
+      0 1px 0 0 hsl(220 20% 35% / 0.08) inset,
+      0 8px 24px -16px hsl(210 80% 12% / 0.9);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .ops-card:hover {
+    border-color: hsl(197 70% 45% / 0.45);
+    box-shadow:
+      0 1px 0 0 hsl(197 70% 60% / 0.12) inset,
+      0 12px 28px -14px hsl(197 80% 30% / 0.45);
+  }
+
+  .ops-card-critical {
+    border-color: hsl(0 70% 50% / 0.45);
+    box-shadow:
+      0 1px 0 0 hsl(0 70% 60% / 0.18) inset,
+      0 10px 24px -14px hsl(0 80% 35% / 0.55);
+  }
+
+  .ops-card-warning {
+    border-color: hsl(38 90% 50% / 0.45);
+    box-shadow:
+      0 1px 0 0 hsl(38 90% 60% / 0.18) inset,
+      0 10px 24px -14px hsl(38 90% 35% / 0.45);
+  }
+
+  .ops-card-info {
+    border-color: hsl(197 80% 50% / 0.45);
+    box-shadow:
+      0 1px 0 0 hsl(197 80% 60% / 0.18) inset,
+      0 10px 24px -14px hsl(197 80% 30% / 0.45);
+  }
+
+  .ops-card-success {
+    border-color: hsl(150 65% 45% / 0.45);
+    box-shadow:
+      0 1px 0 0 hsl(150 65% 55% / 0.18) inset,
+      0 10px 24px -14px hsl(150 65% 30% / 0.45);
+  }
+
+  /* Severity accent helpers — for text/icon swatches alongside cards. */
+  .ops-accent-critical { color: hsl(0 80% 70%); }
+  .ops-accent-warning  { color: hsl(38 95% 65%); }
+  .ops-accent-info     { color: hsl(197 85% 65%); }
+  .ops-accent-success  { color: hsl(150 70% 60%); }
+
+  .ops-topbar {
+    background-color: hsl(220 25% 8% / 0.85);
+  }
+
+  .ops-sidebar {
+    background-color: hsl(220 28% 6% / 0.95);
+  }
+
+  /* Mobile safe-area: keeps the main scroll area clear of the iOS
+   * home indicator and the in-app bottom nav on small screens. */
+  .ops-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: 768px) {
+    .ops-safe-bottom {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+  }
+}
+
 .daylight {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(0, 0%, 0%);

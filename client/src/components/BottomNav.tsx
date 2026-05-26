@@ -73,7 +73,7 @@ export function BottomNav() {
         <div className="fixed inset-0 z-50 md:hidden" onClick={() => setShowMore(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="absolute bottom-0 left-0 right-0 bg-background border-t rounded-t-2xl p-4 pb-safe animate-in slide-in-from-bottom"
+            className="absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-border/60 bg-slate-950/95 p-4 pb-safe text-foreground backdrop-blur-xl animate-in slide-in-from-bottom"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -96,10 +96,10 @@ export function BottomNav() {
                     <div
                       onClick={() => setShowMore(false)}
                       className={cn(
-                        "flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors cursor-pointer",
+                        "flex cursor-pointer flex-col items-center gap-1.5 rounded-xl p-3 transition-colors",
                         active
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-muted"
+                          ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40"
+                          : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                       )}
                       data-testid={`link-category-${cat.id}`}
                     >
@@ -117,7 +117,7 @@ export function BottomNav() {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-t md:hidden pb-safe"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-slate-950/90 pb-safe text-foreground shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.6)] backdrop-blur-xl md:hidden"
         role="navigation"
         aria-label="Bottom navigation"
         data-testid="bottom-nav"
@@ -126,8 +126,10 @@ export function BottomNav() {
           <Link href="/">
             <div
               className={cn(
-                "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors cursor-pointer min-w-[48px]",
-                location === "/" ? "text-primary" : "text-muted-foreground"
+                "flex min-w-[48px] cursor-pointer flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors",
+                location === "/"
+                  ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/30"
+                  : "text-muted-foreground hover:text-foreground"
               )}
               data-testid="link-nav-home"
             >
@@ -143,8 +145,10 @@ export function BottomNav() {
               <Link key={cat.id} href={cat.hubRoute}>
                 <div
                   className={cn(
-                    "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors cursor-pointer min-w-[48px]",
-                    active ? "text-primary" : "text-muted-foreground"
+                    "flex min-w-[48px] cursor-pointer flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors",
+                    active
+                      ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/30"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                   data-testid={`link-nav-${cat.id}`}
                 >
@@ -158,8 +162,10 @@ export function BottomNav() {
           <button
             onClick={() => setShowMore(true)}
             className={cn(
-              "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors cursor-pointer min-w-[48px]",
-              showMore ? "text-primary" : "text-muted-foreground"
+              "flex min-w-[48px] cursor-pointer flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors",
+              showMore
+                ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/30"
+                : "text-muted-foreground hover:text-foreground"
             )}
             data-testid="button-nav-more"
           >
