@@ -27,7 +27,11 @@
 import { readFile } from "fs/promises";
 import { resolve } from "path";
 
-const REPO_ROOT = resolve(__dirname, "..", "..");
+// Jest is invoked from the repo root (both under CJS swc-jest and under
+// `node --experimental-vm-modules` ESM jest). Anchoring on `process.cwd()`
+// avoids the `__dirname` / `import.meta.url` split that breaks one or
+// the other runner.
+const REPO_ROOT = process.cwd();
 
 async function loadSource(relativePath: string): Promise<string> {
   return readFile(resolve(REPO_ROOT, relativePath), "utf8");
