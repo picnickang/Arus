@@ -138,7 +138,13 @@ router.get("/equipment/types", async (req: AuthenticatedRequest, res: Response) 
   ]);
 });
 
-router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / TX-2: training is a side-effectful mutation — it inserts an
+// `ml_models` row in status='training' and enqueues a background job.
+// A client that retries the POST on a transient network error without
+// an idempotency key would create duplicate training rows + duplicate
+// queue entries. Mount idempotencyMiddleware so a replay returns the
+// originally-recorded {modelId, jobId} response.
+router.post("/ml/train", idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const config = mlTrainConfigSchema.parse(req.body);
     const modelData: InsertMlModel = {
@@ -228,7 +234,11 @@ router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), ide
 // LR-3.5 / ML-1: archive removes a model from the deployable pool and
 // is the only path back from `deployed` outside the rollback flow.
 // Same admin/chief_engineer gate to match the rest of the lifecycle.
-router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / TX-2: archive flips status+archivedOn timestamps; a retry
+// without an idempotency key would overwrite the original archive
+// timestamp every time and obscure the audit trail. Mount idempotency
+// so a replay returns the original {message, model} payload unchanged.
+router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -247,7 +257,11 @@ router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), as
 
 // LR-3.5 / ML-1: model delete is the strongest model-lifecycle mutation
 // (irreversible). Same admin/chief_engineer gate as deploy/archive.
-router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / TX-2: delete is irreversible — a replay against a row that
+// no longer exists would return a 404 instead of the original 200 the
+// caller already saw. Mount idempotency so the original success
+// response is replayed instead of bouncing the retry.
+router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {

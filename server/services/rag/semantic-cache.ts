@@ -93,6 +93,12 @@ export class SemanticCache {
       const embeddingStr = `[${queryEmbedding.join(",")}]`;
       const distanceThreshold = 1 - this.semanticThreshold;
 
+      // LR-3.5 / V2 (ML-2): `WHERE org_id = ${orgId}` is co-located with
+      // the `<=>` nearest-neighbour scan and the `ORDER BY ... LIMIT 1`,
+      // so Postgres evaluates the org-id pre-filter BEFORE the top-K
+      // selection — never after. This is the pre-filter contract V2
+      // verifies; do not split this WHERE clause across a subquery or
+      // a separate filter pass.
       const results = await db.execute<{
         id: string;
         query_hash: string;
