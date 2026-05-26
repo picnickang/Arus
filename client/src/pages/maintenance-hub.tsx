@@ -146,7 +146,7 @@ export default function MaintenanceHub() {
             Active work orders, schedules, and predictive insights across the fleet.
           </p>
         </div>
-        <Link href="/work-orders">
+        <Link href="/maint?tab=work-orders&action=create">
           <Button data-testid="button-new-work-order" className="gap-2">
             <Plus className="h-4 w-4" /> New Work Order
           </Button>
