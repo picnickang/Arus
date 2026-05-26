@@ -144,7 +144,7 @@ router.get("/equipment/types", async (req: AuthenticatedRequest, res: Response) 
 // an idempotency key would create duplicate training rows + duplicate
 // queue entries. Mount idempotencyMiddleware so a replay returns the
 // originally-recorded {modelId, jobId} response.
-router.post("/ml/train", idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/train", idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const config = mlTrainConfigSchema.parse(req.body);
     const modelData: InsertMlModel = {
@@ -208,7 +208,7 @@ router.post("/ml/train", idempotencyMiddleware(), async (req: AuthenticatedReque
 // behind the same role check so the stricter promote workflow can't
 // be sidestepped by calling /deploy. Idempotency mounted because a
 // retried deploy POST without a key would replay the timestamp.
-router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -238,7 +238,7 @@ router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), ide
 // without an idempotency key would overwrite the original archive
 // timestamp every time and obscure the audit trail. Mount idempotency
 // so a replay returns the original {message, model} payload unchanged.
-router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -261,7 +261,7 @@ router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), id
 // no longer exists would return a 404 instead of the original 200 the
 // caller already saw. Mount idempotency so the original success
 // response is replayed instead of bouncing the retry.
-router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
+router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -407,7 +407,7 @@ router.post(
   // (token already consumed) which masks "did the first call succeed?".
   // Idempotency replays the cached response for the same key so the
   // proposer/approver UI gets a deterministic answer on flaky networks.
-  idempotencyMiddleware(),
+  idempotencyMiddleware({ required: true }),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const approverId = req.user?.id;
@@ -491,7 +491,7 @@ router.post(
 // retry on the same id without idempotency would archive the (already-
 // archived) model and pick a different "previous" candidate the second
 // time. Cache the response per (orgId, method, path, idempotency key).
-router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!current) return sendNotFound(res, "ML model");

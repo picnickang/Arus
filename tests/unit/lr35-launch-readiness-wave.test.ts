@@ -40,40 +40,74 @@ async function loadSource(relativePath: string): Promise<string> {
 describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () => {
   const ROUTES_PATH = "server/ml-routes/model-routes.ts";
 
-  it("/ml/train carries idempotencyMiddleware()", async () => {
+  it("/ml/train carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
-    // The wave brief: training inserts an ml_models row + enqueues a
-    // job; a retried POST without idempotency duplicates both.
+    // Task #200: training inserts an ml_models row + enqueues a job; a
+    // caller that forgets the Idempotency-Key header would create
+    // duplicate training rows. Require the key up-front.
     expect(src).toMatch(
-      /router\.post\(\s*"\/ml\/train",\s*idempotencyMiddleware\(\)/,
+      /router\.post\(\s*"\/ml\/train",\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
     );
   });
 
-  it("/ml/models/:id/archive carries idempotencyMiddleware()", async () => {
+  it("/ml/models/:id/archive carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
-    // Archive flips status+archivedOn; a retry would overwrite the
-    // original archive timestamp and corrupt the audit trail.
     expect(src).toMatch(
-      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\)/,
+      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
     );
   });
 
-  it("DELETE /ml/models/:id carries idempotencyMiddleware()", async () => {
+  it("DELETE /ml/models/:id carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
-    // Delete is irreversible; a retry against a now-missing row
-    // would return 404 instead of replaying the original 200.
     expect(src).toMatch(
-      /router\.delete\(\s*"\/ml\/models\/:id",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\)/,
+      /router\.delete\(\s*"\/ml\/models\/:id",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
     );
   });
 
-  it("/ml/models/:id/deploy + /promote + /rollback (already wired by ML-1) still carry idempotency", async () => {
-    // Regression guard for the routes a prior wave already wired —
-    // a future refactor must not strip these.
+  it("/ml/models/:id/deploy + /promote + /rollback require an Idempotency-Key", async () => {
+    // Task #200: these high-impact lifecycle mutations should reject a
+    // request that arrives without an Idempotency-Key, not silently
+    // proceed.
     const src = await loadSource(ROUTES_PATH);
-    expect(src).toMatch(/"\/ml\/models\/:id\/deploy"[\s\S]{0,600}?idempotencyMiddleware\(\)/);
-    expect(src).toMatch(/"\/ml\/models\/:id\/promote"[\s\S]{0,600}?idempotencyMiddleware\(\)/);
-    expect(src).toMatch(/"\/ml\/models\/:id\/rollback"[\s\S]{0,600}?idempotencyMiddleware\(\)/);
+    expect(src).toMatch(/"\/ml\/models\/:id\/deploy"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
+    expect(src).toMatch(/"\/ml\/models\/:id\/promote"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
+    expect(src).toMatch(/"\/ml\/models\/:id\/rollback"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
+  });
+});
+
+describe("Task #200 — idempotencyMiddleware({ required: true }) rejects missing key with 400", () => {
+  it("returns 400 + IDEMPOTENCY_KEY_REQUIRED when no header / clientMutationId is present", async () => {
+    const { idempotencyMiddleware } = await import("../../server/middleware/idempotency");
+    const mw = idempotencyMiddleware({ required: true });
+
+    const req = { headers: {}, body: {}, method: "POST", path: "/ml/train" } as unknown as import("express").Request;
+    let statusCode = 0;
+    let jsonBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(body: unknown) {
+        jsonBody = body;
+        return this;
+      },
+    } as unknown as import("express").Response;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    mw(req, res, next);
+
+    expect(nextCalled).toBe(false);
+    expect(statusCode).toBe(400);
+    expect(jsonBody).toEqual({
+      error: {
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        message: "Idempotency-Key header is required for this endpoint",
+      },
+    });
   });
 });
 
