@@ -129,6 +129,52 @@ export function getPrimaryCategoriesForRole(
 }
 
 /**
+ * Intersect a stored BottomNav override (a list of category ids the
+ * user has personalised) with the categories the role-navigation
+ * policy actually permits for `role`.
+ *
+ * Contract:
+ *   - Returns categories in the user's preferred order, but ONLY for
+ *     ids the policy already grants to this role.
+ *   - Any id not in the policy's allowed set is dropped silently —
+ *     this is the security perimeter that stops a tampered or stale
+ *     localStorage value from leaking admin categories into a
+ *     user-portal session (follow-up #194).
+ *   - If the intersection is empty (e.g. an admin override carried
+ *     over after switching to the user portal, or an unknown role),
+ *     falls back to the policy default so the bottom nav is never
+ *     blank.
+ *   - `null` / `undefined` override → policy default, unchanged.
+ *
+ * Pure — no I/O, no storage access. The caller (BottomNav) reads
+ * localStorage and hands the parsed value in.
+ */
+export function intersectOverrideWithPolicy(
+  role: NavRoleId | string | null,
+  overrideCategoryIds: readonly string[] | null | undefined,
+): NavigationCategory[] {
+  const policyDefault = getPrimaryCategoriesForRole(role);
+  if (!overrideCategoryIds || overrideCategoryIds.length === 0) {
+    return policyDefault;
+  }
+  const allowedIds = new Set(policyDefault.map((c) => c.id));
+  const allowedById = new Map(policyDefault.map((c) => [c.id, c]));
+  const intersected: NavigationCategory[] = [];
+  const seen = new Set<string>();
+  for (const id of overrideCategoryIds) {
+    if (!allowedIds.has(id) || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    const cat = allowedById.get(id);
+    if (cat) {
+      intersected.push(cat);
+    }
+  }
+  return intersected.length > 0 ? intersected : policyDefault;
+}
+
+/**
  * Convenience: where should this role land after picking a portal?
  *
  * Both portals currently land on /dashboard — the dashboard itself

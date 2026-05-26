@@ -1,23 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { navigationCategories, getCategoryById, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
+import { navigationCategories, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
 import {
   getPortalForRole,
   getPrimaryCategoriesForRole,
+  intersectOverrideWithPolicy,
 } from "@/application/navigation/role-navigation-policy";
-import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
 
 /**
  * Per-user override of which category ids appear in the bottom nav.
- * When set (via a future customisation UI), it wins over the
- * role-policy default. When unset, the role-policy decides — see
- * `client/src/application/navigation/role-navigation-policy.ts`.
+ *
+ * Treated strictly as CACHE / personalisation — never authority.
+ * The policy layer (`intersectOverrideWithPolicy`) drops any id the
+ * role is not allowed to see before the component renders. That is
+ * the security perimeter that stops a stale or tampered
+ * localStorage value from leaking admin categories into a
+ * user-portal session (follow-up #194).
+ *
+ * If the parsed override does not overlap the current role's policy
+ * at all, we PROACTIVELY discard the stored value so it cannot
+ * silently follow the user across portal switches.
  */
 function readOverrideCategoryIds(): string[] | null {
-  const stored = localStorage.getItem("arus-bottom-nav-items");
-  if (!stored) return null;
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+  if (!stored) {
+    return null;
+  }
   try {
     const parsed: unknown = JSON.parse(stored);
     if (Array.isArray(parsed) && parsed.every((v): v is string => typeof v === "string")) {
@@ -29,22 +45,54 @@ function readOverrideCategoryIds(): string[] | null {
   return null;
 }
 
+function discardOverride(): void {
+  try {
+    localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
+  } catch {
+    /* storage unavailable — nothing to clean up */
+  }
+}
+
 export function BottomNav() {
   const [location] = useLocation();
   const [showMore, setShowMore] = useState(false);
 
-  const roleId = localStorage.getItem(ROLE_STORAGE_KEY);
+  let roleId: string | null = null;
+  try {
+    roleId = localStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    /* storage unavailable — fall back to default policy */
+  }
   const override = readOverrideCategoryIds();
   const portal = getPortalForRole(roleId);
 
   // Visibility policy lives in the application layer — this component
-  // only renders whatever the policy returns. See
-  // role-navigation-policy.ts for the role→category mapping.
-  const visibleCategories: NavigationCategory[] = override
-    ? override
-        .map((id) => getCategoryById(id))
-        .filter((c): c is NavigationCategory => c !== undefined)
-    : getPrimaryCategoriesForRole(roleId);
+  // only renders whatever the policy returns. The intersect helper
+  // guarantees the override may only reorder / subset the role's
+  // allowed categories, never expand them.
+  const visibleCategories: NavigationCategory[] = intersectOverrideWithPolicy(
+    roleId,
+    override,
+  );
+
+  // Self-heal: if a stored override exists but did not survive
+  // intersection (every id was disallowed for this role, e.g. an
+  // admin override carried into a user-portal session), drop it so
+  // future renders don't keep replaying the same fruitless lookup
+  // and so a downstream surface that reads the raw key never sees
+  // stale admin ids.
+  useEffect(() => {
+    if (!override) {
+      return;
+    }
+    const policyIds = new Set(
+      getPrimaryCategoriesForRole(roleId).map((c) => c.id),
+    );
+    const anyKept = override.some((id) => policyIds.has(id));
+    if (!anyKept) {
+      discardOverride();
+    }
+  }, [override, roleId]);
 
   // In the simplified User Portal, the "More" sheet would leak the
   // full 8-category admin surface and defeat the simplification —

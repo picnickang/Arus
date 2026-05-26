@@ -14,7 +14,7 @@
 import { useLocation } from "wouter";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 
 interface SwitchPortalButtonProps {
   /** Optional override label — defaults to "Switch portal". */
@@ -36,7 +36,7 @@ export function SwitchPortalButton({
       localStorage.removeItem(ROLE_STORAGE_KEY);
       // Drop any per-user bottom-nav override so the next portal's
       // default policy renders on first paint.
-      localStorage.removeItem("arus-bottom-nav-items");
+      localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
     } catch {
       // Storage unavailable — the navigation still resets because the
       // portal-login page is the next destination.

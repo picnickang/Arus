@@ -27,7 +27,7 @@ import { Shield, User, ArrowRight, Anchor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OpsStatusPill } from "@/components/ops";
-import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
 
 type PortalChoice = {
@@ -69,7 +69,7 @@ export default function PortalLoginPage() {
       localStorage.setItem(ROLE_STORAGE_KEY, choice.roleHint);
       // Clear any prior bottom-nav override so the new role's policy
       // takes effect on next render.
-      localStorage.removeItem("arus-bottom-nav-items");
+      localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
     } catch {
       // localStorage may be unavailable (private mode, SSR). The
       // policy will fall back to the "default" branch (user portal).

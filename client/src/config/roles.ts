@@ -94,3 +94,19 @@ export const ROLES: Record<string, RoleConfig> = {
 };
 
 export const ROLE_STORAGE_KEY = "arus-user-role";
+
+/**
+ * localStorage key for the per-user BottomNav category override.
+ *
+ * The stored value is treated strictly as a CACHE / personalisation
+ * hint — never authority. `role-navigation-policy.ts` is the only
+ * source of truth for which categories a role may see; the override
+ * may only reorder or subset that allowed set. See
+ * `intersectOverrideWithPolicy()` in role-navigation-policy.ts and
+ * BottomNav.tsx for the enforcement point.
+ *
+ * Centralised here so portal-login, SwitchPortalButton, and BottomNav
+ * all use the same string. Previously inlined as a magic string in
+ * three places (follow-up #194 leak surface).
+ */
+export const BOTTOM_NAV_OVERRIDE_STORAGE_KEY = "arus-bottom-nav-items";
