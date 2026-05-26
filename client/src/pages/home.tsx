@@ -23,10 +23,16 @@ import {
   ShieldAlert,
   Wrench,
   AlertTriangle,
+  Sparkles,
+  Users,
+  ClipboardList,
+  Activity,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
+import { OpsMetricCard } from "@/components/ops/OpsMetricCard";
+import { OpsStatusPill } from "@/components/ops/OpsStatusPill";
 import type { RoleConfig } from "@/config/roles";
 import {
   getPortalForRole,
@@ -472,6 +478,13 @@ function UpcomingMaintenanceCard({
   );
 }
 
+function greetingForNow(now: Date): string {
+  const h = now.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 function UserPortalHome({
   role,
   roleLabel,
@@ -484,9 +497,13 @@ function UserPortalHome({
   const [, setLocation] = useLocation();
   const { attentionItems, sinceLastVisit } = useAttentionItems();
   const vm = useUserDashboardViewModel();
+  const greeting = greetingForNow(new Date());
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-4">
+    <div
+      className="ops-surface ops-safe-bottom min-h-screen pb-24 md:pb-6"
+      data-testid="shell-user-portal"
+    >
       <PageHeader
         title="ARUS"
         subtitle={roleLabel ?? "User Portal"}
@@ -495,8 +512,25 @@ function UserPortalHome({
         onBack={onSwitchRole}
       />
 
-      <div className="px-4 lg:px-6 pt-2">
-        <div className="flex justify-end mb-3">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-3 md:px-6 lg:max-w-5xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div
+              className="text-xs uppercase tracking-wide text-muted-foreground"
+              data-testid="text-user-greeting-label"
+            >
+              {greeting},
+            </div>
+            <div
+              className="truncate text-xl font-semibold text-foreground sm:text-2xl"
+              data-testid="text-user-greeting-name"
+            >
+              {roleLabel ?? "Crew Member"}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Stay safe out there.
+            </div>
+          </div>
           <SwitchPortalButton />
         </div>
 
@@ -625,6 +659,11 @@ export default function HomePage() {
 
   // Admin portal: anchor the home-grid to the same 5 categories the
   // BottomNav and policy surface, instead of the legacy 8-group dump.
+  // UI Align Phase 3 + 3B: re-skinned as the dark operational
+  // command-center (preview panel 2). KPI counts reuse the existing
+  // `useAttentionItems` query (`/api/home/attention-summary`) — no
+  // new backend endpoints. The 5 module shortcut tiles are sourced
+  // from `getPrimaryCategoriesForRole(role)` (single policy source).
   const policyCategoryIds = getPrimaryCategoriesForRole(role).map((c) => c.id);
   const pinnedGroupIds =
     policyCategoryIds.length > 0
@@ -635,11 +674,19 @@ export default function HomePage() {
     .filter((g): g is HomePageGroup => g !== undefined);
   const otherGroups = homePageGroups.filter((g) => !pinnedGroupIds.includes(g.id));
 
+  const kpiOverdueWO = attentionItems.find((i) => i.label === "Overdue work orders")?.count ?? 0;
+  const kpiCriticalAlerts = attentionItems.find((i) => i.label === "Unacknowledged alerts")?.count ?? 0;
+  const kpiAtRisk = attentionItems.find((i) => i.label === "High-risk equipment")?.count ?? 0;
+  const elevatedRisk = kpiCriticalAlerts > 0 || kpiAtRisk > 0 || kpiOverdueWO >= 5;
+
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-4">
+    <div
+      className="ops-surface ops-safe-bottom min-h-screen pb-24 md:pb-6"
+      data-testid="shell-admin-command-center"
+    >
       <PageHeader
-        title="ARUS"
-        subtitle={roleConfig?.label}
+        title="Command Center"
+        subtitle={roleConfig?.label ?? "System Admin"}
         showHome={false}
         showBack={true}
         onBack={() => {
@@ -650,12 +697,123 @@ export default function HomePage() {
 
       <PendingApprovalsBanner />
 
-      <div className="px-4 lg:px-6 pt-2">
-        <div className="flex justify-end mb-3">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-3 md:px-6 lg:max-w-6xl">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          {elevatedRisk ? (
+            <OpsStatusPill
+              label="ELEVATED RISK"
+              severity="warning"
+              testId="pill-elevated-risk"
+            />
+          ) : (
+            <OpsStatusPill
+              label="NOMINAL"
+              severity="success"
+              testId="pill-nominal-risk"
+            />
+          )}
           <SwitchPortalButton />
         </div>
 
-        {attentionItems.length > 0 && <AttentionBanner items={attentionItems} className="mb-4" />}
+        {/* Mobile-first 2x2 KPI grid → tablet/desktop expand to 4 across.
+            All values come from the existing attention-summary query. */}
+        <div
+          className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4"
+          data-testid="grid-admin-kpis"
+        >
+          <OpsMetricCard
+            label="Critical Alerts"
+            value={kpiCriticalAlerts}
+            severity={kpiCriticalAlerts > 0 ? "critical" : "neutral"}
+            icon={<AlertTriangle className="h-4 w-4" />}
+            testId="kpi-critical-alerts"
+          />
+          <OpsMetricCard
+            label="Work Orders"
+            value={kpiOverdueWO}
+            severity={kpiOverdueWO > 0 ? "warning" : "info"}
+            hint="Needs action"
+            icon={<ClipboardList className="h-4 w-4" />}
+            testId="kpi-work-orders"
+          />
+          <OpsMetricCard
+            label="At-Risk Assets"
+            value={kpiAtRisk}
+            severity={kpiAtRisk > 0 ? "critical" : "neutral"}
+            icon={<Activity className="h-4 w-4" />}
+            testId="kpi-at-risk-assets"
+          />
+          <OpsMetricCard
+            label="Crew Issues"
+            value={sinceLastVisit?.newAlerts ?? 0}
+            severity={(sinceLastVisit?.newAlerts ?? 0) > 0 ? "warning" : "neutral"}
+            icon={<Users className="h-4 w-4" />}
+            testId="kpi-crew-issues"
+          />
+        </div>
+
+        {/* AI Recommendation strip — links into the existing AI hub. */}
+        <button
+          type="button"
+          onClick={() => setLocation("/agent")}
+          className="ops-card ops-card-info mb-4 flex w-full items-center gap-3 p-4 text-left"
+          data-testid="card-ai-recommendation"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs uppercase tracking-wide text-sky-300/80">
+              AI Recommendation
+            </div>
+            <div className="truncate text-sm font-semibold text-foreground">
+              Open the AI copilot for prioritised actions
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {/* Critical Attention list — reuses AttentionBanner items. */}
+        {attentionItems.length > 0 && (
+          <section className="mb-4" data-testid="section-critical-attention">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Critical Attention
+              </h2>
+              <button
+                type="button"
+                onClick={() => setLocation("/attention-inbox")}
+                className="text-xs text-sky-300 hover:underline"
+                data-testid="link-view-all-attention"
+              >
+                View all
+              </button>
+            </div>
+            <ul className="space-y-2">
+              {attentionItems.slice(0, 4).map((item) => (
+                <li key={`${item.label}-${item.href}`}>
+                  <button
+                    type="button"
+                    onClick={() => setLocation(item.href)}
+                    className={cn(
+                      "ops-card flex w-full items-center justify-between gap-3 p-3 text-left",
+                      item.severity === "critical" && "ops-card-critical",
+                      item.severity === "warning" && "ops-card-warning",
+                    )}
+                    data-testid={`row-critical-attention-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      {item.label}
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {item.count}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <RoleTodayPanel roleId={role} />
 
@@ -667,11 +825,39 @@ export default function HomePage() {
 
         <MyTasks />
 
+        {/* Module shortcuts — the 5 policy categories. Mobile: 2-col,
+            tablet: 3-col, desktop: 5-col so the row matches the
+            policy and BottomNav surface 1:1. */}
+        <section className="mb-6" data-testid="section-module-shortcuts">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Modules
+          </h2>
+          <div
+            className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5"
+            data-testid="grid-module-shortcuts"
+          >
+            {pinnedGroups.map((group) => {
+              const first = group.items[0];
+              if (!first) return null;
+              return (
+                <NavigationCard
+                  key={group.id}
+                  name={group.name}
+                  href={first.href}
+                  icon={first.icon}
+                  description={first.description}
+                />
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Pinned-group detail (each group's items as a sub-grid). */}
         <div className="space-y-6">
           {pinnedGroups.map((group) => (
             <div key={group.id}>
-              <h2 className="text-sm font-semibold text-foreground mb-3">{group.name}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <h2 className="mb-3 text-sm font-semibold text-foreground">{group.name}</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {group.items.map((item) => (
                   <NavigationCard
                     key={item.href}
@@ -689,16 +875,16 @@ export default function HomePage() {
         {otherGroups.length > 0 && (
           <details className="mt-8">
             <summary
-              className="text-sm font-semibold text-muted-foreground cursor-pointer hover:text-foreground mb-3"
+              className="mb-3 cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground"
               data-testid="button-more-categories"
             >
               More categories ({otherGroups.length})
             </summary>
-            <div className="space-y-6 mt-3">
+            <div className="mt-3 space-y-6">
               {otherGroups.map((group) => (
                 <div key={group.id}>
-                  <h2 className="text-sm font-semibold text-foreground mb-3">{group.name}</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <h2 className="mb-3 text-sm font-semibold text-foreground">{group.name}</h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {group.items.map((item) => (
                       <NavigationCard
                         key={item.href}
