@@ -633,11 +633,25 @@ export default function HomePage() {
     }
   }, [role]);
 
+  // When no role is stored, route the user through the portal-login
+  // landing page rather than the in-place RoleSelector. Portal-login
+  // is the single canonical entry surface (Admin Portal / User Portal)
+  // and writes the role hint via the nav-storage adapter — keeping
+  // `/` reserved for the authenticated home experience.
+  useEffect(() => {
+    if (!role) {
+      setLocation("/portal-login");
+    }
+  }, [role, setLocation]);
+
   const handleSelectRole = (roleId: string) => {
     localStorage.setItem(STORAGE_KEY, roleId);
     setRole(roleId);
   };
 
+  // Retain the inline RoleSelector path as a fallback only if the
+  // redirect hasn't committed yet (first paint). Wouter's setLocation
+  // is synchronous in practice, so this renders for at most one frame.
   if (!role) {
     return <RoleSelector onSelect={handleSelectRole} />;
   }
