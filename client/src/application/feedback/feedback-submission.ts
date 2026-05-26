@@ -16,11 +16,109 @@ export type FeedbackSeverity = "low" | "medium" | "high";
 
 export type FeedbackCategory = "bug" | "suggestion" | "flag";
 
+/**
+ * Locations match the preview-panel-3 "Location" select. Kept as a
+ * closed enum so a typo here cannot drift between the form and the
+ * stored entry — the React component reads `FEEDBACK_LOCATION_OPTIONS`
+ * for rendering and never invents its own values.
+ */
+export type FeedbackLocation =
+  | "engine_room"
+  | "bridge"
+  | "deck"
+  | "accommodation"
+  | "cargo_hold"
+  | "other";
+
+export const FEEDBACK_LOCATION_OPTIONS: Array<{
+  value: FeedbackLocation;
+  label: string;
+}> = [
+  { value: "engine_room", label: "Engine Room" },
+  { value: "bridge", label: "Bridge" },
+  { value: "deck", label: "Deck" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "cargo_hold", label: "Cargo Hold" },
+  { value: "other", label: "Other" },
+];
+
+/**
+ * Per-attachment metadata captured locally for the pilot photo
+ * placeholder. We deliberately do NOT transmit the bytes anywhere —
+ * the preview thumbnail is rendered from the same data URL we keep in
+ * session storage, and that's the extent of the integration until a
+ * real backend endpoint exists. See `submitFeedback` doc-comment.
+ */
+export interface FeedbackPhotoMeta {
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  /** Object URL or data URL — used for thumbnail rendering only. */
+  previewUrl: string;
+}
+
+/**
+ * Application-layer policy for a freshly-picked photo file. Lives
+ * here (not in the React component) so the rule set is in one place
+ * with the rest of feedback validation. The component is responsible
+ * only for invoking the file picker and rendering the result.
+ */
+export const FEEDBACK_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+
+export type FeedbackPhotoValidationResult =
+  | { ok: true; photo: FeedbackPhotoMeta }
+  | { ok: false; message: string };
+
+export interface FeedbackPhotoInput {
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  previewUrl: string;
+}
+
+/**
+ * Validate a freshly-picked photo file against the pilot policy:
+ *   - must be an image/* MIME type
+ *   - must be ≤ FEEDBACK_PHOTO_MAX_BYTES
+ *   - previewUrl must look like a usable URL (data: or blob:)
+ *
+ * Returns a `FeedbackPhotoMeta` ready to drop into a draft, or a
+ * single human-readable error string. The page surfaces that string
+ * verbatim — it does not re-format or re-decide.
+ */
+export function validatePhotoForFeedback(
+  input: FeedbackPhotoInput,
+): FeedbackPhotoValidationResult {
+  if (!input.mimeType.startsWith("image/")) {
+    return { ok: false, message: "Photo must be an image file." };
+  }
+  if (input.sizeBytes > FEEDBACK_PHOTO_MAX_BYTES) {
+    return { ok: false, message: "Photo must be 5 MB or smaller." };
+  }
+  if (
+    !input.previewUrl ||
+    !(input.previewUrl.startsWith("data:") || input.previewUrl.startsWith("blob:"))
+  ) {
+    return { ok: false, message: "Could not read photo from device." };
+  }
+  return {
+    ok: true,
+    photo: {
+      name: input.name,
+      sizeBytes: input.sizeBytes,
+      mimeType: input.mimeType,
+      previewUrl: input.previewUrl,
+    },
+  };
+}
+
 export interface FeedbackDraft {
   category: FeedbackCategory;
   severity: FeedbackSeverity;
+  location: FeedbackLocation;
   subject: string;
   description: string;
+  photo?: FeedbackPhotoMeta | null;
 }
 
 export interface FeedbackValidationError {
@@ -31,6 +129,10 @@ export interface FeedbackValidationError {
 export type FeedbackSubmissionResult =
   | { ok: true; trackingId: string; pendingBackend: boolean }
   | { ok: false; errors: FeedbackValidationError[] };
+
+const ALLOWED_LOCATIONS: ReadonlySet<FeedbackLocation> = new Set(
+  FEEDBACK_LOCATION_OPTIONS.map((o) => o.value),
+);
 
 export function validateFeedback(draft: FeedbackDraft): FeedbackValidationError[] {
   const errors: FeedbackValidationError[] = [];
@@ -52,6 +154,12 @@ export function validateFeedback(draft: FeedbackDraft): FeedbackValidationError[
       message: "Description must be 2000 characters or fewer.",
     });
   }
+  if (!ALLOWED_LOCATIONS.has(draft.location)) {
+    errors.push({
+      field: "location",
+      message: "Pick a location.",
+    });
+  }
   return errors;
 }
 
@@ -68,8 +176,10 @@ export interface FeedbackOutboxEntry extends FeedbackDraft {
 
 const FEEDBACK_OUTBOX_KEY = "arus-pilot-feedback-outbox";
 
-function isFeedbackOutboxEntry(value: unknown): value is FeedbackOutboxEntry {
-  if (!value || typeof value !== "object") return false;
+function isFeedbackOutboxEntryShape(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
   const v = value as Partial<Record<keyof FeedbackOutboxEntry, unknown>>;
   return (
     typeof v.trackingId === "string" &&
@@ -82,16 +192,56 @@ function isFeedbackOutboxEntry(value: unknown): value is FeedbackOutboxEntry {
 }
 
 /**
+ * Normalise a stored outbox entry into the canonical
+ * `FeedbackOutboxEntry` shape:
+ *   - `location` field was added in Phase 5. Legacy entries (no
+ *     location) and tampered entries (unknown location string) are
+ *     coerced to "other" so the typed return contract holds without
+ *     dropping the row.
+ *   - Returns null for rows that fail the base-shape guard — those
+ *     are truly corrupt and have to be skipped.
+ */
+function normaliseOutboxEntry(value: unknown): FeedbackOutboxEntry | null {
+  if (!isFeedbackOutboxEntryShape(value)) {
+    return null;
+  }
+  const raw = value as Record<string, unknown> & Omit<FeedbackOutboxEntry, "location"> & {
+    location?: unknown;
+  };
+  const candidateLocation =
+    typeof raw.location === "string" ? (raw.location as FeedbackLocation) : undefined;
+  const location: FeedbackLocation =
+    candidateLocation !== undefined && ALLOWED_LOCATIONS.has(candidateLocation)
+      ? candidateLocation
+      : "other";
+  return {
+    ...raw,
+    location,
+  } as FeedbackOutboxEntry;
+}
+
+/**
  * Read the session feedback outbox. Returns newest-first. Safe to
  * call from SSR / private mode (returns []).
  */
 export function listSessionFeedback(): FeedbackOutboxEntry[] {
   try {
     const raw = sessionStorage.getItem(FEEDBACK_OUTBOX_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
     const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isFeedbackOutboxEntry).slice().reverse();
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const normalised: FeedbackOutboxEntry[] = [];
+    for (const row of parsed) {
+      const entry = normaliseOutboxEntry(row);
+      if (entry) {
+        normalised.push(entry);
+      }
+    }
+    return normalised.reverse();
   } catch {
     return [];
   }
@@ -138,9 +288,30 @@ export async function submitFeedback(
     // actual array, otherwise start fresh. Avoids a runtime crash on
     // `queue.push` if a previous version stored something else.
     const queue: FeedbackOutboxEntry[] = Array.isArray(parsed)
-      ? parsed.filter(isFeedbackOutboxEntry)
+      ? parsed
+          .map((row) => normaliseOutboxEntry(row))
+          .filter((row): row is FeedbackOutboxEntry => row !== null)
       : [];
-    queue.push({ ...draft, trackingId, createdAt: new Date().toISOString() });
+    // Deliberately strip the photo's previewUrl from the persisted
+    // queue — sessionStorage is bounded (~5 MB) and a single data-URL
+    // can easily exhaust it. We keep a lightweight {name, size, mime}
+    // record so the history list can say "photo attached" without
+    // re-rendering the full image after a tab switch.
+    const persistedPhoto: Omit<FeedbackPhotoMeta, "previewUrl"> | null = draft.photo
+      ? {
+          name: draft.photo.name,
+          sizeBytes: draft.photo.sizeBytes,
+          mimeType: draft.photo.mimeType,
+        }
+      : null;
+    queue.push({
+      ...draft,
+      photo: persistedPhoto
+        ? { ...persistedPhoto, previewUrl: "" }
+        : null,
+      trackingId,
+      createdAt: new Date().toISOString(),
+    });
     sessionStorage.setItem(FEEDBACK_OUTBOX_KEY, JSON.stringify(queue));
   } catch {
     // Storage unavailable (private mode, SSR). Submission is still

@@ -1,28 +1,49 @@
 /**
- * Feedback / Flags — pilot form.
+ * Feedback / Flags — pilot form (UI Align Phase 5).
  *
- * Surfaced as the second item in the simplified user-portal nav. The
- * page owns rendering only; validation + dispatch live in
- * `client/src/application/feedback/feedback-submission.ts`.
+ * Re-skinned per preview-panel 3 (desktop) and the mobile row-9 sub-
+ * flow (Report Issue → Take Photo → Submit Report).
  *
- * States rendered: idle, validating, submitting, success, error.
+ * Component owns rendering only. ALL validation rules + the
+ * sessionStorage write live in
+ * `client/src/application/feedback/feedback-submission.ts`. If a new
+ * rule is needed it goes there, never inline. There is no real
+ * backend yet — the photo is a local-only placeholder that captures
+ * a file, shows a thumbnail, and is persisted as lightweight
+ * metadata by the submission module. Nothing pretends a network
+ * request succeeded.
  */
 
-import { useEffect, useState, type FormEvent } from "react";
-import { Flag, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Inbox } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  Flag,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Inbox,
+  Camera,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import {
+  FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
   submitFeedback,
+  validatePhotoForFeedback,
   type FeedbackCategory,
   type FeedbackDraft,
+  type FeedbackLocation,
   type FeedbackOutboxEntry,
+  type FeedbackPhotoMeta,
   type FeedbackSeverity,
   type FeedbackValidationError,
 } from "@/application/feedback/feedback-submission";
@@ -30,8 +51,10 @@ import {
 const EMPTY_DRAFT: FeedbackDraft = {
   category: "suggestion",
   severity: "low",
+  location: "engine_room",
   subject: "",
   description: "",
+  photo: null,
 };
 
 type SubmitState =
@@ -42,14 +65,30 @@ type SubmitState =
 
 const CATEGORY_OPTIONS: Array<{ value: FeedbackCategory; label: string }> = [
   { value: "suggestion", label: "Suggestion" },
-  { value: "bug", label: "Bug" },
-  { value: "flag", label: "Flag a concern" },
+  { value: "bug", label: "Equipment Malfunction" },
+  { value: "flag", label: "Flag a Concern" },
 ];
 
-const SEVERITY_OPTIONS: Array<{ value: FeedbackSeverity; label: string }> = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
+const SEVERITY_OPTIONS: Array<{
+  value: FeedbackSeverity;
+  label: string;
+  tone: string;
+}> = [
+  {
+    value: "low",
+    label: "Low",
+    tone: "data-[active=true]:bg-emerald-500/15 data-[active=true]:text-emerald-300 data-[active=true]:ring-emerald-500/40",
+  },
+  {
+    value: "medium",
+    label: "Medium",
+    tone: "data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-300 data-[active=true]:ring-amber-500/40",
+  },
+  {
+    value: "high",
+    label: "High",
+    tone: "data-[active=true]:bg-rose-500/15 data-[active=true]:text-rose-300 data-[active=true]:ring-rose-500/40",
+  },
 ];
 
 function errorFor(
@@ -57,6 +96,22 @@ function errorFor(
   field: keyof FeedbackDraft,
 ): string | undefined {
   return errors.find((e) => e.field === field)?.message;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("File read failed."));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        resolve(result);
+      } else {
+        reject(new Error("File read returned non-string result."));
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
@@ -96,10 +151,165 @@ function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
             <div className="mt-1 text-sm font-medium truncate">{entry.subject}</div>
             <div className="mt-0.5 text-xs text-muted-foreground capitalize">
               {entry.category} · {entry.severity} severity
+              {entry.photo ? " · photo attached" : ""}
             </div>
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+interface SeverityPillsProps {
+  value: FeedbackSeverity;
+  onChange: (next: FeedbackSeverity) => void;
+  disabled?: boolean;
+}
+
+function SeverityPills({ value, onChange, disabled }: SeverityPillsProps) {
+  return (
+    <div
+      className="grid grid-cols-3 gap-2"
+      role="radiogroup"
+      aria-label="Severity"
+      data-testid="group-feedback-severity"
+    >
+      {SEVERITY_OPTIONS.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            data-active={active}
+            data-testid={`pill-feedback-severity-${opt.value}`}
+            className={cn(
+              "h-9 rounded-md text-sm font-medium ring-1 ring-inset transition-colors",
+              "ring-border bg-muted/30 text-muted-foreground",
+              "hover:bg-muted/60 hover:text-foreground",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              opt.tone,
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+interface PhotoFieldProps {
+  photo: FeedbackPhotoMeta | null | undefined;
+  onChange: (next: FeedbackPhotoMeta | null) => void;
+  disabled?: boolean;
+  onError: (message: string) => void;
+}
+
+function PhotoField({ photo, onChange, disabled, onError }: PhotoFieldProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleFiles(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) {
+      return;
+    }
+    // The component is intentionally thin here — it grabs bytes off
+    // disk and hands the metadata to the application-layer policy.
+    // Size/MIME/preview-URL rules live in
+    // `validatePhotoForFeedback`, not here.
+    let previewUrl = "";
+    try {
+      previewUrl = await readFileAsDataUrl(file);
+    } catch {
+      // Pass through to the validator so the user-facing copy comes
+      // from one place.
+    }
+    const result = validatePhotoForFeedback({
+      name: file.name,
+      sizeBytes: file.size,
+      mimeType: file.type,
+      previewUrl,
+    });
+    if (!result.ok) {
+      onError(result.message);
+      return;
+    }
+    onChange(result.photo);
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="fb-photo">Photo (optional)</Label>
+      <input
+        ref={inputRef}
+        id="fb-photo"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        disabled={disabled}
+        onChange={(e) => {
+          void handleFiles(e.target.files);
+          // Reset so picking the same file twice re-fires onChange.
+          e.target.value = "";
+        }}
+        data-testid="input-feedback-photo"
+      />
+      {photo ? (
+        <div
+          className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
+          data-testid="preview-feedback-photo"
+        >
+          <img
+            src={photo.previewUrl}
+            alt={photo.name}
+            className="h-16 w-16 rounded-md object-cover ring-1 ring-border"
+            data-testid="img-feedback-photo-thumb"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium" data-testid="text-feedback-photo-name">
+              {photo.name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {(photo.sizeBytes / 1024).toFixed(0)} KB
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={disabled}
+            onClick={() => onChange(null)}
+            data-testid="button-feedback-photo-remove"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          className={cn(
+            "flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/20 text-muted-foreground transition-colors",
+            "hover:bg-muted/40 hover:text-foreground",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+          )}
+          data-testid="button-feedback-photo-pick"
+        >
+          <ImagePlus className="h-5 w-5" />
+          <span className="text-xs font-medium">Add Photo</span>
+          <span className="text-[10px]">JPEG / PNG · up to 5 MB</span>
+        </button>
+      )}
+      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+        <Camera className="h-3 w-3" />
+        Stored on this device for the pilot — not uploaded to a server yet.
+      </p>
     </div>
   );
 }
@@ -113,8 +323,6 @@ export default function FeedbackPage() {
   );
 
   useEffect(() => {
-    // Refresh whenever we land back in idle (post-submit-another) so a
-    // freshly-submitted entry is reflected in the list.
     if (state.kind === "idle" || state.kind === "success") {
       setHistory(listSessionFeedback());
     }
@@ -163,9 +371,9 @@ export default function FeedbackPage() {
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle>Thanks — your feedback was captured</CardTitle>
+            <CardTitle>Issue submitted</CardTitle>
             <CardDescription>
-              Reference&nbsp;
+              We&rsquo;ve received your report and will take action. Reference&nbsp;
               <code
                 className="rounded bg-muted px-1.5 py-0.5 text-xs"
                 data-testid="text-feedback-tracking-id"
@@ -218,9 +426,9 @@ export default function FeedbackPage() {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Flag className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>Feedback &amp; Flags</CardTitle>
+          <CardTitle>Report an Issue</CardTitle>
           <CardDescription>
-            Report an issue, suggest an improvement, or flag a concern.
+            Report a malfunction, suggest an improvement, or flag a concern.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -235,43 +443,55 @@ export default function FeedbackPage() {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={onSubmit} noValidate>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="fb-category">Category</Label>
-                <select
-                  id="fb-category"
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  value={draft.category}
-                  onChange={(e) => update("category", e.target.value as FeedbackCategory)}
-                  disabled={isSubmitting}
-                  data-testid="select-feedback-category"
-                >
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <form className="space-y-5" onSubmit={onSubmit} noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="fb-category">Issue Type</Label>
+              <select
+                id="fb-category"
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={draft.category}
+                onChange={(e) => update("category", e.target.value as FeedbackCategory)}
+                disabled={isSubmitting}
+                data-testid="select-feedback-category"
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fb-severity">Severity</Label>
-                <select
-                  id="fb-severity"
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  value={draft.severity}
-                  onChange={(e) => update("severity", e.target.value as FeedbackSeverity)}
-                  disabled={isSubmitting}
-                  data-testid="select-feedback-severity"
-                >
-                  {SEVERITY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Label>Severity</Label>
+              <SeverityPills
+                value={draft.severity}
+                onChange={(v) => update("severity", v)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fb-location">Location</Label>
+              <select
+                id="fb-location"
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={draft.location}
+                onChange={(e) => update("location", e.target.value as FeedbackLocation)}
+                disabled={isSubmitting}
+                data-testid="select-feedback-location"
+              >
+                {FEEDBACK_LOCATION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {errorFor(fieldErrors, "location") && (
+                <p className="text-xs text-destructive" data-testid="error-feedback-location">
+                  {errorFor(fieldErrors, "location")}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -311,6 +531,23 @@ export default function FeedbackPage() {
               )}
             </div>
 
+            <PhotoField
+              photo={draft.photo}
+              onChange={(next) => update("photo", next)}
+              disabled={isSubmitting}
+              onError={(message) =>
+                setFieldErrors((prev) => [
+                  ...prev.filter((e) => e.field !== "photo"),
+                  { field: "photo", message },
+                ])
+              }
+            />
+            {errorFor(fieldErrors, "photo") && (
+              <p className="text-xs text-destructive" data-testid="error-feedback-photo">
+                {errorFor(fieldErrors, "photo")}
+              </p>
+            )}
+
             <Button
               type="submit"
               className="w-full"
@@ -324,7 +561,7 @@ export default function FeedbackPage() {
                 </>
               ) : (
                 <>
-                  Submit feedback
+                  Submit Report
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
