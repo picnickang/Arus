@@ -175,6 +175,51 @@ export function intersectOverrideWithPolicy(
 }
 
 /**
+ * Prune a stored BottomNav override to ONLY the category ids the
+ * given role is currently allowed to see, preserving the user's
+ * preferred order.
+ *
+ * Companion to `intersectOverrideWithPolicy` — that helper returns
+ * `NavigationCategory[]` for rendering, this one returns `string[]`
+ * for writing back to storage. The BottomNav uses it to self-heal a
+ * stored override that contains a *mix* of allowed and disallowed
+ * ids (e.g. an admin's `[maintenance, system, user-dashboard]` after
+ * switching to the user portal): we keep `user-dashboard`, drop the
+ * rest, and persist the cleaned list so the disallowed ids cannot
+ * resurface in a future surface that reads the raw key.
+ *
+ * Returns `null` to signal "no rewrite needed" — either there was no
+ * override, or the existing override already exactly matches the
+ * policy-allowed subset. Returns an array (possibly empty) when the
+ * caller should overwrite the stored value.
+ */
+export function pruneOverrideToPolicyIds(
+  role: NavRoleId | string | null,
+  overrideCategoryIds: readonly string[] | null | undefined,
+): string[] | null {
+  if (!overrideCategoryIds || overrideCategoryIds.length === 0) {
+    return null;
+  }
+  const allowedIds = new Set(
+    getPrimaryCategoriesForRole(role).map((c) => c.id),
+  );
+  const pruned: string[] = [];
+  const seen = new Set<string>();
+  for (const id of overrideCategoryIds) {
+    if (allowedIds.has(id) && !seen.has(id)) {
+      seen.add(id);
+      pruned.push(id);
+    }
+  }
+  // Already clean (same length, same order, every id allowed) — no
+  // rewrite needed.
+  const unchanged =
+    pruned.length === overrideCategoryIds.length &&
+    pruned.every((id, i) => id === overrideCategoryIds[i]);
+  return unchanged ? null : pruned;
+}
+
+/**
  * Convenience: where should this role land after picking a portal?
  *
  * Both portals currently land on /dashboard — the dashboard itself

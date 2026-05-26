@@ -19,6 +19,7 @@ import { resolve } from "node:path";
 import {
   getPrimaryCategoriesForRole,
   intersectOverrideWithPolicy,
+  pruneOverrideToPolicyIds,
 } from "../../client/src/application/navigation/role-navigation-policy";
 
 const REPO_ROOT = resolve(__dirname, "..", "..");
@@ -29,6 +30,10 @@ const SWITCH_PORTAL = resolve(
 );
 const PORTAL_LOGIN = resolve(REPO_ROOT, "client/src/pages/portal-login.tsx");
 const ROLES_CONFIG = resolve(REPO_ROOT, "client/src/config/roles.ts");
+const NAV_STORAGE = resolve(
+  REPO_ROOT,
+  "client/src/infrastructure/navigation/nav-storage.ts",
+);
 
 describe("BottomNav override-leak hardening (follow-up #194)", () => {
   describe("intersectOverrideWithPolicy — pure policy contract", () => {
@@ -152,31 +157,117 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).not.toContain("getCategoryById");
     });
 
-    it("BottomNav.tsx self-heals: discards a stored override that survived no policy id", async () => {
+    it("BottomNav.tsx self-heals: rewrites the stored override via the prune helper + nav-storage adapter", async () => {
       const src = await readFile(BOTTOM_NAV, "utf8");
-      expect(src).toContain("discardOverride");
-      expect(src).toMatch(/anyKept/);
+      // New contract: BottomNav delegates to `pruneOverrideToPolicyIds`
+      // and writes back via the centralised adapter (`writeNavOverride`
+      // for the non-empty pruned list, `clearNavOverride` when nothing
+      // survives). Direct `localStorage` calls are forbidden in this
+      // file.
+      expect(src).toContain("pruneOverrideToPolicyIds");
+      expect(src).toContain("writeNavOverride");
+      expect(src).toContain("clearNavOverride");
+      expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
     });
 
-    it("SwitchPortalButton.tsx clears the centralised override key on switch", async () => {
+    it("SwitchPortalButton.tsx clears every portal-scoped key through the adapter", async () => {
       const src = await readFile(SWITCH_PORTAL, "utf8");
-      expect(src).toContain("BOTTOM_NAV_OVERRIDE_STORAGE_KEY");
-      expect(src).toContain("removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY)");
-      expect(src).toContain("removeItem(ROLE_STORAGE_KEY)");
+      // Centralised reset: one call to `clearAllPortalState` replaces
+      // the prior per-key `removeItem` pair. No raw `localStorage`
+      // calls, no magic strings.
+      expect(src).toContain("clearAllPortalState");
+      expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
       const literalMatches = src.match(/"arus-bottom-nav-items"/g) ?? [];
       expect(literalMatches.length).toBe(0);
+      const roleLiteralMatches = src.match(/"arus-user-role"/g) ?? [];
+      expect(roleLiteralMatches.length).toBe(0);
     });
 
-    it("portal-login.tsx clears the override on portal pick (cache, not authority)", async () => {
+    it("portal-login.tsx writes nav state ONLY through the centralised adapter", async () => {
       const src = await readFile(PORTAL_LOGIN, "utf8");
-      // portal-login currently uses the raw string; either form is
-      // acceptable as long as the removeItem call targets the same
-      // key. Assert the behaviour, allow either spelling.
-      const usesConstant = src.includes(
-        "removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY)",
+      // Brief #194 requirement: PortalLogin MUST write nav state
+      // through a centralised helper, not raw `localStorage`.
+      expect(src).toContain("writeUserRole");
+      expect(src).toContain("clearNavOverride");
+      expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
+    });
+  });
+
+  describe("pruneOverrideToPolicyIds — partial-conflict self-heal", () => {
+    it("drops disallowed ids but keeps allowed ids in user-preferred order", () => {
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
+        (c) => c.id,
       );
-      const usesLiteral = src.includes('removeItem("arus-bottom-nav-items")');
-      expect(usesConstant || usesLiteral).toBe(true);
+      // Mixed override: one valid user id + two admin ids.
+      const mixed = [userIds[0], "maintenance", "system", userIds[1]];
+      const pruned = pruneOverrideToPolicyIds("deck_officer", mixed);
+      expect(pruned).toEqual([userIds[0], userIds[1]]);
+    });
+
+    it("returns null when the override is already clean (no rewrite needed)", () => {
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
+        (c) => c.id,
+      );
+      expect(pruneOverrideToPolicyIds("deck_officer", userIds)).toBeNull();
+    });
+
+    it("returns null for null/empty override (nothing to rewrite)", () => {
+      expect(pruneOverrideToPolicyIds("deck_officer", null)).toBeNull();
+      expect(pruneOverrideToPolicyIds("deck_officer", undefined)).toBeNull();
+      expect(pruneOverrideToPolicyIds("deck_officer", [])).toBeNull();
+    });
+
+    it("returns an empty array when EVERY id is disallowed (caller should clear storage)", () => {
+      const pruned = pruneOverrideToPolicyIds("deck_officer", [
+        "maintenance",
+        "system",
+        "definitely-not-allowed",
+      ]);
+      expect(pruned).toEqual([]);
+    });
+
+    it("dedupes repeated allowed ids while pruning", () => {
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
+        (c) => c.id,
+      );
+      const pruned = pruneOverrideToPolicyIds("deck_officer", [
+        userIds[0],
+        userIds[0],
+        "system",
+        userIds[0],
+      ]);
+      expect(pruned).toEqual([userIds[0]]);
+    });
+  });
+
+  describe("nav-storage adapter — typed centralised I/O", () => {
+    it("exists at the expected hexagonal infrastructure path", async () => {
+      const src = await readFile(NAV_STORAGE, "utf8");
+      // Pin the public API surface so consumers (BottomNav,
+      // SwitchPortalButton, PortalLogin) cannot drift onto direct
+      // localStorage access.
+      expect(src).toContain("export function readUserRole");
+      expect(src).toContain("export function writeUserRole");
+      expect(src).toContain("export function clearUserRole");
+      expect(src).toContain("export function readNavOverride");
+      expect(src).toContain("export function writeNavOverride");
+      expect(src).toContain("export function clearNavOverride");
+      expect(src).toContain("export function clearAllPortalState");
+    });
+
+    it("imports the storage keys from @/config/roles (no magic strings in the adapter)", async () => {
+      const src = await readFile(NAV_STORAGE, "utf8");
+      expect(src).toContain('from "@/config/roles"');
+      expect(src).toContain("ROLE_STORAGE_KEY");
+      expect(src).toContain("BOTTOM_NAV_OVERRIDE_STORAGE_KEY");
+      const roleLiteralMatches = src.match(/"arus-user-role"/g) ?? [];
+      const overrideLiteralMatches =
+        src.match(/"arus-bottom-nav-items"/g) ?? [];
+      // The literals appear only in the doc comments at the top of
+      // the file (as `arus-user-role` / `arus-bottom-nav-items` inside
+      // backticks). Forbid the JS-string spelling.
+      expect(roleLiteralMatches.length).toBe(0);
+      expect(overrideLiteralMatches.length).toBe(0);
     });
   });
 });

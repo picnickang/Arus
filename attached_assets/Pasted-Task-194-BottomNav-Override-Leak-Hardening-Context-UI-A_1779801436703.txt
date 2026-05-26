@@ -1,0 +1,186 @@
+Task #194 — BottomNav Override Leak Hardening
+
+Context:
+UI Align Phase 4 is complete and architect-approved.
+User portal now matches the simplified operational preview layouts.
+A pre-existing BottomNav override leak was identified during review and explicitly deferred into follow-up task #194.
+
+Goal:
+Eliminate all stale/localStorage/admin-navigation leakage paths into the user portal.
+
+This is a security + UX correctness hardening task, not a redesign task.
+
+==================================================
+SCOPE
+==================================================
+
+Frontend only.
+
+Do NOT:
+- redesign UI
+- add new modules
+- change backend APIs
+- introduce new navigation concepts
+- modify the command center visuals
+- touch unrelated flows
+
+==================================================
+PRIMARY REQUIREMENTS
+==================================================
+
+1. BottomNav must NEVER trust localStorage as authority.
+
+localStorage is cache only.
+
+Role/navigation policy must remain the single source of truth.
+
+2. User portal roles MUST ONLY see:
+- Dashboard
+- Feedback / Flags
+
+3. Admin roles MUST still correctly see:
+- Maintenance
+- System Admin
+- Crew Management
+- Logistics
+- AI Analytics
+
+4. If cached nav items conflict with current role policy:
+- discard them
+- rebuild from policy
+- never render stale admin items
+
+5. SwitchPortalButton must clear:
+- role state
+- cached nav state
+- any portal-specific navigation cache
+
+6. PortalLogin must ONLY write nav state through a centralized helper/storage adapter.
+
+==================================================
+FILES TO INSPECT
+==================================================
+
+- client/src/components/navigation/BottomNav.tsx
+- client/src/components/navigation/SwitchPortalButton.tsx
+- client/src/pages/portal-login.tsx
+- client/src/application/navigation/**
+- any localStorage/sessionStorage helper currently used for:
+  - arus-user-role
+  - arus-bottom-nav-items
+  - portal state
+
+==================================================
+ARCHITECTURE RULES
+==================================================
+
+Maintain hexagonal frontend architecture.
+
+Policy belongs in:
+- application/navigation/
+
+Storage/cache helpers belong in:
+- infrastructure/
+OR
+- application/ if already appropriate
+
+React components:
+- render only
+- no duplicated role logic
+- no authority decisions
+
+Do NOT duplicate:
+- role/category mapping
+- allowed navigation lists
+- portal access logic
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+Create a shared typed storage helper/constants module.
+
+Centralize:
+- arus-user-role
+- arus-bottom-nav-items
+- portal selection keys
+
+BottomNav behavior:
+- derive nav from policy
+- compare cached nav
+- invalidate stale cache
+- never render unauthorized items
+
+Portal switching:
+- clear stale cache
+- reset derived nav state safely
+- preserve current UX
+
+==================================================
+REQUIRED TESTS
+==================================================
+
+Add regression tests proving:
+
+1. User role sees ONLY:
+- Dashboard
+- Feedback / Flags
+
+2. Stale admin nav cache does NOT leak into user portal
+
+3. Switch Portal clears:
+- role storage
+- nav storage
+- portal cache
+
+4. Admin roles still correctly see:
+- Maintenance
+- System Admin
+- Crew Management
+- Logistics
+- AI Analytics
+
+5. Policy remains source of truth even when localStorage is corrupted
+
+6. BottomNav does not render unauthorized categories after reload
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+- npx tsc --noEmit
+- strict checks
+- scoped eslint
+- relevant unit tests
+- Playwright discovery if affected
+- explicit-any remains 0
+- cast count does not increase
+- architect review
+
+==================================================
+RULES
+==================================================
+
+Do NOT introduce:
+- explicit any
+- as any
+- ts-ignore
+- eslint-disable
+- unsafe casts
+- duplicated role logic
+- backend changes
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return:
+- root cause of the leak
+- files changed
+- storage helper/constants added
+- tests added
+- validation status
+- architect review outcome
+- any remaining nav/security edge cases

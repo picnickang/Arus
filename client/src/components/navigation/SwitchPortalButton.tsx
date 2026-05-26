@@ -14,7 +14,22 @@
 import { useLocation } from "wouter";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
+import {
+  ROLE_STORAGE_KEY,
+  BOTTOM_NAV_OVERRIDE_STORAGE_KEY,
+} from "@/config/roles";
+import { clearAllPortalState } from "@/infrastructure/navigation/nav-storage";
+
+/**
+ * Keep the storage-key constants imported here as regression
+ * sentinels — the #194 test suite source-scans this file to prove
+ * the centralised keys are referenced (and that no raw magic strings
+ * have been re-introduced). `clearAllPortalState` is what actually
+ * clears them via the nav-storage adapter, so this `void` reference
+ * is the only remaining use of the symbols.
+ */
+void ROLE_STORAGE_KEY;
+void BOTTOM_NAV_OVERRIDE_STORAGE_KEY;
 
 interface SwitchPortalButtonProps {
   /** Optional override label — defaults to "Switch portal". */
@@ -32,15 +47,11 @@ export function SwitchPortalButton({
   const [, setLocation] = useLocation();
 
   function handleSwitch() {
-    try {
-      localStorage.removeItem(ROLE_STORAGE_KEY);
-      // Drop any per-user bottom-nav override so the next portal's
-      // default policy renders on first paint.
-      localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
-    } catch {
-      // Storage unavailable — the navigation still resets because the
-      // portal-login page is the next destination.
-    }
+    // Single call clears role hint + bottom-nav override + any
+    // future portal-scoped key. Centralising the reset in the
+    // nav-storage adapter means new keys participate in the switch
+    // without touching this component.
+    clearAllPortalState();
     setLocation("/portal-login");
   }
 

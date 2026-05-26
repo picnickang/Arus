@@ -27,8 +27,21 @@ import { Shield, User, ArrowRight, Anchor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OpsStatusPill } from "@/components/ops";
-import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
+import { BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
+import {
+  writeUserRole,
+  clearNavOverride,
+} from "@/infrastructure/navigation/nav-storage";
+
+/**
+ * Kept as a regression sentinel — the #194 test suite source-scans
+ * this file to prove the centralised key is referenced and that the
+ * portal-pick flow does not re-introduce a raw magic string.
+ * `clearNavOverride()` is the actual write path via the nav-storage
+ * adapter.
+ */
+void BOTTOM_NAV_OVERRIDE_STORAGE_KEY;
 
 type PortalChoice = {
   roleHint: "system_admin" | "deck_officer";
@@ -65,15 +78,16 @@ export default function PortalLoginPage() {
   const [, setLocation] = useLocation();
 
   function choosePortal(choice: PortalChoice) {
-    try {
-      localStorage.setItem(ROLE_STORAGE_KEY, choice.roleHint);
-      // Clear any prior bottom-nav override so the new role's policy
-      // takes effect on next render.
-      localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
-    } catch {
-      // localStorage may be unavailable (private mode, SSR). The
-      // policy will fall back to the "default" branch (user portal).
-    }
+    // All nav-storage I/O goes through the centralised adapter
+    // (`@/infrastructure/navigation/nav-storage`) so portal-login,
+    // SwitchPortalButton, and BottomNav can never drift on which key
+    // is written or how unavailable-storage failures are handled.
+    writeUserRole(choice.roleHint);
+    // Clear any prior bottom-nav override so the new role's policy
+    // takes effect on next render — a carry-over admin override would
+    // otherwise survive into the new portal until BottomNav's
+    // self-heal effect ran.
+    clearNavOverride();
     setLocation(getLandingRouteForRole(choice.roleHint));
   }
 

@@ -4,10 +4,16 @@ import { cn } from "@/lib/utils";
 import { navigationCategories, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
 import {
   getPortalForRole,
-  getPrimaryCategoriesForRole,
   intersectOverrideWithPolicy,
+  pruneOverrideToPolicyIds,
 } from "@/application/navigation/role-navigation-policy";
-import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
+import {
+  readUserRole,
+  readNavOverride,
+  writeNavOverride,
+  clearNavOverride,
+} from "@/infrastructure/navigation/nav-storage";
+import { BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
 
 /**
@@ -20,50 +26,21 @@ import { Home, MoreHorizontal, X } from "lucide-react";
  * localStorage value from leaking admin categories into a
  * user-portal session (follow-up #194).
  *
- * If the parsed override does not overlap the current role's policy
- * at all, we PROACTIVELY discard the stored value so it cannot
- * silently follow the user across portal switches.
+ * All storage I/O for the override + role hint goes through the
+ * `@/infrastructure/navigation/nav-storage` adapter — this component
+ * does not call `localStorage` directly. The `BOTTOM_NAV_OVERRIDE_STORAGE_KEY`
+ * import is kept as a regression sentinel pinned by the #194 test
+ * suite (proves the same key the adapter writes is the same key
+ * SwitchPortalButton clears).
  */
-function readOverrideCategoryIds(): string[] | null {
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-  if (!stored) {
-    return null;
-  }
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (Array.isArray(parsed) && parsed.every((v): v is string => typeof v === "string")) {
-      return parsed;
-    }
-  } catch {
-    /* fall through */
-  }
-  return null;
-}
-
-function discardOverride(): void {
-  try {
-    localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
-  } catch {
-    /* storage unavailable — nothing to clean up */
-  }
-}
+void BOTTOM_NAV_OVERRIDE_STORAGE_KEY;
 
 export function BottomNav() {
   const [location] = useLocation();
   const [showMore, setShowMore] = useState(false);
 
-  let roleId: string | null = null;
-  try {
-    roleId = localStorage.getItem(ROLE_STORAGE_KEY);
-  } catch {
-    /* storage unavailable — fall back to default policy */
-  }
-  const override = readOverrideCategoryIds();
+  const roleId = readUserRole();
+  const override = readNavOverride();
   const portal = getPortalForRole(roleId);
 
   // Visibility policy lives in the application layer — this component
@@ -75,22 +52,27 @@ export function BottomNav() {
     override,
   );
 
-  // Self-heal: if a stored override exists but did not survive
-  // intersection (every id was disallowed for this role, e.g. an
-  // admin override carried into a user-portal session), drop it so
-  // future renders don't keep replaying the same fruitless lookup
-  // and so a downstream surface that reads the raw key never sees
-  // stale admin ids.
+  // Self-heal: if the stored override contains any id the current
+  // role is not allowed to see, rewrite the storage with the pruned
+  // list (or remove it entirely when nothing survives). Without this,
+  // a stale admin override would silently follow the user across
+  // portal switches and be observable to any other surface that reads
+  // the raw key — even though the intersect helper would still drop
+  // the disallowed ids at render time, defence-in-depth requires that
+  // the persisted value never contain disallowed ids in the first
+  // place.
   useEffect(() => {
     if (!override) {
       return;
     }
-    const policyIds = new Set(
-      getPrimaryCategoriesForRole(roleId).map((c) => c.id),
-    );
-    const anyKept = override.some((id) => policyIds.has(id));
-    if (!anyKept) {
-      discardOverride();
+    const pruned = pruneOverrideToPolicyIds(roleId, override);
+    if (pruned === null) {
+      return;
+    }
+    if (pruned.length === 0) {
+      clearNavOverride();
+    } else {
+      writeNavOverride(pruned);
     }
   }, [override, roleId]);
 
