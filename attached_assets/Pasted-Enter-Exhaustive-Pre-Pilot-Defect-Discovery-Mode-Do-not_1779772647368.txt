@@ -1,0 +1,119 @@
+Enter Exhaustive Pre-Pilot Defect Discovery Mode.
+
+Do not make code changes.
+
+Goal:
+Perform the most comprehensive possible bug/error review of ARUS so we do not keep discovering new categories one by one.
+
+Assume ARUS is a:
+- multi-tenant SaaS
+- vessel/maintenance/logistics platform
+- realtime telemetry system
+- AI/ML decision-support platform
+- import/export integration hub
+- operational workflow system
+
+Review every major failure class below.
+
+==================================================
+AUDIT SCOPE
+==================================================
+
+1. Type/build/lint/config errors
+2. Runtime crashes and async errors
+3. Auth/security/role bypass
+4. Tenant isolation leaks
+5. API contract drift
+6. Frontend/backend DTO mismatch
+7. Database integrity
+8. Migrations/rollback/schema drift
+9. Transactions/outbox/idempotency
+10. Race conditions/concurrency
+11. WebSocket/realtime replay/order/leakage
+12. Telemetry ingestion/quota/batching
+13. Import/export corruption/idempotency
+14. File upload/storage/security
+15. AI/ML safety, approval, rollback, lineage
+16. RAG/KB correctness and prompt-injection risks
+17. Work-order/maintenance lifecycle bugs
+18. Crew/compliance/scheduling bugs
+19. Inventory/purchasing/logistics bugs
+20. Financial/cost/rounding bugs
+21. Timezone/DST/date-boundary bugs
+22. Cache invalidation/stale data
+23. External API timeout/retry/circuit-breaker gaps
+24. Observability/metrics/logging blind spots
+25. Backup/restore/DR gaps
+26. Performance/N+1/unbounded query/memory risks
+27. UX workflow failure points
+28. Mobile/PWA/offline queue bugs
+29. CI/CD/deployment/secrets/environment issues
+30. Compliance/audit trail gaps
+31. Test coverage blind spots
+32. Production TODO/stub/degraded-mode risks
+
+==================================================
+METHOD
+==================================================
+
+For each category:
+- inspect relevant files
+- inspect tests
+- inspect migrations
+- inspect route registration
+- inspect auth/tenant middleware
+- inspect schemas and DTOs
+- inspect frontend flows
+- inspect operational scripts
+- inspect CI/package scripts
+- inspect observability/metrics
+- inspect TODO/stub/degraded paths
+
+Do not report vague concerns.
+Only report concrete issues supported by code evidence.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return a master defect matrix with:
+
+- ID
+- category
+- severity: P0/P1/P2/P3
+- file/location
+- exact bug or risk
+- why it can happen
+- likely impact
+- reproduction/test strategy
+- recommended fix
+- autonomous-safe? yes/no
+- needs product/security decision? yes/no
+- launch-blocking? yes/no
+
+Then provide:
+
+1. Top 10 launch blockers
+2. Top 10 non-blocking but high-value fixes
+3. Top 10 missing tests
+4. Top 10 operational risks
+5. Top 10 UX/workflow risks
+6. Items already adequately handled
+7. Items requiring human/product/security decision
+8. Recommended execution order
+
+==================================================
+IMPORTANT RULES
+==================================================
+
+Do not modify code.
+Do not create fixes yet.
+Do not assume “no issue” unless tests/code prove it.
+Do not duplicate already-fixed issues unless regression risk remains.
+Be strict, skeptical, and production-minded.
+
+Final answer should say clearly:
+- whether ARUS is pilot-ready
+- whether anything is launch-blocking
+- what must be fixed before pilot
+- what can wait until after pilot
