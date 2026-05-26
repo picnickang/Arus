@@ -1,0 +1,53 @@
+{
+  "title": "ARUS — Telemetry",
+  "uid": "arus-telemetry",
+  "schemaVersion": 38,
+  "tags": ["arus", "telemetry"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Telemetry processed / sec",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [ { "expr": "sum(rate(arus_telemetry_processed_total[5m]))", "legendFormat": "processed" } ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (errors / processed)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_telemetry_errors_total[5m])) / clamp_min(sum(rate(arus_telemetry_processed_total[5m])), 1)", "legendFormat": "error-ratio" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Channel freshness max (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [ { "expr": "max(arus_dq_channel_freshness_seconds)", "legendFormat": "max-age" } ]
+    },
+    {
+      "id": 4,
+      "title": "Warehouse export — last 7d",
+      "type": "table",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "increase(arus_telemetry_warehouse_export_success_total[7d])", "legendFormat": "success" },
+        { "expr": "increase(arus_telemetry_warehouse_export_failure_total[7d])", "legendFormat": "failure" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Per-org telemetry blocked on quota",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total[10m]))", "legendFormat": "{{org_id}}" }
+      ]
+    }
+  ]
+}

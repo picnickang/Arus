@@ -1,0 +1,41 @@
+{
+  "title": "ARUS — Queues & DLQ",
+  "uid": "arus-queues-dlq",
+  "schemaVersion": 38,
+  "tags": ["arus", "queue", "dlq"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "DLQ adds / sec",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [ { "expr": "sum(rate(arus_dlq_added_total[5m]))", "legendFormat": "added" } ]
+    },
+    {
+      "id": 2,
+      "title": "DLQ replays / sec",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [ { "expr": "sum(rate(arus_dlq_replayed_total[5m]))", "legendFormat": "replayed" } ]
+    },
+    {
+      "id": 3,
+      "title": "DLQ entries (lifetime counter — uses increase for window deltas)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [ { "expr": "increase(arus_dlq_entries_total[1h])", "legendFormat": "entries (1h)" } ]
+    },
+    {
+      "id": 4,
+      "title": "Add-rate minus replay-rate (positive = backlog growing)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_dlq_added_total[5m])) - sum(rate(arus_dlq_replayed_total[5m]))", "legendFormat": "net" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "title": "ARUS — ML / AI",
+  "uid": "arus-ml-ai",
+  "schemaVersion": 38,
+  "tags": ["arus", "ml", "ai"],
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "1m",
+  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Prediction rate (arus_ml_prediction_total)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (equipment_type) (rate(arus_ml_prediction_total[5m]))", "legendFormat": "{{equipment_type}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Prediction duration p95 (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(arus_ml_prediction_duration_seconds_bucket[5m])))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Shadow / canary divergence p95 (arus_ml_shadow_divergence)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, equipment_type) (rate(arus_ml_shadow_divergence_bucket[15m])))", "legendFormat": "{{equipment_type}}" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Shadow comparisons run",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_ml_shadow_comparisons_total[15m]))", "legendFormat": "comparisons/sec" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Model cache hit ratio",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "sum(rate(arus_ml_model_cache_hits_total[15m])) / clamp_min(sum(rate(arus_ml_model_cache_hits_total[15m])) + sum(rate(arus_ml_model_cache_misses_total[15m])), 1)" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Circuit breaker state",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 },
+      "targets": [ { "expr": "max(arus_ml_circuit_breaker_state)" } ]
+    }
+  ]
+}

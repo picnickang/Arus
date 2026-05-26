@@ -11,6 +11,22 @@ import {
   incrementWebSocketReconnection,
 } from "./observability";
 import {
+  recordWsConnectionRejected,
+  recordWsOrgConnectionCount,
+} from "./observability/websocket-metrics";
+
+/** LR-3 — Parse the per-org WebSocket connection cap from the
+ *  environment. Returns 0 (no cap) for unset / invalid / non-positive
+ *  values so the legacy default is "no behaviour change". Read at
+ *  handshake time so ops can adjust the cap without a process restart
+ *  (matches the `WS_TENANT_STRICT_MODE` env-flag pattern). */
+function parseOrgConnectionLimit(): number {
+  const raw = process.env["WS_ORG_CONNECTION_LIMIT"];
+  if (!raw) return 0;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+import {
   FanoutBus,
   FanoutEvent,
   SYSTEM_ORG_ID,
@@ -208,6 +224,21 @@ class TelemetryWebSocketServer {
    *  We only `bus.subscribe` once per channel per node — local dispatch
    *  to interested clients happens in `onFanoutEvent`. */
   private readonly fanoutSubs = new Map<string, { count: number; unsubscribe: () => void }>();
+  /** LR-3 — Per-org live connection counts. Used to enforce the
+   *  `WS_ORG_CONNECTION_LIMIT` cap and to publish the
+   *  `arus_websocket_connections_active_per_org{org_id}` gauge. */
+  private readonly orgConnectionCounts = new Map<string, number>();
+
+  private decrementOrgCount(orgId: string): void {
+    const current = this.orgConnectionCounts.get(orgId) ?? 0;
+    const next = Math.max(0, current - 1);
+    if (next === 0) {
+      this.orgConnectionCounts.delete(orgId);
+    } else {
+      this.orgConnectionCounts.set(orgId, next);
+    }
+    recordWsOrgConnectionCount(orgId, next);
+  }
 
   constructor(server: Server, fanout: FanoutBus = getFanoutBus()) {
     this.wss = new WebSocketServer({ server, path: "/ws" });
@@ -229,6 +260,7 @@ class TelemetryWebSocketServer {
       const auth = await resolveUpgradeOrg(req);
       if (!auth.ok) {
         log(`WebSocket upgrade rejected (${auth.reason}) for ${clientId}`);
+        recordWsConnectionRejected("unknown", "auth_failed");
         try {
           ws.close(1008, auth.reason);
         } catch {
@@ -236,6 +268,32 @@ class TelemetryWebSocketServer {
         }
         return;
       }
+
+      // LR-3 — Per-org connection cap. Reads `WS_ORG_CONNECTION_LIMIT`
+      // at handshake time so ops can tune without a restart. A value
+      // of 0 or unset means "no cap" (legacy behaviour). When the
+      // cap is exceeded we count it, log a structured warning, and
+      // close with 4290 (custom mapping of HTTP 429) so the client
+      // can distinguish "cap" from "auth" (1008) or "server shutdown"
+      // (1001) and apply a longer backoff before reconnecting.
+      const cap = parseOrgConnectionLimit();
+      if (cap > 0) {
+        const current = this.orgConnectionCounts.get(auth.orgId) ?? 0;
+        if (current >= cap) {
+          log(
+            `WebSocket upgrade rejected (org_cap_exceeded org=${auth.orgId} ` +
+              `current=${current} cap=${cap}) for ${clientId}`,
+          );
+          recordWsConnectionRejected(auth.orgId, "cap_exceeded");
+          try {
+            ws.close(4290, "ORG_CONNECTION_LIMIT_EXCEEDED");
+          } catch {
+            /* socket already closed */
+          }
+          return;
+        }
+      }
+
       const client: WebSocketClient = {
         ws,
         id: clientId,
@@ -245,6 +303,9 @@ class TelemetryWebSocketServer {
       };
 
       this.clients.set(clientId, client);
+      const nextOrgCount = (this.orgConnectionCounts.get(auth.orgId) ?? 0) + 1;
+      this.orgConnectionCounts.set(auth.orgId, nextOrgCount);
+      recordWsOrgConnectionCount(auth.orgId, nextOrgCount);
       log(`WebSocket client connected: ${clientId}`);
 
       // Update connection metrics (enhanced observability)
@@ -276,6 +337,7 @@ class TelemetryWebSocketServer {
       ws.on("close", () => {
         this.releaseAllClientFanoutSubs(client);
         this.clients.delete(clientId);
+        this.decrementOrgCount(auth.orgId);
         log(`WebSocket client disconnected: ${clientId}`);
 
         // Update connection metrics (enhanced observability)
@@ -285,7 +347,9 @@ class TelemetryWebSocketServer {
       ws.on("error", (error) => {
         log(`WebSocket error for client ${clientId}: ${error}`);
         this.releaseAllClientFanoutSubs(client);
-        this.clients.delete(clientId);
+        if (this.clients.delete(clientId)) {
+          this.decrementOrgCount(auth.orgId);
+        }
 
         // Update connection metrics and track reconnection (enhanced observability)
         setWebSocketConnections(this.clients.size);

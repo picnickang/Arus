@@ -1,0 +1,264 @@
+# ARUS — Prometheus alerting rules
+#
+# Generated for Launch Readiness Wave LR-3.
+#
+# Every alert below uses a metric that the running server actually
+# emits. Metrics that this wave WANTS but which the codebase does
+# not yet expose are listed under the `# === PENDING EMISSION ===`
+# block at the bottom of this file. Those rules are intentionally
+# commented out — uncomment them as part of LR-4 once the matching
+# instrumentation lands. This file MUST NOT reference metrics that
+# don't exist (the "no fake metrics" launch rule).
+#
+# Metric inventory verified at LR-3 time:
+#   server/observability/*-metrics.ts
+#   server/services/dead-letter-queue/index.ts
+#   server/ml-prediction/shadow-canary.ts
+#   server/telemetry-batch-writer.ts
+#   server/observability/warehouse-export-metrics.ts (LR-2)
+#   server/observability/websocket-metrics.ts (LR-3 — this wave)
+#
+# Severity convention:
+#   critical → pages on-call (PagerDuty)
+#   warning  → Slack #ops-alerts, no page
+#   info     → ticket / dashboard only
+#
+# Lint: `promtool check rules ops/prometheus/rules.yaml`
+
+groups:
+  # ---------------------------------------------------------------------
+  # WebSocket — all metrics live in server/observability/websocket-metrics.ts
+  # ---------------------------------------------------------------------
+  - name: arus-websocket
+    interval: 30s
+    rules:
+      - alert: WsConnectionsRejectedSpike
+        expr: |
+          sum by (org_id, reason) (
+            rate(arus_websocket_connections_rejected_total[5m])
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          surface: websocket
+        annotations:
+          summary: "WS upgrades being rejected (org={{ $labels.org_id }} reason={{ $labels.reason }})"
+          description: |
+            > 0.5 rejections/sec for the last 10 minutes. If
+            reason=cap_exceeded the tenant is hitting
+            WS_ORG_CONNECTION_LIMIT — see runbook.
+          runbook: docs/operations/runbooks/websocket-outage.md
+
+      - alert: WsConnectionsZero
+        expr: arus_websocket_connections_active == 0
+        for: 15m
+        labels:
+          severity: critical
+          surface: websocket
+        annotations:
+          summary: "No active WebSocket clients for 15m"
+          description: "Either the proxy is dropping upgrades or the WS server has stalled."
+          runbook: docs/operations/runbooks/websocket-outage.md
+
+      - alert: WsReconnectionStorm
+        expr: |
+          sum by (reason) (
+            rate(arus_websocket_reconnections_total[5m])
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          surface: websocket
+        annotations:
+          summary: "WS reconnection rate > 1/sec ({{ $labels.reason }})"
+          runbook: docs/operations/runbooks/websocket-outage.md
+
+  # ---------------------------------------------------------------------
+  # Tenant quotas — telemetry-batch-writer.ts + http-metrics.ts
+  # ---------------------------------------------------------------------
+  - name: arus-tenant-quotas
+    interval: 30s
+    rules:
+      - alert: TenantQuotaBlockedTelemetry
+        expr: |
+          sum by (org_id) (
+            rate(arus_telemetry_batch_quota_blocked_total[10m])
+          ) > 0
+        for: 10m
+        labels:
+          severity: warning
+          surface: tenant-quota
+        annotations:
+          summary: "Telemetry being dropped on quota for org {{ $labels.org_id }}"
+          runbook: docs/operations/runbooks/tenant-isolation-response.md
+
+      - alert: TenantQuotaHttp429Sustained
+        expr: |
+          sum (
+            rate(arus_http_requests_total{code="429"}[15m])
+          ) > 1
+        for: 15m
+        labels:
+          severity: warning
+          surface: tenant-quota
+        annotations:
+          summary: "Sustained 429s — quota or rate limit"
+          description: |
+            HTTP 429 rate >1/sec for 15m. http-metrics.ts does not
+            currently carry an `org_id` label, so this is a fleet-
+            wide signal; correlate with Tenant Security dashboard
+            to identify the offending tenant.
+          runbook: docs/operations/runbooks/tenant-isolation-response.md
+
+  # ---------------------------------------------------------------------
+  # Telemetry — telemetry-{metrics,ingestion-metrics}.ts + warehouse-export-metrics.ts
+  # ---------------------------------------------------------------------
+  - name: arus-telemetry
+    interval: 30s
+    rules:
+      - alert: TelemetryErrorRate
+        # `arus_telemetry_errors_total` (telemetry-ingestion-metrics.ts)
+        # is the ingestion failure counter; `arus_telemetry_processed_total`
+        # is the success counter. Ratio > 0.5% trips the SLO budget.
+        expr: |
+          (
+            sum(rate(arus_telemetry_errors_total[10m]))
+            /
+            clamp_min(sum(rate(arus_telemetry_processed_total[10m])), 1)
+          ) > 0.005
+        for: 10m
+        labels:
+          severity: critical
+          surface: telemetry
+        annotations:
+          summary: "Telemetry error rate > 0.5% (SLO=99.5%)"
+          runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: TelemetryFreshnessStale
+        # `arus_dq_channel_freshness_seconds` is the per-channel
+        # freshness gauge from data-quality.ts. The SLO threshold
+        # is 300s (5 min) for any channel.
+        expr: max(arus_dq_channel_freshness_seconds) > 300
+        for: 5m
+        labels:
+          severity: warning
+          surface: telemetry
+        annotations:
+          summary: "Newest telemetry > 5 min old on at least one channel"
+          runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: TelemetryDeadLetterGrowing
+        expr: |
+          sum(
+            rate(arus_telemetry_dead_letter_messages_total[10m])
+          ) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          surface: telemetry
+        annotations:
+          summary: "Telemetry DLQ accumulating > 0.1 msg/sec"
+
+      - alert: WarehouseExportFailed
+        expr: |
+          increase(arus_telemetry_warehouse_export_failure_total[26h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          surface: telemetry
+        annotations:
+          summary: "Warehouse export failure in the last 26h"
+          runbook: docs/operations/runbooks/incident-response.md
+
+  # ---------------------------------------------------------------------
+  # DLQ — server/services/dead-letter-queue/index.ts
+  # ---------------------------------------------------------------------
+  - name: arus-queues
+    interval: 30s
+    rules:
+      - alert: DlqEnqueueRateSpiking
+        expr: |
+          sum(
+            rate(arus_dlq_added_total[10m])
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          surface: queue
+        annotations:
+          summary: "DLQ enqueue rate > 0.5/s for 10m"
+
+      - alert: DlqAccumulating
+        # Replays are not keeping up with adds. `entries_total` is a
+        # counter (lifetime), so we compare *rates* of add vs replay
+        # rather than the static counter value.
+        expr: |
+          (
+            sum(rate(arus_dlq_added_total[15m]))
+            -
+            sum(rate(arus_dlq_replayed_total[15m]))
+          ) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+          surface: queue
+        annotations:
+          summary: "DLQ add-rate exceeds replay-rate by > 0.1/sec for 30m"
+
+  # ---------------------------------------------------------------------
+  # API response validation — server/observability/security-metrics.ts
+  # ---------------------------------------------------------------------
+  - name: arus-api-validation
+    interval: 30s
+    rules:
+      - alert: ApiResponseValidationDrift
+        expr: |
+          sum by (route) (
+            rate(arus_api_response_validation_failures_total[15m])
+          ) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          surface: api
+        annotations:
+          summary: "Response schema drift on {{ $labels.route }}"
+          description: "validateResponse<T> recorded > 0.1 mismatches/sec for 15m"
+
+  # ---------------------------------------------------------------------
+  # ML shadow / canary — server/ml-prediction/shadow-canary.ts
+  # ---------------------------------------------------------------------
+  - name: arus-ml
+    interval: 60s
+    rules:
+      - alert: MlShadowDivergenceHigh
+        # `arus_ml_shadow_divergence` is a Histogram emitted by
+        # the shadow-canary scorer. p95 > 0.1 means the candidate
+        # model disagrees materially with production.
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, equipment_type) (rate(arus_ml_shadow_divergence_bucket[15m]))
+          ) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+          surface: ml
+        annotations:
+          summary: "Shadow model p95 divergence > 0.1 ({{ $labels.equipment_type }})"
+          runbook: docs/operations/runbooks/ai-promotion-rollback.md
+
+  # ---------------------------------------------------------------------
+  # ===================================================================
+  # PENDING EMISSION — these rules reference metrics that LR-3
+  # WANTS but the codebase does not yet expose. Do NOT uncomment
+  # until the matching instrumentation lands. Tracked as LR-4 work.
+  # ===================================================================
+  #
+  # - alert: WsNightlyFanoutFailed       # needs arus_ws_fanout_nightly_success pushgateway gauge
+  # - alert: WarehouseExportMissed       # needs arus_telemetry_warehouse_export_last_success_unixtime gauge
+  # - alert: MigrationDriftDetected      # needs arus_schema_drift_detected gauge
+  # - alert: MigrationApplyFailed        # needs arus_db_migrations_failed_total counter
+  # - alert: ImportFailureRate           # needs arus_import_runs_total / _failed_total counters
+  # - alert: AiPromotionFailed           # needs arus_ml_promotion_failed_total counter
+  # - alert: AiInferenceErrorRate        # needs arus_ml_inference_errors_total counter
+  # ---------------------------------------------------------------------

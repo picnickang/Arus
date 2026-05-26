@@ -1,0 +1,66 @@
+{
+  "title": "ARUS — System Health",
+  "uid": "arus-system-health",
+  "schemaVersion": 38,
+  "tags": ["arus", "system", "slo"],
+  "timezone": "browser",
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      { "name": "datasource", "type": "datasource", "query": "prometheus", "current": { "text": "Prometheus", "value": "Prometheus" } }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP 5xx rate",
+      "type": "timeseries",
+      "datasource": "${datasource}",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (route) (rate(arus_http_requests_total{code=~\"5..\"}[5m]))", "legendFormat": "{{route}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Request latency p99 (s)",
+      "type": "timeseries",
+      "datasource": "${datasource}",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum by (le, route) (rate(arus_http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{route}}" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Event-loop lag p99 (s)",
+      "type": "timeseries",
+      "datasource": "${datasource}",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(nodejs_eventloop_lag_seconds_bucket[5m])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Process RSS (MB)",
+      "type": "timeseries",
+      "datasource": "${datasource}",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "process_resident_memory_bytes / 1024 / 1024", "legendFormat": "rss" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "SLO error budget burn (auth, 1h)",
+      "type": "stat",
+      "datasource": "${datasource}",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "( sum(rate(arus_http_requests_total{route=~\"/api/auth/.*\",code=~\"5..\"}[1h])) / clamp_min(sum(rate(arus_http_requests_total{route=~\"/api/auth/.*\"}[1h])), 1) ) / 0.001", "legendFormat": "burn×" }
+      ]
+    }
+  ]
+}

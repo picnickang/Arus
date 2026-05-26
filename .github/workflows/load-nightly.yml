@@ -1,0 +1,142 @@
+name: Load Nightly (k6)
+
+# LR-3 Task 5 — nightly k6 load validation for telemetry ingest +
+# steady-state HTTP. Complements ws-fanout-nightly.yml (which proves
+# WS fan-out separately under multi-server topology). Both nightly
+# jobs feed the WsNightlyFanoutFailed / TelemetryBatchFailureRate
+# alerts in ops/prometheus/rules.yaml.
+
+on:
+  schedule:
+    # 03:30 UTC nightly — 30 min before the ws-fanout job so we
+    # don't compete for the same runner pool window.
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      smoke_vus:
+        description: "k6 VUs for smoke/steady"
+        required: false
+        default: "10"
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    name: k6 smoke + steady + spike
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
+      SESSION_SECRET: ci-test-session-secret-not-for-production
+      ARUS_DEPLOYMENT_MODE: CLOUD
+      REDIS_URL: redis://localhost:6379
+      LOAD_TEST_VUS: ${{ github.event.inputs.smoke_vus || '10' }}
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arus_test
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: [ "6379:6379" ]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Apply migrations
+        run: npm run db:push
+
+      - name: Boot app server
+        run: |
+          npm run dev &
+          echo $! > .server.pid
+          # Wait for /healthz; bail out after 60s
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5000/healthz >/dev/null 2>&1; then
+              echo "App ready in ${i}s"; break
+            fi
+            sleep 1
+          done
+
+      - name: Prepare artifacts directory
+        run: mkdir -p artifacts/load
+
+      - name: Run k6 smoke
+        run: |
+          set -o pipefail
+          k6 run \
+            --summary-export=artifacts/load/smoke-summary.json \
+            tests/load/smoke.js 2>&1 | tee artifacts/load/smoke.log
+
+      - name: Run k6 steady
+        run: |
+          set -o pipefail
+          k6 run \
+            --summary-export=artifacts/load/steady-summary.json \
+            tests/load/steady.js 2>&1 | tee artifacts/load/steady.log
+
+      - name: Run k6 spike
+        run: |
+          set -o pipefail
+          k6 run \
+            --summary-export=artifacts/load/spike-summary.json \
+            tests/load/spike.js 2>&1 | tee artifacts/load/spike.log
+
+      - name: Stop app server
+        if: always()
+        run: |
+          if [ -f .server.pid ]; then
+            kill "$(cat .server.pid)" || true
+          fi
+
+      - name: Threshold gate
+        # All k6 scripts declare `thresholds` blocks. k6 exits 99 on
+        # any breach; `set -o pipefail` above propagates that. This
+        # step double-checks summary JSON so a future script that
+        # forgets to declare thresholds doesn't silently pass.
+        run: node tests/load/check-thresholds.mjs artifacts/load
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-nightly-${{ github.run_id }}
+          path: artifacts/load/
+          retention-days: 14

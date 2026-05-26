@@ -1,0 +1,55 @@
+{
+  "title": "ARUS — Imports",
+  "uid": "arus-imports",
+  "schemaVersion": 38,
+  "tags": ["arus", "imports"],
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "1m",
+  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HOR import volume (arus_hor_import_total)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_hor_import_total[1h]))", "legendFormat": "hor-imports/hr" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Telemetry validation errors / sec",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_telemetry_validation_errors_total[5m]))", "legendFormat": "validation-errors" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "KB document uploads / hr",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_kb_documents_uploaded_total[1h]))", "legendFormat": "uploads/hr" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Idempotency cache hits / sec (import / write replay protection)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(arus_idempotency_hits_total[5m]))", "legendFormat": "idempotency-hits" }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Pending — per-adapter import runs/failures metrics not yet emitted (LR-4 backlog).",
+        "enable": false
+      }
+    ]
+  }
+}
