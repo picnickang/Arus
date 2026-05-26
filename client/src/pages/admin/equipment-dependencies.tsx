@@ -169,7 +169,12 @@ export default function EquipmentDependenciesPage() {
     },
     enabled: !!selectedVesselId,
   });
-  const equipmentList = equipmentQuery.data ?? [];
+  // Defensive: some upstream error responses return `{}` for this
+  // endpoint; guarding here keeps the downstream `for..of` and
+  // ReactFlow node mappers from throwing "{} is not iterable".
+  const equipmentList: Equipment[] = Array.isArray(equipmentQuery.data)
+    ? equipmentQuery.data
+    : [];
 
   const equipmentById = useMemo(() => {
     const m = new Map<string, Equipment>();
