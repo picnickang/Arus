@@ -35,7 +35,12 @@ DECLARE
     'work_order_completions','purchase_order_items','purchase_orders',
     'purchase_requests','vendor_quotes','service_orders','part_substitutions',
     'reservations','inventory_movements','stock','inventory_parts','parts',
-    'suppliers','storage_config','maintenance_costs','maintenance_records',
+    -- `storage_config` removed: the Pg table (shared/schema/admin.ts)
+    -- has no `org_id` column and the runtime service
+    -- (server/storage-config.ts) is a no-op stub. Including it caused
+    -- the fail-closed guard below to abort the migration. Keep this
+    -- list in lockstep with `server/tenancy/tenant-tables.ts`.
+    'suppliers','maintenance_costs','maintenance_records',
     'maintenance_checklist_items','maintenance_windows','maintenance_templates',
     'maintenance_schedules','work_orders','prediction_outcomes',
     'anomaly_detections','component_degradation','failure_history',
@@ -47,7 +52,8 @@ DECLARE
     'twin_residuals','asset_twin_state','asset_twins','vessel_3d_models',
     'telemetry_aggregates','telemetry_rollups','raw_telemetry',
     'equipment_telemetry','discovered_signals','sensor_states',
-    'sensor_configurations','sensor_thresholds','sensor_mapping','sensor_types',
+    -- `sensor_types` removed: global lookup table with no `org_id`.
+    'sensor_configurations','sensor_thresholds','sensor_mapping',
     'operating_condition_alerts','operating_parameters','part_failure_history',
     'downtime_events','equipment_decommission_events','performance_metrics',
     'equipment_lifecycle','pdm_score_logs','edge_heartbeats','devices',
@@ -57,17 +63,23 @@ DECLARE
     'stormgeo_weather_data','stormgeo_voyages','vessels','engine_log_events',
     'engine_log_daily','deck_log_events','deck_log_daily',
     'certificate_revocations','certificates','compliance_bundles',
-    'data_privacy_requests','retention_policies','compliance_audit_log',
+    -- `compliance_audit_log` removed: no `org_id` column today; needs
+    -- a backfill migration before it can be re-listed.
+    'data_privacy_requests','retention_policies',
     'alert_comments','alert_suppressions','alert_notifications',
     'alert_configurations','actionable_insights','insight_reports',
-    'insight_snapshots','llm_cost_tracking','rag_feedback','rag_messages',
-    'rag_conversations','kb_doc_versions','kb_docs','rag_search_queries',
+    'insight_snapshots','llm_cost_tracking','rag_feedback',
+    -- `rag_messages`, `kb_doc_versions` removed: no `org_id` today
+    -- (children of rag_conversations / kb_docs respectively). Add an
+    -- `org_id` column + backfill from the parent before re-listing.
+    'rag_conversations','kb_docs','rag_search_queries',
     'knowledge_base_items','content_sources','user_preferences',
     'context_snapshots','briefing_packages','agent_interactions',
     'agent_sessions','dtc_faults','scheduler_runs','schedule_optimizations',
     'optimization_results','resource_constraints','optimizer_configurations',
     'scheduling_settings','generated_reports','report_schedules','cost_savings',
-    'labor_rates','expenses','user_role_assignments','permission_grants',
+    -- `permission_grants` removed: no `org_id` column today.
+    'labor_rates','expenses','user_role_assignments',
     'roles','sso_configs','admin_system_settings','admin_audit_events',
     'email_settings','metrics_history','tenant_quotas','tenant_usage',
     'user_sessions','users'

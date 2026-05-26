@@ -22,7 +22,9 @@ DECLARE
     'work_order_completions','purchase_order_items','purchase_orders',
     'purchase_requests','vendor_quotes','service_orders','part_substitutions',
     'reservations','inventory_movements','stock','inventory_parts','parts',
-    'suppliers','storage_config','maintenance_costs','maintenance_records',
+    -- `storage_config` removed in lockstep with the up migration; see
+    -- migrations/0018_rls_policies.sql for the rationale.
+    'suppliers','maintenance_costs','maintenance_records',
     'maintenance_checklist_items','maintenance_windows','maintenance_templates',
     'maintenance_schedules','work_orders','prediction_outcomes',
     'anomaly_detections','component_degradation','failure_history',

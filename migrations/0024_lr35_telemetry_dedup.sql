@@ -14,5 +14,21 @@
 -- is already covered by the existing idempotency partial index — this
 -- constraint is the additional natural-key dedup the audit called for).
 
+-- Existing rows in equipment_telemetry may already contain duplicate
+-- (org_id, equipment_id, sensor_type, ts) tuples from before the
+-- application started sending ON CONFLICT DO NOTHING. Without a
+-- dedup pass the CREATE UNIQUE INDEX below would fail on those
+-- pre-existing dupes. Keep the lowest `id` per natural key (stable
+-- + deterministic) and drop the rest. This is a one-shot cleanup
+-- and is idempotent: after the unique index exists no further
+-- duplicates can land.
+DELETE FROM equipment_telemetry t
+  USING equipment_telemetry s
+ WHERE t.org_id = s.org_id
+   AND t.equipment_id = s.equipment_id
+   AND t.sensor_type = s.sensor_type
+   AND t.ts = s.ts
+   AND t.id > s.id;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_equipment_telemetry_natural
   ON equipment_telemetry (org_id, equipment_id, sensor_type, ts);

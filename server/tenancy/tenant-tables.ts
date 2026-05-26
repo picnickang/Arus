@@ -54,7 +54,14 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "inventory_parts" },
   { table: "parts" },
   { table: "suppliers" },
-  { table: "storage_config" },
+  // `storage_config` was listed here historically, but the Pg table
+  // (shared/schema/admin.ts:1109) has no `org_id` column and the
+  // runtime service (server/storage-config.ts) is a no-op stub
+  // (list → [], upsert/delete → no-op). Including it caused migration
+  // 0018_rls_policies to fail-closed with "registered as tenant-
+  // scoped but has no org_id column". The table holds no per-tenant
+  // data today; if/when storage_config grows real per-tenant rows,
+  // add an `org_id` column via a fresh migration and re-list it here.
 
   { table: "maintenance_costs" },
   { table: "maintenance_records" },
@@ -108,7 +115,12 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "sensor_configurations" },
   { table: "sensor_thresholds" },
   { table: "sensor_mapping" },
-  { table: "sensor_types" },
+  // `sensor_types`, `compliance_audit_log`, `kb_doc_versions`,
+  // `rag_messages`, `permission_grants` removed in lockstep with
+  // migration 0018: those Pg tables have no `org_id` column today
+  // and including them aborted the migration with a fail-closed
+  // guard. They remain candidates for a follow-up backfill +
+  // re-listing once the columns exist.
 
   // Equipment & operations
   { table: "operating_condition_alerts" },
@@ -152,7 +164,7 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "compliance_bundles" },
   { table: "data_privacy_requests" },
   { table: "retention_policies" },
-  { table: "compliance_audit_log" },
+  // { table: "compliance_audit_log" }, // removed: no org_id column (see 0018)
 
   // Alerts / insights
   { table: "alert_comments" },
@@ -166,9 +178,9 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
 
   // RAG / knowledge base
   { table: "rag_feedback" },
-  { table: "rag_messages" },
+  // { table: "rag_messages" }, // removed: no org_id column (see 0018)
   { table: "rag_conversations" },
-  { table: "kb_doc_versions" },
+  // { table: "kb_doc_versions" }, // removed: no org_id column (see 0018)
   { table: "kb_docs" },
   { table: "rag_search_queries" },
   { table: "knowledge_base_items" },
@@ -199,7 +211,7 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
 
   // Permissions
   { table: "user_role_assignments" },
-  { table: "permission_grants" },
+  // { table: "permission_grants" }, // removed: no org_id column (see 0018)
   { table: "roles" },
 
   // SSO / Admin
