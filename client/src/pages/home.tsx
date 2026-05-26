@@ -755,7 +755,7 @@ export default function HomePage() {
         {/* AI Recommendation strip — links into the existing AI hub. */}
         <button
           type="button"
-          onClick={() => setLocation("/agent")}
+          onClick={() => setLocation("/findings")}
           className="ops-card ops-card-info mb-4 flex w-full items-center gap-3 p-4 text-left"
           data-testid="card-ai-recommendation"
         >

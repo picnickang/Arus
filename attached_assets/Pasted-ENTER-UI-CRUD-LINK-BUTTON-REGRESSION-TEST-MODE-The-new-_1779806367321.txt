@@ -1,0 +1,182 @@
+ENTER UI CRUD / LINK / BUTTON REGRESSION TEST MODE.
+
+The new UI has broken links/buttons. Treat this as a regression-fix task, not a redesign task.
+
+Goal:
+Test every visible page, link, button, form, tab, CTA, navigation item, modal trigger, drawer trigger, and workflow entry point in the UI.
+
+Do NOT redesign the UI.
+Do NOT change visual style unless required to restore functionality.
+Do NOT add new features.
+
+==================================================
+SCOPE
+==================================================
+
+Audit and fix frontend interaction regressions across:
+
+- /portal-login
+- /home
+- /feedback
+- Admin Command Center
+- User Dashboard
+- BottomNav
+- SwitchPortalButton
+- module shortcuts
+- Maintenance
+- Work Orders
+- Crew Management
+- Logistics
+- AI Analytics / AI Intelligence
+- System Administration
+- Alerts / notifications
+- Reports
+- any page reachable from the current navigation
+
+==================================================
+CRUD / INTERACTION TESTING
+==================================================
+
+For every page, test:
+
+CREATE:
+- New / Add / Create buttons
+- form opening
+- form submit
+- validation errors
+- cancel/reset
+- success/failure state
+
+READ:
+- page loads
+- list/table/card data renders
+- empty states render
+- detail pages open
+- filters/search/tabs work
+
+UPDATE:
+- edit buttons
+- save buttons
+- status changes
+- inline controls
+- dropdown changes
+- modal/drawer edits
+
+DELETE / ARCHIVE:
+- delete/archive buttons
+- confirmation dialogs
+- cancel
+- confirm
+- success/failure state
+
+NAVIGATION:
+- all sidebar links
+- bottom nav links
+- module cards
+- breadcrumbs
+- back buttons
+- switch portal
+- logout
+- mobile nav
+- tablet nav
+- admin/user portal switching
+
+==================================================
+TESTING REQUIREMENTS
+==================================================
+
+1. Create a route/action inventory:
+- route
+- visible controls
+- expected behavior
+- current result
+- pass/fail
+
+2. Add or update Playwright tests:
+- click every nav link
+- click every module shortcut
+- verify URL/page transition
+- verify no blank page
+- verify no console errors
+- verify no broken buttons
+- verify key forms open and validate
+- verify modals/drawers open/close
+- verify mobile viewport navigation works
+
+3. Test both roles:
+- Admin portal
+- User portal
+
+4. Test responsive viewports:
+- mobile
+- tablet
+- desktop
+
+==================================================
+FIX RULES
+==================================================
+
+Fix broken interactions by:
+- restoring correct route hrefs
+- restoring onClick handlers
+- preserving existing route names
+- wiring module cards to existing routes
+- fixing disabled buttons that should be active
+- fixing stale route constants
+- fixing event propagation issues
+- fixing overlay/z-index/pointer-events issues
+- fixing mobile nav click targets
+
+Do NOT:
+- invent fake endpoints
+- fake successful CRUD if backend is missing
+- remove buttons to hide bugs
+- suppress errors
+- bypass auth/RBAC
+- weaken validation
+- introduce any/as any/ts-ignore/eslint-disable
+
+==================================================
+ARCHITECTURE RULES
+==================================================
+
+Preserve:
+- hexagonal frontend architecture
+- role-navigation policy as source of truth
+- nav-storage adapter
+- existing backend APIs
+- strict TypeScript cleanliness
+- security/RBAC behavior
+
+If a button points to a feature not implemented:
+- make it clearly disabled with “Coming soon” or “Backend not configured”
+- or route to the closest existing valid page
+- document it in the report
+
+==================================================
+VALIDATION
+==================================================
+
+Run:
+- npx tsc --noEmit
+- strict checks
+- scoped eslint
+- Playwright tests for desktop/tablet/mobile
+- existing unit tests affected by navigation
+- explicit-any remains 0
+- cast count does not increase
+- architect/code review
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return:
+1. route/action inventory
+2. broken links/buttons found
+3. fixes applied
+4. tests added
+5. remaining intentionally disabled controls
+6. desktop/tablet/mobile test results
+7. validation status
+8. screenshots/previews if possible

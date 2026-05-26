@@ -78,6 +78,11 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
     expect(adminBranch).toMatch(/pill-elevated-risk/);
     expect(adminBranch).toMatch(/pill-nominal-risk/);
     expect(adminBranch).toMatch(/data-testid="card-ai-recommendation"/);
+    // Regression guard: the AI Recommendation card must route to a
+    // registered path. `/agent` is NOT registered in `client/src/routes/`
+    // (only `/agent/activity` is) — landing there would hit NotFound.
+    expect(adminBranch).toMatch(/setLocation\("\/findings"\)/);
+    expect(adminBranch).not.toMatch(/setLocation\("\/agent"\)/);
   });
 
   it("renders the Critical Attention list keyed off useAttentionItems", () => {
