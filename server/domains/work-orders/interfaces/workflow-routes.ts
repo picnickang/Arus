@@ -184,6 +184,13 @@ export function registerWorkOrderWorkflowRoutes(
   app.post(
     "/api/work-orders/:id/cancel",
     requireOrgIdAndValidateBody,
+    // LR-3.5 / TX-2: cancel voids realized savings + flips a WO terminal
+    // state. The offline outbox can replay the same cancel POST on
+    // reconnect; without idempotency a second call could re-void savings
+    // and re-fire WORK_ORDER_CANCELLED. Same key surface as the
+    // complete-with-feedback mount above (Idempotency-Key OR body
+    // clientMutationId, scoped per (orgId, method, path)).
+    idempotencyMiddleware(),
     writeOperationRateLimit,
     withErrorHandling("cancel work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);

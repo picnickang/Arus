@@ -11,6 +11,7 @@ import { getLineageRecords, getModelLineage, compareModels, recordPromotion } fr
 import { getProvenanceEvents, verifyChain } from "./provenance.js";
 import type { DeploymentStage, ModelFamily } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { requireRole } from "../middleware/role-auth";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -142,10 +143,15 @@ router.get("/model/compare", async (req, res, next) => {
  * Promote a model to a new deployment stage
  * RBAC: Manager or Admin only
  */
-router.post("/model/promote", async (req, res, next) => {
+// LR-3.5 / ML-1: defence-in-depth — mount the standard requireRole middleware
+// on top of the existing inline RBAC check so the gate cannot regress if the
+// inline check is refactored away. The inline check is preserved to keep the
+// legacy "Manager"/"Admin" string roles working alongside the canonical
+// CrewRole set ("admin", "chief_engineer").
+router.post("/model/promote", requireRole("admin", "chief_engineer"), async (req, res, next) => {
   try {
     const user = (req as AuthenticatedRequest).user;
-    if (!user || !["Manager", "Admin", "admin"].includes(user.role)) {
+    if (!user || !["Manager", "Admin", "admin", "chief_engineer"].includes(user.role)) {
       return res.status(403).json({
         success: false,
         error: "Only Managers and Admins can promote models",

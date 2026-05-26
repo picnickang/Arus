@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { ModelRegistryAdapter } from "./adapter";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { requireRole } from "../../../middleware/role-auth";
 
 const router = Router();
 const registry = new ModelRegistryAdapter();
@@ -83,7 +84,9 @@ router.get("/:modelId/deployment", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/:modelId/deploy", async (req: Request, res: Response) => {
+// LR-3.5 / ML-1: deploy + rollback mutate live production routing for the
+// org; gate behind admin/chief_engineer just like /api/ml/models/:id/promote.
+router.post("/:modelId/deploy", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const parsed = deploySchema.safeParse(req.body);
@@ -99,7 +102,7 @@ router.post("/:modelId/deploy", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/deployments/:deploymentId/rollback", async (req: Request, res: Response) => {
+router.post("/deployments/:deploymentId/rollback", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
     const result = await registry.rollback(orgId, parseInt(req.params['deploymentId'] ?? '0'));

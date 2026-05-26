@@ -9,6 +9,7 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import { requireRole } from "../middleware/role-auth.js";
+import { idempotencyMiddleware } from "../middleware/idempotency.js";
 import { dbMlAnalyticsStorage } from "../repositories.js";
 import { mlTrainConfigSchema } from "@shared/schema-runtime";
 import type { InsertMlModel } from "@shared/schema";
@@ -195,7 +196,13 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / ML-1: `/deploy` directly sets a model to status=deployed,
+// which is the same end-state as the two-person `/promote` flow but
+// without the approval token or replaced-model bookkeeping. Gate it
+// behind the same role check so the stricter promote workflow can't
+// be sidestepped by calling /deploy. Idempotency mounted because a
+// retried deploy POST without a key would replay the timestamp.
+router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -218,7 +225,10 @@ router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-router.post("/ml/models/:id/archive", async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / ML-1: archive removes a model from the deployable pool and
+// is the only path back from `deployed` outside the rollback flow.
+// Same admin/chief_engineer gate to match the rest of the lifecycle.
+router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -235,7 +245,9 @@ router.post("/ml/models/:id/archive", async (req: AuthenticatedRequest, res: Res
   }
 });
 
-router.delete("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / ML-1: model delete is the strongest model-lifecycle mutation
+// (irreversible). Same admin/chief_engineer gate as deploy/archive.
+router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -375,6 +387,13 @@ const promoteBodySchema = z.object({
 router.post(
   "/ml/models/:id/promote",
   requireRole("admin", "chief_engineer"),
+  // LR-3.5 / TX-2: promote consumes the single-use approval token and
+  // performs the atomic archive-deployed + deploy-candidate swap. A
+  // retried POST without idempotency would 412 on the second call
+  // (token already consumed) which masks "did the first call succeed?".
+  // Idempotency replays the cached response for the same key so the
+  // proposer/approver UI gets a deterministic answer on flaky networks.
+  idempotencyMiddleware(),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const approverId = req.user?.id;
@@ -454,7 +473,11 @@ router.post(
   },
 );
 
-router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+// LR-3.5 / TX-2: rollback flips the deployed model for an equipmentType;
+// retry on the same id without idempotency would archive the (already-
+// archived) model and pick a different "previous" candidate the second
+// time. Cache the response per (orgId, method, path, idempotency key).
+router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), idempotencyMiddleware(), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!current) return sendNotFound(res, "ML model");
