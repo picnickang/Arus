@@ -51,10 +51,14 @@ export function registerMaintenanceRoutes(
 
   app.get(
     "/api/maintenance-schedules",
+    requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
+      // LR-3.5 / TEN-1: was missing `requireOrgId` and the service call
+      // dropped orgId entirely, returning schedules from every tenant.
+      const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId, status } = schedulesListQuerySchema.parse(req.query);
-      const schedules = await maintenanceService.listSchedules(equipmentId, status);
+      const schedules = await maintenanceService.listSchedules(orgId, equipmentId, status);
       return res.json(schedules);
     })
   );

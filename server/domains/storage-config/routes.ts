@@ -8,6 +8,7 @@
 import { Express, Request, Response } from "express";
 import { withErrorHandling, sendNotFound, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
 
 interface StorageConfigDependencies {}
 
@@ -139,14 +140,31 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
   );
 
   // Get object (private with ACL)
+  //
+  // LR-3.5 / TEN-5: previously this route had no auth gate at all —
+  // anyone who could guess an object path could pull the bytes. We
+  // now require an authenticated tenant via `requireOrgId` and pass
+  // the orgId/userId to downloadObject for audit logging. The
+  // OBJ-2 magic-byte sniff + nosniff header inside downloadObject
+  // closes the served-as-HTML XSS path. Structural object-to-org
+  // ownership is a separate (planned) work item — see follow-up
+  // notes — because the current /objects/<id> layout has no
+  // org-prefix, so any logged-in user across orgs could in
+  // principle resolve any UUID. Until that re-layout lands, the
+  // audit log + magic-byte sniff are the available defences.
   app.get(
     "/objects/:objectPath(*)",
+    requireOrgId,
     withErrorHandling("access object", async (req: Request, res: Response) => {
       const { ObjectStorageService, ObjectNotFoundError } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-        objectStorageService.downloadObject(objectFile, res);
+        const authed = req as AuthenticatedRequest;
+        objectStorageService.downloadObject(objectFile, res, 3600, {
+          orgId: authed.orgId,
+          userId: authed.user?.id,
+        });
         return undefined;
       } catch (error) {
         if (error instanceof ObjectNotFoundError) {

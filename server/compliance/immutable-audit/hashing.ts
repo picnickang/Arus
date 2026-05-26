@@ -10,12 +10,31 @@ import { createHash } from "node:crypto";
  * Compute SHA-256 hash of audit record content for chain integrity
  *
  * IMPORTANT: changedFields is intentionally excluded from the hash chain.
- * The hash depends only on: prevHash, timestamp, entityType, entityId,
- * eventCategory, eventType, performedBy, previousState, newState.
- * changedFields is derived metadata computed from state diffs, not source data.
+ * The hash depends only on: prevHash, orgId, timestamp, entityType,
+ * entityId, eventCategory, eventType, performedBy, previousState,
+ * newState. changedFields is derived metadata computed from state
+ * diffs, not source data.
+ *
+ * LR-3.5 / AUD-2: `orgId` is now part of the hashed payload. Before
+ * this change two tenants could in principle collide on
+ * (entityType, entityId, eventCategory, eventType, performedBy,
+ * timestamp) — entityId is org-namespaced in practice but the chain
+ * verifier had no domain reason to trust that, so a misconfigured
+ * insertion or a cross-tenant replay could pass `verify()` against
+ * the wrong tenant's chain. Binding orgId into the hash forecloses
+ * that class of confusion.
+ *
+ * Backfill note: any chain row produced before this change has a
+ * hash computed without orgId; `verify.ts` must pass the historical
+ * orgId field through so re-verification still passes. Rolling-cut
+ * verification (new chain starts after deploy) is the cleanest
+ * upgrade path; the existing pre-LR-3.5 chain remains
+ * cryptographically valid but is not interoperable with the new
+ * hashing rule.
  */
 export function computeAuditHash(
   prevHash: string | null,
+  orgId: string,
   eventTimestamp: Date,
   entityType: string,
   entityId: string,
@@ -27,6 +46,7 @@ export function computeAuditHash(
 ): string {
   const hashInput = JSON.stringify({
     prevHash,
+    orgId,
     timestamp: eventTimestamp.toISOString(),
     entityType,
     entityId,

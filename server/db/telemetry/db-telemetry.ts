@@ -88,12 +88,46 @@ export class DatabaseTelemetryStorage {
       .limit(10000);
   }
   async createTelemetryReading(reading: InsertTelemetry): Promise<EquipmentTelemetry> {
-    const [n] = await db
+    // LR-3.5 / DB-2: deduplicate on the natural composite key
+    // (org_id, equipment_id, sensor_type, ts). The supporting UNIQUE
+    // index lives in migration 0024. If a duplicate is replayed by
+    // the offline outbox or the batch writer's retry path, the
+    // ON CONFLICT DO NOTHING short-circuit returns zero rows — we
+    // resolve the existing row and hand it back so the caller's
+    // contract (always returns the canonical row) is preserved.
+    const ts = reading.ts || new Date();
+    const insertResult = await db
       .insert(equipmentTelemetry)
-      .values({ id: randomUUID(), ...reading, ts: reading.ts || new Date() })
+      .values({ id: randomUUID(), ...reading, ts })
+      .onConflictDoNothing({
+        target: [
+          equipmentTelemetry.orgId,
+          equipmentTelemetry.equipmentId,
+          equipmentTelemetry.sensorType,
+          equipmentTelemetry.ts,
+        ],
+      })
       .returning();
-    if (!n) throw new Error("createTelemetryReading: insert returned no row");
-    return n;
+    if (insertResult[0]) {
+      return insertResult[0];
+    }
+    // Conflict — return the row that won the race.
+    const [existing] = await db
+      .select()
+      .from(equipmentTelemetry)
+      .where(
+        and(
+          eq(equipmentTelemetry.orgId, reading.orgId),
+          eq(equipmentTelemetry.equipmentId, reading.equipmentId),
+          eq(equipmentTelemetry.sensorType, reading.sensorType),
+          eq(equipmentTelemetry.ts, ts),
+        ),
+      )
+      .limit(1);
+    if (!existing) {
+      throw new Error("createTelemetryReading: conflict but no existing row found");
+    }
+    return existing;
   }
   async getLatestTelemetryReadings(
     equipmentId?: string,

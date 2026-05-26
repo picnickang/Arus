@@ -29,12 +29,24 @@ export type CrewRole =
 
 const PARTS_MANAGEMENT_ROLES: CrewRole[] = ["chief_engineer", "second_engineer"];
 
+/**
+ * LR-3.5 / SEC-1: the previous implementation bypassed the role check
+ * whenever `NODE_ENV === "development"` and no user was attached. That
+ * branch was a footgun: any deploy where `NODE_ENV` was unset, missing,
+ * or stuck on a non-"production" value (CI runners, dev containers,
+ * misconfigured prod) effectively disabled RBAC across every admin
+ * route. We removed the implicit bypass. Tests that genuinely need to
+ * exercise a handler without a user MUST set `RBAC_DEV_NO_AUTH=1`
+ * explicitly — opting in beats failing open.
+ */
+const RBAC_DEV_NO_AUTH = process.env['RBAC_DEV_NO_AUTH'] === "1";
+
 export function requireRole(...allowedRoles: CrewRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as AuthenticatedRequest).user;
 
-    if (process.env['NODE_ENV'] === "development" && !user) {
-      logger.info("[DEV MODE] Role check bypassed - no user attached");
+    if (RBAC_DEV_NO_AUTH && !user) {
+      logger.warn("[RBAC] Bypassed via RBAC_DEV_NO_AUTH=1 — must NEVER be set in production");
       return next();
     }
 

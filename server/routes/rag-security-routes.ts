@@ -72,15 +72,23 @@ const ragSecurityConfigUpdateSchema = z
 /**
  * Admin-only middleware for RAG security routes
  * Requires valid session with admin privileges
+ *
+ * LR-3.5 / SEC-3: the previous dev-mode branch tested
+ * `session?.userId === "dev-user-id" || DEFAULT_ORG_ID`. Because
+ * `DEFAULT_ORG_ID` is a non-empty string constant, the disjunct was
+ * always truthy whenever `NODE_ENV === "development"`, which turned
+ * the admin gate off entirely in dev. Removed — tests can opt in via
+ * the same `RBAC_DEV_NO_AUTH=1` escape hatch used by `requireRole`.
  */
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const session = (req as AuthenticatedRequest).session;
 
-  // In development, allow with dev user
-  if (process.env['NODE_ENV'] === "development") {
-    if (session?.userId === "dev-user-id" || DEFAULT_ORG_ID) {
-      return next();
-    }
+  if (process.env['RBAC_DEV_NO_AUTH'] === "1" && !session?.userId) {
+    logger.warn(
+      "RagSecurityRoutes",
+      "Admin gate bypassed via RBAC_DEV_NO_AUTH=1 — must NEVER be set in production"
+    );
+    return next();
   }
 
   // Check for valid session

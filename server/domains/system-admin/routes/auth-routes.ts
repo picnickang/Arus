@@ -37,7 +37,16 @@ function hasValidSetupToken(req: Request): boolean {
     return false;
   }
   const provided = req.headers["x-setup-token"];
-  return typeof provided === "string" && provided.length > 0 && provided === configuredToken;
+  if (typeof provided !== "string" || provided.length === 0) {
+    return false;
+  }
+  // LR-3.5 / SEC-2: use a constant-time compare (helper above hashes
+  // both sides to a fixed-size digest first so length differences do
+  // not themselves leak). The helper already exists in this file; the
+  // prior `===` would short-circuit on the first differing byte and
+  // give a network-timing attacker a viable channel against
+  // SETUP_TOKEN despite the per-IP rate limit.
+  return constantTimeEqualString(provided, configuredToken);
 }
 
 function isLocalhostOrTauri(req: Request): boolean {

@@ -90,7 +90,24 @@ export class DbComplianceStorage {
   }
 
   async deleteComplianceFinding(id: string, orgId: string) {
-    await db.execute(sql`DELETE FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId}`);
+    // LR-3.5 / AUD-1: was a raw DELETE that destroyed compliance
+    // evidence with no audit trail and broke regulator-grade
+    // reproducibility (flag-cluster history disappears). We now
+    // soft-archive: status='archived' + archived_at=NOW(). The
+    // record stays queryable for audit and CSV/PDF exports filter
+    // it out by default. The DELETE-on-DELETE semantics callers
+    // expect are preserved at the API level (the row no longer
+    // appears in the default-filtered finding list), but the
+    // audit chain is intact.
+    // The schema has no dedicated `archived_at` column; `updated_at`
+    // already auto-stamps on UPDATE and records the archival time.
+    await db.execute(sql`
+      UPDATE compliance_findings
+         SET status = 'archived',
+             updated_at = NOW()
+       WHERE id = ${id}
+         AND org_id = ${orgId}
+    `);
   }
 
   async getComplianceRules(orgId: string, filters?: ComplianceRuleFilters) {

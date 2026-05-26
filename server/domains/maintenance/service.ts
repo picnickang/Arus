@@ -126,8 +126,12 @@ function pickLegacyTemplateExtras(
 export class MaintenanceService {
   // ========== Maintenance Schedules ==========
 
-  async listSchedules(equipmentId?: string, status?: string): Promise<MaintenanceSchedule[]> {
-    const entities = await maintenanceAppService.listSchedules(equipmentId, status);
+  async listSchedules(
+    orgId: string,
+    equipmentId?: string,
+    status?: string,
+  ): Promise<MaintenanceSchedule[]> {
+    const entities = await maintenanceAppService.listSchedules(orgId, equipmentId, status);
     return entities.map(scheduleEntityToSchema);
   }
 

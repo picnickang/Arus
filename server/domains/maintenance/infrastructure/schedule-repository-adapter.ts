@@ -15,8 +15,20 @@ import { dbMaintenanceStorage, schedulingAdapter } from "../../../repositories";
  * PostgreSQL/Storage adapter for MaintenanceScheduleRepository
  */
 export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceScheduleRepository {
-  async findAll(equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]> {
-    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, status);
+  async findAll(orgId: string, equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]> {
+    // LR-3.5 / TEN-1: the previous signature accepted no orgId and the
+    // adapter passed `(equipmentId, status)` positionally — but the
+    // underlying `dbMaintenanceStorage.getMaintenanceSchedules` signature
+    // is `(equipmentId?, orgId?, filters?)`, so the second argument was
+    // being silently bound to `orgId` (a string in the `status` slot).
+    // Result: GET /api/maintenance-schedules returned schedules across
+    // every tenant. Now we require an explicit orgId and pass it
+    // through the right parameter, with `status` carried via filters.
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
+      equipmentId,
+      orgId,
+      status ? { status } : undefined,
+    );
     return schedules.map(this.mapToEntity);
   }
 

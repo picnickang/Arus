@@ -39,6 +39,7 @@ export async function logEventPostgres(input: AuditEventInput): Promise<AuditRec
 
     const hash = computeAuditHash(
       prevHash,
+      input.orgId, // LR-3.5 / AUD-2: bind orgId into the chain hash
       eventTimestamp,
       input.entityType,
       input.entityId,

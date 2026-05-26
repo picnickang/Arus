@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
+import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route-utils";
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -120,6 +121,16 @@ export function registerWorkOrderWorkflowRoutes(
   app.post(
     "/api/work-orders/:id/complete-with-feedback",
     requireOrgIdAndValidateBody,
+    // LR-3.5 / TX-2: completion is the highest-stakes write on a
+    // work-order. The offline outbox replays mutations on
+    // reconnect and a flaky network can issue the same POST twice;
+    // without idempotency the second call double-records labour
+    // hours, double-fires WORK_ORDER_COMPLETED via the outbox, and
+    // double-applies prediction feedback. The shared
+    // idempotencyMiddleware keys on `Idempotency-Key` OR a
+    // `clientMutationId` carried in the body (the outbox queues
+    // mutations with the latter), scoped per (orgId, method, path).
+    idempotencyMiddleware(),
     writeOperationRateLimit,
     withErrorHandling("complete work order with feedback", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);

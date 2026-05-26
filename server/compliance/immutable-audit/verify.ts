@@ -55,8 +55,20 @@ export async function verifyAuditChain(
       };
     }
 
+    if (!record.orgId) {
+      // Defence-in-depth: the chain is org-scoped so every row must
+      // carry an orgId. A null here would corrupt the rehash.
+      return {
+        valid: false,
+        recordsVerified: i,
+        brokenAt: i,
+        brokenRecordId: record.id,
+        error: `Record ${i} missing orgId`,
+      };
+    }
     const computedHash = computeAuditHash(
       record.prevHash,
+      record.orgId, // LR-3.5 / AUD-2: orgId is now part of the chain hash
       record.eventTimestamp as Date,
       record.entityType,
       record.entityId,

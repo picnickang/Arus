@@ -3,7 +3,7 @@
  * Generates crew certification and compliance report
  */
 
-import { vesselService, dbCrewStorage, dbCrewExtensionsStorage } from "../../../repositories";
+import { vesselService, dbCrewStorage } from "../../../repositories";
 import type { ICrewComplianceGenerator } from "../domain/ports.js";
 import type {
   CrewComplianceData,
@@ -53,29 +53,67 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
     vesselIds: string[] | null
   ): Promise<CertificationAlert[]> {
     try {
+      // LR-3.5 / PERF-1: was a vessels-by-crew-by-certifications
+      // triple-nested loop issuing one `getCrewCertifications` query
+      // per crew member (`(vessels × members)` round-trips). On a
+      // mid-size fleet (~20 vessels × ~15 crew) that's 300+ serial
+      // queries — the scheduled-reports worker timed out and held
+      // its DB connection long enough to starve the rest of the
+      // pool. The rewrite issues exactly three queries: all
+      // vessels, all crew across the filtered vessels (in parallel
+      // per vessel — `dbCrewStorage.getCrew` is the only port we
+      // have today), and all certifications for the org. The
+      // org-wide cert pull is then grouped by `crewId` in-memory,
+      // and the per-member projection is O(certs) instead of
+      // O(vessels × members) round-trips.
       const alerts: CertificationAlert[] = [];
       const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
 
+      if (filteredVessels.length === 0) {
+        return alerts;
+      }
+
       const now = new Date();
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-      for (const vessel of filteredVessels) {
-        const crew = await dbCrewStorage.getCrew(orgId, vessel.id);
+      // Two parallel batches: per-vessel crew lists (the only
+      // signature we have) and a single org-wide cert pull.
+      const [crewByVessel, allCerts] = await Promise.all([
+        Promise.all(
+          filteredVessels.map((vessel) => dbCrewStorage.getCrew(orgId, vessel.id))
+        ),
+        // `dbCrewStorage` exposes the org-scoped 2-arg overload; the
+        // `dbCrewExtensionsStorage` binding is only the crew-only
+        // overload.
+        dbCrewStorage.getCrewCertifications(undefined, orgId),
+      ]);
+
+      const certsByCrew = new Map<string, typeof allCerts>();
+      for (const cert of allCerts) {
+        const existing = certsByCrew.get(cert.crewId);
+        if (existing) {
+          existing.push(cert);
+        } else {
+          certsByCrew.set(cert.crewId, [cert]);
+        }
+      }
+
+      for (let i = 0; i < filteredVessels.length; i++) {
+        const vessel = filteredVessels[i];
+        const crew = crewByVessel[i];
+        if (!vessel || !crew) continue;
 
         for (const member of crew) {
-          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(member.id);
-
+          const certifications = certsByCrew.get(member.id) ?? [];
           for (const cert of certifications) {
             const expiryDate = cert.expiresAt ? new Date(cert.expiresAt) : null;
-
             if (expiryDate && expiryDate <= ninetyDaysFromNow) {
               const daysUntilExpiry = Math.ceil(
                 (expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
               );
-
               alerts.push({
                 crewId: member.id,
                 crewName: member.name,

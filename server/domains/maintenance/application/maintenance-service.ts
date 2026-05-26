@@ -41,8 +41,12 @@ export class MaintenanceApplicationService {
 
   // ========== Maintenance Schedules ==========
 
-  async listSchedules(equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]> {
-    return this.scheduleRepository.findAll(equipmentId, status);
+  async listSchedules(
+    orgId: string,
+    equipmentId?: string,
+    status?: string,
+  ): Promise<MaintenanceScheduleEntity[]> {
+    return this.scheduleRepository.findAll(orgId, equipmentId, status);
   }
 
   async getScheduleById(id: string, orgId: string): Promise<MaintenanceScheduleEntity | undefined> {
