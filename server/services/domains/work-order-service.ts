@@ -605,7 +605,15 @@ class WorkOrderService {
       includeParts?: boolean;
     }
   ): Promise<WorkOrder> {
-    return db.transaction(async (tx) => {
+    // LR-3.5 / TX-1: publish `work_order.created` STRICTLY after the
+    // clone transaction commits. Previously `publishEvent(...)` ran
+    // inside the `db.transaction(...)` callback at the tail of the
+    // clone flow — if a later step (or commit itself) failed, the
+    // legacy sync-event bus had already fanned out a "created" event
+    // for a row that was about to be rolled back. We now compute the
+    // cloned row inside the tx, return it, and emit the event only
+    // after `db.transaction(...)` resolves.
+    const clonedOrder = await db.transaction(async (tx) => {
       const [original] = await tx
         .select()
         .from(workOrders)
@@ -683,9 +691,14 @@ class WorkOrderService {
             );
         }
       }
-      await publishEvent("work_order.created", { ...clonedOrder } as Record<string, unknown>);
       return clonedOrder;
     });
+    // Post-commit emit — the tx has resolved successfully by this
+    // point, so any subscriber (sync-events bus, WS fan-out) only
+    // ever observes a `work_order.created` for a row that is durably
+    // committed. On rollback we never reach this line.
+    await publishEvent("work_order.created", { ...clonedOrder } as Record<string, unknown>);
+    return clonedOrder;
   }
 
   /**

@@ -9,6 +9,7 @@ import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
 import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
 import { fireInventoryMovementProjections } from "../../../db/inventory/index.js";
+import { broadcastChange } from "../../../db/workorders/types.js";
 
 type WorkOrderPriority = "low" | "medium" | "high" | "critical";
 const VALID_PRIORITIES = new Set<WorkOrderPriority>(["low", "medium", "high", "critical"]);
@@ -77,6 +78,14 @@ export class WorkOrderApplicationService {
       return created;
     });
     if (postCommit) (postCommit as () => void)();
+    // LR-3.5 / TX-1: WS "create" broadcast is now owned by the
+    // application service rather than `DbWorkOrderCore.createWorkOrder`,
+    // because the db-layer broadcast would fire pre-commit when called
+    // with a caller-supplied `tx`. The db layer suppresses its own
+    // broadcast when `tx` is present and we fire it here, AFTER
+    // `db.transaction(...)` resolves. On rollback we never reach this
+    // line, so clients never observe a work order that doesn't exist.
+    broadcastChange("create", workOrder as unknown as Record<string, unknown>);
 
     return workOrder;
   }

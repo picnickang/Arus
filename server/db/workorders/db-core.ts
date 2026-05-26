@@ -109,7 +109,18 @@ export class DbWorkOrderCore {
     if (!newOrder) {
       throw new Error("Failed to create work order");
     }
-    broadcastChange("create", newOrder);
+    // LR-3.5 / TX-1: when called inside a caller-supplied `tx`, the
+    // surrounding transaction has NOT committed yet (and may still
+    // roll back — e.g. if the outbox enqueue throws). Firing the WS
+    // "create" broadcast here would let clients observe a work order
+    // that may never durably exist. The application service that
+    // owns the surrounding `db.transaction(...)` is responsible for
+    // broadcasting AFTER commit. Without `tx` this method is the
+    // legacy fast path (its own implicit one-statement tx already
+    // committed by the time we get here), so it's safe to broadcast.
+    if (!tx) {
+      broadcastChange("create", newOrder);
+    }
     return newOrder;
   }
 
