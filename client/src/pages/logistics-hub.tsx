@@ -73,7 +73,7 @@ export default function LogisticsHub() {
             Inventory blockers, purchasing, service orders, and supplier management.
           </p>
         </div>
-        <Link href="/inventory-management">
+        <Link href="/logistics?tab=inventory">
           <Button data-testid="button-open-inventory" variant="outline" className="gap-2">
             Open inventory <ChevronRight className="h-4 w-4" />
           </Button>
@@ -135,7 +135,7 @@ export default function LogisticsHub() {
         <CardContent className="p-0">
           <div className="flex items-center justify-between border-b px-4 py-2">
             <h2 className="text-sm font-semibold">Low-stock parts</h2>
-            <Link href="/inventory-management?filter=low-stock">
+            <Link href="/logistics?tab=inventory&filter=low-stock">
               <Button
                 variant="ghost"
                 size="sm"
@@ -195,7 +195,7 @@ export default function LogisticsHub() {
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="logistics-jump-grid">
           <JumpCard
-            href="/inventory-management"
+            href="/logistics?tab=inventory"
             icon={Boxes}
             label="Inventory"
             description="Stock levels & purchasing"

@@ -133,7 +133,7 @@ export default function LogsComplianceHub() {
               </CardContent>
             </Card>
           </Link>
-          <Link href="/notifications">
+          <Link href="/system?tab=notifications">
             <Card className="cursor-pointer hover:bg-muted/50 transition-colors h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Notifications</CardTitle>
@@ -245,7 +245,7 @@ export default function LogsComplianceHub() {
                       })}
                       {filteredFindings.length > 5 && (
                         <Button variant="ghost" size="sm" className="w-full" asChild>
-                          <Link href="/compliance/findings">
+                          <Link href="/logs/compliance?tab=findings">
                             View all {filteredFindings.length} findings
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </Link>
@@ -289,7 +289,7 @@ export default function LogsComplianceHub() {
                     </Link>
                   </Button>
                   <Button variant="outline" className="justify-start h-auto py-4" asChild>
-                    <Link href="/notifications">
+                    <Link href="/system?tab=notifications">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
                           <Bell className="h-5 w-5 text-purple-600" />
@@ -318,7 +318,7 @@ export default function LogsComplianceHub() {
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/compliance/findings">
+                  <Link href="/logs/compliance?tab=findings">
                     View All
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
@@ -505,7 +505,7 @@ export default function LogsComplianceHub() {
                   </div>
                   <Separator />
                   <Button className="w-full" variant="secondary" asChild>
-                    <Link href="/notifications">
+                    <Link href="/system?tab=notifications">
                       Configure Notifications
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Link>

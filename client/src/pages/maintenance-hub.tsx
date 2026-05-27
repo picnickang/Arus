@@ -206,7 +206,7 @@ export default function MaintenanceHub() {
         <CardContent className="p-0">
           <div className="flex items-center justify-between border-b px-4 py-2">
             <h2 className="text-sm font-semibold">Recent work orders</h2>
-            <Link href="/work-orders">
+            <Link href="/maint?tab=work-orders">
               <Button
                 variant="ghost"
                 size="sm"
