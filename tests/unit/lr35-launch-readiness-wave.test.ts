@@ -75,6 +75,44 @@ describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () 
   });
 });
 
+describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMiddleware", () => {
+  // The four mutating PO endpoints insert purchaseOrderEvents audit rows
+  // and (for /fulfill-pr) decrement inventory via fulfillItem. Without
+  // idempotency, a replayed POST from the offline outbox duplicates the
+  // event trail and risks double-side-effects. Non-required mount so
+  // legacy callers without a key still pass through (matches the WO
+  // complete-with-feedback / cancel mount style).
+  const PO_ROUTES_PATH = "server/purchasing/po-routes.ts";
+
+  it("POST /:id/receive carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
+    const src = await loadSource(PO_ROUTES_PATH);
+    expect(src).toMatch(
+      /router\.post\(\s*"\/:id\/receive",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+    );
+  });
+
+  it("POST /:id/reject-items carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
+    const src = await loadSource(PO_ROUTES_PATH);
+    expect(src).toMatch(
+      /router\.post\(\s*"\/:id\/reject-items",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+    );
+  });
+
+  it("PATCH /:id/items/:itemId carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
+    const src = await loadSource(PO_ROUTES_PATH);
+    expect(src).toMatch(
+      /router\.patch\(\s*"\/:id\/items\/:itemId",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+    );
+  });
+
+  it("POST /:id/fulfill-pr carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
+    const src = await loadSource(PO_ROUTES_PATH);
+    expect(src).toMatch(
+      /router\.post\(\s*"\/:id\/fulfill-pr",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+    );
+  });
+});
+
 describe("Task #200 — idempotencyMiddleware({ required: true }) rejects missing key with 400", () => {
   it("returns 400 + IDEMPOTENCY_KEY_REQUIRED when no header / clientMutationId is present", async () => {
     const { idempotencyMiddleware } = await import("../../server/middleware/idempotency");
