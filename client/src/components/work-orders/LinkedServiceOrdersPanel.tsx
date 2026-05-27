@@ -615,7 +615,7 @@ export function LinkedServiceOrdersPanel({
                       <Building2 className="h-3 w-3" />
                       {so.supplierProfileId ? (
                         <Link
-                          href={`/inventory-management?tab=purchasing&supplier=${so.supplierProfileId}`}
+                          href={`/logistics?tab=inventory&purchasing=1&supplier=${so.supplierProfileId}`}
                           className="text-primary hover:underline"
                           data-testid={`link-supplier-${so.id}`}
                         >

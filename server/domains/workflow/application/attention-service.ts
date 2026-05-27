@@ -539,7 +539,7 @@ export class AttentionWorkflowService {
         recommendedAction: "Review consumption, reorder point, and purchase request status.",
         owner: lastResolution?.owner || "Logistics",
         due: lastResolution?.eta || "Before next maintenance window",
-        href: `/inventory-management?partId=${encodeURIComponent(id)}&workflow=low-stock`,
+        href: `/logistics?tab=inventory&partId=${encodeURIComponent(id)}&workflow=low-stock`,
         severity: (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "warning",
         queue: "waiting_parts",
         status: "low_stock",
@@ -613,7 +613,7 @@ export class AttentionWorkflowService {
         label: "Recently Completed",
         description: "Recently completed or closed work orders.",
         count: completedWorkOrders.length,
-        href: "/work-orders?status=completed",
+        href: "/maint?tab=work-orders&status=completed",
         severity: "success",
       },
       {

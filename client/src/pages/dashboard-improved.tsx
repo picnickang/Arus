@@ -151,7 +151,7 @@ function NeedsAttentionStrip({
       title: eq.name || eq.id,
       subtitle: `${eq.healthIndex}% health — ${eq.vessel || "Fleet"}`,
       metric: `${eq.healthIndex}%`,
-      href: "/equipment-intelligence",
+      href: "/maint?tab=equipment-intelligence",
     });
   }
 
@@ -173,7 +173,7 @@ function NeedsAttentionStrip({
       severity: alert.severity === "critical" ? "critical" : "warning",
       title: alert.message || "Operating condition alert",
       subtitle: alert.equipmentName || alert.equipmentId || "",
-      href: "/equipment-intelligence",
+      href: "/maint?tab=equipment-intelligence",
     });
   }
 
@@ -185,7 +185,7 @@ function NeedsAttentionStrip({
       severity: "warning",
       title: `${stcwViolationCount} STCW violation${stcwViolationCount > 1 ? "s" : ""}`,
       subtitle: "Crew rest hour compliance",
-      href: "/hours-of-rest",
+      href: "/crew?tab=rest-hours",
     });
   }
 
@@ -241,7 +241,7 @@ function NeedsAttentionStrip({
         </h2>
         <div className="flex-1" />
         <Link
-          href="/equipment-intelligence"
+          href="/maint?tab=equipment-intelligence"
           className="text-xs text-primary hover:underline"
           data-testid="link-view-all-issues"
         >
@@ -346,7 +346,7 @@ function AISummary({
             {parts.join(" ")}
           </p>
           <Link
-            href="/equipment-intelligence"
+            href="/maint?tab=equipment-intelligence"
             className="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-2 inline-flex items-center gap-1"
             data-testid="link-ai-details"
           >
@@ -619,7 +619,7 @@ export default function BridgeDashboard() {
             value={`${fleetHealth}%`}
             icon={Heart}
             status={healthStatus}
-            href="/equipment-intelligence"
+            href="/maint?tab=equipment-intelligence"
             testId="metric-fleet-health"
           />
           <MetricCard
@@ -627,7 +627,7 @@ export default function BridgeDashboard() {
             value={openWOs}
             icon={Wrench}
             status={openWOs > 10 ? "warning" : undefined}
-            href="/work-orders"
+            href="/maint?tab=work-orders"
             testId="metric-open-work-orders"
           />
           <MetricCard
@@ -635,7 +635,7 @@ export default function BridgeDashboard() {
             value={riskAlerts}
             icon={AlertTriangle}
             status={riskAlerts > 0 ? "critical" : "healthy"}
-            href="/equipment-intelligence"
+            href="/maint?tab=equipment-intelligence"
             testId="metric-risk-alerts"
           />
         </div>

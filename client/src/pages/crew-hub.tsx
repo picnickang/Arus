@@ -229,7 +229,7 @@ export default function CrewHub() {
                 <Shield className="h-4 w-4 text-rose-500" />
                 Certifications expiring soon
               </h2>
-              <Link href="/crew-management?tab=certifications">
+              <Link href="/crew?tab=certifications">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -341,19 +341,19 @@ export default function CrewHub() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="crew-jump-grid">
           <JumpCard href="/crew?tab=management" icon={Users} label="Roster" testId="jump-roster" />
           <JumpCard
-            href="/schedule-planner"
+            href="/crew?tab=schedule"
             icon={CalendarCheck}
             label="Scheduling"
             testId="jump-scheduling"
           />
           <JumpCard
-            href="/hours-of-rest"
+            href="/crew?tab=rest-hours"
             icon={Clock}
             label="Hours of Rest"
             testId="jump-hours-of-rest"
           />
           <JumpCard
-            href="/crew-management?tab=compliance"
+            href="/crew?tab=compliance"
             icon={Shield}
             label="Compliance"
             testId="jump-compliance"

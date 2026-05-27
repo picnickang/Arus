@@ -270,7 +270,7 @@ export default function SystemHub() {
           <CardContent className="p-0">
             <div className="flex items-center justify-between border-b px-4 py-2">
               <h2 className="text-sm font-semibold">Recent audit logs</h2>
-              <Link href="/system-administration?tab=audit">
+              <Link href="/system?tab=audit">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -369,7 +369,7 @@ export default function SystemHub() {
             label="Organizations"
             testId="jump-organizations"
           />
-          <JumpCard href="/sensors" icon={Activity} label="Sensors" testId="jump-sensors" />
+          <JumpCard href="/system?tab=sensors" icon={Activity} label="Sensors" testId="jump-sensors" />
           <JumpCard
             href="/copilot-admin"
             icon={Bot}

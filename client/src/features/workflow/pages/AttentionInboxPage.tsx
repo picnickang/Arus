@@ -123,7 +123,7 @@ export default function AttentionInboxPage() {
                 <Badge variant={usingAggregatedWorkflow ? "default" : "outline"}>
                   {usingAggregatedWorkflow ? "Aggregated workflow" : "Fallback workflow"}
                 </Badge>
-                <Button onClick={() => setLocation("/work-orders?action=create")}> 
+                <Button onClick={() => setLocation("/maint?tab=work-orders&action=create")}> 
                   <ClipboardCheck className="h-4 w-4" />
                   New work order
                 </Button>

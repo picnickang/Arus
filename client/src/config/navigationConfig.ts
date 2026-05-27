@@ -205,25 +205,25 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Work Orders",
-        href: "/work-orders",
+        href: "/maint?tab=work-orders",
         icon: ClipboardCheck,
         description: "Work order management",
       },
       {
         name: "Schedules",
-        href: "/maintenance",
+        href: "/maint?tab=schedules",
         icon: Wrench,
         description: "Maintenance schedules",
       },
       {
         name: "Templates",
-        href: "/maintenance-templates",
+        href: "/maint?tab=templates",
         icon: Clipboard,
         description: "Maintenance templates",
       },
       {
         name: "Equipment Intelligence",
-        href: "/equipment-intelligence",
+        href: "/maint?tab=equipment-intelligence",
         icon: Brain,
         description: "AI health, predictions & recommendations",
       },
@@ -238,19 +238,19 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Crew Management",
-        href: "/crew-management",
+        href: "/crew?tab=management",
         icon: Users,
         description: "Crew roster and details",
       },
       {
         name: "Schedule Planner",
-        href: "/schedule-planner",
+        href: "/crew?tab=schedule",
         icon: ClipboardCheck,
         description: "SmartPAL crew scheduling",
       },
       {
         name: "Hours of Rest",
-        href: "/hours-of-rest",
+        href: "/crew?tab=rest-hours",
         icon: Activity,
         description: "STCW compliance tracking",
       },
@@ -265,7 +265,7 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Inventory",
-        href: "/inventory-management",
+        href: "/logistics?tab=inventory",
         icon: Boxes,
         description: "Parts, stock management & purchasing",
       },
@@ -277,7 +277,7 @@ export const navigationCategories: NavigationCategory[] = [
       },
       {
         name: "Vendors",
-        href: "/vendors",
+        href: "/logistics?tab=vendors",
         icon: Building,
         description: "Suppliers & service providers",
       },
@@ -354,13 +354,13 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Configuration",
-        href: "/configuration",
+        href: "/system?tab=configuration",
         icon: Settings,
         description: "System configuration",
       },
       {
         name: "Notifications",
-        href: "/notifications",
+        href: "/system?tab=notifications",
         icon: Bell,
         description: "Email alerts, preferences & templates",
       },
@@ -372,11 +372,11 @@ export const navigationCategories: NavigationCategory[] = [
       },
       {
         name: "Sensor Templates",
-        href: "/sensor-templates",
+        href: "/system?tab=sensors",
         icon: SlidersHorizontal,
         description: "Sensor templates",
       },
-      { name: "Sensors", href: "/sensors", icon: Activity, description: "Sensor management" },
+      { name: "Sensors", href: "/system?tab=sensors", icon: Activity, description: "Sensor management" },
       {
         name: "StormGeo",
         href: "/stormgeo-settings",
@@ -385,7 +385,7 @@ export const navigationCategories: NavigationCategory[] = [
       },
       {
         name: "System Admin",
-        href: "/system-administration",
+        href: "/system?tab=admin",
         icon: Shield,
         description: "Admin tools",
       },

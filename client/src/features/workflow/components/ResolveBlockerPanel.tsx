@@ -44,7 +44,7 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
       },
       {
         label: "Open inventory",
-        href: `/inventory-management?partId=${encodeURIComponent(item.sourceId ?? "")}&workflow=low-stock`,
+        href: `/logistics?tab=inventory&partId=${encodeURIComponent(item.sourceId ?? "")}&workflow=low-stock`,
       },
     ],
     [item.href, item.sourceId]
@@ -108,7 +108,7 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-3">
-            <Button variant="outline" onClick={() => setLocation(`/inventory-management?workflow=resolve-blocker&workOrderId=${item.sourceId ?? ""}`)}>
+            <Button variant="outline" onClick={() => setLocation(`/logistics?tab=inventory&workflow=resolve-blocker&workOrderId=${item.sourceId ?? ""}`)}>
               <PackageSearch className="h-4 w-4" />
               Check parts
             </Button>

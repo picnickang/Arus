@@ -171,12 +171,12 @@ export const TRIGGER_ICONS: Record<string, typeof AlertTriangle> = {
 };
 
 export const ENTITY_ROUTES: Record<string, string> = {
-  equipment: "/maintenance?tab=equipment-intelligence",
-  work_order: "/maintenance?tab=work-orders",
+  equipment: "/maint?tab=equipment-intelligence",
+  work_order: "/maint?tab=work-orders",
   vessel: "/fleet?tab=vessels",
   part: "/inventory?tab=parts",
   inventory: "/logistics?tab=inventory",
-  maintenance_schedule: "/maintenance?tab=schedules",
+  maintenance_schedule: "/maint?tab=schedules",
   schedule: "/operations?tab=findings",
 };
 

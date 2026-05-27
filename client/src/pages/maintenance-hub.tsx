@@ -284,16 +284,16 @@ export default function MaintenanceHub() {
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="maintenance-jump-grid">
-          <JumpCard href="/work-orders" icon={Wrench} label="Work Orders" testId="jump-work-orders" />
-          <JumpCard href="/maintenance" icon={Calendar} label="Schedules" testId="jump-schedules" />
+          <JumpCard href="/maint?tab=work-orders" icon={Wrench} label="Work Orders" testId="jump-work-orders" />
+          <JumpCard href="/maint?tab=schedules" icon={Calendar} label="Schedules" testId="jump-schedules" />
           <JumpCard
-            href="/maintenance-templates"
+            href="/maint?tab=templates"
             icon={FileSpreadsheet}
             label="Templates"
             testId="jump-templates"
           />
           <JumpCard
-            href="/equipment-intelligence"
+            href="/maint?tab=equipment-intelligence"
             icon={Brain}
             label="Equipment Intelligence"
             testId="jump-equipment-intelligence"

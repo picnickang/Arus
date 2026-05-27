@@ -209,7 +209,7 @@ export default function LogisticsHub() {
             testId="jump-service-orders"
           />
           <JumpCard
-            href="/vendors"
+            href="/logistics?tab=vendors"
             icon={Building2}
             label="Vendors & Providers"
             description="Suppliers & service providers"
