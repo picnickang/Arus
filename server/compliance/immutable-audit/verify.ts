@@ -66,9 +66,16 @@ export async function verifyAuditChain(
         error: `Record ${i} missing orgId`,
       };
     }
+    // LR-3.5 / AUD-2 (Task #208): dispatch on per-row hashVersion so
+    // historical v1 rows (pre-orgId binding) still verify under the
+    // original payload shape. New rows default to v2.
+    const rowHashVersion =
+      typeof (record as { hashVersion?: number }).hashVersion === "number"
+        ? (record as { hashVersion: number }).hashVersion
+        : 2;
     const computedHash = computeAuditHash(
       record.prevHash,
-      record.orgId, // LR-3.5 / AUD-2: orgId is now part of the chain hash
+      record.orgId,
       record.eventTimestamp as Date,
       record.entityType,
       record.entityId,
@@ -76,7 +83,8 @@ export async function verifyAuditChain(
       record.eventType,
       record.performedBy,
       parseJsonField(record.previousState),
-      parseJsonField(record.newState)
+      parseJsonField(record.newState),
+      rowHashVersion
     );
 
     if (computedHash !== record.hash) {

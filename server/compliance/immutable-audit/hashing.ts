@@ -32,6 +32,8 @@ import { createHash } from "node:crypto";
  * cryptographically valid but is not interoperable with the new
  * hashing rule.
  */
+export const AUDIT_HASH_VERSION_CURRENT = 2 as const;
+
 export function computeAuditHash(
   prevHash: string | null,
   orgId: string,
@@ -42,22 +44,40 @@ export function computeAuditHash(
   eventType: string,
   performedBy: string,
   previousState?: Record<string, unknown>,
-  newState?: Record<string, unknown>
+  newState?: Record<string, unknown>,
+  hashVersion: number = AUDIT_HASH_VERSION_CURRENT
 ): string {
-  const hashInput = JSON.stringify({
-    prevHash,
-    orgId,
-    timestamp: eventTimestamp.toISOString(),
-    entityType,
-    entityId,
-    eventCategory,
-    eventType,
-    performedBy,
-    previousState: previousState ? JSON.stringify(previousState) : null,
-    newState: newState ? JSON.stringify(newState) : null,
-  });
+  // LR-3.5 / AUD-2 (Task #208): version-dispatched hash.
+  //   v1: legacy pre-orgId payload — kept verbatim so historical rows
+  //       written before this change still verify byte-for-byte.
+  //   v2: current — binds `orgId` into the payload.
+  const payload =
+    hashVersion === 1
+      ? {
+          prevHash,
+          timestamp: eventTimestamp.toISOString(),
+          entityType,
+          entityId,
+          eventCategory,
+          eventType,
+          performedBy,
+          previousState: previousState ? JSON.stringify(previousState) : null,
+          newState: newState ? JSON.stringify(newState) : null,
+        }
+      : {
+          prevHash,
+          orgId,
+          timestamp: eventTimestamp.toISOString(),
+          entityType,
+          entityId,
+          eventCategory,
+          eventType,
+          performedBy,
+          previousState: previousState ? JSON.stringify(previousState) : null,
+          newState: newState ? JSON.stringify(newState) : null,
+        };
 
-  return createHash("sha256").update(hashInput).digest("hex");
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 /**

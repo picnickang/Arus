@@ -9,6 +9,9 @@ interface ComplianceFindingFilters {
   ruleCode?: string | undefined;
   startDate?: string | Date | undefined;
   endDate?: string | Date | undefined;
+  // LR-3.5 / AUD-1 (Task #208): archived rows are excluded by default;
+  // auditors / compliance UI pass `includeArchived=true` to see them.
+  includeArchived?: boolean | undefined;
 }
 
 interface CreateComplianceFinding {
@@ -48,15 +51,30 @@ interface UpdateComplianceRule {
 
 export class DbComplianceStorage {
   async getComplianceFindings(orgId: string, filters?: ComplianceFindingFilters) {
+    // LR-3.5 / AUD-1 (Task #208): exclude archived rows unless the
+    // caller explicitly opts in via `includeArchived=true`. We filter
+    // on `archived_at IS NULL` because `status` is also used for the
+    // open/acknowledged/resolved/suppressed lifecycle and we want
+    // the soft-archive marker to be independent of those.
+    const archivedFilter = filters?.includeArchived
+      ? sql``
+      : sql`AND archived_at IS NULL`;
     const result = await db.execute(
-      sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`
+      sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${archivedFilter} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`
     );
     return result.rows;
   }
 
-  async getComplianceFindingById(id: string, orgId: string) {
+  async getComplianceFindingById(
+    id: string,
+    orgId: string,
+    options?: { includeArchived?: boolean }
+  ) {
+    const archivedFilter = options?.includeArchived
+      ? sql``
+      : sql`AND archived_at IS NULL`;
     const result = await db.execute(
-      sql`SELECT * FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId}`
+      sql`SELECT * FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId} ${archivedFilter}`
     );
     return result.rows[0];
   }
@@ -89,21 +107,21 @@ export class DbComplianceStorage {
     return result.rows[0];
   }
 
-  async deleteComplianceFinding(id: string, orgId: string) {
-    // LR-3.5 / AUD-1: was a raw DELETE that destroyed compliance
-    // evidence with no audit trail and broke regulator-grade
-    // reproducibility (flag-cluster history disappears). We now
-    // soft-archive: status='archived' + archived_at=NOW(). The
-    // record stays queryable for audit and CSV/PDF exports filter
-    // it out by default. The DELETE-on-DELETE semantics callers
-    // expect are preserved at the API level (the row no longer
-    // appears in the default-filtered finding list), but the
-    // audit chain is intact.
-    // The schema has no dedicated `archived_at` column; `updated_at`
-    // already auto-stamps on UPDATE and records the archival time.
+  async deleteComplianceFinding(id: string, orgId: string, archivedBy?: string) {
+    // LR-3.5 / AUD-1 (Task #208): never hard-delete a compliance
+    // finding — auditors must be able to reason about every record
+    // that ever existed. Soft-archive sets:
+    //   - status='archived' (lifecycle marker, preserved for back-
+    //     compat with consumers that filter on status)
+    //   - archived_at=NOW() (the soft-archive evidence column)
+    //   - archived_by=<actor> (who archived it, for the audit view)
+    // Reads exclude `archived_at IS NOT NULL` rows by default;
+    // pass `includeArchived=true` to surface them.
     await db.execute(sql`
       UPDATE compliance_findings
          SET status = 'archived',
+             archived_at = NOW(),
+             archived_by = ${archivedBy ?? null},
              updated_at = NOW()
        WHERE id = ${id}
          AND org_id = ${orgId}

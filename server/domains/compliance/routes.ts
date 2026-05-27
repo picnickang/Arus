@@ -4,6 +4,7 @@ import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbComplianceStorage as complianceRepo } from "../../db/compliance/db-compliance.js";
 import type { RateLimit } from "../../lib/rate-limit-factory";
+import type { AuthenticatedRequest } from "../../middleware/auth";
 
 interface RateLimiters {
   writeOperationRateLimit: RateLimit;
@@ -19,6 +20,18 @@ const findingsFiltersSchema = z.object({
   ruleCode: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  // LR-3.5 / AUD-1 (Task #208): opt-in to seeing soft-archived rows.
+  includeArchived: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
+});
+
+const findingByIdQuerySchema = z.object({
+  includeArchived: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 const rulesFiltersSchema = z.object({
@@ -90,7 +103,10 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("get compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      const finding = await complianceRepo.getComplianceFindingById(id, orgId!);
+      const { includeArchived } = findingByIdQuerySchema.parse(req.query);
+      const finding = await complianceRepo.getComplianceFindingById(id, orgId!, {
+        includeArchived,
+      });
 
       if (!finding) {
         return sendNotFound(res, "Compliance finding");
@@ -173,7 +189,12 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("delete compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      await complianceRepo.deleteComplianceFinding(id, orgId!);
+      // LR-3.5 / AUD-1 (Task #208): soft-archive. Pass the
+      // authenticated user as `archivedBy` so the audit view shows
+      // who removed the finding.
+      const authReq = req as AuthenticatedRequest;
+      const archivedBy = authReq.user?.id ?? (req.headers["x-user-id"] as string | undefined);
+      await complianceRepo.deleteComplianceFinding(id, orgId!, archivedBy);
       res.status(204).send();
     })
   );

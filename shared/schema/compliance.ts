@@ -78,6 +78,11 @@ export const immutableAuditTrail = pgTable(
     serverTimestamp: timestamp("server_timestamp", { mode: "date" }).defaultNow(),
     prevHash: varchar("prev_hash", { length: 64 }),
     hash: varchar("hash", { length: 64 }).notNull(),
+    // LR-3.5 / AUD-2 (Task #208): hash function version. v1 is the
+    // legacy pre-orgId hash; v2 binds `orgId` into the hashed
+    // payload. The verifier dispatches on this column so historical
+    // v1 rows still validate without a one-shot rehash.
+    hashVersion: integer("hash_version").notNull().default(2),
     complianceStandard: text("compliance_standard"),
     retentionRequired: boolean("retention_required").default(true),
     retentionExpiresAt: timestamp("retention_expires_at", { mode: "date" }),
@@ -146,6 +151,12 @@ export const complianceFindings = pgTable(
     linkedCrewIds: jsonb("linked_crew_ids").$type<string[]>(),
     linkedAlertIds: jsonb("linked_alert_ids").$type<string[]>(),
     status: text("status").notNull().default("open"),
+    // LR-3.5 / AUD-1 (Task #208): soft-archive columns. Compliance
+    // findings are never hard-deleted — DELETE sets `archivedAt` /
+    // `archivedBy` and flips `status` to 'archived'. Reads exclude
+    // archived rows unless the caller passes `includeArchived=true`.
+    archivedAt: timestamp("archived_at", { mode: "date" }),
+    archivedBy: varchar("archived_by"),
     acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
     acknowledgedByUserId: varchar("acknowledged_by_user_id"),
     acknowledgedByUserName: text("acknowledged_by_user_name"),

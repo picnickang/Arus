@@ -5,7 +5,7 @@
  */
 
 import { libsqlClient } from "../../db";
-import { computeAuditHash } from "./hashing";
+import { AUDIT_HASH_VERSION_CURRENT, computeAuditHash } from "./hashing";
 import type { AuditEventInput, AuditRecord } from "./types";
 
 /**
@@ -52,9 +52,9 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         id, org_id, event_category, event_type, entity_type, entity_id,
         previous_state, new_state, changed_fields, performed_by, performed_by_type,
         performed_by_name, performed_by_role, ip_address, device_id, vessel_id,
-        event_timestamp, server_timestamp, prev_hash, hash,
+        event_timestamp, server_timestamp, prev_hash, hash, hash_version,
         compliance_standard, retention_required, retention_expires_at, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         id,
         input.orgId,
@@ -76,6 +76,7 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         serverTimestamp.toISOString(),
         prevHash,
         hash,
+        AUDIT_HASH_VERSION_CURRENT,
         input.complianceStandard ?? null,
         (input.retentionRequired ?? true) ? 1 : 0,
         input.retentionExpiresAt?.toISOString() ?? null,

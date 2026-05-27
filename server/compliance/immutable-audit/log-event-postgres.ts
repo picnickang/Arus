@@ -5,7 +5,7 @@
  */
 
 import { pool } from "../../db";
-import { computeAuditHash, computeLockKey } from "./hashing";
+import { AUDIT_HASH_VERSION_CURRENT, computeAuditHash, computeLockKey } from "./hashing";
 import type { AuditEventInput, AuditRecord } from "./types";
 
 /**
@@ -55,9 +55,9 @@ export async function logEventPostgres(input: AuditEventInput): Promise<AuditRec
         id, org_id, event_category, event_type, entity_type, entity_id,
         previous_state, new_state, changed_fields, performed_by, performed_by_type,
         performed_by_name, performed_by_role, ip_address, device_id, vessel_id,
-        event_timestamp, server_timestamp, prev_hash, hash,
+        event_timestamp, server_timestamp, prev_hash, hash, hash_version,
         compliance_standard, retention_required, retention_expires_at, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
       [
         id,
         input.orgId,
@@ -79,6 +79,7 @@ export async function logEventPostgres(input: AuditEventInput): Promise<AuditRec
         serverTimestamp,
         prevHash,
         hash,
+        AUDIT_HASH_VERSION_CURRENT,
         input.complianceStandard ?? null,
         input.retentionRequired ?? true,
         input.retentionExpiresAt ?? null,
