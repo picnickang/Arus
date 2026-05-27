@@ -111,7 +111,30 @@ export class ObjectStorageService {
     auditCtx?: { orgId?: string; userId?: string },
   ) {
     try {
-      const { sniffMimeFamily, pickSafeContentType } = await import("../../objectStorage");
+      const core = await import("../../objectStorage");
+      const { sniffMimeFamily, pickSafeContentType, ObjectStorageService: CoreSvc } = core;
+
+      // LR-3.5 / TEN-5: fail-closed ownership check at the leaf
+      // (parity with server/objectStorage.ts). Reuses the core
+      // service's `assertObjectOwnedByOrg` so the parsing rules
+      // can't drift between the two implementations.
+      if (auditCtx?.orgId) {
+        const ownership = new CoreSvc().assertObjectOwnedByOrg(file, auditCtx.orgId);
+        if (!ownership.allowed) {
+          if (!res.headersSent) {
+            res.status(403).json({
+              message: "Object belongs to a different organization",
+              code: "OBJECT_CROSS_ORG_FORBIDDEN",
+            });
+          }
+          return;
+        }
+      } else {
+        console.warn("[ObjectStorage] downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
+          objectName: (file as unknown as { name?: string }).name,
+        });
+      }
+
       const [metadata] = await file.getMetadata();
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";

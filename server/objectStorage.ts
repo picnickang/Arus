@@ -174,12 +174,16 @@ export class ObjectStorageService {
   //      so the browser downloads rather than executing inline.
   //   3. Treat unknown / explicitly hostile MIME families (html, svg,
   //      javascript, xml) as attachments unconditionally.
-  //   4. `orgId` (optional) is logged for audit so we have a paper
-  //      trail of who downloaded what. The structural ownership
-  //      check (is this object actually in this org's namespace?) is
-  //      enforced at the route layer; downloadObject is a leaf-level
-  //      streamer and cannot reconstruct the path-to-org mapping on
-  //      its own.
+  //   4. `auditCtx.orgId` is REQUIRED for fail-closed cross-org
+  //      enforcement. When provided, `assertObjectOwnedByOrg` runs
+  //      INSIDE `downloadObject` and writes a 403 directly if the
+  //      caller's org doesn't own the object — so the guarantee no
+  //      longer depends on every route layer remembering to call the
+  //      helper. The route layer may still call `assertObjectOwnedByOrg`
+  //      earlier (e.g. to avoid touching GCS at all on a mismatch), but
+  //      `downloadObject` is now the fail-closed perimeter. Callers
+  //      that omit `auditCtx.orgId` fall through with a warning so
+  //      legacy paths keep working but are observable.
   async downloadObject(
     file: File,
     res: Response,
@@ -187,6 +191,24 @@ export class ObjectStorageService {
     auditCtx?: { orgId?: string; userId?: string },
   ) {
     try {
+      // LR-3.5 / TEN-5: fail-closed ownership check at the leaf.
+      if (auditCtx?.orgId) {
+        const ownership = this.assertObjectOwnedByOrg(file, auditCtx.orgId);
+        if (!ownership.allowed) {
+          if (!res.headersSent) {
+            res.status(403).json({
+              message: "Object belongs to a different organization",
+              code: "OBJECT_CROSS_ORG_FORBIDDEN",
+            });
+          }
+          return;
+        }
+      } else {
+        logger.warn("downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
+          objectName: (file as unknown as { name?: string }).name,
+        });
+      }
+
       // Get file metadata
       const [metadata] = await file.getMetadata();
       // Get the ACL policy for the object.
