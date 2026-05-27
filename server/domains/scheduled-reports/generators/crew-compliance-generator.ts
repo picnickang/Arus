@@ -3,7 +3,6 @@
  * Generates crew certification and compliance report
  */
 
-import { vesselService, dbCrewStorage } from "../../../repositories";
 import type { ICrewComplianceGenerator } from "../domain/ports.js";
 import type {
   CrewComplianceData,
@@ -16,8 +15,48 @@ import { recordUserVisibleStub } from "../../../observability/security-metrics.j
 
 const LOG_CTX = "CrewComplianceGenerator";
 
+/**
+ * LR-3.5 PERF cluster: narrow port the generator uses to fetch the
+ * single-join compliance projection. Defined as a structural type so
+ * tests can inject a fake without pulling the full `dbCrewStorage`
+ * (which transitively loads the DB driver) into scope.
+ */
+export interface CrewComplianceRowsPort {
+  getCrewComplianceRows(
+    orgId: string,
+    vesselIds: string[] | null,
+    expiresBefore: Date
+  ): Promise<
+    Array<{
+      crewId: string;
+      crewName: string;
+      vesselName: string;
+      cert: string;
+      expiresAt: Date;
+    }>
+  >;
+}
+
 export class CrewComplianceGenerator implements ICrewComplianceGenerator {
   readonly reportType = "crew_compliance" as const;
+
+  private resolvedStorage: CrewComplianceRowsPort | null;
+
+  // The default storage is resolved lazily via dynamic import so tests
+  // can construct the generator with an injected `CrewComplianceRowsPort`
+  // without pulling the full `server/repositories` barrel (and its
+  // top-level-await DB driver init) into scope.
+  constructor(crewStorage?: CrewComplianceRowsPort) {
+    this.resolvedStorage = crewStorage ?? null;
+  }
+
+  private async getStorage(): Promise<CrewComplianceRowsPort> {
+    if (!this.resolvedStorage) {
+      const mod = await import("../../../repositories");
+      this.resolvedStorage = mod.dbCrewStorage;
+    }
+    return this.resolvedStorage;
+  }
 
   async generate(orgId: string, vesselIds: string[] | null): Promise<CrewComplianceData> {
     logger.info(LOG_CTX, `Generating crew compliance report for org ${orgId}`);
@@ -53,79 +92,47 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
     vesselIds: string[] | null
   ): Promise<CertificationAlert[]> {
     try {
-      // LR-3.5 / PERF-1: was a vessels-by-crew-by-certifications
-      // triple-nested loop issuing one `getCrewCertifications` query
-      // per crew member (`(vessels × members)` round-trips). On a
-      // mid-size fleet (~20 vessels × ~15 crew) that's 300+ serial
-      // queries — the scheduled-reports worker timed out and held
-      // its DB connection long enough to starve the rest of the
-      // pool. The rewrite issues exactly three queries: all
-      // vessels, all crew across the filtered vessels (in parallel
-      // per vessel — `dbCrewStorage.getCrew` is the only port we
-      // have today), and all certifications for the org. The
-      // org-wide cert pull is then grouped by `crewId` in-memory,
-      // and the per-member projection is O(certs) instead of
-      // O(vessels × members) round-trips.
-      const alerts: CertificationAlert[] = [];
-      const allVessels = await vesselService.getVessels(orgId);
-      const filteredVessels = vesselIds
-        ? allVessels.filter((v) => vesselIds.includes(v.id))
-        : allVessels;
-
-      if (filteredVessels.length === 0) {
-        return alerts;
-      }
-
+      // LR-3.5 PERF cluster: was a vessels-by-crew-by-certifications
+      // pipeline that fanned out one `getCrew(orgId, vesselId)` query
+      // per vessel plus an org-wide `getCrewCertifications` pull.
+      // Now a single SQL statement joins vessels ⨝ crew ⨝ crew_cert
+      // with the expiry window pushed into the WHERE clause — one
+      // round-trip regardless of crew size. The in-memory shape
+      // (filter > 90-day window, sort by daysUntilExpiry) is
+      // preserved so the projection is byte-equivalent.
       const now = new Date();
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-      // Two parallel batches: per-vessel crew lists (the only
-      // signature we have) and a single org-wide cert pull.
-      const [crewByVessel, allCerts] = await Promise.all([
-        Promise.all(
-          filteredVessels.map((vessel) => dbCrewStorage.getCrew(orgId, vessel.id))
-        ),
-        // `dbCrewStorage` exposes the org-scoped 2-arg overload; the
-        // `dbCrewExtensionsStorage` binding is only the crew-only
-        // overload.
-        dbCrewStorage.getCrewCertifications(undefined, orgId),
-      ]);
-
-      const certsByCrew = new Map<string, typeof allCerts>();
-      for (const cert of allCerts) {
-        const existing = certsByCrew.get(cert.crewId);
-        if (existing) {
-          existing.push(cert);
-        } else {
-          certsByCrew.set(cert.crewId, [cert]);
-        }
+      // Filter-semantics defence: `vesselIds === []` means "explicit
+      // empty selection" — the legacy in-memory pipeline returned
+      // zero alerts in that case. We short-circuit here AND in the
+      // storage method (defence in depth) so the empty-array case
+      // never broadens to "all vessels in org".
+      if (vesselIds !== null && vesselIds.length === 0) {
+        return [];
       }
 
-      for (let i = 0; i < filteredVessels.length; i++) {
-        const vessel = filteredVessels[i];
-        const crew = crewByVessel[i];
-        if (!vessel || !crew) continue;
+      const storage = await this.getStorage();
+      const rows = await storage.getCrewComplianceRows(
+        orgId,
+        vesselIds,
+        ninetyDaysFromNow
+      );
 
-        for (const member of crew) {
-          const certifications = certsByCrew.get(member.id) ?? [];
-          for (const cert of certifications) {
-            const expiryDate = cert.expiresAt ? new Date(cert.expiresAt) : null;
-            if (expiryDate && expiryDate <= ninetyDaysFromNow) {
-              const daysUntilExpiry = Math.ceil(
-                (expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-              );
-              alerts.push({
-                crewId: member.id,
-                crewName: member.name,
-                vesselName: vessel.name,
-                certificationName: cert.cert,
-                expiryDate,
-                daysUntilExpiry,
-              });
-            }
-          }
-        }
-      }
+      const alerts: CertificationAlert[] = rows.map((row) => {
+        const expiryDate = row.expiresAt;
+        const daysUntilExpiry = Math.ceil(
+          (expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
+        );
+        return {
+          crewId: row.crewId,
+          crewName: row.crewName,
+          vesselName: row.vesselName,
+          certificationName: row.cert,
+          expiryDate,
+          daysUntilExpiry,
+        };
+      });
 
       return alerts.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
     } catch (error) {

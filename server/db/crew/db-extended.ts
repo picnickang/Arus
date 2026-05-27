@@ -11,6 +11,7 @@ import {
   crewAssignment as crewAssignmentTable,
   crewCertification as crewCertificationTable,
   crewLeave as crewLeaveTable,
+  vessels as vesselsTable,
 } from "@shared/schema-runtime";
 import type {
   Crew,
@@ -197,6 +198,69 @@ export class DbCrewExtended {
       : eq(crewCertificationTable.id, id);
     await db.delete(crewCertificationTable).where(conditions);
   }
+  /**
+   * LR-3.5 PERF cluster: single-join projection for the
+   * crew-compliance report. Replaces the per-vessel `getCrew()` fan-out
+   * plus org-wide `getCrewCertifications()` pull with one round-trip
+   * (one SQL statement, regardless of crew size). Returns the raw rows
+   * needed to build `CertificationAlert[]`; the generator filters by
+   * expiry window and sorts in-memory to preserve byte-equivalence with
+   * the previous in-process pipeline.
+   */
+  async getCrewComplianceRows(
+    orgId: string,
+    vesselIds: string[] | null,
+    expiresBefore: Date
+  ): Promise<
+    Array<{
+      crewId: string;
+      crewName: string;
+      vesselName: string;
+      cert: string;
+      expiresAt: Date;
+    }>
+  > {
+    this.validateOrgId(orgId, "getCrewComplianceRows");
+    // Filter semantics match the prior in-memory pipeline:
+    //   - `vesselIds === null`  → no vessel filter (all vessels in org)
+    //   - `vesselIds === []`    → explicit empty filter (zero rows)
+    //   - `vesselIds.length > 0` → IN-list filter
+    // Returning early on `[]` preserves byte-equivalence with the
+    // legacy `allVessels.filter(v => vesselIds.includes(v.id))` path,
+    // which produced an empty `filteredVessels` and short-circuited.
+    if (vesselIds !== null && vesselIds.length === 0) {
+      return [];
+    }
+    const conditions: SQL[] = [
+      eq(crew.orgId, orgId),
+      eq(crewCertificationTable.orgId, orgId),
+      eq(vesselsTable.orgId, orgId),
+      lte(crewCertificationTable.expiresAt, expiresBefore),
+    ];
+    if (vesselIds && vesselIds.length > 0) {
+      conditions.push(inArray(vesselsTable.id, vesselIds));
+    }
+    const rows = await db
+      .select({
+        crewId: crew.id,
+        crewName: crew.name,
+        vesselName: vesselsTable.name,
+        cert: crewCertificationTable.cert,
+        expiresAt: crewCertificationTable.expiresAt,
+      })
+      .from(crewCertificationTable)
+      .innerJoin(crew, eq(crewCertificationTable.crewId, crew.id))
+      .innerJoin(vesselsTable, eq(crew.vesselId, vesselsTable.id))
+      .where(and(...conditions));
+    return rows.map((r) => ({
+      crewId: r.crewId,
+      crewName: r.crewName,
+      vesselName: r.vesselName,
+      cert: r.cert,
+      expiresAt: r.expiresAt instanceof Date ? r.expiresAt : new Date(r.expiresAt),
+    }));
+  }
+
   async getExpiringCertifications(days: number = 90, orgId?: string): Promise<CrewCertification[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);

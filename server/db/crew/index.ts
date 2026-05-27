@@ -82,6 +82,13 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   async getExpiringCertifications(days?: number, orgId?: string) {
     return this.extended.getExpiringCertifications(days, orgId);
   }
+  async getCrewComplianceRows(
+    orgId: string,
+    vesselIds: string[] | null,
+    expiresBefore: Date
+  ) {
+    return this.extended.getCrewComplianceRows(orgId, vesselIds, expiresBefore);
+  }
   async getCrewLeave(crewId?: string, orgId?: string) {
     return this.extended.getCrewLeave(crewId, orgId);
   }
