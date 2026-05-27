@@ -103,12 +103,15 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
 
-  // Check for admin role (using existing RBAC)
+  // LR-3.5 / SEC-3: principle of least privilege — only the `admin`
+  // role may mutate RAG security configuration. The previous gate
+  // also accepted `system_admin` and `developer`, which broadened the
+  // privileged surface beyond the documented contract. The shared
+  // `requireRole("admin")` middleware can't be used directly here
+  // because rag-security carries roles on `session.roles[]` instead
+  // of `req.user.role` — same admin contract, different attach shape.
   const userRoles = session.roles ?? [];
-  const isAdmin = userRoles.some(
-    (role) =>
-      role.name === "admin" || role.name === "system_admin" || role.name === "developer"
-  );
+  const isAdmin = userRoles.some((role) => role.name === "admin");
 
   if (!isAdmin) {
     logger.warn("RagSecurityRoutes", "Unauthorized access attempt to security config", {

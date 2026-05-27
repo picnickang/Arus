@@ -83,6 +83,30 @@ describe("LR-3.5 SEC-3 — RAG security admin gate", () => {
     expect(res.status).not.toBe(403);
   });
 
+  it("rejects system_admin role with 403 (admin-only narrowing pin)", async () => {
+    // LR-3.5 / SEC-3: the prior gate accepted `admin || system_admin ||
+    // developer`. Narrowed to `admin` only. Pin the regression.
+    currentSession = {
+      userId: "sysadmin-1",
+      roles: [{ name: "system_admin" }],
+    };
+    const res = await request(app)
+      .put("/api/rag/security/config")
+      .send({ rateLimiting: { enabled: true } });
+    expect(res.status).toBe(403);
+  });
+
+  it("rejects developer role with 403 (admin-only narrowing pin)", async () => {
+    currentSession = {
+      userId: "dev-1",
+      roles: [{ name: "developer" }],
+    };
+    const res = await request(app)
+      .put("/api/rag/security/config")
+      .send({ rateLimiting: { enabled: true } });
+    expect(res.status).toBe(403);
+  });
+
   it("does NOT bypass admin gate when NODE_ENV=development without RBAC_DEV_NO_AUTH=1", async () => {
     const prev = process.env['NODE_ENV'];
     process.env['NODE_ENV'] = "development";
