@@ -83,7 +83,13 @@ const ragSecurityConfigUpdateSchema = z
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const session = (req as AuthenticatedRequest).session;
 
-  if (process.env['RBAC_DEV_NO_AUTH'] === "1" && !session?.userId) {
+  // LR-3.5 / SEC-3: both `RBAC_DEV_NO_AUTH=1` AND `NODE_ENV !== "production"`
+  // must hold for the dev bypass to fire. A stray env in prod can't reopen
+  // the gate. Read at request time so live env mutations are respected.
+  const devBypassAllowed =
+    process.env['RBAC_DEV_NO_AUTH'] === "1" &&
+    process.env['NODE_ENV'] !== "production";
+  if (devBypassAllowed && !session?.userId) {
     logger.warn(
       "RagSecurityRoutes",
       "Admin gate bypassed via RBAC_DEV_NO_AUTH=1 — must NEVER be set in production"

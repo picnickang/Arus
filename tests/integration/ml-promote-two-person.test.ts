@@ -133,6 +133,7 @@ describe("LR-1D — ML promotion two-person rule", () => {
     const res = await request(app)
       .post("/api/ml/models/model-naked/promote")
       .set("x-test-user", "admin-1:admin")
+      .set("Idempotency-Key", "lr1d-promote-naked-1")
       .send({ approvalToken: "made-up-token" });
 
     expect(res.status).toBe(412);
@@ -154,6 +155,7 @@ describe("LR-1D — ML promotion two-person rule", () => {
     const promoteRes = await request(app)
       .post("/api/ml/models/model-self/promote")
       .set("x-test-user", "admin-self:admin")
+      .set("Idempotency-Key", "lr1d-promote-self-1")
       .send({ approvalToken: token });
 
     expect(promoteRes.status).toBe(412);
@@ -176,6 +178,7 @@ describe("LR-1D — ML promotion two-person rule", () => {
     const promoteRes = await request(app)
       .post("/api/ml/models/model-new/promote")
       .set("x-test-user", "bob:chief_engineer")
+      .set("Idempotency-Key", "lr1d-promote-new-1")
       .send({ approvalToken: token });
 
     expect(promoteRes.status).toBe(200);
@@ -195,8 +198,82 @@ describe("LR-1D — ML promotion two-person rule", () => {
     const replay = await request(app)
       .post("/api/ml/models/model-new/promote")
       .set("x-test-user", "carol:admin")
+      .set("Idempotency-Key", "lr1d-promote-new-replay-1")
       .send({ approvalToken: token });
     expect(replay.status).toBe(412);
     expect(replay.body?.code).toBe("PROMOTION_APPROVAL_MISSING");
+  });
+});
+
+/**
+ * LR-3.5 / V1 — broader admin-gate verification across promote/request,
+ * promote, and rollback. The two-person test above already pins one row
+ * (viewer/second_officer on promote/request). This block widens the
+ * matrix and adds an unauthenticated 401 row + a wrong-role rollback
+ * row so a regression on any of the three gates fails loudly.
+ */
+describe("LR-3.5 V1 — ML promote/rollback role gate", () => {
+  const WRONG_ROLE_ROWS: Array<{
+    label: string;
+    path: string;
+    role: string;
+    idemKey: string;
+  }> = [
+    {
+      label: "promote rejects viewer",
+      path: "/api/ml/models/model-gate-1/promote",
+      role: "viewer",
+      idemKey: "lr35-v1-promote-viewer",
+    },
+    {
+      label: "rollback rejects able_seaman",
+      path: "/api/ml/models/model-gate-1/rollback",
+      role: "able_seaman",
+      idemKey: "lr35-v1-rollback-ab",
+    },
+    {
+      label: "promote/request rejects third_officer",
+      path: "/api/ml/models/model-gate-1/promote/request",
+      role: "third_officer",
+      idemKey: "lr35-v1-req-3rd",
+    },
+  ];
+
+  for (const row of WRONG_ROLE_ROWS) {
+    it(`${row.label} with 403 INSUFFICIENT_PERMISSIONS`, async () => {
+      seedModel("model-gate-1", "trained");
+      const res = await request(app)
+        .post(row.path)
+        .set("x-test-user", `wrong-${row.role}:${row.role}`)
+        .set("Idempotency-Key", row.idemKey)
+        .send({});
+      expect(res.status).toBe(403);
+      expect(res.body?.code).toBe("INSUFFICIENT_PERMISSIONS");
+    });
+  }
+
+  it("unauthenticated promote is rejected with 401 AUTH_REQUIRED", async () => {
+    seedModel("model-gate-1", "trained");
+    const res = await request(app)
+      .post("/api/ml/models/model-gate-1/promote")
+      .set("Idempotency-Key", "lr35-v1-unauth-promote")
+      .send({});
+    expect(res.status).toBe(401);
+    expect(res.body?.code).toBe("AUTH_REQUIRED");
+  });
+
+  it("chief_engineer is NOT rejected by the gate (positive control)", async () => {
+    // Chief engineer is in `requireRole("admin", "chief_engineer")` so
+    // the gate must let them through. Body is empty, so the handler
+    // will fail downstream — but it must NOT be the role gate.
+    const res = await request(app)
+      .post("/api/ml/models/model-gate-1/promote/request")
+      .set("x-test-user", "chief-1:chief_engineer")
+      .set("Idempotency-Key", "lr35-v1-chief-passes")
+      .send({});
+    expect(res.status).not.toBe(403);
+    if (res.status >= 400) {
+      expect(res.body?.code).not.toBe("INSUFFICIENT_PERMISSIONS");
+    }
   });
 });

@@ -7,24 +7,15 @@ import { dbUserStorage } from "../../../db/users/index.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { loginRateLimit } from "../../../middleware/rate-limiters.js";
+import { constantTimeEqualString } from "../../../lib/constant-time-compare.js";
 
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
 
-/**
- * P2 #32 — Constant-time comparison for the legacy plaintext admin
- * token fallback. `===` short-circuits on the first differing byte
- * and leaks token bytes to a network-timing attacker who can issue
- * repeated verify attempts (the per-IP rate limit slows but does not
- * eliminate the channel). We always hash both sides to a fixed-size
- * digest so `timingSafeEqual` sees equal-length buffers regardless
- * of the candidate password length, then compare the digests.
- */
-function constantTimeEqualString(a: string, b: string): boolean {
-  const ha = crypto.createHash("sha256").update(a, "utf8").digest();
-  const hb = crypto.createHash("sha256").update(b, "utf8").digest();
-  return crypto.timingSafeEqual(ha, hb);
-}
+// LR-3.5 / SEC-2: constant-time compare lives in
+// `server/lib/constant-time-compare.ts` so unit tests can import it
+// without dragging the DB-bearing auth-routes module in.
+export { constantTimeEqualString };
 
 function isLoopbackAddress(address: string): boolean {
   const normalized = address.replace(/^::ffff:/, "");

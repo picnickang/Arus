@@ -37,15 +37,24 @@ const PARTS_MANAGEMENT_ROLES: CrewRole[] = ["chief_engineer", "second_engineer"]
  * misconfigured prod) effectively disabled RBAC across every admin
  * route. We removed the implicit bypass. Tests that genuinely need to
  * exercise a handler without a user MUST set `RBAC_DEV_NO_AUTH=1`
- * explicitly — opting in beats failing open.
+ * explicitly AND have `NODE_ENV !== "production"` — both conditions
+ * are required so a stray env in prod can't reopen the gate. We also
+ * read the env at request time so it cannot be frozen at module-load
+ * (otherwise a test that mutates env after import would not exercise
+ * the gate, and a runtime config rotation would not take effect).
  */
-const RBAC_DEV_NO_AUTH = process.env['RBAC_DEV_NO_AUTH'] === "1";
+function devBypassAllowed(): boolean {
+  return (
+    process.env['RBAC_DEV_NO_AUTH'] === "1" &&
+    process.env['NODE_ENV'] !== "production"
+  );
+}
 
 export function requireRole(...allowedRoles: CrewRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as AuthenticatedRequest).user;
 
-    if (RBAC_DEV_NO_AUTH && !user) {
+    if (devBypassAllowed() && !user) {
       logger.warn("[RBAC] Bypassed via RBAC_DEV_NO_AUTH=1 — must NEVER be set in production");
       return next();
     }
