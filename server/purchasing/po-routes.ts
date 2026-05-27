@@ -27,6 +27,7 @@ import {
   parts,
 } from "@shared/schema";
 import { requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
+import { idempotencyMiddleware } from "../middleware/idempotency";
 import { RateLimiters } from "../lib/rate-limit-factory";
 import { fulfillItem } from "./fulfillment-service";
 
@@ -172,7 +173,14 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
 });
 
 // ── POST /purchase-orders/:id/receive ─────────────────────────────────────────
-router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
+// LR-3.5 / TX-2: /receive mutates per-item receivedQuantity, may flip the
+// PO to status=received, and inserts purchaseOrderEvents rows. A retried
+// POST without an idempotency key would re-insert the qty_updated/received
+// events and duplicate the audit trail (the receivedQuantity SET itself
+// is idempotent on identical inputs, but the events table is not). The
+// offline outbox queues mutations with a `clientMutationId` body field
+// which idempotencyMiddleware already accepts alongside Idempotency-Key.
+router.post("/:id/receive", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
@@ -265,7 +273,11 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
  * Rejected quantities are tracked separately from received quantities.
  * Useful when items arrive damaged, incorrect, or fail quality inspection.
  */
-router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
+// LR-3.5 / TX-2: /reject-items writes rejectedQuantity + rejectionReason
+// per item and unconditionally inserts a single items_rejected event row.
+// Retry without an idempotency key duplicates the event and overwrites
+// the previously-recorded rejectionReason if the body changed slightly.
+router.post("/:id/reject-items", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
@@ -348,7 +360,12 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
  * Update quoted unit price on a PO item after receiving a supplier quotation.
  * Only allowed when PO is in "sent" status (i.e. awaiting confirmation).
  */
-router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) => {
+// LR-3.5 / TX-2: PATCH /items/:itemId rewrites unitPrice + totalPrice
+// AND recomputes the parent PO totalAmount in a follow-up update. A
+// retry would re-run the totalPrice recompute (idempotent on identical
+// input but with a fresh updatedAt) and re-insert the price_updated
+// event row. Cache the original 200 to make replays a no-op end-to-end.
+router.patch("/:id/items/:itemId", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id, itemId } = req.params;
@@ -436,7 +453,15 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
  *
  * This closes the loop: Receive PO → PR items marked fulfilled → inventory decremented.
  */
-router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
+// LR-3.5 / TX-2: /fulfill-pr is the highest-stakes PO mutation — it
+// iterates received PO items and calls fulfillItem() which decrements
+// parts inventory. A retried POST without an idempotency key would
+// double-decrement inventory (the fulfilledQuantity guard caps total
+// fulfilled at the PR line quantity, so the second call lands at
+// quantityToFulfill=0 today — but that's a defence-in-depth invariant
+// inside fulfillItem, not a contract of this route). Cache the original
+// response so flaky-network retries return the same per-item result set.
+router.post("/:id/fulfill-pr", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
