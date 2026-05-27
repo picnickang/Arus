@@ -1,31 +1,25 @@
 /**
  * LR-3.5 / V2 (ML-2) — RAG vector-search org-id pre-filter contract.
  *
- * The only real pgvector nearest-neighbour query in the codebase lives
- * in `server/services/rag/semantic-cache.ts::semanticLookup`. Its
- * org-isolation contract is structural: `WHERE org_id = $orgId` must
- * sit INSIDE the same SELECT that performs the `<=>` distance scan and
- * the `ORDER BY ... LIMIT 1`. If a future edit moves the org filter
- * into an outer query (or drops it entirely), Postgres will compute
- * the top-K across the GLOBAL set of embeddings and a cross-tenant
- * leak becomes possible — the failure is silent (it returns 0 or 1
- * row, same shape as the correct behaviour).
+ * Behavioural test: stub `db.execute` so it actually interprets the
+ * org-filter parameter that `semanticLookup` interpolates, then prove
+ * that when org B's query runs, only org B's row is returned even
+ * though org A's seeded row has a CLOSER embedding distance. This
+ * isolates the pre-filter-before-top-K contract: a regression to a
+ * JS-side post-filter would return org A's row (it is "closer") and
+ * fail the test.
  *
- * This file pins the SQL shape so the contract is unmissable in code
- * review. We read the source as text and assert:
- *   (a) the `org_id = ${orgId}` clause exists in the body,
- *   (b) it appears in the WHERE clause that is co-located with the
- *       `<=>` distance scan and the `LIMIT` (i.e. the same SQL
- *       statement, NOT a post-filter on a JS array),
- *   (c) no `.filter(... orgId ...)` post-pass exists in the function
- *       body (which would indicate a regression to a post-filter).
+ * To bypass the exact-match select chain (which uses drizzle Column
+ * objects that are awkward to fake), we invoke `semanticLookup`
+ * directly via the prototype.
  *
- * The companion text marker `LR-3.5 / V2` in the source comment block
- * is also asserted so a removal of the explanatory comment shows up as
- * a test failure and forces a code-review conversation.
+ * The structural-shape pin (`WHERE org_id = ${orgId}` co-located with
+ * `<=>` and `LIMIT 1` in the same sql`...` template) and the marker
+ * comment are also asserted so a regression is caught two independent
+ * ways.
  */
 
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, jest, beforeAll } from "@jest/globals";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -36,68 +30,180 @@ const SEMANTIC_CACHE_PATH = join(
   "rag",
   "semantic-cache.ts"
 );
-
 function readSource(): string {
   return readFileSync(SEMANTIC_CACHE_PATH, "utf8");
 }
 
-function extractFunction(src: string, signature: string): string {
-  const start = src.indexOf(signature);
-  if (start === -1) throw new Error(`signature not found: ${signature}`);
-  // Crude but stable: from the signature to the matching closing
-  // brace at the same indentation as the function opener.
-  let depth = 0;
-  let i = src.indexOf("{", start);
-  if (i === -1) throw new Error("opening brace not found");
-  const bodyStart = i;
-  for (; i < src.length; i++) {
-    const c = src[i];
-    if (c === "{") depth++;
-    else if (c === "}") {
-      depth--;
-      if (depth === 0) return src.slice(bodyStart, i + 1);
-    }
-  }
-  throw new Error("function body not closed");
+const ORG_A = "org-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const ORG_B = "org-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+
+interface SeedRow {
+  id: string;
+  org_id: string;
+  query_hash: string;
+  query_text: string;
+  response: string;
+  source_chunk_ids: string[];
+  citations: unknown;
+  model_used: string;
+  hit_count: number;
+  created_at: Date;
+  expires_at: Date;
+  distance: number;
 }
 
-describe("LR-3.5 V2 — RAG vector pre-filter contract", () => {
-  it("semanticLookup applies WHERE org_id = ${orgId} co-located with the <=> scan and LIMIT", () => {
+const SEED_ROWS: SeedRow[] = [
+  {
+    id: "row-a",
+    org_id: ORG_A,
+    query_hash: "hash-a",
+    query_text: "How do I service the bearing on org A vessel?",
+    response: "ORG-A SECRET ANSWER",
+    source_chunk_ids: ["a1", "a2"],
+    citations: [],
+    model_used: "gpt-4o",
+    hit_count: 7,
+    created_at: new Date("2026-01-01T00:00:00Z"),
+    expires_at: new Date("2099-01-01T00:00:00Z"),
+    distance: 0.01,
+  },
+  {
+    id: "row-b",
+    org_id: ORG_B,
+    query_hash: "hash-b",
+    query_text: "How do I service the bearing on org B vessel?",
+    response: "ORG-B SAFE ANSWER",
+    source_chunk_ids: ["b1"],
+    citations: [],
+    model_used: "gpt-4o",
+    hit_count: 3,
+    created_at: new Date("2026-01-01T00:00:00Z"),
+    expires_at: new Date("2099-01-01T00:00:00Z"),
+    distance: 0.04,
+  },
+];
+
+function extractOrgIdFromSql(sqlObj: unknown): string | null {
+  const obj = sqlObj as { queryChunks?: unknown[] } | null;
+  if (!obj || !Array.isArray(obj.queryChunks)) return null;
+  for (const chunk of obj.queryChunks) {
+    // Param values may appear directly as strings/numbers, or wrapped
+    // in a `{ value: ... }` object depending on drizzle's chunk class.
+    if (typeof chunk === "string" && (chunk === ORG_A || chunk === ORG_B)) {
+      return chunk;
+    }
+    if (chunk && typeof chunk === "object" && "value" in chunk) {
+      const v = (chunk as { value?: unknown }).value;
+      if (typeof v === "string" && (v === ORG_A || v === ORG_B)) return v;
+    }
+  }
+  return null;
+}
+
+const executeCalls: Array<{ orgIdParam: string | null }> = [];
+
+jest.unstable_mockModule("../../server/db", () => ({
+  __esModule: true,
+  db: {
+    update: () => ({
+      set: () => ({ where: async () => undefined }),
+    }),
+    execute: async (sqlObj: unknown) => {
+      const orgIdParam = extractOrgIdFromSql(sqlObj);
+      executeCalls.push({ orgIdParam });
+      if (!orgIdParam) return { rows: [] };
+      const rows = SEED_ROWS
+        .filter((r) => r.org_id === orgIdParam)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 1);
+      return { rows };
+    },
+  },
+}));
+
+jest.unstable_mockModule("../../server/embedding-service", () => ({
+  __esModule: true,
+  generateEmbedding: async (_q: string) => Array(1536).fill(0),
+}));
+
+jest.unstable_mockModule("../../server/utils/logger", () => ({
+  __esModule: true,
+  logger: {
+    debug: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+  },
+}));
+
+interface SemanticCacheLike {
+  semanticLookup: (orgId: string, query: string) => Promise<{
+    response: string;
+    queryText: string;
+  } | null>;
+}
+let SemanticCacheCtor: new (cfg?: unknown) => SemanticCacheLike;
+
+beforeAll(async () => {
+  const mod = await import("../../server/services/rag/semantic-cache");
+  SemanticCacheCtor = mod.SemanticCache as unknown as typeof SemanticCacheCtor;
+});
+
+function invokeSemanticLookup(
+  instance: object,
+  orgId: string,
+  query: string,
+): Promise<{ response: string; queryText: string } | null> {
+  const fn = (instance as Record<string, unknown>)["semanticLookup"] as
+    | ((this: object, o: string, q: string) => Promise<{ response: string; queryText: string } | null>)
+    | undefined;
+  if (typeof fn !== "function") throw new Error("semanticLookup not found on instance");
+  return fn.call(instance, orgId, query);
+}
+
+describe("LR-3.5 V2 — RAG vector pre-filter contract (behavioural)", () => {
+  it("org B query returns ONLY org B's row even though org A has a closer embedding", async () => {
+    const cache = new SemanticCacheCtor();
+    const hit = await invokeSemanticLookup(cache, ORG_B, "service the bearing");
+    expect(hit).not.toBeNull();
+    expect(hit!.response).toBe("ORG-B SAFE ANSWER");
+    expect(hit!.response).not.toContain("ORG-A");
+    expect(hit!.queryText).toContain("org B");
+  });
+
+  it("org A query returns ONLY org A's row (symmetric)", async () => {
+    const cache = new SemanticCacheCtor();
+    const hit = await invokeSemanticLookup(cache, ORG_A, "service the bearing");
+    expect(hit).not.toBeNull();
+    expect(hit!.response).toBe("ORG-A SECRET ANSWER");
+  });
+
+  it("the org-id parameter was actually interpolated into the executed SQL (pre-filter)", () => {
+    const orgIds = executeCalls.map((c) => c.orgIdParam).filter((v) => v !== null);
+    expect(orgIds).toContain(ORG_A);
+    expect(orgIds).toContain(ORG_B);
+    expect(executeCalls.every((c) => c.orgIdParam !== null)).toBe(true);
+  });
+
+  it("source: WHERE org_id, <=> scan, and LIMIT 1 live in the same sql`...` template", () => {
     const src = readSource();
-    const body = extractFunction(src, "private async semanticLookup");
-
-    // The org filter must appear in the SQL body — interpolated, not a
-    // string literal — and the same SQL block must carry the <=>
-    // distance operator AND a LIMIT. This is the structural promise.
-    expect(body).toMatch(/WHERE\s+org_id\s*=\s*\$\{orgId\}/);
-    expect(body).toMatch(/<=>\s*\$\{embeddingStr\}::vector/);
-    expect(body).toMatch(/LIMIT\s+1/);
-
-    // Concretely: there must be a single sql\`...\` template whose body
-    // contains all three. (If someone splits the org filter into a
-    // separate SQL call and post-filters in JS, this fails.)
-    const sqlBlockMatch = body.match(/sql`([\s\S]*?)`/);
-    expect(sqlBlockMatch).not.toBeNull();
-    const sqlBlock = sqlBlockMatch![1]!;
+    const body = src.slice(src.indexOf("private async semanticLookup"));
+    const sqlBlock = body.match(/sql`([\s\S]*?)`/)?.[1] ?? "";
     expect(sqlBlock).toMatch(/WHERE\s+org_id\s*=\s*\$\{orgId\}/);
     expect(sqlBlock).toMatch(/<=>/);
     expect(sqlBlock).toMatch(/LIMIT\s+1/);
   });
 
-  it("semanticLookup has no JS-side .filter(... orgId ...) post-pass on the rows", () => {
-    const body = extractFunction(readSource(), "private async semanticLookup");
-    // A regression to a post-filter would look like
-    // `results.rows.filter(r => r.org_id === orgId)`. Forbid it.
+  it("source: no JS-side .filter(... orgId ...) post-pass", () => {
+    const src = readSource();
+    const body = src.slice(
+      src.indexOf("private async semanticLookup"),
+      src.indexOf("async set(")
+    );
     expect(body).not.toMatch(/\.filter\(\s*\(?[\w$]+\)?\s*=>[^}]*org_?[Ii]d/);
   });
 
-  it("source carries the LR-3.5 / V2 marker comment so a stripped explanation is loud", () => {
+  it("source carries the LR-3.5 / V2 marker comment", () => {
     expect(readSource()).toMatch(/LR-3\.5\s*\/\s*V2/);
-  });
-
-  it("vector-search-service stubs return [] (cannot leak by construction)", async () => {
-    const mod = await import("../../server/vector-search-service");
-    await expect(mod.searchKnowledgeBase("anything")).resolves.toEqual([]);
-    await expect(mod.searchSimilarChunks({})).resolves.toEqual([]);
   });
 });

@@ -18,7 +18,7 @@
  * routes module can mount cleanly without booting the real DB pool.
  */
 
-import { describe, it, expect, beforeAll, jest } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll, jest } from "@jest/globals";
 import type { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 
@@ -133,6 +133,54 @@ describe("LR-3.5 TEN-1 — /api/maintenance-schedules orgId gate", () => {
       const res = body ? await req.send(body) : await req.send();
       expect(res.status).toBe(401);
       expect(res.body?.code).toBe("UNAUTHENTICATED");
+    });
+  });
+
+  // TEN-1 second contract: an AUTHENTICATED caller with no resolved
+  // org claim. The `requireOrgId` middleware does the resolution; in
+  // legacy mode it falls back to DEFAULT_ORG_ID, in strict tenant
+  // mode it returns 401 TENANT_CLAIM_MISSING. We assert BOTH paths
+  // deterministically by toggling `REQUIRE_TENANT_AUTH` per-call via
+  // `process.env`, then restoring afterwards.
+  describe("authenticated request with no orgId claim", () => {
+    const originalFlag = process.env['REQUIRE_TENANT_AUTH'];
+    afterAll(() => {
+      if (originalFlag === undefined) delete process.env['REQUIRE_TENANT_AUTH'];
+      else process.env['REQUIRE_TENANT_AUTH'] = originalFlag;
+    });
+
+    it("strict mode (REQUIRE_TENANT_AUTH=true) returns 401 TENANT_CLAIM_MISSING on GET list", async () => {
+      if (mountError) throw new Error(mountError);
+      process.env['REQUIRE_TENANT_AUTH'] = "true";
+      const res = await request(app)
+        .get("/api/maintenance-schedules")
+        // valid user, NO orgId segment
+        .set("x-test-user", "u-1:chief_engineer");
+      expect(res.status).toBe(401);
+      expect(res.body?.code).toBe("TENANT_CLAIM_MISSING");
+    });
+
+    it("strict mode returns 401 TENANT_CLAIM_MISSING on POST create", async () => {
+      if (mountError) throw new Error(mountError);
+      process.env['REQUIRE_TENANT_AUTH'] = "true";
+      const res = await request(app)
+        .post("/api/maintenance-schedules")
+        .set("x-test-user", "u-1:chief_engineer")
+        .send({ equipmentId: "eq-1", type: "preventive" });
+      expect(res.status).toBe(401);
+      expect(res.body?.code).toBe("TENANT_CLAIM_MISSING");
+    });
+
+    it("legacy mode (REQUIRE_TENANT_AUTH unset) accepts the request and resolves DEFAULT_ORG_ID (no TENANT_CLAIM_MISSING)", async () => {
+      if (mountError) throw new Error(mountError);
+      delete process.env['REQUIRE_TENANT_AUTH'];
+      const res = await request(app)
+        .get("/api/maintenance-schedules")
+        .set("x-test-user", "u-1:chief_engineer");
+      // Either passes (200) or hits an unrelated downstream — but the
+      // org-claim gate must NOT fire.
+      expect(res.body?.code).not.toBe("TENANT_CLAIM_MISSING");
+      expect(res.status).not.toBe(401);
     });
   });
 });

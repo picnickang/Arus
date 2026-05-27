@@ -95,23 +95,68 @@ export class ObjectStorageService {
   }
 
   // Downloads an object to the response.
-  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600) {
+  //
+  // LR-3.5 / OBJ-2 + TEN-5 (parity with server/objectStorage.ts):
+  // - Always emit `X-Content-Type-Options: nosniff`.
+  // - Magic-byte sniff the leading bytes; downgrade unknown or
+  //   spoofed types to `application/octet-stream` + attachment.
+  // - Log a redacted audit line keyed on the caller's `orgId`.
+  // Ownership enforcement is the responsibility of the route layer
+  // (the request path's `uploads/orgs/<id>/...` segment is checked
+  // against the caller's `orgId` before this method is invoked).
+  async downloadObject(
+    file: File,
+    res: Response,
+    cacheTtlSec: number = 3600,
+    auditCtx?: { orgId?: string; userId?: string },
+  ) {
     try {
-      // Get file metadata
+      const { sniffMimeFamily, pickSafeContentType } = await import("../../objectStorage");
       const [metadata] = await file.getMetadata();
-      // Get the ACL policy for the object.
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";
-      // Set appropriate headers
-      res.set({
-        "Content-Type": metadata.contentType || "application/octet-stream",
-        "Content-Length": metadata.size,
-        "Cache-Control": `${
-          isPublic ? "public" : "private"
-        }, max-age=${cacheTtlSec}`,
-      });
+      const claimed = (metadata.contentType || "application/octet-stream").toLowerCase();
 
-      // Stream the file to the response
+      let head: Buffer = Buffer.alloc(0);
+      try {
+        type RangedRead = {
+          createReadStream: (opts?: { start?: number; end?: number }) => NodeJS.ReadableStream;
+        };
+        const sniffStream = (file as unknown as RangedRead).createReadStream({ start: 0, end: 511 });
+        const chunks: Buffer[] = [];
+        for await (const c of sniffStream as AsyncIterable<Buffer>) {
+          chunks.push(c);
+        }
+        head = Buffer.concat(chunks);
+      } catch (sniffErr) {
+        console.warn("[ObjectStorage] Magic-byte sniff failed; defaulting to attachment", sniffErr);
+      }
+
+      const sniffed = sniffMimeFamily(head);
+      const { safeContentType, forceAttachment } = pickSafeContentType(claimed, sniffed);
+
+      if (auditCtx?.orgId) {
+        console.info("[ObjectStorage] Object download", {
+          orgId: auditCtx.orgId,
+          userId: auditCtx.userId,
+          claimed,
+          sniffed,
+          served: safeContentType,
+          forceAttachment,
+        });
+      }
+
+      const headers: Record<string, string | number | undefined> = {
+        "Content-Type": safeContentType,
+        "Content-Length": metadata.size,
+        "Cache-Control": `${isPublic ? "public" : "private"}, max-age=${cacheTtlSec}`,
+        "X-Content-Type-Options": "nosniff",
+      };
+      if (forceAttachment) {
+        headers["Content-Disposition"] = "attachment";
+      }
+      res.set(headers as Record<string, string>);
+
       const stream = file.createReadStream();
 
       stream.on("error", (err) => {
@@ -130,8 +175,11 @@ export class ObjectStorageService {
     }
   }
 
-  // Gets the upload URL for an object entity.
-  async getObjectEntityUploadURL(): Promise<string> {
+  // Gets the upload URL for an object entity. See TEN-5 docstring in
+  // server/objectStorage.ts — passing `orgId` prefixes the path with
+  // `uploads/orgs/<orgId>/` so structural ownership can be enforced
+  // on download.
+  async getObjectEntityUploadURL(orgId?: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -141,7 +189,10 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId)
+      ? `orgs/${orgId}/`
+      : "";
+    const fullPath = `${privateObjectDir}/uploads/${orgSegment}${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 

@@ -261,7 +261,16 @@ export class ObjectStorageService {
   }
 
   // Gets the upload URL for an object entity.
-  async getObjectEntityUploadURL(): Promise<string> {
+  //
+  // LR-3.5 / TEN-5: an `orgId` argument now seeds the storage path
+  // (`uploads/orgs/<orgId>/<uuid>`), so the object's owning tenant is
+  // structurally encoded in the path. `assertObjectOwnedByOrg` reads
+  // this segment on download and rejects mismatches with 403. Callers
+  // that omit `orgId` still get the legacy `uploads/<uuid>` layout
+  // for backward compatibility; those objects are treated as legacy
+  // (no enforced ownership) by the download check. NEW upload code
+  // paths MUST pass orgId.
+  async getObjectEntityUploadURL(orgId?: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -270,7 +279,10 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId)
+      ? `orgs/${orgId}/`
+      : "";
+    const fullPath = `${privateObjectDir}/uploads/${orgSegment}${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
@@ -375,6 +387,53 @@ export class ObjectStorageService {
       file: objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     } as never);
+  }
+
+  // LR-3.5 / TEN-5: structural object-to-org ownership check.
+  //
+  // The new upload layout is `${privateObjectDir}/uploads/orgs/<orgId>/<uuid>`.
+  // This helper parses the file's full GCS path (`bucket/object`) and:
+  //   - if the path matches the `orgs/<id>/` segment AND `<id>` does
+  //     not equal `callerOrgId`, returns `{ allowed: false, ownerOrgId }`
+  //     so the route handler can answer 403,
+  //   - if the path is the legacy `uploads/<uuid>` layout (no
+  //     `orgs/` segment), returns `{ allowed: true, ownerOrgId: null,
+  //     legacy: true }` and emits a single redacted audit log line so
+  //     ops can quantify how much legacy data is still in circulation,
+  //   - otherwise returns `{ allowed: true }`.
+  //
+  // This is a path-only check (no DB lookup) so it is cheap, has no
+  // failure mode beyond "could not parse path", and is impossible to
+  // bypass without also bypassing the upload signer.
+  assertObjectOwnedByOrg(
+    file: File,
+    callerOrgId: string,
+  ): { allowed: boolean; ownerOrgId: string | null; legacy: boolean } {
+    // file.name is the object-within-bucket path. With our upload
+    // layout it includes the `uploads/orgs/<id>/<uuid>` suffix.
+    const objectName = (file as unknown as { name?: string }).name ?? "";
+    const match = objectName.match(/(?:^|\/)uploads\/orgs\/([^/]+)\//);
+    if (match) {
+      const ownerOrgId = match[1] ?? null;
+      if (ownerOrgId && ownerOrgId !== callerOrgId) {
+        logger.warn("Object download cross-org rejection", {
+          callerOrgId,
+          ownerOrgId,
+          objectName,
+        });
+        return { allowed: false, ownerOrgId, legacy: false };
+      }
+      return { allowed: true, ownerOrgId, legacy: false };
+    }
+    // Legacy: no `orgs/` segment in path → cannot verify ownership.
+    if (/(?:^|\/)uploads\//.test(objectName)) {
+      logger.warn("Object download against legacy ownership-less path", {
+        callerOrgId,
+        objectName,
+      });
+      return { allowed: true, ownerOrgId: null, legacy: true };
+    }
+    return { allowed: true, ownerOrgId: null, legacy: false };
   }
 
   // Check if object storage is properly configured

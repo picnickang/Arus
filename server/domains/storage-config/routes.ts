@@ -122,8 +122,15 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
   );
 
   // Upload object
+  //
+  // LR-3.5 / TEN-5: the upload endpoint is now org-gated. The resolved
+  // `orgId` is folded into the signed-URL path so that the resulting
+  // object is structurally bound to the uploading tenant; the matching
+  // download check (`assertObjectOwnedByOrg`) then rejects cross-org
+  // fetches with 403.
   app.post(
     "/api/objects/upload",
+    requireOrgId,
     withErrorHandling("get upload URL", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
@@ -134,24 +141,23 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
             "Please configure PUBLIC_OBJECT_SEARCH_PATHS and PRIVATE_OBJECT_DIR environment variables",
         });
       }
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const authed = req as AuthenticatedRequest;
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL(authed.orgId);
       return res.json({ uploadURL });
     })
   );
 
   // Get object (private with ACL)
   //
-  // LR-3.5 / TEN-5: previously this route had no auth gate at all —
-  // anyone who could guess an object path could pull the bytes. We
-  // now require an authenticated tenant via `requireOrgId` and pass
-  // the orgId/userId to downloadObject for audit logging. The
-  // OBJ-2 magic-byte sniff + nosniff header inside downloadObject
-  // closes the served-as-HTML XSS path. Structural object-to-org
-  // ownership is a separate (planned) work item — see follow-up
-  // notes — because the current /objects/<id> layout has no
-  // org-prefix, so any logged-in user across orgs could in
-  // principle resolve any UUID. Until that re-layout lands, the
-  // audit log + magic-byte sniff are the available defences.
+  // LR-3.5 / TEN-5: full chain — `requireOrgId` enforces a resolved
+  // tenant claim; `assertObjectOwnedByOrg` parses the structural
+  // `uploads/orgs/<orgId>/<uuid>` segment from the object path and
+  // rejects cross-tenant fetches with 403. Legacy objects predating
+  // the org-prefix upload layout fall through to the audit-log-only
+  // defence (recorded via the warning emitted by
+  // `assertObjectOwnedByOrg`). OBJ-2 magic-byte sniff + nosniff
+  // header inside `downloadObject` closes the served-as-HTML XSS
+  // path even for legacy objects.
   app.get(
     "/objects/:objectPath(*)",
     requireOrgId,
@@ -161,6 +167,16 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
         const authed = req as AuthenticatedRequest;
+        const ownership = objectStorageService.assertObjectOwnedByOrg(
+          objectFile,
+          authed.orgId,
+        );
+        if (!ownership.allowed) {
+          return res.status(403).json({
+            message: "Object belongs to a different organization",
+            code: "OBJECT_CROSS_ORG_FORBIDDEN",
+          });
+        }
         objectStorageService.downloadObject(objectFile, res, 3600, {
           orgId: authed.orgId,
           userId: authed.user?.id,
