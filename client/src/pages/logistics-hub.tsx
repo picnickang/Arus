@@ -1,14 +1,24 @@
 /**
- * UI Align Phase 6 — Logistics Overview (panel 4 / row 10 logistics
- * columns).
+ * UI Align Phase 6 — Logistics Hub.
  *
- * Headline counters (low-stock blockers, estimated reorder cost) +
- * low-stock parts list bound to the same endpoint Inventory
- * Management uses. Deep-link routes (/inventory-management,
- * /service-orders, /vendors) continue to work — this hub only adds
- * the overview layer.
+ * `/logistics` is the canonical mount for the entire logistics surface.
+ * The legacy routes /inventory-management, /vendors, /suppliers,
+ * /service-providers redirect here (see `legacyRedirects` in
+ * navigationConfig). We dispatch on `?tab=` to render the right child
+ * page:
+ *
+ *   /logistics                       → LogisticsOverview (default)
+ *   /logistics?tab=inventory         → InventoryManagement
+ *   /logistics?tab=vendors           → VendorsPage
+ *   /logistics?tab=service-orders    → ServiceOrdersPage
+ *   /logistics?tab=service-requests  → ServiceRequestsPage
+ *
+ * Without this dispatcher every "Open inventory" / "View all" / jump
+ * card / BottomNav item that targets `/logistics?tab=…` lands back
+ * on the overview, which looks like a dead button.
  */
-import { Link } from "wouter";
+import { lazy, Suspense } from "react";
+import { Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Boxes,
@@ -18,10 +28,44 @@ import {
   PackageX,
   ChevronRight,
   DollarSign,
+  ClipboardList,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageLoader } from "@/components/layouts/PageLoader";
+
+const InventoryManagement = lazy(() => import("@/pages/inventory-management"));
+const VendorsPage = lazy(() =>
+  import("@/features/suppliers").then((m) => ({ default: m.VendorsPage }))
+);
+const ServiceOrdersPage = lazy(() =>
+  import("@/features/serviceOrders").then((m) => ({ default: m.ServiceOrdersPage }))
+);
+const ServiceRequestsPage = lazy(() =>
+  import("@/features/serviceRequests").then((m) => ({ default: m.ServiceRequestsPage }))
+);
+
+type LogisticsTab =
+  | "overview"
+  | "inventory"
+  | "vendors"
+  | "service-orders"
+  | "service-requests";
+
+function parseTab(search: string): LogisticsTab {
+  const params = new URLSearchParams(search);
+  const raw = params.get("tab");
+  switch (raw) {
+    case "inventory":
+    case "vendors":
+    case "service-orders":
+    case "service-requests":
+      return raw;
+    default:
+      return "overview";
+  }
+}
 
 interface LowStockSuggestion {
   partId?: string | null;
@@ -51,6 +95,24 @@ function formatCurrency(value: number | null | undefined): string {
 }
 
 export default function LogisticsHub() {
+  const searchString = useSearch();
+  const tab = parseTab(searchString);
+
+  if (tab !== "overview") {
+    return (
+      <Suspense fallback={<PageLoader variant="cards" />}>
+        {tab === "inventory" && <InventoryManagement />}
+        {tab === "vendors" && <VendorsPage />}
+        {tab === "service-orders" && <ServiceOrdersPage />}
+        {tab === "service-requests" && <ServiceRequestsPage />}
+      </Suspense>
+    );
+  }
+
+  return <LogisticsOverview />;
+}
+
+function LogisticsOverview() {
   const {
     data: lowStock,
     isLoading,
@@ -193,7 +255,7 @@ export default function LogisticsHub() {
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="logistics-jump-grid">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3" data-testid="logistics-jump-grid">
           <JumpCard
             href="/logistics?tab=inventory"
             icon={Boxes}
@@ -202,11 +264,18 @@ export default function LogisticsHub() {
             testId="jump-inventory"
           />
           <JumpCard
-            href="/service-orders"
+            href="/logistics?tab=service-orders"
             icon={Wrench}
             label="Service Orders"
             description="External services"
             testId="jump-service-orders"
+          />
+          <JumpCard
+            href="/logistics?tab=service-requests"
+            icon={ClipboardList}
+            label="Service Requests"
+            description="Pending requests"
+            testId="jump-service-requests"
           />
           <JumpCard
             href="/logistics?tab=vendors"
