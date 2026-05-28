@@ -401,9 +401,9 @@ export default function FeedbackPage() {
               >
                 Submit another
               </Button>
-              <Link href="/dashboard" className="flex-1">
+              <Link href="/" className="flex-1">
                 <Button className="w-full" data-testid="button-feedback-go-dashboard">
-                  Back to Dashboard
+                  Back to Home
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { AlertCircle, Gauge, Eye, Sparkles } from "lucide-react";
+import { AlertCircle, Eye, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,15 +40,6 @@ const operationsItems: GridItem[] = [
     legacyRoutes: ["/attention-inbox"],
   },
   {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: Gauge,
-    description: "Fleet overview, alerts, telemetry & insights",
-    load: () => import("./dashboard-improved"),
-    loaderVariant: "cards",
-    legacyRoutes: ["/dashboard", "/alerts"],
-  },
-  {
     id: "findings",
     label: "Agent Findings",
     icon: Eye,
@@ -73,7 +64,7 @@ export default function OperationsHub() {
       title="Operations"
       description="Dashboard, telemetry, and insights"
       items={operationsItems}
-      defaultItemId="dashboard"
+      defaultItemId="attention-inbox"
       baseRoute="/operations"
       badgeRenderer={(itemId) => (itemId === "findings" ? <FindingsBadge /> : null)}
     />

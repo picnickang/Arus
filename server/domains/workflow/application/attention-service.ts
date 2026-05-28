@@ -402,7 +402,7 @@ export class AttentionWorkflowService {
         recommendedAction: "Acknowledge, assign, or convert confirmed alerts into findings.",
         owner: "Watch Officer",
         due: "Before handover",
-        href: "/dashboard?tab=alerts",
+        href: "/attention-inbox",
         severity: alerts.length > 3 ? "critical" : "warning",
         queue: "needs_review",
         status: "needs_review",

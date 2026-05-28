@@ -63,7 +63,7 @@ const USER_PRIMARY_CATEGORIES: NavigationCategory[] = [
     id: "user-dashboard",
     name: "Dashboard",
     icon: Gauge,
-    hubRoute: "/dashboard",
+    hubRoute: "/",
     description: "Your operational overview",
     children: [],
   },
@@ -222,10 +222,10 @@ export function pruneOverrideToPolicyIds(
 /**
  * Convenience: where should this role land after picking a portal?
  *
- * Both portals currently land on /dashboard — the dashboard itself
- * pivots its content by role. Kept as a function so the landing route
- * can diverge later without touching call sites.
+ * Both portals currently land on / (the Command Center HomePage) —
+ * which pivots its content by role. Kept as a function so the landing
+ * route can diverge later without touching call sites.
  */
 export function getLandingRouteForRole(role: NavRoleId | string | null): string {
-  return getPortalForRole(role) === "user" ? "/dashboard" : "/dashboard";
+  return getPortalForRole(role) === "user" ? "/" : "/";
 }

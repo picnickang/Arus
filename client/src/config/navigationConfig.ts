@@ -51,7 +51,6 @@ export interface NavigationCategory {
 // Resource codes must match server/config/permission-registry.ts exactly
 export const routeResourceMap: Record<string, string> = {
   // Operations
-  "/dashboard": "dashboard",
   "/findings": "dashboard",
   "/briefing": "dashboard",
   "/attention-inbox": "dashboard",
@@ -145,12 +144,6 @@ export const navigationCategories: NavigationCategory[] = [
         icon: AlertCircle,
         description: "Unified risk, blockers, handover, and next-action queue",
         badgeKey: "attention-open",
-      },
-      {
-        name: "Dashboard",
-        href: "/dashboard",
-        icon: Gauge,
-        description: "Overview, metrics, alerts, telemetry & insights",
       },
       {
         name: "Agent Findings",

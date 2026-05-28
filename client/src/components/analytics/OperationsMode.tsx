@@ -98,7 +98,7 @@ export function OperationsMode() {
 
   const handleViewDetails = useCallback(
     (equipmentId: string, sensorType: string) => {
-      navigate(`/dashboard?tab=telemetry&equipment=${equipmentId}&sensor=${sensorType}`);
+      navigate(`/equipment?id=${equipmentId}&sensor=${sensorType}`);
     },
     [navigate]
   );
@@ -427,7 +427,7 @@ export function OperationsMode() {
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       <Link
-                        href={`/dashboard?tab=telemetry&equipment=${anomaly.equipmentId}&sensor=${anomaly.sensorType}`}
+                        href={`/equipment?id=${anomaly.equipmentId}&sensor=${anomaly.sensorType}`}
                       >
                         <Button
                           size="sm"

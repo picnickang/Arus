@@ -13,7 +13,7 @@
 const ROLE_LANDING: Record<string, string> = {
   chief_engineer: "/briefing",
   deck_officer: "/briefing",
-  fleet_manager: "/dashboard",
+  fleet_manager: "/",
   system_admin: "/system",
 };
 

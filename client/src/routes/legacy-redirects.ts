@@ -16,9 +16,13 @@ export interface LegacyRedirect {
 }
 
 const additionalRedirects: LegacyRedirect[] = [
-  { from: "/alerts", to: "/dashboard", expires: "keep" },
-  { from: "/active-telemetry", to: "/dashboard?tab=telemetry", expires: "keep" },
-  { from: "/actionable-insights", to: "/dashboard?tab=insights", expires: "keep" },
+  // /dashboard retired — Command Center (HomePage at /) now owns the
+  // fleet-overview surface. Attention Inbox owns the alerts queue.
+  // Equipment Intelligence owns the AI insights surface.
+  { from: "/dashboard", to: "/", expires: "keep" },
+  { from: "/alerts", to: "/attention-inbox", expires: "keep" },
+  { from: "/active-telemetry", to: "/maint?tab=equipment-intelligence", expires: "keep" },
+  { from: "/actionable-insights", to: "/maint?tab=equipment-intelligence", expires: "keep" },
 ];
 
 const migrationRedirects: LegacyRedirect[] = Object.entries(routeMigrations || {}).map(

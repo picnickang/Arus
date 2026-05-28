@@ -38,11 +38,6 @@ const PAGE_CONTRACTS: TelemetryPageContract[] = [
     optionalFields: ["orgId", "metadata"],
   },
   {
-    pageName: "dashboard-improved",
-    requiredFields: ["equipmentId", "sensorType", "value", "timestamp"],
-    optionalFields: ["unit", "metadata"],
-  },
-  {
     pageName: "operations-hub",
     requiredFields: ["equipmentId", "sensorType", "value", "timestamp"],
     optionalFields: ["orgId", "deviceId"],

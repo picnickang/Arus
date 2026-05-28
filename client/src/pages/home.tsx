@@ -135,7 +135,7 @@ function useAttentionItems() {
         label: "Unacknowledged alerts",
         count: summary.unacknowledgedAlerts,
         severity: "warning",
-        href: "/dashboard",
+        href: "/attention-inbox",
       });
     }
     if (summary.highRiskEquipment > 0) {

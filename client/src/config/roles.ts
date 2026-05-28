@@ -70,7 +70,7 @@ export const ROLES: Record<string, RoleConfig> = {
     icon: BarChart3,
     quickActions: [
       { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
-      { label: "Fleet Dashboard", icon: Gauge, href: "/dashboard" },
+      { label: "Fleet Dashboard", icon: Gauge, href: "/" },
       { label: "Analytics", icon: BarChart3, href: "/analytics" },
       { label: "Scheduled Reports", icon: ClipboardCheck, href: "/scheduled-reports" },
       { label: "Governance", icon: Shield, href: "/logs?tab=compliance" },
