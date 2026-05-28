@@ -3,11 +3,27 @@ import { z } from "zod";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { validateResponse } from "../../../lib/api-helpers";
 import { withErrorHandling } from "../../../lib/route-utils";
+import { requireRole } from "../../../middleware/role-auth";
 import {
   AttentionWorkflowService,
   createAttentionWorkflowService,
 } from "../application/attention-service.js";
 import type { AttentionWorkflowSources } from "../domain/ports.js";
+
+// Command-queue surface (Attention Inbox) is admin-portal only.
+// Mirrors `getPortalForRole` in
+// `client/src/application/navigation/role-navigation-policy.ts`:
+// portal-level admin roles get access; deck_officer/viewer (user
+// portal) do not.
+const ATTENTION_INBOX_ROLES = [
+  "system_admin",
+  "company_admin",
+  "chief_engineer",
+  "fleet_manager",
+  "captain",
+  "admin",
+] as const;
+const requireAttentionInboxRole = requireRole(...ATTENTION_INBOX_ROLES);
 
 const workflowSeveritySchema = z.enum(["critical", "warning", "info", "success"]);
 const workflowQueueIdSchema = z.enum([
@@ -191,6 +207,7 @@ export function registerWorkflowRoutes(
     "/api/attention/items",
     generalApiRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("get attention workflow items", async (req: Request, res: Response) => {
       const workflow = await service.getWorkflow(getOrgId(req));
       res.json(validateResponse(attentionWorkflowResponseSchema, workflow, "GET /api/attention/items"));
@@ -201,6 +218,7 @@ export function registerWorkflowRoutes(
     "/api/attention/handover/latest",
     generalApiRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("get latest workflow handover", async (req: Request, res: Response) => {
       const record = await service.getLatestHandover(getOrgId(req));
       res.json(validateResponse(handoverRecordSchema.nullable(), record, "GET /api/attention/handover/latest"));
@@ -211,6 +229,7 @@ export function registerWorkflowRoutes(
     "/api/attention/handovers",
     generalApiRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("list workflow handovers", async (req: Request, res: Response) => {
       const records = await service.listHandovers(getOrgId(req));
       res.json(validateResponse(z.array(handoverRecordSchema), records, "GET /api/attention/handovers"));
@@ -221,6 +240,7 @@ export function registerWorkflowRoutes(
     "/api/attention/handover",
     writeOperationRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("save workflow handover", async (req: Request, res: Response) => {
       const payload = saveHandoverSchema.parse(req.body);
       const record = await service.saveHandover(getOrgId(req), payload, getUserId(req));
@@ -232,6 +252,7 @@ export function registerWorkflowRoutes(
     "/api/attention/blocker-resolutions",
     writeOperationRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("save blocker resolution", async (req: Request, res: Response) => {
       const payload = saveBlockerResolutionSchema.parse(req.body);
       const record = await service.saveBlockerResolution(getOrgId(req), payload, getUserId(req));
@@ -245,6 +266,7 @@ export function registerWorkflowRoutes(
     "/api/attention/issues",
     writeOperationRateLimit,
     requireOrgId,
+    requireAttentionInboxRole,
     withErrorHandling("report workflow issue", async (req: Request, res: Response) => {
       const payload = reportIssueSchema.parse(req.body);
       const record = await service.reportIssue(getOrgId(req), payload, getUserId(req));

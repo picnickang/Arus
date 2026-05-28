@@ -811,7 +811,14 @@ function UserPortalHome({
         </div>
 
         {attentionItems.length > 0 ? (
-          <AttentionBanner items={attentionItems} className="mb-4" />
+          <AttentionBanner
+            items={attentionItems.map((item) =>
+              item.href.startsWith("/attention-inbox")
+                ? { ...item, href: "/" }
+                : item,
+            )}
+            className="mb-4"
+          />
         ) : (
           <div
             className="mb-4 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"

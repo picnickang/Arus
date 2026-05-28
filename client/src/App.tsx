@@ -15,7 +15,7 @@ import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
-import { useEffect, lazy, Suspense, useState, useCallback } from "react";
+import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
 import {
@@ -42,6 +42,8 @@ const DevPerformanceOverlay = import.meta.env.DEV
 
 import { operationsRoutes } from "@/routes/operations";
 import { fleetRoutes } from "@/routes/fleet";
+import { getPortalForRole } from "@/application/navigation/role-navigation-policy";
+import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
 import { logisticsRoutes } from "@/routes/logistics";
@@ -110,6 +112,49 @@ function Redirect({ from, to }: { from: string; to: string }) {
     setLocation(target, { replace: true });
   }, [from, to, setLocation]);
   return null;
+}
+
+/**
+ * Routes that are admin-portal-only. User-portal roles
+ * (`deck_officer`, `viewer`) are redirected to `/` if they try to
+ * deep-link in (old bookmark, copy/pasted URL, stray in-app link).
+ *
+ * The server enforces the same boundary on the underlying
+ * `/api/attention/*` endpoints; this client guard is a UX layer so
+ * the page itself never paints for a regular user.
+ */
+const ADMIN_ONLY_ROUTES = new Set<string>(["/attention-inbox"]);
+
+function readCurrentRole(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function AdminPortalRouteGuard({
+  path,
+  children,
+}: {
+  path: string;
+  children: ReactNode;
+}) {
+  const [, setLocation] = useLocation();
+  const allowed = getPortalForRole(readCurrentRole()) === "admin";
+  useEffect(() => {
+    if (!allowed) {
+      trackRedirectUsage(path, "/");
+      setLocation("/", { replace: true });
+    }
+  }, [allowed, path, setLocation]);
+  if (!allowed) {
+    return null;
+  }
+  return <>{children}</>;
 }
 
 function useTrackPageVisit() {
@@ -209,11 +254,18 @@ function Router() {
 
               {allRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path}>
-                  {(params) => (
-                    <ErrorBoundary key={path}>
-                      <Component {...(params as object as Record<string, string>)} />
-                    </ErrorBoundary>
-                  )}
+                  {(params) => {
+                    const page = (
+                      <ErrorBoundary key={path}>
+                        <Component {...(params as object as Record<string, string>)} />
+                      </ErrorBoundary>
+                    );
+                    return ADMIN_ONLY_ROUTES.has(path) ? (
+                      <AdminPortalRouteGuard path={path}>{page}</AdminPortalRouteGuard>
+                    ) : (
+                      page
+                    );
+                  }}
                 </Route>
               ))}
 

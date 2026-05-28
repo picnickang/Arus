@@ -25,7 +25,16 @@ export type CrewRole =
   | "cook"
   | "steward"
   | "cadet"
-  | "admin";
+  | "admin"
+  // Portal-level admin roles (see client role-navigation-policy).
+  // Included so `requireRole(...)` can gate routes by portal, not
+  // just shipboard crew rank — the runtime check is a plain string
+  // compare against `user.role.toLowerCase()`.
+  | "system_admin"
+  | "company_admin"
+  | "fleet_manager"
+  | "deck_officer"
+  | "viewer";
 
 const PARTS_MANAGEMENT_ROLES: CrewRole[] = ["chief_engineer", "second_engineer"];
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOperationalWorkflow } from "../useOperationalWorkflow";
+import { getPortalForRole } from "@/application/navigation/role-navigation-policy";
 
 const ROLE_TITLES: Record<string, string> = {
   chief_engineer: "Chief Engineer Today",
@@ -50,7 +51,15 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
   const readyToClose = handover.readyForCloseout ?? 0;
   const blocked = handover.blockedJobs ?? 0;
   const waitingParts = handover.waitingOnParts ?? 0;
-  const actions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS['default'];
+  // Command Queue (Attention Inbox) is admin-portal only. For
+  // user-portal roles (deck_officer, viewer) we hide the header
+  // button AND strip any role action whose href targets
+  // /attention-inbox so a user can't deep-link in.
+  const isAdminPortal = getPortalForRole(roleId) === "admin";
+  const rawActions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS['default'];
+  const actions = isAdminPortal
+    ? rawActions
+    : (rawActions ?? []).filter((a) => !a.href.startsWith("/attention-inbox"));
 
   return (
     <Card className="mb-6" data-testid="role-today-panel">
@@ -63,7 +72,15 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
             </CardTitle>
             <CardDescription>Start with risk, blockers, closeout, and handover before opening modules.</CardDescription>
           </div>
-          <Button variant="outline" onClick={() => setLocation("/attention-inbox")}>Open command queue</Button>
+          {isAdminPortal && (
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/attention-inbox")}
+              data-testid="button-open-command-queue"
+            >
+              Open command queue
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
