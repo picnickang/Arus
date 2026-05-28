@@ -48,6 +48,9 @@ import {
   type ShiftStatusSlot,
   type UpcomingMaintenanceSlot,
 } from "@/application/user-dashboard/user-dashboard-view-model";
+import { useDashboardSummary } from "@/features/analytics/hooks/useDashboardSummary";
+import { formatDistanceToNow } from "date-fns";
+import { ExternalLink } from "lucide-react";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -478,6 +481,191 @@ function UpcomingMaintenanceCard({
   );
 }
 
+function AIFleetSummaryCard() {
+  const [, setLocation] = useLocation();
+  const { metrics, equipmentHealth, insightsSnapshot } = useDashboardSummary();
+
+  const fleetHealth = metrics?.fleetHealth ?? 0;
+  const openWorkOrders = metrics?.openWorkOrders ?? 0;
+  const criticalEquipmentCount = (equipmentHealth ?? []).filter(
+    (eq) => (eq.healthIndex ?? 100) < 40,
+  ).length;
+
+  const parts: string[] = [];
+  if (fleetHealth >= 80) {
+    parts.push("Fleet health is stable.");
+  } else if (fleetHealth >= 60) {
+    parts.push("Fleet health is below target — some equipment needs attention.");
+  } else {
+    parts.push(
+      "Fleet health is degraded — multiple equipment items require immediate action.",
+    );
+  }
+  if (criticalEquipmentCount > 0) {
+    parts.push(
+      `${criticalEquipmentCount} equipment item${criticalEquipmentCount > 1 ? "s" : ""} ${criticalEquipmentCount > 1 ? "are" : "is"} in critical condition.`,
+    );
+  }
+  if (openWorkOrders > 0) {
+    parts.push(`${openWorkOrders} work order${openWorkOrders > 1 ? "s" : ""} open.`);
+  }
+  if (insightsSnapshot?.summary) {
+    parts.push(insightsSnapshot.summary);
+  }
+  if (parts.length <= 2) {
+    parts.push("No anomalies detected in the last 24 hours.");
+  }
+
+  return (
+    <section className="mb-6" data-testid="section-ai-fleet-summary">
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        AI Summary
+      </h2>
+      <div
+        className="ops-card ops-card-info p-4"
+        data-testid="card-ai-fleet-summary"
+      >
+        <p
+          className="text-sm leading-relaxed text-foreground"
+          data-testid="text-ai-fleet-summary"
+        >
+          {parts.join(" ")}
+        </p>
+        <button
+          type="button"
+          onClick={() => setLocation("/maint?tab=equipment-intelligence")}
+          className="mt-2 inline-flex items-center gap-1 text-xs text-sky-300 hover:underline"
+          data-testid="link-ai-fleet-summary-details"
+        >
+          View Equipment Intelligence <ExternalLink className="h-3 w-3" />
+        </button>
+      </div>
+    </section>
+  );
+}
+
+interface RecentActivityItem {
+  id: string;
+  time: string;
+  message: string;
+  type: "telemetry" | "work-order" | "prediction";
+  severity?: "critical" | "warning" | "info";
+}
+
+function RecentActivityFeed() {
+  const { workOrders, equipmentHealth, operatingAlerts } = useDashboardSummary();
+
+  const items: RecentActivityItem[] = [];
+
+  for (const wo of (workOrders ?? []).slice(0, 6)) {
+    const created = wo.createdAt;
+    if (!created) continue;
+    const label =
+      wo.status === "completed"
+        ? "Completed"
+        : wo.status === "in_progress"
+          ? "Started"
+          : "Created";
+    items.push({
+      id: `wo-${wo.id}`,
+      time: created,
+      message: `${label}: ${wo.title ?? wo.workOrderNumber ?? wo.id}`,
+      type: "work-order",
+      severity:
+        wo.priority === 2 || wo.priority === "high" ? "warning" : "info",
+    });
+  }
+
+  for (const alert of (operatingAlerts ?? []).slice(0, 4)) {
+    if (!alert.createdAt) continue;
+    items.push({
+      id: `alert-${alert.id}`,
+      time: alert.createdAt,
+      message: `Alert: operating threshold exceeded${alert.equipmentId ? ` — ${alert.equipmentId}` : ""}`,
+      type: "telemetry",
+      severity: alert.severity === "critical" ? "critical" : "warning",
+    });
+  }
+
+  for (const eq of (equipmentHealth ?? [])
+    .filter((e) => (e.healthIndex ?? 100) < 40)
+    .slice(0, 4)) {
+    items.push({
+      id: `eq-${eq.id}`,
+      time: new Date().toISOString(),
+      message: `Equipment health: ${eq.name ?? eq.id} at ${eq.healthIndex}%${eq.vesselName ? ` — ${eq.vesselName}` : ""}`,
+      type: "prediction",
+      severity: (eq.healthIndex ?? 100) < 30 ? "critical" : "warning",
+    });
+  }
+
+  items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  const visible = items.slice(0, 12);
+
+  const typeDot: Record<RecentActivityItem["type"], string> = {
+    telemetry: "bg-blue-500",
+    "work-order": "bg-amber-500",
+    prediction: "bg-purple-500",
+  };
+  const severityText: Record<NonNullable<RecentActivityItem["severity"]>, string> = {
+    critical: "text-red-600 dark:text-red-400",
+    warning: "text-amber-600 dark:text-amber-400",
+    info: "text-foreground",
+  };
+
+  return (
+    <section className="mb-6" data-testid="section-recent-activity">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Recent Activity
+      </h2>
+      {visible.length === 0 ? (
+        <div
+          className="rounded-lg border bg-card p-4 text-center text-xs text-muted-foreground"
+          data-testid="empty-recent-activity"
+        >
+          No recent activity. Events will appear here as they occur.
+        </div>
+      ) : (
+        <div className="rounded-lg border bg-card px-4">
+          {visible.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-start gap-3 border-b border-border/40 py-2.5 last:border-0"
+              data-testid={`row-recent-activity-${item.id}`}
+            >
+              <div
+                className={cn(
+                  "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                  typeDot[item.type],
+                )}
+              />
+              <p
+                className={cn(
+                  "min-w-0 flex-1 text-sm",
+                  item.severity ? severityText[item.severity] : "text-foreground",
+                )}
+              >
+                {item.message}
+              </p>
+              <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                {(() => {
+                  try {
+                    return formatDistanceToNow(new Date(item.time), {
+                      addSuffix: true,
+                    });
+                  } catch {
+                    return "Recently";
+                  }
+                })()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function greetingForNow(now: Date): string {
   const h = now.getHours();
   if (h < 12) return "Good morning";
@@ -838,6 +1026,10 @@ export default function HomePage() {
         {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
 
         <MyTasks />
+
+        <AIFleetSummaryCard />
+
+        <RecentActivityFeed />
 
         {/* Module shortcuts — the 5 policy categories. Mobile: 2-col,
             tablet: 3-col, desktop: 5-col so the row matches the
