@@ -58,9 +58,15 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
 
   it("wraps the user-portal branch in the dark ops-surface shell", () => {
     expect(userBranch).toMatch(/ops-surface/);
-    expect(userBranch).toMatch(/ops-safe-bottom/);
     expect(userBranch).toMatch(/data-testid="shell-user-portal"/);
     expect(userBranch).not.toMatch(/bg-background pb-20 md:pb-4/);
+    // #218: BottomNav is hidden for the user portal, so the shell
+    // no longer reserves the ~5rem of mobile clearance that
+    // `ops-safe-bottom` adds (or the matching `pb-24`). A calm
+    // `pb-6` replaces both. Admin branch keeps `ops-safe-bottom`
+    // and is asserted separately above.
+    expect(userBranch).not.toMatch(/ops-safe-bottom/);
+    expect(userBranch).not.toMatch(/pb-24/);
   });
 
   it("renders the 4-KPI grid in the admin branch", () => {

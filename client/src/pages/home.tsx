@@ -777,7 +777,12 @@ function UserPortalHome({
 
   return (
     <div
-      className="ops-surface ops-safe-bottom min-h-screen pb-24 md:pb-6"
+      // #218: no bottom nav in the user portal, so we drop the
+      // mobile bar-clearance utility and matching tall bottom
+      // padding. A calm 1.5rem pad keeps content off the iOS
+      // home indicator. The admin shell below still reserves
+      // bar space because its bar renders.
+      className="ops-surface min-h-screen pb-6"
       data-testid="shell-user-portal"
     >
       <PageHeader
