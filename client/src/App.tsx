@@ -221,6 +221,15 @@ function Router() {
   }
 
   const isLoginRoute = routerLoc === "/portal-login";
+  // #218: the user portal has no BottomNav, so the ~56px mobile
+  // clearance the admin portal needs becomes orphan padding. Skip
+  // the `pb-14` in that case (and skip the mount itself as
+  // defence-in-depth — the component also returns null for user
+  // portal). Same `getPortalForRole` policy used by the route
+  // guard and the bar itself; reading localStorage at render is
+  // fine because portal switches do a full reload.
+  const isAdminPortal =
+    !isLoginRoute && getPortalForRole(readCurrentRole()) === "admin";
 
   return (
     <div className="min-h-screen bg-background">
@@ -235,7 +244,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isLoginRoute ? "" : "pb-14 md:pb-0"}`}
+        className={`min-h-screen ${isAdminPortal ? "pb-14 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >
@@ -277,7 +286,7 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
-      {!isLoginRoute && <BottomNav />}
+      {isAdminPortal && <BottomNav />}
       {!isLoginRoute && <CopilotFab />}
     </div>
   );

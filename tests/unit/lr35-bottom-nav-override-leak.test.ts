@@ -22,7 +22,11 @@ import {
   pruneOverrideToPolicyIds,
 } from "../../client/src/application/navigation/role-navigation-policy";
 
-const REPO_ROOT = resolve(__dirname, "..", "..");
+// `__dirname` is not defined under the ESM/swc Jest config used by
+// these unit tests; `process.cwd()` is the project root when Jest is
+// invoked from package.json — same convention as the sibling
+// `lr35-ui-align-*` tests in this directory.
+const REPO_ROOT = process.cwd();
 const BOTTOM_NAV = resolve(REPO_ROOT, "client/src/components/BottomNav.tsx");
 const SWITCH_PORTAL = resolve(
   REPO_ROOT,
@@ -181,6 +185,34 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(literalMatches.length).toBe(0);
       const roleLiteralMatches = src.match(/"arus-user-role"/g) ?? [];
       expect(roleLiteralMatches.length).toBe(0);
+    });
+
+    it("BottomNav.tsx renders nothing for user-portal roles (#218 render gate)", async () => {
+      const src = await readFile(BOTTOM_NAV, "utf8");
+      // Pin the policy import + the early-return on `portal === "user"`.
+      // The hooks above the return must still execute so the #194
+      // override self-heal keeps running for users who never see the
+      // bar — assert the return sits AFTER the useEffect block.
+      expect(src).toContain("getPortalForRole");
+      expect(src).toMatch(/if\s*\(\s*portal\s*===\s*"user"\s*\)\s*\{\s*return\s+null\s*;\s*\}/);
+      const useEffectIdx = src.indexOf("useEffect(");
+      const userReturnIdx = src.search(
+        /if\s*\(\s*portal\s*===\s*"user"\s*\)\s*\{\s*return\s+null/,
+      );
+      expect(useEffectIdx).toBeGreaterThan(-1);
+      expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
+    });
+
+    it("App.tsx gates the BottomNav mount + pb-14 padding on the admin portal (#218)", async () => {
+      const APP_TSX = resolve(REPO_ROOT, "client/src/App.tsx");
+      const src = await readFile(APP_TSX, "utf8");
+      // Bar mount is admin-portal-only — no orphan `pb-14` for users.
+      expect(src).toContain("isAdminPortal");
+      expect(src).toContain("{isAdminPortal && <BottomNav />}");
+      expect(src).toMatch(/getPortalForRole\(readCurrentRole\(\)\)\s*===\s*"admin"/);
+      // The mobile clearance is now conditional — must not reintroduce
+      // the unconditional `pb-14 md:pb-0` on `<main>`.
+      expect(src).not.toMatch(/className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/);
     });
 
     it("portal-login.tsx writes nav state ONLY through the centralised adapter", async () => {

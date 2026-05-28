@@ -76,11 +76,26 @@ export function BottomNav() {
     }
   }, [override, roleId]);
 
-  // In the simplified User Portal, the "More" sheet would leak the
-  // full 8-category admin surface and defeat the simplification —
-  // restrict it to the policy's visible categories.
-  const moreSheetCategories: NavigationCategory[] =
-    portal === "user" ? visibleCategories : navigationCategories;
+  // Render gate (#218): the user portal exposes only Dashboard (`/`)
+  // and Feedback (`/feedback`). With the hardcoded Home button also
+  // routing to `/`, three of four tap targets become redundant and
+  // the "More" sheet reveals nothing new. Hide the bar entirely for
+  // user-portal roles and reclaim the ~56px vertical strip.
+  //
+  // Hooks above must still run unconditionally — the override
+  // self-heal (#194) must keep working even for users who never see
+  // the bar, so a stale admin override left over from a portal switch
+  // is still pruned out of localStorage.
+  if (portal === "user") {
+    return null;
+  }
+
+  // After the #218 render gate above, the only code path that
+  // reaches here is `portal === "admin"`, so the "More" sheet always
+  // shows the full admin category surface. The user-portal branch
+  // is intentionally unreachable now (kept as a comment so the
+  // intent stays documented for the next reader).
+  const moreSheetCategories: NavigationCategory[] = navigationCategories;
 
   const currentPath = location.split("?")[0] ?? "";
 
