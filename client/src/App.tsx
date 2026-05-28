@@ -168,11 +168,14 @@ function ConnectivityBannerWithSync() {
 
 function Router() {
   const { currentOrgId, isLoading } = useOrganization();
+  const [routerLoc] = useLocation();
   useTrackPageVisit();
 
   if (isLoading || !currentOrgId) {
     return <FullPageLoader />;
   }
+
+  const isLoginRoute = routerLoc === "/portal-login";
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,7 +190,7 @@ function Router() {
 
       <main
         id="main-content"
-        className="min-h-screen pb-14 md:pb-0"
+        className={`min-h-screen ${isLoginRoute ? "" : "pb-14 md:pb-0"}`}
         role="main"
         aria-label="Main content"
       >
@@ -222,8 +225,8 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
-      <BottomNav />
-      <CopilotFab />
+      {!isLoginRoute && <BottomNav />}
+      {!isLoginRoute && <CopilotFab />}
     </div>
   );
 }
