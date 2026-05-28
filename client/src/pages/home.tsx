@@ -552,8 +552,65 @@ interface RecentActivityItem {
   severity?: "critical" | "warning" | "info";
 }
 
+type RecentActivityFilter = "all" | "work-order" | "telemetry" | "prediction";
+
+const RECENT_ACTIVITY_FILTER_KEY = "arus:home:recent-activity-filter";
+
+const RECENT_ACTIVITY_TABS: ReadonlyArray<{
+  value: RecentActivityFilter;
+  label: string;
+  emptyMessage: string;
+}> = [
+  {
+    value: "all",
+    label: "All",
+    emptyMessage: "No recent activity. Events will appear here as they occur.",
+  },
+  {
+    value: "work-order",
+    label: "Work Orders",
+    emptyMessage: "No new work order activity in the last 24 hours.",
+  },
+  {
+    value: "telemetry",
+    label: "Alerts",
+    emptyMessage: "No new alerts in the last 24 hours.",
+  },
+  {
+    value: "prediction",
+    label: "Equipment",
+    emptyMessage: "No equipment health issues right now.",
+  },
+];
+
 function RecentActivityFeed() {
   const { workOrders, equipmentHealth, operatingAlerts } = useDashboardSummary();
+  const [filter, setFilter] = useState<RecentActivityFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    try {
+      const stored = window.sessionStorage.getItem(RECENT_ACTIVITY_FILTER_KEY);
+      if (
+        stored === "all" ||
+        stored === "work-order" ||
+        stored === "telemetry" ||
+        stored === "prediction"
+      ) {
+        return stored;
+      }
+    } catch {
+      // ignore
+    }
+    return "all";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(RECENT_ACTIVITY_FILTER_KEY, filter);
+    } catch {
+      // ignore
+    }
+  }, [filter]);
 
   const items: RecentActivityItem[] = [];
 
@@ -600,7 +657,10 @@ function RecentActivityFeed() {
   }
 
   items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-  const visible = items.slice(0, 12);
+  const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
+  const visible = filtered.slice(0, 12);
+  const activeTab =
+    RECENT_ACTIVITY_TABS.find((t) => t.value === filter) ?? RECENT_ACTIVITY_TABS[0];
 
   const typeDot: Record<RecentActivityItem["type"], string> = {
     telemetry: "bg-blue-500",
@@ -618,12 +678,40 @@ function RecentActivityFeed() {
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Recent Activity
       </h2>
+      <div
+        role="tablist"
+        aria-label="Filter recent activity"
+        className="mb-3 inline-flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1"
+        data-testid="tabs-recent-activity-filter"
+      >
+        {RECENT_ACTIVITY_TABS.map((tab) => {
+          const isActive = tab.value === filter;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setFilter(tab.value)}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                isActive
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              data-testid={`tab-recent-activity-${tab.value}`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
       {visible.length === 0 ? (
         <div
           className="rounded-lg border bg-card p-4 text-center text-xs text-muted-foreground"
           data-testid="empty-recent-activity"
         >
-          No recent activity. Events will appear here as they occur.
+          {activeTab.emptyMessage}
         </div>
       ) : (
         <div className="rounded-lg border bg-card px-4">
