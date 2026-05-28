@@ -203,15 +203,23 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
     });
 
-    it("App.tsx gates the BottomNav mount + pb-14 padding on the admin portal (#218)", async () => {
+    it("App.tsx mounts BottomNav on every non-login route but only pads for the admin portal (#218)", async () => {
       const APP_TSX = resolve(REPO_ROOT, "client/src/App.tsx");
       const src = await readFile(APP_TSX, "utf8");
-      // Bar mount is admin-portal-only — no orphan `pb-14` for users.
+      // CRITICAL #194 contract: BottomNav must still mount for
+      // user-portal sessions so its useEffect-driven override
+      // self-heal (`pruneOverrideToPolicyIds`) keeps running even
+      // though the bar itself returns null and is invisible.
+      // Gating the mount on `isAdminPortal` would disable prune
+      // for the very roles whose stale admin ids we're scrubbing.
+      expect(src).toContain("{!isLoginRoute && <BottomNav />}");
+      expect(src).not.toMatch(/\{\s*isAdminPortal\s*&&\s*<BottomNav\s*\/>\s*\}/);
+      // The mobile clearance for the bar is portal-scoped — no
+      // orphan `pb-14` strip on user-portal pages.
       expect(src).toContain("isAdminPortal");
-      expect(src).toContain("{isAdminPortal && <BottomNav />}");
       expect(src).toMatch(/getPortalForRole\(readCurrentRole\(\)\)\s*===\s*"admin"/);
-      // The mobile clearance is now conditional — must not reintroduce
-      // the unconditional `pb-14 md:pb-0` on `<main>`.
+      expect(src).toMatch(/isAdminPortal\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/);
+      // Must not reintroduce the legacy unconditional clearance.
       expect(src).not.toMatch(/className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/);
     });
 
