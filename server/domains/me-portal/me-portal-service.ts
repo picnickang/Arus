@@ -10,7 +10,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "../../db";
-import { users } from "@shared/schema";
+import { users, adminSessions } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import {
   dbSystemAdminStorage,
@@ -122,7 +122,34 @@ export class MePortalService {
     return { vesselIds, fleetWide };
   }
 
+  /**
+   * Server-side enforcement of the forced password-change policy. Every
+   * non-credential `/api/me/*` data read must call this first so the gate
+   * cannot be bypassed by a client that skips the change-password UX. Returns a
+   * distinct `PASSWORD_CHANGE_REQUIRED` (403) the frontend can route on.
+   */
+  private async assertPasswordChangeNotRequired(user: MeUser): Promise<void> {
+    const [record] = await db
+      .select({ mustChangePassword: users.mustChangePassword })
+      .from(users)
+      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
+      .limit(1);
+    if (record?.mustChangePassword) {
+      throw new MePortalError(
+        "You must change your password before continuing",
+        "PASSWORD_CHANGE_REQUIRED",
+        403,
+      );
+    }
+  }
+
+  /** Revoke every active session for a user (credential-rotation hardening). */
+  private async invalidateUserSessions(userId: string): Promise<void> {
+    await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
+  }
+
   async getDashboard(user: MeUser): Promise<DashboardPayload> {
+    await this.assertPasswordChangeNotRequired(user);
     const configs = await crewAdminService.resolveEffectiveConfigList(
       user.orgId,
       user.id,
@@ -162,6 +189,7 @@ export class MePortalService {
   }
 
   async getTasks(user: MeUser): Promise<TaskItem[]> {
+    await this.assertPasswordChangeNotRequired(user);
     const configs = await crewAdminService.resolveEffectiveConfigList(
       user.orgId,
       user.id,
@@ -204,6 +232,7 @@ export class MePortalService {
   }
 
   async getVisibleAlarms(user: MeUser): Promise<MeAlarmView[]> {
+    await this.assertPasswordChangeNotRequired(user);
     const scope = await this.resolveAlarmScope(user);
     const alarms = await safetyAlarmService.listActiveForUser(user.orgId, scope);
     return alarms
@@ -250,6 +279,7 @@ export class MePortalService {
     alarmId: string,
     comment: string | undefined,
   ): Promise<void> {
+    await this.assertPasswordChangeNotRequired(user);
     const scope = await this.resolveAlarmScope(user);
     try {
       await safetyAlarmService.acknowledge(
@@ -368,6 +398,9 @@ export class MePortalService {
         updatedAt: new Date(),
       })
       .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)));
+    // Rotate credentials => revoke every existing session so any pre-change
+    // token (including the caller's current one) can no longer be used.
+    await this.invalidateUserSessions(user.id);
   }
 
   private assertPasswordPolicy(password: string): void {

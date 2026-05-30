@@ -75,6 +75,14 @@ export class CrewAdminApplicationService {
     if (!role) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
     }
+    // Deactivating an admin-capable role could strip the last admin pathway —
+    // never let that happen via the role-lifecycle surface.
+    if (patch.isActive === false && isAdminCapableRole(role.name)) {
+      throw new CrewAdminError(
+        "Admin-capable roles cannot be deactivated",
+        "ADMIN_ROLE_PROTECTED",
+      );
+    }
     const updated = await this.repo.updateRole(orgId, id, patch);
     if (!updated) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
@@ -87,7 +95,7 @@ export class CrewAdminApplicationService {
     if (!role) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
     }
-    if (role.isProtected || isProtectedRoleName(role.name)) {
+    if (role.isProtected || isProtectedRoleName(role.name) || isAdminCapableRole(role.name)) {
       throw new CrewAdminError("Protected roles cannot be deleted", "PROTECTED_ROLE");
     }
     if (role.assignedUserCount > 0) {

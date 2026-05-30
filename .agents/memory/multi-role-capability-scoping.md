@@ -33,3 +33,20 @@ alarm feeds. This was a code-review REJECTION on the User page work.
   vessel-roster reference context may use the merged scope.
 - If you add a new data feed to the User page, scope it through a capability
   resolver — do not reach for `config.visibilityScope` of the merged config.
+
+## Credential hardening (same User-page surface)
+
+Two controls that code review treats as blocking on this surface:
+- **Session invalidation on credential rotation:** any path that changes a
+  password (self change in me-portal, admin reset/disable in crew-admin) MUST
+  revoke ALL of that user's sessions (delete `admin_sessions` rows) right after
+  the update, so pre-change tokens — including the caller's own — die.
+- **Forced password change is server-enforced, not UI-only:** every
+  non-credential `/api/me/*` data read calls a guard that throws
+  `PASSWORD_CHANGE_REQUIRED` (403) while `users.mustChangePassword` is true.
+  The change-password endpoint itself stays unguarded for recovery.
+- **Admin lockout covers role lifecycle too:** deactivating or deleting an
+  admin-capable role (`ADMIN_CAPABLE_ROLE_KEYS`) is blocked, mirroring the
+  last-admin-login guards — not just user login/role-change paths.
+**Why:** these were repeat code-review rejections; UI-only gating and missing
+session revocation are treated as real security defects, not polish.

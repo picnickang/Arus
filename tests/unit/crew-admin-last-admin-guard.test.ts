@@ -130,3 +130,86 @@ describe("setCredentials — last-admin guard (loginEnabled:false)", () => {
     expect(repo.setCredentialsCalls[0]?.loginEnabled).toBe(false);
   });
 });
+
+interface FakeRoleRow {
+  id: string;
+  name: string;
+  isProtected: boolean;
+  isActive: boolean;
+  assignedUserCount: number;
+}
+
+class FakeRoleRepo {
+  public deletedRoles: string[] = [];
+  public updatedRoles: Array<{ id: string; patch: Record<string, unknown> }> = [];
+  constructor(private readonly role: FakeRoleRow) {}
+
+  async findRoleById(): Promise<FakeRoleRow> {
+    return this.role;
+  }
+  async updateRole(
+    _org: string,
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<FakeRoleRow> {
+    this.updatedRoles.push({ id, patch });
+    return { ...this.role, ...(patch as Partial<FakeRoleRow>) };
+  }
+  async deleteRole(_org: string, id: string): Promise<void> {
+    this.deletedRoles.push(id);
+  }
+  async deleteConfig(): Promise<void> {}
+}
+
+function roleRow(overrides: Partial<FakeRoleRow> = {}): FakeRoleRow {
+  return {
+    id: "role-x",
+    name: "deckhand",
+    isProtected: false,
+    isActive: true,
+    assignedUserCount: 0,
+    ...overrides,
+  };
+}
+
+describe("role lifecycle — admin-capable lockout", () => {
+  it("blocks deactivating an admin-capable role", async () => {
+    const repo = new FakeRoleRepo(roleRow({ name: "company_admin" }));
+    const service = new CrewAdminApplicationService(
+      repo as unknown as ICrewAdminRepository,
+    );
+    await expect(
+      service.updateRole(ORG, "role-x", { isActive: false }),
+    ).rejects.toMatchObject({ code: "ADMIN_ROLE_PROTECTED" });
+    expect(repo.updatedRoles).toHaveLength(0);
+  });
+
+  it("allows editing an admin-capable role without deactivating it", async () => {
+    const repo = new FakeRoleRepo(roleRow({ name: "company_admin" }));
+    const service = new CrewAdminApplicationService(
+      repo as unknown as ICrewAdminRepository,
+    );
+    await service.updateRole(ORG, "role-x", { displayName: "Company Admin" });
+    expect(repo.updatedRoles).toHaveLength(1);
+  });
+
+  it("blocks deleting an admin-capable role", async () => {
+    const repo = new FakeRoleRepo(roleRow({ name: "system_admin" }));
+    const service = new CrewAdminApplicationService(
+      repo as unknown as ICrewAdminRepository,
+    );
+    await expect(service.deleteRole(ORG, "role-x")).rejects.toMatchObject({
+      code: "PROTECTED_ROLE",
+    });
+    expect(repo.deletedRoles).toHaveLength(0);
+  });
+
+  it("allows deleting an unused custom role", async () => {
+    const repo = new FakeRoleRepo(roleRow({ name: "deckhand" }));
+    const service = new CrewAdminApplicationService(
+      repo as unknown as ICrewAdminRepository,
+    );
+    await service.deleteRole(ORG, "role-x");
+    expect(repo.deletedRoles).toEqual(["role-x"]);
+  });
+});
