@@ -16,7 +16,8 @@ resolved PER capability, never from the single merged max `visibilityScope`.
 **Why:** a single merged max scope causes cross-role privilege amplification —
 e.g. a fleet-scoped procurement role (which grants only `purchase_requests`)
 would bleed fleet visibility into a self-scoped technician's work-order and
-alarm feeds. This was a code-review REJECTION on the User page work.
+alarm feeds. Treat per-capability scope resolution as a security boundary, not
+a refactor preference.
 
 **How to apply:**
 - Per-source scope = most-permissive scope among ONLY the roles whose

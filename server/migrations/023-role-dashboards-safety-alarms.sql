@@ -106,3 +106,34 @@ CREATE TABLE IF NOT EXISTS vessel_safety_alarm_acknowledgements (
 );
 
 CREATE INDEX IF NOT EXISTS idx_alarm_ack_alarm ON vessel_safety_alarm_acknowledgements (alarm_id);
+
+-- Idempotently seed the protected (built-in) emergency alarm types for every
+-- org that already exists. New orgs are seeded on demand at runtime by
+-- SafetyAlarmService.ensureProtectedTypes(); this block covers orgs present at
+-- migration time so the catalogue is never empty after deploy. The keys/labels
+-- below mirror PROTECTED_ALARM_TYPES in shared/role-dashboard.ts.
+--
+-- Protected ROLES are intentionally NOT seeded here: roles are org-scoped and
+-- carry required metadata (display name, permission grants) owned by the
+-- application setup/bootstrap path, so static SQL cannot create complete role
+-- rows. The bootstrap remains the single source of truth for role creation.
+INSERT INTO safety_alarm_types
+  (org_id, key, display_name, default_severity, requires_acknowledgement, is_protected, is_active)
+SELECT o.id, t.key, t.display_name, t.default_severity, TRUE, TRUE, TRUE
+FROM organizations o
+CROSS JOIN (VALUES
+  ('fire_alarm',             'Fire Alarm',                'emergency'),
+  ('man_overboard',          'Man Overboard',             'emergency'),
+  ('abandon_vessel',         'Abandon Vessel',            'emergency'),
+  ('medical_emergency',      'Medical Emergency',         'critical'),
+  ('collision_grounding',    'Collision / Grounding',     'emergency'),
+  ('flooding_water_ingress', 'Flooding / Water Ingress',  'emergency'),
+  ('engine_room_emergency',  'Engine Room Emergency',     'critical'),
+  ('security_threat',        'Security Threat',           'critical'),
+  ('gas_leak',               'Gas Leak',                  'critical'),
+  ('machinery_emergency',    'Machinery Emergency',       'critical'),
+  ('evacuation',             'Evacuation',                'emergency'),
+  ('muster_alarm',           'Muster Alarm',              'critical'),
+  ('general_emergency',      'General Emergency',          'emergency')
+) AS t(key, display_name, default_severity)
+ON CONFLICT (org_id, key) DO NOTHING;

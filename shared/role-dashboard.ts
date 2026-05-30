@@ -86,7 +86,11 @@ export const TASK_SOURCE_LABELS: Record<TaskSourceKey, string> = {
  * never silently no-op. Add a key here only once its adapter exists in
  * `MePortalService.getTasks`.
  */
-export const IMPLEMENTED_TASK_SOURCES = ["work_orders"] as const;
+export const IMPLEMENTED_TASK_SOURCES = [
+  "work_orders",
+  "maintenance_schedules",
+  "alerts",
+] as const;
 
 /** Filter an arbitrary task-source list down to the implemented set, in canonical order. */
 export function sanitizeTaskSources(sources: readonly TaskSourceKey[]): TaskSourceKey[] {
