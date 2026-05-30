@@ -36,6 +36,7 @@ node_modules
 replit.nix
 .upm/
 .cache/
+.local/
 
 # Desktop/Mobile builds (not needed in server container)
 electron/dist/
@@ -43,6 +44,30 @@ dist-electron/
 out/
 ios/
 android/
+# Tauri desktop app: source + Rust build artifacts (~1.1 GB of target/).
+# The web server never imports from here.
+src-tauri/
+
+# Python ML libs are managed by uv (pyproject.toml + uv.lock) and rebuilt
+# inside the deployment container via `uv sync`. The on-disk install is a
+# redundant ~950 MB that should not ship in the image.
+.pythonlibs/
+.venv/
+
+# Mockup-sandbox / canvas tooling — development only, not served in prod.
+artifacts/
+
+# Generated code dumps and report exports — not needed at runtime.
+exports/
+code-export/
+installer-review-bundle/
+
+# Project documentation — not needed in the runtime image.
+docs/
+
+# Unbundled source assets: vite inlines/hashes everything it imports into
+# dist/ at build time, so the raw folder is not required at runtime.
+attached_assets/
 
 # Code quality tools working directories
 .scannerwork/
