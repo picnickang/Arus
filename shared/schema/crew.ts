@@ -380,8 +380,14 @@ export const crewRestDay = pgTable(
 );
 
 // Insert schemas
+// NOTE: `userId` (the 1:1 login-account link) is intentionally omitted. The
+// link/unlink lifecycle is owned exclusively by the admin-gated crew-admin
+// endpoints (/api/admin/crew/members/:crewId/{account,link}); exposing it here
+// would let the generic, non-admin /api/crew CRUD routes set or clear the
+// account link and bypass those guardrails.
 export const insertCrewSchema = createInsertSchema(crew).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });
