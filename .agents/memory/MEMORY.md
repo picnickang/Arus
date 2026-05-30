@@ -1,1 +1,2 @@
 - [Navigation routing traps](navigation-routing-traps.md) — `/maint|/crew|/system` hubs ignore `?tab=`; routeMigrations mapping canonical routes→hubs shadows real pages in App.tsx Switch.
+- [Auth role-name vs permission gates](auth-role-vs-permission-gates.md) — two parallel authz models; dev `/api/permissions/me` grants all perms but one role name — must be an admin role or role-name gates hide admin UI.

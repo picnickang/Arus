@@ -73,7 +73,15 @@ export function registerPermissionRoutes(app: Express) {
             {
               userId: DEV_USER_ID,
               orgId: DEV_ORG_ID,
-              roles: [{ id: "dev-role", name: "developer", displayName: "Developer (Dev Mode)" }],
+              // The dev auth bypass authenticates as the admin identity
+              // (dev-admin-user) and this branch grants every permission, so the
+              // reported role must be an admin-portal role too. Returning a
+              // non-admin name like "developer" passes permission-based gates but
+              // FAILS role-name gates (e.g. CrewManagement's admin tabs, the
+              // getPortalForRole navigation pivot), hiding admin surfaces in dev.
+              // Tradeoff: dev always resolves to admin, so exercising the reduced
+              // user-portal experience in dev needs a separate mechanism.
+              roles: [{ id: "dev-role", name: "system_admin", displayName: "System Admin (Dev Mode)" }],
               permissions: allPermissions,
               isDevMode: true,
             },
