@@ -21,12 +21,14 @@ import {
   Ship,
   Clock,
   ShieldAlert,
+  ShieldCheck,
   Wrench,
   AlertTriangle,
   Sparkles,
   Users,
   ClipboardList,
   Activity,
+  Circle,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
@@ -39,12 +41,16 @@ import {
   getPrimaryCategoriesForRole,
 } from "@/application/navigation/role-navigation-policy";
 import { Button } from "@/components/ui/button";
+import { OpsSidebar, type OpsSidebarItem } from "@/components/ops/OpsSidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import {
   useUserDashboardViewModel,
   type ActiveAlertSlot,
   type CurrentVesselSlot,
+  type MyTaskSlot,
   type SafetyNoticeSlot,
+  type SafetyStatusSlot,
   type ShiftStatusSlot,
   type UpcomingMaintenanceSlot,
 } from "@/application/user-dashboard/user-dashboard-view-model";
@@ -301,12 +307,15 @@ function CurrentVesselCard({ vessel }: { vessel: CurrentVesselSlot | undefined }
     );
   }
   return (
-    <div className="rounded-lg border bg-card p-4" data-testid="card-current-vessel">
+    <div className="ops-card p-4" data-testid="card-current-vessel">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <Ship className="h-3.5 w-3.5" /> Current Vessel
+        <Ship className="h-3.5 w-3.5" /> My Vessel
       </div>
       <div className="mt-1 text-base font-semibold" data-testid="text-current-vessel-name">
         {vessel.name}
+      </div>
+      <div className="mt-0.5 text-xs text-muted-foreground" data-testid="text-current-vessel-imo">
+        {vessel.imo ? `IMO ${vessel.imo}` : "IMO not on record"}
       </div>
     </div>
   );
@@ -316,11 +325,26 @@ function ShiftStatusCard({ shift }: { shift: ShiftStatusSlot }) {
   const hours = Math.floor(shift.remainingMinutes / 60);
   const minutes = shift.remainingMinutes % 60;
   return (
-    <div className="rounded-lg border bg-card p-4" data-testid="card-shift-status">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <Clock className="h-3.5 w-3.5" /> My Shift
+    <div className="ops-card p-4" data-testid="card-shift-status">
+      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        <span className="flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5" /> My Shift
+        </span>
+        <span className="font-medium normal-case" data-testid="text-shift-date">
+          {shift.dateLabel}
+        </span>
       </div>
-      <div className="mt-1 text-base font-semibold">{shift.windowLabel}</div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="text-base font-semibold">{shift.windowLabel}</span>
+        {shift.source === "fallback" && (
+          <span
+            className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+            data-testid="badge-shift-estimated"
+          >
+            Estimated
+          </span>
+        )}
+      </div>
       <div className="mt-1 text-xs text-muted-foreground" data-testid="text-shift-remaining">
         {shift.label === "On duty"
           ? `${hours}h ${minutes}m remaining`
@@ -336,13 +360,161 @@ function ShiftStatusCard({ shift }: { shift: ShiftStatusSlot }) {
   );
 }
 
-function ActiveAlertsCard({ alerts }: { alerts: ActiveAlertSlot[] }) {
+function SafetyStatusCard({ status }: { status: SafetyStatusSlot }) {
+  const palette =
+    status.level === "good"
+      ? {
+          icon: <ShieldCheck className="h-3.5 w-3.5" />,
+          card: "ops-card-success",
+          dot: "bg-green-500",
+          value: "text-green-400",
+        }
+      : status.level === "caution"
+        ? {
+            icon: <ShieldAlert className="h-3.5 w-3.5" />,
+            card: "ops-card-warning",
+            dot: "bg-amber-500",
+            value: "text-amber-400",
+          }
+        : {
+            icon: <ShieldAlert className="h-3.5 w-3.5" />,
+            card: "ops-card-critical",
+            dot: "bg-red-500",
+            value: "text-red-400",
+          };
+  return (
+    <div
+      className={cn("ops-card p-4", palette.card)}
+      data-testid="card-safety-status"
+      data-status={status.level}
+    >
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+        {palette.icon} Safety Status
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className={cn("h-2.5 w-2.5 rounded-full", palette.dot)} />
+        <span
+          className={cn("text-base font-semibold", palette.value)}
+          data-testid="text-safety-status"
+        >
+          {status.label}
+        </span>
+      </div>
+      <div className="mt-0.5 text-xs text-muted-foreground">
+        {status.activeCount === 0
+          ? "No active safety alerts"
+          : `${status.activeCount} active safety alert${status.activeCount > 1 ? "s" : ""}`}
+      </div>
+    </div>
+  );
+}
+
+function relativeTime(iso: string | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return formatDistanceToNow(d, { addSuffix: true });
+  } catch {
+    return null;
+  }
+}
+
+const TASK_DAY_PILL_STYLES: Record<
+  NonNullable<MyTaskSlot["dayPill"]>,
+  { label: string; className: string }
+> = {
+  overdue: { label: "Overdue", className: "bg-destructive/15 text-destructive" },
+  today: { label: "Today", className: "bg-primary/15 text-primary" },
+  tomorrow: { label: "Tomorrow", className: "bg-muted text-muted-foreground" },
+};
+
+function UserTasksCard({
+  tasks,
+  emptyState,
+  onSelectTask,
+  onViewAll,
+}: {
+  tasks: MyTaskSlot[];
+  emptyState: import("react").ReactNode;
+  onSelectTask: (id: string) => void;
+  onViewAll: () => void;
+}) {
+  if (tasks.length === 0) {
+    return <>{emptyState}</>;
+  }
+  return (
+    <div className="ops-card p-4" data-testid="card-my-tasks">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <ClipboardList className="h-3.5 w-3.5" /> My Tasks
+        </h2>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-xs text-primary hover:underline"
+          data-testid="link-view-all-tasks"
+        >
+          View all tasks
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {tasks.map((task) => {
+          const pill = task.dayPill ? TASK_DAY_PILL_STYLES[task.dayPill] : null;
+          return (
+            <li key={task.id}>
+              <button
+                type="button"
+                onClick={() => onSelectTask(task.id)}
+                data-testid={`button-task-${task.id}`}
+                className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-background/30 p-3 text-left transition-colors hover:border-primary/50"
+              >
+                <Circle
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    task.priority === 1
+                      ? "text-destructive"
+                      : task.priority === 2
+                        ? "text-amber-500"
+                        : "text-muted-foreground",
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{task.title}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {task.equipmentName ?? "Unassigned equipment"}
+                  </div>
+                </div>
+                {pill && (
+                  <span
+                    className={cn(
+                      "shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
+                      pill.className,
+                    )}
+                    data-testid={`pill-task-day-${task.id}`}
+                  >
+                    {pill.label}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ActiveAlertsCard({
+  alerts,
+  onViewAll,
+}: {
+  alerts: ActiveAlertSlot[];
+  onViewAll: () => void;
+}) {
   if (alerts.length === 0) {
     return (
-      <div
-        className="rounded-lg border bg-card p-4"
-        data-testid="card-active-alerts-empty"
-      >
+      <div className="ops-card p-4" data-testid="card-active-alerts-empty">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
           <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
         </div>
@@ -351,76 +523,109 @@ function ActiveAlertsCard({ alerts }: { alerts: ActiveAlertSlot[] }) {
     );
   }
   return (
-    <div className="rounded-lg border bg-card p-4" data-testid="card-active-alerts">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
+    <div className="ops-card p-4" data-testid="card-active-alerts">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
+        </h2>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-xs text-primary hover:underline"
+          data-testid="link-view-all-alerts"
+        >
+          View all alerts
+        </button>
       </div>
-      <ul className="mt-2 space-y-2">
-        {alerts.map((a) => (
-          <li
-            key={a.id}
-            className="flex items-start justify-between gap-2 text-sm"
-            data-testid={`row-active-alert-${a.id}`}
-          >
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-medium">{a.title}</div>
-              {a.source && (
-                <div className="truncate text-xs text-muted-foreground">{a.source}</div>
-              )}
-            </div>
-            <span
-              className={cn(
-                "rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
-                a.severity === "critical" || a.severity === "high"
-                  ? "bg-destructive/10 text-destructive"
-                  : a.severity === "medium"
-                    ? "bg-yellow-500/10 text-yellow-600"
-                    : "bg-muted text-muted-foreground",
-              )}
+      <ul className="space-y-2">
+        {alerts.map((a) => {
+          const when = relativeTime(a.createdAt);
+          return (
+            <li
+              key={a.id}
+              className="flex items-start justify-between gap-2 text-sm"
+              data-testid={`row-active-alert-${a.id}`}
             >
-              {a.severity}
-            </span>
-          </li>
-        ))}
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{a.title}</div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {a.source && <span className="truncate">{a.source}</span>}
+                  {a.source && when && <span className="opacity-50">·</span>}
+                  {when && <span className="shrink-0">{when}</span>}
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
+                  a.severity === "critical" || a.severity === "high"
+                    ? "bg-destructive/10 text-destructive"
+                    : a.severity === "medium"
+                      ? "bg-yellow-500/10 text-yellow-600"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
+                {a.severity}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-function SafetyNoticesCard({ notices }: { notices: SafetyNoticeSlot[] }) {
+function SafetyNoticesCard({
+  notices,
+  onViewAll,
+}: {
+  notices: SafetyNoticeSlot[];
+  onViewAll: () => void;
+}) {
   if (notices.length === 0) {
     return (
       <div
-        className="rounded-lg border bg-card p-4"
+        className="ops-card ops-card-success p-4"
         data-testid="card-safety-notices-empty"
       >
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <ShieldAlert className="h-3.5 w-3.5" /> Safety Notices
+          <ShieldCheck className="h-3.5 w-3.5" /> Safety Notices
         </div>
         <div className="mt-2 text-sm text-muted-foreground">No safety notices.</div>
       </div>
     );
   }
   return (
-    <div className="rounded-lg border bg-card p-4" data-testid="card-safety-notices">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <ShieldAlert className="h-3.5 w-3.5" /> Safety Notices
+    <div
+      className="ops-card ops-card-success p-4"
+      data-testid="card-safety-notices"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5" /> Safety Notices
+        </h2>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-xs text-primary hover:underline"
+          data-testid="link-view-all-notices"
+        >
+          View all notices
+        </button>
       </div>
-      <ul className="mt-2 space-y-2">
-        {notices.map((n) => (
-          <li
-            key={n.id}
-            className="text-sm"
-            data-testid={`row-safety-notice-${n.id}`}
-          >
-            <div className="truncate font-medium">{n.title}</div>
-            {n.postedAt && (
-              <div className="text-xs text-muted-foreground">
-                {new Date(n.postedAt).toLocaleDateString()}
-              </div>
-            )}
-          </li>
-        ))}
+      <ul className="space-y-2">
+        {notices.map((n) => {
+          const when = relativeTime(n.postedAt);
+          return (
+            <li
+              key={n.id}
+              className="text-sm"
+              data-testid={`row-safety-notice-${n.id}`}
+            >
+              <div className="truncate font-medium">{n.title}</div>
+              {when && <div className="text-xs text-muted-foreground">{when}</div>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -428,17 +633,16 @@ function SafetyNoticesCard({ notices }: { notices: SafetyNoticeSlot[] }) {
 
 function UpcomingMaintenanceCard({
   items,
+  now,
   onViewAll,
 }: {
   items: UpcomingMaintenanceSlot[];
+  now: Date;
   onViewAll: () => void;
 }) {
   if (items.length === 0) {
     return (
-      <div
-        className="rounded-lg border bg-card p-4"
-        data-testid="card-upcoming-maintenance-empty"
-      >
+      <div className="ops-card p-4" data-testid="card-upcoming-maintenance-empty">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
           <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
         </div>
@@ -448,12 +652,20 @@ function UpcomingMaintenanceCard({
       </div>
     );
   }
+  const dueLabel = (date: Date): string => {
+    const ms = date.getTime() - now.getTime();
+    const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+    if (days < 0) return `Overdue by ${Math.abs(days)}d`;
+    if (days === 0) return "Due today";
+    if (days === 1) return "Due in 1 day";
+    return `Due in ${days} days`;
+  };
   return (
-    <div className="rounded-lg border bg-card p-4" data-testid="card-upcoming-maintenance">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+    <div className="ops-card p-4" data-testid="card-upcoming-maintenance">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
-        </div>
+        </h2>
         <button
           type="button"
           onClick={onViewAll}
@@ -463,7 +675,7 @@ function UpcomingMaintenanceCard({
           View schedule
         </button>
       </div>
-      <ul className="mt-2 space-y-2">
+      <ul className="space-y-2">
         {items.map((m) => (
           <li
             key={m.id}
@@ -471,8 +683,8 @@ function UpcomingMaintenanceCard({
             data-testid={`row-upcoming-maintenance-${m.id}`}
           >
             <span className="min-w-0 flex-1 truncate font-medium">{m.title}</span>
-            <span className="text-xs text-muted-foreground">
-              {m.scheduledDate.toLocaleDateString()}
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {dueLabel(m.scheduledDate)}
             </span>
           </li>
         ))}
@@ -770,10 +982,34 @@ function UserPortalHome({
   roleLabel: string | undefined;
   onSwitchRole: () => void;
 }) {
-  const [, setLocation] = useLocation();
-  const { attentionItems, sinceLastVisit } = useAttentionItems();
+  const [location, setLocation] = useLocation();
+  const { attentionItems } = useAttentionItems();
   const vm = useUserDashboardViewModel();
-  const greeting = greetingForNow(new Date());
+  const now = new Date();
+  const greeting = greetingForNow(now);
+  const displayName = roleLabel ?? "Crew Member";
+  const initials = displayName
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  // Sidebar items are sourced from the centralised role-navigation
+  // policy (Dashboard + Feedback/Flags for the user portal) — the
+  // page must not re-filter or invent its own nav surface.
+  const sidebarCategories = getPrimaryCategoriesForRole(role);
+  const sidebarItems: OpsSidebarItem[] = sidebarCategories.map((cat) => {
+    const Icon = cat.icon;
+    return {
+      id: cat.id,
+      label: cat.id === "user-feedback" ? "Report / Flag Issue" : cat.name,
+      href: cat.hubRoute,
+      icon: Icon ? <Icon className="h-4 w-4" /> : undefined,
+      isActive: location === cat.hubRoute,
+    };
+  });
 
   return (
     <div
@@ -782,20 +1018,83 @@ function UserPortalHome({
       // padding. A calm 1.5rem pad keeps content off the iOS
       // home indicator. The admin shell below still reserves
       // bar space because its bar renders.
-      className="ops-surface min-h-screen pb-6"
+      className="ops-surface flex min-h-screen pb-6"
       data-testid="shell-user-portal"
     >
-      <PageHeader
-        title="ARUS"
-        subtitle={roleLabel ?? "User Portal"}
-        showHome={false}
-        showBack={true}
-        onBack={onSwitchRole}
+      <OpsSidebar
+        testId="sidebar-user-portal"
+        brand={
+          <div className="flex items-center gap-2" data-testid="brand-user-portal">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <Ship className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold tracking-wide text-foreground">
+                ARUS
+              </div>
+              <div className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
+                Marine Ops
+              </div>
+            </div>
+          </div>
+        }
+        items={sidebarItems}
+        footer={
+          <SwitchPortalButton
+            label="Logout"
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+          />
+        }
       />
 
-      <div className="mx-auto w-full max-w-3xl px-4 pt-3 md:px-6 lg:max-w-5xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header
+          className="ops-topbar sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 md:px-6"
+          data-testid="topbar-user-portal"
+        >
+          <h1 className="text-base font-semibold text-foreground sm:text-lg">
+            My Dashboard
+          </h1>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setLocation("/attention-inbox")}
+              className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground"
+              data-testid="button-notifications"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4.5 w-4.5" />
+              {attentionItems.length > 0 && (
+                <span
+                  className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive"
+                  data-testid="badge-notifications"
+                />
+              )}
+            </button>
+            <div
+              className="flex items-center gap-2 rounded-full border border-border/60 bg-background/40 py-1 pl-1 pr-3"
+              data-testid="chip-user-identity"
+            >
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                  {initials || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden min-w-0 leading-tight sm:block">
+                <div className="truncate text-xs font-medium text-foreground">
+                  {displayName}
+                </div>
+                <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {roleLabel ?? "User Portal"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6">
+          <div className="mb-5">
             <div
               className="text-xs uppercase tracking-wide text-muted-foreground"
               data-testid="text-user-greeting-label"
@@ -806,89 +1105,98 @@ function UserPortalHome({
               className="truncate text-xl font-semibold text-foreground sm:text-2xl"
               data-testid="text-user-greeting-name"
             >
-              {roleLabel ?? "Crew Member"}
+              {displayName}
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               Stay safe out there.
             </div>
           </div>
-          <SwitchPortalButton />
-        </div>
 
-        {attentionItems.length > 0 ? (
-          <AttentionBanner
-            items={attentionItems.map((item) =>
-              item.href.startsWith("/attention-inbox")
-                ? { ...item, href: "/" }
-                : item,
-            )}
-            className="mb-4"
-          />
-        ) : (
-          <div
-            className="mb-4 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
-            data-testid="empty-attention"
-          >
-            <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <div>
-              <div className="text-sm font-medium">No active alerts</div>
-              <div className="text-xs text-muted-foreground">
-                We'll surface anything urgent here.
-              </div>
-            </div>
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <CurrentVesselCard vessel={vm.currentVessel} />
+            <ShiftStatusCard shift={vm.shiftStatus} />
+            <SafetyStatusCard status={vm.safetyStatus} />
           </div>
-        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <CurrentVesselCard vessel={vm.currentVessel} />
-          <ShiftStatusCard shift={vm.shiftStatus} />
-        </div>
-
-        <RoleTodayPanel roleId={role} />
-        {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
-
-        <MyTasks
-          emptyState={
+          {attentionItems.length > 0 ? (
+            <AttentionBanner
+              items={attentionItems.map((item) =>
+                item.href.startsWith("/attention-inbox")
+                  ? { ...item, href: "/" }
+                  : item,
+              )}
+              className="mb-4"
+            />
+          ) : (
             <div
-              className="mb-6 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3"
-              data-testid="empty-my-tasks"
+              className="mb-4 flex items-center gap-3 rounded-lg border border-border/60 bg-background/30 px-4 py-3"
+              data-testid="empty-attention"
             >
-              <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <Bell className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
               <div>
-                <div className="text-sm font-medium">You're all caught up</div>
+                <div className="text-sm font-medium">Nothing needs your attention</div>
                 <div className="text-xs text-muted-foreground">
-                  No open work orders assigned to you.
+                  We'll surface anything urgent here.
                 </div>
               </div>
             </div>
-          }
-        />
+          )}
 
-        <div className="grid grid-cols-1 gap-3 mb-4">
-          <ActiveAlertsCard alerts={vm.activeAlerts} />
-          <SafetyNoticesCard notices={vm.safetyNotices} />
-          <UpcomingMaintenanceCard
-            items={vm.upcomingMaintenance}
-            onViewAll={() => setLocation("/maint?tab=schedules")}
-          />
-        </div>
+          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <UserTasksCard
+              tasks={vm.myTasks}
+              onSelectTask={(id) => setLocation(`/work-orders?id=${id}`)}
+              onViewAll={() => setLocation("/work-orders")}
+              emptyState={
+                <div
+                  className="ops-card flex items-center gap-3 p-4"
+                  data-testid="empty-my-tasks"
+                >
+                  <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
+                  <div>
+                    <div className="text-sm font-medium">You're all caught up</div>
+                    <div className="text-xs text-muted-foreground">
+                      No open work orders assigned to you.
+                    </div>
+                  </div>
+                </div>
+              }
+            />
+            <ActiveAlertsCard
+              alerts={vm.activeAlerts}
+              onViewAll={() => setLocation("/alerts")}
+            />
+          </div>
 
-        <div
-          className="mt-2 rounded-lg border border-dashed bg-card p-6 text-center"
-          data-testid="card-user-feedback-cta"
-        >
-          <Flag className="h-6 w-6 text-primary mx-auto mb-2" />
-          <h3 className="text-sm font-semibold mb-1">Spot something off?</h3>
-          <p className="text-xs text-muted-foreground mb-4">
-            Submit feedback or flag a concern for the team.
-          </p>
-          <Button
-            onClick={() => setLocation("/feedback")}
-            data-testid="button-user-open-feedback"
+          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <SafetyNoticesCard
+              notices={vm.safetyNotices}
+              onViewAll={() => setLocation("/alerts")}
+            />
+            <UpcomingMaintenanceCard
+              items={vm.upcomingMaintenance}
+              now={now}
+              onViewAll={() => setLocation("/maint?tab=schedules")}
+            />
+          </div>
+
+          <div
+            className="ops-card border-dashed p-6 text-center"
+            data-testid="card-user-feedback-cta"
           >
-            Submit Feedback / Flag
-          </Button>
-        </div>
+            <Flag className="mx-auto mb-2 h-6 w-6 text-primary" />
+            <h3 className="mb-1 text-sm font-semibold">Spot something off?</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Submit feedback or flag a concern for the team.
+            </p>
+            <Button
+              onClick={() => setLocation("/feedback")}
+              data-testid="button-user-open-feedback"
+            >
+              Submit Feedback / Flag
+            </Button>
+          </div>
+        </main>
       </div>
     </div>
   );

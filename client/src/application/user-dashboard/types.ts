@@ -9,6 +9,8 @@ export type AlertSeverity = "low" | "medium" | "high" | "critical";
 export interface CurrentVesselSlot {
   id: string;
   name: string;
+  /** IMO registration number, when the vessel record carries one. */
+  imo?: string;
 }
 
 export interface ActiveAlertSlot {
@@ -16,12 +18,42 @@ export interface ActiveAlertSlot {
   title: string;
   severity: AlertSeverity;
   source?: string;
+  /** ISO timestamp the alert was raised — drives the "20m ago" subtext. */
+  createdAt?: string;
 }
 
 export interface SafetyNoticeSlot {
   id: string;
   title: string;
   postedAt?: string;
+}
+
+/**
+ * Headline safety posture for the user-portal "Safety Status" card.
+ * Derived from the active (unacknowledged) safety-categorised alerts:
+ *   - good     → no active safety alerts (green "Good").
+ *   - caution  → at least one low/medium safety alert (amber).
+ *   - critical → at least one high/critical safety alert (red).
+ */
+export type SafetyStatusLevel = "good" | "caution" | "critical";
+
+export interface SafetyStatusSlot {
+  level: SafetyStatusLevel;
+  label: string;
+  /** Count of active safety alerts contributing to the status. */
+  activeCount: number;
+}
+
+/** Day grouping for an assigned task, relative to "now". */
+export type TaskDayPill = "today" | "tomorrow" | "overdue" | null;
+
+export interface MyTaskSlot {
+  id: string;
+  title: string;
+  equipmentName?: string;
+  dueDate?: string | null;
+  priority?: number;
+  dayPill: TaskDayPill;
 }
 
 export interface UpcomingMaintenanceSlot {
@@ -31,9 +63,23 @@ export interface UpcomingMaintenanceSlot {
   priority: "low" | "medium" | "high" | "critical";
 }
 
+/**
+ * Where the shift window came from:
+ *   - "configured": a real shift template returned by GET /api/shifts
+ *     (the crew shift-template registry) — the user's vessel-scoped
+ *     window, or an org-wide template with no vessel binding.
+ *   - "fallback": no template exists in the backend, so the card shows
+ *     a clock-derived default 12-hour window as a visual cue only.
+ */
+export type ShiftStatusSource = "configured" | "fallback";
+
 export interface ShiftStatusSlot {
   label: string;
   windowLabel: string;
   remainingMinutes: number;
   progressPercent: number;
+  /** Human date for the current shift, e.g. "Sat, 30 May". */
+  dateLabel: string;
+  /** Whether the window is backend-configured or a clock-derived default. */
+  source: ShiftStatusSource;
 }

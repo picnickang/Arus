@@ -42,34 +42,54 @@
  *                          surface the safety-categorised alerts as a
  *                          calmer card with the same empty-state
  *                          contract as the others.
- *   - shiftStatus        → derived purely from the current clock and
- *                          a default 12-hour rotation. The pilot
- *                          backend has no per-user "current shift
- *                          remaining" endpoint and the task explicitly
- *                          forbids adding one. We render this as a
- *                          visual cue only; it is never used for
- *                          compliance reporting.
+ *   - shiftStatus        → resolved from the real shift-template
+ *                          registry (GET /api/shifts) for the user's
+ *                          current vessel; the on-duty flag, window,
+ *                          remaining time and progress are computed
+ *                          against that configured window. When the
+ *                          backend has no shift template at all we fall
+ *                          back to a clock-derived default 12-hour
+ *                          window (slot `source: "fallback"`). This
+ *                          card is a visual cue only; it is never used
+ *                          for compliance reporting.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUpcomingMaintenance } from "@/features/maintenance/hooks/useMaintenance";
-import { deriveAlertSlots, deriveShiftStatus } from "./derivers";
+import {
+  deriveAlertSlots,
+  deriveMyTasks,
+  deriveSafetyStatus,
+  deriveShiftStatus,
+  type RawShiftTemplate,
+} from "./derivers";
 import type {
   ActiveAlertSlot,
   CurrentVesselSlot,
+  MyTaskSlot,
   SafetyNoticeSlot,
+  SafetyStatusSlot,
   ShiftStatusSlot,
   UpcomingMaintenanceSlot,
 } from "./types";
 
-export { deriveAlertSlots, deriveShiftStatus } from "./derivers";
+export {
+  deriveAlertSlots,
+  deriveMyTasks,
+  deriveSafetyStatus,
+  deriveShiftStatus,
+} from "./derivers";
 export type {
   ActiveAlertSlot,
   AlertSeverity,
   CurrentVesselSlot,
+  MyTaskSlot,
   SafetyNoticeSlot,
+  SafetyStatusLevel,
+  SafetyStatusSlot,
   ShiftStatusSlot,
+  TaskDayPill,
   UpcomingMaintenanceSlot,
 } from "./types";
 
@@ -78,6 +98,8 @@ export interface UserDashboardViewModel {
   currentVessel: CurrentVesselSlot | undefined;
   activeAlerts: ActiveAlertSlot[];
   safetyNotices: SafetyNoticeSlot[];
+  safetyStatus: SafetyStatusSlot;
+  myTasks: MyTaskSlot[];
   upcomingMaintenance: UpcomingMaintenanceSlot[];
   shiftStatus: ShiftStatusSlot;
 }
@@ -85,6 +107,17 @@ export interface UserDashboardViewModel {
 interface RawVessel {
   id: string;
   name: string;
+  imo?: string | null;
+}
+
+interface RawWorkOrderRow {
+  id: string;
+  title?: string | null;
+  priority?: number | null;
+  dueDate?: string | null;
+  equipmentName?: string | null;
+  vesselName?: string | null;
+  equipment?: { name?: string | null } | null;
 }
 
 interface RawAlertRow {
@@ -110,17 +143,43 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
     refetchInterval: 60000,
   });
 
+  // My open work orders — the user-portal "My Tasks" card. Same read
+  // the legacy admin MyTasks used; centralised here so the page stays
+  // free of direct useQuery calls (task #220 constraint).
+  const { data: workOrders, isLoading: tasksLoading } = useQuery<RawWorkOrderRow[]>({
+    queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
+    refetchInterval: 60000,
+  });
+
   const { data: maintenance, isLoading: maintLoading } = useUpcomingMaintenance(7);
+
+  // Real configured shift windows (crew shift-template registry). The
+  // shift card falls back to a clock-derived default only when this
+  // returns nothing, so we do NOT gate the dashboard skeleton on it.
+  const { data: shiftTemplates } = useQuery<RawShiftTemplate[]>({
+    queryKey: ["/api/shifts"],
+    staleTime: 5 * 60 * 1000,
+  });
 
   const currentVessel = useMemo<CurrentVesselSlot | undefined>(() => {
     if (!Array.isArray(vessels) || vessels.length === 0) return undefined;
     const first = vessels[0];
-    return { id: first.id, name: first.name };
+    return { id: first.id, name: first.name, imo: first.imo ?? undefined };
   }, [vessels]);
 
-  const { activeAlerts, safetyNotices } = useMemo(
-    () => deriveAlertSlots(Array.isArray(alerts) ? alerts : []),
+  const alertRows = useMemo(
+    () => (Array.isArray(alerts) ? alerts : []),
     [alerts],
+  );
+
+  const { activeAlerts, safetyNotices } = useMemo(
+    () => deriveAlertSlots(alertRows),
+    [alertRows],
+  );
+
+  const safetyStatus = useMemo(
+    () => deriveSafetyStatus(alertRows),
+    [alertRows],
   );
 
   const upcomingMaintenance = useMemo<UpcomingMaintenanceSlot[]>(() => {
@@ -142,13 +201,28 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
     const handle = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(handle);
   }, []);
-  const shiftStatus = useMemo(() => deriveShiftStatus(now), [now]);
+  const shiftStatus = useMemo(
+    () =>
+      deriveShiftStatus(
+        now,
+        Array.isArray(shiftTemplates) ? shiftTemplates : [],
+        currentVessel?.id,
+      ),
+    [now, shiftTemplates, currentVessel?.id],
+  );
+
+  const myTasks = useMemo<MyTaskSlot[]>(
+    () => deriveMyTasks(Array.isArray(workOrders) ? workOrders : [], now),
+    [workOrders, now],
+  );
 
   return {
-    isLoading: vesselsLoading || alertsLoading || maintLoading,
+    isLoading: vesselsLoading || alertsLoading || tasksLoading || maintLoading,
     currentVessel,
     activeAlerts,
     safetyNotices,
+    safetyStatus,
+    myTasks,
     upcomingMaintenance,
     shiftStatus,
   };
