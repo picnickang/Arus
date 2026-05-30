@@ -98,7 +98,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       userId: data.userId,
       orgId: data.orgId,
       roleIds: data.roles.map((r) => r.id),
-      roleNames: data.roles.map((r) => r.displayName),
+      roleNames: data.roles.map((r) => r.name),
       permissions: data.permissions,
       isDevMode: effectiveDevMode,
       isLoading: false,

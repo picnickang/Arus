@@ -10,6 +10,7 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { mePortalService, MePortalError, type MeUser } from "./me-portal-service";
 import { requireAuthentication } from "../../security/authentication";
+import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import type { AuthenticatedRequest } from "../../middleware/auth";
@@ -130,8 +131,21 @@ export function registerMePortalRoutes(
     generalApiRateLimit,
     withErrorHandling("acknowledge safety alarm", async (req: Request, res: Response) => {
       const { comment } = ackSchema.parse(req.body ?? {});
+      const meUser = resolveMeUser(req);
       try {
-        await mePortalService.acknowledgeAlarm(resolveMeUser(req), req.params['id'], comment);
+        await mePortalService.acknowledgeAlarm(meUser, req.params['id'], comment);
+        await auditService.logEvent({
+          orgId: meUser.orgId,
+          eventCategory: "compliance_event",
+          eventType: "alert_acknowledged",
+          entityType: "safety_alarm",
+          entityId: req.params['id'],
+          performedBy: meUser.id,
+          performedByName: meUser.name ?? meUser.email,
+          performedByRole: meUser.role,
+          ipAddress: req.ip,
+          metadata: { source: "user_portal", comment: comment ?? null },
+        });
         return res.json({ success: true });
       } catch (error) {
         if (handleMeError(error, res)) return undefined;
@@ -148,8 +162,22 @@ export function registerMePortalRoutes(
     generalApiRateLimit,
     withErrorHandling("me change password", async (req: Request, res: Response) => {
       const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const meUser = resolveMeUser(req);
       try {
-        await mePortalService.changePassword(resolveMeUser(req), currentPassword, newPassword);
+        await mePortalService.changePassword(meUser, currentPassword, newPassword);
+        await auditService.logEvent({
+          orgId: meUser.orgId,
+          eventCategory: "security_event",
+          eventType: "config_updated",
+          entityType: "user_credentials",
+          entityId: meUser.id,
+          performedBy: meUser.id,
+          performedByName: meUser.name ?? meUser.email,
+          performedByRole: meUser.role,
+          ipAddress: req.ip,
+          changedFields: ["passwordHash"],
+          newState: { selfPasswordChange: true },
+        });
         return res.json({ success: true });
       } catch (error) {
         if (handleMeError(error, res)) return undefined;

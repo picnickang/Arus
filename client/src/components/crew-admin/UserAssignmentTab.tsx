@@ -51,6 +51,8 @@ interface CrewUser {
   mustChangePassword: boolean;
   hasPassword: boolean;
   lastLoginAt: string | null;
+  passwordUpdatedAt: string | null;
+  supervisorUserId: string | null;
   assignments: VesselAssignment[];
   assignedRoleNames: string[];
 }
@@ -80,6 +82,7 @@ export function UserAssignmentTab() {
   const [role, setRole] = useState("");
   const [extraRoles, setExtraRoles] = useState<string[]>([]);
   const [vesselId, setVesselId] = useState("__fleet__");
+  const [supervisorUserId, setSupervisorUserId] = useState("__none__");
   const [username, setUsername] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [loginEnabled, setLoginEnabled] = useState(false);
@@ -105,6 +108,7 @@ export function UserAssignmentTab() {
       setTempPassword("");
       const firstVessel = editing.assignments.find((a) => a.vesselId)?.vesselId;
       setVesselId(firstVessel ?? "__fleet__");
+      setSupervisorUserId(editing.supervisorUserId ?? "__none__");
     }
   }, [editUserId, editing]);
 
@@ -127,6 +131,13 @@ export function UserAssignmentTab() {
         assignments:
           vesselId === "__fleet__" ? [{ vesselId: null }] : [{ vesselId }],
       });
+      const nextSupervisor =
+        supervisorUserId === "__none__" ? null : supervisorUserId;
+      if (nextSupervisor !== (editing.supervisorUserId ?? null)) {
+        await apiRequest("PATCH", `/api/admin/crew/users/${editing.id}/supervisor`, {
+          supervisorUserId: nextSupervisor,
+        });
+      }
       const credPayload: Record<string, unknown> = {};
       if (username.trim() && username.trim() !== (editing.username ?? "")) {
         credPayload['username'] = username.trim();
@@ -319,6 +330,24 @@ export function UserAssignmentTab() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Supervisor</Label>
+                <Select value={supervisorUserId} onValueChange={setSupervisorUserId}>
+                  <SelectTrigger data-testid="select-user-supervisor">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No supervisor</SelectItem>
+                    {users
+                      .filter((u) => u.id !== editing.id)
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name ?? u.email}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <Separator />
               <div className="space-y-3">
@@ -362,6 +391,9 @@ export function UserAssignmentTab() {
                   {editing.hasPassword
                     ? "A password is set (never shown)."
                     : "No password set yet."}
+                  {editing.passwordUpdatedAt
+                    ? ` Password last changed ${new Date(editing.passwordUpdatedAt).toLocaleDateString()}.`
+                    : ""}
                   {editing.lastLoginAt
                     ? ` Last login ${new Date(editing.lastLoginAt).toLocaleString()}.`
                     : " Never logged in."}

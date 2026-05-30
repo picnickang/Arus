@@ -53,6 +53,7 @@ const credentialsSchema = z.object({
   loginEnabled: z.boolean().optional(),
 });
 const resetPasswordSchema = z.object({ password: z.string().min(8).max(128) });
+const supervisorSchema = z.object({ supervisorUserId: z.string().min(1).nullable() });
 
 function statusForError(code: string): number {
   switch (code) {
@@ -66,6 +67,7 @@ function statusForError(code: string): number {
       return 409;
     case "INVALID_CONFIG":
     case "INVALID_USERNAME":
+    case "INVALID_SUPERVISOR":
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
     case "INVALID_CHARACTERS":
@@ -375,6 +377,25 @@ export function registerCrewAdminRoutes(
           performedByRole: authReq.user?.role,
           newState: { roleIds },
         });
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.patch(
+    "/api/admin/crew/users/:id/supervisor",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("set crew user supervisor", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const { supervisorUserId } = supervisorSchema.parse(req.body);
+      try {
+        await crewAdminService.setSupervisor(authReq.orgId, req.params['id'], supervisorUserId);
+        await audit(authReq, "update", "user", req.params['id'], { supervisorUserId });
         return res.json({ success: true });
       } catch (error) {
         if (handleCrewError(error, res)) return undefined;

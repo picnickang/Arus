@@ -32,6 +32,8 @@ function adminUser(overrides: Partial<CrewUserSummary> = {}): CrewUserSummary {
     mustChangePassword: false,
     hasPassword: true,
     lastLoginAt: null,
+    passwordUpdatedAt: null,
+    supervisorUserId: null,
     assignments: [],
     assignedRoleNames: [],
     ...overrides,

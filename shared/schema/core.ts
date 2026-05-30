@@ -61,6 +61,7 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   loginEnabled: boolean("login_enabled").notNull().default(true),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  supervisorUserId: varchar("supervisor_user_id"),
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

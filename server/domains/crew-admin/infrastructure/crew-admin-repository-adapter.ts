@@ -350,6 +350,17 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .where(and(eq(users.orgId, orgId), eq(users.id, userId)));
   }
 
+  async setSupervisor(
+    orgId: string,
+    userId: string,
+    supervisorUserId: string | null,
+  ): Promise<void> {
+    await db
+      .update(users)
+      .set({ supervisorUserId, updatedAt: new Date() })
+      .where(and(eq(users.orgId, orgId), eq(users.id, userId)));
+  }
+
   async setLoginEnabled(orgId: string, userId: string, enabled: boolean): Promise<void> {
     await db
       .update(users)
@@ -458,6 +469,8 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       mustChangePassword: row.mustChangePassword,
       hasPassword: !!row.passwordHash,
       lastLoginAt: row.lastLoginAt,
+      passwordUpdatedAt: row.passwordUpdatedAt ?? null,
+      supervisorUserId: row.supervisorUserId ?? null,
       assignments,
       assignedRoleNames,
     };

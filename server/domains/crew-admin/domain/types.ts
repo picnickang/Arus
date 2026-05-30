@@ -63,6 +63,10 @@ export interface CrewUserSummary {
   mustChangePassword: boolean;
   hasPassword: boolean;
   lastLoginAt: Date | null;
+  /** When the password was last set/changed (credential metadata). */
+  passwordUpdatedAt: Date | null;
+  /** App user id of this user's supervisor, or null when unassigned. */
+  supervisorUserId: string | null;
   assignments: VesselAssignmentEntity[];
   /** Active secondary roles (additive) beyond the primary `role`. */
   assignedRoleNames: string[];

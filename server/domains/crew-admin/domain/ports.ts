@@ -56,6 +56,7 @@ export interface ICrewAdminRepository {
 
   // Credentials
   setRole(orgId: string, userId: string, role: string): Promise<void>;
+  setSupervisor(orgId: string, userId: string, supervisorUserId: string | null): Promise<void>;
   setLoginEnabled(orgId: string, userId: string, enabled: boolean): Promise<void>;
   setCredentials(
     orgId: string,

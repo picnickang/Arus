@@ -284,6 +284,31 @@ export class CrewAdminApplicationService {
     await this.repo.setRole(orgId, userId, newRole);
   }
 
+  /** Assign (or clear, with null) the user's supervisor. */
+  async setSupervisor(
+    orgId: string,
+    userId: string,
+    supervisorUserId: string | null,
+  ): Promise<void> {
+    const user = await this.repo.findUser(orgId, userId);
+    if (!user) {
+      throw new CrewAdminError("User not found", "NOT_FOUND");
+    }
+    if (supervisorUserId !== null) {
+      if (supervisorUserId === userId) {
+        throw new CrewAdminError(
+          "A user cannot be their own supervisor",
+          "INVALID_SUPERVISOR",
+        );
+      }
+      const supervisor = await this.repo.findUser(orgId, supervisorUserId);
+      if (!supervisor) {
+        throw new CrewAdminError("Supervisor not found", "NOT_FOUND");
+      }
+    }
+    await this.repo.setSupervisor(orgId, userId, supervisorUserId);
+  }
+
   /* ----------------------------- Credentials ----------------------- */
 
   async setLoginEnabled(orgId: string, userId: string, enabled: boolean): Promise<void> {
