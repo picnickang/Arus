@@ -1,7 +1,11 @@
-import { FormEvent, ReactNode, useState } from "react";
+import { FormEvent, ReactNode, useState, useSyncExternalStore } from "react";
 import { useLocation } from "wouter";
 import { Lock, ShipWheel } from "lucide-react";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
+import {
+  getApiSessionToken,
+  subscribeToApiSessionToken,
+} from "@/lib/sessionToken";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,9 +24,23 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [password, setPassword] = useState("");
 
+  // A regular user authenticates via `/api/portal/login`, which sets an
+  // in-memory session token (no admin unlock). Track its presence reactively
+  // so a logged-in non-admin user is not bounced to the admin password gate.
+  const hasSession = useSyncExternalStore(
+    subscribeToApiSessionToken,
+    () => getApiSessionToken() !== null,
+    () => false,
+  );
+
   const currentPath = location.split("?")[0] ?? "";
 
-  if (import.meta.env.DEV || isAdminUnlocked || PUBLIC_PATHS.has(currentPath)) {
+  if (
+    import.meta.env.DEV ||
+    isAdminUnlocked ||
+    hasSession ||
+    PUBLIC_PATHS.has(currentPath)
+  ) {
     return <>{children}</>;
   }
 

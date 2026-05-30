@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -51,6 +52,7 @@ interface CrewUser {
   hasPassword: boolean;
   lastLoginAt: string | null;
   assignments: VesselAssignment[];
+  assignedRoleNames: string[];
 }
 
 interface RoleSummary {
@@ -76,6 +78,7 @@ export function UserAssignmentTab() {
 
   const [editUserId, setEditUserId] = useState<string | null>(null);
   const [role, setRole] = useState("");
+  const [extraRoles, setExtraRoles] = useState<string[]>([]);
   const [vesselId, setVesselId] = useState("__fleet__");
   const [username, setUsername] = useState("");
   const [tempPassword, setTempPassword] = useState("");
@@ -94,6 +97,9 @@ export function UserAssignmentTab() {
   useEffect(() => {
     if (editing) {
       setRole(editing.role);
+      setExtraRoles(
+        (editing.assignedRoleNames ?? []).filter((name) => name !== editing.role),
+      );
       setUsername(editing.username ?? "");
       setLoginEnabled(editing.loginEnabled);
       setTempPassword("");
@@ -111,6 +117,12 @@ export function UserAssignmentTab() {
       if (role && role !== editing.role) {
         await apiRequest("PATCH", `/api/admin/crew/users/${editing.id}/role`, { role });
       }
+      const extraRoleIds = roles
+        .filter((r) => extraRoles.includes(r.name) && r.name !== role)
+        .map((r) => r.id);
+      await apiRequest("PUT", `/api/admin/crew/users/${editing.id}/roles`, {
+        roleIds: extraRoleIds,
+      });
       await apiRequest("PUT", `/api/admin/crew/users/${editing.id}/assignments`, {
         assignments:
           vesselId === "__fleet__" ? [{ vesselId: null }] : [{ vesselId }],
@@ -154,11 +166,14 @@ export function UserAssignmentTab() {
 
   function previewLine(u: CrewUser): string {
     const roleLabel = roles.find((r) => r.name === u.role)?.displayName ?? u.role;
+    const extras = (u.assignedRoleNames ?? []).filter((n) => n !== u.role);
+    const extraLabel =
+      extras.length > 0 ? ` +${extras.length} role${extras.length > 1 ? "s" : ""}` : "";
     const vessel = u.assignments.find((a) => a.vesselId);
     const scope = vessel
       ? vessels.find((v) => v.id === vessel.vesselId)?.name ?? "Vessel"
       : "Fleet-wide";
-    return `This user will see: ${roleLabel} Dashboard — ${scope}`;
+    return `This user will see: ${roleLabel}${extraLabel} Dashboard — ${scope}`;
   }
 
   return (
@@ -183,6 +198,15 @@ export function UserAssignmentTab() {
                   <Badge variant="outline" className="text-[10px]">
                     {roles.find((r) => r.name === u.role)?.displayName ?? u.role}
                   </Badge>
+                  {(u.assignedRoleNames ?? []).filter((n) => n !== u.role).length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px]"
+                      data-testid={`badge-extra-roles-${u.id}`}
+                    >
+                      +{(u.assignedRoleNames ?? []).filter((n) => n !== u.role).length} role
+                    </Badge>
+                  )}
                   {u.loginEnabled ? (
                     <Badge variant="secondary" className="text-[10px]">
                       Login on
@@ -243,6 +267,41 @@ export function UserAssignmentTab() {
                       ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Additional roles</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Extra roles are additive — this user sees the combined dashboard of
+                  every assigned role.
+                </p>
+                <div className="space-y-2 max-h-40 overflow-y-auto rounded-md border p-2">
+                  {roles
+                    .filter((r) => r.isActive && r.name !== role)
+                    .map((r) => (
+                      <label
+                        key={r.id}
+                        className="flex items-center gap-2 text-sm"
+                        data-testid={`checkbox-extra-role-${r.name}`}
+                      >
+                        <Checkbox
+                          checked={extraRoles.includes(r.name)}
+                          onCheckedChange={(checked) =>
+                            setExtraRoles((prev) =>
+                              checked === true
+                                ? [...new Set([...prev, r.name])]
+                                : prev.filter((n) => n !== r.name),
+                            )
+                          }
+                        />
+                        {r.displayName}
+                      </label>
+                    ))}
+                  {roles.filter((r) => r.isActive && r.name !== role).length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      No other roles available.
+                    </p>
+                  )}
+                </div>
               </div>
               <div>
                 <Label>Vessel scope</Label>

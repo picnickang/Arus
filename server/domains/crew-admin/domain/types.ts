@@ -64,6 +64,8 @@ export interface CrewUserSummary {
   hasPassword: boolean;
   lastLoginAt: Date | null;
   assignments: VesselAssignmentEntity[];
+  /** Active secondary roles (additive) beyond the primary `role`. */
+  assignedRoleNames: string[];
 }
 
 export interface RoleDashboardConfigView {

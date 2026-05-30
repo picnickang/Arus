@@ -33,6 +33,7 @@ function adminUser(overrides: Partial<CrewUserSummary> = {}): CrewUserSummary {
     hasPassword: true,
     lastLoginAt: null,
     assignments: [],
+    assignedRoleNames: [],
     ...overrides,
   };
 }

@@ -18,12 +18,15 @@ import {
   workOrderService,
 } from "../../repositories";
 import { crewAdminService } from "../crew-admin/service";
-import { safetyAlarmService } from "../safety-alarms/service";
+import { safetyAlarmService, AlarmValidationError } from "../safety-alarms/service";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
   type VisibilityScope,
   ALARM_SEVERITY_RANK,
+  mergeDashboardConfigs,
+  scopeForSource,
+  scopeForAlarms,
 } from "@shared/role-dashboard";
 import type {
   SafetyAlarmWithAcks,
@@ -65,6 +68,13 @@ export interface TaskItem {
   link: string;
 }
 
+export interface MeAlarmView extends Omit<SafetyAlarmWithAcks, "acknowledgements"> {
+  /** Whether the requesting user has already acknowledged this alarm. */
+  acknowledged: boolean;
+  /** Total acknowledgements recorded for this alarm. */
+  acknowledgedCount: number;
+}
+
 export interface DashboardPayload {
   user: MeUser;
   role: string;
@@ -93,21 +103,36 @@ function asString(value: unknown): string | null {
 }
 
 export class MePortalService {
-  async getScope(orgId: string, userId: string, config: RoleDashboardConfig): Promise<UserAlarmScope> {
-    const assignments = await crewAdminService.getAssignments(orgId, userId);
+  /**
+   * Resolve a vessel-id scope for a SINGLE capability. `scope` is the
+   * capability-specific visibility scope (null = the capability is not granted
+   * by any role → restrict to the user's explicit vessel assignments only,
+   * never fleet-wide). An explicit fleet-wide assignment (null vesselId) always
+   * widens to the whole fleet because that is a deliberate admin grant.
+   */
+  private computeScope(
+    assignments: VesselAssignmentEntity[],
+    scope: VisibilityScope | null,
+  ): UserAlarmScope {
     const vesselIds = assignments
       .filter((a) => a.isActive && a.vesselId)
       .map((a) => a.vesselId as string);
     const fleetWide =
-      config.visibilityScope === "fleet" ||
-      assignments.some((a) => a.isActive && a.vesselId === null);
+      scope === "fleet" || assignments.some((a) => a.isActive && a.vesselId === null);
     return { vesselIds, fleetWide };
   }
 
   async getDashboard(user: MeUser): Promise<DashboardPayload> {
-    const config = await crewAdminService.resolveConfigByRoleName(user.orgId, user.role);
+    const configs = await crewAdminService.resolveEffectiveConfigList(
+      user.orgId,
+      user.id,
+      user.role,
+    );
+    const config = mergeDashboardConfigs(configs);
     const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
-    const scope = await this.getScope(user.orgId, user.id, config);
+    // Dashboard vessel roster is reference context, scoped to the broadest scope
+    // the user legitimately holds across any role.
+    const scope = this.computeScope(assignments, config.visibilityScope);
 
     const allVessels = await vesselService.getVessels(user.orgId);
     const vesselList = allVessels.map((v: { id: string; name: string }) => ({
@@ -137,12 +162,19 @@ export class MePortalService {
   }
 
   async getTasks(user: MeUser): Promise<TaskItem[]> {
-    const config = await crewAdminService.resolveConfigByRoleName(user.orgId, user.role);
-    const scope = await this.getScope(user.orgId, user.id, config);
-    const sources = new Set<TaskSourceKey>(config.taskSources);
+    const configs = await crewAdminService.resolveEffectiveConfigList(
+      user.orgId,
+      user.id,
+      user.role,
+    );
+    const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
+    const sources = new Set<TaskSourceKey>(configs.flatMap((c) => c.taskSources));
     const items: TaskItem[] = [];
 
     if (sources.has("work_orders")) {
+      // Scope work orders ONLY by the roles that grant the work_orders source —
+      // never by a broader scope a different role holds for a different feed.
+      const scope = this.computeScope(assignments, scopeForSource(configs, "work_orders"));
       const workOrders = (await workOrderService.getWorkOrdersWithDetails(
         undefined,
         user.orgId,
@@ -171,15 +203,46 @@ export class MePortalService {
     return items;
   }
 
-  async getVisibleAlarms(user: MeUser): Promise<SafetyAlarmWithAcks[]> {
-    const config = await crewAdminService.resolveConfigByRoleName(user.orgId, user.role);
-    const scope = await this.getScope(user.orgId, user.id, config);
+  async getVisibleAlarms(user: MeUser): Promise<MeAlarmView[]> {
+    const scope = await this.resolveAlarmScope(user);
     const alarms = await safetyAlarmService.listActiveForUser(user.orgId, scope);
-    return alarms.sort(
-      (a, b) =>
-        (ALARM_SEVERITY_RANK[b.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0) -
-        (ALARM_SEVERITY_RANK[a.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0),
+    return alarms
+      .map((alarm) => this.toAlarmView(alarm, user.id))
+      .sort(
+        (a, b) =>
+          (ALARM_SEVERITY_RANK[b.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0) -
+          (ALARM_SEVERITY_RANK[a.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0),
+      );
+  }
+
+  /**
+   * Project a domain alarm into the user-portal view: strips the full ack roster
+   * but derives the CURRENT user's acknowledged state (what the banner needs to
+   * decide button visibility) plus an aggregate count.
+   */
+  private toAlarmView(alarm: SafetyAlarmWithAcks, userId: string): MeAlarmView {
+    const { acknowledgements, ...rest } = alarm;
+    return {
+      ...rest,
+      acknowledged: acknowledgements.some((ack) => ack.userId === userId),
+      acknowledgedCount: acknowledgements.length,
+    };
+  }
+
+  /**
+   * Vessel scope for safety-alarm visibility/ack. Resolved ONLY from roles that
+   * actually surface alarm data; a fleet scope held purely for an unrelated feed
+   * (e.g. procurement) never widens alarm visibility. With no alarm-granting
+   * role, the user still sees their explicitly assigned vessels' alarms.
+   */
+  private async resolveAlarmScope(user: MeUser): Promise<UserAlarmScope> {
+    const configs = await crewAdminService.resolveEffectiveConfigList(
+      user.orgId,
+      user.id,
+      user.role,
     );
+    const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
+    return this.computeScope(assignments, scopeForAlarms(configs));
   }
 
   async acknowledgeAlarm(
@@ -187,14 +250,27 @@ export class MePortalService {
     alarmId: string,
     comment: string | undefined,
   ): Promise<void> {
-    await safetyAlarmService.acknowledge({
-      orgId: user.orgId,
-      alarmId,
-      userId: user.id,
-      userName: user.name ?? user.email,
-      source: "user_portal",
-      comment,
-    });
+    const scope = await this.resolveAlarmScope(user);
+    try {
+      await safetyAlarmService.acknowledge(
+        {
+          orgId: user.orgId,
+          alarmId,
+          userId: user.id,
+          userName: user.name ?? user.email,
+          source: "user_portal",
+          comment,
+        },
+        scope,
+      );
+    } catch (error) {
+      if (error instanceof AlarmValidationError) {
+        // Never reveal whether an out-of-scope alarm exists — treat OUT_OF_SCOPE
+        // and NOT_FOUND alike as a 404 to the caller.
+        throw new MePortalError("Alarm not found", "ALARM_NOT_FOUND", 404);
+      }
+      throw error;
+    }
   }
 
   /* ------------------------------ Auth ----------------------------- */

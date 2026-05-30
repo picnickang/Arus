@@ -7,10 +7,16 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+export interface PermissionRole {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
 interface UserPermissionsResponse {
   userId: string;
   orgId: string;
-  roles: string[];
+  roles: PermissionRole[];
   permissions: Record<string, Record<string, boolean>>;
 }
 

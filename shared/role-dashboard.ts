@@ -246,6 +246,106 @@ export function defaultConfigForRole(roleName: string): RoleDashboardConfig {
 }
 
 /* ------------------------------------------------------------------ *
+ * Capability-scoped visibility resolution (multi-role)
+ *
+ * A multi-role user must NOT have one role's broad scope bleed into a
+ * capability granted only by another, narrower role. The merged config is
+ * additive for UI surfaces (widgets/quickActions), but DATA access scope is
+ * resolved PER capability: the effective scope for a capability is the most
+ * permissive scope among ONLY the roles that actually grant that capability.
+ * ------------------------------------------------------------------ */
+
+/** Widgets that surface safety-alarm / alert data on the User page. */
+export const ALARM_CAPABILITY_WIDGETS: readonly WidgetKey[] = [
+  "active_alerts",
+  "safety_status",
+  "safety_notices",
+];
+
+/** Most-permissive scope among the given scopes, or null when the list is empty. */
+export function maxScope(scopes: VisibilityScope[]): VisibilityScope | null {
+  if (scopes.length === 0) return null;
+  let rank = -1;
+  for (const scope of scopes) {
+    rank = Math.max(rank, VISIBILITY_SCOPE_RANK[scope]);
+  }
+  return VISIBILITY_SCOPES.find((scope) => VISIBILITY_SCOPE_RANK[scope] === rank) ?? null;
+}
+
+/**
+ * Effective scope for a single task source across a user's per-role configs.
+ * Only roles whose `taskSources` include the source contribute their scope.
+ * Returns null when no role grants the source.
+ */
+export function scopeForSource(
+  configs: RoleDashboardConfig[],
+  source: TaskSourceKey,
+): VisibilityScope | null {
+  return maxScope(
+    configs.filter((c) => c.taskSources.includes(source)).map((c) => c.visibilityScope),
+  );
+}
+
+/**
+ * Effective scope for safety-alarm visibility. Only roles that surface alarm
+ * data — via an alarm-bearing widget or the `alerts` task source — contribute
+ * their scope. Returns null when no role grants alarm visibility (callers then
+ * fall back to the user's explicit vessel assignments only, never fleet-wide).
+ */
+export function scopeForAlarms(configs: RoleDashboardConfig[]): VisibilityScope | null {
+  return maxScope(
+    configs
+      .filter(
+        (c) =>
+          c.taskSources.includes("alerts") ||
+          c.widgets.some((w) => ALARM_CAPABILITY_WIDGETS.includes(w)),
+      )
+      .map((c) => c.visibilityScope),
+  );
+}
+
+/**
+ * Merge multiple role dashboard configs into one effective config for a
+ * multi-role user. Capabilities are ADDITIVE: widgets, taskSources and
+ * quickActions are unioned (widgets/taskSources kept in canonical order),
+ * visibilityScope takes the MOST permissive (highest rank), and
+ * filters/highImpactQuestions are shallow-merged (later configs win). An empty
+ * list collapses to the safe-minimal config.
+ */
+export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashboardConfig {
+  if (configs.length === 0) return safeMinimalDashboardConfig();
+  if (configs.length === 1) return configs[0] ?? safeMinimalDashboardConfig();
+
+  const widgetSet = new Set<WidgetKey>();
+  const taskSet = new Set<TaskSourceKey>();
+  const quickActions = new Set<string>();
+  let filters: Record<string, unknown> = {};
+  let highImpactQuestions: Record<string, string> = {};
+  let scopeRank = VISIBILITY_SCOPE_RANK.self;
+
+  for (const config of configs) {
+    for (const widget of config.widgets) widgetSet.add(widget);
+    for (const source of config.taskSources) taskSet.add(source);
+    for (const action of config.quickActions) quickActions.add(action);
+    filters = { ...filters, ...config.filters };
+    highImpactQuestions = { ...highImpactQuestions, ...config.highImpactQuestions };
+    scopeRank = Math.max(scopeRank, VISIBILITY_SCOPE_RANK[config.visibilityScope]);
+  }
+
+  const visibilityScope: VisibilityScope =
+    VISIBILITY_SCOPES.find((scope) => VISIBILITY_SCOPE_RANK[scope] === scopeRank) ?? "vessel";
+
+  return {
+    widgets: DASHBOARD_WIDGETS.filter((widget) => widgetSet.has(widget)),
+    taskSources: TASK_SOURCES.filter((source) => taskSet.has(source)),
+    visibilityScope,
+    quickActions: [...quickActions],
+    filters,
+    highImpactQuestions,
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Safety alarms
  * ------------------------------------------------------------------ */
 

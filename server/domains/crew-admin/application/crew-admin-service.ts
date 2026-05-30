@@ -22,6 +22,7 @@ import {
   ADMIN_CAPABLE_ROLE_KEYS,
   PROTECTED_ROLE_KEYS,
   defaultConfigForRole,
+  mergeDashboardConfigs,
   roleDashboardConfigSchema,
   type RoleDashboardConfig,
 } from "@shared/role-dashboard";
@@ -191,6 +192,73 @@ export class CrewAdminApplicationService {
       throw new CrewAdminError("User not found", "NOT_FOUND");
     }
     return this.repo.replaceAssignments(orgId, userId, assignments, assignedBy);
+  }
+
+  /** Active secondary role IDs assigned to a user (additive, beyond primary role). */
+  async getRoleAssignments(orgId: string, userId: string): Promise<string[]> {
+    const user = await this.repo.findUser(orgId, userId);
+    if (!user) {
+      throw new CrewAdminError("User not found", "NOT_FOUND");
+    }
+    return this.repo.listAssignedRoleIds(orgId, userId);
+  }
+
+  /** Replace a user's secondary role assignments (additive roles beyond the primary). */
+  async setRoleAssignments(
+    orgId: string,
+    userId: string,
+    roleIds: string[],
+    assignedBy: string | undefined,
+  ): Promise<void> {
+    const user = await this.repo.findUser(orgId, userId);
+    if (!user) {
+      throw new CrewAdminError("User not found", "NOT_FOUND");
+    }
+    const unique = [...new Set(roleIds)];
+    for (const roleId of unique) {
+      const role = await this.repo.findRoleById(orgId, roleId);
+      if (!role) {
+        throw new CrewAdminError("Role not found", "NOT_FOUND");
+      }
+    }
+    await this.repo.replaceRoleAssignments(orgId, userId, unique, assignedBy);
+  }
+
+  /**
+   * Effective role names for a user = primary `users.role` plus any active
+   * secondary assignments (deduped). Drives the merged dashboard config.
+   */
+  async getEffectiveRoleNames(
+    orgId: string,
+    userId: string,
+    baseRoleName: string,
+  ): Promise<string[]> {
+    const assigned = await this.repo.listAssignedRoleNames(orgId, userId);
+    return [...new Set([baseRoleName, ...assigned])];
+  }
+
+  /**
+   * Per-role dashboard configs for all of a user's effective roles (NOT merged).
+   * Used for capability-scoped data access so a broad role's scope never bleeds
+   * into a capability granted only by a narrower role.
+   */
+  async resolveEffectiveConfigList(
+    orgId: string,
+    userId: string,
+    baseRoleName: string,
+  ): Promise<RoleDashboardConfig[]> {
+    const names = await this.getEffectiveRoleNames(orgId, userId, baseRoleName);
+    return Promise.all(names.map((name) => this.resolveConfigByRoleName(orgId, name)));
+  }
+
+  /** Merged (additive) dashboard config across all of a user's effective roles. */
+  async resolveEffectiveConfig(
+    orgId: string,
+    userId: string,
+    baseRoleName: string,
+  ): Promise<RoleDashboardConfig> {
+    const configs = await this.resolveEffectiveConfigList(orgId, userId, baseRoleName);
+    return mergeDashboardConfigs(configs);
   }
 
   async changeRole(orgId: string, userId: string, newRole: string): Promise<void> {

@@ -198,6 +198,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
       severity: command.severity ?? "critical",
       mode: command.mode ?? "real",
       status: "active",
+      requiresAcknowledgement: command.requiresAcknowledgement ?? true,
       triggeredBy: command.triggeredBy ?? null,
       triggeredByName: command.triggeredByName ?? null,
       triggeredAt: new Date(),

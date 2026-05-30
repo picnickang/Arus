@@ -133,6 +133,7 @@ export class SafetyAlarmApplicationService {
       ...command,
       severity,
       mode,
+      requiresAcknowledgement: type.requiresAcknowledgement,
       title: command.title ?? type.displayName,
     });
   }
@@ -150,11 +151,34 @@ export class SafetyAlarmApplicationService {
     return cleared;
   }
 
-  async acknowledge(command: AcknowledgeAlarmCommand): Promise<SafetyAlarmAckEntity> {
+  /**
+   * Record an acknowledgement. When `scope` is supplied (the user-portal path)
+   * the alarm must be within the caller's vessel/fleet scope — otherwise this
+   * is an out-of-scope reference and is refused. Fleet-wide alarms (null
+   * vesselId) are visible to everyone in the org.
+   */
+  async acknowledge(
+    command: AcknowledgeAlarmCommand,
+    scope?: UserAlarmScope,
+  ): Promise<SafetyAlarmAckEntity> {
     const alarm = await this.repo.findAlarmById(command.orgId, command.alarmId);
     if (!alarm) {
       throw new AlarmValidationError("Alarm not found", "NOT_FOUND");
     }
+    if (scope && !this.isAlarmInScope(alarm, scope)) {
+      throw new AlarmValidationError(
+        "This alarm is not within your assigned scope",
+        "OUT_OF_SCOPE",
+      );
+    }
     return this.repo.acknowledge(command);
+  }
+
+  /** Fleet-wide alarms are visible to all; vessel alarms only when in scope. */
+  isAlarmInScope(alarm: { vesselId: string | null }, scope: UserAlarmScope): boolean {
+    if (alarm.vesselId === null) {
+      return true;
+    }
+    return scope.fleetWide || scope.vesselIds.includes(alarm.vesselId);
   }
 }

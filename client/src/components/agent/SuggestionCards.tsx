@@ -110,7 +110,7 @@ export function SuggestionBell() {
   const [dismissReason, setDismissReason] = useState("");
   const queryClient = useQueryClient();
   const { roles } = useUserPermissions();
-  const canMutate = roles.some((r) => MAINTENANCE_ROLES.includes(r));
+  const canMutate = roles.some((r) => MAINTENANCE_ROLES.includes(r.name));
 
   const { data: suggestions = [] } = useQuery<Suggestion[]>({
     queryKey: ["/api/agent/suggestions"],

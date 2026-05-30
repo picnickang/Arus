@@ -86,6 +86,12 @@ export interface TriggerAlarmCommand {
   message?: string | undefined;
   severity?: string | undefined;
   mode?: string | undefined;
+  /**
+   * Whether crew must acknowledge this alarm. Resolved from the alarm type's
+   * `requiresAcknowledgement` at trigger time so a configurable non-ack type is
+   * honoured (the column otherwise defaults to true at the DB level).
+   */
+  requiresAcknowledgement?: boolean | undefined;
   triggeredBy?: string | undefined;
   triggeredByName?: string | undefined;
 }

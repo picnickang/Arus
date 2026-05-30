@@ -17,8 +17,20 @@ export function useRoleNames(): RoleNamesResult {
   const { roles, isLoading } = useUserPermissions();
 
   return useMemo(() => {
+    // `/api/permissions/me` returns role objects ({ id, name, displayName }).
+    // Older callers and dev fixtures may still hand back plain strings, so
+    // normalize both shapes to the lowercase role `name`.
     const roleNames = Array.isArray(roles)
-      ? roles.map((r) => String(r).trim().toLowerCase()).filter(Boolean)
+      ? roles
+          .map((r) => {
+            if (typeof r === "string") return r;
+            if (r && typeof r === "object" && "name" in r) {
+              return String((r as { name: unknown }).name);
+            }
+            return "";
+          })
+          .map((name) => name.trim().toLowerCase())
+          .filter(Boolean)
       : [];
     const roleSet = new Set(roleNames);
     return {

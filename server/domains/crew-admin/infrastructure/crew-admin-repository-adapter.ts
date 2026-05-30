@@ -17,6 +17,7 @@ import {
   roles,
   users,
   userVesselAssignments,
+  userRoleAssignments,
   roleDashboardConfigs,
   adminSessions,
   type Role,
@@ -194,7 +195,26 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       list.push(this.mapAssignment(row));
       byUser.set(row.userId, list);
     }
-    return userRows.map((row) => this.mapUser(row, byUser.get(row.id) ?? []));
+    const roleRows = await db
+      .select({ userId: userRoleAssignments.userId, roleName: roles.name })
+      .from(userRoleAssignments)
+      .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+      .where(
+        and(
+          eq(userRoleAssignments.orgId, orgId),
+          eq(userRoleAssignments.isActive, true),
+          inArray(userRoleAssignments.userId, ids),
+        ),
+      );
+    const rolesByUser = new Map<string, string[]>();
+    for (const row of roleRows) {
+      const list = rolesByUser.get(row.userId) ?? [];
+      list.push(row.roleName);
+      rolesByUser.set(row.userId, list);
+    }
+    return userRows.map((row) =>
+      this.mapUser(row, byUser.get(row.id) ?? [], rolesByUser.get(row.id) ?? []),
+    );
   }
 
   async findUser(orgId: string, userId: string): Promise<CrewUserSummary | undefined> {
@@ -205,7 +225,8 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .limit(1);
     if (!row) return undefined;
     const assignments = await this.getAssignments(orgId, userId);
-    return this.mapUser(row, assignments);
+    const assignedRoleNames = await this.listAssignedRoleNames(orgId, userId);
+    return this.mapUser(row, assignments, assignedRoleNames);
   }
 
   async getAssignments(orgId: string, userId: string): Promise<VesselAssignmentEntity[]> {
@@ -258,6 +279,65 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
           ),
         );
       return rows.map((row) => this.mapAssignment(row));
+    });
+  }
+
+  async listAssignedRoleIds(orgId: string, userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ roleId: userRoleAssignments.roleId })
+      .from(userRoleAssignments)
+      .where(
+        and(
+          eq(userRoleAssignments.orgId, orgId),
+          eq(userRoleAssignments.userId, userId),
+          eq(userRoleAssignments.isActive, true),
+        ),
+      );
+    return rows.map((row) => row.roleId);
+  }
+
+  async listAssignedRoleNames(orgId: string, userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ name: roles.name })
+      .from(userRoleAssignments)
+      .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+      .where(
+        and(
+          eq(userRoleAssignments.orgId, orgId),
+          eq(userRoleAssignments.userId, userId),
+          eq(userRoleAssignments.isActive, true),
+        ),
+      );
+    return rows.map((row) => row.name);
+  }
+
+  async replaceRoleAssignments(
+    orgId: string,
+    userId: string,
+    roleIds: string[],
+    assignedBy: string | undefined,
+  ): Promise<void> {
+    const unique = [...new Set(roleIds)];
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(userRoleAssignments)
+        .where(
+          and(
+            eq(userRoleAssignments.orgId, orgId),
+            eq(userRoleAssignments.userId, userId),
+          ),
+        );
+      if (unique.length > 0) {
+        await tx.insert(userRoleAssignments).values(
+          unique.map((roleId) => ({
+            orgId,
+            userId,
+            roleId,
+            isActive: true,
+            assignedBy: assignedBy ?? null,
+          })),
+        );
+      }
     });
   }
 
@@ -365,6 +445,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
   private mapUser(
     row: typeof users.$inferSelect,
     assignments: VesselAssignmentEntity[],
+    assignedRoleNames: string[],
   ): CrewUserSummary {
     return {
       id: row.id,
@@ -378,6 +459,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       hasPassword: !!row.passwordHash,
       lastLoginAt: row.lastLoginAt,
       assignments,
+      assignedRoleNames,
     };
   }
 }

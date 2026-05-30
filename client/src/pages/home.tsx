@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { NavigationCard } from "@/components/navigation/NavigationCard";
 import { QuickActions } from "@/components/shared/QuickActions";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
@@ -65,7 +66,13 @@ import {
 } from "@/application/user-dashboard/user-dashboard-view-model";
 import { useDashboardSummary } from "@/features/analytics/hooks/useDashboardSummary";
 import { EmergencyAlarmBanner } from "@/components/safety/EmergencyAlarmBanner";
-import { RoleDashboard } from "@/components/user-dashboard/RoleDashboard";
+import {
+  safeMinimalDashboardConfig,
+  TASK_SOURCE_LABELS,
+  type RoleDashboardConfig,
+  type TaskSourceKey,
+  type WidgetKey,
+} from "@shared/role-dashboard";
 import { formatDistanceToNow } from "date-fns";
 import { ExternalLink } from "lucide-react";
 
@@ -440,78 +447,79 @@ const TASK_DAY_PILL_STYLES: Record<
   tomorrow: { label: "Tomorrow", className: "bg-muted text-muted-foreground" },
 };
 
-function UserTasksCard({
-  tasks,
-  emptyState,
-  onSelectTask,
-  onViewAll,
-}: {
-  tasks: MyTaskSlot[];
-  emptyState: import("react").ReactNode;
-  onSelectTask: (id: string) => void;
-  onViewAll: () => void;
-}) {
-  if (tasks.length === 0) {
-    return <>{emptyState}</>;
-  }
+interface MeTaskItem {
+  id: string;
+  source: TaskSourceKey;
+  title: string;
+  status: string | null;
+  priority: string | null;
+  vesselId: string | null;
+  link: string;
+}
+
+/**
+ * Config-driven personal task feed. Aggregates across the task sources enabled
+ * by the caller's active role config (`/api/me/tasks` does the scoping + merge
+ * server-side). Rendered only when the `user_tasks` widget is enabled.
+ */
+function MyTaskFeed() {
+  const [, navigate] = useLocation();
+  const { data: tasks = [], isLoading } = useQuery<MeTaskItem[]>({
+    queryKey: ["/api/me/tasks"],
+    refetchInterval: 60000,
+  });
+
   return (
     <div className="ops-card p-4" data-testid="card-my-tasks">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <ClipboardList className="h-3.5 w-3.5" /> My Tasks
-        </h2>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="text-xs text-primary hover:underline"
-          data-testid="link-view-all-tasks"
-        >
-          View all tasks
-        </button>
+      <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <ClipboardList className="h-3.5 w-3.5" /> My Tasks
       </div>
-      <ul className="space-y-2">
-        {tasks.map((task) => {
-          const pill = task.dayPill ? TASK_DAY_PILL_STYLES[task.dayPill] : null;
-          return (
-            <li key={task.id}>
+      {isLoading ? (
+        <Skeleton className="h-16 w-full" />
+      ) : tasks.length === 0 ? (
+        <div
+          className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/30 p-3"
+          data-testid="empty-my-tasks"
+        >
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
+          <div>
+            <div className="text-sm font-medium">You're all caught up</div>
+            <div className="text-xs text-muted-foreground">
+              Nothing needs your attention right now.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {tasks.slice(0, 8).map((task) => (
+            <li key={`${task.source}-${task.id}`}>
               <button
                 type="button"
-                onClick={() => onSelectTask(task.id)}
+                onClick={() => navigate(task.link)}
                 data-testid={`button-task-${task.id}`}
                 className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-background/30 p-3 text-left transition-colors hover:border-primary/50"
               >
                 <Circle
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    task.priority === 1
+                    task.priority === "high" || task.priority === "critical"
                       ? "text-destructive"
-                      : task.priority === 2
+                      : task.priority === "medium"
                         ? "text-amber-500"
                         : "text-muted-foreground",
                   )}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{task.title}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {task.equipmentName ?? "Unassigned equipment"}
-                  </div>
                 </div>
-                {pill && (
-                  <span
-                    className={cn(
-                      "shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
-                      pill.className,
-                    )}
-                    data-testid={`pill-task-day-${task.id}`}
-                  >
-                    {pill.label}
-                  </span>
-                )}
+                <span className="shrink-0 rounded border px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+                  {TASK_SOURCE_LABELS[task.source] ?? task.source}
+                </span>
               </button>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -997,6 +1005,22 @@ function UserPortalHome({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { attentionItems } = useAttentionItems();
   const vm = useUserDashboardViewModel();
+
+  // The User page renders from the caller's admin-configured role dashboard.
+  // A config-fetch failure must NOT block the page — fall back to a safe
+  // minimal widget set (read-only, no admin data) and warn inline.
+  const { data: dashboard, isError: dashboardError } = useQuery<{
+    config: RoleDashboardConfig;
+  }>({
+    queryKey: ["/api/me/dashboard"],
+    refetchInterval: 120000,
+    retry: 1,
+  });
+  const dashboardConfig =
+    dashboardError || !dashboard ? safeMinimalDashboardConfig() : dashboard.config;
+  const enabledWidgets = new Set<WidgetKey>(dashboardConfig.widgets);
+  const showWidget = (widget: WidgetKey) => enabledWidgets.has(widget);
+
   const now = new Date();
   const greeting = greetingForNow(now);
   const displayName = roleLabel ?? "Crew Member";
@@ -1202,15 +1226,29 @@ function UserPortalHome({
             </div>
           </div>
 
-          <div className="mb-6">
-            <RoleDashboard />
-          </div>
+          {dashboardError && (
+            <div
+              className="mb-4 rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+              data-testid="text-dashboard-fallback"
+            >
+              Showing a limited safe dashboard — your role configuration could not be
+              loaded.
+            </div>
+          )}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <CurrentVesselCard vessel={vm.currentVessel} />
-            <ShiftStatusCard shift={vm.shiftStatus} />
-            <SafetyStatusCard status={vm.safetyStatus} />
-          </div>
+          {(showWidget("current_vessel") ||
+            showWidget("shift_status") ||
+            showWidget("safety_status")) && (
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {showWidget("current_vessel") && (
+                <CurrentVesselCard vessel={vm.currentVessel} />
+              )}
+              {showWidget("shift_status") && <ShiftStatusCard shift={vm.shiftStatus} />}
+              {showWidget("safety_status") && (
+                <SafetyStatusCard status={vm.safetyStatus} />
+              )}
+            </div>
+          )}
 
           {attentionItems.length > 0 ? (
             <AttentionBanner
@@ -1236,43 +1274,35 @@ function UserPortalHome({
             </div>
           )}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <UserTasksCard
-              tasks={vm.myTasks}
-              onSelectTask={(id) => setLocation(`/work-orders?id=${id}`)}
-              onViewAll={() => setLocation("/work-orders")}
-              emptyState={
-                <div
-                  className="ops-card flex items-center gap-3 p-4"
-                  data-testid="empty-my-tasks"
-                >
-                  <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
-                  <div>
-                    <div className="text-sm font-medium">You're all caught up</div>
-                    <div className="text-xs text-muted-foreground">
-                      No open work orders assigned to you.
-                    </div>
-                  </div>
-                </div>
-              }
-            />
-            <ActiveAlertsCard
-              alerts={vm.activeAlerts}
-              onViewAll={() => setLocation("/alerts")}
-            />
-          </div>
+          {(showWidget("user_tasks") || showWidget("active_alerts")) && (
+            <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {showWidget("user_tasks") && <MyTaskFeed />}
+              {showWidget("active_alerts") && (
+                <ActiveAlertsCard
+                  alerts={vm.activeAlerts}
+                  onViewAll={() => setLocation("/alerts")}
+                />
+              )}
+            </div>
+          )}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <SafetyNoticesCard
-              notices={vm.safetyNotices}
-              onViewAll={() => setLocation("/safety-bulletins")}
-            />
-            <UpcomingMaintenanceCard
-              items={vm.upcomingMaintenance}
-              now={now}
-              onViewAll={() => setLocation("/maint?tab=schedules")}
-            />
-          </div>
+          {(showWidget("safety_notices") || showWidget("upcoming_maintenance")) && (
+            <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {showWidget("safety_notices") && (
+                <SafetyNoticesCard
+                  notices={vm.safetyNotices}
+                  onViewAll={() => setLocation("/safety-bulletins")}
+                />
+              )}
+              {showWidget("upcoming_maintenance") && (
+                <UpcomingMaintenanceCard
+                  items={vm.upcomingMaintenance}
+                  now={now}
+                  onViewAll={() => setLocation("/maint?tab=schedules")}
+                />
+              )}
+            </div>
+          )}
 
           <div
             className="ops-card border-dashed p-6 text-center"

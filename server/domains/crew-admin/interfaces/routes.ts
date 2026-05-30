@@ -43,6 +43,9 @@ const assignmentsSchema = z.object({
 });
 
 const roleChangeSchema = z.object({ role: z.string().min(2).max(50) });
+const roleAssignmentsSchema = z.object({
+  roleIds: z.array(z.string().min(1)).max(20),
+});
 const loginEnabledSchema = z.object({ enabled: z.boolean() });
 const credentialsSchema = z.object({
   username: z.string().min(3).max(60).optional(),
@@ -322,6 +325,55 @@ export function registerCrewAdminRoutes(
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { role },
+        });
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.get(
+    "/api/admin/crew/users/:id/roles",
+    requireOrgId,
+    requireCrewAdminRole,
+    generalApiRateLimit,
+    withErrorHandling("get crew user roles", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      try {
+        return res.json(await crewAdminService.getRoleAssignments(orgId, req.params['id']));
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.put(
+    "/api/admin/crew/users/:id/roles",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("set crew user roles", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const { roleIds } = roleAssignmentsSchema.parse(req.body);
+      try {
+        await crewAdminService.setRoleAssignments(
+          authReq.orgId,
+          req.params['id'],
+          roleIds,
+          authReq.user?.id,
+        );
+        await auditService.logEvent({
+          orgId: authReq.orgId,
+          eventCategory: "security_event",
+          eventType: "permission_changed",
+          entityType: "user_role_assignment",
+          entityId: req.params['id'],
+          performedBy: authReq.user?.id ?? "unknown",
+          performedByRole: authReq.user?.role,
+          newState: { roleIds },
         });
         return res.json({ success: true });
       } catch (error) {

@@ -44,6 +44,16 @@ export interface ICrewAdminRepository {
     assignedBy: string | undefined,
   ): Promise<VesselAssignmentEntity[]>;
 
+  // Multi-role assignments (additive secondary roles, stored in user_role_assignments)
+  listAssignedRoleIds(orgId: string, userId: string): Promise<string[]>;
+  listAssignedRoleNames(orgId: string, userId: string): Promise<string[]>;
+  replaceRoleAssignments(
+    orgId: string,
+    userId: string,
+    roleIds: string[],
+    assignedBy: string | undefined,
+  ): Promise<void>;
+
   // Credentials
   setRole(orgId: string, userId: string, role: string): Promise<void>;
   setLoginEnabled(orgId: string, userId: string, enabled: boolean): Promise<void>;
