@@ -1,0 +1,1287 @@
+Use this amended master Replit prompt:
+
+You are working in the ARUS AI codebase.
+This is a full-stack implementation task.
+Goal:
+Update the existing regular User page and the necessary Admin pages so the current user experience becomes role-dependent, configurable, emergency-aware, and managed through Admin → Crew Management.
+Important:
+The User page already exists. Do not create a duplicate dashboard system. Update the existing User page and the necessary Admin/Crew Management pages.
+Core product requirement:
+Admins should be able to control:
+1. which role(s) each user has;
+2. which roles exist in the system;
+3. what information each role sees on the existing User page;
+4. which emergency alarm types exist;
+5. which vessel/fleet safety alarm is active during an emergency.
+This should be managed from the Admin → Crew Management area.
+The implementation principle is:
+Crew Management assigns who the user is.
+Role Management defines which roles exist.
+Role Dashboards controls what each role sees.
+The Crew Management Safety tab defines alarm types and activates vessel/fleet emergency alarms.
+Safety Alarms override normal dashboard content when emergency status applies.
+The existing User page renders from those settings.
+Every dashboard widget must answer a high-impact operational question.
+Do not begin by blindly creating new pages, endpoints, or tables. First inspect what already exists, identify gaps, then implement the smallest full-stack changes needed to update the existing User page and Admin/Crew Management pages.
+PHASE 0 — GAP ANALYSIS FIRST
+Before writing code, inspect the existing codebase and produce a concise gap analysis covering:
+1. Existing User Page
+- Where is the current User page/dashboard implemented?
+- What data does it currently fetch?
+- What widgets/sections already exist?
+- What role/permission logic already exists?
+- What needs to be changed to make it role-dependent?
+- Where should the emergency safety alarm banner be inserted?
+2. Existing Crew Management Page
+- Where is Crew Management implemented?
+- Does it already support assigning users, roles, vessels, departments, or supervisors?
+- Does it already have tabs or editable user profiles?
+- What needs to be added for:
+  - Crew Members / User Assignment tab
+  - Roles / Role Management
+  - Role Dashboards / Role Configuration
+  - Safety / Alarm Types / Active Alarms
+3. Existing Permissions / Roles System
+- Where are roles defined?
+- Are roles editable today?
+- Are roles stored in a database table, constants file, permission table, or hardcoded enum?
+- How are roles returned by `/api/permissions/me`?
+- Are roles strings, objects, or both?
+- Where is `useUserPermissions` or equivalent hook implemented?
+- What needs to be normalized so pages can use:
+  - `roleNames: string[]`
+  - `hasRole(roleName)`
+  - `hasAnyRole(roleNames)`
+4. Existing Backend APIs
+- What user/dashboard/task/crew/admin APIs already exist?
+- What safety bulletin, alert, notification, or emergency APIs already exist?
+- Which can be reused?
+- Which need to be extended?
+- Which new endpoints are required?
+- Confirm whether these already exist or need to be added:
+  - `/api/me/dashboard`
+  - `/api/me/tasks`
+  - `/api/me/safety-alarms`
+  - `/api/admin/crew`
+  - `/api/admin/crew/:id/assignment`
+  - `/api/admin/crew/roles`
+  - `/api/admin/crew/role-dashboard-configs`
+  - `/api/admin/crew/safety/alarm-types`
+  - `/api/admin/crew/safety/alarms`
+5. Existing Data Model
+- Inspect current schema/migrations.
+- Identify whether users, roles, vessels, crew assignments, permissions, bulletins, alerts, and notifications already exist.
+- Determine whether new tables are needed.
+- Prefer extending existing structures.
+- If needed, propose minimal migrations such as:
+  - `roles`
+  - `user_role_assignments`
+  - `user_vessel_assignments`
+  - `role_dashboard_configs`
+  - `safety_alarm_types`
+  - `vessel_safety_alarms`
+  - `vessel_safety_alarm_acknowledgements`
+6. Existing Task Sources
+Identify which task/feed sources already exist and can be used:
+- work orders
+- maintenance tasks
+- safety bulletins
+- safety alarm acknowledgements
+- acknowledgements
+- defects/flags
+- logistics requests
+- procurement items
+- approvals
+- equipment alerts
+- vessel readiness blockers
+7. Existing Test Patterns
+- Identify current backend test framework.
+- Identify current frontend test framework if any.
+- Identify how route tests are structured.
+- Do not introduce a large new test framework unless one already exists.
+8. Gap Summary
+Return a short gap analysis before coding with this format:
+Gap Analysis:
+- Existing User Page:
+- Existing Crew Management:
+- Existing Roles/Permissions:
+- Existing Safety/Bulletin/Alert System:
+- Existing APIs:
+- Existing Data Model:
+- Existing Task Sources:
+- Required Backend Changes:
+- Required Frontend Changes:
+- Required Migrations:
+- Required Tests:
+- Main Risks:
+After the gap analysis, proceed with implementation.
+Do not stop after the gap analysis unless a critical blocker prevents implementation. If there are ambiguities, make reasonable assumptions and continue.
+FULL-STACK IMPLEMENTATION REQUIREMENTS
+This is not frontend-only and not backend-only.
+Implement the full vertical slice.
+Backend:
+- typed role model
+- role create/edit/delete/deactivate APIs
+- typed role dashboard configuration model
+- user assignment model/API
+- role dashboard config API
+- user dashboard API
+- personal task feed API
+- safety alarm type model/API
+- active vessel/fleet safety alarm model/API
+- safety alarm acknowledgement support if practical
+- server-side authorization and vessel/department scoping
+- zod or equivalent validation for request/response payloads
+- minimal migrations if needed
+- service-layer logic for role management, dashboard config, task feed, crew assignment, alarm types, and active safety alarms
+Frontend:
+- update existing User page to render from role dashboard configuration
+- update existing User page to show applicable active safety alarms at the very top
+- update existing Crew Management page
+- add Crew Members/User Assignment tab if missing
+- add Roles / Role Management area inside the role tab
+- add Role Dashboards/Role Configuration tab or section
+- add Safety tab inside Crew Management
+- add alarm type create/edit/delete/deactivate UI
+- add safety alarm trigger/update/clear UI
+- add role create/edit/delete/deactivate UI
+- add role dashboard config editor
+- add user assignment editor
+- add reusable dashboard renderer/widgets
+- add high-impact question labels for configurable widgets
+- use normalized role helpers instead of local defensive role parsing
+Shared:
+- shared TypeScript types for roles, dashboard widgets, task sources, visibility scopes, dashboard configs, user dashboard responses, task feed responses, alarm types, safety alarms, and alarm acknowledgements
+- shared validation schemas where practical
+- no `any`
+- no `as any`
+- no unsafe double-casts such as `as unknown as`
+Testing:
+- backend route/service tests for authorization, role CRUD, dashboard config, task feed filtering, vessel scoping, alarm type CRUD, alarm activation, alarm visibility, and alarm clearing
+- frontend tests if existing infrastructure supports it
+- verify `npx tsc --noEmit` is clean
+CREW MANAGEMENT REQUIREMENTS
+Update the existing Crew Management page rather than creating a disconnected admin page.
+Crew Management should include three major tabs/sections:
+Tab 1: Crew Members / Users
+Admin can:
+- view crew/user list
+- search/filter users
+- open edit assignment drawer/dialog
+- assign role(s)
+- assign vessel(s) or fleet-wide access
+- assign department
+- assign supervisor if supported
+- set active/inactive status
+- save assignment
+- see a dashboard preview label
+The role selector must use the editable role list from the role management system.
+The UI should show a clear preview such as:
+“This user will see: Technician Dashboard — Vessel Alpha”
+Tab 2: Roles / Role Dashboards / Role Configuration
+This tab manages both:
+1. Role definitions
+2. Role dashboard/information configuration
+Admin can:
+- view all roles
+- create a new role
+- edit role metadata
+- activate/deactivate roles
+- delete roles only when safe
+- select a role
+- edit what that role sees on the existing User page
+- enable/disable widgets
+- enable/disable task feed sources
+- set visibility scope
+- set quick actions
+- set default filters
+- preview the resulting User page sections for that role
+- see which high-impact question each widget answers
+Each configurable widget should show:
+- widget name
+- role relevance
+- high-impact question answered
+- data source
+- visibility scope
+- enabled/disabled toggle
+Example UI label:
+“Assigned Work Orders — answers: What work is assigned to this user today?”
+Tab 3: Safety
+This tab manages both:
+1. Emergency alarm types
+2. Active vessel/fleet safety alarms
+Admin can:
+- view alarm types
+- create alarm types
+- edit alarm types
+- activate/deactivate alarm types
+- delete alarm types only when safe
+- view active alarms
+- trigger/activate an alarm
+- select alarm type before activation
+- choose affected vessel or fleet-wide scope
+- update active alarm message/instructions
+- clear/resolve active alarm
+- see who triggered an alarm and when
+- see who cleared an alarm and when
+- see acknowledgement status if acknowledgement tracking is implemented
+Do not bury emergency alarm controls in a low-visibility settings page.
+ROLE MANAGEMENT REQUIREMENTS
+In Admin → Crew Management → Roles / Role Dashboards tab, admins must be able to create, edit, and delete roles, not only configure existing role dashboards.
+Create role:
+- create a new role name/key
+- set display name
+- set description
+- set whether the role is active
+- choose default dashboard widgets
+- choose task feed sources
+- choose visibility scopes
+- choose quick actions
+- choose high-impact questions this role dashboard should answer
+Edit role:
+- edit display name
+- edit description
+- activate/deactivate role
+- update dashboard widgets
+- update task feed sources
+- update visibility scopes
+- update quick actions
+- update high-impact questions
+- update dashboard preview
+Delete role:
+- allow deletion only if safe
+- prevent deleting a role that is assigned to active users unless the admin first reassigns those users
+- show a warning before deletion
+- prefer soft-delete/deactivation if the role has historical records, audit history, work orders, permissions, or user assignments
+- never allow deletion of protected system roles unless the existing system explicitly supports it
+Protected/default roles should include:
+- admin
+- chief_engineer
+- technician
+- vessel_master
+- crew_member
+- logistics_user
+- procurement_user
+- safety_officer
+- maintenance_planner
+For protected roles:
+- allow editing dashboard configuration
+- allow editing display name/description only if safe
+- do not allow hard deletion
+- allow deactivation only if it does not break existing access rules
+- never allow the system to lose all admin access
+Role creation/editing should update the options available in the Crew Members / Users assignment tab.
+Example:
+If admin creates a new role called `deck_officer`, that role should become assignable to users from the Crew Members tab, and the existing User page should render the dashboard based on the `deck_officer` role configuration.
+Role name validation:
+- lowercase letters, numbers, and underscores only
+- must start with a letter
+- no spaces
+- no duplicate role names
+- display name can be human-readable
+- role name is the stable key and should not be casually renamed once users or historical records depend on it
+SAFETY TAB / EMERGENCY ALARM TYPE REQUIREMENTS
+Extend the vessel safety alarm system so admins do not create only one generic emergency alarm.
+There must be multiple configurable emergency alarm types.
+Examples:
+- Fire alarm
+- Man overboard
+- Abandon vessel
+- Medical emergency
+- Collision / grounding
+- Flooding / water ingress
+- Engine room emergency
+- Security threat
+- Gas leak / hazardous atmosphere
+- Machinery emergency
+- Evacuation
+- Muster alarm
+- General emergency alarm
+- Vessel-specific custom alarm
+Alarm type must be selected before an alarm is activated.
+SAFETY TAB — ALARM TYPE MANAGEMENT
+Admins should be able to create, edit, activate/deactivate, and delete emergency alarm types.
+Alarm type fields:
+- alarmTypeKey
+- displayName
+- description
+- defaultSeverity
+- defaultInstructions
+- defaultVisibilityScope
+- requiresAcknowledgement
+- isActive
+- isProtected
+- createdAt
+- updatedAt
+Create alarm type:
+- create stable alarm type key
+- set display name
+- set description
+- choose default severity
+- add default instructions
+- choose whether acknowledgement is required
+- set active/inactive status
+Edit alarm type:
+- update display name
+- update description
+- update default severity
+- update default instructions
+- update acknowledgement requirement
+- activate/deactivate type
+Delete alarm type:
+- allow deletion only if safe
+- prevent deletion if alarm type has active alarms
+- prefer soft-delete/deactivation if the type has historical alarm records
+- never hard-delete protected/default alarm types unless the existing system explicitly supports it
+Protected/default alarm types should include:
+- fire_alarm
+- man_overboard
+- abandon_vessel
+- medical_emergency
+- collision_grounding
+- flooding_water_ingress
+- engine_room_emergency
+- security_threat
+- gas_leak
+- machinery_emergency
+- evacuation
+- muster_alarm
+- general_emergency
+For protected alarm types:
+- allow editing display name, description, default instructions, default severity, and acknowledgement requirement if safe
+- do not allow hard deletion
+- allow deactivation only if it does not break emergency workflows
+Alarm type key validation:
+- lowercase letters, numbers, and underscores only
+- must start with a letter
+- no spaces
+- no duplicate keys
+- key is stable and should not be casually renamed once historical alarms depend on it
+SAFETY TAB — ALARM ACTIVATION
+Admins must select an alarm type before activating an alarm.
+Activation flow:
+1. Admin opens Safety tab.
+2. Admin selects alarm type.
+3. Admin selects affected vessel or fleet-wide scope.
+4. Admin confirms severity, title/message, instructions, and acknowledgement requirement.
+5. Admin activates alarm.
+6. Affected users see the alarm immediately at the top of the existing User page.
+When selecting an alarm type:
+- prefill default severity
+- prefill default instructions
+- prefill acknowledgement requirement
+- allow admin to override message/instructions if appropriate
+- require confirmation before activating emergency or critical alarms
+Active alarm fields:
+- id
+- alarmTypeKey
+- alarmTypeDisplayName
+- scopeType: vessel | fleet
+- vesselId nullable
+- vesselName nullable
+- severity
+- title
+- message
+- instructions nullable
+- requiresAcknowledgement
+- status: active | cleared
+- triggeredByUserId
+- triggeredAt
+- clearedByUserId nullable
+- clearedAt nullable
+- createdAt
+- updatedAt
+Regular User page behavior:
+If an active alarm applies to the user’s vessel/scope, show a prominent emergency banner at the top of the existing User page.
+The banner must show:
+- alarm type, e.g. Fire Alarm
+- vessel or fleet-wide scope
+- severity
+- title/message
+- instructions
+- triggered time
+- acknowledgement button if required
+- active status
+The alarm banner must appear before:
+- personal task feed
+- safety bulletins
+- normal dashboard widgets
+- role-specific sections
+If multiple alarms apply:
+- sort by severity first
+- then newest triggered time
+- show critical/emergency alarms most prominently
+- avoid hiding alarms behind tabs
+Relationship to safety bulletins:
+Safety bulletins are notices.
+Safety alarms are active emergency status indicators.
+Alarm types define what kind of emergency is being activated.
+Do not implement emergency alarms as ordinary bulletins unless the existing model already supports:
+- configurable alarm types
+- active/cleared emergency status
+- vessel/fleet scope
+- immediate dashboard prominence
+- acknowledgement
+- clearing/resolution history
+EXISTING USER PAGE UPDATE REQUIREMENTS
+Update the current User page so it becomes a configurable role-based dashboard and emergency-aware page.
+The page should:
+- fetch the logged-in user’s normalized role names
+- fetch vessel/department assignment
+- fetch active visible safety alarms
+- fetch the active role dashboard configuration
+- fetch the personal task feed
+- render applicable safety alarms at the very top
+- render only the widgets and information blocks allowed for that role
+- respect vessel, department, and fleet visibility scope
+- not expose admin-only information to regular users
+- keep the UI simple and operational
+The existing User page should answer:
+- Is there an active emergency affecting my vessel or fleet?
+- What do I need to do?
+- What is overdue or urgent?
+- What safety information applies to me?
+- What do I need to report or acknowledge?
+Suggested user page layout:
+Top override:
+- active emergency safety alarm banner if applicable
+Header:
+- greeting
+- role
+- assigned vessel / department
+Main:
+- personal task feed
+- urgent / overdue / blocked items first
+Secondary:
+- safety bulletins / notices
+- acknowledgement-required items
+Role-specific sections:
+- maintenance widgets
+- vessel status widgets
+- logistics widgets
+- approvals
+- equipment alerts
+- crew status
+- feedback / flag issue
+DASHBOARD CONTENT PRINCIPLE
+Dashboard content must be designed around high-impact operational questions for each role.
+Do not display generic widgets just because data exists. Each dashboard section should answer a practical question that helps the user act faster, reduce risk, prevent downtime, improve readiness, or escalate the right issue.
+Every widget must map to at least one high-impact question.
+Safety alarms are not ordinary widgets. They are high-priority emergency status messages and must override normal dashboard hierarchy.
+Examples:
+- Safety Alarm answers: “Is there an active emergency affecting my vessel?” and “What do I need to do immediately?”
+- Assigned Work Orders answers: “What work is assigned to me today?” and “What is overdue or urgent?”
+- Equipment Alerts answers: “Which equipment needs attention first?” and “Which systems are at highest risk?”
+- Vessel Readiness answers: “Is the vessel operationally ready?” and “What is blocking readiness?”
+- Pending Approvals answers: “What decision or approval is blocking progress?”
+- Safety Bulletins answers: “What safety information applies to me?” and “What must I acknowledge?”
+Avoid low-value dashboard clutter:
+- do not show large tables unless they support action
+- do not show fleet-wide information to users who only need vessel-level or personal information
+- do not show admin configuration data on regular user dashboards
+- do not show vanity KPIs unless they help the user prioritize work
+- prioritize emergency, urgent, overdue, blocked, safety-critical, assigned, and acknowledgement-required items
+ROLE-SPECIFIC HIGH-IMPACT QUESTIONS
+Technician dashboard should answer:
+- Is there an active emergency affecting my vessel?
+- What work is assigned to me today?
+- What is overdue or urgent?
+- Which equipment needs attention first?
+- What safety notices affect my work?
+- What defects or issues have I reported that still need follow-up?
+- What parts, tools, or approvals are blocking my task?
+- What do I need to acknowledge or close out?
+Chief Engineer dashboard should answer:
+- Is there an active emergency affecting my vessel?
+- Which equipment or systems are at highest risk?
+- What maintenance work is overdue?
+- Which work orders are blocked, delayed, or awaiting approval?
+- Which crew members have unresolved maintenance tasks?
+- What defects could affect vessel readiness?
+- What safety bulletins require engineering action?
+- What needs escalation to vessel master or management?
+Vessel Master dashboard should answer:
+- Is there an active emergency affecting my vessel?
+- Is the vessel operationally ready?
+- What safety, compliance, or maintenance issues could affect sailing or job readiness?
+- What critical defects are open?
+- Are crew, equipment, and logistics ready for the next operation?
+- What issues require command-level decision or escalation?
+- What safety notices affect the vessel today?
+- What is blocking vessel readiness?
+Logistics User dashboard should answer:
+- Is there an active fleet or vessel emergency affecting logistics?
+- What supplies, parts, or deliveries are needed soon?
+- Which requests are overdue or urgent?
+- What vessel operations are waiting on logistics?
+- Which purchase or delivery items are blocked?
+- What inventory shortages could affect maintenance or operations?
+- What needs vendor, procurement, or warehouse follow-up?
+Crew Member dashboard should answer:
+- Is there an active emergency affecting my vessel?
+- What do I need to do today?
+- What safety notices apply to me?
+- What training, acknowledgement, or checklist items are outstanding?
+- What vessel-specific information do I need before work?
+- What issue should I report or flag?
+- What task is overdue or urgent?
+Safety Officer dashboard should answer:
+- What active emergency alarms exist?
+- Which safety alarms require acknowledgement?
+- What safety bulletins require acknowledgement?
+- Which vessels or users have not acknowledged critical notices?
+- What open safety issues need follow-up?
+- What incidents, hazards, or flags require review?
+- Which safety risks are trending upward?
+- What needs escalation?
+Maintenance Planner dashboard should answer:
+- Is any emergency affecting planned work?
+- What scheduled work is upcoming, overdue, or blocked?
+- Which vessels have the highest maintenance backlog?
+- Which work orders are waiting on parts, people, or approval?
+- What preventive maintenance is at risk of being missed?
+- What should be prioritized this week?
+- Where are planning gaps affecting operations?
+Procurement User dashboard should answer:
+- Is any emergency affecting procurement priority?
+- What purchase requests need action?
+- Which maintenance tasks are blocked by missing parts?
+- Which orders are overdue?
+- Which vendors or deliveries need follow-up?
+- What urgent vessel requests require escalation?
+- What spending or approval items are pending?
+Admin dashboard should answer:
+- Are there active emergency alarms?
+- Are users assigned to the correct roles, vessels, and departments?
+- Are any users missing dashboard configuration?
+- Which roles have incomplete or inactive dashboard settings?
+- Are there permission or visibility issues?
+- What system or crew-management actions need attention?
+ROLE DASHBOARD CONFIGURATION MODEL
+Create or update a reusable role-dashboard configuration system.
+Do not hardcode a separate dashboard page for each role.
+Suggested config structure:
+Role:
+- id
+- roleName
+- displayName
+- description
+- isActive
+- isProtected
+- assignedUserCount
+RoleDashboardConfig:
+- roleName
+- displayName
+- description
+- enabledWidgets
+- enabledTaskSources
+- visibilityScopes
+- quickActions
+- defaultFilters
+- highImpactQuestions
+- isActive
+WidgetConfig:
+- widgetKey
+- label
+- description
+- enabled
+- visibilityScope
+- dataSource
+- priority
+- highImpactQuestionsAnswered
+TaskFeedSourceConfig:
+- sourceKey
+- label
+- enabled
+- visibilityScope
+- priorityFilter
+- statusFilter
+- highImpactQuestionsAnswered
+SafetyAlarmType:
+- id
+- alarmTypeKey
+- displayName
+- description
+- defaultSeverity
+- defaultInstructions
+- requiresAcknowledgement
+- isActive
+- isProtected
+- activeAlarmCount
+- historicalAlarmCount
+SafetyAlarm:
+- id
+- alarmTypeKey
+- alarmTypeDisplayName
+- scopeType
+- vesselId
+- vesselName
+- severity
+- title
+- message
+- instructions
+- requiresAcknowledgement
+- status
+- triggeredByUserId
+- triggeredByName
+- triggeredAt
+- clearedByUserId
+- clearedByName
+- clearedAt
+Visibility scopes:
+- self
+- assigned_vessel
+- department
+- managed_crew
+- fleet
+BACKEND/API REQUIREMENTS
+Inspect existing APIs first. Reuse and extend existing endpoints where practical.
+Add or update APIs as needed.
+Suggested API shape:
+GET /api/me/dashboard
+Returns the data needed by the existing User page:
+- current user
+- normalized role names
+- assigned vessels
+- department
+- visible active safety alarms
+- active dashboard configuration
+- enabled widgets
+- enabled task sources
+- high-impact questions configured for the user’s role
+- personal task feed summary
+- relevant safety bulletins
+- role-specific summaries
+GET /api/me/tasks
+Returns the user’s personal task feed, filtered by:
+- user
+- role
+- vessel assignment
+- department
+- visibility scope
+- due date
+- priority/severity
+- status
+If safety alarm acknowledgement is required, include alarm acknowledgement tasks where appropriate.
+GET /api/me/safety-alarms
+Returns active safety alarms visible to the logged-in user based on:
+- assigned vessel(s)
+- fleet-wide visibility
+- role visibility if applicable
+POST /api/me/safety-alarms/:id/acknowledge
+Optional if acknowledgement tracking is implemented.
+GET /api/admin/crew
+Returns crew/user records for Crew Management.
+PATCH /api/admin/crew/:id/assignment
+Allows admin to update:
+- roles
+- vessel assignment
+- department
+- supervisor
+- active status
+GET /api/admin/crew/roles
+Returns all roles, including:
+- roleName
+- displayName
+- description
+- isActive
+- isProtected
+- assignedUserCount
+- dashboardConfig
+POST /api/admin/crew/roles
+Creates a new role and optional default dashboard config.
+PATCH /api/admin/crew/roles/:roleName
+Updates role metadata and dashboard configuration.
+DELETE /api/admin/crew/roles/:roleName
+Deletes or deactivates a role, subject to safety rules.
+GET /api/admin/crew/role-dashboard-configs
+Returns editable role dashboard configurations.
+PATCH /api/admin/crew/role-dashboard-configs/:roleName
+Allows admin to update what a role sees:
+- enabled widgets
+- enabled task sources
+- visibility scopes
+- quick actions
+- filters
+- high-impact questions answered by the role dashboard
+Alarm type APIs:
+GET /api/admin/crew/safety/alarm-types
+Returns all alarm types.
+POST /api/admin/crew/safety/alarm-types
+Creates a new alarm type.
+PATCH /api/admin/crew/safety/alarm-types/:alarmTypeKey
+Updates an alarm type.
+DELETE /api/admin/crew/safety/alarm-types/:alarmTypeKey
+Deletes or deactivates an alarm type subject to safety rules.
+Active alarm APIs:
+GET /api/admin/crew/safety/alarms
+Returns active and recent safety alarms for admin review.
+POST /api/admin/crew/safety/alarms
+Triggers a new alarm. Payload must include alarmTypeKey.
+PATCH /api/admin/crew/safety/alarms/:id
+Updates an active alarm.
+POST /api/admin/crew/safety/alarms/:id/clear
+Clears/resolves an active alarm.
+If equivalent endpoints already exist, extend those rather than duplicating them.
+ROLE DELETION RULES
+- If role is protected, return 400 or 409 with a clear message.
+- If role is assigned to active users, return 409 and include assignedUserCount.
+- If role has historical references, prefer soft-delete/deactivation.
+- Do not orphan user assignments.
+- Do not leave users without at least one valid role unless the existing system permits that.
+- Do not allow deletion/deactivation that removes the last active admin-capable role or locks out administrators.
+ALARM TYPE DELETION RULES
+- If alarm type is protected, return 400 or 409 with a clear message.
+- If alarm type has active alarms, return 409 and include activeAlarmCount.
+- If alarm type has historical alarm records, prefer soft-delete/deactivation.
+- Do not orphan historical alarm records.
+- Do not allow deletion/deactivation that breaks emergency workflows.
+AUTHORIZATION REQUIREMENTS
+Enforce authorization server-side.
+Do not rely only on frontend hiding.
+Rules:
+- regular users cannot access role dashboard configuration APIs
+- regular users cannot create, edit, delete, or deactivate roles
+- regular users cannot update crew assignments
+- regular users cannot create/edit/delete alarm types
+- regular users cannot trigger, update, or clear safety alarms
+- regular users can only view safety alarms visible to them
+- user assigned to Vessel Alpha must not receive Vessel Beta restricted dashboard data or Vessel Beta-only safety alarms
+- fleet-wide safety alarms should be visible to all relevant users
+- crew member must not see admin maintenance controls
+- logistics user should only see logistics data within permitted scope
+- chief engineer should see vessel-level maintenance data only where assigned
+- admin can configure role dashboards and assign roles
+- admin can create/edit/delete roles subject to safety rules
+- admin can create/edit/delete alarm types subject to safety rules
+- admin can trigger/update/clear safety alarms
+Allowed safety alarm trigger roles:
+At minimum:
+- admin
+If consistent with the existing permission model, also allow:
+- safety_officer
+- vessel_master
+- chief_engineer
+PERMISSIONS AND ROLE NORMALIZATION
+Fix role handling properly.
+Known issue:
+`/api/permissions/me` may return roles as objects:
+{ id, name, displayName }
+but some frontend hooks may type roles as strings.
+Implement a shared normalization layer:
+- expose `roleNames: string[]`
+- expose `hasRole(roleName: string): boolean`
+- expose `hasAnyRole(roleNames: string[]): boolean`
+- avoid repeating defensive role extraction inside individual pages
+- update the existing User page and relevant Admin pages to use the normalized helpers
+- ensure newly created roles are represented consistently in the normalized role system
+DATA MODEL
+Inspect the current schema before adding new tables.
+Prefer extending existing user, crew, role, vessel, permission, safety bulletin, alert, and notification tables.
+If roles already exist in a table, extend that table if practical.
+If no editable role model exists, add a minimal roles table or equivalent:
+roles:
+- id
+- name
+- display_name
+- description
+- is_active
+- is_protected
+- created_at
+- updated_at
+If no suitable alarm type/alarm model exists, add minimal tables:
+safety_alarm_types:
+- id
+- key
+- display_name
+- description
+- default_severity
+- default_instructions
+- requires_acknowledgement
+- is_active
+- is_protected
+- created_at
+- updated_at
+vessel_safety_alarms:
+- id
+- alarm_type_id or alarm_type_key
+- scope_type: vessel | fleet
+- vessel_id nullable
+- severity
+- title
+- message
+- instructions nullable
+- requires_acknowledgement
+- status: active | cleared
+- triggered_by_user_id
+- triggered_at
+- cleared_by_user_id nullable
+- cleared_at nullable
+- created_at
+- updated_at
+Optional acknowledgement table:
+vessel_safety_alarm_acknowledgements:
+- id
+- alarm_id
+- user_id
+- acknowledged_at
+If needed, add migrations for:
+- roles
+- user_role_assignments
+- user_vessel_assignments
+- role_dashboard_configs
+- safety_alarm_types
+- vessel_safety_alarms
+- vessel_safety_alarm_acknowledgements
+Keep the model practical.
+A simple acceptable role dashboard config table is:
+role_dashboard_configs:
+- id
+- role_name or role_id
+- display_name
+- description
+- config_json
+- created_at
+- updated_at
+But config_json must be validated with a typed schema before use.
+config_json should include:
+- enabledWidgets
+- enabledTaskSources
+- visibilityScopes
+- quickActions
+- defaultFilters
+- highImpactQuestions
+- widgetQuestionMap
+TASK FEED
+The personal task feed should be generated from existing operational records where possible.
+Possible sources:
+- assigned work orders
+- maintenance tasks
+- safety bulletin acknowledgements
+- safety alarm acknowledgements
+- defects/flags submitted by user
+- logistics requests
+- purchase/procurement actions
+- approvals
+- overdue scheduled work
+- equipment alerts
+- blocked tasks
+- vessel readiness blockers
+The role dashboard configuration should determine which sources appear for each role.
+If acknowledgement is required for an active safety alarm, the acknowledgement should also be able to appear in the user’s personal task feed.
+Example task:
+“Emergency safety alarm acknowledgement required — Vessel Alpha”
+VALIDATION REQUIREMENTS
+Role validation:
+- role name is required
+- lowercase letters, numbers, and underscores only
+- must start with a letter
+- no spaces
+- no duplicate role names
+- protected roles cannot be hard-deleted
+- roles assigned to active users cannot be deleted
+Alarm type validation:
+- alarmTypeKey is required
+- lowercase letters, numbers, and underscores only
+- must start with a letter
+- no spaces
+- no duplicate keys
+- protected alarm types cannot be hard-deleted
+- alarm types with active alarms cannot be deleted
+Alarm activation validation:
+- alarmTypeKey is required when triggering an alarm
+- alarm type must exist
+- alarm type must be active to trigger
+- title is required
+- message is required
+- severity must be valid
+- scopeType must be vessel or fleet
+- vesselId is required when scopeType is vessel
+- vesselId must be null when scopeType is fleet
+- cleared alarms should not appear as active alerts on regular user dashboards
+- invalid payloads return 400, not 500
+TYPESCRIPT SAFETY REQUIREMENTS
+This implementation must follow the project’s TypeScript hardening direction.
+Requirements:
+- no `any`
+- no `as any`
+- no unsafe double-casts such as `as unknown as`
+- use explicit types/interfaces for all new configs and API payloads
+- use shared types between frontend and backend where practical
+- use zod schemas or existing validation utilities for API request/response validation
+- infer types from zod schemas where possible
+- avoid large untyped JSON blobs unless wrapped with a typed schema
+- normalize roles once in a shared helper/hook
+- keep route files thin
+- move role/dashboard/task-feed/alarm logic into services where practical
+- validate role names and alarm type keys with typed schemas
+- ensure role create/update/delete payloads are typed
+- ensure alarm type create/update/delete payloads are typed
+- ensure alarm activation/update/clear payloads are typed
+Suggested shared types:
+```ts
+export type RoleName = string;
+export type ProtectedRoleName =
+  | "admin"
+  | "technician"
+  | "chief_engineer"
+  | "vessel_master"
+  | "crew_member"
+  | "logistics_user"
+  | "procurement_user"
+  | "safety_officer"
+  | "maintenance_planner";
+export type DashboardWidgetKey =
+  | "my_tasks"
+  | "assigned_work_orders"
+  | "safety_bulletins"
+  | "equipment_alerts"
+  | "maintenance_overview"
+  | "pending_approvals"
+  | "vessel_status"
+  | "crew_status"
+  | "logistics_requests"
+  | "inventory_alerts"
+  | "feedback"
+  | "blocked_tasks"
+  | "vessel_readiness"
+  | "crew_task_progress";
+export type TaskFeedSourceKey =
+  | "assigned_work_orders"
+  | "overdue_tasks"
+  | "safety_acknowledgements"
+  | "safety_alarm_acknowledgements"
+  | "defect_followups"
+  | "critical_defects"
+  | "approval_requests"
+  | "equipment_alerts"
+  | "supply_requests"
+  | "purchase_requests"
+  | "delivery_updates"
+  | "inventory_alerts"
+  | "blocked_tasks"
+  | "blocked_work_orders"
+  | "vessel_readiness_blockers";
+export type VisibilityScope =
+  | "self"
+  | "assigned_vessel"
+  | "department"
+  | "managed_crew"
+  | "fleet";
+export type SafetyAlarmSeverity =
+  | "advisory"
+  | "warning"
+  | "emergency"
+  | "critical";
+export type SafetyAlarmScopeType =
+  | "vessel"
+  | "fleet";
+export type SafetyAlarmStatus =
+  | "active"
+  | "cleared";
+export type AlarmTypeKey = string;
+export interface RoleRecord {
+  id: string;
+  roleName: RoleName;
+  displayName: string;
+  description?: string;
+  isActive: boolean;
+  isProtected: boolean;
+  assignedUserCount: number;
+}
+export interface RoleDashboardConfig {
+  roleName: RoleName;
+  displayName: string;
+  description?: string;
+  enabledWidgets: DashboardWidgetKey[];
+  enabledTaskSources: TaskFeedSourceKey[];
+  visibilityScopes: VisibilityScope[];
+  quickActions: string[];
+  highImpactQuestions: string[];
+  widgetQuestionMap?: Partial<Record<DashboardWidgetKey, string[]>>;
+  defaultFilters?: Record<string, string | number | boolean | string[]>;
+  isActive: boolean;
+}
+export interface SafetyAlarmType {
+  id: string;
+  alarmTypeKey: AlarmTypeKey;
+  displayName: string;
+  description?: string;
+  defaultSeverity: SafetyAlarmSeverity;
+  defaultInstructions?: string;
+  requiresAcknowledgement: boolean;
+  isActive: boolean;
+  isProtected: boolean;
+  activeAlarmCount?: number;
+  historicalAlarmCount?: number;
+}
+export interface SafetyAlarm {
+  id: string;
+  alarmTypeKey: AlarmTypeKey;
+  alarmTypeDisplayName: string;
+  scopeType: SafetyAlarmScopeType;
+  vesselId?: string;
+  vesselName?: string;
+  severity: SafetyAlarmSeverity;
+  title: string;
+  message: string;
+  instructions?: string;
+  requiresAcknowledgement: boolean;
+  status: SafetyAlarmStatus;
+  triggeredByUserId: string;
+  triggeredByName?: string;
+  triggeredAt: string;
+  clearedByUserId?: string;
+  clearedByName?: string;
+  clearedAt?: string;
+}
+export interface CreateSafetyAlarmTypeRequest {
+  alarmTypeKey: AlarmTypeKey;
+  displayName: string;
+  description?: string;
+  defaultSeverity: SafetyAlarmSeverity;
+  defaultInstructions?: string;
+  requiresAcknowledgement: boolean;
+  isActive: boolean;
+}
+export interface CreateSafetyAlarmRequest {
+  alarmTypeKey: AlarmTypeKey;
+  scopeType: SafetyAlarmScopeType;
+  vesselId?: string;
+  severity: SafetyAlarmSeverity;
+  title: string;
+  message: string;
+  instructions?: string;
+  requiresAcknowledgement?: boolean;
+}
+export interface VisibleSafetyAlarmsResponse {
+  activeAlarms: SafetyAlarm[];
+}
+export interface UserDashboardResponse {
+  user: {
+    id: string;
+    name: string;
+    roleNames: RoleName[];
+    vesselIds: string[];
+    department?: string;
+  };
+  activeSafetyAlarms: SafetyAlarm[];
+  dashboardConfigs: RoleDashboardConfig[];
+  enabledWidgets: DashboardWidgetKey[];
+  enabledTaskSources: TaskFeedSourceKey[];
+  highImpactQuestions: string[];
+  taskSummary: {
+    total: number;
+    overdue: number;
+    critical: number;
+    blocked?: number;
+    safetyAlarmAcknowledgements?: number;
+  };
+}
+```
+Important TypeScript note:
+Because admins can create new roles and alarm types dynamically, do not model all roles or alarm types only as closed union types. Use `RoleName = string` and `AlarmTypeKey = string` with runtime validation, while keeping protected built-in keys as unions or constants.
+MAINTAINABILITY REQUIREMENTS
+- update the existing User page rather than creating a parallel duplicate page
+- do not build one-off dashboards for each role
+- do not build one-off emergency banners for each alarm type
+- use a reusable dashboard renderer driven by role configuration
+- use a reusable safety alarm banner/list component driven by alarm type and alarm data
+- use small focused widgets
+- keep role management logic centralized
+- keep role-to-widget logic centralized
+- keep task-feed source logic centralized
+- keep high-impact question mapping centralized
+- keep safety alarm type logic centralized
+- keep safety alarm visibility/scoping logic centralized
+- keep authorization checks server-side and close to the data/API layer
+- avoid duplicating permission checks across pages
+- prefer configuration-driven behavior over hardcoded conditional chains
+- keep components reasonably sized
+- split components over roughly 250 lines if practical
+- keep route files thin: validate, authorize, call services, return typed responses
+Suggested frontend structure:
+- existing User page
+- DashboardRenderer
+- DashboardWidgetRegistry
+- PersonalTaskFeed
+- RoleManagementEditor
+- RoleDashboardConfigEditor
+- CrewAssignmentEditor
+- HighImpactQuestionRegistry
+- SafetyAlarmBanner
+- SafetyAlarmTypeEditor
+- SafetyAlarmActivationPanel
+- ActiveSafetyAlarmsPanel
+Suggested backend services:
+- role-management-service.ts
+- dashboard-config-service.ts
+- user-task-feed-service.ts
+- crew-assignment-service.ts
+- safety-alarm-type-service.ts
+- safety-alarm-service.ts
+TESTS
+Use existing repo test patterns. Do not introduce a large new testing framework.
+Backend tests:
+- admin can create a role
+- non-admin cannot create a role
+- admin can edit role metadata
+- admin can edit role dashboard config
+- protected role cannot be deleted
+- role assigned to active users cannot be deleted
+- inactive/deleted role no longer appears as assignable
+- newly created role appears in Crew Members assignment selector/API
+- user assigned to newly created role receives that role’s dashboard config
+- admin can assign user role/vessel from Crew Management
+- non-admin cannot update user assignment
+- admin can update role dashboard configuration
+- non-admin cannot update role dashboard configuration
+- technician receives technician dashboard config
+- chief_engineer receives chief engineer dashboard config
+- logistics_user receives logistics dashboard config
+- existing User page dashboard response respects vessel assignment
+- user assigned Vessel Alpha does not receive Vessel Beta restricted task feed items
+- disabled widget does not appear in /api/me/dashboard
+- disabled task source does not appear in /api/me/tasks
+- invalid role config JSON is rejected or safely defaulted
+- dashboard widgets include high-impact question metadata
+- disabled or unauthorized widgets do not leak through the dashboard API
+- admin can create alarm type
+- non-admin cannot create alarm type
+- admin can edit alarm type
+- protected alarm type cannot be hard-deleted
+- alarm type with active alarms cannot be deleted
+- inactive alarm type cannot be triggered
+- admin must select valid alarmTypeKey before triggering alarm
+- admin can trigger Fire Alarm for Vessel Alpha
+- admin can trigger fleet-wide alarm
+- non-admin cannot trigger alarm
+- regular user assigned to affected vessel can see alarm
+- regular user not assigned to affected vessel cannot see alarm
+- fleet-wide alarm is visible to relevant users
+- cleared alarm no longer appears in /api/me/safety-alarms
+- admin can clear alarm
+- non-admin cannot clear alarm
+- invalid vessel scope payload returns 400
+- invalid severity returns 400
+Frontend tests if infrastructure exists:
+- existing User page renders enabled widgets only
+- existing User page shows active Fire Alarm banner
+- existing User page does not show unrelated vessel alarm
+- Crew Management shows Crew Members tab
+- Crew Management shows Roles / Role Dashboards tab
+- Crew Management shows Safety tab
+- Safety tab shows alarm type management
+- Safety tab shows active alarm management
+- admin can create/edit alarm type
+- protected alarm type shows protected badge
+- alarm activation form requires alarm type selection
+- admin can create a role in the Role tab
+- admin can edit a role in the Role tab
+- protected role shows protected badge and cannot be deleted
+- Role Dashboards tab displays high-impact question labels for widgets
+- admin can see role configuration UI
+- regular user cannot see role configuration UI
+- regular user cannot see trigger/clear alarm controls
+- technician view renders technician widgets only
+- chief engineer view renders configured chief engineer widgets only
+VERIFICATION
+Run:
+- npx tsc --noEmit
+- relevant tests
+- lint/check command if obvious
+Manually verify:
+- existing User page still loads
+- admin can create a new role from Crew Management
+- admin can edit role metadata from Crew Management
+- admin cannot delete protected roles
+- admin cannot delete a role assigned to active users
+- newly created active role appears in Crew Members assignment selector
+- admin can assign a role to a user from Crew Management
+- admin can edit what a role sees from the Role Dashboards tab
+- role widgets show which high-impact question they answer
+- technician user sees technician information on the existing User page
+- chief engineer user sees chief engineer information on the existing User page
+- logistics user sees logistics information on the existing User page
+- user assigned to a newly created role sees that role’s configured dashboard
+- regular user does not see admin navigation
+- dashboard changes apply after role config is edited
+- disabled widgets do not appear
+- disabled task sources do not appear
+- vessel scoping is enforced server-side
+- Crew Management has a Safety tab
+- admin can create a custom alarm type
+- admin can edit alarm type metadata/defaults
+- admin cannot hard-delete protected alarm types
+- admin cannot delete alarm type with active alarms
+- inactive alarm type cannot be selected for activation
+- admin can activate Fire Alarm for Vessel Alpha
+- Vessel Alpha user sees Fire Alarm at top of existing User page
+- Vessel Beta user does not see Vessel Alpha-only Fire Alarm
+- admin can activate fleet-wide alarm
+- relevant users see fleet-wide alarm
+- admin can clear alarm
+- cleared alarm disappears from regular User page
+- acknowledgement button appears when alarm requires acknowledgement, if acknowledgement is implemented
+CONSTRAINTS
+- keep the regular User page simple
+- update existing pages where possible
+- do not create duplicate dashboard systems
+- do not expose admin-only data to regular users
+- enforce role, vessel, and department scoping server-side
+- enforce safety alarm vessel/fleet scoping server-side
+- preserve existing shadcn UI style
+- avoid `any`
+- follow the project’s TypeScript hardening direction
+- do not break existing Crew Management functionality
+- do not break existing safety bulletin functionality
+- safety alarms must remain separate from ordinary safety bulletins unless the existing model already fully supports emergency alarm semantics
+- do not overbuild a full permissions engine if the repo already has one
+- avoid low-value dashboard clutter
+- every dashboard widget must answer a high-impact operational question
+- safety alarms override normal dashboard hierarchy
+- alarm type must be selected before alarm activation
+- do not allow unsafe role deletion that breaks user access or historical records
+- do not remove the last admin-capable access path
+- do not allow unsafe alarm type deletion that breaks emergency workflows or historical alarm records
+RETURN FORMAT
+Return:
+1. Gap Analysis
+- Existing User Page
+- Existing Crew Management
+- Existing Roles/Permissions
+- Existing Safety/Bulletin/Alert System
+- Existing APIs
+- Existing Data Model
+- Existing Task Sources
+- Required Backend Changes
+- Required Frontend Changes
+- Required Migrations
+- Required Tests
+- Main Risks
+2. Implementation Summary
+- existing pages updated
+- files changed
+- migrations added
+- new/updated APIs
+- backend services added/updated
+- frontend components added/updated
+- Crew Management tab behavior
+- Role Management behavior
+- Role Dashboards configuration behavior
+- Safety tab behavior
+- Alarm Type Management behavior
+- Active Safety Alarm behavior
+- existing User page behavior
+- high-impact questions implemented per role
+- authorization rules implemented
+- TypeScript safety measures implemented
+3. Verification
+- `npx tsc --noEmit`
+- tests run
+- lint/checks run if applicable
+- manual verification notes
+4. Remaining Risks
+- incomplete data sources
+- assumptions made
+- follow-up hardening items
