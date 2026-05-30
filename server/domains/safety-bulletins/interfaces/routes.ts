@@ -7,8 +7,24 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { safetyBulletinService } from "../service";
 import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { SAFETY_BULLETIN_SEVERITIES } from "@shared/schema";
+
+// Posting a safety notice is an admin-portal action. Mirrors
+// `getPortalForRole` in
+// `client/src/application/navigation/role-navigation-policy.ts` and the
+// Attention Inbox gate: portal-level admin roles may publish notices;
+// deck_officer/viewer (user portal) may only read them.
+const SAFETY_BULLETIN_WRITE_ROLES = [
+  "system_admin",
+  "company_admin",
+  "chief_engineer",
+  "fleet_manager",
+  "captain",
+  "admin",
+] as const;
+const requireSafetyBulletinWriteRole = requireRole(...SAFETY_BULLETIN_WRITE_ROLES);
 
 const createBulletinSchema = z.object({
   vesselId: z.string().min(1).optional(),
@@ -59,6 +75,7 @@ export function registerSafetyBulletinRoutes(
   app.post(
     "/api/safety-bulletins",
     requireOrgId,
+    requireSafetyBulletinWriteRole,
     writeLimit,
     withErrorHandling("create safety bulletin", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;

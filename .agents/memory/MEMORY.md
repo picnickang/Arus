@@ -1,1 +1,2 @@
 - [ARUS migrations & cloud-only domains](arus-migrations.md) — db:push needs a TTY; deploys also run idempotent server/migrations/*.sql; cloud-only tables mirror the certificates domain.
+- [Admin-portal role gating](admin-portal-role-gating.md) — client admin-write gates must use the explicit *_WRITE_ROLES set, not getPortalForRole (which omits the literal "admin" role).
