@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionToken";
 
 /** Push B2 — eventIds are `<unix-ms>-<seq>` (Redis Streams format).
  *  Lexicographic ordering matches numeric ordering for same-length
@@ -145,14 +146,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       // so a query parameter is the standard channel for this.
       let connectUrl = url;
       try {
-        const sessionToken = globalThis.localStorage?.getItem("sessionToken");
+        // Auth tokens live in-memory (client/src/lib/sessionToken.ts) and are
+        // intentionally kept out of localStorage to reduce XSS blast radius, so
+        // read the live token here — a localStorage read would always be empty
+        // and the upgrade would resolve to the wrong tenant (or be rejected).
+        const sessionToken = getApiSessionToken();
         if (sessionToken) {
           const u = new URL(url);
           u.searchParams.set("token", sessionToken);
           connectUrl = u.toString();
         }
       } catch {
-        /* localStorage unavailable (SSR / restricted) — fall back to anonymous upgrade */
+        /* token registry unavailable — fall back to anonymous upgrade */
       }
       const ws = new WebSocket(connectUrl);
       wsRef.current = ws;
@@ -305,6 +310,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     return () => {
       disconnect();
     };
+  }, [autoConnect, connect, disconnect]);
+
+  // When the in-memory auth token changes (login / logout / tenant switch), the
+  // current socket is bound to the old tenant (or anonymous). Tear it down and
+  // reconnect so the upgrade carries the new token and resolves the right org.
+  useEffect(() => {
+    const unsubscribe = subscribeToApiSessionToken(() => {
+      if (!autoConnect) return;
+      disconnect();
+      connect();
+    });
+    return unsubscribe;
   }, [autoConnect, connect, disconnect]);
 
   // Cleanup on unmount

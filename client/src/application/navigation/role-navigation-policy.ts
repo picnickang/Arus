@@ -221,6 +221,35 @@ export function pruneOverrideToPolicyIds(
 }
 
 /**
+ * Resolve the authoritative role that drives the User/Admin page pivot
+ * from the caller's *server-assigned* role names (the DB roles returned
+ * by `/api/permissions/me`).
+ *
+ * Contract:
+ *   - When the server has assigned one or more roles, those win: an
+ *     admin-portal role is preferred when the user holds several (so a
+ *     user with both `deck_officer` and `captain` lands on the admin
+ *     surface), otherwise the first server role is used.
+ *   - `fallback` (a locally-stored role hint from localStorage) is used
+ *     ONLY when the server roles are unavailable (still loading, or the
+ *     `/api/permissions/me` call errored). This keeps the DB the source
+ *     of truth while preventing a blank pivot during the first paint.
+ *
+ * Pure — no I/O. The caller reads localStorage / the permissions context
+ * and passes the values in.
+ */
+export function resolveEffectiveRole(
+  serverRoleNames: readonly string[],
+  fallback: NavRoleId | string | null,
+): NavRoleId | string | null {
+  if (serverRoleNames.length === 0) {
+    return fallback;
+  }
+  const adminRole = serverRoleNames.find((r) => getPortalForRole(r) === "admin");
+  return adminRole ?? serverRoleNames[0] ?? fallback;
+}
+
+/**
  * Convenience: where should this role land after picking a portal?
  *
  * Both portals currently land on / (the Command Center HomePage) —

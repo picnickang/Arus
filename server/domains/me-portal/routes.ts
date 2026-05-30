@@ -12,6 +12,7 @@ import { mePortalService, MePortalError, type MeUser } from "./me-portal-service
 import { requireAuthentication } from "../../security/authentication";
 import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
+import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import type { AuthenticatedRequest } from "../../middleware/auth";
 
@@ -145,6 +146,9 @@ export function registerMePortalRoutes(
           performedByRole: meUser.role,
           ipAddress: req.ip,
           metadata: { source: "user_portal", comment: comment ?? null },
+        });
+        broadcastSafetyAlarmEvent(meUser.orgId, "safety_alarm_acknowledged", {
+          alarmId: req.params['id'],
         });
         return res.json({ success: true });
       } catch (error) {

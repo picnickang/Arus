@@ -1,3 +1,4 @@
 - [ARUS migrations & cloud-only domains](arus-migrations.md) — db:push needs a TTY; deploys also run idempotent server/migrations/*.sql; cloud-only tables mirror the certificates domain.
 - [Admin-portal role gating](admin-portal-role-gating.md) — client admin-write gates must use the explicit *_WRITE_ROLES set, not getPortalForRole (which omits the literal "admin" role).
 - [Multi-role capability scoping](multi-role-capability-scoping.md) — me-portal data scope is per-capability, never the merged max visibilityScope, or one role's scope leaks into another's feeds.
+- [WebSocket client auth token source](websocket-client-auth-token.md) — WS upgrade must read token from in-memory getApiSessionToken(), NOT localStorage, or it connects anonymously / wrong-tenant.

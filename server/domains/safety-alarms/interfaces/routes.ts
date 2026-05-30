@@ -14,6 +14,7 @@ import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/aut
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
+import { broadcastSafetyAlarmEvent } from "../../../lib/safety-alarm-events";
 import { ALARM_SEVERITIES, ALARM_MODES } from "@shared/role-dashboard";
 
 const SAFETY_ALARM_WRITE_ROLES = [
@@ -252,6 +253,12 @@ export function registerSafetyAlarmRoutes(
           ...(alarm.vesselId ? { vesselId: alarm.vesselId } : {}),
           newState: { severity: alarm.severity, mode: alarm.mode, title: alarm.title },
         });
+        broadcastSafetyAlarmEvent(authReq.orgId, "safety_alarm_triggered", {
+          alarmId: alarm.id,
+          severity: alarm.severity,
+          mode: alarm.mode,
+          vesselId: alarm.vesselId ?? null,
+        });
         return res.status(201).json(alarm);
       } catch (error) {
         if (handleAlarmError(error, res)) return undefined;
@@ -283,6 +290,10 @@ export function registerSafetyAlarmRoutes(
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { status: "cleared" },
+        });
+        broadcastSafetyAlarmEvent(authReq.orgId, "safety_alarm_cleared", {
+          alarmId: cleared.id,
+          vesselId: cleared.vesselId ?? null,
         });
         return res.json(cleared);
       } catch (error) {

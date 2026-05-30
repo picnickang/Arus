@@ -41,7 +41,9 @@ import type { RoleConfig } from "@/config/roles";
 import {
   getPortalForRole,
   getPrimaryCategoriesForRole,
+  resolveEffectiveRole,
 } from "@/application/navigation/role-navigation-policy";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { Button } from "@/components/ui/button";
 import { OpsSidebar, type OpsSidebarItem } from "@/components/ops/OpsSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -1338,7 +1340,13 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
 
   const { attentionItems, sinceLastVisit } = useAttentionItems();
-  const roleConfig = role ? ROLES[role] : null;
+  const { permissions } = usePermissions();
+  // DB role assignments (from /api/permissions/me) are authoritative for
+  // the User/Admin page pivot. The locally-stored `role` hint is only a
+  // fallback for the first paint / when the permissions call is loading
+  // or errored (see resolveEffectiveRole).
+  const effectiveRole = resolveEffectiveRole(permissions.roleNames, role);
+  const roleConfig = effectiveRole ? ROLES[effectiveRole] : null;
 
   const { data: vessels } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["/api/vessels"],
@@ -1376,7 +1384,7 @@ export default function HomePage() {
     return <RoleSelector onSelect={handleSelectRole} />;
   }
 
-  const portal = getPortalForRole(role);
+  const portal = getPortalForRole(effectiveRole);
 
   // User portal: re-skinned per UI Align Phase 4 (preview panel 2 /
   // mobile panel 9). Cards bind to the view-model in
@@ -1385,7 +1393,7 @@ export default function HomePage() {
   // Empty-state ids `empty-attention` / `empty-my-tasks` are
   // preserved verbatim because other surfaces and tests key off them.
   if (portal === "user") {
-    return <UserPortalHome role={role} roleLabel={roleConfig?.label} onSwitchRole={() => {
+    return <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} onSwitchRole={() => {
       localStorage.removeItem(STORAGE_KEY);
       setRole(null);
     }} />;
@@ -1398,7 +1406,7 @@ export default function HomePage() {
   // `useAttentionItems` query (`/api/home/attention-summary`) — no
   // new backend endpoints. The 5 module shortcut tiles are sourced
   // from `getPrimaryCategoriesForRole(role)` (single policy source).
-  const policyCategoryIds = getPrimaryCategoriesForRole(role).map((c) => c.id);
+  const policyCategoryIds = getPrimaryCategoriesForRole(effectiveRole).map((c) => c.id);
   const pinnedGroupIds =
     policyCategoryIds.length > 0
       ? policyCategoryIds
@@ -1549,9 +1557,9 @@ export default function HomePage() {
           </section>
         )}
 
-        <RoleTodayPanel roleId={role} />
+        <RoleTodayPanel roleId={effectiveRole} />
 
-        <WorkflowCommandCenter roleId={role} />
+        <WorkflowCommandCenter roleId={effectiveRole} />
 
         {roleConfig && <QuickActions actions={roleConfig.quickActions} className="mb-6" />}
 

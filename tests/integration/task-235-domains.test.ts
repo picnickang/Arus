@@ -34,6 +34,8 @@ import request from "supertest";
 
 const ORG = "test-org-task-235";
 
+let setWebSocketServer: (server: unknown) => void;
+
 class CrewAdminError extends Error {
   constructor(message: string, public readonly code: string) {
     super(message);
@@ -188,6 +190,8 @@ beforeAll(async () => {
       generalApiRateLimit: passthrough,
       loginRateLimit: passthrough,
     });
+    const wsServer = await import("../../server/websocket-server");
+    setWebSocketServer = wsServer.setWebSocketServer as unknown as (server: unknown) => void;
   } catch (err) {
     mountError = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
   }
@@ -210,7 +214,7 @@ beforeEach(() => {
   alarmStub.triggerAlarm.mockResolvedValue({
     id: "alarm-1",
     severity: "critical",
-    mode: "live",
+    mode: "real",
     title: "Fire",
     vesselId: null,
   });
@@ -364,6 +368,42 @@ describe("safety-alarms — write gate + trigger", () => {
       .send({ alarmTypeId: "type-1" });
     expect(res.status).toBe(428);
     expect(res.body?.code).toBe("CONFIRMATION_REQUIRED");
+  });
+
+  // Mode is constrained to the shared ALARM_MODES enum (real|drill|test)
+  // at the route boundary — a legacy/invalid literal like "live" must be
+  // rejected with 400 before the service ever runs.
+  it("rejects an invalid alarm mode with 400", async () => {
+    if (mountError) throw new Error(mountError);
+    const res = await request(app)
+      .post("/api/admin/safety-alarms")
+      .set("x-test-user", "cap:captain")
+      .send({ alarmTypeId: "type-1", mode: "live" });
+    expect(res.status).toBe(400);
+    expect(alarmStub.triggerAlarm).not.toHaveBeenCalled();
+  });
+
+  // Realtime fan-out: a successful trigger must publish a tenant-scoped
+  // WebSocket frame on the `safety-alarms` channel (polling is only the
+  // fallback). We inject a fake WS server and assert the emission path.
+  it("broadcasts a tenant-scoped WebSocket event on trigger", async () => {
+    if (mountError) throw new Error(mountError);
+    const broadcast = jest.fn();
+    setWebSocketServer({ broadcast });
+    try {
+      const res = await request(app)
+        .post("/api/admin/safety-alarms")
+        .set("x-test-user", "cap:captain")
+        .send({ alarmTypeId: "type-1", confirmed: true });
+      expect(res.status).toBe(201);
+      expect(broadcast).toHaveBeenCalledWith(
+        "safety-alarms",
+        expect.objectContaining({ type: "safety_alarm_triggered", alarmId: "alarm-1" }),
+        ORG,
+      );
+    } finally {
+      setWebSocketServer(null);
+    }
   });
 
   it("rejects deck_officer from creating an alarm type with 403", async () => {

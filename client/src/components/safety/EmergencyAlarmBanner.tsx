@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +48,26 @@ function severityRank(severity: string): number {
 export function EmergencyAlarmBanner() {
   const { toast } = useToast();
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const { lastMessage, subscribe } = useWebSocket();
+
+  // Canonical near-real-time delivery: subscribe to the tenant-scoped
+  // safety-alarm channel and invalidate the alarm feed on any
+  // trigger/clear/acknowledge event. The 15s poll below is the fallback
+  // when the socket is unavailable.
+  useEffect(() => {
+    subscribe("safety-alarms");
+  }, [subscribe]);
+
+  useEffect(() => {
+    const type = lastMessage?.type;
+    if (
+      type === "safety_alarm_triggered" ||
+      type === "safety_alarm_cleared" ||
+      type === "safety_alarm_acknowledged"
+    ) {
+      queryClient.invalidateQueries({ queryKey: ["/api/me/safety-alarms"] });
+    }
+  }, [lastMessage]);
 
   const {
     data: alarms = [],
