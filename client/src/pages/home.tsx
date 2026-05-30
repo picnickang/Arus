@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Activity,
   Circle,
+  Menu,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
@@ -44,6 +45,14 @@ import { Button } from "@/components/ui/button";
 import { OpsSidebar, type OpsSidebarItem } from "@/components/ops/OpsSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   useUserDashboardViewModel,
   type ActiveAlertSlot,
@@ -983,6 +992,7 @@ function UserPortalHome({
   onSwitchRole: () => void;
 }) {
   const [location, setLocation] = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { attentionItems } = useAttentionItems();
   const vm = useUserDashboardViewModel();
   const now = new Date();
@@ -1053,9 +1063,84 @@ function UserPortalHome({
           className="ops-topbar sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 md:px-6"
           data-testid="topbar-user-portal"
         >
-          <h1 className="text-base font-semibold text-foreground sm:text-lg">
-            My Dashboard
-          </h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground md:hidden"
+                  data-testid="button-mobile-menu"
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="flex w-72 flex-col gap-0 p-0"
+                data-testid="sheet-mobile-nav"
+              >
+                <SheetHeader className="border-b border-border/60 px-4 py-4 text-left">
+                  <SheetTitle className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
+                      <Ship className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-bold tracking-wide text-foreground">
+                        ARUS
+                      </span>
+                      <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Marine Ops
+                      </span>
+                    </span>
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Primary navigation and account actions
+                  </SheetDescription>
+                </SheetHeader>
+                <nav
+                  className="flex flex-1 flex-col gap-1 px-3 py-4"
+                  aria-label="Primary"
+                >
+                  {sidebarItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setLocation(item.href);
+                        setMobileNavOpen(false);
+                      }}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        item.isActive
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+                      )}
+                      data-testid={`mobile-nav-item-${item.id}`}
+                      aria-current={item.isActive ? "page" : undefined}
+                    >
+                      {item.icon ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          {item.icon}
+                        </span>
+                      ) : null}
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
+                <div className="border-t border-border/60 px-3 py-4">
+                  <SwitchPortalButton
+                    label="Logout"
+                    variant="ghost"
+                    className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">
+              My Dashboard
+            </h1>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
