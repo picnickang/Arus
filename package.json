@@ -66,7 +66,7 @@
     "check:dts-shims": "node scripts/check-dts-shims.mjs",
     "check:eslint-disables": "node scripts/check-eslint-disables.mjs",
     "check:type-debt": "npm run check:dup-types && npm run check:typed-casts && npm run check:zod-escape && npm run check:dts-shims && npm run check:eslint-disables",
-    "check:guards": "npm run check:schema && npm run check:storage-imports && npm run check:schema-imports && npm run check:domain-boundaries && npm run check:route-registration && npm run check:domain-leaks && npm run check:stale-types && npm run check:org-context && npm run check:workflow-routes && npm run check:operator-experience-architecture && npm run check:domain-repositories-imports && npm run check:type-debt",
+    "check:guards": "npm run check:schema && npm run check:storage-imports && npm run check:schema-imports && npm run check:domain-boundaries && npm run check:route-registration && npm run check:domain-leaks && npm run check:stale-types && npm run check:org-context && npm run check:workflow-routes && npm run check:operator-experience-architecture && npm run check:domain-repositories-imports && npm run check:deploy-image && npm run check:type-debt",
     "check:guards-full": "npm run check:guards && npm run check:ts-burndown && npm run check:cast-burndown && npm run check:explicit-any-burndown && npm run check:lint-warnings && npm run check:hygiene && npm run check:boot-health && npm run format:check",
     "test:validation": "node client/tests/validation.test.mjs",
     "test:stcw": "node client/tests/stcw.test.mjs",
@@ -80,7 +80,8 @@
     "test:pdm:decision-support": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.pdm-decision-support.config.mjs --runInBand",
     "test:operator-experience": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-experience-service.test.ts tests/unit/operator-information-needs-service.test.ts tests/integration/operator-experience-routes.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
     "test:operator-information-needs": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-information-needs-service.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
-    "check:operator-experience-architecture": "node scripts/check-operator-experience-architecture.mjs"
+    "check:operator-experience-architecture": "node scripts/check-operator-experience-architecture.mjs",
+    "check:deploy-image": "node scripts/check-deploy-image-guard.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
