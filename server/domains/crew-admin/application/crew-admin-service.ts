@@ -24,6 +24,7 @@ import {
   defaultConfigForRole,
   mergeDashboardConfigs,
   roleDashboardConfigSchema,
+  sanitizeTaskSources,
   type RoleDashboardConfig,
 } from "@shared/role-dashboard";
 
@@ -164,7 +165,9 @@ export class CrewAdminApplicationService {
     if (role) {
       const override = await this.repo.getStoredConfig(orgId, role.id);
       if (override) {
-        return override;
+        // Stored configs may predate the implemented-source set; strip any
+        // source whose adapter no longer exists so the feed never no-ops.
+        return { ...override, taskSources: sanitizeTaskSources(override.taskSources) };
       }
     }
     return defaultConfigForRole(roleName);

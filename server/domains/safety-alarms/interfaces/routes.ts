@@ -26,8 +26,8 @@ const SAFETY_ALARM_WRITE_ROLES = [
 ] as const;
 const requireSafetyAlarmWriteRole = requireRole(...SAFETY_ALARM_WRITE_ROLES);
 
-const severityEnum = z.enum(ALARM_SEVERITIES as unknown as readonly [string, ...string[]]);
-const modeEnum = z.enum(ALARM_MODES as unknown as readonly [string, ...string[]]);
+const severityEnum = z.enum(ALARM_SEVERITIES);
+const modeEnum = z.enum(ALARM_MODES);
 
 const createTypeSchema = z.object({
   key: z.string().min(1),

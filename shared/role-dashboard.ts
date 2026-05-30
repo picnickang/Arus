@@ -78,6 +78,22 @@ export const TASK_SOURCE_LABELS: Record<TaskSourceKey, string> = {
   reservations: "Reservations",
 };
 
+/**
+ * The subset of TASK_SOURCES that the personal task feed (`/api/me/tasks`)
+ * actually materializes today. The configurable set MUST equal the implemented
+ * set: admins may only toggle these, resolved configs are sanitized down to
+ * them, and saved configs are stripped to them — so a configured source can
+ * never silently no-op. Add a key here only once its adapter exists in
+ * `MePortalService.getTasks`.
+ */
+export const IMPLEMENTED_TASK_SOURCES = ["work_orders"] as const;
+
+/** Filter an arbitrary task-source list down to the implemented set, in canonical order. */
+export function sanitizeTaskSources(sources: readonly TaskSourceKey[]): TaskSourceKey[] {
+  const present = new Set(sources);
+  return IMPLEMENTED_TASK_SOURCES.filter((source) => present.has(source));
+}
+
 /* ------------------------------------------------------------------ *
  * Visibility scope
  * ------------------------------------------------------------------ */
@@ -99,7 +115,12 @@ export const VISIBILITY_SCOPE_RANK: Record<VisibilityScope, number> = {
 
 export const roleDashboardConfigSchema = z.object({
   widgets: z.array(z.enum(DASHBOARD_WIDGETS)).default([]),
-  taskSources: z.array(z.enum(TASK_SOURCES)).default([]),
+  // Strip any source without a serving adapter so persisted configs can never
+  // advertise a toggle that no-ops on the task feed.
+  taskSources: z
+    .array(z.enum(TASK_SOURCES))
+    .default([])
+    .transform((sources) => sanitizeTaskSources(sources)),
   visibilityScope: z.enum(VISIBILITY_SCOPES).default("vessel"),
   quickActions: z.array(z.string()).default([]),
   filters: z.record(z.unknown()).default({}),
@@ -242,7 +263,8 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
 };
 
 export function defaultConfigForRole(roleName: string): RoleDashboardConfig {
-  return DEFAULT_ROLE_DASHBOARD_CONFIGS[roleName] ?? safeMinimalDashboardConfig();
+  const base = DEFAULT_ROLE_DASHBOARD_CONFIGS[roleName] ?? safeMinimalDashboardConfig();
+  return { ...base, taskSources: sanitizeTaskSources(base.taskSources) };
 }
 
 /* ------------------------------------------------------------------ *

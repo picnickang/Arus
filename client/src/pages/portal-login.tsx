@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { Ship, LogIn } from "lucide-react";
 
 interface LoginResponse {
@@ -51,6 +52,15 @@ export default function PortalLoginPage() {
           description: "Please set a new password to continue.",
         });
       } else {
+        // Drive the User page from the DB-assigned role returned by the
+        // authenticated login, not a manually-picked persona. Home reads
+        // this key on mount; without it the user would bounce straight back
+        // to the login screen.
+        try {
+          localStorage.setItem(ROLE_STORAGE_KEY, data.user.role);
+        } catch {
+          /* storage unavailable — home falls back to the role selector */
+        }
         toast({ title: "Welcome back" });
         navigate("/");
       }
@@ -70,9 +80,26 @@ export default function PortalLoginPage() {
         newPassword,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/me/dashboard"] });
-      toast({ title: "Password updated", description: "You're all set." });
-      navigate("/");
+      // Changing the password invalidates ALL of the user's sessions on the
+      // server — including the token we are holding right now. Navigating into
+      // an authenticated route would immediately 401, so clear local auth
+      // state and send the user back to a fresh sign-in.
+      setApiSessionToken(null);
+      try {
+        localStorage.removeItem(ROLE_STORAGE_KEY);
+      } catch {
+        /* storage unavailable — nothing to clear */
+      }
+      queryClient.clear();
+      setStage("login");
+      setPassword("");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({
+        title: "Password updated",
+        description: "Please sign in with your new password.",
+      });
     },
     onError: () =>
       toast({

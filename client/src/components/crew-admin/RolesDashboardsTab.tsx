@@ -32,7 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   DASHBOARD_WIDGETS,
-  TASK_SOURCES,
+  IMPLEMENTED_TASK_SOURCES,
   VISIBILITY_SCOPES,
   WIDGET_LABELS,
   WIDGET_HIGH_IMPACT_QUESTIONS,
@@ -348,7 +348,7 @@ export function RolesDashboardsTab() {
               <div>
                 <Label className="text-sm font-semibold">Task sources</Label>
                 <div className="grid gap-2 mt-2 sm:grid-cols-2">
-                  {TASK_SOURCES.map((s) => (
+                  {IMPLEMENTED_TASK_SOURCES.map((s) => (
                     <label key={s} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={draftConfig.taskSources.includes(s)}
