@@ -18,13 +18,13 @@ const ROLE_TITLES: Record<string, string> = {
 const ROLE_PRIMARY_ACTIONS: Record<string, Array<{ label: string; href: string }>> = {
   chief_engineer: [
     { label: "Close ready jobs", href: "/attention-inbox?queue=ready_to_close" },
-    { label: "Review PdM risks", href: "/maint?tab=pdm" },
+    { label: "Review PdM risks", href: "/equipment-intelligence" },
     { label: "Scan equipment", href: "/equipment-scan" },
   ],
   deck_officer: [
     { label: "Prepare handover", href: "/attention-inbox?view=handover" },
     { label: "New deck log", href: "/logs?tab=deck&action=new" },
-    { label: "Rest hours", href: "/crew?tab=rest-hours" },
+    { label: "Rest hours", href: "/hours-of-rest" },
   ],
   fleet_manager: [
     { label: "Fleet risk", href: "/analytics" },
@@ -33,12 +33,12 @@ const ROLE_PRIMARY_ACTIONS: Record<string, Array<{ label: string; href: string }
   ],
   system_admin: [
     { label: "Sync outbox", href: "/offline-outbox" },
-    { label: "Sensor health", href: "/system?tab=sensors" },
-    { label: "Audit/system", href: "/system?tab=admin" },
+    { label: "Sensor health", href: "/sensors" },
+    { label: "Audit/system", href: "/system-administration" },
   ],
   default: [
     { label: "Attention Inbox", href: "/attention-inbox" },
-    { label: "New work order", href: "/maint?tab=work-orders&action=create" },
+    { label: "New work order", href: "/work-orders?action=create" },
     { label: "Offline Outbox", href: "/offline-outbox" },
   ],
 };

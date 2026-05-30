@@ -38,12 +38,12 @@ export const ROLES: Record<string, RoleConfig> = {
     icon: Wrench,
     quickActions: [
       { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
-      { label: "New Work Order", icon: ClipboardCheck, href: "/maint?tab=work-orders&action=create" },
+      { label: "New Work Order", icon: ClipboardCheck, href: "/work-orders?action=create" },
       { label: "Log Engine Entry", icon: BookOpen, href: "/logs?tab=engine&action=new" },
       {
         label: "Report Defect",
         icon: AlertTriangle,
-        href: "/maint?tab=work-orders&action=create&type=corrective",
+        href: "/work-orders?action=create&type=corrective",
       },
       { label: "Check PdM Alerts", icon: Activity, href: "/pdm-dashboard" },
     ],
@@ -57,7 +57,7 @@ export const ROLES: Record<string, RoleConfig> = {
     quickActions: [
       { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "New Deck Entry", icon: BookOpen, href: "/logs?tab=deck&action=new" },
-      { label: "Record Rest Hours", icon: Clock, href: "/crew?tab=rest-hours&action=record" },
+      { label: "Record Rest Hours", icon: Clock, href: "/hours-of-rest?action=record" },
       { label: "Vessel Position", icon: Ship, href: "/logs?tab=deck" },
       { label: "Compliance Check", icon: Shield, href: "/logs?tab=compliance" },
     ],
@@ -85,9 +85,9 @@ export const ROLES: Record<string, RoleConfig> = {
     quickActions: [
       { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
       { label: "Diagnostics", icon: Activity, href: "/diagnostics" },
-      { label: "Configuration", icon: Settings, href: "/system?tab=configuration" },
-      { label: "Sensor Management", icon: Activity, href: "/system?tab=sensors" },
-      { label: "System Admin", icon: Shield, href: "/system?tab=admin" },
+      { label: "Configuration", icon: Settings, href: "/configuration" },
+      { label: "Sensor Management", icon: Activity, href: "/sensors" },
+      { label: "System Admin", icon: Shield, href: "/system-administration" },
     ],
     pinnedGroups: ["system", "analytics", "operations"],
   },

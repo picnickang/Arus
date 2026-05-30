@@ -171,7 +171,7 @@ export default function CrewHub() {
             Roster, certifications, and STCW/MLC compliance at a glance.
           </p>
         </div>
-        <Link href="/crew?tab=management">
+        <Link href="/crew-management">
           <Button data-testid="button-open-roster" variant="outline" className="gap-2">
             Open roster <ChevronRight className="h-4 w-4" />
           </Button>
@@ -229,7 +229,7 @@ export default function CrewHub() {
                 <Shield className="h-4 w-4 text-rose-500" />
                 Certifications expiring soon
               </h2>
-              <Link href="/crew?tab=certifications">
+              <Link href="/certificates">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -294,7 +294,7 @@ export default function CrewHub() {
                 <PlaneTakeoff className="h-4 w-4 text-amber-500" />
                 Crew on leave
               </h2>
-              <Link href="/crew?tab=management">
+              <Link href="/crew-management">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -339,21 +339,21 @@ export default function CrewHub() {
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="crew-jump-grid">
-          <JumpCard href="/crew?tab=management" icon={Users} label="Roster" testId="jump-roster" />
+          <JumpCard href="/crew-management" icon={Users} label="Roster" testId="jump-roster" />
           <JumpCard
-            href="/crew?tab=schedule"
+            href="/crew-scheduler"
             icon={CalendarCheck}
             label="Scheduling"
             testId="jump-scheduling"
           />
           <JumpCard
-            href="/crew?tab=rest-hours"
+            href="/hours-of-rest"
             icon={Clock}
             label="Hours of Rest"
             testId="jump-hours-of-rest"
           />
           <JumpCard
-            href="/crew?tab=compliance"
+            href="/compliance-consolidated"
             icon={Shield}
             label="Compliance"
             testId="jump-compliance"

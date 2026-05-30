@@ -146,7 +146,7 @@ export default function MaintenanceHub() {
             Active work orders, schedules, and predictive insights across the fleet.
           </p>
         </div>
-        <Link href="/maint?tab=work-orders&action=create">
+        <Link href="/work-orders?action=create">
           <Button data-testid="button-new-work-order" className="gap-2">
             <Plus className="h-4 w-4" /> New Work Order
           </Button>
@@ -206,7 +206,7 @@ export default function MaintenanceHub() {
         <CardContent className="p-0">
           <div className="flex items-center justify-between border-b px-4 py-2">
             <h2 className="text-sm font-semibold">Recent work orders</h2>
-            <Link href="/maint?tab=work-orders">
+            <Link href="/work-orders">
               <Button
                 variant="ghost"
                 size="sm"
@@ -284,16 +284,16 @@ export default function MaintenanceHub() {
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="maintenance-jump-grid">
-          <JumpCard href="/maint?tab=work-orders" icon={Wrench} label="Work Orders" testId="jump-work-orders" />
-          <JumpCard href="/maint?tab=schedules" icon={Calendar} label="Schedules" testId="jump-schedules" />
+          <JumpCard href="/work-orders" icon={Wrench} label="Work Orders" testId="jump-work-orders" />
+          <JumpCard href="/maintenance" icon={Calendar} label="Schedules" testId="jump-schedules" />
           <JumpCard
-            href="/maint?tab=templates"
+            href="/maintenance-templates"
             icon={FileSpreadsheet}
             label="Templates"
             testId="jump-templates"
           />
           <JumpCard
-            href="/maint?tab=equipment-intelligence"
+            href="/equipment-intelligence"
             icon={Brain}
             label="Equipment Intelligence"
             testId="jump-equipment-intelligence"

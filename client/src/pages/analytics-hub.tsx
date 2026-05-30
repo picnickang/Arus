@@ -134,7 +134,7 @@ function PredictiveInsightsCard() {
                 </ul>
               )}
             </div>
-            <Link href="/maint?tab=work-orders&source=predictive">
+            <Link href="/work-orders?source=predictive">
               <Button size="sm" className="gap-1" data-testid="button-predictive-create-wo">
                 <Wrench className="h-3 w-3" /> Create Work Order
               </Button>

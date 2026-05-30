@@ -198,25 +198,25 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Work Orders",
-        href: "/maint?tab=work-orders",
+        href: "/work-orders",
         icon: ClipboardCheck,
         description: "Work order management",
       },
       {
         name: "Schedules",
-        href: "/maint?tab=schedules",
+        href: "/maintenance",
         icon: Wrench,
         description: "Maintenance schedules",
       },
       {
         name: "Templates",
-        href: "/maint?tab=templates",
+        href: "/maintenance-templates",
         icon: Clipboard,
         description: "Maintenance templates",
       },
       {
         name: "Equipment Intelligence",
-        href: "/maint?tab=equipment-intelligence",
+        href: "/equipment-intelligence",
         icon: Brain,
         description: "AI health, predictions & recommendations",
       },
@@ -231,19 +231,19 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Crew Management",
-        href: "/crew?tab=management",
+        href: "/crew-management",
         icon: Users,
         description: "Crew roster and details",
       },
       {
         name: "Schedule Planner",
-        href: "/crew?tab=schedule",
+        href: "/crew-scheduler",
         icon: ClipboardCheck,
         description: "SmartPAL crew scheduling",
       },
       {
         name: "Hours of Rest",
-        href: "/crew?tab=rest-hours",
+        href: "/hours-of-rest",
         icon: Activity,
         description: "STCW compliance tracking",
       },
@@ -347,13 +347,13 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       {
         name: "Configuration",
-        href: "/system?tab=configuration",
+        href: "/configuration",
         icon: Settings,
         description: "System configuration",
       },
       {
         name: "Notifications",
-        href: "/system?tab=notifications",
+        href: "/notifications",
         icon: Bell,
         description: "Email alerts, preferences & templates",
       },
@@ -365,11 +365,11 @@ export const navigationCategories: NavigationCategory[] = [
       },
       {
         name: "Sensor Templates",
-        href: "/system?tab=sensors",
+        href: "/sensor-templates",
         icon: SlidersHorizontal,
         description: "Sensor templates",
       },
-      { name: "Sensors", href: "/system?tab=sensors", icon: Activity, description: "Sensor management" },
+      { name: "Sensors", href: "/sensors", icon: Activity, description: "Sensor management" },
       {
         name: "StormGeo",
         href: "/stormgeo-settings",
@@ -378,7 +378,7 @@ export const navigationCategories: NavigationCategory[] = [
       },
       {
         name: "System Admin",
-        href: "/system?tab=admin",
+        href: "/system-administration",
         icon: Shield,
         description: "Admin tools",
       },
@@ -413,23 +413,10 @@ export const routeMigrations: Record<string, string> = {
   "/fuel-emissions-log": "/logs?tab=engine",
   "/condition-monitoring-log": "/logs?tab=equipment",
   "/decommissioned-equipment-log": "/logs?tab=equipment",
-  "/work-orders": "/maint?tab=work-orders",
-  "/maintenance": "/maint?tab=schedules",
-  "/maintenance-templates": "/maint?tab=templates",
-  "/equipment-intelligence": "/maint?tab=equipment-intelligence",
-  "/crew-management": "/crew?tab=management",
-  "/crew-scheduler": "/crew?tab=schedule",
-  "/schedule-planner": "/crew?tab=schedule",
-  "/hours-of-rest": "/crew?tab=rest-hours",
   "/inventory-management": "/logistics?tab=inventory",
   "/vendors": "/logistics?tab=vendors",
   "/suppliers": "/logistics?tab=vendors",
   "/service-providers": "/logistics?tab=vendors",
-  "/system-administration": "/system?tab=admin",
-  "/configuration": "/system?tab=configuration",
-  "/notifications": "/system?tab=notifications",
-  "/sensors": "/system?tab=sensors",
-  "/sensor-templates": "/system?tab=sensors",
   "/devices": "/fleet?tab=equipment",
 };
 

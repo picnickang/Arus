@@ -89,7 +89,7 @@ export const roleWorkflowGuidance: Record<string, WorkflowAction[]> = {
       id: "sensor-health",
       label: "Review sensors",
       description: "Confirm telemetry quality before relying on analytics or PdM scores.",
-      href: "/system?tab=sensors",
+      href: "/sensors",
       severity: "info",
     },
   ],
@@ -105,7 +105,7 @@ export const roleWorkflowGuidance: Record<string, WorkflowAction[]> = {
       id: "create-work-order",
       label: "Create work order",
       description: "Capture corrective action with equipment, owner, due date, and evidence.",
-      href: "/maint?tab=work-orders&action=create",
+      href: "/work-orders?action=create",
       severity: "info",
     },
     {

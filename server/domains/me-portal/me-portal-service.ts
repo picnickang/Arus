@@ -265,7 +265,7 @@ export class MePortalService {
           status: asString(row['status']),
           priority: asPriority(row['priority']),
           vesselId,
-          link: `/maint?tab=schedules&id=${id}`,
+          link: `/maintenance?id=${id}`,
         });
       }
     }

@@ -12,7 +12,7 @@ interface IntelligenceTab {
 }
 
 const tabs: IntelligenceTab[] = [
-  { label: "Overview", href: "/maint?tab=equipment-intelligence", testId: "tab-overview" },
+  { label: "Overview", href: "/equipment-intelligence", testId: "tab-overview" },
   { label: "Maintenance Schedule", href: "/pdm-dashboard", testId: "tab-schedule" },
   { label: "Digital Twin", href: "/digital-twin", testId: "tab-digital-twin" },
   { label: "Diagnostics", href: "/pdm-pack", testId: "tab-diagnostics" },
@@ -62,7 +62,7 @@ export function IntelligenceLayout({ children }: IntelligenceLayoutProps) {
               {breadcrumbLabel ? (
                 <>
                   <Link
-                    href="/maint?tab=equipment-intelligence"
+                    href="/equipment-intelligence"
                     className="text-sm text-slate-400 hover:text-slate-200 transition-colors shrink-0"
                     data-testid="breadcrumb-root"
                   >

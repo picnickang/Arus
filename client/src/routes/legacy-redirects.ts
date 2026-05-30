@@ -21,8 +21,8 @@ const additionalRedirects: LegacyRedirect[] = [
   // Equipment Intelligence owns the AI insights surface.
   { from: "/dashboard", to: "/", expires: "keep" },
   { from: "/alerts", to: "/attention-inbox", expires: "keep" },
-  { from: "/active-telemetry", to: "/maint?tab=equipment-intelligence", expires: "keep" },
-  { from: "/actionable-insights", to: "/maint?tab=equipment-intelligence", expires: "keep" },
+  { from: "/active-telemetry", to: "/equipment-intelligence", expires: "keep" },
+  { from: "/actionable-insights", to: "/equipment-intelligence", expires: "keep" },
 ];
 
 const migrationRedirects: LegacyRedirect[] = Object.entries(routeMigrations || {}).map(

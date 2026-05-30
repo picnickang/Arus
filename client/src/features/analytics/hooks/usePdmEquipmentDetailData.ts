@@ -76,8 +76,8 @@ export function usePdmEquipmentDetailData() {
   });
 
   const handleBack = () => setLocation("/pdm-dashboard");
-  const handleCreateWorkOrder = () => setLocation(`/maint?tab=work-orders&equipmentId=${equipmentId}`);
-  const handleViewWorkOrders = () => setLocation(`/maint?tab=work-orders&equipmentId=${equipmentId}`);
+  const handleCreateWorkOrder = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
+  const handleViewWorkOrders = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
   const retryEquipment = () =>
     queryClient.invalidateQueries({ queryKey: [`/api/equipment/${equipmentId}`] });
   const retryHealth = () =>

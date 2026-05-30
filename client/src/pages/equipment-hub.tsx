@@ -219,7 +219,7 @@ export default function EquipmentHub() {
             <Button
               variant="outline"
               className="mt-3"
-              onClick={() => navigate("/maint?tab=equipment-intelligence")}
+              onClick={() => navigate("/equipment-intelligence")}
               data-testid="button-back-to-fleet"
             >
               Back to Fleet
@@ -241,7 +241,7 @@ export default function EquipmentHub() {
           className="flex items-center gap-1.5 text-xs text-slate-500"
           data-testid="equipment-breadcrumb"
         >
-          <Link href="/maint?tab=equipment-intelligence" className="hover:text-slate-300 transition-colors">
+          <Link href="/equipment-intelligence" className="hover:text-slate-300 transition-colors">
             Fleet
           </Link>
           <ChevronRight className="h-3 w-3" />

@@ -613,7 +613,7 @@ export class AttentionWorkflowService {
         label: "Recently Completed",
         description: "Recently completed or closed work orders.",
         count: completedWorkOrders.length,
-        href: "/maint?tab=work-orders&status=completed",
+        href: "/work-orders?status=completed",
         severity: "success",
       },
       {

@@ -214,7 +214,7 @@ export default function SystemHub() {
             Service health, audit logs, and system metrics.
           </p>
         </div>
-        <Link href="/system?tab=admin">
+        <Link href="/system-administration">
           <Button data-testid="button-open-administration" variant="outline" className="gap-2">
             Open administration <ChevronRight className="h-4 w-4" />
           </Button>
@@ -270,7 +270,7 @@ export default function SystemHub() {
           <CardContent className="p-0">
             <div className="flex items-center justify-between border-b px-4 py-2">
               <h2 className="text-sm font-semibold">Recent audit logs</h2>
-              <Link href="/system?tab=audit">
+              <Link href="/system-administration">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -346,19 +346,19 @@ export default function SystemHub() {
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="system-jump-grid">
           <JumpCard
-            href="/system?tab=admin"
+            href="/system-administration"
             icon={Shield}
             label="Admin"
             testId="jump-admin"
           />
           <JumpCard
-            href="/system?tab=configuration"
+            href="/configuration"
             icon={Settings}
             label="Configuration"
             testId="jump-configuration"
           />
           <JumpCard
-            href="/system?tab=notifications"
+            href="/notifications"
             icon={Bell}
             label="Notifications"
             testId="jump-notifications"
@@ -369,7 +369,7 @@ export default function SystemHub() {
             label="Organizations"
             testId="jump-organizations"
           />
-          <JumpCard href="/system?tab=sensors" icon={Activity} label="Sensors" testId="jump-sensors" />
+          <JumpCard href="/sensors" icon={Activity} label="Sensors" testId="jump-sensors" />
           <JumpCard
             href="/copilot-admin"
             icon={Bot}

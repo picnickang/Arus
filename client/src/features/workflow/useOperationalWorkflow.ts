@@ -163,7 +163,7 @@ function fallbackQueues(summary: AttentionSummary | undefined, workOrders: WorkO
       label: "Recently Completed",
       description: "Completed work since the last visit.",
       count: completed,
-      href: "/maint?tab=work-orders&status=completed",
+      href: "/work-orders?status=completed",
       severity: "success",
     },
     {
@@ -192,7 +192,7 @@ function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrder
       recommendedAction: "Review, assign an owner, or defer with a reason.",
       owner: "Chief Engineer",
       due: "Now",
-      href: "/maint?tab=work-orders&status=overdue",
+      href: "/work-orders?status=overdue",
       severity: "critical",
     });
   }
@@ -263,7 +263,7 @@ function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrder
             : "Complete or defer with a reason.",
         owner: item.assignedToName || item.assignedCrewId || "Assigned owner",
         due: item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No due date",
-        href: `/maint?tab=work-orders&id=${item.id}`,
+        href: `/work-orders?id=${item.id}`,
         severity: blocked ? "critical" : severityForPriority(item.priority),
         status: item.status ?? null,
         blockerReason: item.blockedReason ?? null,

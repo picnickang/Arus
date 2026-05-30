@@ -127,9 +127,8 @@ export function useWorkOrderFilterData(
         params.set(key, value);
       }
     });
-    params.set("tab", "work-orders");
     const queryString = params.toString();
-    const newPath = `/maint?${queryString}`;
+    const newPath = queryString ? `/work-orders?${queryString}` : "/work-orders";
     globalThis.history.replaceState({}, "", newPath);
   }, []);
 

@@ -156,7 +156,7 @@ function useAttentionItems() {
         label: "Overdue work orders",
         count: summary.overdueWorkOrders,
         severity: "critical",
-        href: "/maint?tab=work-orders&status=overdue",
+        href: "/work-orders?status=overdue",
       });
     }
     if (summary.unacknowledgedAlerts > 0) {
@@ -270,7 +270,7 @@ function MyTasks({ emptyState }: MyTasksProps = {}) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-foreground">My Tasks</h2>
         <button
-          onClick={() => setLocation("/maint?tab=work-orders&assignedToMe=true")}
+          onClick={() => setLocation("/work-orders?assignedToMe=true")}
           data-testid="link-view-all-tasks"
           className="text-xs text-primary hover:underline flex items-center gap-1"
         >
@@ -281,7 +281,7 @@ function MyTasks({ emptyState }: MyTasksProps = {}) {
         {tasks.map((task) => (
           <button
             key={task.id}
-            onClick={() => setLocation(`/maint?tab=work-orders&id=${task.id}`)}
+            onClick={() => setLocation(`/work-orders?id=${task.id}`)}
             data-testid={`button-task-${task.id}`}
             className="w-full flex items-center gap-3 p-3 rounded-lg border border-border
                        bg-card hover:border-primary/50 transition-colors text-left touch-target"
@@ -766,7 +766,7 @@ function AIFleetSummaryCard() {
         </p>
         <button
           type="button"
-          onClick={() => setLocation("/maint?tab=equipment-intelligence")}
+          onClick={() => setLocation("/equipment-intelligence")}
           className="mt-2 inline-flex items-center gap-1 text-xs text-sky-300 hover:underline"
           data-testid="link-ai-fleet-summary-details"
         >
@@ -1300,7 +1300,7 @@ function UserPortalHome({
                 <UpcomingMaintenanceCard
                   items={vm.upcomingMaintenance}
                   now={now}
-                  onViewAll={() => setLocation("/maint?tab=schedules")}
+                  onViewAll={() => setLocation("/maintenance")}
                 />
               )}
             </div>

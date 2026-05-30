@@ -596,13 +596,13 @@ export default function CrewComplianceDashboard() {
       )}
 
       <div className="flex gap-3">
-        <Link href="/crew?tab=hours-of-rest" className="flex-1">
+        <Link href="/hours-of-rest" className="flex-1">
           <Button variant="outline" className="w-full gap-2" data-testid="link-hours-of-rest">
             <Clock className="h-4 w-4" />
             View Hours of Rest
           </Button>
         </Link>
-        <Link href="/crew?tab=roster" className="flex-1">
+        <Link href="/crew-management" className="flex-1">
           <Button variant="outline" className="w-full gap-2" data-testid="link-crew-roster">
             <Users className="h-4 w-4" />
             View Crew Roster

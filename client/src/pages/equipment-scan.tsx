@@ -150,7 +150,7 @@ export default function EquipmentScanPage() {
               <Button onClick={() => selectedEquipment && setLocation(`/equipment/${selectedEquipment.id}`)} disabled={!selectedEquipment}>
                 Open equipment
               </Button>
-              <Button variant="outline" onClick={() => selectedEquipment && setLocation(`/maint?tab=work-orders&action=create&equipmentId=${selectedEquipment.id}`)} disabled={!selectedEquipment}>
+              <Button variant="outline" onClick={() => selectedEquipment && setLocation(`/work-orders?action=create&equipmentId=${selectedEquipment.id}`)} disabled={!selectedEquipment}>
                 <Wrench className="h-4 w-4" />
                 Create defect
               </Button>
@@ -159,7 +159,7 @@ export default function EquipmentScanPage() {
                 PdM detail
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/maint?tab=equipment-intelligence">
+                <Link href="/equipment-intelligence">
                   <PackageSearch className="h-4 w-4" />
                   Equipment list
                 </Link>
@@ -214,7 +214,7 @@ export default function EquipmentScanPage() {
                     <Button size="sm" onClick={() => setLocation(`/equipment/${item.id}`)}>
                       Open
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation(`/maint?tab=work-orders&action=create&equipmentId=${item.id}`)}>
+                    <Button size="sm" variant="outline" onClick={() => setLocation(`/work-orders?action=create&equipmentId=${item.id}`)}>
                       <ClipboardCheck className="h-4 w-4" />
                       Work order
                     </Button>
