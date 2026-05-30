@@ -1171,7 +1171,7 @@ function UserPortalHome({
           <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <SafetyNoticesCard
               notices={vm.safetyNotices}
-              onViewAll={() => setLocation("/alerts")}
+              onViewAll={() => setLocation("/safety-bulletins")}
             />
             <UpcomingMaintenanceCard
               items={vm.upcomingMaintenance}

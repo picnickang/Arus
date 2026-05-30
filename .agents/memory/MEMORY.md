@@ -1,0 +1,1 @@
+- [ARUS migrations & cloud-only domains](arus-migrations.md) — db:push needs a TTY; deploys also run idempotent server/migrations/*.sql; cloud-only tables mirror the certificates domain.

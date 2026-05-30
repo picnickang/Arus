@@ -538,6 +538,15 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
   },
 
+  // Safety Bulletins (hexagonal, cloud-only) — powers the user-portal
+  // "Safety Notices" + "Safety Status" cards with a real backend feed.
+  {
+    name: "SafetyBulletins",
+    importPath: "../domains/safety-bulletins/index.js",
+    functionName: "registerSafetyBulletinRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
+  },
+
   // Schematic Layout (hexagonal - vessel cross-section zone/slot config)
   {
     name: "SchematicLayout",

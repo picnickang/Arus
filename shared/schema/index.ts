@@ -37,6 +37,7 @@ export * from "./equipment-dependencies";
 export * from "./agent";
 export * from "./external-data-cache";
 export * from "./certificates";
+export * from "./safety-bulletins";
 export * from "./diagnostic-runs";
 export * from "./import-manifest";
 
@@ -66,6 +67,7 @@ import * as permissions from "./permissions";
 import * as telemetryMod from "./telemetry";
 import * as agent from "./agent";
 import * as certificates from "./certificates";
+import * as safetyBulletins from "./safety-bulletins";
 
 export const CoreSchema = { ...core };
 export const SyncSchema = { ...sync };
@@ -93,6 +95,7 @@ export const PermissionsSchema = { ...permissions };
 export const PurchasingSchema = { ...purchasing };
 export const AgentSchema = { ...agent };
 export const CertificatesSchema = { ...certificates };
+export const SafetyBulletinsSchema = { ...safetyBulletins };
 
 export const MLSchema = {
   ...mlCore,

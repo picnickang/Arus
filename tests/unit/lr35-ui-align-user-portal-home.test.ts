@@ -109,20 +109,13 @@ describe("UI Align Phase 4 — role-navigation-policy still scopes the user port
 });
 
 describe("UI Align Phase 4 — view-model derivers", () => {
-  it("deriveAlertSlots splits safety-categorised rows from active alerts", () => {
+  it("deriveAlertSlots returns unacknowledged alerts and drops acked rows", () => {
     const out = deriveAlertSlots([
       {
         id: "a1",
         title: "Bilge Pump 2 Overheating",
         severity: "high",
         category: "equipment",
-        acknowledged: false,
-      },
-      {
-        id: "s1",
-        title: "Wear PPE in engine room",
-        severity: "medium",
-        category: "safety",
         acknowledged: false,
       },
       {
@@ -133,7 +126,6 @@ describe("UI Align Phase 4 — view-model derivers", () => {
       },
     ]);
     expect(out.activeAlerts.map((a) => a.id)).toEqual(["a1"]);
-    expect(out.safetyNotices.map((n) => n.id)).toEqual(["s1"]);
     expect(out.activeAlerts[0].severity).toBe("high");
   });
 

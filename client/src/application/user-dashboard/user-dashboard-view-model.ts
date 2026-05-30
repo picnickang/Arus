@@ -35,13 +35,14 @@
  *                          elsewhere; no new query param introduced).
  *   - upcomingMaintenance→ GET /api/maintenance-schedules/upcoming
  *                          (via the shared useUpcomingMaintenance hook).
- *   - safetyNotices      → derived from the active-alerts feed,
- *                          filtering for the existing `safety`
- *                          category. There is no separate "safety
- *                          notice" endpoint yet (out of scope), so we
- *                          surface the safety-categorised alerts as a
- *                          calmer card with the same empty-state
- *                          contract as the others.
+ *   - safetyNotices      → GET /api/safety-bulletins (the real
+ *                          safety-bulletins backend feed). Replaces the
+ *                          earlier approach of inferring safety notices
+ *                          from `safety`-categorised alerts, which never
+ *                          matched in cloud mode because alert rows
+ *                          carry no `category` column.
+ *   - safetyStatus       → headline posture derived from the same
+ *                          safety-bulletins feed.
  *   - shiftStatus        → resolved from the real shift-template
  *                          registry (GET /api/shifts) for the user's
  *                          current vessel; the on-duty flag, window,
@@ -60,8 +61,10 @@ import { useUpcomingMaintenance } from "@/features/maintenance/hooks/useMaintena
 import {
   deriveAlertSlots,
   deriveMyTasks,
+  deriveSafetyNotices,
   deriveSafetyStatus,
   deriveShiftStatus,
+  type RawSafetyBulletin,
   type RawShiftTemplate,
 } from "./derivers";
 import type {
@@ -77,6 +80,7 @@ import type {
 export {
   deriveAlertSlots,
   deriveMyTasks,
+  deriveSafetyNotices,
   deriveSafetyStatus,
   deriveShiftStatus,
 } from "./derivers";
@@ -143,6 +147,15 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
     refetchInterval: 60000,
   });
 
+  // Real safety-bulletins feed — powers the "Safety Notices" and
+  // "Safety Status" cards. Replaces the old approach of inferring
+  // safety notices from generic alerts (which never matched in cloud
+  // mode because alert rows carry no `category` column).
+  const { data: bulletins } = useQuery<RawSafetyBulletin[]>({
+    queryKey: ["/api/safety-bulletins"],
+    refetchInterval: 60000,
+  });
+
   // My open work orders — the user-portal "My Tasks" card. Same read
   // the legacy admin MyTasks used; centralised here so the page stays
   // free of direct useQuery calls (task #220 constraint).
@@ -172,14 +185,24 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
     [alerts],
   );
 
-  const { activeAlerts, safetyNotices } = useMemo(
+  const { activeAlerts } = useMemo(
     () => deriveAlertSlots(alertRows),
     [alertRows],
   );
 
+  const bulletinRows = useMemo(
+    () => (Array.isArray(bulletins) ? bulletins : []),
+    [bulletins],
+  );
+
+  const safetyNotices = useMemo(
+    () => deriveSafetyNotices(bulletinRows),
+    [bulletinRows],
+  );
+
   const safetyStatus = useMemo(
-    () => deriveSafetyStatus(alertRows),
-    [alertRows],
+    () => deriveSafetyStatus(bulletinRows),
+    [bulletinRows],
   );
 
   const upcomingMaintenance = useMemo<UpcomingMaintenanceSlot[]>(() => {

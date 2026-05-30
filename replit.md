@@ -48,6 +48,7 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 -   **Telemetry Resilience**: Circuit breaker, graceful shutdown, in-memory dead-letter queue, equipment heartbeat tracking.
 -   **Unified Domain Event Bus**: Consolidated, strongly-typed event bus.
 -   **Certificate Registry**: Hexagonal domain for vessel certificates with validity tracking.
+-   **Safety Bulletins**: Cloud-only hexagonal domain (`server/domains/safety-bulletins/`, mirrors the certificates template — db-direct adapter, no SQLite mirror, no repositories barrel) backing the user-portal dashboard's "Safety Notices" + "Safety Status" cards with real data. `safety_bulletins` table is org-scoped with an optional nullable `vesselId` (null = fleet-wide). Routes: `GET /api/safety-bulletins` (`vesselId` + `includeInactive` filters; active-only by default) and `POST /api/safety-bulletins`. Replaces the prior fake feed that derived safety items from `/api/alerts?category=safety` (a category that never matches in cloud PG). Frontend status: critical if any bulletin is `critical` severity, else caution if any active, else good. List page at `/safety-bulletins`.
 -   **Hazmat/IMDG Parts**: Dedicated fields for dangerous goods classification.
 -   **OSV Specific Features**: DP Monitoring, Charter Compliance KPI tracking, OVID/SIRE Vetting inspection management, Offshore Operations Logging, EFMS Integration, RMS Shore Monitoring.
 -   **Equipment Intelligence**: Consolidated AI/ML/PdM view with fleet summary and risk-sorted equipment list.

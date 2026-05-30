@@ -27,23 +27,16 @@ interface RawAlert {
   createdAt?: string | null;
 }
 
+/**
+ * Active (unacknowledged) operational alerts for the "Active Alerts"
+ * card. Safety notices are no longer carved out here — they come from
+ * the real safety-bulletins feed (see `deriveSafetyNotices`).
+ */
 export function deriveAlertSlots(rows: RawAlert[]): {
   activeAlerts: ActiveAlertSlot[];
-  safetyNotices: SafetyNoticeSlot[];
 } {
-  const unacknowledged = rows.filter((r) => r.acknowledged !== true);
-
-  const safety = unacknowledged
-    .filter((r) => (r.category ?? "").toLowerCase() === "safety")
-    .slice(0, 3)
-    .map<SafetyNoticeSlot>((r) => ({
-      id: r.id,
-      title: r.title ?? r.message ?? "Safety notice",
-      postedAt: r.createdAt ?? undefined,
-    }));
-
-  const active = unacknowledged
-    .filter((r) => (r.category ?? "").toLowerCase() !== "safety")
+  const active = rows
+    .filter((r) => r.acknowledged !== true)
     .slice(0, 4)
     .map<ActiveAlertSlot>((r) => ({
       id: r.id,
@@ -53,32 +46,56 @@ export function deriveAlertSlots(rows: RawAlert[]): {
       createdAt: r.createdAt ?? undefined,
     }));
 
-  return { activeAlerts: active, safetyNotices: safety };
+  return { activeAlerts: active };
+}
+
+/** A safety bulletin row as returned by GET /api/safety-bulletins. */
+export interface RawSafetyBulletin {
+  id: string;
+  title?: string | null;
+  body?: string | null;
+  severity?: string | null;
+  effectiveDate?: string | null;
+  createdAt?: string | null;
+  active?: boolean | null;
 }
 
 /**
- * Headline safety posture from the active (unacknowledged) safety-
- * categorised alerts. Used by the "Safety Status" card.
+ * The most recent active safety bulletins for the "Safety Notices"
+ * card. Sourced from the real safety-bulletins backend feed.
  */
-export function deriveSafetyStatus(rows: RawAlert[]): SafetyStatusSlot {
-  const safety = rows.filter(
-    (r) =>
-      r.acknowledged !== true &&
-      (r.category ?? "").toLowerCase() === "safety",
-  );
+export function deriveSafetyNotices(rows: RawSafetyBulletin[]): SafetyNoticeSlot[] {
+  return rows
+    .filter((r) => r.active !== false)
+    .slice(0, 3)
+    .map<SafetyNoticeSlot>((r) => ({
+      id: r.id,
+      title: r.title ?? "Safety notice",
+      postedAt: r.effectiveDate ?? r.createdAt ?? undefined,
+    }));
+}
 
-  if (safety.length === 0) {
+/**
+ * Headline safety posture from the active safety bulletins. Used by the
+ * "Safety Status" card:
+ *   - good     → no active bulletins.
+ *   - critical → at least one critical bulletin.
+ *   - caution  → active bulletins exist, none critical.
+ */
+export function deriveSafetyStatus(rows: RawSafetyBulletin[]): SafetyStatusSlot {
+  const active = rows.filter((r) => r.active !== false);
+
+  if (active.length === 0) {
     return { level: "good", label: "Good", activeCount: 0 };
   }
 
-  const hasSevere = safety.some((r) => {
-    const sev = normaliseSeverity(r.severity);
-    return sev === "high" || sev === "critical";
-  });
+  const hasCritical = active.some(
+    (r) => (r.severity ?? "").toLowerCase() === "critical",
+  );
 
-  return hasSevere
-    ? { level: "critical", label: "Action required", activeCount: safety.length }
-    : { level: "caution", label: "Caution", activeCount: safety.length };
+  return hasCritical
+    ? { level: "critical", label: "Action required", activeCount: active.length }
+    : { level: "caution", label: "Caution", activeCount: active.length };
 }
 
 function normaliseSeverity(raw: string | null | undefined): AlertSeverity {
