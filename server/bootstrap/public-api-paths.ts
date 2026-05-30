@@ -28,12 +28,20 @@ import type { Request } from "express";
 //   /setup/status        — sibling of /admin/auth/status for the
 //                          unauth setup wizard.
 //   /setup/complete      — sibling of /admin/auth/setup.
+//   /portal/login        — regular-user (crew) login. Runs without a
+//                          session by design: it accepts username +
+//                          password, verifies bcrypt + loginEnabled, and
+//                          mints the session. Rate-limited via
+//                          loginRateLimit; credentials are constant-time
+//                          compared by bcrypt and a dummy compare runs on
+//                          unknown users to flatten timing.
 const EXACT_PUBLIC_API_PATHS = new Set([
   "/admin/auth/verify",
   "/admin/auth/status",
   "/admin/auth/setup",
   "/setup/status",
   "/setup/complete",
+  "/portal/login",
 ]);
 
 // PUBLIC_API_PREFIXES — prefix-match (and bare path) is allowed.

@@ -9,6 +9,7 @@
 import type { Express } from "express";
 import { createLogger } from "../lib/structured-logger";
 import { createWorkflowAttentionSources } from "../composition/workflow-attention-sources.js";
+import { loginRateLimit } from "../middleware/rate-limiters";
 const logger = createLogger("Routes:DomainRouterRegistry");
 import {
   generalApiRateLimit,
@@ -545,6 +546,33 @@ export const domainRouters: DomainRouterConfig[] = [
     importPath: "../domains/safety-bulletins/index.js",
     functionName: "registerSafetyBulletinRoutes",
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
+  },
+
+  // Safety Alarms (hexagonal, cloud-only) — admin-managed alarm types +
+  // active vessel safety alarms with acknowledgement.
+  {
+    name: "SafetyAlarms",
+    importPath: "../domains/safety-alarms/index.js",
+    functionName: "registerSafetyAlarmRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
+  },
+
+  // Crew Admin (hexagonal, cloud-only) — roles, per-role dashboard configs,
+  // user vessel assignments, and login credential admin.
+  {
+    name: "CrewAdmin",
+    importPath: "../domains/crew-admin/index.js",
+    functionName: "registerCrewAdminRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
+  },
+
+  // Me Portal (BFF) — role-aware user dashboard, tasks, visible safety
+  // alarms, regular-user login, and self password change.
+  {
+    name: "MePortal",
+    importPath: "../domains/me-portal/index.js",
+    functionName: "registerMePortalRoutes",
+    getDeps: () => ({ generalApiRateLimit, loginRateLimit }),
   },
 
   // Schematic Layout (hexagonal - vessel cross-section zone/slot config)

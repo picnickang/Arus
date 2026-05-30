@@ -38,6 +38,8 @@ export * from "./agent";
 export * from "./external-data-cache";
 export * from "./certificates";
 export * from "./safety-bulletins";
+export * from "./role-dashboards";
+export * from "./safety-alarms";
 export * from "./diagnostic-runs";
 export * from "./import-manifest";
 

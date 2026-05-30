@@ -64,6 +64,8 @@ import {
   type UpcomingMaintenanceSlot,
 } from "@/application/user-dashboard/user-dashboard-view-model";
 import { useDashboardSummary } from "@/features/analytics/hooks/useDashboardSummary";
+import { EmergencyAlarmBanner } from "@/components/safety/EmergencyAlarmBanner";
+import { RoleDashboard } from "@/components/user-dashboard/RoleDashboard";
 import { formatDistanceToNow } from "date-fns";
 import { ExternalLink } from "lucide-react";
 
@@ -1179,6 +1181,9 @@ function UserPortalHome({
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 md:px-6">
+          <div className="mb-4">
+            <EmergencyAlarmBanner />
+          </div>
           <div className="mb-5">
             <div
               className="text-xs uppercase tracking-wide text-muted-foreground"
@@ -1195,6 +1200,10 @@ function UserPortalHome({
             <div className="mt-0.5 text-xs text-muted-foreground">
               Stay safe out there.
             </div>
+          </div>
+
+          <div className="mb-6">
+            <RoleDashboard />
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
