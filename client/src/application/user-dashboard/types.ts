@@ -30,17 +30,18 @@ export interface SafetyNoticeSlot {
 
 /**
  * Headline safety posture for the user-portal "Safety Status" card.
- * Derived from the active (unacknowledged) safety-categorised alerts:
- *   - good     → no active safety alerts (green "Good").
- *   - caution  → at least one low/medium safety alert (amber).
- *   - critical → at least one high/critical safety alert (red).
+ * Derived from the active safety bulletins (the real safety-bulletins
+ * feed, GET /api/safety-bulletins) — NOT equipment alerts:
+ *   - good     → no active bulletins (green "Good").
+ *   - caution  → active bulletins exist, none critical (amber).
+ *   - critical → at least one critical bulletin (red).
  */
 export type SafetyStatusLevel = "good" | "caution" | "critical";
 
 export interface SafetyStatusSlot {
   level: SafetyStatusLevel;
   label: string;
-  /** Count of active safety alerts contributing to the status. */
+  /** Count of active safety bulletins contributing to the status. */
   activeCount: number;
 }
 

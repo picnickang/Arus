@@ -26,6 +26,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   deriveAlertSlots,
+  deriveSafetyNotices,
+  deriveSafetyStatus,
   deriveShiftStatus,
 } from "../../client/src/application/user-dashboard/derivers";
 import { getPrimaryCategoriesForRole } from "../../client/src/application/navigation/role-navigation-policy";
@@ -134,6 +136,43 @@ describe("UI Align Phase 4 — view-model derivers", () => {
       { id: "u1", title: "Weird", severity: "purple", acknowledged: false },
     ]);
     expect(out.activeAlerts[0].severity).toBe("low");
+  });
+
+  it("deriveSafetyNotices maps active bulletins to title + postedAt, capped at three", () => {
+    const out = deriveSafetyNotices([
+      { id: "b1", title: "Lifeboat drill", effectiveDate: "2026-05-20T00:00:00Z" },
+      { id: "b2", title: "Hot work permit", createdAt: "2026-05-19T00:00:00Z" },
+      { id: "inactive", title: "Old notice", active: false, effectiveDate: "2026-05-18T00:00:00Z" },
+      { id: "b3", title: "PPE reminder" },
+      { id: "b4", title: "Fourth notice" },
+    ]);
+    // Inactive rows are dropped; only the first three actives survive.
+    expect(out.map((n) => n.id)).toEqual(["b1", "b2", "b3"]);
+    expect(out[0].title).toBe("Lifeboat drill");
+    expect(out[0].postedAt).toBe("2026-05-20T00:00:00Z");
+    // Falls back to createdAt when effectiveDate is absent.
+    expect(out[1].postedAt).toBe("2026-05-19T00:00:00Z");
+  });
+
+  it("deriveSafetyStatus reports good / caution / critical from active bulletins", () => {
+    expect(deriveSafetyStatus([])).toMatchObject({ level: "good", activeCount: 0 });
+    expect(
+      deriveSafetyStatus([{ id: "x", title: "Advisory", severity: "advisory" }]),
+    ).toMatchObject({ level: "caution", activeCount: 1 });
+    expect(
+      deriveSafetyStatus([
+        { id: "c", title: "Grounding risk", severity: "critical" },
+        { id: "a", title: "Advisory", severity: "advisory" },
+      ]),
+    ).toMatchObject({ level: "critical", activeCount: 2 });
+  });
+
+  it("deriveSafetyStatus ignores inactive bulletins", () => {
+    expect(
+      deriveSafetyStatus([
+        { id: "old", title: "Expired", severity: "critical", active: false },
+      ]),
+    ).toMatchObject({ level: "good", activeCount: 0 });
   });
 
   it("deriveShiftStatus reports On duty mid-shift and Off duty outside", () => {

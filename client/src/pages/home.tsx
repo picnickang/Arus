@@ -411,8 +411,8 @@ function SafetyStatusCard({ status }: { status: SafetyStatusSlot }) {
       </div>
       <div className="mt-0.5 text-xs text-muted-foreground">
         {status.activeCount === 0
-          ? "No active safety alerts"
-          : `${status.activeCount} active safety alert${status.activeCount > 1 ? "s" : ""}`}
+          ? "No active safety notices"
+          : `${status.activeCount} active safety notice${status.activeCount > 1 ? "s" : ""}`}
       </div>
     </div>
   );
