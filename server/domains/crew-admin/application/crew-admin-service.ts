@@ -17,6 +17,7 @@ import type {
   CrewUserSummary,
   RoleDashboardConfigView,
   SetCredentialsCommand,
+  CreateCrewAccountCommand,
 } from "../domain/types";
 import {
   ADMIN_CAPABLE_ROLE_KEYS,
@@ -369,6 +370,108 @@ export class CrewAdminApplicationService {
     await this.repo.setCredentials(orgId, userId, { passwordHash });
     await this.repo.setMustChangePassword(orgId, userId, true);
     await this.repo.invalidateUserSessions(userId);
+  }
+
+  /* ----------------------- Crew ↔ login link ----------------------- */
+
+  /** The login account linked to a crew member, or null when none. */
+  async getCrewAccount(orgId: string, crewId: string): Promise<CrewUserSummary | null> {
+    const member = await this.repo.findCrewMember(orgId, crewId);
+    if (!member) {
+      throw new CrewAdminError("Crew member not found", "NOT_FOUND");
+    }
+    if (!member.userId) return null;
+    const account = await this.repo.findUser(orgId, member.userId);
+    return account ?? null;
+  }
+
+  /** Create a brand-new login and link it to a crew member in one step. */
+  async createAndLinkAccount(command: CreateCrewAccountCommand): Promise<CrewUserSummary> {
+    const member = await this.repo.findCrewMember(command.orgId, command.crewId);
+    if (!member) {
+      throw new CrewAdminError("Crew member not found", "NOT_FOUND");
+    }
+    if (member.userId) {
+      throw new CrewAdminError(
+        "This crew member already has a login account",
+        "CREW_ALREADY_LINKED",
+      );
+    }
+
+    const username = command.username.trim();
+    if (username.length < 3) {
+      throw new CrewAdminError("Username must be at least 3 characters", "INVALID_USERNAME");
+    }
+    const existingUsername = await this.repo.findUserByUsername(command.orgId, username);
+    if (existingUsername) {
+      throw new CrewAdminError("That username is already taken", "DUPLICATE_USERNAME");
+    }
+
+    const name = (command.name ?? member.name).trim();
+    const email = (command.email ?? member.email ?? "").trim();
+    if (!email) {
+      throw new CrewAdminError(
+        "An email address is required to create a login account",
+        "EMAIL_REQUIRED",
+      );
+    }
+
+    this.assertPasswordPolicy(command.password);
+    const passwordHash = await bcrypt.hash(command.password, BCRYPT_COST);
+
+    const userId = await this.repo.createUser({
+      orgId: command.orgId,
+      name,
+      email,
+      username,
+      passwordHash,
+      role: command.role ?? "viewer",
+      loginEnabled: command.loginEnabled ?? true,
+      // New accounts always begin with a forced password rotation.
+      mustChangePassword: true,
+    });
+    await this.repo.setCrewUserLink(command.orgId, command.crewId, userId);
+
+    const created = await this.repo.findUser(command.orgId, userId);
+    if (!created) {
+      throw new CrewAdminError("Account created but could not be loaded", "NOT_FOUND");
+    }
+    return created;
+  }
+
+  /** Link an existing standalone login to a crew member. */
+  async linkExistingAccount(orgId: string, crewId: string, userId: string): Promise<void> {
+    const member = await this.repo.findCrewMember(orgId, crewId);
+    if (!member) {
+      throw new CrewAdminError("Crew member not found", "NOT_FOUND");
+    }
+    if (member.userId) {
+      throw new CrewAdminError(
+        "This crew member already has a login account",
+        "CREW_ALREADY_LINKED",
+      );
+    }
+    const user = await this.repo.findUser(orgId, userId);
+    if (!user) {
+      throw new CrewAdminError("User not found", "NOT_FOUND");
+    }
+    const otherCrew = await this.repo.findCrewByUserId(orgId, userId);
+    if (otherCrew) {
+      throw new CrewAdminError(
+        "That login is already linked to another crew member",
+        "USER_ALREADY_LINKED",
+      );
+    }
+    await this.repo.setCrewUserLink(orgId, crewId, userId);
+  }
+
+  /** Detach a login from a crew member (the login itself is preserved). */
+  async unlinkAccount(orgId: string, crewId: string): Promise<void> {
+    const member = await this.repo.findCrewMember(orgId, crewId);
+    if (!member) {
+      throw new CrewAdminError("Crew member not found", "NOT_FOUND");
+    }
+    await this.repo.setCrewUserLink(orgId, crewId, null);
   }
 
   /* ------------------------------ Helpers -------------------------- */

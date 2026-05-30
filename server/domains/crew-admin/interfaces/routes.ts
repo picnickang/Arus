@@ -54,6 +54,15 @@ const credentialsSchema = z.object({
 });
 const resetPasswordSchema = z.object({ password: z.string().min(8).max(128) });
 const supervisorSchema = z.object({ supervisorUserId: z.string().min(1).nullable() });
+const createCrewAccountSchema = z.object({
+  username: z.string().min(3).max(60),
+  password: z.string().min(8).max(128),
+  role: z.string().min(2).max(50).optional(),
+  name: z.string().min(1).max(120).optional(),
+  email: z.string().email().max(255).optional(),
+  loginEnabled: z.boolean().optional(),
+});
+const linkAccountSchema = z.object({ userId: z.string().min(1) });
 
 function statusForError(code: string): number {
   switch (code) {
@@ -64,6 +73,9 @@ function statusForError(code: string): number {
     case "PROTECTED_ROLE":
     case "ROLE_IN_USE":
     case "ADMIN_LOCKOUT":
+    case "CREW_ALREADY_LINKED":
+    case "USER_ALREADY_LINKED":
+    case "DUPLICATE_USERNAME":
       return 409;
     case "INVALID_CONFIG":
     case "INVALID_USERNAME":
@@ -71,6 +83,7 @@ function statusForError(code: string): number {
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
     case "INVALID_CHARACTERS":
+    case "EMAIL_REQUIRED":
       return 400;
     default:
       return 400;
@@ -485,6 +498,101 @@ export function registerCrewAdminRoutes(
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { passwordReset: true },
+        });
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  /* -------------------- Crew member login accounts ------------------ */
+
+  app.get(
+    "/api/admin/crew/members/:crewId/account",
+    requireOrgId,
+    requireCrewAdminRole,
+    generalApiRateLimit,
+    withErrorHandling("get crew member account", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      try {
+        const account = await crewAdminService.getCrewAccount(
+          authReq.orgId,
+          req.params['crewId'],
+        );
+        return res.json({ account });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.post(
+    "/api/admin/crew/members/:crewId/account",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("create crew member account", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const data = createCrewAccountSchema.parse(req.body);
+      try {
+        const account = await crewAdminService.createAndLinkAccount({
+          orgId: authReq.orgId,
+          crewId: req.params['crewId'],
+          ...data,
+        });
+        await audit(authReq, "config_updated", "crew_account", account.id, {
+          action: "create_and_link",
+          crewId: req.params['crewId'],
+          role: account.role,
+        });
+        return res.status(201).json({ account });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.post(
+    "/api/admin/crew/members/:crewId/link",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("link crew member account", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const { userId } = linkAccountSchema.parse(req.body);
+      try {
+        await crewAdminService.linkExistingAccount(
+          authReq.orgId,
+          req.params['crewId'],
+          userId,
+        );
+        await audit(authReq, "config_updated", "crew_account", userId, {
+          action: "link",
+          crewId: req.params['crewId'],
+        });
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.delete(
+    "/api/admin/crew/members/:crewId/account",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("unlink crew member account", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      try {
+        await crewAdminService.unlinkAccount(authReq.orgId, req.params['crewId']);
+        await audit(authReq, "config_updated", "crew_account", req.params['crewId'], {
+          action: "unlink",
         });
         return res.json({ success: true });
       } catch (error) {

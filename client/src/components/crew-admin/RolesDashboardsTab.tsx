@@ -42,7 +42,17 @@ import {
   type TaskSourceKey,
   type VisibilityScope,
 } from "@shared/role-dashboard";
-import { Plus, Settings2, Trash2 } from "lucide-react";
+import { Plus, Settings2, Trash2, Pencil, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface RoleSummary {
   id: string;
@@ -77,6 +87,9 @@ export function RolesDashboardsTab() {
   const [newRole, setNewRole] = useState({ name: "", displayName: "", department: "" });
   const [editConfigRole, setEditConfigRole] = useState<string | null>(null);
   const [draftConfig, setDraftConfig] = useState<RoleDashboardConfig | null>(null);
+  const [editRoleId, setEditRoleId] = useState<string | null>(null);
+  const [editRoleForm, setEditRoleForm] = useState({ displayName: "", department: "" });
+  const [resetRoleId, setResetRoleId] = useState<string | null>(null);
 
   const { data: roles = [] } = useQuery<RoleSummary[]>({
     queryKey: ["/api/admin/crew/roles"],
@@ -111,6 +124,31 @@ export function RolesDashboardsTab() {
     mutationFn: (r: RoleSummary) =>
       apiRequest("PATCH", `/api/admin/crew/roles/${r.id}`, { isActive: !r.isActive }),
     onSuccess: invalidateRoles,
+    onError,
+  });
+
+  const editRole = useMutation({
+    mutationFn: (vars: { id: string; displayName: string; department: string }) =>
+      apiRequest("PATCH", `/api/admin/crew/roles/${vars.id}`, {
+        displayName: vars.displayName.trim(),
+        department: vars.department.trim() || null,
+      }),
+    onSuccess: () => {
+      invalidateRoles();
+      setEditRoleId(null);
+      toast({ title: "Role updated" });
+    },
+    onError,
+  });
+
+  const resetDashboard = useMutation({
+    mutationFn: (roleId: string) =>
+      apiRequest("POST", `/api/admin/role-dashboards/${roleId}/reset`, {}),
+    onSuccess: () => {
+      invalidateConfigs();
+      setResetRoleId(null);
+      toast({ title: "Dashboard reset to default" });
+    },
     onError,
   });
 
@@ -214,9 +252,24 @@ export function RolesDashboardsTab() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {r.assignedUserCount} user(s) assigned
+                  {r.department ? ` · ${r.department}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditRoleId(r.id);
+                    setEditRoleForm({
+                      displayName: r.displayName,
+                      department: r.department ?? "",
+                    });
+                  }}
+                  data-testid={`button-edit-role-${r.id}`}
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> Rename
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -224,6 +277,14 @@ export function RolesDashboardsTab() {
                   data-testid={`button-config-role-${r.id}`}
                 >
                   <Settings2 className="h-4 w-4 mr-1" /> Dashboard
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setResetRoleId(r.id)}
+                  data-testid={`button-reset-dashboard-${r.id}`}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" /> Reset
                 </Button>
                 <Switch
                   checked={r.isActive}
@@ -299,6 +360,80 @@ export function RolesDashboardsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={editRoleId !== null} onOpenChange={(o) => !o && setEditRoleId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Role</DialogTitle>
+            <DialogDescription>
+              Update the display name and department. The internal key cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="edit-role-name">Display name</Label>
+              <Input
+                id="edit-role-name"
+                value={editRoleForm.displayName}
+                onChange={(e) =>
+                  setEditRoleForm({ ...editRoleForm, displayName: e.target.value })
+                }
+                data-testid="input-edit-role-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-role-dept">Department</Label>
+              <Input
+                id="edit-role-dept"
+                value={editRoleForm.department}
+                onChange={(e) =>
+                  setEditRoleForm({ ...editRoleForm, department: e.target.value })
+                }
+                placeholder="Leave blank for none"
+                data-testid="input-edit-role-dept"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() =>
+                editRoleId &&
+                editRole.mutate({ id: editRoleId, ...editRoleForm })
+              }
+              disabled={editRole.isPending || editRoleForm.displayName.trim().length < 2}
+              data-testid="button-save-edit-role"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={resetRoleId !== null}
+        onOpenChange={(o) => !o && setResetRoleId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset dashboard to default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This discards all custom widgets, task sources and visibility settings for this
+              role and restores the built-in default dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-reset-dashboard">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => resetRoleId && resetDashboard.mutate(resetRoleId)}
+              data-testid="button-confirm-reset-dashboard"
+            >
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog
         open={editConfigRole !== null}

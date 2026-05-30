@@ -28,7 +28,7 @@ export default function CrewManagementPage() {
                   <Users className="h-4 w-4 mr-2" /> Crew Roster
                 </TabsTrigger>
                 <TabsTrigger value="assignment" data-testid="tab-user-assignment">
-                  <UserCog className="h-4 w-4 mr-2" /> User Assignment
+                  <UserCog className="h-4 w-4 mr-2" /> User Accounts
                 </TabsTrigger>
                 <TabsTrigger value="roles" data-testid="tab-roles-dashboards">
                   <LayoutDashboard className="h-4 w-4 mr-2" /> Roles & Dashboards

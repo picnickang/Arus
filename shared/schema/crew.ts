@@ -16,7 +16,7 @@ import {
   createInsertSchema,
   z,
 } from "./base";
-import { organizations } from "./core";
+import { organizations, users } from "./core";
 import { vessels } from "./vessels";
 import { roles } from "./permissions";
 
@@ -37,6 +37,8 @@ export const crew = pgTable(
     emergencyContactPhone: text("emergency_contact_phone"),
     rank: text("rank"), // Legacy field, kept for backward compatibility
     roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }), // Link to RBAC permissions roles
+    // Optional 1:1 link to a login account (users row). null = no login account.
+    userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
     vesselId: varchar("vessel_id").references(() => vessels.id),
     maxHours7d: real("max_hours_7d").default(72),
     minRestH: real("min_rest_h").default(10),
@@ -61,6 +63,9 @@ export const crew = pgTable(
     activeIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_active ON crew (active, on_duty)`,
     roleIdx: index("idx_crew_role").on(table.roleId),
     terminationIdx: index("idx_crew_termination").on(table.terminationType),
+    // Enforce optional 1:1 — a login account links to at most one crew member.
+    // (Postgres treats NULLs as distinct, so unlinked crew rows are unconstrained.)
+    userUnique: unique("uq_crew_user_id").on(table.userId),
   })
 );
 

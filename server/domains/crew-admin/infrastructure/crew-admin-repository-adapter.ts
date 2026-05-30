@@ -11,11 +11,13 @@ import type {
   VesselAssignmentEntity,
   AssignmentInput,
   CrewUserSummary,
+  CrewMemberRef,
 } from "../domain/types";
 import { db } from "../../../db";
 import {
   roles,
   users,
+  crew,
   userVesselAssignments,
   userRoleAssignments,
   roleDashboardConfigs,
@@ -212,8 +214,21 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       list.push(row.roleName);
       rolesByUser.set(row.userId, list);
     }
+    const crewRows = await db
+      .select({ crewId: crew.id, crewName: crew.name, userId: crew.userId })
+      .from(crew)
+      .where(and(eq(crew.orgId, orgId), inArray(crew.userId, ids)));
+    const crewByUser = new Map<string, { id: string; name: string }>();
+    for (const row of crewRows) {
+      if (row.userId) crewByUser.set(row.userId, { id: row.crewId, name: row.crewName });
+    }
     return userRows.map((row) =>
-      this.mapUser(row, byUser.get(row.id) ?? [], rolesByUser.get(row.id) ?? []),
+      this.mapUser(
+        row,
+        byUser.get(row.id) ?? [],
+        rolesByUser.get(row.id) ?? [],
+        crewByUser.get(row.id) ?? null,
+      ),
     );
   }
 
@@ -226,7 +241,13 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     if (!row) return undefined;
     const assignments = await this.getAssignments(orgId, userId);
     const assignedRoleNames = await this.listAssignedRoleNames(orgId, userId);
-    return this.mapUser(row, assignments, assignedRoleNames);
+    const linkedCrew = await this.findCrewByUserId(orgId, userId);
+    return this.mapUser(
+      row,
+      assignments,
+      assignedRoleNames,
+      linkedCrew ? { id: linkedCrew.id, name: linkedCrew.name } : null,
+    );
   }
 
   async getAssignments(orgId: string, userId: string): Promise<VesselAssignmentEntity[]> {
@@ -457,6 +478,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     row: typeof users.$inferSelect,
     assignments: VesselAssignmentEntity[],
     assignedRoleNames: string[],
+    linkedCrew: { id: string; name: string } | null,
   ): CrewUserSummary {
     return {
       id: row.id,
@@ -473,7 +495,79 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       supervisorUserId: row.supervisorUserId ?? null,
       assignments,
       assignedRoleNames,
+      linkedCrewId: linkedCrew?.id ?? null,
+      linkedCrewName: linkedCrew?.name ?? null,
     };
+  }
+
+  /* -------------------------- Crew ↔ login link -------------------- */
+
+  async findCrewMember(orgId: string, crewId: string): Promise<CrewMemberRef | undefined> {
+    const [row] = await db
+      .select({ id: crew.id, name: crew.name, email: crew.email, userId: crew.userId })
+      .from(crew)
+      .where(and(eq(crew.orgId, orgId), eq(crew.id, crewId)))
+      .limit(1);
+    return row ?? undefined;
+  }
+
+  async findCrewByUserId(orgId: string, userId: string): Promise<CrewMemberRef | undefined> {
+    const [row] = await db
+      .select({ id: crew.id, name: crew.name, email: crew.email, userId: crew.userId })
+      .from(crew)
+      .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
+      .limit(1);
+    return row ?? undefined;
+  }
+
+  async setCrewUserLink(orgId: string, crewId: string, userId: string | null): Promise<void> {
+    await db
+      .update(crew)
+      .set({ userId, updatedAt: new Date() })
+      .where(and(eq(crew.orgId, orgId), eq(crew.id, crewId)));
+  }
+
+  async findUserByUsername(
+    orgId: string,
+    username: string,
+  ): Promise<{ id: string } | undefined> {
+    const [row] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.orgId, orgId), eq(users.username, username)))
+      .limit(1);
+    return row ?? undefined;
+  }
+
+  async createUser(input: {
+    orgId: string;
+    name: string;
+    email: string;
+    username: string;
+    passwordHash: string;
+    role: string;
+    loginEnabled: boolean;
+    mustChangePassword: boolean;
+  }): Promise<string> {
+    const [created] = await db
+      .insert(users)
+      .values({
+        orgId: input.orgId,
+        name: input.name,
+        email: input.email,
+        username: input.username,
+        passwordHash: input.passwordHash,
+        passwordUpdatedAt: new Date(),
+        role: input.role,
+        isActive: true,
+        loginEnabled: input.loginEnabled,
+        mustChangePassword: input.mustChangePassword,
+      })
+      .returning({ id: users.id });
+    if (!created) {
+      throw new Error("CrewAdminRepository.createUser: insert returned no row");
+    }
+    return created.id;
   }
 }
 

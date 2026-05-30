@@ -10,6 +10,7 @@ import type {
   VesselAssignmentEntity,
   AssignmentInput,
   CrewUserSummary,
+  CrewMemberRef,
   RoleDashboardConfigView,
 } from "./types";
 
@@ -68,6 +69,25 @@ export interface ICrewAdminRepository {
 
   /** Count active users that hold an admin-capable role and can still log in. */
   countActiveAdminLogins(orgId: string, excludeUserId?: string): Promise<number>;
+
+  // Crew ↔ login linkage (optional 1:1)
+  findCrewMember(orgId: string, crewId: string): Promise<CrewMemberRef | undefined>;
+  /** The crew member a given login is linked to, or undefined when unlinked. */
+  findCrewByUserId(orgId: string, userId: string): Promise<CrewMemberRef | undefined>;
+  /** Point a crew member at a login account, or pass null to detach. */
+  setCrewUserLink(orgId: string, crewId: string, userId: string | null): Promise<void>;
+  findUserByUsername(orgId: string, username: string): Promise<{ id: string } | undefined>;
+  /** Insert a new login account, returning its id. */
+  createUser(input: {
+    orgId: string;
+    name: string;
+    email: string;
+    username: string;
+    passwordHash: string;
+    role: string;
+    loginEnabled: boolean;
+    mustChangePassword: boolean;
+  }): Promise<string>;
 }
 
 export type { RoleDashboardConfigView };

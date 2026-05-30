@@ -18,9 +18,12 @@ import {
   Bell,
   History,
   FileText,
+  KeyRound,
 } from "lucide-react";
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
+import { CrewAccessTab } from "@/components/crew-admin/CrewAccessTab";
+import { useRoleNames } from "@/hooks/useRoleNames";
 import {
   useEmploymentHistory,
   useUpdateEmploymentHistory,
@@ -340,10 +343,14 @@ interface CrewViewDialogContentProps {
   vessels: Vessel[];
 }
 
+const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"];
+
 export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentProps) {
+  const { hasAnyRole } = useRoleNames();
+  const isAdmin = hasAnyRole(...CREW_ADMIN_ROLES);
   return (
     <Tabs defaultValue="details">
-      <TabsList className="w-full">
+      <TabsList className="w-full flex-wrap h-auto">
         <TabsTrigger value="details" data-testid="tab-crew-details">
           <User className="h-4 w-4 mr-2" />
           Details
@@ -360,6 +367,12 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           <Bell className="h-4 w-4 mr-2" />
           Alerts
         </TabsTrigger>
+        {isAdmin && (
+          <TabsTrigger value="access" data-testid="tab-crew-access">
+            <KeyRound className="h-4 w-4 mr-2" />
+            Access & Login
+          </TabsTrigger>
+        )}
       </TabsList>
       <TabsContent value="details" className="mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -491,6 +504,11 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
       <TabsContent value="notifications" className="mt-4">
         <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} {...(crew.email != null && { crewEmail: crew.email })} />
       </TabsContent>
+      {isAdmin && (
+        <TabsContent value="access" className="mt-4">
+          <CrewAccessTab crewId={crew.id} crewName={crew.name} crewEmail={crew.email} />
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

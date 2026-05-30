@@ -70,6 +70,28 @@ export interface CrewUserSummary {
   assignments: VesselAssignmentEntity[];
   /** Active secondary roles (additive) beyond the primary `role`. */
   assignedRoleNames: string[];
+  /** Crew member this login is linked to, or null when it stands alone. */
+  linkedCrewId: string | null;
+  linkedCrewName: string | null;
+}
+
+/** Minimal crew member shape needed by the crew↔login linkage flows. */
+export interface CrewMemberRef {
+  id: string;
+  name: string;
+  email: string | null;
+  userId: string | null;
+}
+
+export interface CreateCrewAccountCommand {
+  orgId: string;
+  crewId: string;
+  username: string;
+  password: string;
+  role?: string | undefined;
+  name?: string | undefined;
+  email?: string | undefined;
+  loginEnabled?: boolean | undefined;
 }
 
 export interface RoleDashboardConfigView {

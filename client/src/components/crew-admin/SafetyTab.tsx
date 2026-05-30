@@ -45,7 +45,17 @@ import {
   CONFIRM_REQUIRED_SEVERITIES,
   type AlarmSeverity,
 } from "@shared/role-dashboard";
-import { Plus, Trash2, ShieldAlert, BellOff } from "lucide-react";
+import { Plus, Trash2, ShieldAlert, BellOff, Pencil, History } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AlarmType {
   id: string;
@@ -77,6 +87,8 @@ interface ActiveAlarm {
   requiresAcknowledgement: boolean;
   triggeredByName: string | null;
   triggeredAt: string | null;
+  clearedByName: string | null;
+  clearedAt: string | null;
   acknowledgements?: AlarmAck[];
 }
 
@@ -99,8 +111,15 @@ function AlarmTypesSection() {
   const { toast } = useToast();
   const onError = useToastError();
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     key: "",
+    displayName: "",
+    description: "",
+    defaultSeverity: "warning" as string,
+    requiresAcknowledgement: true,
+  });
+  const [editForm, setEditForm] = useState({
     displayName: "",
     description: "",
     defaultSeverity: "warning" as string,
@@ -144,6 +163,22 @@ function AlarmTypesSection() {
         isActive: !t.isActive,
       }),
     onSuccess: invalidate,
+    onError,
+  });
+
+  const update = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("PATCH", `/api/admin/safety-alarm-types/${id}`, {
+        displayName: editForm.displayName.trim(),
+        description: editForm.description.trim(),
+        defaultSeverity: editForm.defaultSeverity,
+        requiresAcknowledgement: editForm.requiresAcknowledgement,
+      }),
+    onSuccess: () => {
+      invalidate();
+      setEditId(null);
+      toast({ title: "Alarm type updated" });
+    },
     onError,
   });
 
@@ -201,6 +236,22 @@ function AlarmTypesSection() {
                   />
                 </TableCell>
                 <TableCell className="text-right">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditId(t.id);
+                      setEditForm({
+                        displayName: t.displayName,
+                        description: t.description ?? "",
+                        defaultSeverity: t.defaultSeverity,
+                        requiresAcknowledgement: t.requiresAcknowledgement,
+                      });
+                    }}
+                    data-testid={`button-edit-alarm-type-${t.id}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -300,6 +351,73 @@ function AlarmTypesSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Alarm Type</DialogTitle>
+            <DialogDescription>The internal key cannot be changed.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="edit-alarm-type-name">Display name</Label>
+              <Input
+                id="edit-alarm-type-name"
+                value={editForm.displayName}
+                onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                data-testid="input-edit-alarm-type-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-alarm-type-desc">Description</Label>
+              <Textarea
+                id="edit-alarm-type-desc"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                data-testid="input-edit-alarm-type-desc"
+              />
+            </div>
+            <div>
+              <Label>Default severity</Label>
+              <Select
+                value={editForm.defaultSeverity}
+                onValueChange={(v) => setEditForm({ ...editForm, defaultSeverity: v })}
+              >
+                <SelectTrigger data-testid="select-edit-alarm-type-severity">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALARM_SEVERITIES.map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="edit-alarm-type-ack">Requires acknowledgement</Label>
+              <Switch
+                id="edit-alarm-type-ack"
+                checked={editForm.requiresAcknowledgement}
+                onCheckedChange={(v) =>
+                  setEditForm({ ...editForm, requiresAcknowledgement: v })
+                }
+                data-testid="switch-edit-alarm-type-ack"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => editId && update.mutate(editId)}
+              disabled={update.isPending || !editForm.displayName.trim()}
+              data-testid="button-save-edit-alarm-type"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -308,6 +426,8 @@ function ActiveAlarmsSection() {
   const { toast } = useToast();
   const onError = useToastError();
   const [open, setOpen] = useState(false);
+  const [showCleared, setShowCleared] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
     alarmTypeId: "",
     vesselId: "__fleet__",
@@ -321,7 +441,12 @@ function ActiveAlarmsSection() {
     queryKey: ["/api/admin/safety-alarm-types"],
   });
   const { data: alarms = [] } = useQuery<ActiveAlarm[]>({
-    queryKey: ["/api/admin/safety-alarms"],
+    queryKey: ["/api/admin/safety-alarms", { includeCleared: showCleared }],
+    queryFn: () =>
+      apiRequest<ActiveAlarm[]>(
+        "GET",
+        `/api/admin/safety-alarms${showCleared ? "?includeCleared=true" : ""}`,
+      ),
     refetchInterval: 20000,
   });
   const { data: vessels = [] } = useQuery<VesselLite[]>({ queryKey: ["/api/vessels"] });
@@ -364,10 +489,8 @@ function ActiveAlarmsSection() {
 
   function activate() {
     if (needsConfirm) {
-      const ok = window.confirm(
-        `You are about to activate a REAL ${form.severity.toUpperCase()} alarm. This notifies affected crews. Continue?`,
-      );
-      if (!ok) return;
+      setConfirmOpen(true);
+      return;
     }
     trigger.mutate(true);
   }
@@ -381,15 +504,26 @@ function ActiveAlarmsSection() {
           <CardTitle className="text-base">Active Alarms</CardTitle>
           <CardDescription>{ALARM_SAFETY_NOTE}</CardDescription>
         </div>
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={() => setOpen(true)}
-          disabled={activeTypes.length === 0}
-          data-testid="button-trigger-alarm"
-        >
-          <ShieldAlert className="h-4 w-4 mr-1" /> Activate
-        </Button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <History className="h-3.5 w-3.5" />
+            Show cleared
+            <Switch
+              checked={showCleared}
+              onCheckedChange={setShowCleared}
+              data-testid="switch-show-cleared-alarms"
+            />
+          </label>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setOpen(true)}
+            disabled={activeTypes.length === 0}
+            data-testid="button-trigger-alarm"
+          >
+            <ShieldAlert className="h-4 w-4 mr-1" /> Activate
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -435,14 +569,26 @@ function ActiveAlarmsSection() {
                       : ""}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => clear.mutate(a.id)}
-                      data-testid={`button-clear-alarm-${a.id}`}
-                    >
-                      <BellOff className="h-4 w-4 mr-1" /> Clear
-                    </Button>
+                    {a.status === "cleared" ? (
+                      <span
+                        className="text-xs text-muted-foreground"
+                        data-testid={`text-cleared-info-${a.id}`}
+                      >
+                        Cleared{a.clearedByName ? ` by ${a.clearedByName}` : ""}
+                        {a.clearedAt
+                          ? ` · ${new Date(a.clearedAt).toLocaleString()}`
+                          : ""}
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => clear.mutate(a.id)}
+                        data-testid={`button-clear-alarm-${a.id}`}
+                      >
+                        <BellOff className="h-4 w-4 mr-1" /> Clear
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -450,7 +596,7 @@ function ActiveAlarmsSection() {
             {alarms.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No active alarms.
+                  {showCleared ? "No alarms on record." : "No active alarms."}
                 </TableCell>
               </TableRow>
             )}
@@ -576,6 +722,32 @@ function ActiveAlarmsSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate a REAL alarm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to activate a real {form.severity.toUpperCase()} alarm. This
+              immediately notifies affected crews. Continue only if this is a genuine event.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-real-alarm">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                trigger.mutate(true);
+              }}
+              data-testid="button-confirm-real-alarm"
+            >
+              Activate alarm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
