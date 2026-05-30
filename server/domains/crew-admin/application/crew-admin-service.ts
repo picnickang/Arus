@@ -51,6 +51,17 @@ function isAdminCapableRole(name: string): boolean {
   return (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(name);
 }
 
+/** Built-in primary-role names from the users.role enum (shared/schema/core.ts). */
+const BASE_ROLE_NAMES = ["admin", "manager", "technician", "viewer"] as const;
+
+function isBuiltinRoleName(name: string): boolean {
+  return (
+    isProtectedRoleName(name) ||
+    isAdminCapableRole(name) ||
+    (BASE_ROLE_NAMES as readonly string[]).includes(name)
+  );
+}
+
 export class CrewAdminApplicationService {
   constructor(private readonly repo: ICrewAdminRepository) {}
 
@@ -416,6 +427,9 @@ export class CrewAdminApplicationService {
       );
     }
 
+    const role = (command.role ?? "viewer").trim();
+    await this.assertAssignableRole(command.orgId, role);
+
     this.assertPasswordPolicy(command.password);
     const passwordHash = await bcrypt.hash(command.password, BCRYPT_COST);
 
@@ -425,7 +439,7 @@ export class CrewAdminApplicationService {
       email,
       username,
       passwordHash,
-      role: command.role ?? "viewer",
+      role,
       loginEnabled: command.loginEnabled ?? true,
       // New accounts always begin with a forced password rotation.
       mustChangePassword: true,
@@ -475,6 +489,22 @@ export class CrewAdminApplicationService {
   }
 
   /* ------------------------------ Helpers -------------------------- */
+
+  /**
+   * A role is assignable when it is a built-in role name or an active custom
+   * role in this org. Prevents accounts being created with bogus or deactivated
+   * role keys, which would produce authorization drift.
+   */
+  private async assertAssignableRole(orgId: string, role: string): Promise<void> {
+    const name = role.trim();
+    if (!name) {
+      throw new CrewAdminError("A role is required", "INVALID_ROLE");
+    }
+    if (isBuiltinRoleName(name)) return;
+    const custom = await this.repo.findRoleByName(orgId, name);
+    if (custom && custom.isActive) return;
+    throw new CrewAdminError("That role is not assignable", "INVALID_ROLE");
+  }
 
   private async assertNotLastAdmin(orgId: string, excludeUserId: string): Promise<void> {
     const remaining = await this.repo.countActiveAdminLogins(orgId, excludeUserId);

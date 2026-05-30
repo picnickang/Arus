@@ -11,6 +11,7 @@ export interface CrewListItem {
   active: boolean;
   onDuty: boolean;
   skills: string[];
+  userId?: string | null;
   email?: string;
   phone?: string;
   address?: string;

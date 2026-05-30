@@ -29,3 +29,26 @@ BEGIN
     ALTER TABLE crew ADD CONSTRAINT uq_crew_user_id UNIQUE (user_id);
   END IF;
 END $$;
+
+-- Best-effort one-time backfill: link existing crew to existing users by email
+-- within the same org. Only unambiguous matches are linked — exactly one user
+-- AND exactly one crew share that email in the org, neither side already linked.
+-- Anything ambiguous is left for manual linking in the UI. Idempotent: the
+-- `user_id IS NULL` filter means re-runs only touch still-unlinked crew.
+UPDATE crew c
+SET user_id = u.id
+FROM users u
+WHERE c.user_id IS NULL
+  AND c.email IS NOT NULL
+  AND c.email <> ''
+  AND u.org_id = c.org_id
+  AND lower(u.email) = lower(c.email)
+  AND NOT EXISTS (SELECT 1 FROM crew linked WHERE linked.user_id = u.id)
+  AND (
+    SELECT count(*) FROM users um
+    WHERE um.org_id = c.org_id AND lower(um.email) = lower(c.email)
+  ) = 1
+  AND (
+    SELECT count(*) FROM crew cm
+    WHERE cm.org_id = c.org_id AND lower(cm.email) = lower(c.email)
+  ) = 1;

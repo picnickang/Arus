@@ -29,6 +29,7 @@ import {
   UserX,
   UserPlus,
   X,
+  KeyRound,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -51,6 +52,7 @@ type DisplayCrewMember = {
   skills?: string[];
   maxHours7d?: number;
   minRestH?: number;
+  userId?: string | null;
   employmentPeriods?: EmploymentHistoryRecord[];
 };
 
@@ -175,7 +177,27 @@ export function RosterTable({
                       className="font-medium"
                       data-testid={`text-crew-name-${member.id}`}
                     >
-                      {member.name}
+                      <div className="flex items-center gap-2">
+                        <span>{member.name}</span>
+                        {!isFormerView &&
+                          (member.userId ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 text-xs font-normal"
+                              data-testid={`badge-has-login-${member.id}`}
+                            >
+                              <KeyRound className="h-3 w-3" />
+                              Login
+                            </Badge>
+                          ) : (
+                            <span
+                              className="text-xs text-muted-foreground"
+                              data-testid={`text-no-login-${member.id}`}
+                            >
+                              No login
+                            </span>
+                          ))}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{formatRank(member.rank)}</Badge>

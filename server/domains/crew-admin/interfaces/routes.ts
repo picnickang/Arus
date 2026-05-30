@@ -80,6 +80,7 @@ function statusForError(code: string): number {
     case "INVALID_CONFIG":
     case "INVALID_USERNAME":
     case "INVALID_SUPERVISOR":
+    case "INVALID_ROLE":
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
     case "INVALID_CHARACTERS":
