@@ -11,16 +11,21 @@ import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/aut
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
-import { ADMIN_CAPABLE_ROLE_KEYS, isHubId } from "@shared/role-dashboard";
+import { isHubId } from "@shared/role-dashboard";
 
 const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"] as const;
 const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
 
 // Granting / revoking hub-admin access is a system-administrator-only
-// capability — deliberately narrower than the broader crew-admin surface
-// so the privilege that controls portal visibility can never be widened
-// by accident when CREW_ADMIN_ROLES grows.
-const requireSuperAdminRole = requireRole(...ADMIN_CAPABLE_ROLE_KEYS);
+// capability. By policy the system-administrator tier is exactly the
+// super-admin roles (system_admin / company_admin / admin) — the same
+// accounts that are always-full and can never be locked out. They are
+// enumerated in a dedicated constant here (rather than reusing a
+// lockout-protection list) so this authz boundary is self-contained and
+// cannot be widened by an unrelated edit. It is deliberately narrower than
+// the broader crew-admin surface.
+const HUB_GRANT_ADMIN_ROLES = ["system_admin", "company_admin", "admin"] as const;
+const requireSuperAdminRole = requireRole(...HUB_GRANT_ADMIN_ROLES);
 
 const createRoleSchema = z.object({
   name: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/),

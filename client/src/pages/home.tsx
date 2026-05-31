@@ -39,8 +39,9 @@ import { OpsMetricCard } from "@/components/ops/OpsMetricCard";
 import { OpsStatusPill } from "@/components/ops/OpsStatusPill";
 import type { RoleConfig } from "@/config/roles";
 import {
-  getPortalForRole,
+  getAdminPrimaryCategories,
   getPrimaryCategoriesForRole,
+  isAdminPortalAccess,
   resolveEffectiveRole,
 } from "@/application/navigation/role-navigation-policy";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -1384,7 +1385,17 @@ export default function HomePage() {
     return <RoleSelector onSelect={handleSelectRole} />;
   }
 
-  const portal = getPortalForRole(effectiveRole);
+  // Portal pivot is driven by the explicit hub-admin GRANT, not a static
+  // role→portal map: a granted manager lands on the admin command center,
+  // while an admin-mapped role WITHOUT the grant is sent to the user portal.
+  // Super-admins are always admin; during the first paint (permissions still
+  // loading) we fall back to the legacy role→portal map to avoid a flash.
+  const ready = !permissions.isLoading;
+  const isAdmin = isAdminPortalAccess(
+    effectiveRole,
+    permissions.hubAdmin || permissions.isDevMode,
+    ready,
+  );
 
   // User portal: re-skinned per UI Align Phase 4 (preview panel 2 /
   // mobile panel 9). Cards bind to the view-model in
@@ -1392,7 +1403,7 @@ export default function HomePage() {
   // it does not call useQuery directly and contains no RBAC checks.
   // Empty-state ids `empty-attention` / `empty-my-tasks` are
   // preserved verbatim because other surfaces and tests key off them.
-  if (portal === "user") {
+  if (!isAdmin) {
     return <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} onSwitchRole={() => {
       localStorage.removeItem(STORAGE_KEY);
       setRole(null);
@@ -1404,9 +1415,13 @@ export default function HomePage() {
   // UI Align Phase 3 + 3B: re-skinned as the dark operational
   // command-center (preview panel 2). KPI counts reuse the existing
   // `useAttentionItems` query (`/api/home/attention-summary`) — no
-  // new backend endpoints. The 5 module shortcut tiles are sourced
-  // from `getPrimaryCategoriesForRole(role)` (single policy source).
-  const policyCategoryIds = getPrimaryCategoriesForRole(effectiveRole).map((c) => c.id);
+  // new backend endpoints.
+  // The portal decision above already gated on the hub-admin grant, so anchor
+  // the home-grid to the role-independent admin primaries. A granted
+  // non-super-admin (e.g. manager) therefore gets the real hub launchers
+  // rather than the user-portal categories `getPrimaryCategoriesForRole` would
+  // return for their underlying role.
+  const policyCategoryIds = getAdminPrimaryCategories().map((c) => c.id);
   const pinnedGroupIds =
     policyCategoryIds.length > 0
       ? policyCategoryIds

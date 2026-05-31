@@ -256,7 +256,11 @@ export function resolveHubAdmin(
   storedHubAdmin: boolean,
 ): boolean {
   if (roleNames.some((r) => isSuperAdminRole(r))) return true;
-  return storedHubAdmin;
+  if (!storedHubAdmin) return false;
+  // Re-check eligibility at resolution time so a user demoted below the
+  // grant-eligible tier (manager or above) loses effective hub-admin even if
+  // the stored grant flag was never explicitly revoked on demotion.
+  return roleNames.some((r) => isAdminGrantEligibleRole(r));
 }
 
 /**
