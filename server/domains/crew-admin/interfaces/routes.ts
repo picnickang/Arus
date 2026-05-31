@@ -11,9 +11,16 @@ import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/aut
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
+import { ADMIN_CAPABLE_ROLE_KEYS, isHubId } from "@shared/role-dashboard";
 
 const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"] as const;
 const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
+
+// Granting / revoking hub-admin access is a system-administrator-only
+// capability — deliberately narrower than the broader crew-admin surface
+// so the privilege that controls portal visibility can never be widened
+// by accident when CREW_ADMIN_ROLES grows.
+const requireSuperAdminRole = requireRole(...ADMIN_CAPABLE_ROLE_KEYS);
 
 const createRoleSchema = z.object({
   name: z.string().min(2).max(50).regex(/^[a-z0-9_]+$/),
@@ -56,7 +63,16 @@ const resetPasswordSchema = z.object({ password: z.string().min(8).max(128) });
 const supervisorSchema = z.object({ supervisorUserId: z.string().min(1).nullable() });
 const hubAccessSchema = z.object({
   hubAdmin: z.boolean(),
-  hubAccess: z.array(z.string().min(1)).max(20).nullable().optional(),
+  // Reject unknown hub ids with a 400 rather than silently normalising them
+  // away — the allow-list must reference only canonical nav hubs.
+  hubAccess: z
+    .array(z.string().min(1))
+    .max(20)
+    .refine((arr) => arr.every(isHubId), {
+      message: "hubAccess contains an unknown hub id",
+    })
+    .nullable()
+    .optional(),
 });
 const createCrewAccountSchema = z.object({
   username: z.string().min(3).max(60),
@@ -428,7 +444,7 @@ export function registerCrewAdminRoutes(
   app.patch(
     "/api/admin/crew/users/:id/hub-access",
     requireOrgId,
-    requireCrewAdminRole,
+    requireSuperAdminRole,
     writeLimit,
     withErrorHandling("set crew user hub access", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;

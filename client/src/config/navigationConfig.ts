@@ -397,6 +397,38 @@ export function getCategoryById(id: string): NavigationCategory | undefined {
   return navigationCategories.find((cat) => cat.id === id);
 }
 
+// Strip query string / hash from a route path, leaving the bare path.
+function baseRoutePath(path: string): string {
+  return (path.split("?")[0] ?? path).split("#")[0] ?? path;
+}
+
+// Authoritative route → hub (nav category) id map for every route the user
+// can actually navigate to from the nav surface. Derived from
+// `navigationCategories` (the single source of truth) so the mapping always
+// reflects the hub a page is *shown under*, which is what a hub-granted user
+// expects to be able to open. This deliberately captures user-facing
+// placement even when it differs from a page's structural route group — e.g.
+// "Equipment Intelligence" is shown under Maintenance and "Optimizer" under
+// Analytics. Deep routes that are not nav children are classified by their
+// route group at the App.tsx composition layer (see `resolveRouteHubId`).
+export const ROUTE_HUB_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const cat of navigationCategories) {
+    map[baseRoutePath(cat.hubRoute)] = cat.id;
+    for (const child of cat.children) {
+      map[baseRoutePath(child.href)] = cat.id;
+    }
+  }
+  return map;
+})();
+
+// Resolve the hub id for a nav-visible route path (query string ignored).
+// Returns null for routes not present in the nav surface; callers that also
+// know a route's structural group (App.tsx) supply that as a fallback.
+export function getHubIdForRoute(path: string): string | null {
+  return ROUTE_HUB_MAP[baseRoutePath(path)] ?? null;
+}
+
 // Route migration map for legacy dock entries
 export const routeMigrations: Record<string, string> = {
   "/attention": "/attention-inbox",

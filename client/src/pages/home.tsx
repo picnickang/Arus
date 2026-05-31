@@ -1411,10 +1411,20 @@ export default function HomePage() {
     policyCategoryIds.length > 0
       ? policyCategoryIds
       : (roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id));
+  // Per-hub allow-list: `permissions.hubAccess === null` means "all hubs"
+  // (super-admins / dev resolve to null server-side); a populated list
+  // restricts which hub shortcuts this account may see. Enforced here so a
+  // granted user never sees a tile for a hub outside their allow-list (the
+  // route guard blocks deep-links to the same hubs).
+  const hubAccess = permissions.hubAccess;
+  const isHubAllowed = (id: string) => !hubAccess || hubAccess.includes(id);
   const pinnedGroups = pinnedGroupIds
+    .filter(isHubAllowed)
     .map((id) => homePageGroups.find((g) => g.id === id))
     .filter((g): g is HomePageGroup => g !== undefined);
-  const otherGroups = homePageGroups.filter((g) => !pinnedGroupIds.includes(g.id));
+  const otherGroups = homePageGroups.filter(
+    (g) => !pinnedGroupIds.includes(g.id) && isHubAllowed(g.id),
+  );
 
   const kpiOverdueWO = attentionItems.find((i) => i.label === "Overdue work orders")?.count ?? 0;
   const kpiCriticalAlerts = attentionItems.find((i) => i.label === "Unacknowledged alerts")?.count ?? 0;

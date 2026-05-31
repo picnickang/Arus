@@ -42,7 +42,11 @@ const DevPerformanceOverlay = import.meta.env.DEV
 
 import { operationsRoutes } from "@/routes/operations";
 import { fleetRoutes } from "@/routes/fleet";
-import { isAdminPortalAccess } from "@/application/navigation/role-navigation-policy";
+import {
+  isAdminPortalAccess,
+  isSuperAdminRole,
+} from "@/application/navigation/role-navigation-policy";
+import { getHubIdForRoute } from "@/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -62,6 +66,43 @@ const allRoutes = [
   ...analyticsRoutes,
   ...systemRoutes,
 ];
+
+// path → structural-group hub id, built from the actual route arrays so every
+// registered hub route is covered by construction (no manual list to drift).
+// Each route group corresponds 1:1 to an admin-portal hub; this is the
+// fallback classification for deep routes that are not surfaced as nav
+// children (those get their user-facing hub from `getHubIdForRoute`).
+const ROUTE_GROUP_HUB_BY_PATH: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  const groups: Array<[string, ReadonlyArray<{ path: string }>]> = [
+    ["operations", operationsRoutes],
+    ["fleet", fleetRoutes],
+    ["maintenance", maintenanceRoutes],
+    ["crew", crewRoutes],
+    ["logistics", logisticsRoutes],
+    ["records", recordsRoutes],
+    ["analytics", analyticsRoutes],
+    ["system", systemRoutes],
+  ];
+  for (const [hubId, routes] of groups) {
+    for (const { path } of routes) {
+      map[path] = hubId;
+    }
+  }
+  return map;
+})();
+
+/**
+ * Resolve the hub a route belongs to for access gating. Prefers the
+ * user-facing nav classification (`getHubIdForRoute`, from
+ * `navigationCategories`) so a page is gated by the hub it is *shown under*;
+ * falls back to the route's structural group. Returns null only for routes
+ * outside every hub group (home, portal-login, feedback) — those are never
+ * hub-gated.
+ */
+function resolveRouteHubId(path: string): string | null {
+  return getHubIdForRoute(path) ?? ROUTE_GROUP_HUB_BY_PATH[path] ?? null;
+}
 
 function PageSkeleton() {
   return (
@@ -138,18 +179,42 @@ function readCurrentRole(): string | null {
 
 function AdminPortalRouteGuard({
   path,
+  hubId,
   children,
 }: {
   path: string;
+  hubId: string | null;
   children: ReactNode;
 }) {
   const [, setLocation] = useLocation();
   const { permissions } = usePermissions();
-  const allowed = isAdminPortalAccess(
-    readCurrentRole(),
+  const role = readCurrentRole();
+  const ready = !permissions.isLoading;
+  // Tier 1 — portal access: super-admins are always-on, others need the
+  // explicit hub-admin grant (dev-mode bypasses). While permissions load we
+  // fall back to the legacy role→portal map so an admin's first paint is not
+  // a flash-redirect.
+  let allowed = isAdminPortalAccess(
+    role,
     permissions.hubAdmin || permissions.isDevMode,
-    !permissions.isLoading,
+    ready,
   );
+  // Tier 2 — per-hub allow-list: once permissions have loaded, a granted
+  // (non-super-admin, non-dev) account may only reach hubs in its allow-list.
+  // `permissions.hubAccess === null` means "all hubs" (super-admins / dev
+  // resolve to null server-side), so only a populated list restricts access.
+  if (
+    allowed &&
+    ready &&
+    hubId &&
+    !permissions.isDevMode &&
+    !isSuperAdminRole(role)
+  ) {
+    const access = permissions.hubAccess;
+    if (access && !access.includes(hubId)) {
+      allowed = false;
+    }
+  }
   useEffect(() => {
     if (!allowed) {
       trackRedirectUsage(path, "/");
@@ -283,8 +348,12 @@ function Router() {
                         <Component {...(params as object as Record<string, string>)} />
                       </ErrorBoundary>
                     );
-                    return ADMIN_ONLY_ROUTES.has(path) ? (
-                      <AdminPortalRouteGuard path={path}>{page}</AdminPortalRouteGuard>
+                    const hubId = resolveRouteHubId(path);
+                    const guarded = ADMIN_ONLY_ROUTES.has(path) || hubId !== null;
+                    return guarded ? (
+                      <AdminPortalRouteGuard path={path} hubId={hubId}>
+                        {page}
+                      </AdminPortalRouteGuard>
                     ) : (
                       page
                     );
