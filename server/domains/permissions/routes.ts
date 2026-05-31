@@ -121,10 +121,43 @@ export function registerPermissionRoutes(app: Express) {
       const hubAdmin = resolveHubAdmin(roleNames, userRow?.hubAdmin ?? false);
       const hubAccess = resolveHubAccess(roleNames, userRow?.hubAccess ?? null);
 
+      // The user's PRIMARY role (`users.role`) is what server-side route
+      // guards authorize against (`requireRole(...)` checks `user.role`
+      // only — never the assignment-derived roles). `mapped.roles` is
+      // built purely from `user_role_assignments`, so a top admin whose
+      // authority comes from the primary column with no matching
+      // assignment row was returned an empty/partial `roles` list. The
+      // client then hid admin-only surfaces (e.g. the crew Access & Login
+      // tab) even though the backend would authorize the same user. Merge
+      // the primary role into the contract `roles` so the client role-name
+      // gate stays in lockstep with `requireRole`.
+      const rolesWithPrimary = [...mapped.roles];
+      const primaryRoleName = userRow?.role;
+      if (primaryRoleName) {
+        const normalizedPrimary = primaryRoleName.toLowerCase();
+        const alreadyPresent = rolesWithPrimary.some(
+          (r) => r.name.toLowerCase() === normalizedPrimary
+        );
+        if (!alreadyPresent) {
+          const fromOrg = orgRoles.find(
+            (r) => r.name.toLowerCase() === normalizedPrimary
+          );
+          rolesWithPrimary.unshift(
+            fromOrg
+              ? { id: fromOrg.id, name: fromOrg.name, displayName: fromOrg.displayName }
+              : {
+                  id: `primary:${primaryRoleName}`,
+                  name: primaryRoleName,
+                  displayName: primaryRoleName,
+                }
+          );
+        }
+      }
+
       return res.json(
         validateResponse(
           permissionsMeResponseSchema,
-          { ...mapped, isDevMode: false, hubAdmin, hubAccess },
+          { ...mapped, roles: rolesWithPrimary, isDevMode: false, hubAdmin, hubAccess },
           "GET /api/permissions/me"
         )
       );

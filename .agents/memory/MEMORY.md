@@ -1,2 +1,1 @@
-- [ARUS access architecture](arus-access-architecture.md) — client route guards are UX-only; backend RBAC (requirePermission/requireRole) is the real boundary; hub-admin is a navigation layer, not a data boundary.
-- [Env quirks: tsc & domain-leak baseline](arus-env-quirks.md) — run tsc synchronously (~23s cached, bg gets killed); domain-leak baseline can be stale — verify changed files before assuming the regression is yours.
+- [Role-name gating vs primary role](role-gating-primary-role.md) — backend `requireRole` authorizes on the single `users.role` column; client gates must see that role too, not just assignment-derived roles.

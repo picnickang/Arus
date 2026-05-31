@@ -51,10 +51,17 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize in-memory token in dev mode.
-  if (DEV_MODE && !getApiSessionToken()) {
-    setApiSessionToken(DEV_SESSION_TOKEN);
-  }
+  // Initialize in-memory token in dev mode. This MUST run as an effect,
+  // not in the render body: setApiSessionToken notifies external-store
+  // subscribers (e.g. SessionGate's useSyncExternalStore), and updating
+  // another component while this one renders triggers React's "Cannot
+  // update a component while rendering a different component" warning
+  // (and the cascade of hook warnings that follow it).
+  useEffect(() => {
+    if (DEV_MODE && !getApiSessionToken()) {
+      setApiSessionToken(DEV_SESSION_TOKEN);
+    }
+  }, []);
 
   // Update last activity timestamp (in-memory only for security)
   const updateActivity = useCallback(() => {
@@ -160,15 +167,18 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
       setTimeUntilExpiry(Math.max(0, Math.floor(expiryMs / 1000)));
       setTimeUntilIdleTimeout(Math.max(0, Math.floor(idleMs / 1000)));
 
-      // Auto-lock on expiry
-      if (expiryMs <= 0) {
+      // Auto-lock on expiry. Skipped in dev: dev starts auto-unlocked and
+      // an auto-lock here strips the in-memory API token, which breaks
+      // authenticated reads like /api/permissions/me and makes admin-only
+      // UI (e.g. the crew Access & Login tab) silently disappear.
+      if (!DEV_MODE && expiryMs <= 0) {
         console.info("⏰ Session expired (max duration reached)");
         lockAdmin();
         return;
       }
 
-      // Auto-lock on idle timeout
-      if (idleMs <= 0) {
+      // Auto-lock on idle timeout (skipped in dev — see note above).
+      if (!DEV_MODE && idleMs <= 0) {
         console.info("⏰ Session expired (idle timeout)");
         lockAdmin();
         return;
