@@ -9,7 +9,7 @@ import { initializeGlobalErrorHandlers } from "@/lib/errorHandler";
 import { FocusModeProvider } from "@/contexts/FocusModeContext";
 import { AdminAccessProvider } from "@/contexts/AdminAccessContext";
 import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
-import { PermissionsProvider } from "@/contexts/PermissionsContext";
+import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { SessionGate } from "@/components/auth/SessionGate";
@@ -42,7 +42,7 @@ const DevPerformanceOverlay = import.meta.env.DEV
 
 import { operationsRoutes } from "@/routes/operations";
 import { fleetRoutes } from "@/routes/fleet";
-import { getPortalForRole } from "@/application/navigation/role-navigation-policy";
+import { isAdminPortalAccess } from "@/application/navigation/role-navigation-policy";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -144,7 +144,12 @@ function AdminPortalRouteGuard({
   children: ReactNode;
 }) {
   const [, setLocation] = useLocation();
-  const allowed = getPortalForRole(readCurrentRole()) === "admin";
+  const { permissions } = usePermissions();
+  const allowed = isAdminPortalAccess(
+    readCurrentRole(),
+    permissions.hubAdmin || permissions.isDevMode,
+    !permissions.isLoading,
+  );
   useEffect(() => {
     if (!allowed) {
       trackRedirectUsage(path, "/");
@@ -213,6 +218,7 @@ function ConnectivityBannerWithSync() {
 
 function Router() {
   const { currentOrgId, isLoading } = useOrganization();
+  const { permissions } = usePermissions();
   const [routerLoc] = useLocation();
   useTrackPageVisit();
 
@@ -232,7 +238,12 @@ function Router() {
   // route guard and the bar itself; reading localStorage at
   // render is fine because portal switches do a full reload.
   const isAdminPortal =
-    !isLoginRoute && getPortalForRole(readCurrentRole()) === "admin";
+    !isLoginRoute &&
+    isAdminPortalAccess(
+      readCurrentRole(),
+      permissions.hubAdmin || permissions.isDevMode,
+      !permissions.isLoading,
+    );
 
   return (
     <div className="min-h-screen bg-background">

@@ -22,8 +22,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
+import {
+  HUB_IDS,
+  isSuperAdminRole,
+  isAdminGrantEligibleRole,
+  normalizeHubAccess,
+} from "@shared/role-dashboard";
+import { getCategoryById } from "@/config/navigationConfig";
+
+function hubLabel(id: string): string {
+  return getCategoryById(id)?.name ?? id;
+}
+
+function sameHubAccess(a: string[] | null, b: string[] | null): boolean {
+  if (a === null || b === null) return a === b;
+  if (a.length !== b.length) return false;
+  const setB = new Set(b);
+  return a.every((id) => setB.has(id));
+}
 
 export interface VesselAssignment {
   id: string;
@@ -49,6 +77,8 @@ export interface CrewUser {
   assignedRoleNames: string[];
   linkedCrewId: string | null;
   linkedCrewName: string | null;
+  hubAdmin: boolean;
+  hubAccess: string[] | null;
 }
 
 export interface RoleSummary {
@@ -113,6 +143,12 @@ export function UserAccessEditor({
   const [loginEnabled, setLoginEnabled] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPw, setResetPw] = useState("");
+  const [hubAdmin, setHubAdmin] = useState(false);
+  // Selected hub ids. An empty set OR the full set both mean "all hubs"
+  // (stored as null on the server). We keep the explicit selection in
+  // state and normalise on save.
+  const [selectedHubs, setSelectedHubs] = useState<string[]>([]);
+  const [confirmGrantOpen, setConfirmGrantOpen] = useState(false);
 
   useEffect(() => {
     setRole(user.role);
@@ -123,7 +159,13 @@ export function UserAccessEditor({
     const firstVessel = user.assignments.find((a) => a.vesselId)?.vesselId;
     setVesselId(firstVessel ?? "__fleet__");
     setSupervisorUserId(user.supervisorUserId ?? "__none__");
+    setHubAdmin(user.hubAdmin);
+    // null allow-list = all hubs → show every hub ticked.
+    setSelectedHubs(user.hubAccess === null ? [...HUB_IDS] : user.hubAccess);
   }, [user]);
+
+  const isSuper = isSuperAdminRole(role);
+  const isGrantEligible = isAdminGrantEligibleRole(role);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
@@ -157,6 +199,24 @@ export function UserAccessEditor({
       }
       credPayload['loginEnabled'] = loginEnabled;
       await apiRequest("POST", `/api/admin/crew/users/${user.id}/credentials`, credPayload);
+
+      // Hub access — super-admins are always full hub admins (not
+      // editable), so we never PATCH for them. Only send when the
+      // (effective) grant actually changed.
+      if (!isSuper && isGrantEligible) {
+        const nextHubAccess = hubAdmin
+          ? normalizeHubAccess(selectedHubs)
+          : null;
+        const changed =
+          hubAdmin !== user.hubAdmin ||
+          !sameHubAccess(nextHubAccess, user.hubAccess);
+        if (changed) {
+          await apiRequest("PATCH", `/api/admin/crew/users/${user.id}/hub-access`, {
+            hubAdmin,
+            hubAccess: nextHubAccess,
+          });
+        }
+      }
     },
     onSuccess: () => {
       invalidate();
@@ -269,6 +329,70 @@ export function UserAccessEditor({
       <Separator />
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
+          <ShieldCheck className="h-4 w-4" /> Admin / Hub access
+        </div>
+        {isSuper ? (
+          <p className="text-xs text-muted-foreground" data-testid="text-hub-super-admin">
+            This is a system administrator role — it always has full access to every hub
+            and cannot be restricted here.
+          </p>
+        ) : !isGrantEligible ? (
+          <p className="text-xs text-muted-foreground" data-testid="text-hub-not-eligible">
+            Hub access can only be granted to manager-level roles or above. Change this
+            user's role to grant admin-hub access.
+          </p>
+        ) : (
+          <>
+            <label
+              className="flex items-center gap-2 text-sm"
+              data-testid="checkbox-hub-admin"
+            >
+              <Checkbox
+                checked={hubAdmin}
+                onCheckedChange={(checked) => {
+                  if (checked === true) {
+                    setConfirmGrantOpen(true);
+                  } else {
+                    setHubAdmin(false);
+                  }
+                }}
+              />
+              Grant admin-hub access
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Hub admins can open the admin portal and the hubs ticked below. Untick a hub
+              to hide it from this user.
+            </p>
+            {hubAdmin && (
+              <div className="space-y-2 rounded-md border p-2">
+                {HUB_IDS.map((id) => (
+                  <label
+                    key={id}
+                    className="flex items-center gap-2 text-sm"
+                    data-testid={`checkbox-hub-${id}`}
+                  >
+                    <Checkbox
+                      checked={selectedHubs.includes(id)}
+                      onCheckedChange={(checked) =>
+                        setSelectedHubs((prev) =>
+                          checked === true
+                            ? [...new Set([...prev, id])]
+                            : prev.filter((h) => h !== id),
+                        )
+                      }
+                    />
+                    {hubLabel(id)}
+                  </label>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <Separator />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold">
           <KeyRound className="h-4 w-4" /> Credentials
         </div>
         <div>
@@ -338,6 +462,30 @@ export function UserAccessEditor({
           Save Changes
         </Button>
       </div>
+
+      <AlertDialog open={confirmGrantOpen} onOpenChange={setConfirmGrantOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Grant admin-hub access?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This gives the user access to the admin portal and the management hubs you
+              select. They will be able to view and act on fleet-wide operational data.
+              Only grant this to trusted manager-level staff. You can revoke it at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-grant-hub">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => setHubAdmin(true)}
+              data-testid="button-confirm-grant-hub"
+            >
+              Grant access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={resetOpen} onOpenChange={(o) => !o && setResetOpen(false)}>
         <DialogContent>

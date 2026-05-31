@@ -1,2 +1,2 @@
-- [Navigation routing traps](navigation-routing-traps.md) — `/maint|/crew|/system` hubs ignore `?tab=`; routeMigrations mapping canonical routes→hubs shadows real pages in App.tsx Switch.
-- [Auth role-name vs permission gates](auth-role-vs-permission-gates.md) — two parallel authz models; dev `/api/permissions/me` grants all perms but one role name — must be an admin role or role-name gates hide admin UI.
+- [ARUS access architecture](arus-access-architecture.md) — client route guards are UX-only; backend RBAC (requirePermission/requireRole) is the real boundary; hub-admin is a navigation layer, not a data boundary.
+- [Env quirks: tsc & domain-leak baseline](arus-env-quirks.md) — run tsc synchronously (~23s cached, bg gets killed); domain-leak baseline can be stale — verify changed files before assuming the regression is yours.

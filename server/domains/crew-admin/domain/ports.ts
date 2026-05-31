@@ -65,6 +65,13 @@ export interface ICrewAdminRepository {
     patch: { username?: string; passwordHash?: string; loginEnabled?: boolean },
   ): Promise<void>;
   setMustChangePassword(orgId: string, userId: string, value: boolean): Promise<void>;
+  /** Persist a user's hub-admin grant + allow-list (null hubAccess = all hubs). */
+  setHubAccessGrant(
+    orgId: string,
+    userId: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<void>;
   invalidateUserSessions(userId: string): Promise<void>;
 
   /** Count active users that hold an admin-capable role and can still log in. */

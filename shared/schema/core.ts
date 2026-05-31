@@ -62,6 +62,12 @@ export const users = pgTable("users", {
   loginEnabled: boolean("login_enabled").notNull().default(true),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
   supervisorUserId: varchar("supervisor_user_id"),
+  // Explicit grant of admin-portal ("hub") access. Distinct from `role`: a
+  // manager-or-above user must be explicitly granted hub access before the
+  // admin hubs become reachable. Super-admin roles are always-on regardless.
+  hubAdmin: boolean("hub_admin").notNull().default(false),
+  // Per-admin hub allow-list (nav category ids). null = all hubs (full access).
+  hubAccess: text("hub_access").array(),
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
@@ -176,6 +182,8 @@ export const insertUserSchema = createInsertSchema(users)
     passwordResetToken: true,
     passwordResetExpires: true,
     passwordUpdatedAt: true,
+    hubAdmin: true,
+    hubAccess: true,
   })
   .extend({
     role: z.enum(["admin", "manager", "technician", "viewer"]).default("viewer"),

@@ -54,6 +54,10 @@ const credentialsSchema = z.object({
 });
 const resetPasswordSchema = z.object({ password: z.string().min(8).max(128) });
 const supervisorSchema = z.object({ supervisorUserId: z.string().min(1).nullable() });
+const hubAccessSchema = z.object({
+  hubAdmin: z.boolean(),
+  hubAccess: z.array(z.string().min(1)).max(20).nullable().optional(),
+});
 const createCrewAccountSchema = z.object({
   username: z.string().min(3).max(60),
   password: z.string().min(8).max(128),
@@ -77,10 +81,13 @@ function statusForError(code: string): number {
     case "USER_ALREADY_LINKED":
     case "DUPLICATE_USERNAME":
       return 409;
+    case "ADMIN_ROLE_PROTECTED":
+      return 409;
     case "INVALID_CONFIG":
     case "INVALID_USERNAME":
     case "INVALID_SUPERVISOR":
     case "INVALID_ROLE":
+    case "ROLE_NOT_ELIGIBLE":
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
     case "INVALID_CHARACTERS":
@@ -410,6 +417,39 @@ export function registerCrewAdminRoutes(
       try {
         await crewAdminService.setSupervisor(authReq.orgId, req.params['id'], supervisorUserId);
         await audit(authReq, "update", "user", req.params['id'], { supervisorUserId });
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.patch(
+    "/api/admin/crew/users/:id/hub-access",
+    requireOrgId,
+    requireCrewAdminRole,
+    writeLimit,
+    withErrorHandling("set crew user hub access", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
+      try {
+        await crewAdminService.setHubAccess(
+          authReq.orgId,
+          req.params['id'],
+          hubAdmin,
+          hubAccess ?? null,
+        );
+        await auditService.logEvent({
+          orgId: authReq.orgId,
+          eventCategory: "security_event",
+          eventType: "permission_changed",
+          entityType: "user",
+          entityId: req.params['id'],
+          performedBy: authReq.user?.id ?? "unknown",
+          performedByRole: authReq.user?.role,
+          newState: { hubAdmin, hubAccess: hubAccess ?? null },
+        });
         return res.json({ success: true });
       } catch (error) {
         if (handleCrewError(error, res)) return undefined;

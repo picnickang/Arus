@@ -3,10 +3,13 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { navigationCategories, routeMigrations, type NavigationCategory } from "@/config/navigationConfig";
 import {
-  getPortalForRole,
-  intersectOverrideWithPolicy,
+  getAdminPrimaryCategories,
+  isAdminPortalAccess,
+  filterCategoriesByHubAccess,
+  intersectOverrideWithCategories,
   pruneOverrideToPolicyIds,
 } from "@/application/navigation/role-navigation-policy";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import {
   readUserRole,
   readNavOverride,
@@ -41,14 +44,27 @@ export function BottomNav() {
 
   const roleId = readUserRole();
   const override = readNavOverride();
-  const portal = getPortalForRole(roleId);
+  const { permissions } = usePermissions();
 
-  // Visibility policy lives in the application layer — this component
-  // only renders whatever the policy returns. The intersect helper
-  // guarantees the override may only reorder / subset the role's
-  // allowed categories, never expand them.
-  const visibleCategories: NavigationCategory[] = intersectOverrideWithPolicy(
+  // Admin-portal access is an explicit per-account grant (hubAdmin),
+  // not an automatic property of the role. While permissions load we
+  // fall back to the legacy role→portal map so an existing admin's bar
+  // is not blanked on first paint.
+  const hasAdminAccess = isAdminPortalAccess(
     roleId,
+    permissions.hubAdmin || permissions.isDevMode,
+    !permissions.isLoading,
+  );
+
+  // The admin primaries filtered down to the account's hub allow-list
+  // (null = all hubs). The override may only reorder / subset this
+  // allowed set — never expand it (the #194 security perimeter).
+  const allowedCategories: NavigationCategory[] = filterCategoriesByHubAccess(
+    getAdminPrimaryCategories(),
+    permissions.isDevMode ? null : permissions.hubAccess,
+  );
+  const visibleCategories: NavigationCategory[] = intersectOverrideWithCategories(
+    allowedCategories,
     override,
   );
 
@@ -76,26 +92,26 @@ export function BottomNav() {
     }
   }, [override, roleId]);
 
-  // Render gate (#218): the user portal exposes only Dashboard (`/`)
-  // and Feedback (`/feedback`). With the hardcoded Home button also
-  // routing to `/`, three of four tap targets become redundant and
-  // the "More" sheet reveals nothing new. Hide the bar entirely for
-  // user-portal roles and reclaim the ~56px vertical strip.
+  // Render gate: the bottom nav (the hub launcher) is admin-portal
+  // only. Without an explicit hub-admin grant the account has no hubs
+  // to launch, so we hide the bar entirely and reclaim the ~56px
+  // vertical strip — same treatment the user portal got in #218.
   //
   // Hooks above must still run unconditionally — the override
-  // self-heal (#194) must keep working even for users who never see
-  // the bar, so a stale admin override left over from a portal switch
-  // is still pruned out of localStorage.
-  if (portal === "user") {
+  // self-heal (#194) must keep working even for accounts that never
+  // see the bar, so a stale admin override left over from a revoked
+  // grant is still pruned out of localStorage.
+  if (!hasAdminAccess) {
     return null;
   }
 
-  // After the #218 render gate above, the only code path that
-  // reaches here is `portal === "admin"`, so the "More" sheet always
-  // shows the full admin category surface. The user-portal branch
-  // is intentionally unreachable now (kept as a comment so the
-  // intent stays documented for the next reader).
-  const moreSheetCategories: NavigationCategory[] = navigationCategories;
+  // Past the render gate above, the account has hub-admin access. The
+  // "More" sheet shows the full hub surface, but still constrained to
+  // the account's hub allow-list (null = all hubs).
+  const moreSheetCategories: NavigationCategory[] = filterCategoriesByHubAccess(
+    navigationCategories,
+    permissions.isDevMode ? null : permissions.hubAccess,
+  );
 
   const currentPath = location.split("?")[0] ?? "";
 

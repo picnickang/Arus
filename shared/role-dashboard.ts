@@ -184,6 +184,93 @@ export const ADMIN_CAPABLE_ROLE_KEYS = [
   "company_admin",
 ] as const;
 
+/* --------------------------- Hub access control --------------------------- */
+
+/**
+ * Canonical hub (nav category) ids. Mirrors the 8 navigation categories the
+ * client renders. Kept here (icon-free, plain strings) so the server can
+ * validate hub allow-lists without importing client-only navigation config.
+ */
+export const HUB_IDS = [
+  "operations",
+  "fleet",
+  "maintenance",
+  "crew",
+  "logistics",
+  "records",
+  "analytics",
+  "system",
+] as const;
+export type HubId = (typeof HUB_IDS)[number];
+
+/**
+ * Roles eligible to be GRANTED hub-admin access ("manager or above"). A user
+ * whose role is not in this set cannot be ticked as a hub admin. Super-admin
+ * roles are a superset and are always-on regardless of the stored flag.
+ */
+export const ADMIN_GRANT_ELIGIBLE_ROLE_KEYS = [
+  "admin",
+  "system_admin",
+  "company_admin",
+  "fleet_manager",
+  "captain",
+  "vessel_master",
+  "chief_engineer",
+  "manager",
+] as const;
+
+export function isHubId(value: string): value is HubId {
+  return (HUB_IDS as readonly string[]).includes(value);
+}
+
+/** A super-admin role is always a full-hub admin and cannot be edited/revoked. */
+export function isSuperAdminRole(role: string | null | undefined): boolean {
+  return role != null && (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(role);
+}
+
+/** Whether a role is eligible to be granted hub-admin access. */
+export function isAdminGrantEligibleRole(role: string | null | undefined): boolean {
+  return role != null && (ADMIN_GRANT_ELIGIBLE_ROLE_KEYS as readonly string[]).includes(role);
+}
+
+/**
+ * Normalise a requested hub allow-list to its canonical stored form:
+ *   - drop unknown ids, dedupe;
+ *   - an empty result or a full set both collapse to `null` (= all hubs).
+ */
+export function normalizeHubAccess(
+  hubAccess: readonly string[] | null | undefined,
+): string[] | null {
+  if (!hubAccess) return null;
+  const valid = [...new Set(hubAccess.filter(isHubId))];
+  if (valid.length === 0 || valid.length === HUB_IDS.length) return null;
+  return valid;
+}
+
+/**
+ * Effective hub-admin flag for a user given their role name(s) and stored flag.
+ * Super-admins are always-on; everyone else uses the stored grant.
+ */
+export function resolveHubAdmin(
+  roleNames: readonly string[],
+  storedHubAdmin: boolean,
+): boolean {
+  if (roleNames.some((r) => isSuperAdminRole(r))) return true;
+  return storedHubAdmin;
+}
+
+/**
+ * Effective hub allow-list for a user. Super-admins always get full access
+ * (`null`); everyone else uses their stored (normalised) allow-list.
+ */
+export function resolveHubAccess(
+  roleNames: readonly string[],
+  storedHubAccess: readonly string[] | null,
+): string[] | null {
+  if (roleNames.some((r) => isSuperAdminRole(r))) return null;
+  return normalizeHubAccess(storedHubAccess);
+}
+
 export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig> = {
   admin: {
     widgets: [...DASHBOARD_WIDGETS],

@@ -22,6 +22,9 @@ import {
   type NavigationCategory,
 } from "@/config/navigationConfig";
 import type { NavRoleId, PortalKind } from "@/domain/navigation/types";
+import { isSuperAdminRole } from "@shared/role-dashboard";
+
+export { isSuperAdminRole };
 
 /**
  * The five primary admin categories surfaced in the simplified pilot
@@ -118,7 +121,15 @@ export function getPrimaryCategoriesForRole(
   if (getPortalForRole(role) === "user") {
     return USER_PRIMARY_CATEGORIES;
   }
+  return getAdminPrimaryCategories();
+}
 
+/**
+ * The admin portal's primary categories (label-overridden), independent
+ * of role. Used by hub-access gating where the portal decision is driven
+ * by the explicit hub-admin grant rather than the role→portal map.
+ */
+export function getAdminPrimaryCategories(): NavigationCategory[] {
   const out: NavigationCategory[] = [];
   for (const id of ADMIN_PRIMARY_CATEGORY_IDS) {
     const cat = getCategoryById(id);
@@ -127,6 +138,52 @@ export function getPrimaryCategoriesForRole(
     out.push(label ? { ...cat, name: label } : cat);
   }
   return out;
+}
+
+/**
+ * Whether the viewer may access the admin portal (its hubs).
+ *
+ * Hub access is an explicit per-account grant (`hubAdmin`), NOT an
+ * automatic property of the role. Contract:
+ *   - Super-admin roles are always-on (they own grant/revoke and are
+ *     never lockable out), regardless of `ready`.
+ *   - While permissions are still loading (`ready === false`) we fall
+ *     back to the legacy role→portal map so the first paint is not a
+ *     blank/locked admin shell for an existing admin user.
+ *   - Once ready, the server-computed `hubAdmin` flag is authoritative.
+ *
+ * Pure — the caller passes the local role hint + the resolved grant.
+ */
+export function isAdminPortalAccess(
+  role: NavRoleId | string | null,
+  hubAdmin: boolean,
+  ready: boolean,
+): boolean {
+  if (isSuperAdminRole(role)) {
+    return true;
+  }
+  if (!ready) {
+    return getPortalForRole(role) === "admin";
+  }
+  return hubAdmin;
+}
+
+/**
+ * Filter a list of categories down to those whose id is in the hub
+ * allow-list. `null`/`undefined` allow-list means "all hubs" (the
+ * super-admin / un-restricted case) and returns the input unchanged.
+ *
+ * Pure — no I/O. The caller supplies the resolved allow-list.
+ */
+export function filterCategoriesByHubAccess(
+  categories: NavigationCategory[],
+  hubAccess: readonly string[] | null | undefined,
+): NavigationCategory[] {
+  if (!hubAccess) {
+    return categories;
+  }
+  const allowed = new Set(hubAccess);
+  return categories.filter((c) => allowed.has(c.id));
 }
 
 /**
@@ -154,7 +211,26 @@ export function intersectOverrideWithPolicy(
   role: NavRoleId | string | null,
   overrideCategoryIds: readonly string[] | null | undefined,
 ): NavigationCategory[] {
-  const policyDefault = getPrimaryCategoriesForRole(role);
+  return intersectOverrideWithCategories(
+    getPrimaryCategoriesForRole(role),
+    overrideCategoryIds,
+  );
+}
+
+/**
+ * Category-list variant of {@link intersectOverrideWithPolicy}: intersect
+ * a stored override against an *already-resolved* set of allowed
+ * categories (e.g. admin primaries already filtered by hub access),
+ * preserving the user's order and never expanding past the allowed set.
+ * Falls back to the supplied default when the intersection is empty.
+ *
+ * Pure — no I/O. `intersectOverrideWithPolicy` is the role-driven wrapper
+ * (kept stable for the #194 test suite).
+ */
+export function intersectOverrideWithCategories(
+  policyDefault: NavigationCategory[],
+  overrideCategoryIds: readonly string[] | null | undefined,
+): NavigationCategory[] {
   if (!overrideCategoryIds || overrideCategoryIds.length === 0) {
     return policyDefault;
   }

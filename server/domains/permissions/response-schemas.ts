@@ -14,6 +14,10 @@ export const permissionsMeResponseSchema = z.object({
   roles: z.array(roleSchema),
   permissions: z.record(z.string(), z.record(z.string(), z.boolean())),
   isDevMode: z.boolean(),
+  /** Whether this user may reach the admin hubs (super-admin or granted). */
+  hubAdmin: z.boolean(),
+  /** Hub allow-list (nav category ids); null = all hubs. */
+  hubAccess: z.array(z.string()).nullable(),
 });
 
 export type PermissionsMeResponse = z.infer<typeof permissionsMeResponseSchema>;

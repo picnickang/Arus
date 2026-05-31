@@ -73,6 +73,10 @@ export interface CrewUserSummary {
   /** Crew member this login is linked to, or null when it stands alone. */
   linkedCrewId: string | null;
   linkedCrewName: string | null;
+  /** Explicit admin-portal (hub) access grant. Super-admin roles are always-on. */
+  hubAdmin: boolean;
+  /** Per-admin hub allow-list (nav category ids); null = all hubs. */
+  hubAccess: string[] | null;
 }
 
 /** Minimal crew member shape needed by the crew↔login linkage flows. */

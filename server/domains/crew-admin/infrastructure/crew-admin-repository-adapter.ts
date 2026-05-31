@@ -414,6 +414,18 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .where(and(eq(users.orgId, orgId), eq(users.id, userId)));
   }
 
+  async setHubAccessGrant(
+    orgId: string,
+    userId: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<void> {
+    await db
+      .update(users)
+      .set({ hubAdmin, hubAccess, updatedAt: new Date() })
+      .where(and(eq(users.orgId, orgId), eq(users.id, userId)));
+  }
+
   async invalidateUserSessions(userId: string): Promise<void> {
     await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
   }
@@ -497,6 +509,8 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       assignedRoleNames,
       linkedCrewId: linkedCrew?.id ?? null,
       linkedCrewName: linkedCrew?.name ?? null,
+      hubAdmin: row.hubAdmin,
+      hubAccess: row.hubAccess ?? null,
     };
   }
 

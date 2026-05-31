@@ -26,6 +26,9 @@ import {
   mergeDashboardConfigs,
   roleDashboardConfigSchema,
   sanitizeTaskSources,
+  isSuperAdminRole,
+  isAdminGrantEligibleRole,
+  normalizeHubAccess,
   type RoleDashboardConfig,
 } from "@shared/role-dashboard";
 
@@ -319,6 +322,41 @@ export class CrewAdminApplicationService {
       }
     }
     await this.repo.setSupervisor(orgId, userId, supervisorUserId);
+  }
+
+  /**
+   * Grant / revoke a user's hub-admin access and set their hub allow-list.
+   *
+   *   - Super-admin roles always have full hub access and cannot be edited
+   *     here (the grant is implicit and non-revocable).
+   *   - Only "manager or above" roles may be granted hub-admin access.
+   *   - `hubAccess` is normalised: unknown ids dropped, a full/empty set
+   *     collapses to `null` (= all hubs). When revoking, access is cleared.
+   */
+  async setHubAccess(
+    orgId: string,
+    userId: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<void> {
+    const user = await this.repo.findUser(orgId, userId);
+    if (!user) {
+      throw new CrewAdminError("User not found", "NOT_FOUND");
+    }
+    if (isSuperAdminRole(user.role)) {
+      throw new CrewAdminError(
+        "System administrators always have full hub access",
+        "ADMIN_ROLE_PROTECTED",
+      );
+    }
+    if (hubAdmin && !isAdminGrantEligibleRole(user.role)) {
+      throw new CrewAdminError(
+        "Only manager-or-above roles can be granted hub access",
+        "ROLE_NOT_ELIGIBLE",
+      );
+    }
+    const normalizedAccess = hubAdmin ? normalizeHubAccess(hubAccess) : null;
+    await this.repo.setHubAccessGrant(orgId, userId, hubAdmin, normalizedAccess);
   }
 
   /* ----------------------------- Credentials ----------------------- */

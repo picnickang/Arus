@@ -14,6 +14,8 @@ export interface UserPermissions {
   roleIds: string[];
   roleNames: string[];
   permissions: PermissionMatrix;
+  hubAdmin: boolean;
+  hubAccess: string[] | null;
   isDevMode: boolean;
   isLoading: boolean;
   error: Error | null;
@@ -53,6 +55,8 @@ const defaultPermissions: UserPermissions = {
   roleIds: [],
   roleNames: [],
   permissions: {},
+  hubAdmin: false,
+  hubAccess: null,
   isDevMode: false,
   isLoading: true,
   error: null,
@@ -65,6 +69,8 @@ interface PermissionsResponse {
   orgId: string;
   roles: Array<{ id: string; name: string; displayName: string }>;
   permissions: PermissionMatrix;
+  hubAdmin?: boolean;
+  hubAccess?: string[] | null;
   isDevMode?: boolean;
 }
 
@@ -100,6 +106,8 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       roleIds: data.roles.map((r) => r.id),
       roleNames: data.roles.map((r) => r.name),
       permissions: data.permissions,
+      hubAdmin: data.hubAdmin ?? false,
+      hubAccess: data.hubAccess ?? null,
       isDevMode: effectiveDevMode,
       isLoading: false,
       error: null,

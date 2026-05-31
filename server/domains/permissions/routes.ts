@@ -26,6 +26,10 @@ import {
 } from "./response-schemas";
 import { mapCompiledToContract, type MapperLogger } from "./mapper";
 import { structuredLog, type LogContext } from "../../logging";
+import { db } from "../../db";
+import { users } from "@shared/schema";
+import { resolveHubAdmin, resolveHubAccess } from "@shared/role-dashboard";
+import { and, eq } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
@@ -84,6 +88,8 @@ export function registerPermissionRoutes(app: Express) {
               roles: [{ id: "dev-role", name: "system_admin", displayName: "System Admin (Dev Mode)" }],
               permissions: allPermissions,
               isDevMode: true,
+              hubAdmin: true,
+              hubAccess: null,
             },
             "GET /api/permissions/me (dev)"
           )
@@ -97,10 +103,28 @@ export function registerPermissionRoutes(app: Express) {
       };
       const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
+      // Hub access lives on the user row (explicit grant) + the user's role
+      // names (super-admins are always-on). Read the columns and resolve.
+      const [userRow] = await db
+        .select({
+          role: users.role,
+          hubAdmin: users.hubAdmin,
+          hubAccess: users.hubAccess,
+        })
+        .from(users)
+        .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+        .limit(1);
+      const roleNames = [
+        ...(userRow ? [userRow.role] : []),
+        ...mapped.roles.map((r) => r.name),
+      ];
+      const hubAdmin = resolveHubAdmin(roleNames, userRow?.hubAdmin ?? false);
+      const hubAccess = resolveHubAccess(roleNames, userRow?.hubAccess ?? null);
+
       return res.json(
         validateResponse(
           permissionsMeResponseSchema,
-          { ...mapped, isDevMode: false },
+          { ...mapped, isDevMode: false, hubAdmin, hubAccess },
           "GET /api/permissions/me"
         )
       );
