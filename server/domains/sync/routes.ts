@@ -161,45 +161,93 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("check conflicts", async (req: Request, res: Response) => {
-      const { table, recordId, data, version, timestamp, user, device, orgId } = req.body;
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { table, recordId, data, version, timestamp, user, device } = req.body ?? {};
 
-      if (!table || !recordId || !data || !version || !user || !device || !orgId) {
+      if (typeof table !== "string" || typeof recordId !== "string" || data === undefined || version === undefined) {
         res.status(400).json({
-          message: "Missing required fields: table, recordId, data, version, user, device, orgId",
+          message: "Missing required fields: table, recordId, data, version",
         });
         return;
       }
 
-      const { detectConflicts, logConflict } = await import("../../conflict-resolution-service.js");
+      const baseVersion = Number(version);
+      if (!Number.isInteger(baseVersion) || baseVersion < 0) {
+        res.status(400).json({ message: "version must be a non-negative integer" });
+        return;
+      }
 
-      const result = await detectConflicts(
-        table,
-        recordId,
-        data,
-        version,
-        new Date(timestamp)
-      );
-
-      if (result.hasConflict && result.conflicts.length > 0) {
-        const conflictIds: string[] = [];
-        for (const conflict of result.conflicts) {
-          await logConflict(conflict);
-          conflictIds.push(conflict.conflictId);
+      let clientTimestamp: Date | null = null;
+      if (typeof timestamp === "string" || typeof timestamp === "number") {
+        const parsed = new Date(timestamp);
+        if (Number.isNaN(parsed.getTime())) {
+          res.status(400).json({ message: "timestamp must be a valid date" });
+          return;
         }
+        clientTimestamp = parsed;
+      }
 
+      const {
+        applyOptimisticUpdate,
+        isConflictEnabledTable,
+        ConflictTableNotAllowedError,
+        ConflictPayloadError,
+      } = await import("../../conflict-resolution-service.js");
+
+      if (!isConflictEnabledTable(table)) {
+        res.status(400).json({
+          message: `Conflict detection is not enabled for table: ${table}`,
+        });
+        return;
+      }
+
+      let outcome;
+      try {
+        outcome = await applyOptimisticUpdate({
+          orgId,
+          table,
+          recordId,
+          data,
+          baseVersion,
+          user: typeof user === "string" ? user : null,
+          device: typeof device === "string" ? device : null,
+          clientTimestamp,
+        });
+      } catch (error) {
+        if (error instanceof ConflictPayloadError || error instanceof ConflictTableNotAllowedError) {
+          res.status(400).json({ message: error.message });
+          return;
+        }
+        throw error;
+      }
+
+      if (outcome.status === "not_found") {
+        sendNotFound(res, "Record");
+        return;
+      }
+
+      if (outcome.status === "conflict") {
         await recordAndPublish("sync", "conflict", "detected", {
           table,
           recordId,
-          conflictCount: conflictIds.length,
+          conflictId: outcome.conflict.conflictId,
+          isSafetyCritical: outcome.conflict.isSafetyCritical,
         });
 
         res.json({
-          ...result,
-          conflictIds,
+          hasConflict: true,
+          conflicts: [outcome.conflict],
+          conflictIds: [outcome.conflict.conflictId],
         });
-      } else {
-        res.json(result);
+        return;
       }
+
+      res.json({
+        hasConflict: false,
+        conflicts: [],
+        applied: true,
+        newVersion: outcome.newVersion,
+      });
     })
   );
 
@@ -222,9 +270,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("resolve conflict", async (req: Request, res: Response) => {
-      const { conflictId, resolvedValue, resolvedBy, resolutionNotes } = req.body;
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { conflictId, resolvedValue, resolvedBy, resolutionNotes } = req.body ?? {};
 
-      if (!conflictId || resolvedValue === undefined || !resolvedBy) {
+      if (typeof conflictId !== "string" || resolvedValue === undefined || typeof resolvedBy !== "string") {
         res.status(400).json({
           message: "Missing required fields: conflictId, resolvedValue, resolvedBy",
         });
@@ -233,7 +282,12 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
 
       const { manuallyResolveConflict } = await import("../../conflict-resolution-service.js");
 
-      await manuallyResolveConflict(conflictId, resolvedValue, resolvedBy);
+      const resolved = await manuallyResolveConflict(conflictId, resolvedValue, resolvedBy, orgId);
+
+      if (!resolved) {
+        sendNotFound(res, "Unresolved conflict");
+        return;
+      }
 
       await recordAndPublish("sync", "conflict", "resolved", {
         conflictId,
@@ -253,23 +307,21 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("auto-resolve conflicts", async (req: Request, res: Response) => {
-      const { conflictIds, resolvedBy } = req.body;
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { conflictIds, resolvedBy } = req.body ?? {};
 
-      if (!conflictIds || !Array.isArray(conflictIds) || !resolvedBy) {
+      if (!Array.isArray(conflictIds) || conflictIds.length === 0 || typeof resolvedBy !== "string") {
         res.status(400).json({
-          message: "Missing required fields: conflictIds (array), resolvedBy",
+          message: "Missing required fields: conflictIds (non-empty array), resolvedBy",
         });
         return;
       }
 
-      const { db } = await import("../../db.js");
-      const { syncConflicts } = await import("@shared/sync-conflicts-schema.js");
-      const { eq, and, inArray } = await import("drizzle-orm");
+      const { manuallyResolveConflict, getUnresolvedConflictsByIds } = await import(
+        "../../conflict-resolution-service.js"
+      );
 
-      const conflicts = await db
-        .select()
-        .from(syncConflicts)
-        .where(and(inArray(syncConflicts.id, conflictIds), eq(syncConflicts.resolved, false)));
+      const conflicts = await getUnresolvedConflictsByIds(orgId, conflictIds);
 
       if (conflicts.length === 0) {
         sendNotFound(res, "Unresolved conflicts");
@@ -285,8 +337,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         return;
       }
 
-      const { manuallyResolveConflict } = await import("../../conflict-resolution-service.js");
-      const resolved: Array<{ conflictId: string; field: string; resolvedValue: unknown }> = [];
+      const resolved: Array<{ conflictId: string; field: string | null; resolvedValue: unknown }> = [];
 
       for (const conflict of conflicts) {
         let resolvedValue;
@@ -311,10 +362,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         const strategyFn = resolutionStrategies[conflict.resolutionStrategy ?? ""];
         resolvedValue = strategyFn ? strategyFn() : localValue;
 
-        await manuallyResolveConflict(conflict.id, resolvedValue, `system:auto-${resolvedBy}`);
+        await manuallyResolveConflict(conflict.id, resolvedValue, `system:auto-${resolvedBy}`, orgId);
         resolved.push({
           conflictId: conflict.id,
-          field: conflict.fieldName as string,
+          field: conflict.fieldName ?? null,
           resolvedValue,
         });
       }
