@@ -450,3 +450,9 @@ id = "7zRNNTgNcO7FM68GqmR7_"
 uri = "file://source-bundle/REEVALUATION_PROMPT.md"
 type = "text"
 title = "ARUS re-evaluation prompt (for the complete bundle)"
+
+[[outputs]]
+id = "TcE5HnM-1LpoO4MPW6-lZ"
+uri = "file://exports/ARUS-fullstack-source-20260601.zip"
+type = "unspecified"
+title = "ARUS Full-Stack Source Code (77MB)"
