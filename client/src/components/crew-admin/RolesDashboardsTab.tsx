@@ -83,8 +83,16 @@ export function RolesDashboardsTab() {
       variant: "destructive",
     });
 
+  const slugifyRoleKey = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 50);
+
   const [createOpen, setCreateOpen] = useState(false);
   const [newRole, setNewRole] = useState({ name: "", displayName: "", department: "" });
+  const [keyTouched, setKeyTouched] = useState(false);
   const [editConfigRole, setEditConfigRole] = useState<string | null>(null);
   const [draftConfig, setDraftConfig] = useState<RoleDashboardConfig | null>(null);
   const [editRoleId, setEditRoleId] = useState<string | null>(null);
@@ -118,6 +126,7 @@ export function RolesDashboardsTab() {
       invalidateAccessReadiness();
       setCreateOpen(false);
       setNewRole({ name: "", displayName: "", department: "" });
+      setKeyTouched(false);
       toast({ title: "Role created" });
     },
     onError,
@@ -319,31 +328,57 @@ export function RolesDashboardsTab() {
         </CardContent>
       </Card>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            setNewRole({ name: "", displayName: "", department: "" });
+            setKeyTouched(false);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Role</DialogTitle>
-            <DialogDescription>Key must be lowercase with underscores.</DialogDescription>
+            <DialogDescription>
+              Enter a display name. The key is generated automatically.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label htmlFor="role-key">Key</Label>
-              <Input
-                id="role-key"
-                value={newRole.name}
-                onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
-                placeholder="deck_officer"
-                data-testid="input-role-key"
-              />
-            </div>
             <div>
               <Label htmlFor="role-name">Display name</Label>
               <Input
                 id="role-name"
                 value={newRole.displayName}
-                onChange={(e) => setNewRole({ ...newRole, displayName: e.target.value })}
+                onChange={(e) => {
+                  const displayName = e.target.value;
+                  setNewRole((prev) => ({
+                    ...prev,
+                    displayName,
+                    name: keyTouched ? prev.name : slugifyRoleKey(displayName),
+                  }));
+                }}
+                placeholder="Deck Officer"
                 data-testid="input-role-name"
               />
+            </div>
+            <div>
+              <Label htmlFor="role-key">Key</Label>
+              <Input
+                id="role-key"
+                value={newRole.name}
+                onChange={(e) => {
+                  const key = slugifyRoleKey(e.target.value);
+                  setKeyTouched(key.length > 0);
+                  setNewRole({ ...newRole, name: key });
+                }}
+                placeholder="deck_officer"
+                data-testid="input-role-key"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Lowercase letters, numbers and underscores only.
+              </p>
             </div>
             <div>
               <Label htmlFor="role-dept">Department (optional)</Label>
@@ -360,7 +395,7 @@ export function RolesDashboardsTab() {
               onClick={() => createRole.mutate()}
               disabled={
                 createRole.isPending ||
-                !newRole.name.trim() ||
+                newRole.name.trim().length < 2 ||
                 !newRole.displayName.trim()
               }
               data-testid="button-save-role"
