@@ -443,7 +443,7 @@ title = "ARUS Full-Stack Source Code"
 id = "jMLAPZmpGos1Dg6NpPeCK"
 uri = "file://source-bundle/arus-fullstack-source-complete.tar.gz"
 type = "unspecified"
-title = "ARUS complete source bundle (incl. tests, CI, docs)"
+title = "ARUS complete source bundle (rebuilt & integrity-verified)"
 
 [[outputs]]
 id = "7zRNNTgNcO7FM68GqmR7_"
