@@ -70,18 +70,22 @@ export class CrewLifecycleRepository {
     orgId: string,
     terminationType: "retired" | "cancelled",
     terminationDate: Date,
-    terminationNotes?: string
+    terminationNotes?: string,
+    endDutyStatus = true,
   ): Promise<SelectCrew> {
+    const updateValues: Partial<typeof crew.$inferInsert> = {
+      active: false,
+      terminationType,
+      terminationDate,
+      terminationNotes,
+      updatedAt: new Date(),
+    };
+    if (endDutyStatus) {
+      updateValues.onDuty = false;
+    }
     const results = await db
       .update(crew)
-      .set({
-        active: false,
-        onDuty: false,
-        terminationType,
-        terminationDate,
-        terminationNotes,
-        updatedAt: new Date(),
-      })
+      .set(updateValues)
       .where(and(eq(crew.id, id), eq(crew.orgId, orgId)))
       .returning();
 

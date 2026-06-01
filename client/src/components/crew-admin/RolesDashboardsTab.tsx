@@ -102,6 +102,8 @@ export function RolesDashboardsTab() {
     queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/roles"] });
   const invalidateConfigs = () =>
     queryClient.invalidateQueries({ queryKey: ["/api/admin/role-dashboards"] });
+  const invalidateAccessReadiness = () =>
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
 
   const createRole = useMutation({
     mutationFn: () =>
@@ -113,6 +115,7 @@ export function RolesDashboardsTab() {
     onSuccess: () => {
       invalidateRoles();
       invalidateConfigs();
+      invalidateAccessReadiness();
       setCreateOpen(false);
       setNewRole({ name: "", displayName: "", department: "" });
       toast({ title: "Role created" });
@@ -123,7 +126,10 @@ export function RolesDashboardsTab() {
   const toggleActive = useMutation({
     mutationFn: (r: RoleSummary) =>
       apiRequest("PATCH", `/api/admin/crew/roles/${r.id}`, { isActive: !r.isActive }),
-    onSuccess: invalidateRoles,
+    onSuccess: () => {
+      invalidateRoles();
+      invalidateAccessReadiness();
+    },
     onError,
   });
 
@@ -135,6 +141,7 @@ export function RolesDashboardsTab() {
       }),
     onSuccess: () => {
       invalidateRoles();
+      invalidateAccessReadiness();
       setEditRoleId(null);
       toast({ title: "Role updated" });
     },
@@ -146,6 +153,7 @@ export function RolesDashboardsTab() {
       apiRequest("POST", `/api/admin/role-dashboards/${roleId}/reset`, {}),
     onSuccess: () => {
       invalidateConfigs();
+      invalidateAccessReadiness();
       setResetRoleId(null);
       toast({ title: "Dashboard reset to default" });
     },
@@ -156,6 +164,7 @@ export function RolesDashboardsTab() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/crew/roles/${id}`),
     onSuccess: () => {
       invalidateRoles();
+      invalidateAccessReadiness();
       toast({ title: "Role deleted" });
     },
     onError,
@@ -166,6 +175,7 @@ export function RolesDashboardsTab() {
       apiRequest("PUT", `/api/admin/role-dashboards/${vars.roleId}`, vars.config),
     onSuccess: () => {
       invalidateConfigs();
+      invalidateAccessReadiness();
       setEditConfigRole(null);
       setDraftConfig(null);
       toast({ title: "Dashboard config saved" });

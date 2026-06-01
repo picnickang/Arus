@@ -48,6 +48,7 @@ export interface SafetyAlarmEntity {
   clearedBy: string | null;
   clearedByName: string | null;
   clearedAt: Date | null;
+  resolutionNote: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 }

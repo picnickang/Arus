@@ -6,6 +6,13 @@
  */
 
 import type { RoleDashboardConfig } from "@shared/role-dashboard";
+import type {
+  CrewAccessReadiness,
+  CrewAccessReadinessStatus,
+  FormerCrewAccessRisk,
+} from "@shared/crew-access-readiness";
+
+export type { CrewAccessReadiness, CrewAccessReadinessStatus, FormerCrewAccessRisk };
 
 export interface RoleSummary {
   id: string;
@@ -85,6 +92,12 @@ export interface CrewMemberRef {
   name: string;
   email: string | null;
   userId: string | null;
+  vesselId: string | null;
+}
+
+export interface CrewAccessMemberRef extends CrewMemberRef {
+  vesselId: string | null;
+  active: boolean;
 }
 
 export interface CreateCrewAccountCommand {
@@ -96,6 +109,9 @@ export interface CreateCrewAccountCommand {
   name?: string | undefined;
   email?: string | undefined;
   loginEnabled?: boolean | undefined;
+  vesselId?: string | null | undefined;
+  skipVesselAssignment?: boolean | undefined;
+  assignedBy?: string | undefined;
 }
 
 export interface RoleDashboardConfigView {
@@ -112,4 +128,20 @@ export interface SetCredentialsCommand {
   username?: string | undefined;
   password?: string | undefined;
   loginEnabled?: boolean | undefined;
+}
+
+export interface OffboardingAccessRevocationResult {
+  userId: string | null;
+  loginDisabled: "yes" | "no" | "not_applicable" | "skipped" | "failed";
+  vesselAccessRemoved: "yes" | "no" | "not_applicable" | "skipped" | "failed";
+  dashboardAccessRemoved: "yes" | "no" | "not_applicable" | "skipped" | "failed";
+  additionalRolesRemoved: "yes" | "no" | "not_applicable" | "skipped" | "failed";
+  primaryRoleDowngraded: "yes" | "no" | "not_applicable" | "skipped" | "failed";
+  dutyEnded: "yes" | "no";
+  recordsPreserved: "yes";
+  previousRole: string | null;
+  previousAdditionalRoles: string[];
+  previousVesselAccessCount: number;
+  previousHubAdmin: boolean;
+  failures: string[];
 }

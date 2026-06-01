@@ -18,6 +18,11 @@ import {
   type SortDirection,
   type CrewFormData,
   type SkillFormData,
+  type CrewAccessReadiness,
+  type CrewAccessReadinessStatus,
+  type FormerCrewAccessRisk,
+  type FormerCrewAccessRiskFilter,
+  type CrewProfileTab,
   crewFormSchema,
   skillFormSchema,
   createDefaultCrewFormValues,
@@ -30,14 +35,22 @@ import {
   getVesselNameById,
 } from "../lib/crewManagementUtils";
 
-export function useUnifiedCrewData() {
+interface UseUnifiedCrewDataOptions {
+  accessReadinessEnabled?: boolean;
+}
+
+export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const { toast } = useToast();
+  const accessReadinessEnabled = options.accessReadinessEnabled ?? false;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVessel, setSelectedVessel] = useState<string>("all");
   const [selectedRank, setSelectedRank] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedSkill, setSelectedSkill] = useState<string>("all");
+  const [selectedAccessStatus, setSelectedAccessStatus] = useState<string>("all");
+  const [selectedFormerAccessRisk, setSelectedFormerAccessRisk] =
+    useState<FormerCrewAccessRiskFilter>("all");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -48,6 +61,9 @@ export function useUnifiedCrewData() {
   const [isViewProfileDialogOpen, setIsViewProfileDialogOpen] = useState(false);
   const [viewingCrew, setViewingCrew] = useState<CrewListItem | null>(null);
   const [editingCrew, setEditingCrew] = useState<CrewListItem | null>(null);
+  const [onboardingCrew, setOnboardingCrew] = useState<CrewListItem | null>(null);
+  const [skippedLoginCrewIds, setSkippedLoginCrewIds] = useState<Set<string>>(new Set());
+  const [profileInitialTab, setProfileInitialTab] = useState<CrewProfileTab>("details");
   const [skillAssignmentCrewId, setSkillAssignmentCrewId] = useState<string>("");
 
   const { data: crew = [], isLoading: crewLoading } = useQuery<CrewListItem[]>({
@@ -55,6 +71,24 @@ export function useUnifiedCrewData() {
   });
   const { data: vessels = [], isLoading: vesselsLoading } = useQuery<VesselListItem[]>({
     queryKey: ["/api/vessels"],
+  });
+  const {
+    data: accessReadiness = [],
+    isLoading: accessReadinessLoading,
+    isError: accessReadinessError,
+  } = useQuery<CrewAccessReadiness[]>({
+    queryKey: ["/api/admin/crew/access-readiness"],
+    enabled: accessReadinessEnabled,
+    retry: false,
+  });
+  const {
+    data: formerAccessRisks = [],
+    isLoading: formerAccessRisksLoading,
+    isError: formerAccessRisksError,
+  } = useQuery<FormerCrewAccessRisk[]>({
+    queryKey: ["/api/admin/crew/former-access-risks"],
+    enabled: accessReadinessEnabled,
+    retry: false,
   });
 
   const crewForm = useForm<CrewFormData, unknown, CrewFormData>({
@@ -66,10 +100,11 @@ export function useUnifiedCrewData() {
     defaultValues: createDefaultSkillFormValues(),
   });
 
-  const createCrewMutation = useCreateMutation("/api/crew", {
+  const createCrewMutation = useCreateMutation<CrewFormData, CrewListItem>("/api/crew", {
     invalidateKeys: ["/api/crew"],
     successMessage: "Crew member created successfully",
-    onSuccess: () => {
+    onSuccess: (created) => {
+      setOnboardingCrew(created);
       crewForm.reset();
       setIsAddCrewDialogOpen(false);
     },
@@ -176,8 +211,9 @@ export function useUnifiedCrewData() {
   const handleDeleteCrew = (crewId: string) => {
     deleteCrewMutation.mutate(crewId);
   };
-  const handleViewProfile = (member: CrewListItem) => {
+  const handleViewProfile = (member: CrewListItem, initialTab: CrewProfileTab = "details") => {
     setViewingCrew(member);
+    setProfileInitialTab(initialTab);
     setIsViewProfileDialogOpen(true);
   };
   const closeCrewDialog = () => {
@@ -194,18 +230,81 @@ export function useUnifiedCrewData() {
   const closeProfileDialog = () => {
     setIsViewProfileDialogOpen(false);
     setViewingCrew(null);
+    setProfileInitialTab("details");
+  };
+  const closeOnboardingDialog = () => setOnboardingCrew(null);
+  const skipOnboardingLogin = () => {
+    if (!onboardingCrew) {
+      return;
+    }
+    setSkippedLoginCrewIds((previous) => new Set(previous).add(onboardingCrew.id));
+  };
+  const openOnboardingProfileTab = (tab: CrewProfileTab) => {
+    if (!onboardingCrew) {
+      return;
+    }
+    setViewingCrew(onboardingCrew);
+    setProfileInitialTab(tab);
+    setIsViewProfileDialogOpen(true);
+    setOnboardingCrew(null);
   };
 
   const getVesselName = (vesselId: string) => getVesselNameById(vessels, vesselId);
   const stats = useMemo(() => calculateCrewStats(crew), [crew]);
+  const accessReadinessByCrewId = useMemo(() => {
+    const map = new Map<string, CrewAccessReadiness>();
+    for (const item of accessReadiness) {
+      map.set(item.crewId, item);
+    }
+    return map;
+  }, [accessReadiness]);
+  const formerAccessRiskByCrewId = useMemo(() => {
+    const map = new Map<string, FormerCrewAccessRisk>();
+    for (const item of formerAccessRisks) {
+      map.set(item.crewId, item);
+    }
+    return map;
+  }, [formerAccessRisks]);
+  const formerAccessRiskCounts = useMemo(
+    () => ({
+      linked_login: formerAccessRisks.filter((risk) => risk.hasLinkedLogin).length,
+      login_enabled: formerAccessRisks.filter((risk) => risk.loginEnabled).length,
+      vessel_access: formerAccessRisks.filter((risk) => risk.vesselAccessCount > 0).length,
+      hub_access: formerAccessRisks.filter((risk) => risk.hubAdmin).length,
+    }),
+    [formerAccessRisks],
+  );
+  const accessStatusCounts = useMemo(() => {
+    const counts: Record<CrewAccessReadinessStatus, number> = {
+      ready: 0,
+      no_login: 0,
+      login_disabled: 0,
+      no_password_set: 0,
+      temporary_password_issued: 0,
+      password_change_required: 0,
+      password_required: 0,
+      no_vessel_scope: 0,
+      no_dashboard: 0,
+      fleet_scope_review: 0,
+    };
+    for (const item of accessReadiness) {
+      counts[item.status] += 1;
+    }
+    return counts;
+  }, [accessReadiness]);
   const filteredAndSortedCrew = useMemo(() => {
-    const filtered = filterCrew(crew, {
+    let filtered = filterCrew(crew, {
       searchTerm: debouncedSearchTerm,
       selectedVessel,
       selectedRank,
       selectedStatus,
       selectedSkill,
     });
+    if (accessReadinessEnabled && selectedAccessStatus !== "all") {
+      filtered = filtered.filter(
+        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus,
+      );
+    }
     return sortCrew(filtered, sortField, sortDirection, getVesselName);
   }, [
     crew,
@@ -214,10 +313,56 @@ export function useUnifiedCrewData() {
     selectedRank,
     selectedStatus,
     selectedSkill,
+    selectedAccessStatus,
+    accessReadinessEnabled,
+    accessReadinessByCrewId,
     sortField,
     sortDirection,
     vessels,
   ]);
+  const getFilteredSortedCrew = (
+    baseCrew: CrewListItem[],
+    options: {
+      includeStatusFilter?: boolean;
+      includeAccessFilter?: boolean;
+      includeFormerAccessRiskFilter?: boolean;
+    } = {},
+  ) => {
+    const includeStatusFilter = options.includeStatusFilter ?? true;
+    const includeAccessFilter = options.includeAccessFilter ?? accessReadinessEnabled;
+    const includeFormerAccessRiskFilter = options.includeFormerAccessRiskFilter ?? false;
+    let filtered = filterCrew(baseCrew, {
+      searchTerm: debouncedSearchTerm,
+      selectedVessel,
+      selectedRank,
+      selectedStatus: includeStatusFilter ? selectedStatus : "all",
+      selectedSkill,
+    });
+    if (includeAccessFilter && selectedAccessStatus !== "all") {
+      filtered = filtered.filter(
+        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus,
+      );
+    }
+    if (includeFormerAccessRiskFilter && selectedFormerAccessRisk !== "all") {
+      filtered = filtered.filter((member) => {
+        const risk = formerAccessRiskByCrewId.get(member.id);
+        if (!risk) return false;
+        switch (selectedFormerAccessRisk) {
+          case "linked_login":
+            return risk.hasLinkedLogin;
+          case "login_enabled":
+            return risk.loginEnabled;
+          case "vessel_access":
+            return risk.vesselAccessCount > 0;
+          case "hub_access":
+            return risk.hubAdmin;
+          default:
+            return true;
+        }
+      });
+    }
+    return sortCrew(filtered, sortField, sortDirection, getVesselName);
+  };
   const activeFilterCount = useMemo(
     () =>
       countActiveFilters({
@@ -226,8 +371,17 @@ export function useUnifiedCrewData() {
         selectedRank,
         selectedStatus,
         selectedSkill,
+        selectedAccessStatus: accessReadinessEnabled ? selectedAccessStatus : "all",
       }),
-    [searchTerm, selectedVessel, selectedRank, selectedStatus, selectedSkill]
+    [
+      searchTerm,
+      selectedVessel,
+      selectedRank,
+      selectedStatus,
+      selectedSkill,
+      selectedAccessStatus,
+      accessReadinessEnabled,
+    ]
   );
 
   const clearFilters = () => {
@@ -236,6 +390,8 @@ export function useUnifiedCrewData() {
     setSelectedRank("all");
     setSelectedStatus("all");
     setSelectedSkill("all");
+    setSelectedAccessStatus("all");
+    setSelectedFormerAccessRisk("all");
   };
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -245,10 +401,13 @@ export function useUnifiedCrewData() {
       setSortDirection("asc");
     }
   };
-  const handleExportCSV = () => {
-    const exportData = prepareCrewExportData(filteredAndSortedCrew, getVesselName);
+  const handleExportCSV = (
+    rows: CrewListItem[] = filteredAndSortedCrew,
+    label = "crew-roster",
+  ) => {
+    const exportData = prepareCrewExportData(rows, getVesselName);
     const success = exportToCSV(exportData as object as Parameters<typeof exportToCSV>[0], {
-      filename: `crew-roster-${new Date().toISOString().split("T")[0]}.csv`,
+      filename: `${label}-${new Date().toISOString().split("T")[0]}.csv`,
       columns: [
         "name",
         "rank",
@@ -290,6 +449,10 @@ export function useUnifiedCrewData() {
     setSelectedStatus,
     selectedSkill,
     setSelectedSkill,
+    selectedAccessStatus,
+    setSelectedAccessStatus,
+    selectedFormerAccessRisk,
+    setSelectedFormerAccessRisk,
     sortField,
     sortDirection,
     handleSort,
@@ -299,12 +462,26 @@ export function useUnifiedCrewData() {
     isAddSkillDialogOpen,
     isViewProfileDialogOpen,
     viewingCrew,
+    onboardingCrew,
+    profileInitialTab,
     editingCrew,
     skillAssignmentCrewId,
     crew,
     crewLoading,
     vessels,
     vesselsLoading,
+    accessReadinessEnabled,
+    accessReadiness,
+    accessReadinessLoading,
+    accessReadinessError,
+    accessReadinessByCrewId,
+    accessStatusCounts,
+    formerAccessRisks,
+    formerAccessRisksLoading,
+    formerAccessRisksError,
+    formerAccessRiskByCrewId,
+    formerAccessRiskCounts,
+    skippedLoginCrewIds,
     crewForm,
     skillForm,
     createCrewMutation,
@@ -323,9 +500,13 @@ export function useUnifiedCrewData() {
     closeCrewDialog,
     closeSkillDialog,
     closeProfileDialog,
+    closeOnboardingDialog,
+    skipOnboardingLogin,
+    openOnboardingProfileTab,
     getVesselName,
     stats,
     filteredAndSortedCrew,
+    getFilteredSortedCrew,
     activeFilterCount,
     clearFilters,
     handleExportCSV,

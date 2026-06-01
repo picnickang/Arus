@@ -94,7 +94,7 @@ export function CrewFormDialog({
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={d.crewForm.control}
                   name="rank"
@@ -191,7 +191,7 @@ export function CrewFormDialog({
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={d.crewForm.control}
                   name="maxHours7d"
@@ -277,7 +277,7 @@ export function CrewFormDialog({
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={d.crewForm.control}
                     name="phone"
@@ -317,7 +317,7 @@ export function CrewFormDialog({
                   <h5 className="text-xs font-medium text-muted-foreground mb-3">
                     Emergency Contact
                   </h5>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={d.crewForm.control}
                       name="emergencyContactName"
@@ -364,7 +364,7 @@ export function CrewFormDialog({
               Contract Dates
             </h4>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={d.crewForm.control}
                   name="startDate"

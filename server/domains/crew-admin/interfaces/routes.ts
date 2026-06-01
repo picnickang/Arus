@@ -86,6 +86,8 @@ const createCrewAccountSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   email: z.string().email().max(255).optional(),
   loginEnabled: z.boolean().optional(),
+  vesselId: z.string().min(1).nullable().optional(),
+  skipVesselAssignment: z.boolean().optional(),
 });
 const linkAccountSchema = z.object({ userId: z.string().min(1) });
 
@@ -105,6 +107,7 @@ function statusForError(code: string): number {
     case "ADMIN_ROLE_PROTECTED":
       return 409;
     case "INVALID_CONFIG":
+    case "INVALID_VESSEL":
     case "INVALID_USERNAME":
     case "INVALID_SUPERVISOR":
     case "INVALID_ROLE":
@@ -310,6 +313,28 @@ export function registerCrewAdminRoutes(
     withErrorHandling("list crew users", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       return res.json(await crewAdminService.listUsers(orgId));
+    }),
+  );
+
+  app.get(
+    "/api/admin/crew/access-readiness",
+    requireOrgId,
+    requireCrewAdminRole,
+    generalApiRateLimit,
+    withErrorHandling("list crew access readiness", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      return res.json(await crewAdminService.listCrewAccessReadiness(orgId));
+    }),
+  );
+
+  app.get(
+    "/api/admin/crew/former-access-risks",
+    requireOrgId,
+    requireCrewAdminRole,
+    generalApiRateLimit,
+    withErrorHandling("list former crew access risks", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      return res.json(await crewAdminService.listFormerCrewAccessRisks(orgId));
     }),
   );
 
@@ -603,6 +628,7 @@ export function registerCrewAdminRoutes(
         const account = await crewAdminService.createAndLinkAccount({
           orgId: authReq.orgId,
           crewId: req.params['crewId'],
+          assignedBy: authReq.user?.id,
           ...data,
         });
         await audit(authReq, "config_updated", "crew_account", account.id, {

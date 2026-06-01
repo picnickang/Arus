@@ -11,6 +11,7 @@ import {
   requireOrgIdAndValidateBody,
   AuthenticatedRequest,
 } from "../../../middleware/auth";
+import { requirePermission } from "../../permissions/middleware.js";
 import {
   withErrorHandling,
   sendCreated,
@@ -25,6 +26,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.get(
     "/api/crew",
     requireOrgId,
+    requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch crew", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -37,6 +39,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.post(
     "/api/crew",
     requireOrgIdAndValidateBody,
+    requirePermission("crew_members", "create"),
     writeOperationRateLimit,
     withErrorHandling("create crew member", async (req, res) => {
       const body = { ...req.body };
@@ -62,6 +65,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.get(
     "/api/crew/available-ranks",
     requireOrgId,
+    requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch available ranks", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -89,6 +93,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.get(
     "/api/crew/:id",
     requireOrgId,
+    requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch crew member", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -106,6 +111,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.put(
     "/api/crew/:id",
     requireOrgIdAndValidateBody,
+    requirePermission("crew_members", "edit"),
     writeOperationRateLimit,
     withErrorHandling("update crew member", async (req, res) => {
       const body = { ...req.body };
@@ -128,6 +134,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.delete(
     "/api/crew/:id",
     requireOrgId,
+    requirePermission("crew_members", "delete"),
     criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;

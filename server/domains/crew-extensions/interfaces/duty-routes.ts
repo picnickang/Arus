@@ -9,6 +9,8 @@ import { z } from "zod";
 import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
+import { requireOrgId } from "../../../middleware/auth";
+import { requirePermission } from "../../permissions/middleware.js";
 
 const crewIdSchema = z.object({ id: z.string().uuid("Invalid crew ID format") });
 
@@ -17,6 +19,8 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
 
   app.get(
     "/api/crew/:id/toggle-duty",
+    requireOrgId,
+    requirePermission("crew_members", "edit"),
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -31,6 +35,8 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
 
   app.post(
     "/api/crew/:id/toggle-duty",
+    requireOrgId,
+    requirePermission("crew_members", "edit"),
     crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);

@@ -12,12 +12,14 @@ import type {
   AssignmentInput,
   CrewUserSummary,
   CrewMemberRef,
+  CrewAccessMemberRef,
 } from "../domain/types";
 import { db } from "../../../db";
 import {
   roles,
   users,
   crew,
+  vessels,
   userVesselAssignments,
   userRoleAssignments,
   roleDashboardConfigs,
@@ -248,6 +250,15 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       assignedRoleNames,
       linkedCrew ? { id: linkedCrew.id, name: linkedCrew.name } : null,
     );
+  }
+
+  async vesselExists(orgId: string, vesselId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: vessels.id })
+      .from(vessels)
+      .where(and(eq(vessels.orgId, orgId), eq(vessels.id, vesselId)))
+      .limit(1);
+    return !!row;
   }
 
   async getAssignments(orgId: string, userId: string): Promise<VesselAssignmentEntity[]> {
@@ -516,9 +527,33 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
 
   /* -------------------------- Crew ↔ login link -------------------- */
 
+  async listCrewMembers(orgId: string): Promise<CrewAccessMemberRef[]> {
+    const rows = await db
+      .select({
+        id: crew.id,
+        name: crew.name,
+        email: crew.email,
+        userId: crew.userId,
+        vesselId: crew.vesselId,
+        active: crew.active,
+      })
+      .from(crew)
+      .where(eq(crew.orgId, orgId));
+    return rows.map((row) => ({
+      ...row,
+      active: row.active ?? true,
+    }));
+  }
+
   async findCrewMember(orgId: string, crewId: string): Promise<CrewMemberRef | undefined> {
     const [row] = await db
-      .select({ id: crew.id, name: crew.name, email: crew.email, userId: crew.userId })
+      .select({
+        id: crew.id,
+        name: crew.name,
+        email: crew.email,
+        userId: crew.userId,
+        vesselId: crew.vesselId,
+      })
       .from(crew)
       .where(and(eq(crew.orgId, orgId), eq(crew.id, crewId)))
       .limit(1);
@@ -527,7 +562,13 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
 
   async findCrewByUserId(orgId: string, userId: string): Promise<CrewMemberRef | undefined> {
     const [row] = await db
-      .select({ id: crew.id, name: crew.name, email: crew.email, userId: crew.userId })
+      .select({
+        id: crew.id,
+        name: crew.name,
+        email: crew.email,
+        userId: crew.userId,
+        vesselId: crew.vesselId,
+      })
       .from(crew)
       .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
       .limit(1);

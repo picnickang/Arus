@@ -2,11 +2,25 @@ import { z } from "zod";
 
 export const retireCrewSchema = z.object({
   notes: z.string().optional(),
+  disableLogin: z.boolean().optional().default(true),
+  removeVesselAccess: z.boolean().optional().default(true),
+  removeDashboardAccess: z.boolean().optional().default(true),
+  removeAdditionalRoles: z.boolean().optional().default(true),
+  downgradePrimaryRole: z.boolean().optional().default(true),
+  endDutyStatus: z.boolean().optional().default(true),
+  preserveRecords: z.boolean().optional().default(true),
 });
 
 export const cancelCrewContractSchema = z.object({
   notes: z.string().optional().default(""),
   applyPenalty: z.boolean().optional().default(false),
+  disableLogin: z.boolean().optional().default(true),
+  removeVesselAccess: z.boolean().optional().default(true),
+  removeDashboardAccess: z.boolean().optional().default(true),
+  removeAdditionalRoles: z.boolean().optional().default(true),
+  downgradePrimaryRole: z.boolean().optional().default(true),
+  endDutyStatus: z.boolean().optional().default(true),
+  preserveRecords: z.boolean().optional().default(true),
 });
 
 export const reinstateCrewSchema = z.object({

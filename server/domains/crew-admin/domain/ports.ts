@@ -11,6 +11,7 @@ import type {
   AssignmentInput,
   CrewUserSummary,
   CrewMemberRef,
+  CrewAccessMemberRef,
   RoleDashboardConfigView,
 } from "./types";
 
@@ -37,6 +38,7 @@ export interface ICrewAdminRepository {
   // Users + assignments
   listUsers(orgId: string): Promise<CrewUserSummary[]>;
   findUser(orgId: string, userId: string): Promise<CrewUserSummary | undefined>;
+  vesselExists(orgId: string, vesselId: string): Promise<boolean>;
   getAssignments(orgId: string, userId: string): Promise<VesselAssignmentEntity[]>;
   replaceAssignments(
     orgId: string,
@@ -78,6 +80,7 @@ export interface ICrewAdminRepository {
   countActiveAdminLogins(orgId: string, excludeUserId?: string): Promise<number>;
 
   // Crew ↔ login linkage (optional 1:1)
+  listCrewMembers(orgId: string): Promise<CrewAccessMemberRef[]>;
   findCrewMember(orgId: string, crewId: string): Promise<CrewMemberRef | undefined>;
   /** The crew member a given login is linked to, or undefined when unlinked. */
   findCrewByUserId(orgId: string, userId: string): Promise<CrewMemberRef | undefined>;

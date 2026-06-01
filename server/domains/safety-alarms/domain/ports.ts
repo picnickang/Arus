@@ -39,6 +39,7 @@ export interface ISafetyAlarmRepository {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
+    resolutionNote: string | undefined,
   ): Promise<SafetyAlarmEntity | undefined>;
 
   acknowledge(command: AcknowledgeAlarmCommand): Promise<SafetyAlarmAckEntity>;

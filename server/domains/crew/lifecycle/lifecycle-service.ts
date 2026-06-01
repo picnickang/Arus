@@ -3,6 +3,8 @@ import { crewLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { mqttReliableSync } from "../../../mqtt-reliable-sync";
 import { logger } from "../../../utils/logger.js";
+import { crewAdminService } from "../../crew-admin/service";
+import type { OffboardingAccessRevocationResult } from "../../crew-admin/domain/types";
 import type {
   RetireCrewInput,
   CancelCrewContractInput,
@@ -10,13 +12,44 @@ import type {
   UpdateEmploymentHistoryInput,
 } from "./lifecycle-validation";
 
+type CrewLifecycleWithOffboardingResult = SelectCrew & {
+  offboardingResult: OffboardingAccessRevocationResult;
+};
+
+function formatOffboardingAuditNote(
+  notes: string | undefined,
+  result: OffboardingAccessRevocationResult,
+): string {
+  const summary = [
+    "Offboarding access review:",
+    `- Login disabled: ${result.loginDisabled}`,
+    `- Vessel access removed: ${result.vesselAccessRemoved}`,
+    `- Dashboard/admin access removed: ${result.dashboardAccessRemoved}`,
+    `- Additional roles removed: ${result.additionalRolesRemoved}`,
+    `- Primary role downgraded: ${result.primaryRoleDowngraded}`,
+    `- Duty ended: ${result.dutyEnded}`,
+    `- Records preserved: ${result.recordsPreserved}`,
+  ];
+  if (result.previousRole) {
+    summary.push(`- Previous primary role: ${result.previousRole}`);
+  }
+  if (result.previousAdditionalRoles.length > 0) {
+    summary.push(`- Previous additional roles: ${result.previousAdditionalRoles.join(", ")}`);
+  }
+  if (result.failures.length > 0) {
+    summary.push(`- Failures: ${result.failures.join("; ")}`);
+  }
+  const trimmedNotes = notes?.trim();
+  return trimmedNotes ? `${trimmedNotes}\n\n${summary.join("\n")}` : summary.join("\n");
+}
+
 export class CrewLifecycleService {
   async retireCrew(
     id: string,
     orgId: string,
     input: RetireCrewInput,
     userId?: string
-  ): Promise<SelectCrew> {
+  ): Promise<CrewLifecycleWithOffboardingResult> {
     const existingCrew = await crewLifecycleRepository.findActiveCrewById(id, orgId);
     if (!existingCrew) {
       throw new Error(`Active crew member not found: ${id}`);
@@ -27,6 +60,14 @@ export class CrewLifecycleService {
     }
 
     const terminationDate = new Date();
+    const accessRevocation = await crewAdminService.revokeCrewAccessForOffboarding(
+      orgId,
+      id,
+      input,
+      userId,
+    );
+
+    const offboardingAuditNote = formatOffboardingAuditNote(input.notes, accessRevocation);
 
     await crewLifecycleRepository.createEmploymentHistory({
       orgId: existingCrew.orgId,
@@ -34,7 +75,7 @@ export class CrewLifecycleService {
       startDate: existingCrew.startDate ?? existingCrew.createdAt ?? new Date(),
       endDate: terminationDate,
       terminationType: "retired",
-      terminationNotes: input.notes,
+      terminationNotes: offboardingAuditNote,
       contractPenalty: null,
       vesselId: existingCrew.vesselId,
       rank: existingCrew.rank,
@@ -45,15 +86,17 @@ export class CrewLifecycleService {
       orgId,
       "retired",
       terminationDate,
-      input.notes
+      offboardingAuditNote,
+      input.endDutyStatus,
     );
 
     await recordAndPublish("crew", id, "update", updatedCrew, userId);
+    logger.info("CrewLifecycleService", "Offboarding access revocation applied", accessRevocation);
     mqttReliableSync.publishCrewChange("update", updatedCrew).catch((err) => {
       logger.error("CrewLifecycleService", "Failed to publish crew retire to MQTT", err);
     });
 
-    return updatedCrew;
+    return { ...updatedCrew, offboardingResult: accessRevocation };
   }
 
   async cancelCrewContract(
@@ -61,7 +104,7 @@ export class CrewLifecycleService {
     orgId: string,
     input: CancelCrewContractInput,
     userId?: string
-  ): Promise<SelectCrew> {
+  ): Promise<CrewLifecycleWithOffboardingResult> {
     const existingCrew = await crewLifecycleRepository.findActiveCrewById(id, orgId);
     if (!existingCrew) {
       throw new Error(`Active crew member not found: ${id}`);
@@ -73,6 +116,14 @@ export class CrewLifecycleService {
 
     const terminationDate = new Date();
     const penalty = input.applyPenalty ? existingCrew.contractPenalty : null;
+    const accessRevocation = await crewAdminService.revokeCrewAccessForOffboarding(
+      orgId,
+      id,
+      input,
+      userId,
+    );
+
+    const offboardingAuditNote = formatOffboardingAuditNote(input.notes, accessRevocation);
 
     await crewLifecycleRepository.createEmploymentHistory({
       orgId: existingCrew.orgId,
@@ -80,7 +131,7 @@ export class CrewLifecycleService {
       startDate: existingCrew.startDate ?? existingCrew.createdAt ?? new Date(),
       endDate: terminationDate,
       terminationType: "cancelled",
-      terminationNotes: input.notes,
+      terminationNotes: offboardingAuditNote,
       contractPenalty: penalty,
       vesselId: existingCrew.vesselId,
       rank: existingCrew.rank,
@@ -91,15 +142,17 @@ export class CrewLifecycleService {
       orgId,
       "cancelled",
       terminationDate,
-      input.notes
+      offboardingAuditNote,
+      input.endDutyStatus,
     );
 
     await recordAndPublish("crew", id, "update", updatedCrew, userId);
+    logger.info("CrewLifecycleService", "Offboarding access revocation applied", accessRevocation);
     mqttReliableSync.publishCrewChange("update", updatedCrew).catch((err) => {
       logger.error("CrewLifecycleService", "Failed to publish crew cancel to MQTT", err);
     });
 
-    return updatedCrew;
+    return { ...updatedCrew, offboardingResult: accessRevocation };
   }
 
   async reinstateCrew(

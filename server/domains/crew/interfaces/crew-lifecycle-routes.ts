@@ -10,6 +10,7 @@ import {
 import { asyncHandler } from "../../../lib/async-handler";
 import { logger } from "../../../utils/logger.js";
 import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { requirePermission } from "../../permissions/middleware.js";
 import { z } from "zod";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
@@ -20,6 +21,7 @@ const router = Router();
 router.post(
   "/:id/retire",
   requireOrgId,
+  requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -37,6 +39,7 @@ router.post(
 router.post(
   "/:id/cancel",
   requireOrgId,
+  requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -54,6 +57,7 @@ router.post(
 router.post(
   "/:id/reinstate",
   requireOrgId,
+  requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -71,6 +75,7 @@ router.post(
 router.get(
   "/former",
   requireOrgId,
+  requirePermission("crew_members", "view"),
   asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;
@@ -82,6 +87,7 @@ router.get(
 router.get(
   "/:id/history",
   requireOrgId,
+  requirePermission("crew_members", "view"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -94,6 +100,7 @@ router.get(
 router.put(
   "/history/:historyId",
   requireOrgId,
+  requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { historyId } = historyIdParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -110,6 +117,7 @@ router.put(
 router.delete(
   "/history/:historyId",
   requireOrgId,
+  requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
     const { historyId } = historyIdParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -125,6 +133,7 @@ router.delete(
 router.delete(
   "/:id/former",
   requireOrgId,
+  requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
     const authReq = req as AuthenticatedRequest;
@@ -141,6 +150,7 @@ router.delete(
 router.delete(
   "/bulk",
   requireOrgId,
+  requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     const orgId = authReq.orgId;

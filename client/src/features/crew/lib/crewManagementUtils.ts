@@ -1,4 +1,17 @@
 import { z } from "zod";
+import type {
+  CrewAccessReadiness,
+  CrewAccessReadinessStatus,
+  FormerCrewAccessRisk,
+  FormerCrewAccessRiskFilter,
+} from "@shared/crew-access-readiness";
+
+export type {
+  CrewAccessReadiness,
+  CrewAccessReadinessStatus,
+  FormerCrewAccessRisk,
+  FormerCrewAccessRiskFilter,
+};
 
 export interface CrewListItem {
   id: string;
@@ -24,6 +37,29 @@ export interface CrewListItem {
   terminationDate?: string;
   terminationNotes?: string;
 }
+
+export type CrewProfileTab = "details" | "history" | "documents" | "notifications" | "access";
+
+export const CREW_ACCESS_STATUS_LABELS: Record<CrewAccessReadinessStatus, string> = {
+  ready: "Ready",
+  no_login: "No login",
+  login_disabled: "Login disabled",
+  no_password_set: "No password set",
+  temporary_password_issued: "Temporary password issued",
+  password_change_required: "Password change required",
+  password_required: "Password required",
+  no_vessel_scope: "No vessel scope",
+  no_dashboard: "No dashboard",
+  fleet_scope_review: "Fleet access review",
+};
+
+export const FORMER_ACCESS_RISK_LABELS: Record<FormerCrewAccessRiskFilter, string> = {
+  all: "All former crew",
+  linked_login: "Former with linked login",
+  login_enabled: "Former with login enabled",
+  vessel_access: "Former with vessel access",
+  hub_access: "Former with admin/hub access",
+};
 
 export interface VesselListItem {
   id: string;
@@ -199,6 +235,7 @@ export interface CrewFilterOptions {
   selectedRank: string;
   selectedStatus: string;
   selectedSkill: string;
+  selectedAccessStatus?: string;
 }
 
 export function filterCrew(crew: CrewListItem[], filters: CrewFilterOptions): CrewListItem[] {
@@ -305,6 +342,9 @@ export function countActiveFilters(filters: CrewFilterOptions): number {
     count++;
   }
   if (filters.selectedSkill !== "all") {
+    count++;
+  }
+  if (filters.selectedAccessStatus && filters.selectedAccessStatus !== "all") {
     count++;
   }
   return count;

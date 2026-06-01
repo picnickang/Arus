@@ -90,6 +90,7 @@ export function UserAssignmentTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crew"] });
       setLinkUserId(null);
       setLinkCrewId("");

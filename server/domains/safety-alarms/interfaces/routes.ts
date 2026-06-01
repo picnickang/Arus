@@ -11,21 +11,11 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { safetyAlarmService, AlarmValidationError } from "../service";
 import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
-import { requireRole } from "../../../middleware/role-auth";
+import { requirePermission } from "../../permissions/middleware.js";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
 import { broadcastSafetyAlarmEvent } from "../../../lib/safety-alarm-events";
 import { ALARM_SEVERITIES, ALARM_MODES } from "@shared/role-dashboard";
-
-const SAFETY_ALARM_WRITE_ROLES = [
-  "system_admin",
-  "company_admin",
-  "chief_engineer",
-  "fleet_manager",
-  "captain",
-  "admin",
-] as const;
-const requireSafetyAlarmWriteRole = requireRole(...SAFETY_ALARM_WRITE_ROLES);
 
 const severityEnum = z.enum(ALARM_SEVERITIES);
 const modeEnum = z.enum(ALARM_MODES);
@@ -59,6 +49,9 @@ const triggerSchema = z.object({
   mode: modeEnum.optional(),
   confirmed: z.boolean().optional(),
 });
+const clearSchema = z.object({
+  resolutionNote: z.string().max(1000).optional(),
+});
 
 function statusForError(code: string): number {
   switch (code) {
@@ -66,6 +59,8 @@ function statusForError(code: string): number {
       return 404;
     case "CONFIRMATION_REQUIRED":
       return 428;
+    case "RESOLUTION_NOTE_REQUIRED":
+      return 422;
     case "RESERVED_KEY":
     case "PROTECTED_TYPE":
       return 409;
@@ -97,7 +92,7 @@ export function registerSafetyAlarmRoutes(
   app.get(
     "/api/admin/safety-alarm-types",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarm_types", "view"),
     generalApiRateLimit,
     withErrorHandling("list safety alarm types", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -117,7 +112,7 @@ export function registerSafetyAlarmRoutes(
   app.post(
     "/api/admin/safety-alarm-types",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("create safety alarm type", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
@@ -149,7 +144,7 @@ export function registerSafetyAlarmRoutes(
   app.patch(
     "/api/admin/safety-alarm-types/:id",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("update safety alarm type", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
@@ -177,7 +172,7 @@ export function registerSafetyAlarmRoutes(
   app.delete(
     "/api/admin/safety-alarm-types/:id",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("delete safety alarm type", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
@@ -203,7 +198,7 @@ export function registerSafetyAlarmRoutes(
   app.get(
     "/api/admin/safety-alarms",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarms", "view"),
     generalApiRateLimit,
     withErrorHandling("list safety alarms", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -227,7 +222,7 @@ export function registerSafetyAlarmRoutes(
   app.post(
     "/api/admin/safety-alarms",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarms", "trigger"),
     writeLimit,
     withErrorHandling("trigger safety alarm", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
@@ -270,16 +265,18 @@ export function registerSafetyAlarmRoutes(
   app.post(
     "/api/admin/safety-alarms/:id/clear",
     requireOrgId,
-    requireSafetyAlarmWriteRole,
+    requirePermission("safety_alarms", "clear"),
     writeLimit,
     withErrorHandling("clear safety alarm", async (req: Request, res: Response) => {
       const authReq = req as AuthenticatedRequest;
+      const { resolutionNote } = clearSchema.parse(req.body);
       try {
         const cleared = await safetyAlarmService.clearAlarm(
           authReq.orgId,
           req.params['id'],
           authReq.user?.id,
           authReq.user?.name ?? authReq.user?.email,
+          resolutionNote,
         );
         await auditService.logEvent({
           orgId: authReq.orgId,
@@ -289,7 +286,7 @@ export function registerSafetyAlarmRoutes(
           entityId: cleared.id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
-          newState: { status: "cleared" },
+          newState: { status: "cleared", resolutionNote: resolutionNote?.trim() || undefined },
         });
         broadcastSafetyAlarmEvent(authReq.orgId, "safety_alarm_cleared", {
           alarmId: cleared.id,

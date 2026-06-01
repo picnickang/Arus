@@ -18,6 +18,10 @@ import type {
   RoleDashboardConfigView,
   SetCredentialsCommand,
   CreateCrewAccountCommand,
+  CrewAccessReadiness,
+  CrewAccessReadinessStatus,
+  FormerCrewAccessRisk,
+  OffboardingAccessRevocationResult,
 } from "../domain/types";
 import {
   ADMIN_CAPABLE_ROLE_KEYS,
@@ -35,6 +39,8 @@ import {
 const BCRYPT_COST = 12;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
+const OFFBOARDING_SAFE_ROLE = "viewer";
+type OffboardingRevocationStepState = OffboardingAccessRevocationResult["loginDisabled"];
 
 export class CrewAdminError extends Error {
   constructor(
@@ -63,6 +69,14 @@ function isBuiltinRoleName(name: string): boolean {
     isAdminCapableRole(name) ||
     (BASE_ROLE_NAMES as readonly string[]).includes(name)
   );
+}
+
+function humanizeRoleName(name: string): string {
+  return name
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export class CrewAdminApplicationService {
@@ -203,6 +217,221 @@ export class CrewAdminApplicationService {
     return this.repo.listUsers(orgId);
   }
 
+  async listCrewAccessReadiness(orgId: string): Promise<CrewAccessReadiness[]> {
+    const [crewMembers, users, roles, storedConfigs] = await Promise.all([
+      this.repo.listCrewMembers(orgId),
+      this.repo.listUsers(orgId),
+      this.repo.listRoles(orgId),
+      this.repo.listStoredConfigs(orgId),
+    ]);
+
+    const usersById = new Map<string, CrewUserSummary>();
+    for (const user of users) {
+      usersById.set(user.id, user);
+    }
+
+    const rolesByName = new Map<string, RoleSummary>();
+    for (const role of roles) {
+      rolesByName.set(role.name, role);
+    }
+
+    const configByRoleName = new Map<string, RoleDashboardConfig>();
+    for (const role of roles) {
+      configByRoleName.set(
+        role.name,
+        storedConfigs.get(role.id) ?? defaultConfigForRole(role.name),
+      );
+    }
+
+    return crewMembers
+      .filter((member) => member.active)
+      .map((member): CrewAccessReadiness => {
+        if (!member.userId) {
+          return {
+            crewId: member.id,
+            crewName: member.name,
+            userId: null,
+            status: "no_login",
+            reasons: ["No login account is linked to this crew member."],
+            role: null,
+            roleDisplayName: null,
+            additionalRoles: [],
+            loginEnabled: false,
+            mustChangePassword: false,
+            hasPassword: false,
+            vesselScope: "none",
+            dashboardWidgetCount: 0,
+            dashboardTaskSourceCount: 0,
+            lastLoginAt: null,
+          };
+        }
+
+        const user = usersById.get(member.userId);
+        if (!user) {
+          return {
+            crewId: member.id,
+            crewName: member.name,
+            userId: member.userId,
+            status: "no_login",
+            reasons: ["The linked login account could not be loaded for this organization."],
+            role: null,
+            roleDisplayName: null,
+            additionalRoles: [],
+            loginEnabled: false,
+            mustChangePassword: false,
+            hasPassword: false,
+            vesselScope: "none",
+            dashboardWidgetCount: 0,
+            dashboardTaskSourceCount: 0,
+            lastLoginAt: null,
+          };
+        }
+
+        const effectiveRoleNames = [...new Set([user.role, ...user.assignedRoleNames])];
+        const effectiveConfig = mergeDashboardConfigs(
+          effectiveRoleNames.map(
+            (roleName) => configByRoleName.get(roleName) ?? defaultConfigForRole(roleName),
+          ),
+        );
+        const activeAssignments = user.assignments.filter((assignment) => assignment.isActive);
+        const hasFleetScope =
+          effectiveConfig.visibilityScope === "fleet" ||
+          activeAssignments.some((assignment) => assignment.vesselId === null);
+        const vesselScope: CrewAccessReadiness["vesselScope"] = hasFleetScope
+          ? "fleet"
+          : activeAssignments.length > 0
+            ? "assigned"
+            : "none";
+
+        const reasons: string[] = [];
+        let status: CrewAccessReadinessStatus = "ready";
+
+        if (!user.isActive || !user.loginEnabled) {
+          status = "login_disabled";
+          reasons.push(user.isActive ? "Login is disabled." : "User account is inactive.");
+        } else if (!user.hasPassword) {
+          status = "no_password_set";
+          reasons.push("No password has been set for this login.");
+        } else if (user.mustChangePassword) {
+          status = user.lastLoginAt ? "password_change_required" : "temporary_password_issued";
+          reasons.push(
+            user.lastLoginAt
+              ? "User must change their password before continuing."
+              : "Temporary password issued; user must change it on first login.",
+          );
+        } else if (
+          effectiveConfig.widgets.length === 0 &&
+          effectiveConfig.taskSources.length === 0
+        ) {
+          status = "no_dashboard";
+          reasons.push("The effective dashboard has no widgets or task sources.");
+        } else if (vesselScope === "none") {
+          status = "no_vessel_scope";
+          reasons.push("No active vessel or fleet assignment is configured.");
+        } else if (
+          vesselScope === "fleet" &&
+          effectiveConfig.visibilityScope !== "fleet" &&
+          activeAssignments.some((assignment) => assignment.vesselId === null)
+        ) {
+          status = "fleet_scope_review";
+          reasons.push("Fleet-wide vessel access is configured; review that this scope is intended.");
+        }
+
+        if (reasons.length === 0) {
+          reasons.push("Login, role, dashboard, and vessel scope are ready.");
+        }
+
+        return {
+          crewId: member.id,
+          crewName: member.name,
+          userId: user.id,
+          status,
+          reasons,
+          role: user.role,
+          roleDisplayName: rolesByName.get(user.role)?.displayName ?? humanizeRoleName(user.role),
+          additionalRoles: user.assignedRoleNames,
+          loginEnabled: user.loginEnabled,
+          mustChangePassword: user.mustChangePassword,
+          hasPassword: user.hasPassword,
+          vesselScope,
+          dashboardWidgetCount: effectiveConfig.widgets.length,
+          dashboardTaskSourceCount: effectiveConfig.taskSources.length,
+          lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        };
+      });
+  }
+
+  async listFormerCrewAccessRisks(orgId: string): Promise<FormerCrewAccessRisk[]> {
+    const [crewMembers, users] = await Promise.all([
+      this.repo.listCrewMembers(orgId),
+      this.repo.listUsers(orgId),
+    ]);
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    return crewMembers
+      .filter((member) => !member.active)
+      .map((member): FormerCrewAccessRisk => {
+        const user = member.userId ? usersById.get(member.userId) : undefined;
+        if (!member.userId || !user) {
+          return {
+            crewId: member.id,
+            crewName: member.name,
+            userId: member.userId ?? null,
+            hasLinkedLogin: !!member.userId,
+            accountActive: false,
+            loginEnabled: false,
+            vesselAccessCount: 0,
+            hasFleetAccess: false,
+            hubAdmin: false,
+            hubAccess: null,
+            role: null,
+            additionalRoles: [],
+            hasHighRiskRole: false,
+            hasAccessRisk: false,
+            reasons: member.userId
+              ? ["Linked login could not be loaded for this organization."]
+              : ["No linked login."],
+          };
+        }
+
+        const activeAssignments = user.assignments.filter((assignment) => assignment.isActive);
+        const hasFleetAccess = activeAssignments.some((assignment) => assignment.vesselId === null);
+        const hasHighRiskRole =
+          isAdminGrantEligibleRole(user.role) ||
+          user.assignedRoleNames.some((roleName) => isAdminGrantEligibleRole(roleName));
+        const reasons: string[] = [];
+        if (user.isActive && user.loginEnabled) reasons.push("Linked login is still enabled.");
+        if (activeAssignments.length > 0) reasons.push("Vessel or fleet scope remains assigned.");
+        if (user.hubAdmin) reasons.push("Admin-hub access remains granted.");
+        if (user.assignedRoleNames.length > 0) reasons.push("Additional roles remain assigned.");
+        if (hasHighRiskRole) reasons.push("High-risk role remains assigned.");
+        if (reasons.length === 0) reasons.push("No active access risk detected.");
+
+        return {
+          crewId: member.id,
+          crewName: member.name,
+          userId: user.id,
+          hasLinkedLogin: true,
+          accountActive: user.isActive,
+          loginEnabled: user.isActive && user.loginEnabled,
+          vesselAccessCount: activeAssignments.length,
+          hasFleetAccess,
+          hubAdmin: user.hubAdmin || isSuperAdminRole(user.role),
+          hubAccess: user.hubAccess,
+          role: user.role,
+          additionalRoles: user.assignedRoleNames,
+          hasHighRiskRole,
+          hasAccessRisk:
+            (user.isActive && user.loginEnabled) ||
+            activeAssignments.length > 0 ||
+            user.hubAdmin ||
+            user.assignedRoleNames.length > 0 ||
+            hasHighRiskRole,
+          reasons,
+        };
+      });
+  }
+
   async getAssignments(orgId: string, userId: string): Promise<VesselAssignmentEntity[]> {
     return this.repo.getAssignments(orgId, userId);
   }
@@ -217,6 +446,12 @@ export class CrewAdminApplicationService {
     if (!user) {
       throw new CrewAdminError("User not found", "NOT_FOUND");
     }
+    await this.assertAssignableVessels(
+      orgId,
+      assignments
+        .map((assignment) => assignment.vesselId)
+        .filter((vesselId): vesselId is string => typeof vesselId === "string"),
+    );
     return this.repo.replaceAssignments(orgId, userId, assignments, assignedBy);
   }
 
@@ -468,6 +703,16 @@ export class CrewAdminApplicationService {
     const role = (command.role ?? "viewer").trim();
     await this.assertAssignableRole(command.orgId, role);
 
+    const assignmentVesselId =
+      !command.skipVesselAssignment
+        ? command.vesselId !== undefined
+          ? command.vesselId
+          : member.vesselId ?? undefined
+        : undefined;
+    if (typeof assignmentVesselId === "string") {
+      await this.assertAssignableVessel(command.orgId, assignmentVesselId);
+    }
+
     this.assertPasswordPolicy(command.password);
     const passwordHash = await bcrypt.hash(command.password, BCRYPT_COST);
 
@@ -483,6 +728,15 @@ export class CrewAdminApplicationService {
       mustChangePassword: true,
     });
     await this.repo.setCrewUserLink(command.orgId, command.crewId, userId);
+
+    if (assignmentVesselId !== undefined) {
+      await this.repo.replaceAssignments(
+        command.orgId,
+        userId,
+        [{ vesselId: assignmentVesselId }],
+        command.assignedBy,
+      );
+    }
 
     const created = await this.repo.findUser(command.orgId, userId);
     if (!created) {
@@ -526,6 +780,122 @@ export class CrewAdminApplicationService {
     await this.repo.setCrewUserLink(orgId, crewId, null);
   }
 
+  async revokeCrewAccessForOffboarding(
+    orgId: string,
+    crewId: string,
+    options: {
+      disableLogin?: boolean | undefined;
+      removeVesselAccess?: boolean | undefined;
+      removeDashboardAccess?: boolean | undefined;
+      removeAdditionalRoles?: boolean | undefined;
+      downgradePrimaryRole?: boolean | undefined;
+      endDutyStatus?: boolean | undefined;
+      preserveRecords?: boolean | undefined;
+    },
+    performedBy: string | undefined,
+  ): Promise<OffboardingAccessRevocationResult> {
+    const account = await this.getCrewAccount(orgId, crewId);
+    if (!account) {
+      return {
+        userId: null,
+        loginDisabled: "not_applicable",
+        vesselAccessRemoved: "not_applicable",
+        dashboardAccessRemoved: "not_applicable",
+        additionalRolesRemoved: "not_applicable",
+        primaryRoleDowngraded: "not_applicable",
+        dutyEnded: options.endDutyStatus ?? true ? "yes" : "no",
+        recordsPreserved: "yes",
+        previousRole: null,
+        previousAdditionalRoles: [],
+        previousVesselAccessCount: 0,
+        previousHubAdmin: false,
+        failures: [],
+      };
+    }
+
+    const result: OffboardingAccessRevocationResult = {
+      userId: account.id,
+      loginDisabled: options.disableLogin ?? true ? "no" : "skipped",
+      vesselAccessRemoved: options.removeVesselAccess ?? true ? "no" : "skipped",
+      dashboardAccessRemoved: options.removeDashboardAccess ?? true ? "no" : "skipped",
+      additionalRolesRemoved: options.removeAdditionalRoles ?? true ? "no" : "skipped",
+      primaryRoleDowngraded: options.downgradePrimaryRole ?? true ? "no" : "skipped",
+      dutyEnded: options.endDutyStatus ?? true ? "yes" : "no",
+      recordsPreserved: "yes",
+      previousRole: account.role,
+      previousAdditionalRoles: account.assignedRoleNames,
+      previousVesselAccessCount: account.assignments.filter((assignment) => assignment.isActive).length,
+      previousHubAdmin: account.hubAdmin || isSuperAdminRole(account.role),
+      failures: [],
+    };
+
+    const runStep = async (
+      label: string,
+      assign: (value: OffboardingRevocationStepState) => void,
+      action: () => Promise<void>,
+    ) => {
+      try {
+        await action();
+        assign("yes");
+      } catch (error) {
+        assign("failed");
+        result.failures.push(
+          `${label}: ${error instanceof Error ? error.message : "failed"}`,
+        );
+      }
+    };
+
+    if (options.disableLogin ?? true) {
+      await runStep("Disable login", (value) => (result.loginDisabled = value), () =>
+        this.setLoginEnabled(orgId, account.id, false),
+      );
+    }
+    if (options.removeVesselAccess ?? true) {
+      if (result.previousVesselAccessCount === 0) {
+        result.vesselAccessRemoved = "not_applicable";
+      } else {
+        await runStep("Remove vessel access", (value) => (result.vesselAccessRemoved = value), () =>
+          this.setAssignments(orgId, account.id, [], performedBy).then(() => undefined),
+        );
+      }
+    }
+    if (options.removeDashboardAccess ?? true) {
+      if (!result.previousHubAdmin) {
+        result.dashboardAccessRemoved = "not_applicable";
+      } else {
+        await runStep(
+          "Remove dashboard/admin access",
+          (value) => (result.dashboardAccessRemoved = value),
+          () => this.repo.setHubAccessGrant(orgId, account.id, false, null),
+        );
+      }
+    }
+    if (options.removeAdditionalRoles ?? true) {
+      if (account.assignedRoleNames.length === 0) {
+        result.additionalRolesRemoved = "not_applicable";
+      } else {
+        await runStep(
+          "Remove additional roles",
+          (value) => (result.additionalRolesRemoved = value),
+          () => this.repo.replaceRoleAssignments(orgId, account.id, [], performedBy),
+        );
+      }
+    }
+    if (options.downgradePrimaryRole ?? true) {
+      if (account.role === OFFBOARDING_SAFE_ROLE) {
+        result.primaryRoleDowngraded = "not_applicable";
+      } else {
+        await runStep(
+          "Downgrade primary role",
+          (value) => (result.primaryRoleDowngraded = value),
+          () => this.changeRole(orgId, account.id, OFFBOARDING_SAFE_ROLE),
+        );
+      }
+    }
+
+    return result;
+  }
+
   /* ------------------------------ Helpers -------------------------- */
 
   /**
@@ -542,6 +912,18 @@ export class CrewAdminApplicationService {
     const custom = await this.repo.findRoleByName(orgId, name);
     if (custom && custom.isActive) return;
     throw new CrewAdminError("That role is not assignable", "INVALID_ROLE");
+  }
+
+  private async assertAssignableVessels(orgId: string, vesselIds: string[]): Promise<void> {
+    const unique = [...new Set(vesselIds)];
+    await Promise.all(unique.map((vesselId) => this.assertAssignableVessel(orgId, vesselId)));
+  }
+
+  private async assertAssignableVessel(orgId: string, vesselId: string): Promise<void> {
+    const exists = await this.repo.vesselExists(orgId, vesselId);
+    if (!exists) {
+      throw new CrewAdminError("Vessel not found for this organization", "INVALID_VESSEL");
+    }
   }
 
   private async assertNotLastAdmin(orgId: string, excludeUserId: string): Promise<void> {

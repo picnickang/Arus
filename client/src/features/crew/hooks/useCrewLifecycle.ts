@@ -35,6 +35,36 @@ export interface FormerCrewMember extends CrewMemberBasic {
   employmentPeriods: EmploymentHistoryRecord[];
 }
 
+interface OffboardingResult {
+  loginDisabled: string;
+  vesselAccessRemoved: string;
+  dashboardAccessRemoved: string;
+  additionalRolesRemoved: string;
+  primaryRoleDowngraded: string;
+  dutyEnded: string;
+  recordsPreserved: string;
+  failures: string[];
+}
+
+function formatOffboardingResult(result: OffboardingResult | undefined): string {
+  if (!result) {
+    return "Employment record has been updated";
+  }
+  const lines = [
+    `Login disabled: ${result.loginDisabled}`,
+    `Vessel access removed: ${result.vesselAccessRemoved}`,
+    `Dashboard/admin access removed: ${result.dashboardAccessRemoved}`,
+    `Additional roles removed: ${result.additionalRolesRemoved}`,
+    `Primary role downgraded: ${result.primaryRoleDowngraded}`,
+    `Duty ended: ${result.dutyEnded}`,
+    `Records preserved: ${result.recordsPreserved}`,
+  ];
+  if (result.failures.length > 0) {
+    lines.push(`Failures: ${result.failures.join("; ")}`);
+  }
+  return lines.join("\n");
+}
+
 export const lifecycleKeys = {
   former: () => ["/api/crew/former"] as const,
   history: (crewId: string) => ["/api/crew", crewId, "history"] as const,
@@ -60,15 +90,54 @@ export function useRetireCrew() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ crewId, notes }: { crewId: string; notes?: string | undefined }) => {
-      return apiRequest("POST", `/api/crew/${crewId}/retire`, { notes });
+    mutationFn: async ({
+      crewId,
+      notes,
+      disableLogin,
+      removeVesselAccess,
+      removeDashboardAccess,
+      removeAdditionalRoles,
+      downgradePrimaryRole,
+      endDutyStatus,
+      preserveRecords,
+    }: {
+      crewId: string;
+      notes?: string | undefined;
+      disableLogin?: boolean | undefined;
+      removeVesselAccess?: boolean | undefined;
+      removeDashboardAccess?: boolean | undefined;
+      removeAdditionalRoles?: boolean | undefined;
+      downgradePrimaryRole?: boolean | undefined;
+      endDutyStatus?: boolean | undefined;
+      preserveRecords?: boolean | undefined;
+    }) => {
+      return apiRequest("POST", `/api/crew/${crewId}/retire`, {
+        notes,
+        disableLogin,
+        removeVesselAccess,
+        removeDashboardAccess,
+        removeAdditionalRoles,
+        downgradePrimaryRole,
+        endDutyStatus,
+        preserveRecords,
+      });
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data: { offboardingResult?: OffboardingResult } | unknown, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.all });
       queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
-      toast({ title: "Crew member retired", description: "Employment record has been updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/former-access-risks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
+      toast({
+        title: "Crew member retired",
+        description: formatOffboardingResult(
+          typeof data === "object" && data !== null && "offboardingResult" in data
+            ? (data.offboardingResult as OffboardingResult)
+            : undefined,
+        ),
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -89,19 +158,53 @@ export function useCancelContract() {
       crewId,
       notes,
       applyPenalty,
+      disableLogin,
+      removeVesselAccess,
+      removeDashboardAccess,
+      removeAdditionalRoles,
+      downgradePrimaryRole,
+      endDutyStatus,
+      preserveRecords,
     }: {
       crewId: string;
       notes?: string | undefined;
       applyPenalty?: boolean | undefined;
+      disableLogin?: boolean | undefined;
+      removeVesselAccess?: boolean | undefined;
+      removeDashboardAccess?: boolean | undefined;
+      removeAdditionalRoles?: boolean | undefined;
+      downgradePrimaryRole?: boolean | undefined;
+      endDutyStatus?: boolean | undefined;
+      preserveRecords?: boolean | undefined;
     }) => {
-      return apiRequest("POST", `/api/crew/${crewId}/cancel`, { notes, applyPenalty });
+      return apiRequest("POST", `/api/crew/${crewId}/cancel`, {
+        notes,
+        applyPenalty,
+        disableLogin,
+        removeVesselAccess,
+        removeDashboardAccess,
+        removeAdditionalRoles,
+        downgradePrimaryRole,
+        endDutyStatus,
+        preserveRecords,
+      });
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data: { offboardingResult?: OffboardingResult } | unknown, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.all });
       queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
-      toast({ title: "Contract cancelled", description: "Employment record has been updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/former-access-risks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
+      toast({
+        title: "Contract cancelled",
+        description: formatOffboardingResult(
+          typeof data === "object" && data !== null && "offboardingResult" in data
+            ? (data.offboardingResult as OffboardingResult)
+            : undefined,
+        ),
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -134,6 +237,8 @@ export function useReinstateCrew() {
       queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/former-access-risks"] });
       toast({
         title: "Crew member reinstated",
         description: "They are now back on the active roster",

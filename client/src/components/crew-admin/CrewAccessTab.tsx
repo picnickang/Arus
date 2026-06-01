@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,15 @@ interface CrewAccessTabProps {
   crewId: string;
   crewName: string;
   crewEmail?: string | null;
+  crewVesselId?: string | null;
 }
 
-export function CrewAccessTab({ crewId, crewName, crewEmail }: CrewAccessTabProps) {
+export function CrewAccessTab({
+  crewId,
+  crewName,
+  crewEmail,
+  crewVesselId,
+}: CrewAccessTabProps) {
   const { toast } = useToast();
   const onError = (error: unknown) =>
     toast({
@@ -71,11 +77,21 @@ export function CrewAccessTab({ crewId, crewName, crewEmail }: CrewAccessTabProp
   const [role, setRole] = useState("viewer");
   const [email, setEmail] = useState(crewEmail ?? "");
   const [loginEnabled, setLoginEnabled] = useState(true);
+  const [vesselScope, setVesselScope] = useState(crewVesselId ?? "__none__");
   const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const crewVesselInList = crewVesselId
+    ? vessels.some((vessel) => vessel.id === crewVesselId)
+    : false;
+
+  useEffect(() => {
+    setEmail(crewEmail ?? "");
+    setVesselScope(crewVesselId ?? "__none__");
+  }, [crewEmail, crewId, crewVesselId]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: accountKey });
     queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] });
     queryClient.invalidateQueries({ queryKey: ["/api/crew"] });
   };
 
@@ -88,6 +104,13 @@ export function CrewAccessTab({ crewId, crewName, crewEmail }: CrewAccessTabProp
         loginEnabled,
       };
       if (email.trim()) payload['email'] = email.trim();
+      if (vesselScope === "__fleet__") {
+        payload['vesselId'] = null;
+      } else if (vesselScope === "__none__") {
+        payload['skipVesselAssignment'] = true;
+      } else {
+        payload['vesselId'] = vesselScope;
+      }
       await apiRequest("POST", `/api/admin/crew/members/${crewId}/account`, payload);
     },
     onSuccess: () => {
@@ -233,6 +256,32 @@ export function CrewAccessTab({ crewId, crewName, crewEmail }: CrewAccessTabProp
                 ))}
             </SelectContent>
           </Select>
+        </div>
+        <div>
+          <Label>Vessel scope</Label>
+          <Select value={vesselScope} onValueChange={setVesselScope}>
+            <SelectTrigger data-testid="select-create-vessel-scope">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No scope yet</SelectItem>
+              <SelectItem value="__fleet__">Fleet-wide access (explicit)</SelectItem>
+              {crewVesselId && !crewVesselInList ? (
+                <SelectItem value={crewVesselId}>Assigned vessel (crew vessel)</SelectItem>
+              ) : null}
+              {vessels.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.name}
+                  {v.id === crewVesselId ? " (crew vessel)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {crewVesselId
+              ? "The login starts with the crew member's vessel when one is assigned."
+              : "Choose a vessel or fleet scope now, or leave access scoping for later."}
+          </p>
         </div>
         <div className="flex items-center justify-between">
           <Label htmlFor="create-login-enabled">Login enabled</Label>

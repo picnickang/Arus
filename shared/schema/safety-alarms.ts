@@ -81,6 +81,7 @@ export const vesselSafetyAlarms = pgTable(
     clearedBy: varchar("cleared_by"),
     clearedByName: text("cleared_by_name"),
     clearedAt: timestamp("cleared_at", { mode: "date" }),
+    resolutionNote: text("resolution_note"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

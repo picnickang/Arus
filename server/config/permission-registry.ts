@@ -43,6 +43,10 @@ export type ActionCode =
   | "complete"
   | "manage_parts"
   | "manage_config"
+  | "manage"
+  | "trigger"
+  | "clear"
+  | "acknowledge"
   | "sign_off"
   | "override";
 
@@ -117,19 +121,47 @@ export const ACTIONS: Record<ActionCode, ActionDefinition> = {
     riskLevel: "critical",
     sortOrder: 10,
   },
+  manage: {
+    code: "manage",
+    name: "Manage",
+    description: "Manage operational definitions and configuration",
+    riskLevel: "critical",
+    sortOrder: 11,
+  },
+  trigger: {
+    code: "trigger",
+    name: "Trigger",
+    description: "Trigger operational alerts or alarms",
+    riskLevel: "high",
+    sortOrder: 12,
+  },
+  clear: {
+    code: "clear",
+    name: "Clear",
+    description: "Clear active operational alerts or alarms",
+    riskLevel: "high",
+    sortOrder: 13,
+  },
+  acknowledge: {
+    code: "acknowledge",
+    name: "Acknowledge",
+    description: "Acknowledge alerts, alarms, or required reviews",
+    riskLevel: "medium",
+    sortOrder: 14,
+  },
   sign_off: {
     code: "sign_off",
     name: "Sign Off",
     description: "Officially sign off on logbook entries or compliance documents",
     riskLevel: "high",
-    sortOrder: 11,
+    sortOrder: 15,
   },
   override: {
     code: "override",
     name: "Override",
     description: "Override system recommendations or safety checks",
     riskLevel: "critical",
-    sortOrder: 12,
+    sortOrder: 16,
   },
 };
 
@@ -248,13 +280,31 @@ export const RESOURCES: ResourceDefinition[] = [
     sortOrder: 23,
   },
   {
+    code: "safety_alarms",
+    name: "Safety Alarms",
+    description: "Operational safety alarm viewing and response",
+    category: "crew",
+    icon: "ShieldAlert",
+    actions: ["view", "trigger", "clear", "acknowledge", "export"],
+    sortOrder: 24,
+  },
+  {
+    code: "safety_alarm_types",
+    name: "Safety Alarm Types",
+    description: "Configure available safety alarm definitions",
+    category: "crew",
+    icon: "Bell",
+    actions: ["view", "manage"],
+    sortOrder: 25,
+  },
+  {
     code: "leave_requests",
     name: "Leave Requests",
     description: "Crew leave management",
     category: "crew",
     icon: "Plane",
     actions: ["view", "create", "edit", "delete", "approve"],
-    sortOrder: 24,
+    sortOrder: 26,
   },
 
   // Inventory

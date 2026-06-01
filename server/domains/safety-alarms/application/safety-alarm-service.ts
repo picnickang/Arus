@@ -143,8 +143,21 @@ export class SafetyAlarmApplicationService {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
+    resolutionNote?: string | undefined,
   ): Promise<SafetyAlarmEntity> {
-    const cleared = await this.repo.clear(orgId, id, clearedBy, clearedByName);
+    const alarm = await this.repo.findAlarmById(orgId, id);
+    if (!alarm) {
+      throw new AlarmValidationError("Alarm not found", "NOT_FOUND");
+    }
+    const requiresNote =
+      alarm.mode === "real" && (alarm.severity === "critical" || alarm.severity === "emergency");
+    if (requiresNote && !resolutionNote?.trim()) {
+      throw new AlarmValidationError(
+        "A resolution note is required to clear serious real alarms",
+        "RESOLUTION_NOTE_REQUIRED",
+      );
+    }
+    const cleared = await this.repo.clear(orgId, id, clearedBy, clearedByName, resolutionNote);
     if (!cleared) {
       throw new AlarmValidationError("Alarm not found", "NOT_FOUND");
     }

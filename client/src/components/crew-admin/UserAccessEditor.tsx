@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
 import {
   HUB_IDS,
   isSuperAdminRole,
@@ -113,9 +113,12 @@ export function previewLine(
   const extraLabel =
     extras.length > 0 ? ` +${extras.length} role${extras.length > 1 ? "s" : ""}` : "";
   const vessel = u.assignments.find((a) => a.vesselId);
+  const hasFleetScope = u.assignments.some((a) => a.vesselId === null);
   const scope = vessel
     ? vessels.find((v) => v.id === vessel.vesselId)?.name ?? "Vessel"
-    : "Fleet-wide";
+    : hasFleetScope
+      ? "Fleet-wide"
+      : "No vessel access";
   return `This user will see: ${roleLabel}${extraLabel} Dashboard — ${scope}`;
 }
 
@@ -149,6 +152,7 @@ export function UserAccessEditor({
   // state and normalise on save.
   const [selectedHubs, setSelectedHubs] = useState<string[]>([]);
   const [confirmGrantOpen, setConfirmGrantOpen] = useState(false);
+  const [saveResult, setSaveResult] = useState<Array<{ label: string; ok: boolean; error?: string }>>([]);
 
   useEffect(() => {
     setRole(user.role);
@@ -156,39 +160,74 @@ export function UserAccessEditor({
     setUsername(user.username ?? "");
     setLoginEnabled(user.loginEnabled);
     setTempPassword("");
+    const hasFleetScope = user.assignments.some((a) => a.vesselId === null);
     const firstVessel = user.assignments.find((a) => a.vesselId)?.vesselId;
-    setVesselId(firstVessel ?? "__fleet__");
+    setVesselId(hasFleetScope ? "__fleet__" : firstVessel ?? "__none__");
     setSupervisorUserId(user.supervisorUserId ?? "__none__");
     setHubAdmin(user.hubAdmin);
     // null allow-list = all hubs → show every hub ticked.
     setSelectedHubs(user.hubAccess === null ? [...HUB_IDS] : user.hubAccess);
+    setSaveResult([]);
   }, [user]);
 
   const isSuper = isSuperAdminRole(role);
   const isGrantEligible = isAdminGrantEligibleRole(role);
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/users"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/access-readiness"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/former-access-risks"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/crew"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/admin/crew/users"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/admin/crew/access-readiness"] }),
+    ]);
 
   const save = useMutation({
     mutationFn: async () => {
-      if (role && role !== user.role) {
-        await apiRequest("PATCH", `/api/admin/crew/users/${user.id}/role`, { role });
-      }
-      const extraRoleIds = roles
-        .filter((r) => extraRoles.includes(r.name) && r.name !== role)
-        .map((r) => r.id);
-      await apiRequest("PUT", `/api/admin/crew/users/${user.id}/roles`, {
-        roleIds: extraRoleIds,
+      setSaveResult([]);
+      const results: Array<{ label: string; ok: boolean; error?: string }> = [];
+      const runStep = async (label: string, action: () => Promise<unknown>) => {
+        try {
+          await action();
+          results.push({ label, ok: true });
+        } catch (error) {
+          results.push({
+            label,
+            ok: false,
+            error: error instanceof Error ? error.message : "Failed",
+          });
+        }
+      };
+
+      await runStep("role saved", async () => {
+        if (role && role !== user.role) {
+          await apiRequest("PATCH", `/api/admin/crew/users/${user.id}/role`, { role });
+        }
+        const extraRoleIds = roles
+          .filter((r) => extraRoles.includes(r.name) && r.name !== role)
+          .map((r) => r.id);
+        await apiRequest("PUT", `/api/admin/crew/users/${user.id}/roles`, {
+          roleIds: extraRoleIds,
+        });
       });
-      await apiRequest("PUT", `/api/admin/crew/users/${user.id}/assignments`, {
-        assignments: vesselId === "__fleet__" ? [{ vesselId: null }] : [{ vesselId }],
-      });
+      await runStep("vessel scope saved", () =>
+        apiRequest("PUT", `/api/admin/crew/users/${user.id}/assignments`, {
+          assignments:
+            vesselId === "__none__"
+              ? []
+              : vesselId === "__fleet__"
+                ? [{ vesselId: null }]
+                : [{ vesselId }],
+        }),
+      );
       const nextSupervisor = supervisorUserId === "__none__" ? null : supervisorUserId;
       if (nextSupervisor !== (user.supervisorUserId ?? null)) {
-        await apiRequest("PATCH", `/api/admin/crew/users/${user.id}/supervisor`, {
-          supervisorUserId: nextSupervisor,
-        });
+        await runStep("supervisor saved", () =>
+          apiRequest("PATCH", `/api/admin/crew/users/${user.id}/supervisor`, {
+            supervisorUserId: nextSupervisor,
+          }),
+        );
       }
       const credPayload: Record<string, unknown> = {};
       if (username.trim() && username.trim() !== (user.username ?? "")) {
@@ -198,7 +237,9 @@ export function UserAccessEditor({
         credPayload['password'] = tempPassword.trim();
       }
       credPayload['loginEnabled'] = loginEnabled;
-      await apiRequest("POST", `/api/admin/crew/users/${user.id}/credentials`, credPayload);
+      await runStep("login saved", () =>
+        apiRequest("POST", `/api/admin/crew/users/${user.id}/credentials`, credPayload),
+      );
 
       // Hub access — super-admins are always full hub admins (not
       // editable), so we never PATCH for them. Only send when the
@@ -211,26 +252,37 @@ export function UserAccessEditor({
           hubAdmin !== user.hubAdmin ||
           !sameHubAccess(nextHubAccess, user.hubAccess);
         if (changed) {
-          await apiRequest("PATCH", `/api/admin/crew/users/${user.id}/hub-access`, {
-            hubAdmin,
-            hubAccess: nextHubAccess,
-          });
+          await runStep("hub/admin access saved", () =>
+            apiRequest("PATCH", `/api/admin/crew/users/${user.id}/hub-access`, {
+              hubAdmin,
+              hubAccess: nextHubAccess,
+            }),
+          );
         }
       }
+      setSaveResult(results);
+      const failed = results.filter((result) => !result.ok);
+      if (failed.length > 0) {
+        throw new Error(`${failed.length} access setting${failed.length > 1 ? "s" : ""} failed to save`);
+      }
     },
-    onSuccess: () => {
-      invalidate();
+    onSuccess: async () => {
+      await invalidate();
       onSaved?.();
       toast({ title: "User updated" });
     },
-    onError,
+    onError: async (error) => {
+      await invalidate();
+      onSaved?.();
+      onError(error);
+    },
   });
 
   const resetPassword = useMutation({
     mutationFn: (password: string) =>
       apiRequest("POST", `/api/admin/crew/users/${user.id}/reset-password`, { password }),
-    onSuccess: () => {
-      invalidate();
+    onSuccess: async () => {
+      await invalidate();
       onSaved?.();
       setResetOpen(false);
       setResetPw("");
@@ -291,14 +343,15 @@ export function UserAccessEditor({
           )}
         </div>
       </div>
-      <div>
-        <Label>Vessel scope</Label>
+        <div>
+          <Label>Vessel scope</Label>
         <Select value={vesselId} onValueChange={setVesselId}>
           <SelectTrigger data-testid="select-user-vessel">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__fleet__">Fleet-wide</SelectItem>
+            <SelectItem value="__none__">No vessel access</SelectItem>
+            <SelectItem value="__fleet__">Fleet-wide access (explicit)</SelectItem>
             {vessels.map((v) => (
               <SelectItem key={v.id} value={v.id}>
                 {v.name}
@@ -306,6 +359,12 @@ export function UserAccessEditor({
             ))}
           </SelectContent>
         </Select>
+        {vesselId === "__fleet__" && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Fleet-wide access is broader than a vessel assignment. Use only when this user must
+            work across the fleet.
+          </p>
+        )}
       </div>
       <div>
         <Label>Supervisor</Label>
@@ -430,6 +489,11 @@ export function UserAccessEditor({
         </div>
         <p className="text-xs text-muted-foreground">
           {user.hasPassword ? "A password is set (never shown)." : "No password set yet."}
+          {user.hasPassword && user.mustChangePassword
+            ? user.lastLoginAt
+              ? " Password change is still required by the user."
+              : " Temporary password has been issued; user must change it on first login."
+            : ""}
           {user.passwordUpdatedAt
             ? ` Password last changed ${new Date(user.passwordUpdatedAt).toLocaleDateString()}.`
             : ""}
@@ -462,6 +526,25 @@ export function UserAccessEditor({
           Save Changes
         </Button>
       </div>
+      {saveResult.length > 0 && (
+        <div className="space-y-2 rounded-md border p-3 text-sm" data-testid="access-save-result">
+          {saveResult.map((result) => (
+            <div key={result.label} className="flex items-start gap-2">
+              {result.ok ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
+              )}
+              <div>
+                <p className="font-medium">{result.label}</p>
+                {!result.ok && result.error && (
+                  <p className="text-xs text-destructive">{result.error}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <AlertDialog open={confirmGrantOpen} onOpenChange={setConfirmGrantOpen}>
         <AlertDialogContent>

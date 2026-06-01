@@ -23,6 +23,7 @@ import {
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
 import { CrewAccessTab } from "@/components/crew-admin/CrewAccessTab";
+import type { CrewProfileTab } from "@/features/crew";
 import { useRoleNames } from "@/hooks/useRoleNames";
 import {
   useEmploymentHistory,
@@ -94,7 +95,7 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
           <CardContent className="pt-4 pb-3">
             {editingRecord?.id === record.id ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium">Start Date</label>
                     <Input
@@ -341,15 +342,20 @@ interface ViewingCrewMember {
 interface CrewViewDialogContentProps {
   crew: ViewingCrewMember;
   vessels: Vessel[];
+  initialTab?: CrewProfileTab;
 }
 
 const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"];
 
-export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentProps) {
+export function CrewViewDialogContent({
+  crew,
+  vessels,
+  initialTab = "details",
+}: CrewViewDialogContentProps) {
   const { hasAnyRole } = useRoleNames();
   const isAdmin = hasAnyRole(...CREW_ADMIN_ROLES);
   return (
-    <Tabs defaultValue="details">
+    <Tabs defaultValue={initialTab}>
       <TabsList className="w-full flex-wrap h-auto">
         <TabsTrigger value="details" data-testid="tab-crew-details">
           <User className="h-4 w-4 mr-2" />
@@ -375,7 +381,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
         )}
       </TabsList>
       <TabsContent value="details" className="mt-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Rank</p>
             <p className="font-medium">{formatRank(crew.rank)}</p>
@@ -394,7 +400,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Duty Status</p>
-            <Badge variant={crew.onDuty ? "destructive" : "outline"}>
+            <Badge variant={crew.onDuty ? "default" : "outline"}>
               {crew.onDuty ? "On Duty" : "Off Duty"}
             </Badge>
           </div>
@@ -416,7 +422,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
 
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium mb-3">Contact Information</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Email</p>
               <p className="font-medium" data-testid="text-crew-email">
@@ -429,7 +435,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
                 {crew.phone || "Not set"}
               </p>
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1 sm:col-span-2">
               <p className="text-sm text-muted-foreground">Address</p>
               <p className="font-medium" data-testid="text-crew-address">
                 {crew.address || "Not set"}
@@ -440,7 +446,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
 
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium mb-3">Emergency Contact</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Name</p>
               <p className="font-medium" data-testid="text-emergency-name">
@@ -458,7 +464,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
 
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium mb-3">Contract Details</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Contract Start</p>
               <p className="font-medium" data-testid="text-start-date">
@@ -506,7 +512,12 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
       </TabsContent>
       {isAdmin && (
         <TabsContent value="access" className="mt-4">
-          <CrewAccessTab crewId={crew.id} crewName={crew.name} crewEmail={crew.email} />
+          <CrewAccessTab
+            crewId={crew.id}
+            crewName={crew.name}
+            crewEmail={crew.email}
+            crewVesselId={crew.vesselId}
+          />
         </TabsContent>
       )}
     </Tabs>

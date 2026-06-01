@@ -215,6 +215,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
+    resolutionNote: string | undefined,
   ): Promise<SafetyAlarmEntity | undefined> {
     const [updated] = await db
       .update(vesselSafetyAlarms)
@@ -223,6 +224,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
         clearedBy: clearedBy ?? null,
         clearedByName: clearedByName ?? null,
         clearedAt: new Date(),
+        resolutionNote: resolutionNote?.trim() || null,
         updatedAt: new Date(),
       })
       .where(
@@ -325,6 +327,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
       clearedBy: row.clearedBy,
       clearedByName: row.clearedByName,
       clearedAt: row.clearedAt,
+      resolutionNote: row.resolutionNote,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
