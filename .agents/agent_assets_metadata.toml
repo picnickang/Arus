@@ -432,3 +432,9 @@ id = "uwzY1TxJ0cOCZWEfEx64p"
 uri = "file://exports/arus-source.tar.gz"
 type = "unspecified"
 title = "ARUS — full-stack source bundle (8.9 MB tar.gz)"
+
+[[outputs]]
+id = "ij1_OADs3e9itCtqKTZDO"
+uri = "file://source-bundle/arus-fullstack-source.tar.gz"
+type = "unspecified"
+title = "ARUS Full-Stack Source Code"
