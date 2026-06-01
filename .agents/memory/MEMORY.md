@@ -1,1 +1,2 @@
 - [Role-name gating vs primary role](role-gating-primary-role.md) — backend `requireRole` authorizes on the single `users.role` column; client gates must see that role too, not just assignment-derived roles.
+- [Admin auth model](admin-auth-model.md) — shared-password admin unlock retired; admins sign in via real account `/api/portal/login`; `/api/admin/auth/setup` only bootstraps the hash, mints no session.

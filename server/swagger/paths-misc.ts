@@ -131,28 +131,6 @@ export const organizationsPaths = {
   },
 };
 
-export const adminPaths = {
-  "/admin/auth/verify": {
-    post: {
-      tags: ["Admin"],
-      summary: "Verify admin credentials",
-      description: "Validates admin authentication token",
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                token: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        "200": { description: "Authentication successful" },
-        "401": { description: "Invalid credentials" },
-      },
-    },
-  },
-};
+// The shared-password admin unlock (`POST /admin/auth/verify`) has been
+// retired. Admins authenticate with a real account via `/portal/login`.
+export const adminPaths = {};

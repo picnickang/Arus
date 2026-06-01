@@ -18,8 +18,6 @@ import type { Request } from "express";
 // impossible to silently re-list a sensitive prefix.
 //
 // EXACT_PUBLIC_API_PATHS — exact-match only (no prefix sub-paths).
-//   /admin/auth/verify   — token verification, used by the bootstrap
-//                          UI before a session exists.
 //   /admin/auth/status   — boolean "is the system already set up?",
 //                          used by the bootstrap UI on first load.
 //   /admin/auth/setup    — one-shot bootstrap-password POST gated by
@@ -36,7 +34,6 @@ import type { Request } from "express";
 //                          compared by bcrypt and a dummy compare runs on
 //                          unknown users to flatten timing.
 const EXACT_PUBLIC_API_PATHS = new Set([
-  "/admin/auth/verify",
   "/admin/auth/status",
   "/admin/auth/setup",
   "/setup/status",

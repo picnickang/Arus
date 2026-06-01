@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Ship,
-  Lock,
-  Eye,
-  EyeOff,
+  LogIn,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -25,13 +24,17 @@ import {
   setVesselName,
 } from "@/lib/desktopFetch";
 import { validateBackendUrl } from "@/lib/urlValidation";
+import { apiRequest } from "@/lib/queryClient";
+import { setApiSessionToken } from "@/lib/sessionToken";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface DesktopSetupProps {
   onComplete: () => void;
 }
 
 type ConnectionStatus = "idle" | "testing" | "success" | "error";
-type SetupStep = "backend" | "vessel" | "admin";
+type SetupStep = "backend" | "vessel" | "signin";
 
 interface Vessel {
   id: string;
@@ -41,8 +44,23 @@ interface Vessel {
   active?: boolean;
 }
 
-interface AdminStatus {
-  configured: boolean;
+interface LoginResponse {
+  sessionToken: string;
+  expiresIn: number;
+  mustChangePassword: boolean;
+  user: { id: string; name: string | null; role: string };
+}
+
+// Persist the DB-assigned role so the app renders the right landing experience
+// after setup completes. Mirrors the helper in the portal-login screen.
+function rememberRoleHint(role: string) {
+  try {
+    localStorage.setItem(ROLE_STORAGE_KEY, role);
+    localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
+  } catch {
+    // localStorage may be unavailable (private mode); the role policy falls
+    // back to its default branch.
+  }
 }
 
 function StepIndicator({ current, steps }: { current: number; steps: string[] }) {
@@ -366,7 +384,7 @@ function VesselStep({
             disabled={!selectedId && vessels.length > 0}
             data-testid="button-next-vessel"
           >
-            {vessels.length === 0 ? "Skip" : "Next"}
+            Next
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
@@ -375,257 +393,131 @@ function VesselStep({
   );
 }
 
-function AdminStep({
-  backendUrl,
-  onNext,
+function SignInStep({
   onBack,
+  onComplete,
 }: {
-  backendUrl: string;
-  onNext: () => void;
   onBack: () => void;
+  onComplete: () => void;
 }) {
-  const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState<ConnectionStatus>("idle");
-  const [statusMessage, setStatusMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    async function checkStatus() {
-      try {
-        const res = await fetch(`${backendUrl}/api/admin/auth/status`, {
-          headers: { "x-org-id": "default-org-id" },
-          signal: controller.signal,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!controller.signal.aborted) {
-            setAdminStatus(data);
-          }
-        } else {
-          if (!controller.signal.aborted) {
-            setAdminStatus({ configured: true });
-          }
-        }
-      } catch {
-        if (!controller.signal.aborted) {
-          setAdminStatus({ configured: true });
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+  const login = useMutation<LoginResponse>({
+    mutationFn: () =>
+      apiRequest("POST", "/api/portal/login", {
+        username: username.trim(),
+        password,
+        orgId: DEFAULT_ORG_ID,
+      }),
+    onSuccess: (data) => {
+      rememberRoleHint(data.user.role);
+      if (data.mustChangePassword) {
+        // Do NOT adopt the session: the account must set a new password first.
+        // Completing setup without a token routes the app to the full
+        // `/portal-login` screen, which implements the change-password flow.
+        onComplete();
+        return;
       }
-    }
-    checkStatus();
-    return () => controller.abort();
-  }, [backendUrl]);
+      // Adopt the real account session. The remounted app tree (and its
+      // AdminAccessProvider) picks this in-memory token up to keep the user
+      // signed in — admins are unlocked there via the stored role hint.
+      setApiSessionToken(data.sessionToken);
+      onComplete();
+    },
+    onError: () =>
+      setError(
+        "Sign-in failed. Check your username and password, or your account may be disabled.",
+      ),
+  });
 
-  async function handleSetup() {
-    if (!password || password.length < 8) {
-      setStatus("error");
-      setStatusMessage("Password must be at least 8 characters");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setStatus("error");
-      setStatusMessage("Passwords do not match");
-      return;
-    }
-
-    setStatus("testing");
-    setStatusMessage("Setting up admin access...");
-
-    try {
-      const res = await fetch(`${backendUrl}/api/admin/auth/setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-org-id": "default-org-id" },
-        body: JSON.stringify({ password }),
-      });
-
-      if (res.ok) {
-        setStatus("success");
-        setStatusMessage("Admin password configured successfully");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        if (data.code === "ALREADY_CONFIGURED") {
-          setStatus("success");
-          setStatusMessage("Admin password was already configured");
-        } else {
-          setStatus("error");
-          setStatusMessage(data.error || "Failed to set admin password");
-        }
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      setStatus("error");
-      setStatusMessage(`Connection error: ${msg}`);
-    }
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    login.mutate();
   }
-
-  async function handleVerify() {
-    if (!password) {
-      return;
-    }
-    setStatus("testing");
-    setStatusMessage("Verifying password...");
-
-    try {
-      const res = await fetch(`${backendUrl}/api/admin/auth/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-org-id": "default-org-id" },
-        body: JSON.stringify({ password }),
-      });
-
-      if (res.ok) {
-        setStatus("success");
-        setStatusMessage("Admin access verified");
-      } else {
-        setStatus("error");
-        setStatusMessage("Incorrect password");
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      setStatus("error");
-      setStatusMessage(`Connection error: ${msg}`);
-    }
-  }
-
-  const isNewSetup = adminStatus && !adminStatus.configured;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lock className="h-5 w-5" />
-          {loading ? "Admin Access" : isNewSetup ? "Set Admin Password" : "Verify Admin Access"}
+          <LogIn className="h-5 w-5" />
+          Sign In
         </CardTitle>
         <CardDescription>
-          {loading
-            ? "Checking admin configuration..."
-            : isNewSetup
-              ? "Create an admin password to secure system settings and critical operations."
-              : "Enter your admin password to verify access. You can skip this step and unlock admin later."}
+          Sign in with your ARUS account to finish setup. Admin access requires an
+          admin account — there is no shared admin password.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {loading && (
-          <div className="flex items-center justify-center py-6 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            Checking configuration...
+      <CardContent>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="signin-username">Username</Label>
+            <Input
+              id="signin-username"
+              data-testid="input-signin-username"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (error) setError(null);
+              }}
+              autoComplete="username"
+              autoFocus
+            />
           </div>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="signin-password">Password</Label>
+            <Input
+              id="signin-password"
+              data-testid="input-signin-password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError(null);
+              }}
+              autoComplete="current-password"
+            />
+          </div>
 
-        {!loading && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="admin-password">{isNewSetup ? "New Password" : "Password"}</Label>
-              <div className="relative">
-                <Input
-                  id="admin-password"
-                  data-testid="input-admin-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={isNewSetup ? "new-password" : "current-password"}
-                  placeholder={isNewSetup ? "Minimum 8 characters" : "Enter admin password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (status !== "idle") {
-                      setStatus("idle");
-                    }
-                  }}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && (isNewSetup ? handleSetup() : handleVerify())
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  data-testid="button-toggle-password"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+          {error && (
+            <div
+              className="flex items-center gap-2 text-sm p-3 rounded-md bg-destructive/10 text-destructive"
+              data-testid="text-signin-error"
+              role="alert"
+              aria-live="polite"
+            >
+              <XCircle className="h-4 w-4 flex-shrink-0" />
+              {error}
             </div>
+          )}
 
-            {isNewSetup && (
-              <div className="space-y-2">
-                <Label htmlFor="admin-confirm-password">Confirm Password</Label>
-                <Input
-                  id="admin-confirm-password"
-                  data-testid="input-admin-confirm-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    if (status !== "idle") {
-                      setStatus("idle");
-                    }
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleSetup()}
-                />
-              </div>
-            )}
-
-            {status !== "idle" && status !== "testing" && (
-              <div
-                className={`flex items-center gap-2 text-sm p-3 rounded-md ${
-                  status === "success"
-                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                    : "bg-destructive/10 text-destructive"
-                }`}
-                data-testid="text-admin-status"
-                aria-live="polite"
-              >
-                {status === "success" ? (
-                  <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-                ) : (
-                  <XCircle className="h-4 w-4 flex-shrink-0" />
-                )}
-                {statusMessage}
-              </div>
-            )}
-
-            {status !== "success" && (
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={isNewSetup ? handleSetup : handleVerify}
-                disabled={status === "testing" || !password}
-                data-testid="button-admin-action"
-              >
-                {status === "testing" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isNewSetup ? "Set Password" : "Verify"}
-              </Button>
-            )}
-          </>
-        )}
-
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" onClick={onBack} data-testid="button-back-admin">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={onNext}
-            disabled={loading}
-            data-testid="button-finish-setup"
-          >
-            {status === "success" || (!isNewSetup && status === "idle")
-              ? "Finish Setup"
-              : isNewSetup
-                ? "Skip for Now"
-                : "Skip"}
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              data-testid="button-back-signin"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={login.isPending || !username.trim() || !password}
+              data-testid="button-signin"
+            >
+              {login.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <LogIn className="h-4 w-4 mr-2" />
+              )}
+              {login.isPending ? "Signing in..." : "Sign In & Finish"}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );
@@ -636,7 +528,7 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
   const [backendUrl, setConnectedUrl] = useState("");
 
   const stepIndex = step === "backend" ? 0 : step === "vessel" ? 1 : 2;
-  const stepLabels = ["Connection", "Vessel", "Admin"];
+  const stepLabels = ["Connection", "Vessel", "Sign In"];
 
   function handleBackendNext(url: string) {
     setConnectedUrl(url);
@@ -651,12 +543,10 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
       localStorage.removeItem("arus-vessel-id");
       localStorage.removeItem("arus-vessel-name");
     }
-    setStep("admin");
-  }
-
-  function handleFinish() {
+    // Persist the backend URL now so the sign-in step's API request resolves
+    // against the configured backend.
     setBackendUrl(backendUrl);
-    onComplete();
+    setStep("signin");
   }
 
   return (
@@ -685,12 +575,8 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
             onBack={() => setStep("backend")}
           />
         )}
-        {step === "admin" && (
-          <AdminStep
-            backendUrl={backendUrl}
-            onNext={handleFinish}
-            onBack={() => setStep("vessel")}
-          />
+        {step === "signin" && (
+          <SignInStep onBack={() => setStep("vessel")} onComplete={onComplete} />
         )}
       </div>
     </div>

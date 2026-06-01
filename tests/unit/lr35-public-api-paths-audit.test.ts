@@ -19,7 +19,6 @@ import { isPublicApiPath, toApiPath } from "../../server/bootstrap/public-api-pa
 
 describe("LR-3.5 V3 — public-api allowlist positive controls", () => {
   it.each([
-    "/api/admin/auth/verify",
     "/api/admin/auth/status",
     "/api/admin/auth/setup",
     "/api/setup/status",

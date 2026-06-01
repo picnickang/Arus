@@ -2,11 +2,8 @@ import { Express, Request, Response, SystemAdminDependencies } from "./types.js"
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import { dbUserStorage } from "../../../db/users/index.js";
 import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { loginRateLimit } from "../../../middleware/rate-limiters.js";
 import { constantTimeEqualString } from "../../../lib/constant-time-compare.js";
 
 const BCRYPT_COST = 12;
@@ -55,10 +52,6 @@ function isLocalhostOrTauri(req: Request): boolean {
   );
 }
 
-
-function hashSessionToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
 
 async function atomicWriteEnv(envPath: string, content: string): Promise<void> {
   const fs = await import("fs/promises");
@@ -179,48 +172,6 @@ async function persistAdminHash(hash: string): Promise<void> {
   }
 }
 
-async function createAdminSession(req: Request): Promise<{
-  sessionToken: string;
-  expiresAt: Date;
-  expiresIn: number;
-}> {
-  const sessionToken = crypto.randomBytes(32).toString("hex");
-  const sessionTokenHash = hashSessionToken(sessionToken);
-
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 2);
-
-  let adminUser = await dbUserStorage.getUserByEmail("admin@example.com", DEFAULT_ORG_ID);
-
-  if (!adminUser) {
-    adminUser = await dbUserStorage.createUser({
-      orgId: DEFAULT_ORG_ID,
-      email: "admin@example.com",
-      name: "System Administrator",
-      role: "admin",
-      isActive: true,
-      timezone: "UTC",
-    });
-  }
-
-  await dbSystemAdminStorage.createAdminSession({
-    orgId: DEFAULT_ORG_ID,
-    sessionToken: sessionTokenHash,
-    userId: adminUser.id,
-    adminEmail: "admin@example.com",
-    ipAddress: req.ip,
-    userAgent: req.headers["user-agent"],
-    expiresAt,
-    lastActivityAt: new Date(),
-  });
-
-  return {
-    sessionToken,
-    expiresAt,
-    expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
-  };
-}
-
 export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
     generalApiRateLimit,
@@ -231,68 +182,6 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     adminPasswordVerifySchema,
     adminPasswordChangeSchema,
   } = deps;
-
-  app.post(
-    "/api/admin/auth/verify",
-    // Prod-hardening: credential-stuffing limiter (5 attempts / 15 min
-    // per IP) layered BEFORE the generic API limiter so brute-force
-    // attempts can't dilute against the per-org+UA bucket.
-    loginRateLimit,
-    generalApiRateLimit,
-    withErrorHandling("verify admin authentication", async (req: Request, res: Response) => {
-      const { password } = adminPasswordVerifySchema.parse(req.body);
-
-      const credential = await getAdminCredential();
-
-      if (!credential.hash && !credential.legacyPlaintext) {
-        res.status(503).json({
-          error: "Admin authentication is not configured",
-          code: "ADMIN_SERVICE_DISABLED",
-        });
-        return;
-      }
-
-      let isValid = false;
-
-      if (credential.hash) {
-        isValid = await bcrypt.compare(password, credential.hash);
-      } else if (credential.legacyPlaintext) {
-        isValid = constantTimeEqualString(password, credential.legacyPlaintext);
-        if (isValid) {
-          try {
-            const hash = await bcrypt.hash(password, BCRYPT_COST);
-            await persistAdminHash(hash);
-            logger.info("AdminAuth", "Migrated legacy ADMIN_TOKEN to database-backed ADMIN_TOKEN_HASH");
-          } catch (migrationError) {
-            logger.warn(
-              "AdminAuth",
-              "Failed to migrate legacy ADMIN_TOKEN to hash",
-              migrationError
-            );
-          }
-        }
-      }
-
-      if (!isValid) {
-        logger.warn("AdminAuth", `Failed admin password verification from ${req.ip}`);
-        res.status(401).json({
-          error: "Invalid password",
-          code: "INVALID_PASSWORD",
-        });
-        return;
-      }
-
-      const { sessionToken, expiresAt, expiresIn } = await createAdminSession(req);
-
-      logger.info("AdminAuth", `Admin session created from ${req.ip}`);
-
-      res.json({
-        sessionToken,
-        expiresAt: expiresAt.toISOString(),
-        expiresIn,
-      });
-    })
-  );
 
   app.get(
     "/api/admin/auth/status",
@@ -359,16 +248,12 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         const hash = await bcrypt.hash(password, BCRYPT_COST);
         await persistAdminHash(hash);
 
-        const { sessionToken, expiresAt, expiresIn } = await createAdminSession(req);
-
         logger.info("AdminAuth", `Initial admin password configured from ${req.ip}`);
 
-        res.json({
-          success: true,
-          sessionToken,
-          expiresAt: expiresAt.toISOString(),
-          expiresIn,
-        });
+        // No session is minted here. The shared-password admin unlock has
+        // been retired; admins authenticate with a real account via
+        // `/api/portal/login`. This route only bootstraps the credential.
+        res.json({ success: true });
       } catch (error) {
         logger.error("AdminAuth", "Failed to persist admin password during setup", error);
         res.status(500).json({

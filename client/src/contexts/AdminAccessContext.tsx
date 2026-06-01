@@ -1,17 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { adminPasswordVerifySchema, type AdminSessionResponse } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
+import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { isSuperAdminRole } from "@shared/role-dashboard";
 
 interface AdminAccessContextType {
   isAdminUnlocked: boolean;
   sessionToken: string | null;
   sessionExpiresAt: Date | null;
-  unlockAdmin: (password: string) => Promise<void>;
   unlockAdminFromUserSession: (token: string, expiresInSeconds: number) => void;
   lockAdmin: () => void;
-  isUnlocking: boolean;
-  unlockError: string | null;
   timeUntilExpiry: number | null;
   timeUntilIdleTimeout: number | null;
 }
@@ -34,6 +31,14 @@ export function getAdminSessionToken(): string | null {
 const DEV_MODE = import.meta.env.DEV === true;
 const DEV_SESSION_TOKEN = "dev-admin-session-token";
 
+// Default client-side session window used when adopting a session that was
+// established before this provider mounted (the desktop setup wizard signs in
+// via `/api/portal/login` outside this provider, then completes setup and
+// remounts the app tree). The server remains the source of truth for the real
+// token lifetime; this only drives the client idle/expiry countdown until the
+// next authenticated request revalidates.
+const ADOPTED_SESSION_MS = 12 * 60 * 60 * 1000;
+
 export function AdminAccessProvider({ children }: { children: React.ReactNode }) {
   // In dev mode, start unlocked with dev token
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(DEV_MODE);
@@ -43,8 +48,6 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(
     DEV_MODE ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null
   );
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState<string | null>(null);
   const [timeUntilExpiry, setTimeUntilExpiry] = useState<number | null>(null);
   const [timeUntilIdleTimeout, setTimeUntilIdleTimeout] = useState<number | null>(null);
 
@@ -61,6 +64,34 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (DEV_MODE && !getApiSessionToken()) {
       setApiSessionToken(DEV_SESSION_TOKEN);
+    }
+  }, []);
+
+  // Adopt a session that was established before this provider mounted. On the
+  // desktop build the setup wizard signs in via `/api/portal/login` (outside
+  // this provider) and then completes setup, which remounts the app tree with a
+  // fresh provider instance. The in-memory token survives that remount, so we
+  // pick it up here, restore the session, and unlock the admin portal when the
+  // stored role is admin-capable. In the web flow no token exists at app start
+  // (login happens later, inside this provider), so this is a no-op there.
+  useEffect(() => {
+    if (DEV_MODE) {
+      return;
+    }
+    const existing = getApiSessionToken();
+    if (!existing) {
+      return;
+    }
+    setSessionToken(existing);
+    setSessionExpiresAt(new Date(Date.now() + ADOPTED_SESSION_MS));
+    let roleHint: string | null = null;
+    try {
+      roleHint = localStorage.getItem(ROLE_STORAGE_KEY);
+    } catch {
+      roleHint = null;
+    }
+    if (isSuperAdminRole(roleHint)) {
+      setIsAdminUnlocked(true);
     }
   }, []);
 
@@ -93,61 +124,6 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
 
     console.info("🔒 Admin mode locked");
   }, []);
-
-  // Unlock admin with password
-  const unlockAdmin = useCallback(
-    async (password: string) => {
-      setIsUnlocking(true);
-      setUnlockError(null);
-
-      try {
-        // Validate password format
-        adminPasswordVerifySchema.parse({ password });
-
-        // Call backend verification endpoint
-        const response = await apiRequest<AdminSessionResponse>("POST", "/api/admin/auth/verify", {
-          password,
-        });
-
-        // Store session
-        const expiresAt = new Date(response.expiresAt);
-        setSessionToken(response.sessionToken);
-        setSessionExpiresAt(expiresAt);
-        setIsAdminUnlocked(true);
-
-        // Sync in-memory token for queryClient/admin-api requests
-        setApiSessionToken(response.sessionToken);
-
-        // Update activity
-        updateActivity();
-
-        // Log success without exposing sensitive data
-        console.info("🔓 Admin mode unlocked", {
-          expiresIn: `${Math.floor(response.expiresIn / 60)} minutes`,
-        });
-      } catch (error) {
-        // Log error without exposing password or tokens
-        console.error(
-          "Failed to unlock admin:",
-          (error as Error).message || "Authentication failed"
-        );
-
-        // Handle specific error cases
-        if ((error as { code?: string }).code === "INVALID_PASSWORD") {
-          setUnlockError("Invalid password. Please try again.");
-        } else if ((error as { code?: string }).code === "ADMIN_SERVICE_DISABLED") {
-          setUnlockError("Admin service is not configured. Contact your administrator.");
-        } else {
-          setUnlockError("Failed to unlock admin mode. Please try again.");
-        }
-
-        throw error;
-      } finally {
-        setIsUnlocking(false);
-      }
-    },
-    [updateActivity]
-  );
 
   // Adopt an authenticated admin session minted by `/api/portal/login`.
   // The shared admin password is no longer a sign-in path; an admin signs in
@@ -247,11 +223,8 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     isAdminUnlocked,
     sessionToken,
     sessionExpiresAt,
-    unlockAdmin,
     unlockAdminFromUserSession,
     lockAdmin,
-    isUnlocking,
-    unlockError,
     timeUntilExpiry,
     timeUntilIdleTimeout,
   };
