@@ -8,6 +8,7 @@ interface AdminAccessContextType {
   sessionToken: string | null;
   sessionExpiresAt: Date | null;
   unlockAdmin: (password: string) => Promise<void>;
+  unlockAdminFromUserSession: (token: string, expiresInSeconds: number) => void;
   lockAdmin: () => void;
   isUnlocking: boolean;
   unlockError: string | null;
@@ -148,6 +149,26 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     [updateActivity]
   );
 
+  // Adopt an authenticated admin session minted by `/api/portal/login`.
+  // The shared admin password is no longer a sign-in path; an admin signs in
+  // with a username + password like any other user, and once we've confirmed
+  // the returned account is admin-capable we mark the admin portal unlocked
+  // using the same in-memory session the rest of the app already holds.
+  const unlockAdminFromUserSession = useCallback(
+    (token: string, expiresInSeconds: number) => {
+      const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+      setSessionToken(token);
+      setSessionExpiresAt(expiresAt);
+      setIsAdminUnlocked(true);
+      setApiSessionToken(token);
+      updateActivity();
+      console.info("🔓 Admin mode unlocked", {
+        expiresIn: `${Math.floor(expiresInSeconds / 60)} minutes`,
+      });
+    },
+    [updateActivity]
+  );
+
   // SECURITY NOTE: Sessions are NOT persisted to localStorage to prevent XSS token theft
   // Users will need to re-authenticate after page reload
   // This is a security vs. convenience trade-off in favor of security
@@ -227,6 +248,7 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     sessionToken,
     sessionExpiresAt,
     unlockAdmin,
+    unlockAdminFromUserSession,
     lockAdmin,
     isUnlocking,
     unlockError,

@@ -158,23 +158,61 @@ export async function seedDevelopmentUser(): Promise<void> {
 
   const devUserId = "dev-admin-user";
   const devOrgId = "default-org-id";
+  const bcrypt = (await import("bcryptjs")).default;
+  const DEFAULT_ADMIN_USERNAME = "admin";
+  const DEFAULT_ADMIN_PASSWORD = "admin";
 
   try {
     const existing = await db.select().from(users).where(eq(users.id, devUserId)).limit(1);
 
     if (existing.length === 0) {
+      // Out-of-the-box admin: username `admin` / password `admin`, flagged to
+      // force a password change on first sign-in. This is the real login path
+      // now that the shared admin password has been removed.
+      const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
       await db.insert(users).values({
         id: devUserId,
         orgId: devOrgId,
         email: "admin@example.com",
         name: "Development Admin",
+        username: DEFAULT_ADMIN_USERNAME,
         role: "admin",
         isActive: true,
-        passwordHash: null,
+        loginEnabled: true,
+        mustChangePassword: true,
+        passwordHash,
       });
-      logger.info("✓ Development user created");
+      logger.info("✓ Development admin created (username: admin / password: admin)");
     } else {
-      logger.info("✓ Development user already exists");
+      const current = existing[0]!;
+      // Normalize the bootstrap admin to the documented default
+      // (username `admin`, password `admin`, forced first-login change) when it
+      // has NOT been personalized yet. "Personalized" = the admin has finished
+      // the forced first-login change (mustChangePassword === false) while
+      // keeping the canonical `admin` username. In that case we never touch the
+      // chosen password (idempotent). Otherwise — a null password, a non-`admin`
+      // username (e.g. the legacy email-as-username artifact), or a pending
+      // first-login change — we re-seed the default so admin/admin works.
+      const isPersonalized =
+        current.username === DEFAULT_ADMIN_USERNAME &&
+        current.passwordHash !== null &&
+        current.mustChangePassword === false;
+      if (!isPersonalized) {
+        const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
+        await db
+          .update(users)
+          .set({
+            username: DEFAULT_ADMIN_USERNAME,
+            role: "admin",
+            loginEnabled: true,
+            mustChangePassword: true,
+            passwordHash,
+          })
+          .where(eq(users.id, devUserId));
+        logger.info("✓ Development admin reset to default credentials (username: admin / password: admin)");
+      } else {
+        logger.info("✓ Development admin already exists (personalized)");
+      }
     }
   } catch (error: unknown) {
     logger.warn("⚠️  Could not seed development user:", { details: error instanceof Error ? error.message : String(error) });

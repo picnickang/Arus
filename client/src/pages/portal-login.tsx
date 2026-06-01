@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
+import { isSuperAdminRole } from "@shared/role-dashboard";
 import { Shield, User, ArrowRight, Anchor, ArrowLeft, LogIn } from "lucide-react";
 
 interface LoginResponse {
@@ -69,7 +70,7 @@ function rememberRoleHint(roleHint: string) {
 export default function PortalLoginPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { unlockAdmin, isUnlocking, unlockError } = useAdminAccess();
+  const { unlockAdminFromUserSession } = useAdminAccess();
 
   const [view, setView] = useState<"choose" | "user" | "admin">("choose");
 
@@ -81,8 +82,9 @@ export default function PortalLoginPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Admin login state
-  const [adminPassword, setAdminPassword] = useState("");
+  // Admin login error. Admin sign-in reuses the shared username/password
+  // fields below — there is no separate shared-password field anymore.
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const login = useMutation<LoginResponse>({
     mutationFn: () =>
@@ -116,6 +118,44 @@ export default function PortalLoginPage() {
         description: "Check your username and password, or your account may be disabled.",
         variant: "destructive",
       }),
+  });
+
+  const adminLogin = useMutation<LoginResponse>({
+    mutationFn: () =>
+      apiRequest("POST", "/api/portal/login", {
+        username: username.trim(),
+        password,
+      }),
+    onSuccess: (data) => {
+      // The Admin Portal is gated to admin-capable accounts. A valid non-admin
+      // credential authenticates against the same endpoint, so reject it here
+      // and drop the freshly-minted session rather than granting admin access.
+      if (!isSuperAdminRole(data.user.role)) {
+        setApiSessionToken(null);
+        queryClient.clear();
+        setAdminError("This account does not have admin access.");
+        return;
+      }
+      setApiSessionToken(data.sessionToken);
+      queryClient.invalidateQueries({ queryKey: ["/api/permissions/me"] });
+      if (data.mustChangePassword) {
+        setCurrentPassword(password);
+        setStage("change");
+        toast({
+          title: "Password change required",
+          description: "Please set a new password to continue.",
+        });
+        return;
+      }
+      unlockAdminFromUserSession(data.sessionToken, data.expiresIn);
+      rememberRoleHint(data.user.role);
+      toast({ title: "Admin portal unlocked" });
+      navigate(getLandingRouteForRole(data.user.role));
+    },
+    onError: () =>
+      setAdminError(
+        "Check your username and password, or your account may be disabled.",
+      ),
   });
 
   const changePassword = useMutation({
@@ -154,19 +194,18 @@ export default function PortalLoginPage() {
       }),
   });
 
-  async function handleAdminLogin(e: React.FormEvent) {
+  function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      await unlockAdmin(adminPassword);
-      // Unlock succeeded — mark the admin portal as the active persona so the
-      // nav policy surfaces admin hubs, then route into the portal.
-      rememberRoleHint("system_admin");
-      setAdminPassword("");
-      toast({ title: "Admin portal unlocked" });
-      navigate(getLandingRouteForRole("system_admin"));
-    } catch {
-      // unlockAdmin surfaces the failure via unlockError; nothing else to do.
-    }
+    setAdminError(null);
+    adminLogin.mutate();
+  }
+
+  function enterPortal(mode: "admin" | "user") {
+    setUsername("");
+    setPassword("");
+    setAdminError(null);
+    setStage("login");
+    setView(mode);
   }
 
   const passwordsMismatch =
@@ -175,6 +214,9 @@ export default function PortalLoginPage() {
   function backToChooser() {
     setView("choose");
     setStage("login");
+    setUsername("");
+    setPassword("");
+    setAdminError(null);
   }
 
   /* ---------------------------- Chooser ---------------------------- */
@@ -215,7 +257,7 @@ export default function PortalLoginPage() {
                     </div>
                     <Button
                       className={`w-full ${portal.accent}`}
-                      onClick={() => setView(portal.mode)}
+                      onClick={() => enterPortal(portal.mode)}
                       data-testid={`button-${portal.testId}`}
                     >
                       {portal.cta}
@@ -262,50 +304,62 @@ export default function PortalLoginPage() {
               <Icon className="h-6 w-6 text-slate-700" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900" data-testid="text-login-title">
-              {isAdmin
-                ? "Admin Portal"
-                : stage === "login"
-                  ? "User Portal"
-                  : "Set a new password"}
+              {stage === "change"
+                ? "Set a new password"
+                : isAdmin
+                  ? "Admin Portal"
+                  : "User Portal"}
             </h2>
             <p className="text-sm text-slate-600 mt-1">
-              {isAdmin
-                ? "Enter the vessel admin password to start an authenticated session."
-                : stage === "login"
-                  ? "Use the credentials provided by your administrator."
-                  : "Choose a new password to finish signing in."}
+              {stage === "change"
+                ? "Choose a new password to finish signing in."
+                : isAdmin
+                  ? "Sign in with your admin username and password."
+                  : "Use the credentials provided by your administrator."}
             </p>
           </div>
 
-          {isAdmin ? (
+          {isAdmin && stage === "login" ? (
             <form className="space-y-4" onSubmit={handleAdminLogin}>
               <div>
+                <Label htmlFor="admin-username" className="text-slate-700">
+                  Username
+                </Label>
+                <Input
+                  id="admin-username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
+                  data-testid="input-admin-username"
+                />
+              </div>
+              <div>
                 <Label htmlFor="admin-password" className="text-slate-700">
-                  Admin password
+                  Password
                 </Label>
                 <Input
                   id="admin-password"
                   type="password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  autoFocus
                   data-testid="input-admin-password"
                 />
               </div>
-              {unlockError && (
+              {adminError && (
                 <p className="text-sm text-destructive" role="alert" data-testid="text-admin-error">
-                  {unlockError}
+                  {adminError}
                 </p>
               )}
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                disabled={isUnlocking || !adminPassword.trim()}
+                disabled={adminLogin.isPending || !username.trim() || !password}
                 data-testid="button-admin-login"
               >
                 <LogIn className="h-4 w-4 mr-1" />
-                {isUnlocking ? "Unlocking..." : "Admin Login"}
+                {adminLogin.isPending ? "Signing in..." : "Admin Login"}
               </Button>
             </form>
           ) : stage === "login" ? (
