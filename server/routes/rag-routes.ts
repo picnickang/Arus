@@ -91,6 +91,18 @@ export function registerRagRoutes(
     };
   };
 
+  // Trusted identity for conversation ownership. Derived only from the
+  // authenticated RAG context (session or validated streaming token) set
+  // by ragAuthMiddleware — never from a client-supplied `x-user-id`
+  // header, which a caller can spoof.
+  const getConversationIdentity = (req: Request): { orgId: string; userId: string } => {
+    const securedReq = req as RagSecuredRequest;
+    return {
+      orgId: securedReq.ragContext?.orgId ?? DEFAULT_ORG_ID,
+      userId: securedReq.ragContext?.userId ?? "anonymous",
+    };
+  };
+
   // Apply security middleware to all RAG routes
   app.use("/api/rag", (req, res, next) => ragAuthMiddleware(req, res, next));
 
@@ -107,6 +119,22 @@ export function registerRagRoutes(
       const securedReq = req as RagSecuredRequest;
       const parsed = askRequestSchema.parse(req.body);
       const query = securedReq.ragContext?.sanitizedQuery || parsed.query;
+
+      // When the caller targets an existing conversation, verify ownership
+      // before the orchestrator appends messages to it. Without this gate a
+      // caller could mutate another user's thread by guessing its id (IDOR).
+      // Identity is taken from the trusted ragContext, never a spoofable
+      // header. New conversations (no id) are created owned by the caller.
+      if (parsed.conversationId) {
+        const identity = getConversationIdentity(req);
+        const owned = await getConversationService().getOwnedConversation(
+          parsed.conversationId,
+          identity
+        );
+        if (!owned) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+      }
 
       const orchestrator = getRagOrchestrator();
       const response = await orchestrator.ask({
@@ -145,8 +173,7 @@ export function registerRagRoutes(
     "/api/rag/conversations",
     generalApiRateLimit,
     withErrorHandling("create RAG conversation", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
-      const userId = (req.headers["x-user-id"] as string) || undefined;
+      const { orgId, userId } = getConversationIdentity(req);
       const { title } = req.body;
 
       const conversationService = getConversationService();
@@ -164,8 +191,7 @@ export function registerRagRoutes(
     "/api/rag/conversations",
     generalApiRateLimit,
     withErrorHandling("list RAG conversations", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
-      const userId = (req.headers["x-user-id"] as string) || undefined;
+      const { orgId, userId } = getConversationIdentity(req);
       const limit = parseInt(req.query['limit'] as string) || 20;
 
       const conversationService = getConversationService();
@@ -185,17 +211,13 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get RAG conversation", async (req, res) => {
       const { id = '' } = req.params;
-      const orgId = DEFAULT_ORG_ID;
+      const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
-      const conversation = await conversationService.getConversation(id);
+      const conversation = await conversationService.getOwnedConversation(id, { orgId, userId });
 
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
-      }
-
-      if (conversation.orgId && conversation.orgId !== orgId) {
-        return res.status(403).json({ message: "Access denied" });
       }
 
       const messages = await conversationService.getMessages(id, 100);
@@ -209,8 +231,15 @@ export function registerRagRoutes(
     withErrorHandling("get conversation messages", async (req, res) => {
       const { id = '' } = req.params;
       const limit = parseInt(req.query['limit'] as string) || 100;
+      const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
+      const conversation = await conversationService.getOwnedConversation(id, { orgId, userId });
+
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
       const messages = await conversationService.getMessages(id, limit);
 
       return res.json(messages);
@@ -223,8 +252,15 @@ export function registerRagRoutes(
     withErrorHandling("update RAG conversation", async (req, res) => {
       const { id = '' } = req.params;
       const parsed = conversationUpdateSchema.parse(req.body);
+      const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
+      const owned = await conversationService.getOwnedConversation(id, { orgId, userId });
+
+      if (!owned) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
       const updated = await conversationService.updateConversation(id, parsed);
 
       if (!updated) {
@@ -240,8 +276,15 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("delete RAG conversation", async (req, res) => {
       const { id = '' } = req.params;
+      const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
+      const owned = await conversationService.getOwnedConversation(id, { orgId, userId });
+
+      if (!owned) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
       const deleted = await conversationService.deleteConversation(id);
 
       if (!deleted) {
@@ -377,6 +420,28 @@ export function registerRagRoutes(
         let query = req.query['query'] as string;
         const conversationId = req.query['conversationId'] as string | undefined;
 
+        // Verify the authenticated caller owns the conversation BEFORE doing
+        // any expensive work (sanitize, OpenAI, vector search) or loading its
+        // history — otherwise a caller could read another user's messages or
+        // write into their thread by guessing the id. SSE headers are not
+        // sent yet, so a plain 404 is safe to return here.
+        let conversationHistory: Array<{ role: string; content: string }> | undefined;
+        if (conversationId) {
+          const conversationService = getConversationService();
+          const ownedConversation = await conversationService.getOwnedConversation(
+            conversationId,
+            { orgId, userId }
+          );
+          if (!ownedConversation) {
+            return res.status(404).json({ error: "Conversation not found" });
+          }
+          const messages = await conversationService.getMessages(conversationId, 10);
+          conversationHistory = messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          }));
+        }
+
         // Sanitize query
         const sanitizeResult = sanitizer.sanitize(query || "");
         if (sanitizeResult.blockedPatterns.length > 0) {
@@ -415,17 +480,6 @@ export function registerRagRoutes(
           documentTitle: r.documentTitle,
           score: r.score,
         }));
-
-        // Get conversation history if conversationId provided
-        let conversationHistory: Array<{ role: string; content: string }> | undefined;
-        if (conversationId) {
-          const conversationService = getConversationService();
-          const messages = await conversationService.getMessages(conversationId, 10);
-          conversationHistory = messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          }));
-        }
 
         // Set SSE headers
         res.setHeader("Content-Type", "text/event-stream");
@@ -523,9 +577,10 @@ export function registerRagRoutes(
       const format = (req.query['format'] as "pdf" | "markdown") || "markdown";
       const includeCitations = req.query['includeCitations'] !== "false";
       const includeTimestamps = req.query['includeTimestamps'] !== "false";
+      const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
-      const conversation = await conversationService.getConversation(id);
+      const conversation = await conversationService.getOwnedConversation(id, { orgId, userId });
 
       if (!conversation) {
         return res.status(404).json({ error: "Conversation not found" });

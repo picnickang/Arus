@@ -61,6 +61,35 @@ export class ConversationService {
     return conversations[0] || null;
   }
 
+  /**
+   * Load a conversation only if the authenticated caller owns it.
+   *
+   * Ownership is keyed on `userId` (the control that actually protects
+   * data in single-tenant mode), with `orgId` as defense-in-depth so the
+   * same guard still holds if ARUS ever becomes multi-tenant. Legacy
+   * conversations that predate per-user ownership have a null `userId`;
+   * those remain accessible within the org so existing users are not
+   * locked out of their own history. Returns null when the caller does
+   * not own the conversation, so callers can surface a 404 without
+   * revealing whether the id exists.
+   */
+  async getOwnedConversation(
+    conversationId: string,
+    owner: { userId?: string | null | undefined; orgId: string }
+  ): Promise<RagConversation | null> {
+    const conversation = await this.getConversation(conversationId);
+    if (!conversation) {
+      return null;
+    }
+    if (conversation.orgId && conversation.orgId !== owner.orgId) {
+      return null;
+    }
+    if (!conversation.userId) {
+      return conversation;
+    }
+    return conversation.userId === owner.userId ? conversation : null;
+  }
+
   async listConversations(params: {
     orgId: string;
     userId?: string | undefined;
