@@ -1,0 +1,279 @@
+# ARUS — Evidence-Based Static Review
+
+**Scope reviewed:** extracted `arus-fullstack-source-complete_tar.gz` (2,191 `.ts`, 514 `.tsx`, 169 tests, 5 CI workflows, 248 docs — all confirmed present on disk).
+**Lens:** multi-tenant SaaS with `REQUIRE_TENANT_AUTH=true`; tenant isolation treated as a hard boundary.
+**Not runtime-verifiable:** `node_modules` excluded, so no `tsc`/Jest/Vite/EXPLAIN. Findings are `Confirmed` (exact code read), `Likely` (inferred), or `Needs runtime check`.
+
+-----
+
+## 1. Executive summary
+
+1. **The production middleware chain defeats tenant RLS.** `validateOrgIdHeader` (a *single-tenant* gate) is mounted between `requireOrgId` and `withDatabaseContext` and unconditionally rewrites `req.orgId` to `DEFAULT_ORG_ID`. The RLS context is then pinned to `default-org-id` for *every* authenticated user, collapsing all tenants into one bucket. The RLS test suite passes only because it deliberately omits this middleware — and says so in a comment.
+1. **The documented deploy path never installs RLS.** `db:migrate:deploy` / `MIGRATE_ON_BOOT` apply only the 5 migrations in the Drizzle journal plus `server/migrations/*.sql`. The RLS migration `migrations/0018_rls_policies.sql` (and 0011–0024) is in neither set; only `scripts/run-sql-migrations.mjs` (a git-hook/CI path, not deploy) applies it. So the “authoritative tenant boundary” can be absent in production.
+1. **Cross-tenant IDOR on RAG messages.** `GET /api/rag/conversations/:id/messages` performs no ownership check, and `rag_messages` has no `org_id` so it is excluded from RLS. Any authenticated user can read any conversation’s messages by ID.
+1. **WebSocket fan-out leaks across tenants by default.** Tenant scoping on the WS bus is gated by `WS_TENANT_STRICT_MODE`, a *different* flag from `REQUIRE_TENANT_AUTH`. With it off, legacy `broadcast()` (11 call sites) and `broadcastToAll()` deliver alerts/telemetry/dashboard frames to every tenant’s clients.
+1. **Offline conflict detection is a no-op.** The server `detectConflicts` always returns `hasConflict: false`; concurrent offline edits silently last-write-wins and the client’s conflict-resolution UI never fires from the server path.
+1. **The ML training API is inert.** `/api/ml/train/*` return a successful-looking `{modelPath: null}` from stub trainers, despite a real gradient-boosting implementation existing elsewhere and never being called. No model lineage is persisted.
+1. **The telemetry “batch” writer is per-row.** It fires up to 500 concurrent single-row `INSERT … RETURNING` statements per chunk instead of one multi-row insert — the dominant cost on the live ingest path.
+1. **The tenant-gate CI guard checks middleware presence, not data-access correctness**, so it gives false confidence and would not catch findings #1 or #3.
+1. **Genuinely strong foundations** worth preserving: the RLS *policy* design (FORCE RLS, fail-closed `current_setting(...,true)`, USING+WITH CHECK, migration-time guard), session-claim-based `orgId` resolution, comprehensive CI guards, structured work-order closeout, and surfaced telemetry-drop metrics. The problems are wiring/lifecycle gaps, not missing architecture.
+1. **Net:** the multi-tenant design is mostly correct on paper but is undermined by three independent wiring defects (middleware order, migration routing, WS flag) that each, alone, breaks isolation. These should be treated as release blockers for SaaS.
+
+-----
+
+## 2. Top 10 prioritized actions
+
+|Rank|Finding                                                                                    |Severity|Effort|Confidence|Expected impact                         |
+|----|-------------------------------------------------------------------------------------------|--------|------|----------|----------------------------------------|
+|1   |`validateOrgIdHeader` clobbers session org → RLS pinned to `default-org-id` for all tenants|Critical|S     |Confirmed |Restores tenant isolation; unblocks SaaS|
+|2   |Deploy path (`db:migrate`/`MIGRATE_ON_BOOT`) skips `0018_rls_policies.sql`                 |Critical|M     |Confirmed |Ensures RLS actually exists in prod     |
+|3   |`GET /rag/conversations/:id/messages` cross-tenant IDOR (no check + no RLS)                |Critical|S     |Confirmed |Closes message-read leak                |
+|4   |WS fan-out leaks across tenants unless `WS_TENANT_STRICT_MODE` set                         |High    |M     |Confirmed |Stops realtime cross-tenant leakage     |
+|5   |PATCH/DELETE `/rag/conversations/:id` lack app-layer org check                             |High    |S     |Confirmed |Defense-in-depth for conv. mutation     |
+|6   |RLS untested in CI (integration uses `db:push`; RLS test self-skips)                       |High    |M     |Confirmed |Makes #1/#2 regressions detectable      |
+|7   |Server offline conflict detection is a no-op stub                                          |High    |M     |Confirmed |Real conflict surfacing for field crews |
+|8   |ML training endpoints return inert stub results                                            |High    |M     |Confirmed |Removes silent dead-end / honest UX     |
+|9   |Telemetry batch writer does per-row inserts                                                |Med–High|M     |Confirmed |Major ingest throughput/cost reduction  |
+|10  |84 direct `DEFAULT_ORG_ID` uses bypass the `fallbackOrgId()` guard                         |Medium  |L     |Confirmed |Correct app-layer org under tenant-auth |
+
+-----
+
+## 3. Detailed findings
+
+### Area 1 — Tenant isolation & security (highest priority)
+
+**T1 — `validateOrgIdHeader` (single-tenant) clobbers the session org in the production chain.** *Critical / S / Confirmed.*
+The auth boot seam mounts middleware in this order:
+
+```
+server/bootstrap/middleware.ts:241-244
+  app.use("/api", skipPublicPaths(requireOrgId));          // sets req.orgId = session claim
+  app.use("/api", skipPublicPaths(validateOrgIdHeader));   // ← overwrites it
+  app.use("/api", skipPublicPaths(withDatabaseContext));   // pins app.current_org_id = req.orgId
+```
+
+`validateOrgIdHeader` calls `applyDefaultOrgContext`, which is unconditional (no `requireTenantAuth()` gate):
+
+```
+server/orgIdValidation.ts:19-25
+  function applyDefaultOrgContext(req) {
+    (req as AuthenticatedRequest).orgId = DEFAULT_ORG_ID;   // every request → default-org-id
+    req.headers["x-org-id"] = DEFAULT_ORG_ID; ...
+  }
+```
+
+`withDatabaseContext` then runs `SET LOCAL app.current_org_id = <req.orgId>` (`server/middleware/db-context.ts`), so **RLS is pinned to `default-org-id` for every authenticated user**, regardless of their real org. A tenant that legitimately sends `x-org-id: <their-org>` is instead 403’d by `validateOrgId` (which requires `=== DEFAULT_ORG_ID`, `server/orgIdValidation.ts:32-34`).
+The team is aware: the RLS test harness *removes* this middleware on purpose —
+
+```
+tests/integration/rls-cross-tenant-api.test.ts:106-111
+  // We do NOT mount validateOrgIdHeader … that legacy single-tenant gate
+  // rewrites req.orgId to DEFAULT_ORG_ID unconditionally, which would
+  // collapse both tenants into one and defeat the isolation contract …
+```
+
+**Recommendation:** delete `validateOrgIdHeader` from `configureAuthMiddleware` (or gate the whole function behind `!requireTenantAuth()`). The session-claim `requireOrgId` + `withDatabaseContext` are the correct chain. **Blast radius:** every `/api/*` read/write under `REQUIRE_TENANT_AUTH=true`.
+
+**T2 — `GET /api/rag/conversations/:id/messages` cross-tenant IDOR.** *Critical / S / Confirmed.*
+
+```
+server/routes/rag-routes.ts:206-217
+  app.get("/api/rag/conversations/:id/messages", generalApiRateLimit, … {
+    const messages = await conversationService.getMessages(id, limit);  // no org check
+    return res.json(messages);
+  });
+```
+
+`getMessages` filters only by conversation id:
+
+```
+server/services/rag/conversation-service.ts:154-161
+  .where(eq(ragMessages.conversationId, conversationId))   // no orgId
+```
+
+And `rag_messages` has **no `org_id` column** (`shared/schema/rag.ts:157-178`), so it is explicitly excluded from RLS (`migrations/0018_rls_policies.sql:78-82`; `server/tenancy/tenant-tables.ts:181`). The sibling route `GET /:id` *does* check `conversation.orgId !== orgId` (`rag-routes.ts:197-200`), confirming the `/messages` route is the gap. Any authenticated user can read any tenant’s conversation messages by ID. **Recommendation:** in the route, load the conversation, verify its `orgId` against `req.orgId`, then fetch messages; longer-term add `org_id` to `rag_messages` (+ backfill) and register it for RLS. **Blast radius:** all RAG/copilot conversation content.
+
+**T3 — PATCH/DELETE `/api/rag/conversations/:id` have no app-layer org check.** *High / S / Confirmed.*
+
+```
+server/routes/rag-routes.ts:220-251  → updateConversation(id, …) / deleteConversation(id)
+server/services/rag/conversation-service.ts:87-108  → .where(eq(ragConversations.id, …))  // id only
+```
+
+`rag_conversations` *is* RLS-covered (`0018`), so in a correctly-migrated, `REQUIRE_TENANT_AUTH=true`, pinned-pool deployment the DB returns 0 rows cross-tenant — but that backstop is exactly what T1/M1 break, and it is absent in legacy/`neon-http` mode. **Recommendation:** add the same `orgId` ownership check used by `GET /:id`.
+
+**T4 — Pervasive direct `DEFAULT_ORG_ID` use bypasses the fail-closed guard.** *Medium–High / L / Confirmed.*
+`fallbackOrgId()` throws under tenant-auth (`shared/config/tenant.ts:44-50`) and is used in **1** file; `DEFAULT_ORG_ID` is imported/used directly in **84** files. In RAG routes, `getOrgContext` and ~14 handlers hardcode it (`rag-routes.ts:84-88, 148, 167, 188, 259, 279, 292, 316, 498, 623, 642, 665`). RLS covers the DB read for covered tables, but app-layer org values (feedback stats, cache stats, analytics aggregation, export) are computed against the wrong org. **Recommendation:** replace `const orgId = DEFAULT_ORG_ID` with the resolved `req.orgId`/`getOrgContext(req).orgId`, and route fallbacks through `fallbackOrgId()` so they throw under tenant-auth.
+
+**T5 — WebSocket fan-out leaks across tenants by default.** *High / M / Confirmed.*
+Scoping depends on `WS_TENANT_STRICT_MODE`, independent of `REQUIRE_TENANT_AUTH`:
+
+```
+server/websocket.ts:652         const resolvedOrgId = orgId ?? SYSTEM_ORG_ID;   // legacy default
+server/websocket.ts:535-547     // client receives its own org AND SYSTEM_ORG_ID …
+                                if (event.orgId !== client.orgId && event.orgId !== SYSTEM_ORG_ID) return;
+```
+
+All 11 `this.broadcast(…)` call sites omit `orgId` (e.g. `broadcastAlert` :697, dashboard :717, data updates :739/742, schedule :845/857, telemetry :879) → they land in `SYSTEM_ORG_ID` and fan out to every tenant. `broadcastToAll` is worse — no org or strict-mode guard at all:
+
+```
+server/websocket.ts:666-678 ; server/domains/alerts/service.ts:318 (deleteAllNotifications → broadcastToAll)
+```
+
+With strict mode *on*, those same publishers are dropped (`:652-661`) → realtime silently stops. **Recommendation:** make `WS_TENANT_STRICT_MODE` implied by `REQUIRE_TENANT_AUTH`, migrate the convenience publishers to pass an explicit `orgId`, and remove/​scope `broadcastToAll`. *Positive:* WS upgrade auth correctly rejects anonymous and missing-claim sessions under tenant-auth (`websocket.ts:208-211`).
+
+*RLS coverage gaps (data model):* tables registered as tenant-scoped but excluded for lacking `org_id`: `rag_messages`, `kb_doc_versions`, `compliance_audit_log`, `permission_grants`, `sensor_types`, `storage_config` (`migrations/0018_rls_policies.sql:40-82`). Each is reachable only via a parent join; any route that queries them directly is unprotected (see T2).
+
+*Uploads / AV:* No malware/AV scanning exists anywhere (no `clamav`/`virus`/`scanFile` references in `server/`). The data-import upload accepts 500 MB `.tar.gz` with a filename-sanitizing disk store but no content scan or decompression-bomb guard (`server/routes/route-dependencies.ts:153-173`). RAG query input *is* sanitized (`ragInputSanitizationMiddleware`, `server/services/rag/security/input-sanitizer.ts`); indirect prompt injection via retrieved KB chunk content is not obviously delimited — *Needs runtime check* of prompt assembly.
+
+### Area 2 — Data model & migrations
+
+**M1 — Three migration runners; the deploy path omits RLS.** *Critical / M / Confirmed.*
+
+- `db:push` = `drizzle-kit push` (schema diff) — applies no hand-written SQL.
+- `db:migrate` / `db:migrate:deploy` / `MIGRATE_ON_BOOT` = `server/scripts/migrate.ts` → Drizzle `migrate()` over the journal **+** `server/migrations/*.sql`. The journal lists only 5 tags (`0000, 0002, 0008, 0009, 0010` — `migrations/meta/_journal.json`); `server/migrations/` is a *different* file set (`001_…`, `003-…`). **Neither applies `migrations/0018_rls_policies.sql`** or `0011–0024`.
+- `scripts/run-sql-migrations.mjs` applies every `migrations/NNNN_*.sql` (incl. 0018) — but is wired only into `scripts/post-merge.sh` (git hook) and `scripts/check-migrations-reversible.sh` (CI), **not** the deploy scripts.
+
+The runner’s own header documents the trap:
+
+```
+scripts/run-sql-migrations.mjs:9-14
+  // migrations/meta/_journal.json only tracks 5 of the 23 current SQL
+  // migrations — the rest were applied via push and were never
+  // registered with Drizzle's tracker. Switching cold to
+  // drizzle-kit migrate would silently skip them.
+```
+
+Beyond RLS, this also skips `0024_lr35_telemetry_dedup` (the unique index `createTelemetryReading`’s `ON CONFLICT` targets — `server/db/telemetry/db-telemetry.ts:99-110`), `0021_hot_path_indexes`, `0023_fk_cascade_strategy`. **Recommendation:** make one runner canonical (`run-sql-migrations.mjs`) and point `db:migrate*` + `MIGRATE_ON_BOOT` at it; or register every `migrations/*.sql` in the journal. Add a boot assertion that `0018` policies exist when `REQUIRE_TENANT_AUTH=true`. **Blast radius:** every tenant-scoped table.
+
+**M3 — Child tables lacking `org_id`.** *Medium / M / Confirmed.* See RLS gaps above; the migration fail-closes (raises) if a registered table lacks `org_id` (`0018:107-113`), which is good, but the *response* was to drop them from the registry rather than add the column — leaving them protected only by parent-join discipline.
+
+PG↔SQLite parity is guarded in CI (`scripts/validate-dual-schema.mjs`, `ci.yml:46`) — *Confirmed present*, runtime correctness not assessable here.
+
+### Area 3 — Offline sync reliability
+
+**S1 — Server conflict detection is a no-op shim.** *High / M / Confirmed.*
+
+```
+server/conflict-resolution-service.ts:20-45
+  detectConflicts(...) { return { hasConflict: false, conflicts: [] }; }
+  logConflict / getPendingConflicts / manuallyResolveConflict → no-op / []
+```
+
+`/api/sync/check-conflicts` and `/api/sync/pending-conflicts` call these (`server/domains/sync/routes.ts:160-214`), so they always report “no conflict / none pending.” The client has a *real* IndexedDB outbox + conflict store + pause/resolve logic (`client/src/lib/offline-sync.ts:55,91-95,207-279,361-389`), but the server never feeds it server-detected conflicts → concurrent offline edits silently last-write-wins. **Recommendation:** implement version/timestamp comparison server-side (the interface already carries `version` + `timestamp`), persist conflicts, and surface them; or remove the endpoints so the dead path isn’t mistaken for working. Outbox failure visibility after `retryCount >= 5` (`offline-sync.ts:361,375`) — *Needs runtime check* on whether it reaches the user.
+
+### Area 4 — Performance & cost
+
+**P1 — Telemetry “batch” writer is per-row.** *Medium–High / M / Confirmed.*
+
+```
+server/telemetry-batch-writer.ts:447-471
+  const batch = readings.slice(i, i + 500);
+  const insertPromises = batch.map((r) => dbTelemetryStorage.createTelemetryReading({…}));
+  await Promise.all(insertPromises);            // 500 concurrent single-row inserts
+```
+
+Each `createTelemetryReading` is a single-row `insert().values(one).onConflictDoNothing().returning()` plus a fallback `select` on conflict (`server/db/telemetry/db-telemetry.ts:90-130`). On the live ingest path this is the dominant cost and can saturate the pool. **Recommendation:** one multi-row `db.insert(equipmentTelemetry).values(rows).onConflictDoNothing({target:[…]})` per chunk. *Positive:* drops/evictions/quota-blocks **are** surfaced as Prometheus counters (`telemetry-batch-writer.ts:85-124`) and quota increment is awaited with a bounded timeout + failure counter (`:638-661`).
+
+AI token budgeting and dashboard query breadth — *Needs runtime check* (no EXPLAIN / token logs available from source).
+
+### Area 5 — AI/ML lifecycle
+
+**ML1 — Training API returns inert stubs.** *High / M / Confirmed.*
+
+```
+server/ml-training-pipeline.ts:46-62
+  function emptyResult() { return { modelPath: null, metrics: {}, trainedAt: new Date() }; }
+  trainXGBoostForHealthClassification(...) { return emptyResult(); }   // + LSTM, RF, retrainAllModels
+```
+
+The routes call these:
+
+```
+server/domains/ml-pipeline/routes.ts:189,205   const result = await trainXGBoostForHealthClassification(config); return res.json(result);
+```
+
+…and return `200 {modelPath:null}` — a silent dead-end. A *real* gradient-boosting trainer exists but is never reached (`server/ml-xgboost-model/train.ts:14-96` — real gradient/hessian loop + tree building). `ml-training-queue.ts` and `ml-retraining-service.ts` are no-op shims. **No lineage** (no `datasetHash`/`codeVersion`/`artifactDigest` in the registry path). **Recommendation:** wire the routes to the real trainer (run async via a durable job, not in-request), persist lineage, and have the endpoint return a job id rather than a fake success.
+
+**ML2 — Inference fallback transparency is partial.** *Medium / S / Likely.* Predictors return a `method` field (`ml_lstm`/`ml_rf`/`ml_xgboost`/`hybrid` — `server/ml-prediction/predictors.ts:80-81,185-186,280-281,353-354`) and return `null` when no model/insufficient data. But with training inert (ML1), trained models are likely absent, so callers fall back to heuristics; whether the heuristic state is persisted and shown in the UI/API is *Needs runtime check*. `ml-realtime-prediction.ts` and `rul-engine.ts` are shims returning null/no-op.
+
+### Area 6 — Operational workflows
+
+Work-order closeout **is** structured, not free text — separate `work_order_completions`, `work_order_parts`, `work_order_worklogs`, `work_order_checklists` tables with parts/labor/cost/duration breakdown (`shared/schema/work-orders.ts:245+`). PdM “Move Task”/schedule-write, atomic vs partial replenishment PRs, and crew-gap *resolution* (vs reporting) were not exhaustively traced — *Could not assess* without targeting specific handlers; flagged for follow-up.
+
+### Area 7 — Architecture & boundaries
+
+Hexagonal/DDD boundaries are guarded by real scripts wired into CI: `check-hex-storage-boundaries.mjs` (db imports outside infrastructure), `check:domain-boundaries`, `check:domain-leaks`, `check:domain-repositories-imports` (`ci.yml:39-43`, `package.json:69`). These are *blocking* (no `continue-on-error`). Whether any route still bypasses via direct `db` import is therefore likely caught — *Confirmed the guards exist and block*; per-file conformance not separately audited.
+
+### Area 8 — Code quality & type safety
+
+`as any`: **1**; `as unknown as`: **7**; `as never`: **110**; `@ts-nocheck`/`@ts-ignore`/`@ts-expect-error`: **0** (across `server`+`client`+`shared`, excluding tests). This is strong burndown. The residual smell is `as never` used to force call shapes, which silences real signature mismatches, e.g.:
+
+```
+server/routes/rag-routes.ts:410  (searchKnowledgeBase as object as (query, orgId, limit, threshold) => …)
+server/db/telemetry/db-telemetry.ts: createTelemetryReading({…} as never)  (via batch writer :456)
+```
+
+Cast/TS-debt baselines exist and are enforced (`scripts/typed-casts-baseline.json`, `check:cast-burndown`, `check:ts-burndown` — `ci.yml:48-55`).
+
+### Area 9 — CI / engineering workflow
+
+CI (`/.github/workflows/ci.yml`) is comprehensive and largely blocking: lint, `tsc`, domain/hex/dual-schema guards, ts- & cast-burndown, hygiene, boot-health, route-import smoke, **tenant-gate audit**, migration reversibility, unit + integration + Python-sidecar jobs. Only `knip` is soft (`ci.yml:315 continue-on-error: true`).
+**Real gaps:** (a) integration tests run `db:push` (`ci.yml:133`), which applies no RLS, so the cross-tenant RLS tests *self-skip* when RLS is absent (`tests/integration/rls-cross-tenant-api.test.ts:90` returns early if `!tableHasRls`) → **RLS isolation is effectively untested in CI** (ties to M1). (b) The tenant-gate guard only string-matches middleware presence, not per-resource ownership:
+
+```
+scripts/check-routes-require-orgid.ts:49,66-70   /\brequireOrgId\b/ … app.use("/api", requireOrgId)
+```
+
+…so it would pass T2/T3 (those routes *are* behind global `requireOrgId`) while the IDOR remains. **Recommendation:** run `run-sql-migrations.mjs` before integration tests and fail if RLS-dependent tests skip; add an ownership-check lint or targeted IDOR tests for `/rag/conversations/:id/*`.
+
+### Area 10 — UX & accessibility
+
+Not deeply audited in this pass. The offline outbox is a *real* SW/IndexedDB replay (not a placeholder) — `client/src/lib/offline-sync.ts:331-389` performs actual sync with retry/conflict bookkeeping. Label/`htmlFor` and broader a11y — *Could not assess* at scale here; recommend a dedicated axe/lint pass.
+
+-----
+
+## 4. Quick wins vs strategic investments
+
+**Quick wins (S, high value)**
+
+- Remove/gate `validateOrgIdHeader` from `configureAuthMiddleware` (T1) — single highest-leverage line change.
+- Add conversation-ownership check to `GET/PATCH/DELETE /rag/conversations/:id[/messages]` (T2/T3).
+- Imply `WS_TENANT_STRICT_MODE` from `REQUIRE_TENANT_AUTH` (T5, first half).
+- Boot-time assertion that `0018` policies exist under tenant-auth (guards M1).
+
+**Strategic investments (L)**
+
+- Unify the three migration runners and make the deploy path apply all `migrations/*.sql` (M1); add `org_id` + backfill to `rag_messages`/`kb_doc_versions`/`compliance_audit_log` and bring them under RLS (M3/T2).
+- Migrate all WS publishers to explicit per-org targeting and retire `broadcastToAll` (T5).
+- Real, durable, lineage-tracked ML training pipeline wired to the existing trainer (ML1).
+- Real server-side offline conflict detection + surfacing (S1).
+- Multi-row telemetry insert path (P1).
+- CI that provisions RLS and fails when isolation tests skip (Area 9).
+
+-----
+
+## 5. Could not assess (artifacts needed)
+
+- **Does production actually run `run-sql-migrations.mjs`?** Need the deploy manifest/runbook (Dockerfile CMD, Caddy/ops scripts, Replit deploy step). As written, `db:migrate:deploy` and `MIGRATE_ON_BOOT` do not.
+- **Heuristic-vs-model surfacing in UI/API** (ML2) — need a running instance / sample prediction responses.
+- **Dashboard query plans / N+1, AI token-budget enforcement** — need EXPLAIN ANALYZE and token logs.
+- **Outbox failure visibility to end users** after retry exhaustion — need client runtime.
+- **Indirect prompt injection** via KB chunk content — need to trace the final prompt assembly in the orchestrator.
+- **Replenishment PR atomicity, PdM “Move Task” write path, crew-gap resolution** — need the specific handlers traced end-to-end.
+
+-----
+
+## 6. Corrections — confirmed present (do not flag as missing)
+
+- **Tests exist:** `tests/` has 169 files, incl. `tests/integration/rls-cross-tenant.test.ts`, `rls-cross-tenant-api.test.ts`, `cross-tenant-domains.test.ts`, `tenant-quota-throttle.test.ts`, `rag-conversations.test.ts`.
+- **CI exists:** `.github/workflows/` has 5 workflows (`ci.yml`, `load-nightly.yml`, `tauri-build.yml`, `ws-fanout-nightly.yml`, `ws-fanout-chaos-nightly.yml`).
+- **Docs exist:** `docs/` has 248 files.
+- **RLS policy design is strong** (even though installation is broken): `FORCE ROW LEVEL SECURITY`, fail-closed `current_setting('app.current_org_id', true)`, `USING` + `WITH CHECK`, and a migration-time guard that raises if a registered table lacks `org_id` (`migrations/0018_rls_policies.sql:100-135`).
+- **Auth derives `orgId` from the session claim, not headers** (`server/middleware/auth.ts` `resolveOrgId`), and rejects missing claims under tenant-auth.
+- **Work-order closeout is structured** (parts/labor/cost/duration tables), not free text.
+- **Telemetry drops/evictions/quota-blocks are surfaced as Prometheus metrics**, and quota increment is awaited with a bounded timeout + failure counter.
+- **Type-safety debt is low and gated** (`as any` = 1; `@ts-nocheck`/`@ts-ignore` = 0; cast/TS burndown baselines enforced in CI).
+- **The client offline outbox is a real SW/IndexedDB replay**, not a placeholder.
+
+*Theme:* ARUS is not missing the architecture for multi-tenant SaaS — it has it, well-designed. The Critical findings are wiring/lifecycle defects (middleware order, migration routing, an env-flag split) that each independently void that architecture, plus two route-level checks that were never added. All are small-to-medium fixes with outsized impact.
