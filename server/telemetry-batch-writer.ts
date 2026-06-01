@@ -29,6 +29,7 @@
  */
 
 import { EventEmitter } from "node:events";
+import type { InsertTelemetry } from "@shared/schema";
 import { dbTelemetryStorage } from "./repositories";
 import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/telemetry-metrics";
 import client from "prom-client";
@@ -67,6 +68,7 @@ export interface BatchWriterConfig {
   evictionPercent: number;
   flushOnShutdown: boolean;
   maxRetries: number; // Max flush retries before dropping readings (default 3)
+  dbInsertChunkSize: number; // Rows per multi-row INSERT statement (default 500)
 }
 
 const batchWriterFlushDuration = new client.Histogram({
@@ -170,14 +172,27 @@ export class TelemetryBatchWriter extends EventEmitter {
       evictionPercent: Number.parseFloat(process.env['TELEMETRY_EVICTION_PERCENT'] || "0.1"),
       flushOnShutdown: true,
       maxRetries: Number.parseInt(process.env['TELEMETRY_MAX_RETRIES'] || "3", 10),
+      dbInsertChunkSize: Number.parseInt(
+        process.env['TELEMETRY_DB_INSERT_CHUNK_SIZE'] || "500",
+        10,
+      ),
       ...config,
     };
+
+    // Guard the multi-row INSERT statement size: an invalid/non-positive
+    // override falls back to 500, and we clamp to 1000 so a misconfiguration
+    // can't blow past the Postgres bind-parameter limit (~65535 / cols-per-row).
+    if (!Number.isFinite(this.config.dbInsertChunkSize) || this.config.dbInsertChunkSize <= 0) {
+      this.config.dbInsertChunkSize = 500;
+    }
+    this.config.dbInsertChunkSize = Math.min(this.config.dbInsertChunkSize, 1000);
 
     logger.info("TelemetryBatchWriter", "Initialized with config", {
       batchIntervalMs: this.config.batchIntervalMs,
       maxBufferSize: this.config.maxBufferSize,
       evictionPercent: this.config.evictionPercent,
       maxRetries: this.config.maxRetries,
+      dbInsertChunkSize: this.config.dbInsertChunkSize,
     });
   }
 
@@ -449,26 +464,28 @@ export class TelemetryBatchWriter extends EventEmitter {
       return;
     }
 
-    const batchSize = 500;
-    for (let i = 0; i < readings.length; i += batchSize) {
-      const batch = readings.slice(i, i + batchSize);
+    // One multi-row INSERT per chunk (conflict-skip on the 0024 natural key)
+    // instead of `batch.length` concurrent single-row inserts. Chunk size is
+    // configurable because each row contributes several bind parameters and a
+    // single statement must stay under the Postgres parameter limit.
+    const chunkSize = this.config.dbInsertChunkSize;
+    for (let i = 0; i < readings.length; i += chunkSize) {
+      const chunk = readings.slice(i, i + chunkSize);
 
-      const insertPromises = batch.map((reading) =>
-        dbTelemetryStorage.createTelemetryReading({
-          equipmentId: reading.equipmentId,
-          sensorType: reading.sensorType,
-          value: reading.value,
-          timestamp: reading.timestamp,
-          orgId: reading.orgId || "default-org-id",
-          metadata: {
-            ...reading.metadata,
-            batchWriter: true,
-            unit: reading.unit,
-          },
-        } as never)
-      );
+      const rows: InsertTelemetry[] = chunk.map((reading) => ({
+        equipmentId: reading.equipmentId,
+        sensorType: reading.sensorType,
+        value: reading.value,
+        ts: reading.timestamp,
+        orgId: reading.orgId || "default-org-id",
+        unit: reading.unit,
+      }));
 
-      await Promise.all(insertPromises);
+      // Throws on failure so flush()'s retry/requeue/drop path still engages.
+      // Skipped duplicates are not fatal and are excluded from the return value;
+      // quota/stats counters intentionally stay on the attempted (accepted)
+      // count in writeBatch, preserving their current accepted-vs-dropped meaning.
+      await dbTelemetryStorage.createTelemetryReadingsBulk(rows);
     }
   }
 

@@ -129,6 +129,47 @@ export class DatabaseTelemetryStorage {
     }
     return existing;
   }
+
+  /**
+   * Bulk-insert many telemetry readings in a single multi-row statement.
+   *
+   * LR-3.5 / DB-2: deduplicates on the natural composite key
+   * (org_id, equipment_id, sensor_type, ts) via the UNIQUE index in
+   * migration 0024. Duplicates replayed by the offline outbox or the
+   * batch writer's retry path hit ON CONFLICT DO NOTHING and are
+   * silently skipped — they are never fatal.
+   *
+   * Replaces the per-row `Promise.all(createTelemetryReading(...))` fan-out
+   * on the hot ingest path: one round-trip per call instead of one per row.
+   * Callers are responsible for chunking to keep each statement within the
+   * Postgres bind-parameter limit (see TelemetryBatchWriter.dbInsertChunkSize).
+   *
+   * Returns the number of rows ACTUALLY inserted (skipped duplicates are
+   * excluded), so callers can distinguish attempted vs. persisted rows.
+   */
+  async createTelemetryReadingsBulk(readings: InsertTelemetry[]): Promise<number> {
+    if (readings.length === 0) {
+      return 0;
+    }
+    const values = readings.map((reading) => ({
+      id: randomUUID(),
+      ...reading,
+      ts: reading.ts || new Date(),
+    }));
+    const inserted = await db
+      .insert(equipmentTelemetry)
+      .values(values)
+      .onConflictDoNothing({
+        target: [
+          equipmentTelemetry.orgId,
+          equipmentTelemetry.equipmentId,
+          equipmentTelemetry.sensorType,
+          equipmentTelemetry.ts,
+        ],
+      })
+      .returning({ id: equipmentTelemetry.id });
+    return inserted.length;
+  }
   async getLatestTelemetryReadings(
     equipmentId?: string,
     limit: number = 100,
