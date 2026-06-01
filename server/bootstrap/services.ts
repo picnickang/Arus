@@ -182,22 +182,15 @@ export async function seedDevelopmentUser(): Promise<void> {
         mustChangePassword: true,
         passwordHash,
       });
-      logger.info("✓ Development admin created (username: admin / password: admin)");
+      logger.info("✓ Development admin created (username: admin)");
     } else {
       const current = existing[0]!;
-      // Normalize the bootstrap admin to the documented default
-      // (username `admin`, password `admin`, forced first-login change) when it
-      // has NOT been personalized yet. "Personalized" = the admin has finished
-      // the forced first-login change (mustChangePassword === false) while
-      // keeping the canonical `admin` username. In that case we never touch the
-      // chosen password (idempotent). Otherwise — a null password, a non-`admin`
-      // username (e.g. the legacy email-as-username artifact), or a pending
-      // first-login change — we re-seed the default so admin/admin works.
-      const isPersonalized =
-        current.username === DEFAULT_ADMIN_USERNAME &&
-        current.passwordHash !== null &&
-        current.mustChangePassword === false;
-      if (!isPersonalized) {
+      // Truly idempotent: only initialize credentials when the account has never
+      // had a password set (passwordHash === null) — i.e. an uninitialized
+      // bootstrap row. Once any password exists, the account is considered
+      // user-managed and is NEVER touched again, so a username or password later
+      // changed via the Crew "Access & Login" tab persists across restarts.
+      if (current.passwordHash === null) {
         const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 12);
         await db
           .update(users)
@@ -209,9 +202,33 @@ export async function seedDevelopmentUser(): Promise<void> {
             passwordHash,
           })
           .where(eq(users.id, devUserId));
-        logger.info("✓ Development admin reset to default credentials (username: admin / password: admin)");
+        logger.info("✓ Development admin initialized with default credentials (username: admin)");
       } else {
-        logger.info("✓ Development admin already exists (personalized)");
+        logger.info("✓ Development admin already exists (user-managed credentials left untouched)");
+      }
+    }
+
+    // Link the default admin to a crew record so it appears in the crew roster
+    // "Access & Login" tab (UserAccessEditor). Idempotent: skip once any crew
+    // row already references this user.
+    const { crew } = await import("@shared/schema");
+    const linked = await db.select().from(crew).where(eq(crew.userId, devUserId)).limit(1);
+    if (linked.length === 0) {
+      const devCrewId = "dev-admin-crew";
+      const existingCrew = await db.select().from(crew).where(eq(crew.id, devCrewId)).limit(1);
+      if (existingCrew.length === 0) {
+        await db.insert(crew).values({
+          id: devCrewId,
+          orgId: devOrgId,
+          name: "Development Admin",
+          rank: "Administrator",
+          userId: devUserId,
+          active: true,
+        });
+        logger.info("✓ Development admin linked to crew roster (Access & Login)");
+      } else {
+        await db.update(crew).set({ userId: devUserId }).where(eq(crew.id, devCrewId));
+        logger.info("✓ Development admin re-linked to existing crew record");
       }
     }
   } catch (error: unknown) {
