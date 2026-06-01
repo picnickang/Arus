@@ -1,3 +1,4 @@
 - [Role-name gating vs primary role](role-gating-primary-role.md) — backend `requireRole` authorizes on the single `users.role` column; client gates must see that role too, not just assignment-derived roles.
+- [ARUS migration runners](migration-runners.md) — `migrate.ts` is the canonical deploy/boot runner; its root-migration logic is duplicated from `run-sql-migrations.mjs` and must stay lockstep (same `arus_migrations` ledger + lock key 779231474).
 - [Integration test harness](integration-test-harness.md) — run via `npm run test:integration` (needs `--experimental-vm-modules`); they crash in this cloud-mode sandbox (db-config schema-null), so verify via tsc+review, let CI run them.
 - [Admin auth model](admin-auth-model.md) — shared-password admin unlock retired; admins sign in via real account `/api/portal/login`; `/api/admin/auth/setup` only bootstraps the hash, mints no session.

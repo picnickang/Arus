@@ -30,9 +30,14 @@ npm install
 npx drizzle-kit generate || \
   echo "[post-merge] drizzle-kit generate reported no changes or failed (non-fatal)"
 
-# Apply every NNNN_*.sql in migrations/ inside a transaction, tracking
-# state in arus_migrations. Idempotent — re-running applies nothing.
-node scripts/run-sql-migrations.mjs up
+# Apply every migration family through the canonical deploy runner
+# (Task #260): root migrations/NNNN_*.sql (arus_migrations) + server/migrations
+# (arus_sql_migrations), under the shared advisory lock, then assert the
+# critical schema objects exist. Same ledger + lock key as the standalone
+# scripts/run-sql-migrations.mjs (still used by check-migrations-reversible.sh),
+# so the deploy path and the post-merge path stay consistent. Idempotent —
+# re-running applies nothing.
+npm run db:migrate:deploy
 
 # Push A1 — One-shot historical backfill into prediction_outcomes so
 # the first weekly retrain has labels to score against. Idempotent

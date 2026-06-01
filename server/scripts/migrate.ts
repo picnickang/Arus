@@ -1,5 +1,3 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import fs from "fs";
 import path from "path";
@@ -9,13 +7,84 @@ const logger = createLogger("Scripts:Migrate");
 const { Pool } = pg;
 
 /**
+ * Canonical deploy/boot migration runner (Task #260 — unify migration runner).
+ *
+ * Historically three migration paths disagreed on what got applied:
+ *   1. This file's old `migrate(db, { migrationsFolder })` Drizzle step, which
+ *      only applied the handful of migrations registered in
+ *      `migrations/meta/_journal.json` (5 of 24) plus `server/migrations/*.sql`.
+ *   2. `scripts/run-sql-migrations.mjs`, which applies EVERY root
+ *      `migrations/NNNN_*.sql` (incl. RLS 0018, hot-path indexes 0021, FK
+ *      cascade rules 0023, telemetry dedup unique index 0024) — but was wired
+ *      only into the post-merge / reversibility-CI paths, never deploy.
+ *
+ * A freshly deployed database could therefore be missing indexes/constraints
+ * the application assumes exist (e.g. `0024`'s unique index that the telemetry
+ * write path's `ON CONFLICT` targets).
+ *
+ * This runner is now the single source of truth. It applies, idempotently and
+ * under a Postgres advisory lock (shared with `run-sql-migrations.mjs`):
+ *   (a) every root `migrations/NNNN_*.sql` — tracked in `arus_migrations`,
+ *       the same ledger `run-sql-migrations.mjs` uses, so the two interoperate;
+ *   (b) `server/migrations/*.sql` — tracked in `arus_sql_migrations`.
+ * After applying, it asserts the critical objects exist and fails loudly if any
+ * are missing.
+ *
+ * RETIRED family — the Drizzle journal migrator (`drizzle-orm/.../migrator`):
+ *   - The journal tracks only 5 of 24 root migrations, and two of its entries
+ *     (`0000_schema-sync`, `0010_cost_savings_validation_status`) have NO
+ *     matching `.sql` file, so `migrate()` throws on a fresh database.
+ *   - Every file it could apply is part of the `migrations/NNNN_*.sql` set
+ *     swept in (a), so it is a strict subset. Running both would double-apply
+ *     the overlapping files.
+ *   The base schema for a fresh database is still created by
+ *   `drizzle-kit push` / `drizzle-kit generate` (out of scope here, unchanged);
+ *   this runner applies the incremental migrations on top of it.
+ */
+
+const ROOT_MIGRATIONS_DIRNAME = "migrations";
+const SERVER_MIGRATIONS_DIRNAME = "server/migrations";
+
+// Stable 64-bit advisory-lock key. MUST match `scripts/run-sql-migrations.mjs`
+// so a concurrent deploy and post-merge serialize against the same key.
+const ADVISORY_LOCK_KEY = 779231474;
+
+const ROOT_TRACKER_DDL = `
+  CREATE TABLE IF NOT EXISTS arus_migrations (
+    filename   TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+
+const SERVER_TRACKER_DDL = `
+  CREATE TABLE IF NOT EXISTS arus_sql_migrations (
+    filename TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+
+// Critical schema objects the application assumes exist post-migration. Asserted
+// after every apply so a deploy that silently skipped a migration fails loudly
+// rather than corrupting dashboards / breaking the telemetry ON CONFLICT path.
+const REQUIRED_INDEXES: ReadonlyArray<{ name: string; from: string }> = [
+  { name: "uq_equipment_telemetry_natural", from: "0024 telemetry dedup" },
+  { name: "idx_work_orders_org_vessel_status", from: "0021 hot-path indexes" },
+  { name: "idx_alert_notifications_org_equipment_type", from: "0021 hot-path indexes" },
+  { name: "idx_maintenance_schedules_equipment_date", from: "0021 hot-path indexes" },
+];
+
+const REQUIRED_CASCADE_FKS: ReadonlyArray<{ table: string; column: string; from: string }> = [
+  { table: "purchase_order_items", column: "po_id", from: "0023 FK cascade" },
+  { table: "purchase_request_items", column: "pr_id", from: "0023 FK cascade" },
+];
+
+/**
  * Prod-hardening: exported entry point for boot-time migration.
  *
  * `server/bootstrap/services.ts` calls this when `MIGRATE_ON_BOOT=true`
  * so a fresh deploy that ships ahead of the manual `npm run db:migrate:deploy`
- * step still ends up with the schema the application expects. Runs the
- * Drizzle migrator + supplemental SQL migrator against a short-lived
- * pg.Pool that we close before returning (the runtime app pool is
+ * step still ends up with the schema the application expects. Runs against a
+ * short-lived pg.Pool that we close before returning (the runtime app pool is
  * owned by db-config.ts and stays untouched).
  */
 export async function runBootMigrations(): Promise<void> {
@@ -23,9 +92,8 @@ export async function runBootMigrations(): Promise<void> {
     throw new Error("runBootMigrations: DATABASE_URL is required");
   }
   const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
-  const db = drizzle(pool);
   try {
-    await runMigrations(db, pool);
+    await runMigrations(pool);
   } finally {
     await pool.end();
   }
@@ -42,34 +110,33 @@ async function main() {
   }
 
   const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
-  const db = drizzle(pool);
 
   if (isStatus) {
     await showStatus(pool);
   } else if (isDeploy) {
     logger.info("[Migrate] Running migrations in deploy mode (non-interactive)...");
-    await runMigrations(db, pool);
+    await runMigrations(pool);
     logger.info("[Migrate] Deploy complete");
   } else {
     logger.info("[Migrate] Running pending migrations...");
-    await runMigrations(db, pool);
+    await runMigrations(pool);
     logger.info("[Migrate] Migrations complete");
   }
 
   await pool.end();
 }
 
-async function runMigrations(db: ReturnType<typeof drizzle>, pool: pg.Pool) {
-  const migrationsFolder = path.resolve(process.cwd(), "migrations");
-
-  if (!fs.existsSync(migrationsFolder)) {
-    logger.error(`Migrations folder not found: ${migrationsFolder}`);
-    process.exit(1);
-  }
-
+async function runMigrations(pool: pg.Pool): Promise<void> {
   try {
-    await migrate(db, { migrationsFolder });
-    await runServerSqlMigrations(pool);
+    // Serialize concurrent runners (deploy vs. post-merge) through the shared
+    // advisory lock, then apply every required family in order.
+    await withAdvisoryLock(pool, async () => {
+      await applyRootSqlMigrations(pool);
+      await runServerSqlMigrations(pool);
+    });
+    // Read-only verification — outside the lock; fails loudly if a required
+    // object is absent (e.g. a migration was skipped on this database).
+    await assertCriticalObjects(pool);
     logger.info("[Migrate] All migrations applied successfully");
   } catch (error) {
     logger.error("[Migrate] Migration failed:", undefined, error);
@@ -77,20 +144,88 @@ async function runMigrations(db: ReturnType<typeof drizzle>, pool: pg.Pool) {
   }
 }
 
+async function withAdvisoryLock<T>(pool: pg.Pool, fn: () => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock($1)", [ADVISORY_LOCK_KEY]);
+    try {
+      return await fn();
+    } finally {
+      await client
+        .query("SELECT pg_advisory_unlock($1)", [ADVISORY_LOCK_KEY])
+        .catch(() => undefined);
+    }
+  } finally {
+    client.release();
+  }
+}
+
+function listRootUpMigrations(dir: string): string[] {
+  return fs
+    .readdirSync(dir)
+    .filter((f) => /^\d{4}_.*\.sql$/.test(f) && !f.endsWith(".down.sql"))
+    .sort();
+}
+
+async function rootAppliedSet(pool: pg.Pool): Promise<Set<string>> {
+  const { rows } = await pool.query<{ filename: string }>(
+    "SELECT filename FROM arus_migrations"
+  );
+  return new Set(rows.map((r) => r.filename));
+}
+
+/**
+ * Apply every root `migrations/NNNN_*.sql` not yet recorded in `arus_migrations`,
+ * in lexical order, each inside its own transaction. Mirrors the semantics of
+ * `scripts/run-sql-migrations.mjs up` (same ledger table, same lock key) so the
+ * deploy path and the post-merge/CI path stay consistent. Re-running is a no-op.
+ */
+async function applyRootSqlMigrations(pool: pg.Pool): Promise<void> {
+  const dir = path.resolve(process.cwd(), ROOT_MIGRATIONS_DIRNAME);
+  if (!fs.existsSync(dir)) {
+    throw new Error(`[Migrate] Root migrations folder not found: ${dir}`);
+  }
+
+  await pool.query(ROOT_TRACKER_DDL);
+  const applied = await rootAppliedSet(pool);
+  const pending = listRootUpMigrations(dir).filter((f) => !applied.has(f));
+
+  if (pending.length === 0) {
+    logger.info("[Migrate] Root SQL migrations up to date");
+    return;
+  }
+
+  for (const file of pending) {
+    logger.info(`[Migrate] Applying root SQL migration: ${file}`);
+    const sqlText = fs.readFileSync(path.join(dir, file), "utf-8");
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(sqlText);
+      await client.query(
+        "INSERT INTO arus_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING",
+        [file]
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      logger.error(`[Migrate] Root SQL migration failed: ${file}`, undefined, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+}
+
 async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
-  const serverMigrationsFolder = path.resolve(process.cwd(), "server/migrations");
+  const serverMigrationsFolder = path.resolve(process.cwd(), SERVER_MIGRATIONS_DIRNAME);
 
   if (!fs.existsSync(serverMigrationsFolder)) {
     logger.info("[Migrate] No server/migrations folder found; skipping supplemental SQL migrations");
     return;
   }
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS arus_sql_migrations (
-      filename TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
+  await pool.query(SERVER_TRACKER_DDL);
 
   const files = fs
     .readdirSync(serverMigrationsFolder)
@@ -125,7 +260,7 @@ async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
       await client.query("INSERT INTO arus_sql_migrations (filename) VALUES ($1)", [file]);
       await client.query("COMMIT");
     } catch (error) {
-      await client.query("ROLLBACK");
+      await client.query("ROLLBACK").catch(() => undefined);
       logger.error(`[Migrate] Supplemental SQL migration failed: ${file}`, undefined, error);
       throw error;
     } finally {
@@ -134,54 +269,118 @@ async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
   }
 }
 
+/**
+ * Verify the critical objects the application assumes exist after migration:
+ * the telemetry dedup unique index (0024), the hot-path indexes (0021), and the
+ * FK cascade rules (0023). Throws a single error listing everything missing.
+ */
+async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
+  const missing: string[] = [];
+
+  const indexNames = REQUIRED_INDEXES.map((i) => i.name);
+  const idxRes = await pool.query<{ indexname: string }>(
+    "SELECT indexname FROM pg_indexes WHERE indexname = ANY($1)",
+    [indexNames]
+  );
+  const presentIndexes = new Set(idxRes.rows.map((r) => r.indexname));
+  for (const idx of REQUIRED_INDEXES) {
+    if (!presentIndexes.has(idx.name)) {
+      missing.push(`index "${idx.name}" (${idx.from})`);
+    }
+  }
+
+  for (const fk of REQUIRED_CASCADE_FKS) {
+    const res = await pool.query(
+      `SELECT 1
+         FROM pg_constraint c
+         JOIN pg_class r ON r.oid = c.conrelid
+         JOIN pg_attribute a ON a.attrelid = r.oid AND a.attnum = ANY(c.conkey)
+        WHERE c.contype = 'f'
+          AND c.confdeltype = 'c'
+          AND r.relname = $1
+          AND a.attname = $2
+        LIMIT 1`,
+      [fk.table, fk.column]
+    );
+    if (!res.rowCount || res.rowCount === 0) {
+      missing.push(`FK ON DELETE CASCADE on ${fk.table}.${fk.column} (${fk.from})`);
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[Migrate] Post-migration assertion FAILED — required objects missing: ${missing.join("; ")}`
+    );
+  }
+
+  logger.info(
+    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, FK cascades present)"
+  );
+}
+
 async function showStatus(pool: pg.Pool) {
   logger.info("\n=== Migration Status ===\n");
 
+  // Ledger 1 — root migrations/NNNN_*.sql (canonical, arus_migrations).
   try {
-    const result = await pool.query(`
-      SELECT * FROM "__drizzle_migrations" 
-      ORDER BY created_at DESC 
+    await pool.query(ROOT_TRACKER_DDL);
+    const applied = await rootAppliedSet(pool);
+    const dir = path.resolve(process.cwd(), ROOT_MIGRATIONS_DIRNAME);
+    const all = fs.existsSync(dir) ? listRootUpMigrations(dir) : [];
+    const pending = all.filter((f) => !applied.has(f));
+    const last = [...applied].sort().pop() ?? "(none)";
+    logger.info(
+      `Root migrations (arus_migrations): applied=${applied.size} pending=${pending.length} last=${last}`
+    );
+    for (const f of pending) logger.info(`  - pending: ${f}`);
+  } catch (error) {
+    logger.error("Root migrations: error reading ledger", undefined, error);
+  }
+
+  // Ledger 2 — server/migrations/*.sql (supplemental, arus_sql_migrations).
+  try {
+    const supplemental = await pool.query<{ filename: string; applied_at: string }>(`
+      SELECT filename, applied_at
+      FROM arus_sql_migrations
+      ORDER BY applied_at DESC
+      LIMIT 50
+    `);
+    if (supplemental.rows.length > 0) {
+      logger.info(`\nServer migrations (arus_sql_migrations): applied=${supplemental.rows.length}`);
+      for (const row of supplemental.rows) {
+        logger.info(`  - ${row.filename} (applied: ${new Date(row.applied_at).toISOString()})`);
+      }
+    } else {
+      logger.info("\nServer migrations (arus_sql_migrations): none applied yet");
+    }
+  } catch {
+    logger.info("\nServer migrations (arus_sql_migrations): none applied yet");
+  }
+
+  // Ledger 3 — legacy Drizzle journal (__drizzle_migrations). RETIRED as an
+  // apply path (see header); shown for visibility on databases that still
+  // carry it from before the unification.
+  try {
+    const result = await pool.query<{ hash: string; created_at: number }>(`
+      SELECT hash, created_at FROM "__drizzle_migrations"
+      ORDER BY created_at DESC
       LIMIT 10
     `);
-
     if (result.rows.length === 0) {
-      logger.info("No migrations have been applied yet.");
+      logger.info("\nLegacy Drizzle journal (__drizzle_migrations): empty (retired)");
     } else {
-      logger.info("Applied migrations:");
+      logger.info("\nLegacy Drizzle journal (__drizzle_migrations) — retired, informational only:");
       for (const row of result.rows) {
-        logger.info(`  - ${row.hash} (applied: ${new Date(row.created_at).toISOString()})`);
+        logger.info(`  - ${row.hash} (applied: ${new Date(Number(row.created_at)).toISOString()})`);
       }
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("does not exist")) {
-      logger.info("No migrations have been applied yet (migrations table does not exist).");
+      logger.info("\nLegacy Drizzle journal (__drizzle_migrations): not present (retired)");
     } else {
-      logger.error("Error checking migration status:", undefined, error);
+      logger.error("Legacy Drizzle journal: error reading ledger", undefined, error);
     }
-  }
-
-  const journalPath = path.resolve(process.cwd(), "migrations/meta/_journal.json");
-  if (fs.existsSync(journalPath)) {
-    const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
-    logger.info(`\nPending migrations in journal: ${journal.entries?.length || 0} total entries`);
-  }
-
-  try {
-    const supplemental = await pool.query(`
-      SELECT filename, applied_at
-      FROM arus_sql_migrations
-      ORDER BY applied_at DESC
-      LIMIT 20
-    `);
-    if (supplemental.rows.length > 0) {
-      logger.info("\nSupplemental SQL migrations:");
-      for (const row of supplemental.rows) {
-        logger.info(`  - ${row.filename} (applied: ${new Date(row.applied_at).toISOString()})`);
-      }
-    }
-  } catch {
-    logger.info("\nSupplemental SQL migrations: none applied yet");
   }
 
   logger.info("");
