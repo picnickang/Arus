@@ -444,3 +444,9 @@ id = "jMLAPZmpGos1Dg6NpPeCK"
 uri = "file://source-bundle/arus-fullstack-source-complete.tar.gz"
 type = "unspecified"
 title = "ARUS complete source bundle (incl. tests, CI, docs)"
+
+[[outputs]]
+id = "7zRNNTgNcO7FM68GqmR7_"
+uri = "file://source-bundle/REEVALUATION_PROMPT.md"
+type = "text"
+title = "ARUS re-evaluation prompt (for the complete bundle)"
