@@ -25,10 +25,18 @@ export function partAndStockToPartsInventory(
 
   const totalOnHand = rows.reduce((sum, r) => sum + Math.round(r.quantityOnHand ?? 0), 0);
   const totalReserved = rows.reduce((sum, r) => sum + Math.round(r.quantityReserved ?? 0), 0);
-  const avgUnitCost =
-    rows.length > 0
-      ? rows.reduce((sum, r) => sum + (r.unitCost ?? 0), 0) / rows.length
-      : (part.standardCost ?? 0);
+  // Prefer the average of stock rows that actually carry a price. stock.unitCost
+  // defaults to 0, so averaging raw values lets a 0-cost stock row mask a real
+  // catalog price — fall back to the part's standardCost whenever no stock row
+  // carries a usable (> 0) unit cost.
+  const pricedStockCosts = rows
+    .map((r) => r.unitCost ?? 0)
+    .filter((cost) => cost > 0);
+  const avgStockCost =
+    pricedStockCosts.length > 0
+      ? pricedStockCosts.reduce((sum, cost) => sum + cost, 0) / pricedStockCosts.length
+      : 0;
+  const avgUnitCost = avgStockCost > 0 ? avgStockCost : (part.standardCost ?? 0);
 
   return {
     id: part.id,

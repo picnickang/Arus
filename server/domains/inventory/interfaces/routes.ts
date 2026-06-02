@@ -273,6 +273,7 @@ export function registerInventoryRoutes(
         const minLevel = part.minStockLevel || 0;
         const maxLevel = part.maxStockLevel || minLevel * 3 || 10;
         const reorderQty = Math.max(1, maxLevel - currentQty);
+        const unitCost = part.unitCost || 0;
 
         return {
           partId: part.id,
@@ -287,7 +288,10 @@ export function registerInventoryRoutes(
           supplierId: null as string | null,
           supplierName: part.supplierName,
           leadTimeDays: part.leadTimeDays || 7,
-          estimatedCost: reorderQty * (part.unitCost || 0),
+          // Only report a cost when the part actually has a known unit price.
+          // Otherwise leave it null so the UI can show "N/A" rather than a
+          // misleading $0.
+          estimatedCost: unitCost > 0 ? reorderQty * unitCost : null,
         };
       });
 
@@ -306,10 +310,21 @@ export function registerInventoryRoutes(
         return a.quantityOnHand - a.minStockLevel - (b.quantityOnHand - b.minStockLevel);
       });
 
+      // Sum only the parts with a known price. If there are low-stock parts but
+      // none has a determinable price, report null so the UI shows "N/A" rather
+      // than a misleading $0. An empty list legitimately costs $0.
+      const pricedSuggestions = suggestions.filter((s) => s.estimatedCost != null);
+      const estimatedTotalCost =
+        suggestions.length === 0
+          ? 0
+          : pricedSuggestions.length > 0
+            ? pricedSuggestions.reduce((sum, s) => sum + (s.estimatedCost ?? 0), 0)
+            : null;
+
       res.json({
         total: suggestions.length,
         suggestions,
-        estimatedTotalCost: suggestions.reduce((sum, s) => sum + s.estimatedCost, 0),
+        estimatedTotalCost,
       });
     })
   );
