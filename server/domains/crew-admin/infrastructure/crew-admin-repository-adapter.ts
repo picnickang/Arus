@@ -589,7 +589,12 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     const [row] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.orgId, orgId), eq(users.username, username)))
+      .where(
+        and(
+          eq(users.orgId, orgId),
+          sql`lower(${users.username}) = lower(${username})`,
+        ),
+      )
       .limit(1);
     return row ?? undefined;
   }

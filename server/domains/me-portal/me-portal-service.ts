@@ -11,7 +11,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "../../db";
 import { users, adminSessions } from "@shared/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -398,7 +398,12 @@ export class MePortalService {
     const [record] = await db
       .select()
       .from(users)
-      .where(and(eq(users.orgId, orgId), eq(users.username, username)))
+      .where(
+        and(
+          eq(users.orgId, orgId),
+          sql`lower(${users.username}) = lower(${username})`,
+        ),
+      )
       .limit(1);
 
     const invalid = new MePortalError("Invalid username or password", "INVALID_CREDENTIALS", 401);

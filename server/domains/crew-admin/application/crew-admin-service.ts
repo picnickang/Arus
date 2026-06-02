@@ -621,6 +621,10 @@ export class CrewAdminApplicationService {
       if (username.length < 3) {
         throw new CrewAdminError("Username must be at least 3 characters", "INVALID_USERNAME");
       }
+      const existingUsername = await this.repo.findUserByUsername(command.orgId, username);
+      if (existingUsername && existingUsername.id !== command.userId) {
+        throw new CrewAdminError("That username is already taken", "DUPLICATE_USERNAME");
+      }
       patch.username = username;
     }
     if (command.password !== undefined) {
