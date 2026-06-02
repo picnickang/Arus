@@ -345,7 +345,7 @@ interface CrewViewDialogContentProps {
   initialTab?: CrewProfileTab;
 }
 
-const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"];
+const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"];
 
 export function CrewViewDialogContent({
   crew,

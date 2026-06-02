@@ -12,7 +12,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 // CREW_ADMIN_ROLES in server/domains/crew-admin/interfaces/routes.ts). Roles
 // outside this set get 403 from every /api/admin/crew/* endpoint, so showing
 // them the admin tabs would only surface failing requests.
-const ADMIN_ROLES = ["system_admin", "company_admin", "admin"];
+const ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"];
 export default function CrewManagementPage() {
   const { hasAnyRole } = useRoleNames();
   const { hasPermission } = usePermissions();
