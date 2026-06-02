@@ -2,8 +2,7 @@
   "meta": {
     "title": "ARUS UI Usefulness & Density Audit",
     "generated": "2026-06-02",
-    "reportOnly": true,
-    "productionCodeChanged": false,
+    "productionCodeChanged": true,
     "companionMarkdown": "docs/ui-usefulness-density-audit.md",
     "scopeNotes": "~89 page files in client/src/pages, ~60 backend domains in server/domains, hub-based navigation, role/permission surface.",
     "recommendationVocabulary": [
@@ -82,7 +81,10 @@
         }
       ],
       "note": "Score is the clamped 0-100 sum of factor contributions; values below are the auditor's calibrated estimates."
-    }
+    },
+    "reportOnlyAtGeneration": true,
+    "statusCurrent": "Living document. Generated as analysis-only input; the implementation phases it fed (Phase 1 trust-fixes, Phase 1.5 blocker-closure) have since shipped production changes. brokenActions[] preserves the ORIGINAL findings for traceability; highRiskButtonAudit records the verified post-implementation state and supersedes any conflicting brokenActions row. Where they disagree, highRiskButtonAudit is authoritative.",
+    "inventoryGranularity": "Route/tab-level (every page, tab, route). High-risk individual buttons/mutations are catalogued in brokenActions[] and highRiskButtonAudit; not an exhaustive per-pixel widget catalogue."
   },
   "roleHierarchy": [
     {
@@ -1631,7 +1633,10 @@
       "class": "F",
       "confidence": "verified",
       "recommendation": "FIX-FIRST or remove",
-      "risk": "Low"
+      "risk": "Low",
+      "superseded": true,
+      "supersededBy": "highRiskButtonAudit",
+      "currentState": "No longer dead — now wired to a real mutation and covered by tests/playwright/journeys/equipment-hub-actions.spec.ts. The 'dead button' finding was an intermediate snapshot."
     },
     {
       "id": "eq-hub-assign",
@@ -1642,7 +1647,10 @@
       "class": "F",
       "confidence": "verified",
       "recommendation": "FIX-FIRST or remove",
-      "risk": "Low"
+      "risk": "Low",
+      "superseded": true,
+      "supersededBy": "highRiskButtonAudit",
+      "currentState": "No longer dead — now wired to a real mutation and covered by tests/playwright/journeys/equipment-hub-actions.spec.ts. The 'dead button' finding was an intermediate snapshot."
     },
     {
       "id": "ai-health-models-active",

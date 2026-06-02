@@ -1,7 +1,20 @@
-# ARUS — UI Usefulness & Density Audit (Report Only)
+# ARUS — UI Usefulness & Density Audit (living document)
 
-> **Status:** Analysis only. No production code, routes, permissions, or behavior were changed by this pass. This document is the input for a future, separate implementation task.
-> **Date:** 2026-06-02
+> **Status (original generation):** Analysis only — when first generated this
+> document changed no production code; it was the input for the implementation
+> phases that followed.
+> **Status (current):** The implementation phases it fed (Phase 1 trust-fixes and
+> Phase 1.5 blocker-closure) **have since shipped production changes** — e.g. the
+> equipment-hub action buttons are now wired to real mutations. This file is
+> therefore a **living document**, not a frozen report: §6 preserves the *original
+> findings* for traceability, and **§22 records the verified post-implementation
+> state, which supersedes any superseded §6 row.** Where §6 and §22 disagree,
+> §22 is authoritative.
+> **Inventory granularity:** the §7 inventory is **route/tab-level** (every page,
+> tab, and route), with high-risk individual buttons/mutations catalogued
+> separately in §6 and §22 — it is deliberately not an exhaustive per-pixel widget
+> catalogue.
+> **Date:** 2026-06-02 (original); reconciled 2026-06-02 (Phase 1.5)
 > **Scope:** ~89 page files in `client/src/pages`, ~60 backend domains in `server/domains`, the hub-based navigation system, and the role/permission surface.
 > **Companion:** `docs/ui-usefulness-density-audit.json` (machine-readable item-by-item inventory with scores, recommendations, affected files, risk, proposed placement, and permission recommendation).
 > **Prior art:** `docs/ux-audit.md` (earlier, narrower pass) — referenced, not superseded structurally.
@@ -154,7 +167,15 @@ These are class A/B — keep and, where noted, feature more prominently.
 | 9 | "Dashboard config saved" toast | `crew-admin/RolesDashboardsTab.tsx:190` | Success shown on mutation trigger in some legacy paths without persistence confirmation. | Confirm on settled mutation only. |
 | 10 | Hub "overview" stat cards repeated across hubs | multiple | Same number shown in 3–4 places risks divergence when one source lags. | Single source of truth per metric. |
 
-> Verification note: items 1–6 were directly confirmed by reading the source. Items 7–9 were reported by the inventory sweep and are marked **needs-confirmation** in the JSON (`confidence: "reported"`) — a future implementation task should reproduce before acting.
+> **Verification note (original):** items 1–6 were directly confirmed by reading the source. Items 7–9 were reported by the inventory sweep and marked **needs-confirmation** (`confidence: "reported"`).
+>
+> **⚠️ SUPERSEDED by §22 (Phase 1.5).** This table records the *original* findings and is kept for traceability only. Since then:
+> - **Items 1–2 (Acknowledge / Assign) are no longer dead** — both are now wired to real mutations and covered by `tests/playwright/journeys/equipment-hub-actions.spec.ts`. The "dead button" state was an intermediate snapshot.
+> - **Item 7 (Publish Update)** is now **confirmed BROKEN** — the frontend calls `POST /api/admin/patches/publish` (+ `/preview`) but neither backend route exists (404).
+> - **Item 8 (PDF toast)** has **no false-positive** (success fires only on real success); only a silent empty/failure edge path remains.
+> - **Item 9 (RolesDashboards save)** is **correct** (`onSuccess`, not `onSettled`) — the concern was unfounded.
+>
+> See §22 and `docs/button-action-trust-verification.md` for the authoritative post-implementation state.
 
 ---
 
