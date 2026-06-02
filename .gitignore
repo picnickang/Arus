@@ -33,3 +33,7 @@ data/*.sqlite-*
 coverage/
 reports/
 .scannerwork/
+
+# Rust compiler crash dumps (transient tooling artifacts)
+rustc-ice-*.txt
+installer-review-bundle/rustc-ice-*.txt
