@@ -1,5 +1,17 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useSyncExternalStore,
+} from "react";
+import {
+  getApiSessionToken,
+  setApiSessionToken,
+  subscribeToApiSessionToken,
+} from "@/lib/sessionToken";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { isSuperAdminRole } from "@shared/role-dashboard";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,10 +41,19 @@ export function getAdminSessionToken(): string | null {
   return getApiSessionToken();
 }
 
-// Development mode: auto-unlock admin without password
-// Use Vite's built-in environment detection for safety
+// Development convenience: when running a dev build AND nobody is really
+// logged in, treat the admin portal as unlocked so the preview is usable
+// before sign-in. This NEVER overrides a real session — the moment a real
+// token is present (a real login), admin-unlock is driven solely by the
+// logged-in user's role (see `effectiveIsAdminUnlocked` below). We no longer
+// inject a placeholder token; with no token the server applies its own
+// no-login dev identity, keeping client and server in agreement.
+// Use Vite's built-in environment detection for safety.
 const DEV_MODE = import.meta.env.DEV === true;
-const DEV_SESSION_TOKEN = "dev-admin-session-token";
+// Client mirror of the server-side DEV_AUTH_BYPASS kill switch. Setting
+// VITE_DEV_AUTH_BYPASS=0 disables the local auto-admin convenience so the UI
+// matches the server (which then resolves the caller's real permissions).
+const DEV_AUTO_ADMIN = DEV_MODE && import.meta.env['VITE_DEV_AUTH_BYPASS'] !== "0";
 
 // Default client-side session window used when adopting a session that was
 // established before this provider mounted (the desktop setup wizard signs in
@@ -43,32 +64,26 @@ const DEV_SESSION_TOKEN = "dev-admin-session-token";
 const ADOPTED_SESSION_MS = 12 * 60 * 60 * 1000;
 
 export function AdminAccessProvider({ children }: { children: React.ReactNode }) {
-  // In dev mode, start unlocked with dev token
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(DEV_MODE);
-  const [sessionToken, setSessionToken] = useState<string | null>(
-    DEV_MODE ? DEV_SESSION_TOKEN : null
-  );
-  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(
-    DEV_MODE ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null
-  );
+  // Start LOCKED. The dev convenience (auto-admin when nobody is logged in) is
+  // applied via `effectiveIsAdminUnlocked` below, not by pre-seeding state with
+  // a fake token — so a real login is never overridden.
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
   const [timeUntilExpiry, setTimeUntilExpiry] = useState<number | null>(null);
   const [timeUntilIdleTimeout, setTimeUntilIdleTimeout] = useState<number | null>(null);
+
+  // Real session presence, tracked reactively. Drives the dev auto-admin
+  // fallback: it only applies while there is NO real token.
+  const hasRealSession = useSyncExternalStore(
+    subscribeToApiSessionToken,
+    () => getApiSessionToken() !== null,
+    () => false,
+  );
 
   const lastActivityRef = useRef<number>(Date.now());
   const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Initialize in-memory token in dev mode. This MUST run as an effect,
-  // not in the render body: setApiSessionToken notifies external-store
-  // subscribers (e.g. SessionGate's useSyncExternalStore), and updating
-  // another component while this one renders triggers React's "Cannot
-  // update a component while rendering a different component" warning
-  // (and the cascade of hook warnings that follow it).
-  useEffect(() => {
-    if (DEV_MODE && !getApiSessionToken()) {
-      setApiSessionToken(DEV_SESSION_TOKEN);
-    }
-  }, []);
 
   // Adopt a session that was established before this provider mounted. On the
   // desktop build the setup wizard signs in via `/api/portal/login` (outside
@@ -77,10 +92,9 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   // pick it up here, restore the session, and unlock the admin portal when the
   // stored role is admin-capable. In the web flow no token exists at app start
   // (login happens later, inside this provider), so this is a no-op there.
+  // This runs in every mode now (no token is injected in dev), so a real token
+  // present at mount is always adopted.
   useEffect(() => {
-    if (DEV_MODE) {
-      return;
-    }
     const existing = getApiSessionToken();
     if (!existing) {
       return;
@@ -186,10 +200,9 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
       setTimeUntilExpiry(Math.max(0, Math.floor(expiryMs / 1000)));
       setTimeUntilIdleTimeout(Math.max(0, Math.floor(idleMs / 1000)));
 
-      // Auto-lock on expiry. Skipped in dev: dev starts auto-unlocked and
-      // an auto-lock here strips the in-memory API token, which breaks
-      // authenticated reads like /api/permissions/me and makes admin-only
-      // UI (e.g. the crew Access & Login tab) silently disappear.
+      // Auto-lock on expiry. Skipped in dev so a real admin session used for
+      // local testing isn't torn down mid-session; production always enforces
+      // the cap. (The server token still expires regardless.)
       if (!DEV_MODE && expiryMs <= 0) {
         console.info("⏰ Session expired (max duration reached)");
         lockAdmin();
@@ -241,8 +254,13 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     };
   }, [isAdminUnlocked, updateActivity]);
 
+  // A real login wins: when a real token is present, admin-unlock reflects only
+  // the genuine unlock state. With no real session in a dev build, fall back to
+  // the auto-admin convenience so the preview is usable before sign-in.
+  const effectiveIsAdminUnlocked = isAdminUnlocked || (DEV_AUTO_ADMIN && !hasRealSession);
+
   const value: AdminAccessContextType = {
-    isAdminUnlocked,
+    isAdminUnlocked: effectiveIsAdminUnlocked,
     sessionToken,
     sessionExpiresAt,
     unlockAdminFromUserSession,

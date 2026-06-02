@@ -28,16 +28,17 @@ import { mapCompiledToContract, type MapperLogger } from "./mapper";
 import { structuredLog, type LogContext } from "../../logging";
 import { db } from "../../db";
 import { users } from "@shared/schema";
-import { resolveHubAdmin, resolveHubAccess } from "@shared/role-dashboard";
+import { crew } from "../../../shared/schema/crew";
+import { resolveHubAdmin, resolveHubAccess, isSuperAdminRole } from "@shared/role-dashboard";
 import { and, eq } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
+import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
 import { z } from "zod";
 
-const DEV_MODE = process.env['NODE_ENV'] === "development";
 const DEV_ORG_ID = "default-org-id";
 const DEV_USER_ID = "dev-user-id";
 
@@ -60,10 +61,14 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/me",
     requireOrgId,
     withErrorHandling("get current user permissions", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEV_ORG_ID;
-      const userId = (req as AuthenticatedRequest).user?.id || DEV_USER_ID;
+      const authReq = req as AuthenticatedRequest;
+      const realUserId = authReq.user?.id;
+      const orgId = authReq.orgId || DEV_ORG_ID;
 
-      if (DEV_MODE) {
+      // Dev convenience ONLY when nobody is really logged in (or the request is
+      // running as the no-token dev-bypass identity). A real session resolves to
+      // that user's real roles/permissions below — never the blanket all-access.
+      if (isDevAuthBypassEnabled() && (!realUserId || isDevBypassUser(realUserId))) {
         const allPermissions: Record<string, Record<string, boolean>> = {};
         for (const resource of RESOURCES) {
           allPermissions[resource.code] = {};
@@ -96,6 +101,7 @@ export function registerPermissionRoutes(app: Express) {
         );
       }
 
+      const userId = realUserId || DEV_USER_ID;
       const compiled = await compileUserPermissions(userId, orgId);
       const orgRoles = await permissionRepository.listRoles(orgId);
       const mapperLogger: MapperLogger = {
@@ -635,6 +641,125 @@ export function registerPermissionRoutes(app: Express) {
         success: true,
         message: "Permission system initialized",
         templates: templatesResult,
+      });
+    })
+  );
+
+  // Development/staging-only access diagnostic. Compares the live session
+  // identity against the canonical DB user row and reports the effective role,
+  // assigned roles, hub access, permission-grant summary, and crew link — so a
+  // future "this user sees the wrong dashboard/permissions" report is
+  // diagnosable in one request. Super-admin gated and 404 in production.
+  app.get(
+    "/api/permissions/dev-diagnostic",
+    requireOrgId,
+    withErrorHandling("dev access diagnostic", async (req: Request, res: Response) => {
+      // Never reachable in production — return 404 so it doesn't even advertise
+      // its existence to a prod caller.
+      if (process.env['NODE_ENV'] === "production") {
+        return res.status(404).json({ message: "Not found" });
+      }
+
+      const authReq = req as AuthenticatedRequest;
+      const sessionUser = authReq.user ?? null;
+      const orgId = authReq.orgId || DEV_ORG_ID;
+
+      // Only super-admin-capable roles (or the no-login dev-bypass identity) may
+      // read a full access picture; everyone else is forbidden.
+      const isDevBypass =
+        isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+      if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
+        return res.status(403).json({
+          code: "INSUFFICIENT_PERMISSIONS",
+          message: "Dev diagnostic requires a super-admin role.",
+        });
+      }
+
+      const userId = sessionUser?.id || DEV_USER_ID;
+
+      // Canonical DB user row — the source of truth for the primary role and
+      // login state that server-side guards authorize against.
+      const [dbUser] = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          name: users.name,
+          role: users.role,
+          isActive: users.isActive,
+          loginEnabled: users.loginEnabled,
+          mustChangePassword: users.mustChangePassword,
+          hubAdmin: users.hubAdmin,
+          hubAccess: users.hubAccess,
+        })
+        .from(users)
+        .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+        .limit(1);
+
+      // Assignment-derived roles + compiled permission grants (same resolution
+      // path /api/permissions/me uses, so the diagnostic matches what the app
+      // actually enforces).
+      const compiled = await compileUserPermissions(userId, orgId);
+      const orgRoles = await permissionRepository.listRoles(orgId);
+      const mapperLogger: MapperLogger = {
+        warn: (message, context) =>
+          structuredLog("warn", message, context as Partial<LogContext>),
+      };
+      const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
+
+      const roleNames = [
+        ...(dbUser ? [dbUser.role] : []),
+        ...mapped.roles.map((r) => r.name),
+      ];
+      const hubAdmin = resolveHubAdmin(roleNames, dbUser?.hubAdmin ?? false);
+      const hubAccess = resolveHubAccess(roleNames, dbUser?.hubAccess ?? null);
+
+      // Permission grant summary — counts only, to keep the payload bounded.
+      let grantedActions = 0;
+      let resourcesWithAnyGrant = 0;
+      for (const actions of Object.values(mapped.permissions)) {
+        const granted = Object.values(actions).filter(Boolean).length;
+        grantedActions += granted;
+        if (granted > 0) resourcesWithAnyGrant += 1;
+      }
+
+      // Crew link (optional 1:1 login-account link, if any).
+      const [crewLink] = await db
+        .select({
+          id: crew.id,
+          name: crew.name,
+          vesselId: crew.vesselId,
+          roleId: crew.roleId,
+        })
+        .from(crew)
+        .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
+        .limit(1);
+
+      return res.json({
+        generatedAt: new Date().toISOString(),
+        devBypassActive: isDevBypass,
+        session: sessionUser
+          ? {
+              id: sessionUser.id,
+              email: sessionUser.email ?? null,
+              name: sessionUser.name ?? null,
+              role: sessionUser.role ?? null,
+              orgId: authReq.orgId ?? null,
+            }
+          : null,
+        dbUser: dbUser ?? null,
+        // Mismatch flags make wrong-access cases obvious at a glance.
+        mismatches: {
+          userMissingInDb: !dbUser,
+          roleSessionVsDb:
+            !!sessionUser && !!dbUser && (sessionUser.role ?? null) !== (dbUser.role ?? null),
+        },
+        effectiveRole: dbUser?.role ?? sessionUser?.role ?? null,
+        primaryRole: dbUser?.role ?? null,
+        assignedRoles: mapped.roles,
+        hubAdmin,
+        hubAccess,
+        permissionSummary: { resourcesWithAnyGrant, grantedActions },
+        crewLink: crewLink ?? null,
       });
     })
   );

@@ -5,6 +5,7 @@ import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
 import { isPublicApiPath } from "../bootstrap/public-api-paths";
 import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
+import { DEV_BYPASS_USER_ID, isDevAuthBypassEnabled } from "./dev-auth";
 
 function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -20,7 +21,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
     const hasBearerToken =
       typeof authHeader === "string" && authHeader.startsWith("Bearer ");
 
-    if (process.env['NODE_ENV'] === "development" && !hasBearerToken) {
+    if (isDevAuthBypassEnabled() && !hasBearerToken) {
       // Push B1: dev mock user carries the legacy DEFAULT_ORG_ID so
       // unmigrated dev workflows keep working. In REQUIRE_TENANT_AUTH
       // mode this still works because the dev user does have an orgId
@@ -33,7 +34,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       // /api/me/change-password would silently operate on the dev admin
       // instead of the logged-in user and always fail.
       req.user = {
-        id: "dev-admin-user",
+        id: DEV_BYPASS_USER_ID,
         email: "admin@example.com",
         role: "admin",
         name: "Development Admin",

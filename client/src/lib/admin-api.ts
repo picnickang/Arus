@@ -7,10 +7,11 @@
 
 import { getApiSessionToken } from "@/lib/sessionToken";
 
-// Development mode: bypass session checks
-// Use Vite's built-in environment detection for safety
+// Development mode: a real session is not required (the server applies its own
+// no-login dev identity when no token is sent). We never inject a placeholder
+// token — that would override a real login and fail server-side auth.
+// Use Vite's built-in environment detection for safety.
 const DEV_MODE = import.meta.env.DEV === true;
-const DEV_SESSION_TOKEN = "dev-admin-session-token";
 
 /**
  * Admin API request function with session-based authentication.
@@ -25,17 +26,20 @@ export async function adminApiRequest<T = unknown>(
   url: string,
   data?: unknown
 ): Promise<T> {
-  // In dev mode, use dev token; otherwise require session
-  const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();
+  // Use the real session token. In dev, a missing token is fine (server applies
+  // its no-login dev identity); outside dev a session is required.
+  const sessionToken = getApiSessionToken();
 
   if (!sessionToken && !DEV_MODE) {
     throw new Error("Admin session not active. Please unlock admin mode first.");
   }
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${sessionToken}`,
     "x-org-id": "default-org-id",
   };
+  if (sessionToken) {
+    headers["Authorization"] = `Bearer ${sessionToken}`;
+  }
 
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -78,8 +82,9 @@ export async function adminApiRequest<T = unknown>(
  */
 export function adminQueryFn(queryKey: readonly string[]) {
   return async () => {
-    // In dev mode, use dev token; otherwise require session
-    const sessionToken = DEV_MODE ? DEV_SESSION_TOKEN : getApiSessionToken();
+    // Use the real session token. In dev, a missing token is fine (server
+    // applies its no-login dev identity); outside dev a session is required.
+    const sessionToken = getApiSessionToken();
 
     if (!sessionToken && !DEV_MODE) {
       throw new Error("Admin session not active. Please unlock admin mode first.");
@@ -88,9 +93,11 @@ export function adminQueryFn(queryKey: readonly string[]) {
     const url = queryKey.join("/");
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${sessionToken}`,
       "x-org-id": "default-org-id",
     };
+    if (sessionToken) {
+      headers["Authorization"] = `Bearer ${sessionToken}`;
+    }
 
     const res = await fetch(url, {
       headers,
