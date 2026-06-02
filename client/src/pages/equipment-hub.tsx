@@ -639,7 +639,7 @@ export default function EquipmentHub() {
               <Box className="h-4 w-4" /> Digital Twin
             </div>
           </Link>
-          <Link href={`/pdm-dashboard?equipmentId=${data.id}`}>
+          <Link href="/pdm-platform?tab=schedule">
             <div
               className="p-3 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-blue-400/5 hover:border-blue-400/12 hover:text-blue-300 transition-colors cursor-pointer flex items-center gap-2"
               data-testid="link-schedule"

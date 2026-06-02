@@ -34,7 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { type AnalysisResult, usePdmPackData } from "@/features/maintenance";
 import { formatDate } from "@/lib/formatters";
-import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { useEquipmentLookup } from "@/hooks/use-equipment-lookup";
 
 const AnalysisResultsCard = ({
@@ -217,28 +216,23 @@ export default function PdmPack() {
 
   if (p.alertsLoading || p.healthLoading) {
     return (
-      <IntelligenceLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-muted-foreground">Loading diagnostics...</div>
-        </div>
-      </IntelligenceLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Loading diagnostics...</div>
+      </div>
     );
   }
   if (p.alerts === undefined) {
     return (
-      <IntelligenceLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-red-500">
-            Failed to load PdM alerts. Please check your connection.
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">
+          Failed to load PdM alerts. Please check your connection.
         </div>
-      </IntelligenceLayout>
+      </div>
     );
   }
 
   return (
-    <IntelligenceLayout>
-      <div className="min-h-screen">
+    <div className="min-h-screen">
         <div className="space-y-6">
           <div className="flex items-center justify-end px-6 py-2">
             <Badge
@@ -816,7 +810,6 @@ export default function PdmPack() {
             </Tabs>
           </div>
         </div>
-      </div>
-    </IntelligenceLayout>
+    </div>
   );
 }

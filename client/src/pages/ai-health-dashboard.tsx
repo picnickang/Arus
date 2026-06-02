@@ -6,17 +6,14 @@
  */
 
 import { useState, Suspense, lazy, useEffect } from "react";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Activity,
   AlertTriangle,
   CheckCircle2,
-  Wrench,
-  TrendingUp,
   Brain,
   Lightbulb,
   BarChart3,
@@ -25,8 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchEquipmentHealthTyped } from "@/lib/api/equipment";
-import { fetchFailurePredictions, fetchAnomalyDetections } from "@/lib/api";
+import { fetchFailurePredictions } from "@/lib/api";
 
 const PerformanceTab = lazy(() => import("@/components/ai-health/PerformanceTab"));
 const InsightsTab = lazy(() => import("@/components/ai-health/InsightsTab"));
@@ -58,26 +54,11 @@ export default function AIHealthDashboard() {
     }
   }, [searchString]);
 
-  const { data: healthData, isLoading: healthLoading } = useQuery({
-    queryKey: ["/api/equipment/health"],
-    queryFn: () => fetchEquipmentHealthTyped(),
-  });
-
-  const { data: predictionsData, isLoading: predictionsLoading } = useQuery({
+  const { data: predictionsData } = useQuery({
     queryKey: ["/api/analytics/predictions"],
     queryFn: () => fetchFailurePredictions({ page: 1, limit: 20 }),
   });
 
-  const { data: anomaliesData, isLoading: anomaliesLoading } = useQuery({
-    queryKey: ["/api/analytics/anomalies"],
-    queryFn: () => fetchAnomalyDetections({ page: 1, limit: 50 }),
-  });
-
-  const isLoading = healthLoading || predictionsLoading || anomaliesLoading;
-
-  type EquipmentHealthItem = Awaited<
-    ReturnType<typeof fetchEquipmentHealthTyped>
-  >["results"][number];
   type PredictionItem = Awaited<
     ReturnType<typeof fetchFailurePredictions>
   >["results"][number] & {
@@ -85,26 +66,8 @@ export default function AIHealthDashboard() {
     daysUntilFailure?: number;
     recommendedAction?: string;
   };
-  type AnomalyItem = Awaited<
-    ReturnType<typeof fetchAnomalyDetections>
-  >["results"][number] & {
-    acknowledged?: boolean;
-  };
 
-  const equipmentList: EquipmentHealthItem[] = healthData?.results ?? [];
   const predictions: PredictionItem[] = predictionsData?.results ?? [];
-  const anomalies: AnomalyItem[] = anomaliesData?.results ?? [];
-
-  const healthyCount = equipmentList.filter((e) => (e.healthScore ?? 0) >= 75).length;
-  const totalCount = equipmentList.length;
-  const fleetHealthPercent = totalCount > 0 ? Math.round((healthyCount / totalCount) * 100) : 0;
-
-  const activeAlerts = anomalies.filter((a) => !a.acknowledged).length;
-  const predictedFailures = predictions.filter((p) => (p.confidence ?? 0) >= 0.7).length;
-  const maintenanceDue = predictions.filter((p) => {
-    const daysUntil = p.daysUntilFailure ?? 30;
-    return daysUntil <= 14;
-  }).length;
 
   const topRecommendations = predictions
     .filter((p) => (p.confidence ?? 0) >= 0.5)
@@ -135,69 +98,13 @@ export default function AIHealthDashboard() {
           </Badge>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-28" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card data-testid="card-fleet-health">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Fleet Health</span>
-                </div>
-                <div className="text-3xl font-bold" data-testid="text-fleet-health">
-                  {fleetHealthPercent}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {healthyCount} of {totalCount} healthy
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-active-alerts">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-muted-foreground">Active Alerts</span>
-                </div>
-                <div className="text-3xl font-bold" data-testid="text-active-alerts">
-                  {activeAlerts}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Require attention</p>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-predicted-failures">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-muted-foreground">Predicted Issues</span>
-                </div>
-                <div className="text-3xl font-bold" data-testid="text-predicted">
-                  {predictedFailures}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">High confidence predictions</p>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-maintenance-due">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wrench className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-muted-foreground">Maintenance Due</span>
-                </div>
-                <div className="text-3xl font-bold" data-testid="text-maintenance">
-                  {maintenanceDue}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Within 14 days</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <p className="text-sm text-muted-foreground -mt-2">
+          Fleet health gauges and assets-at-risk now live in{" "}
+          <Link href="/equipment-intelligence" className="text-primary underline">
+            Equipment Intelligence
+          </Link>
+          . This view focuses on AI model performance, insights, and training.
+        </p>
 
         <Card>
           <CardHeader>

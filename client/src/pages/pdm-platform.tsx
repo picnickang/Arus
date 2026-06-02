@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
+import { Loader2 } from "lucide-react";
 import {
   Database,
   BarChart3,
@@ -10,6 +12,8 @@ import {
   BrainCircuit,
   FlaskConical,
   Shield,
+  CalendarClock,
+  Stethoscope,
 } from "lucide-react";
 import { SummaryDashboard } from "./pdm-platform/SummaryDashboard";
 import { FeatureStoreTab } from "./pdm-platform/FeatureStoreTab";
@@ -21,13 +25,53 @@ import { DriftMonitoringTab } from "./pdm-platform/DriftMonitoringTab";
 import { GovernanceTab } from "./pdm-platform/GovernanceTab";
 import { DecisionSupportTab } from "./pdm-platform/DecisionSupportTab";
 
+const ScheduleView = lazy(() => import("@/features/pdm/components/schedule-view"));
+const PdmDiagnostics = lazy(() => import("@/pages/pdm-pack"));
+
+const VALID_TABS = [
+  "features",
+  "fleet",
+  "models",
+  "training",
+  "inference",
+  "drift",
+  "governance",
+  "decision-support",
+  "schedule",
+  "diagnostics",
+] as const;
+
+function TabLoader() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-6 w-6 animate-spin text-sky-400" />
+    </div>
+  );
+}
+
 export default function PdmPlatformPage() {
+  const search = useSearch();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("features");
   const [highlightedModelVersionId, setHighlightedModelVersionId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const tab = new URLSearchParams(search).get("tab");
+    if (tab && (VALID_TABS as readonly string[]).includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [search]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(search);
+    params.set("tab", tab);
+    setLocation(`/pdm-platform?${params.toString()}`, { replace: true });
+  };
+
   const handleSwitchToModels = (modelVersionId: string) => {
     setHighlightedModelVersionId(modelVersionId);
-    setActiveTab("models");
+    handleTabChange("models");
   };
 
   return (
@@ -40,8 +84,14 @@ export default function PdmPlatformPage() {
 
         <SummaryDashboard />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto">
+            <TabsTrigger value="schedule" data-testid="tab-schedule">
+              <CalendarClock className="w-4 h-4 mr-1" /> Schedule
+            </TabsTrigger>
+            <TabsTrigger value="diagnostics" data-testid="tab-diagnostics">
+              <Stethoscope className="w-4 h-4 mr-1" /> Diagnostics
+            </TabsTrigger>
             <TabsTrigger value="features" data-testid="tab-features">
               <Database className="w-4 h-4 mr-1" /> Features
             </TabsTrigger>
@@ -68,6 +118,16 @@ export default function PdmPlatformPage() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="schedule" className="mt-4">
+            <Suspense fallback={<TabLoader />}>
+              <ScheduleView />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="diagnostics" className="mt-4">
+            <Suspense fallback={<TabLoader />}>
+              <PdmDiagnostics />
+            </Suspense>
+          </TabsContent>
           <TabsContent value="features" className="mt-4">
             <FeatureStoreTab />
           </TabsContent>

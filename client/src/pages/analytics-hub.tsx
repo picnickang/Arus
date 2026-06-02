@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Heart,
   AlertTriangle,
   Wrench,
   DollarSign,
@@ -435,29 +434,7 @@ export default function AnalyticsHub() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <HeadlineMetric
-            label="Fleet Health"
-            value={`${avgHealth}%`}
-            icon={Heart}
-            color={
-              avgHealth >= 80
-                ? "text-green-600"
-                : avgHealth >= 60
-                  ? "text-yellow-600"
-                  : "text-red-600"
-            }
-            domain="Operations"
-            testId="headline-health"
-          />
-          <HeadlineMetric
-            label="Risk Items"
-            value={criticalCount}
-            icon={AlertTriangle}
-            color={criticalCount > 0 ? "text-red-600" : "text-green-600"}
-            domain="Operations"
-            testId="headline-risk"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <HeadlineMetric
             label="WO Completion"
             value={`${completionRate}%`}

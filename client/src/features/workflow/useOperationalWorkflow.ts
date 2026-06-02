@@ -209,7 +209,7 @@ function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrder
       recommendedAction: "Open equipment intelligence and create an inspection work order where needed.",
       owner: "Chief Engineer",
       due: "Within 24 hours",
-      href: "/pdm-dashboard",
+      href: "/equipment-intelligence",
       severity: "warning",
     });
   }

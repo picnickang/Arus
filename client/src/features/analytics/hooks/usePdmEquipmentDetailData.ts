@@ -75,7 +75,7 @@ export function usePdmEquipmentDetailData() {
     enabled: !!equipmentId,
   });
 
-  const handleBack = () => setLocation("/pdm-dashboard");
+  const handleBack = () => setLocation("/equipment-intelligence");
   const handleCreateWorkOrder = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
   const handleViewWorkOrders = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
   const retryEquipment = () =>

@@ -81,7 +81,7 @@ export const ROLES: Record<string, RoleConfig> = {
         icon: AlertTriangle,
         href: "/work-orders?action=create&type=corrective",
       },
-      { label: "Check PdM Alerts", icon: Activity, href: "/pdm-dashboard" },
+      { label: "Check PdM Alerts", icon: Activity, href: "/equipment-intelligence" },
     ],
     pinnedGroups: ["maintenance", "operations", "fleet"],
   },

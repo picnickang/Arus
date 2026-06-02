@@ -174,7 +174,7 @@ function useAttentionItems() {
         label: "High-risk equipment",
         count: summary.highRiskEquipment,
         severity: "warning",
-        href: "/pdm-dashboard",
+        href: "/equipment-intelligence",
       });
     }
 
