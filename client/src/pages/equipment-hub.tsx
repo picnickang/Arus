@@ -15,7 +15,6 @@ import {
   Box,
   BarChart3,
   Cpu,
-  ShieldCheck,
   Play,
   ArrowRight,
   Ship,
@@ -314,14 +313,6 @@ export default function EquipmentHub() {
           >
             <FileText className="h-3.5 w-3.5 mr-1.5" />
             Create Work Order
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs" data-testid="button-acknowledge">
-            <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
-            Acknowledge
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs" data-testid="button-assign">
-            <Wrench className="h-3.5 w-3.5 mr-1.5" />
-            Assign
           </Button>
         </div>
 

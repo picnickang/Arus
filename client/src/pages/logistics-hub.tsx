@@ -86,7 +86,7 @@ interface LowStockResponse {
 
 function formatCurrency(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) {
-    return "$—";
+    return "N/A";
   }
   if (value >= 1000) {
     return `$${(value / 1000).toFixed(1)}k`;

@@ -242,11 +242,13 @@ function KeyFindings({
   workOrderStats,
   costData,
   dataIntegrity,
+  hasErrors,
 }: {
   equipmentHealth: EquipmentHealthItem[];
   workOrderStats: { open: number; overdue: number; completionRate: number };
   costData: { monthlySpend: number; monthlyChange: number; totalSavings: number };
   dataIntegrity: { healthScore: number; issueCount: number };
+  hasErrors: boolean;
 }) {
   const findings: string[] = [];
 
@@ -295,7 +297,11 @@ function KeyFindings({
   }
 
   if (findings.length === 0) {
-    findings.push("All systems operating within normal parameters. No critical findings.");
+    findings.push(
+      hasErrors
+        ? "Findings unavailable — some analytics data failed to load. Results will refresh automatically once data is restored."
+        : "All systems operating within normal parameters. No critical findings."
+    );
   }
 
   return (
@@ -468,6 +474,7 @@ export default function AnalyticsHub() {
           workOrderStats={{ open: openWOs, overdue: overdueWOs, completionRate }}
           costData={{ monthlySpend, monthlyChange, totalSavings }}
           dataIntegrity={{ healthScore: dataHealthScore, issueCount: dataIssueCount }}
+          hasErrors={Boolean(hasErrors)}
         />
 
         <div className="space-y-2">

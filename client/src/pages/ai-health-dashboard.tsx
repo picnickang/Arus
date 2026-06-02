@@ -29,6 +29,39 @@ const InsightsTab = lazy(() => import("@/components/ai-health/InsightsTab"));
 const TrainingTab = lazy(() => import("@/components/ai-health/TrainingTab"));
 const ReportsTab = lazy(() => import("@/components/ai-health/ReportsTab"));
 
+interface MlModelRow {
+  status?: string | null;
+  trainedOn?: string | null;
+  createdAt?: string | null;
+}
+
+function formatRelativeTime(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) {
+    return "Just now";
+  }
+  const diffHours = Math.floor(diffMs / 3_600_000);
+  if (diffHours < 1) {
+    return "Just now";
+  }
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  }
+  const diffDays = Math.floor(diffMs / 86_400_000);
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+  if (diffDays < 30) {
+    return `${diffDays} days ago`;
+  }
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) {
+    return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+  }
+  const diffYears = Math.floor(diffDays / 365);
+  return `${diffYears} year${diffYears > 1 ? "s" : ""} ago`;
+}
+
 function TabLoader() {
   return (
     <div className="space-y-4">
@@ -59,6 +92,10 @@ export default function AIHealthDashboard() {
     queryFn: () => fetchFailurePredictions({ page: 1, limit: 20 }),
   });
 
+  const { data: modelsData, isLoading: modelsLoading } = useQuery<MlModelRow[]>({
+    queryKey: ["/api/ml/models"],
+  });
+
   type PredictionItem = Awaited<
     ReturnType<typeof fetchFailurePredictions>
   >["results"][number] & {
@@ -83,6 +120,21 @@ export default function AIHealthDashboard() {
     predictions.length > 0
       ? predictions.reduce((sum, p) => sum + (p.confidence || 0), 0) / predictions.length
       : 0;
+
+  const models: MlModelRow[] = modelsData ?? [];
+  const modelsActive = models.filter((m) => m.status === "deployed").length;
+  const lastTrainingLabel = (() => {
+    const dates = models
+      .map((m) => m.trainedOn ?? m.createdAt)
+      .filter((d): d is string => Boolean(d))
+      .map((d) => new Date(d))
+      .filter((d) => !Number.isNaN(d.getTime()));
+    if (dates.length === 0) {
+      return null;
+    }
+    const latest = dates.reduce((a, b) => (a.getTime() >= b.getTime() ? a : b));
+    return formatRelativeTime(latest);
+  })();
 
   return (
     <div className="space-y-6" data-testid="page-ai-health">
@@ -203,7 +255,13 @@ export default function AIHealthDashboard() {
           </div>
 
           <TabsContent value="overview" className="mt-4">
-            <OverviewTab avgConfidence={avgConfidence} predictions={predictions} />
+            <OverviewTab
+              avgConfidence={avgConfidence}
+              predictions={predictions}
+              modelsActive={modelsActive}
+              modelsLoading={modelsLoading}
+              lastTrainingLabel={lastTrainingLabel}
+            />
           </TabsContent>
 
           <TabsContent value="performance" className="mt-4">
@@ -238,9 +296,15 @@ export default function AIHealthDashboard() {
 function OverviewTab({
   avgConfidence,
   predictions,
+  modelsActive,
+  modelsLoading,
+  lastTrainingLabel,
 }: {
   avgConfidence: number;
   predictions: { length: number };
+  modelsActive: number;
+  modelsLoading: boolean;
+  lastTrainingLabel: string | null;
 }) {
   return (
     <Card>
@@ -259,11 +323,15 @@ function OverviewTab({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Models Active</p>
-            <p className="text-lg font-semibold">3</p>
+            <p className="text-lg font-semibold" data-testid="text-models-active">
+              {modelsLoading ? "—" : modelsActive}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Last Training</p>
-            <p className="text-lg font-semibold">7 days ago</p>
+            <p className="text-lg font-semibold" data-testid="text-last-training">
+              {modelsLoading ? "—" : (lastTrainingLabel ?? "No training yet")}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Predictions</p>
