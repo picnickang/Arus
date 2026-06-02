@@ -203,7 +203,7 @@ export function registerPermissionRoutes(app: Express) {
           permissionRegistryResponseSchema,
           {
             resources: RESOURCES,
-            actions: ACTIONS,
+            actions: Object.values(ACTIONS),
             categories: RESOURCE_CATEGORIES,
           },
           "GET /api/permissions/registry"
