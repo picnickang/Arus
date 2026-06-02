@@ -1,0 +1,375 @@
+You are acting as a senior product manager, UX architect, and full-stack code auditor for the ARUS operational management platform.
+
+The current program is too dense. There are too many features, tabs, buttons, dashboards, menus, and workflows. I need you to evaluate the usefulness of every feature, tab, sub-tab, page, dashboard widget, button, action, and navigation item.
+
+Your job is NOT to blindly delete code. Your job is to perform a structured usefulness audit and produce a simplification plan that tells me:
+
+1. Which features/tabs/buttons are necessary
+2. Which should be consolidated into fewer screens
+3. Which should be hidden behind permissions
+4. Which should be moved into role-specific dashboards
+5. Which are duplicates
+6. Which are dead, placeholder, fake, incomplete, or low-value
+7. Which should be deleted from the UI
+8. Which backend routes/data models are supporting useful features
+9. Which backend routes exist but are not meaningfully exposed or useful
+10. Which buttons/actions do not produce accurate or expected outputs
+
+Important context:
+This is an ARUS maritime operations platform. The app should become simpler and more role-based.
+
+The desired top-level structure is:
+
+Public landing page:
+- Admin Login
+- User Login
+
+Admin users should only see modules based on their assigned permissions:
+- Maintenance
+- System Admin
+- Crew Management
+- Logistics
+- AI Analytics
+
+Normal users should have:
+- Their own dashboard
+- Feedback / flags / issue reporting to admin
+- Only the information relevant to their role
+
+Super Admin should be able to configure what each role can see and do.
+
+Different users should have different dashboards:
+- Maintenance users see maintenance-related information
+- Crew users see crew-related information
+- Logistics users see logistics-related information
+- Admin users see only the admin hubs granted to them
+- Hubs should only be accessible if Super Admin grants access
+
+Crew roster should be simplified so user profiles are sorted into tables according to assigned roles.
+
+PHASE 1 — STATIC INVENTORY AUDIT
+
+Inspect the entire codebase. Find every UI feature, tab, route, sidebar item, top-nav item, button, dropdown action, card action, modal action, dashboard widget, form, and page.
+
+Search at minimum:
+- client/
+- client/src/
+- shared/
+- server/
+- route definitions
+- sidebar/navigation components
+- dashboard components
+- role/permission components
+- crew management components
+- maintenance components
+- logistics components
+- admin components
+- AI/analytics components
+- API route files
+- database schema files
+- seed/demo/sample data files
+- test files
+
+Create a complete inventory table with these columns:
+
+- Item name
+- Item type: feature / tab / route / button / widget / form / modal / API / permission / dashboard card
+- Current location in UI
+- File path and component/function name
+- Current route, if applicable
+- Current role visibility
+- Intended user
+- Actual user value
+- Backend/API dependency
+- Data dependency
+- Does it work?
+- Is it duplicate?
+- Is it placeholder/demo/fake?
+- Is it confusing?
+- Is it overexposed to the wrong role?
+- Recommendation: KEEP / CONSOLIDATE / HIDE / ROLE-GATE / DELETE / FIX FIRST
+- Reason
+- Risk of removal: LOW / MEDIUM / HIGH
+
+PHASE 2 — USEFULNESS SCORING
+
+Score every feature, tab, button, and major page using this framework:
+
+Usefulness score out of 100:
+- Operational importance: 0–25
+- Frequency of use: 0–15
+- Role relevance: 0–15
+- Accuracy/output reliability: 0–15
+- Redundancy/duplication penalty: 0 to -15
+- UI complexity penalty: 0 to -10
+- Implementation completeness: 0–15
+- Safety/compliance/audit importance: 0–10
+- Business value: 0–15
+
+Classify each item:
+
+A. Core — must remain visible
+B. Important — keep but simplify
+C. Specialized — hide behind role/permission
+D. Redundant — consolidate
+E. Low-value — remove from main UI
+F. Broken/fake — remove or fix before showing
+G. Dangerous/confusing — hide immediately until corrected
+
+PHASE 3 — ROLE-BASED CONSOLIDATION PLAN
+
+Create a simplified information architecture.
+
+Target structure:
+
+1. Maintenance Hub
+Should contain only maintenance-critical workflows:
+- Maintenance dashboard
+- Equipment/assets
+- Work orders
+- Preventive maintenance schedules
+- Safety alarms / alert log
+- Inspections
+- Parts directly related to maintenance
+- Maintenance reports
+- Predictive maintenance outputs only when backed by real data
+
+2. System Admin Hub
+Should contain:
+- Users
+- Roles
+- Permissions
+- Role visibility configuration
+- Hub access control
+- Audit logs
+- System settings
+- Tenant/org settings
+- Security settings
+- Integration settings
+- Data import/export tools
+
+3. Crew Management Hub
+Should contain:
+- Crew dashboard
+- Crew roster
+- Crew profiles grouped by role
+- Certifications
+- Training
+- Availability
+- Crew assignment
+- Crew alert log
+- Crew-related documents
+- Crew feedback/flags
+
+4. Logistics Hub
+Should contain:
+- Logistics dashboard
+- Vessels/logistics movements
+- Inventory
+- Procurement
+- Purchase orders
+- Vendors
+- Fuel/logistics tracking
+- Delivery/status tracking
+- Logistics reports
+
+5. AI Analytics Hub
+Should contain:
+- AI insights dashboard
+- Predictive maintenance analysis
+- Trend analysis
+- Risk scoring
+- Anomaly detection
+- Reports
+- Only AI features that are actually connected to real data or clearly labelled as experimental
+
+6. Normal User Area
+Should contain:
+- Personal dashboard
+- Assigned tasks
+- Relevant alerts
+- Feedback / flag issue
+- Profile
+- Documents or notices relevant to that user
+
+PHASE 4 — BUTTON AND ACTION AUDIT
+
+For every button/action, determine:
+
+- What does the button claim to do?
+- What does it actually do?
+- Does the output match the input?
+- Is the label accurate?
+- Is the button duplicated elsewhere?
+- Is the action too powerful for the visible role?
+- Should it be moved into a menu?
+- Should it require confirmation?
+- Should it be removed?
+- Does it call a real backend route?
+- Does the backend route mutate the correct data?
+- Does it refresh the UI correctly after success?
+- Does it handle error states?
+- Does it show misleading success messages?
+
+Flag especially:
+- Buttons that do nothing
+- Buttons that use mock data
+- Buttons that open empty modals
+- Buttons that trigger wrong output
+- Buttons that are visible to unauthorized roles
+- Buttons that duplicate another workflow
+- Buttons that are too technical for normal users
+- Buttons that belong in System Admin only
+
+PHASE 5 — REDUNDANCY AND DENSITY REVIEW
+
+Identify areas where the app is unnecessarily dense.
+
+Look for:
+- Multiple dashboards showing overlapping information
+- Multiple routes for the same entity
+- Duplicate create/edit/view buttons
+- Too many tabs inside a page
+- Buttons that should be secondary menu actions
+- Admin-only functions exposed to normal users
+- Technical/engineering views exposed to operational users
+- AI/analytics pages that are not actionable
+- Tables with too many columns
+- Cards/widgets that do not help users make decisions
+- Dead pages
+- Routes that are accessible but not linked
+- Linked pages that have no real purpose
+
+For every dense area, propose a consolidation.
+
+Example format:
+- Current: 7 separate maintenance pages
+- Problem: Users must jump between too many screens
+- Proposed: Merge into one Maintenance Hub with tabs for Overview, Work Orders, Assets, Alerts, Schedule
+- Items to delete from nav: X, Y, Z
+- Items to retain as secondary actions: A, B, C
+
+PHASE 6 — PERMISSION REVIEW
+
+Evaluate the role and permission model.
+
+Determine:
+- Which roles currently exist
+- Which roles should exist
+- Which hubs each role should see
+- Which buttons each role should access
+- Which pages should be Super Admin only
+- Which pages should be Admin only
+- Which pages should be normal-user accessible
+- Whether the current frontend role guards match the backend authorization
+- Whether any page relies only on frontend hiding without backend enforcement
+
+Recommended hierarchy:
+
+1. Super Admin
+- Full system access
+- Can configure roles
+- Can grant/revoke hub access
+- Can configure dashboards
+- Can view audit logs
+- Can manage all users and permissions
+
+2. Admin
+- Can access only hubs granted by Super Admin
+- Can manage operational data inside assigned hubs
+- Cannot change global permissions unless granted
+
+3. Manager / Department Lead
+- Can view/manage data for assigned department
+- Can approve or review workflows
+- Cannot change system-wide settings
+
+4. Supervisor
+- Can assign/review work in their area
+- Limited edit rights
+
+5. Staff / Crew / Technician / Logistics User
+- Personal dashboard
+- Assigned tasks
+- Feedback/flags
+- Limited updates only
+
+6. Viewer / Auditor
+- Read-only access to permitted areas
+
+PHASE 7 — REPORT OUTPUT
+
+Create a markdown report at:
+
+docs/ui-usefulness-density-audit.md
+
+The report must include:
+
+1. Executive summary
+2. Biggest UI density problems
+3. Top 10 features to keep
+4. Top 10 features to consolidate
+5. Top 10 features to delete or hide
+6. Top 10 broken/confusing buttons
+7. Full feature/tab/button inventory
+8. Recommended simplified navigation
+9. Recommended role/hub access matrix
+10. Recommended dashboard structure by role
+11. Crew management simplification plan
+12. Maintenance simplification plan
+13. Logistics simplification plan
+14. AI Analytics simplification plan
+15. System Admin simplification plan
+16. Normal user simplification plan
+17. Backend/API cleanup recommendations
+18. Low-risk immediate changes
+19. Medium-risk changes requiring testing
+20. High-risk changes requiring confirmation
+21. Final prioritized implementation roadmap
+
+Also create a machine-readable JSON file at:
+
+docs/ui-usefulness-density-audit.json
+
+The JSON should include:
+- all discovered UI items
+- scores
+- recommendations
+- affected files
+- risk levels
+- proposed new module placement
+- permission recommendations
+
+PHASE 8 — DO NOT IMPLEMENT YET
+
+Do not delete or modify production code in this pass unless required to generate the report.
+
+You may add:
+- docs/ui-usefulness-density-audit.md
+- docs/ui-usefulness-density-audit.json
+- scripts/ui-inventory-audit.ts if useful
+- temporary read-only analysis scripts
+
+Do not change app behavior yet.
+
+PHASE 9 — QUALITY CHECKS
+
+Before finishing:
+- Run TypeScript check if available
+- Run lint if available
+- Run tests if available
+- Confirm the report files were created
+- Confirm no production UI behavior was changed
+- Summarize the most important findings in the final Replit response
+
+Acceptance criteria:
+- Every major page, tab, button, route, dashboard widget, and navigation item is accounted for
+- Every item has a keep/consolidate/hide/role-gate/delete recommendation
+- Every item has a usefulness score
+- Broken/no-op/misleading buttons are flagged
+- Role visibility problems are flagged
+- Duplicate workflows are identified
+- A simplified 5-hub admin structure is proposed
+- Normal user UI is separated from admin UI
+- Crew roster simplification is included
+- The report is detailed enough that the next prompt can implement the cleanup safely
