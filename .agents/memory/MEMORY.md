@@ -5,3 +5,4 @@
 - [Integration test harness](integration-test-harness.md) — run via `npm run test:integration` (needs `--experimental-vm-modules`); they crash in this cloud-mode sandbox (db-config schema-null), so verify via tsc+review, let CI run them.
 - [Admin auth model](admin-auth-model.md) — shared-password admin unlock retired; admins sign in via real account `/api/portal/login`; `/api/admin/auth/setup` only bootstraps the hash, mints no session.
 - [Integration-test jest ESM mocking](integration-test-jest-esm-mocking.md) — config is native-ESM so `jest.mock` is a no-op (use `unstable_mockModule`); real route imports crash on db-config eager init — test the gate middlewares directly.
+- [Dev-mode auth mock-user bypass](dev-auth-mock-user-bypass.md) — in dev, requireAuthentication must only inject the mock admin when NO Bearer token is sent, else real `/api/me/*` logins (e.g. change-password) act as the dev admin and fail.

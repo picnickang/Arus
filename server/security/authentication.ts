@@ -16,11 +16,22 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       return next();
     }
 
-    if (process.env['NODE_ENV'] === "development") {
+    const authHeader = req.headers.authorization;
+    const hasBearerToken =
+      typeof authHeader === "string" && authHeader.startsWith("Bearer ");
+
+    if (process.env['NODE_ENV'] === "development" && !hasBearerToken) {
       // Push B1: dev mock user carries the legacy DEFAULT_ORG_ID so
       // unmigrated dev workflows keep working. In REQUIRE_TENANT_AUTH
       // mode this still works because the dev user does have an orgId
       // claim — it's just the default one.
+      //
+      // IMPORTANT: only fall back to the mock admin when the caller did NOT
+      // present a real session token. A real portal login (e.g. a regular
+      // user changing their own password) sends `Authorization: Bearer …`;
+      // if we forced the mock admin here, self-service flows like
+      // /api/me/change-password would silently operate on the dev admin
+      // instead of the logged-in user and always fail.
       req.user = {
         id: "dev-admin-user",
         email: "admin@example.com",
@@ -31,8 +42,6 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       };
       return next();
     }
-
-    const authHeader = req.headers.authorization;
 
     if (!authHeader) {
       return res.status(401).json({
