@@ -164,7 +164,7 @@ function Redirect({ from, to }: { from: string; to: string }) {
  * `/api/attention/*` endpoints; this client guard is a UX layer so
  * the page itself never paints for a regular user.
  */
-const ADMIN_ONLY_ROUTES = new Set<string>(["/attention-inbox"]);
+const ADMIN_ONLY_ROUTES = new Set<string>(["/attention-inbox", "/admin/access-diagnostic"]);
 
 function readCurrentRole(): string | null {
   if (typeof window === "undefined") {

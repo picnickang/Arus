@@ -20,6 +20,7 @@ import {
   Building,
   Bell,
   Bot,
+  ShieldQuestion,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -394,6 +395,16 @@ export default function SystemHub() {
             label="Dependencies"
             testId="jump-dependencies"
           />
+          {/* Dev/staging-only diagnostic — the backend endpoint is 404 in
+              production, so don't surface a dead link there. */}
+          {!import.meta.env.PROD && (
+            <JumpCard
+              href="/admin/access-diagnostic"
+              icon={ShieldQuestion}
+              label="Access Diagnostic"
+              testId="jump-access-diagnostic"
+            />
+          )}
         </div>
       </div>
     </div>
