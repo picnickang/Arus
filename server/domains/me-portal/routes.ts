@@ -158,6 +158,45 @@ export function registerMePortalRoutes(
     }),
   );
 
+  /* ------------------------------ Logout --------------------------- */
+
+  app.post(
+    "/api/me/logout",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("me logout", async (req: Request, res: Response) => {
+      const meUser = resolveMeUser(req);
+      const authHeader = req.headers.authorization;
+      const token =
+        typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+          ? authHeader.substring(7)
+          : null;
+      try {
+        // No bearer token means a dev-mode mock session (nothing persisted to
+        // revoke) — still return success so the client tears down locally.
+        if (token) {
+          await mePortalService.logout(meUser, token);
+          await auditService.logEvent({
+            orgId: meUser.orgId,
+            eventCategory: "security_event",
+            eventType: "logout",
+            entityType: "user_session",
+            entityId: meUser.id,
+            performedBy: meUser.id,
+            performedByName: meUser.name ?? meUser.email,
+            performedByRole: meUser.role,
+            ipAddress: req.ip,
+            metadata: { source: "user_portal" },
+          });
+        }
+        return res.json({ success: true });
+      } catch (error) {
+        if (handleMeError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
   /* --------------------------- Change password --------------------- */
 
   app.post(

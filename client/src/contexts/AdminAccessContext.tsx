@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { isSuperAdminRole } from "@shared/role-dashboard";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { clearAllPortalState } from "@/infrastructure/navigation/nav-storage";
 
 interface AdminAccessContextType {
   isAdminUnlocked: boolean;
@@ -9,6 +11,7 @@ interface AdminAccessContextType {
   sessionExpiresAt: Date | null;
   unlockAdminFromUserSession: (token: string, expiresInSeconds: number) => void;
   lockAdmin: () => void;
+  logout: () => Promise<void>;
   timeUntilExpiry: number | null;
   timeUntilIdleTimeout: number | null;
 }
@@ -125,6 +128,25 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     console.info("🔒 Admin mode locked");
   }, []);
 
+  // Full sign-out: revoke the session on the server FIRST (while the in-memory
+  // token is still present so the request authenticates), then tear down every
+  // piece of local state so the next user starts clean. Best-effort on the
+  // network call — an offline/failed revoke must never strand the user in a
+  // half-logged-in UI, so we always proceed to clear local state.
+  const logout = useCallback(async () => {
+    try {
+      await apiRequest("POST", "/api/me/logout");
+    } catch {
+      // Ignore — the local teardown below still runs.
+    }
+    // Drop role hint + bottom-nav override so navigation policy resets.
+    clearAllPortalState();
+    // Discard every cached query so no previous user's data lingers.
+    queryClient.clear();
+    // Clear in-memory token, admin-unlock flag, and countdown timers.
+    lockAdmin();
+  }, [lockAdmin]);
+
   // Adopt an authenticated admin session minted by `/api/portal/login`.
   // The shared admin password is no longer a sign-in path; an admin signs in
   // with a username + password like any other user, and once we've confirmed
@@ -225,6 +247,7 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     sessionExpiresAt,
     unlockAdminFromUserSession,
     lockAdmin,
+    logout,
     timeUntilExpiry,
     timeUntilIdleTimeout,
   };

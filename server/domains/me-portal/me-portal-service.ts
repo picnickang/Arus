@@ -157,6 +157,20 @@ export class MePortalService {
     await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
   }
 
+  /**
+   * Sign the caller out by revoking ONLY the session backing the token they
+   * presented — other devices/sessions for the same user stay alive. Scoped by
+   * both token hash and userId so a token can never delete another user's row.
+   * Idempotent: deleting an already-gone session is a no-op success, so a
+   * double-click or a retry after the token expired still "logs out" cleanly.
+   */
+  async logout(user: MeUser, sessionToken: string): Promise<void> {
+    const tokenHash = hashSessionToken(sessionToken);
+    await db
+      .delete(adminSessions)
+      .where(and(eq(adminSessions.sessionToken, tokenHash), eq(adminSessions.userId, user.id)));
+  }
+
   async getDashboard(user: MeUser): Promise<DashboardPayload> {
     await this.assertPasswordChangeNotRequired(user);
     const configs = await crewAdminService.resolveEffectiveConfigList(

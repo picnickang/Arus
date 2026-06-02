@@ -12,7 +12,7 @@
  */
 
 import { useLocation } from "wouter";
-import { LogOut } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ROLE_STORAGE_KEY,
@@ -63,7 +63,7 @@ export function SwitchPortalButton({
       className={className}
       data-testid="button-switch-portal"
     >
-      <LogOut className="h-3.5 w-3.5" />
+      <ArrowLeftRight className="h-3.5 w-3.5" />
       {label}
     </Button>
   );

@@ -49,6 +49,7 @@ import { Button } from "@/components/ui/button";
 import { OpsSidebar, type OpsSidebarItem } from "@/components/ops/OpsSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
+import { LogoutButton } from "@/components/navigation/LogoutButton";
 import {
   Sheet,
   SheetContent,
@@ -1079,11 +1080,16 @@ function UserPortalHome({
         }
         items={sidebarItems}
         footer={
-          <SwitchPortalButton
-            label="Logout"
-            variant="ghost"
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
-          />
+          <div className="flex flex-col gap-1">
+            <LogoutButton
+              variant="ghost"
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+            />
+            <SwitchPortalButton
+              variant="ghost"
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+            />
+          </div>
         }
       />
 
@@ -1157,9 +1163,12 @@ function UserPortalHome({
                     </button>
                   ))}
                 </nav>
-                <div className="border-t border-border/60 px-3 py-4">
+                <div className="border-t border-border/60 px-3 py-4 flex flex-col gap-1">
+                  <LogoutButton
+                    variant="ghost"
+                    className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+                  />
                   <SwitchPortalButton
-                    label="Logout"
                     variant="ghost"
                     className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
                   />
@@ -1479,7 +1488,10 @@ export default function HomePage() {
               testId="pill-nominal-risk"
             />
           )}
-          <SwitchPortalButton />
+          <div className="flex items-center gap-2">
+            <LogoutButton />
+            <SwitchPortalButton />
+          </div>
         </div>
 
         {/* Mobile-first 2x2 KPI grid → tablet/desktop expand to 4 across.
