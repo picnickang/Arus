@@ -17,6 +17,7 @@ import "./otel";
 import "./instrument";
 
 import { createLogger } from "./lib/structured-logger";
+import { initWorkOrderAssignmentNotifier } from "./composition/work-order-assignment-notifier.js";
 const logger = createLogger("Index");
 import {
   setupErrorHandlers,
@@ -221,6 +222,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
       try {
         const { initAllBridges } = await import("./lib/domain-event-bus/bridge.js");
         initAllBridges();
+        initWorkOrderAssignmentNotifier();
         logger.info("✓ Domain event bus initialized");
       } catch (e: unknown) {
         logger.warn("⚠️ Domain event bus initialization skipped:", { details: e instanceof Error ? e.message : String(e) });

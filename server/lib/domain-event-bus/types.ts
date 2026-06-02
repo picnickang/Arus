@@ -83,9 +83,25 @@ export interface WorkOrderCreatedPayload {
   priority: string;
 }
 
+/**
+ * Optional metadata attached to `work_order.updated` / `work_order.status_changed`
+ * when the change is an assigned crew member accepting or declining the work.
+ * Carrying it on the already-emitted event lets a downstream subscriber notify
+ * supervisors without adding a new write path or re-fetching the work order.
+ */
+export interface WorkOrderAssignmentResponsePayload {
+  response: "accepted" | "declined";
+  crewId: string;
+  crewName?: string | undefined;
+  reason?: string | null | undefined;
+  equipmentId: string;
+  woNumber?: string | null | undefined;
+}
+
 export interface WorkOrderUpdatedPayload {
   workOrderId: string;
   changes: Record<string, unknown>;
+  assignmentResponse?: WorkOrderAssignmentResponsePayload | undefined;
 }
 
 export interface WorkOrderStatusChangedPayload {
@@ -93,6 +109,7 @@ export interface WorkOrderStatusChangedPayload {
   previousStatus: string;
   newStatus: string;
   changedBy?: string | undefined;
+  assignmentResponse?: WorkOrderAssignmentResponsePayload | undefined;
 }
 
 export interface WorkOrderCompletedPayload {

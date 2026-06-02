@@ -4,6 +4,7 @@ import type {
   SelectWorkOrder,
   InsertWorkOrder,
   WorkOrderSearchCriteria,
+  WorkOrderAssignmentResponseMeta,
 } from "../domain";
 import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
@@ -260,6 +261,17 @@ export class WorkOrderApplicationService {
     const updated = await workOrderRepository.update(workOrderId, update);
     const resolvedOrgId = updated.orgId || orgId;
 
+    // Carry the accept/decline context on the already-emitted event so a
+    // subscriber can notify the supervisor without a new write path.
+    const assignmentResponse: WorkOrderAssignmentResponseMeta = {
+      response: response === "accept" ? "accepted" : "declined",
+      crewId: crewMember.id,
+      crewName: crewMember.name,
+      reason: response === "accept" ? null : reason ?? null,
+      equipmentId: updated.equipmentId,
+      woNumber: updated.woNumber ?? null,
+    };
+
     if (workOrder.status !== update.status) {
       await this.deps.eventPublisher.publish({
         type: "WORK_ORDER_STATUS_CHANGED",
@@ -268,6 +280,7 @@ export class WorkOrderApplicationService {
         previousStatus: workOrder.status || "draft",
         newStatus: update.status as string,
         changedBy: userId,
+        assignmentResponse,
         timestamp: now,
       });
     } else {
@@ -276,6 +289,7 @@ export class WorkOrderApplicationService {
         workOrderId: updated.id,
         orgId: resolvedOrgId,
         changes: update,
+        assignmentResponse,
         timestamp: now,
       });
     }

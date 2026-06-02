@@ -47,7 +47,11 @@ function envelopeFor(event: WorkOrderDomainEvent): {
         envelope: createDomainEvent(
           "work_order.updated",
           event.orgId,
-          { workOrderId: event.workOrderId, changes: event.changes },
+          {
+            workOrderId: event.workOrderId,
+            changes: event.changes,
+            assignmentResponse: event.assignmentResponse,
+          },
           { aggregateId: event.workOrderId, aggregateType: "WorkOrder" }
         ),
       };
@@ -62,6 +66,7 @@ function envelopeFor(event: WorkOrderDomainEvent): {
             previousStatus: event.previousStatus,
             newStatus: event.newStatus,
             changedBy: event.changedBy,
+            assignmentResponse: event.assignmentResponse,
           },
           { aggregateId: event.workOrderId, aggregateType: "WorkOrder" }
         ),

@@ -8,11 +8,26 @@ export interface WorkOrderCreated {
   timestamp: Date;
 }
 
+/**
+ * Optional metadata attached to a status-change / update event when the
+ * change is an assigned crew member accepting or declining the work. Lets a
+ * subscriber notify supervisors off the already-emitted event.
+ */
+export interface WorkOrderAssignmentResponseMeta {
+  response: "accepted" | "declined";
+  crewId: string;
+  crewName?: string | undefined;
+  reason?: string | null | undefined;
+  equipmentId: string;
+  woNumber?: string | null | undefined;
+}
+
 export interface WorkOrderUpdated {
   type: "WORK_ORDER_UPDATED";
   workOrderId: string;
   orgId: string;
   changes: Record<string, unknown>;
+  assignmentResponse?: WorkOrderAssignmentResponseMeta | undefined;
   timestamp: Date;
 }
 
@@ -23,6 +38,7 @@ export interface WorkOrderStatusChanged {
   previousStatus: string;
   newStatus: string;
   changedBy?: string | undefined;
+  assignmentResponse?: WorkOrderAssignmentResponseMeta | undefined;
   timestamp: Date;
 }
 
