@@ -388,4 +388,55 @@ Each phase is independently shippable. P1 is pure cleanup and can ship immediate
 
 ---
 
+## §22. High-Risk Button and Mutation Action Audit (Phase 1.5)
+
+This section **updates and supersedes the needs-confirmation rows of §6** (items
+7–9) with verified findings, and resolves the Equipment Hub contradiction (§6
+items 1–2 described a now-superseded intermediate state where those buttons were
+dead). Full detail: `docs/button-action-trust-verification.md`; machine-readable:
+the `highRiskButtonAudit` key in the companion JSON.
+
+**Method:** static source inspection — button → handler → mutation → backend
+route → toast. Browser/runtime execution is not possible in the sandbox; the
+runtime tier is authored as `tests/playwright/persona-nav.spec.ts` and the
+existing `tests/playwright/journeys/equipment-hub-actions.spec.ts`.
+
+**Truth legend:** `OK` = success only on real success, failure surfaces an error;
+`SILENT-EDGE` = no false-positive but an empty/failure path is silent;
+`BROKEN` = action can never succeed (missing/incorrect backend).
+
+| Control | Mutation | Backend? | Truth | Recommendation | Risk |
+|---|---|---|---|---|---|
+| Equipment Hub — **Acknowledge** | `POST /api/equipment-intelligence/anomalies/:id/acknowledge` | ✅ | OK | KEEP | Low |
+| Equipment Hub — **Assign** | `PUT /api/work-orders/:id` `{assignedCrewId,status:"in_progress"}` | ✅ | OK | KEEP | Low |
+| System Admin — **Publish Update** | `POST /api/admin/patches/publish` (+ `/preview`) | ❌ **missing** | **BROKEN** | FIX-FIRST (build backend) or HIDE | Medium |
+| ScheduleGenerator — **Export PDF toast** | client-side `jsPDF` (`exportTableToPDF`) | n/a | SILENT-EDGE | KEEP (optional polish) | Low |
+| RolesDashboardsTab — **Save config** | `PUT /api/admin/role-dashboards/:roleId` | ✅ | OK | KEEP | Low |
+
+**Resolutions:**
+
+- **Equipment Hub Acknowledge/Assign** — the "dead button removed" report was an
+  *intermediate* state; the current tree has both buttons **wired to real
+  mutations and pinned by a journey test**. KEEP, no change.
+- **Publish Update** — the form is fully rendered (incl. a Preview button), but
+  **neither backend route exists** (`server/domains/software-updates/routes.ts`
+  has only check/list/history/download/apply/rollback/backups). Every submit
+  404s → error toast, so there is **no false success**, but the action can never
+  succeed. This is a **missing backend feature**, documented not rebuilt
+  (out of this pass's scope).
+- **PDF export toast** — `exportTableToPDF` returns `false` on empty/failure and
+  `true` only after save; the caller toasts only `if (success)` → **no
+  false-positive**. The only gap is silence on the near-unreachable empty/failure
+  path. KEEP (optional `else`-toast polish).
+- **RolesDashboardsTab save** — toasts in **`onSuccess`** (not `onSettled`), with
+  an `onError` failure toast; backend gated `requireSuperAdminRole`. The
+  toast-on-settled concern was **unfounded**. KEEP.
+
+**Net:** of the five high-risk controls, two are real + tested, two are correct
+(no false success), and one is a missing-backend feature. **No production UI code
+was changed in this pass** — confirmed-broken and edge-case items are documented
+for a scoped follow-up.
+
+---
+
 *Generated as a read-only audit. No production routes, permissions, components, or behavior were modified. See `docs/ui-usefulness-density-audit.json` for the machine-readable, per-item dataset.*

@@ -119,23 +119,81 @@ The audit's `brokenActions` flagged as **verified** were re-read in current sour
 | Logistics cost | `logistics-hub.tsx` | `"$—"` on null | ✅ `formatCurrency` returns `"N/A"`; bound to real `estimatedTotalCost` |
 
 **Reported-but-unverified** items from the audit (`confidence: "reported"`) were
-**out of scope** for the Phase-1 fixes and remain as future follow-ups, not
-regressions: `system-administration` "Publish Update" end-to-end,
-`ScheduleGeneratorPanel` PDF success toast timing, `RolesDashboardsTab`
-save-toast-on-settled. They should be reproduced before any change.
+**resolved in the Phase-1.5 pass** — see `docs/button-action-trust-verification.md`:
+`system-administration` "Publish Update" is **confirmed broken** (the frontend
+calls `POST /api/admin/patches/publish` + `/preview`, but **neither backend route
+exists** → 404; documented, not rebuilt); `ScheduleGeneratorPanel` PDF toast has
+**no false-positive** (success fires only on real success) with only a silent
+empty/failure edge path; `RolesDashboardsTab` save toasts in **`onSuccess`** (not
+`onSettled`) — the concern was unfounded.
 
 ---
 
-## 6. Limitations of this verification
+## 6. Verification tiers (Phase 1.5)
 
-- **No live login.** The sandbox cannot launch a browser (missing system libs)
-  and integration tests crash under cloud-mode db-config init, so persona
-  walk-throughs are **static** (logic + wiring read from source), not runtime.
-- **Runtime coverage lives in CI.** `tests/playwright/nav-matrix.spec.ts`
-  iterates roles × viewports and asserts legacy hrefs land on their canonical
-  target with non-empty content and no console errors — run it in CI for the
-  runtime half of this verification.
-- **Backfill verified by dry-run.** The permission backfill was executed in
-  dry-run against the dev database (read-only); it correctly reported the dev
-  org has no provisioned admin template roles (dev uses a mock-admin bypass),
-  confirming the script is safe and idempotent.
+This verification is delivered in **three explicit tiers**. Be precise about
+which claim rests on which tier.
+
+### 6a. Static verification (done — source inspection)
+The gating logic, route wiring, and front/back reconciliation in §§1–5 are
+verified by **reading current source**. No browser involved.
+
+### 6b. Automated runtime-logic verification (done — runs in sandbox + CI)
+Deterministic tests that exercise the **policy layer** the runtime consumes:
+
+| Test | What it pins |
+|---|---|
+| `tests/unit/persona-navigation.test.ts` | All **11 personas** → correct portal + exactly the allowed hubs; partial-admin hub subsetting; tampered override can't widen hubs. |
+| `tests/unit/legacy-redirects-pdm.test.ts` | Retired PdM routes resolve to canonical targets (tab deep-links preserved). |
+| `tests/unit/navigation-canonical.test.ts` | No in-app link builds a dead hub `?query` URL; `legacyRedirects` stays wired. |
+| `tests/unit/pdm-backfill-planner.test.ts` | Backfill safety (idempotent, no dup, no re-enable, scoped). |
+
+Run: `npx jest tests/unit --forceExit`.
+
+### 6c. Manual / browser runtime verification (still required — CI or local only)
+True login → landing → nav visibility → direct-URL block → logout → re-login
+**cannot run in the sandbox** (Playwright cannot launch a browser; integration
+tests crash under cloud-mode db-config). Authored and ready for CI:
+
+| Spec | Coverage | Command |
+|---|---|---|
+| `tests/playwright/persona-nav.spec.ts` | 11 personas: client-role personas via `ROLE_STORAGE_KEY`; hub-grant admins (Maintenance/Crew/Logistics/none) via seeded users from env (`PERSONA_ADMIN_*_USER/PASS`), `test.skip` when absent. | `npx playwright test persona-nav` |
+| `tests/playwright/nav-matrix.spec.ts` | roles × viewports nav regression. | `npx playwright test nav-matrix` |
+
+**Still-required manual steps** before declaring runtime green: (1) seed the four
+hub-grant admin users and supply their env creds; (2) run both Playwright specs
+in CI / on a browser-capable host; (3) confirm a revoked hub disappears after
+re-login (the seeded-persona re-login assertion covers this once creds exist).
+
+---
+
+## 7. Persona coverage matrix (Phase 1.5)
+
+| # | Persona | Tier 6b (unit) | Tier 6c (browser) |
+|---|---|---|---|
+| 1 | Super Admin | ✅ | ✅ client-role |
+| 2 | Admin (all hubs) | ✅ | ✅ client-role |
+| 3 | Admin — Maintenance only | ✅ (hub filter) | ⏳ seeded user |
+| 4 | Admin — Crew only | ✅ (hub filter) | ⏳ seeded user |
+| 5 | Admin — Logistics only | ✅ (hub filter) | ⏳ seeded user |
+| 6 | Admin — no hubs | ✅ (hub filter) | ⏳ seeded user |
+| 7 | Maintenance user (chief_engineer) | ✅ | ✅ client-role |
+| 8 | Crew user | ✅ | ✅ client-role |
+| 9 | Logistics user | ✅ | ✅ client-role |
+| 10 | Viewer / Auditor | ✅ | ✅ client-role |
+| 11 | Normal user (deck_officer) | ✅ | ✅ client-role |
+
+✅ = covered & runnable now (unit) / authored (browser); ⏳ = authored, needs a
+seeded backend user + browser host to execute.
+
+---
+
+## 8. Limitations of this verification
+
+- **No live login in the sandbox.** Browser + integration tests cannot run here;
+  the runtime tier (6c) is authored but executes only in CI / a browser host.
+- **Hub-grant admins need seeded users.** Personas 3–6 depend on server
+  `hubAccess` from `/api/permissions/me`, which a localStorage hint cannot set —
+  they require real seeded accounts (env-driven, skipped when absent).
+- **Backfill verified by dry-run + unit tests.** The DB path runs in CI/staging;
+  the decision logic is pinned by `pdm-backfill-planner.test.ts` (runs here).

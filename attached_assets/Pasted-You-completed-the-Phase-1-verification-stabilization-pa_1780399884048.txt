@@ -1,0 +1,254 @@
+You completed the Phase 1 verification/stabilization pass. Before we proceed to broader UI simplification, perform a Phase 1.5 blocker-closure pass.
+
+Do not delete broad UI.
+Do not redesign navigation yet.
+Do not consolidate hubs yet.
+
+Your job is to close the remaining verification gaps and remove ambiguity.
+
+Known results from the previous pass:
+- PdM duplicate routes were consolidated.
+- /equipment-intelligence is now the canonical equipment risk/health view.
+- Legacy PdM redirects are pinned by tests.
+- predictive_maintenance permission backfill tooling exists.
+- docs/authenticated-navigation-verification.md exists.
+- docs/permission-backfill-notes.md exists.
+- docs/ui-usefulness-density-audit.md and .json exist.
+- npx tsc --noEmit was clean.
+
+Known remaining gaps:
+1. Runtime login/navigation was not actually verified in-browser.
+2. Permission backfill exists but has not been run/applied in staging/production.
+3. Audit is route-level, not every-button level.
+4. Three reported controls remain unverified:
+   - system-administration “Publish Update”
+   - ScheduleGeneratorPanel PDF success toast
+   - RolesDashboardsTab save-toast-on-settled
+5. There is an inconsistency around equipment-hub “Acknowledge” and “Assign” buttons:
+   - One report says they were removed as dead buttons.
+   - Another report says they are wired to real mutations.
+
+PHASE 1 — RESOLVE EQUIPMENT HUB BUTTON CONTRADICTION
+
+Inspect the current source for equipment-hub.tsx and related components.
+
+Determine the exact truth:
+
+- Do “Acknowledge” and “Assign” buttons still exist?
+- If they exist, do they have real onClick handlers?
+- If they have handlers, what API routes/mutations do they call?
+- If they were removed, confirm no important workflow was lost.
+- If there are equivalent actions elsewhere, document where they moved.
+- If they exist but are fake, remove or hide them.
+- If they exist and are real, add a test or documented verification.
+
+Update:
+
+docs/button-action-trust-verification.md
+
+Include a specific section:
+
+“Equipment Hub Acknowledge/Assign Resolution”
+
+PHASE 2 — RUNTIME PERSONA NAVIGATION TESTS
+
+Add Playwright or existing e2e tests for authenticated navigation.
+
+Create test fixtures or use existing seeded users for these personas:
+
+1. Super Admin
+2. Admin with all hubs granted
+3. Admin with Maintenance only
+4. Admin with Crew Management only
+5. Admin with Logistics only
+6. Admin with no hubs granted
+7. Maintenance user
+8. Crew user
+9. Logistics user
+10. Viewer / Auditor
+11. Normal user
+
+For each persona, test:
+
+- Login succeeds.
+- User lands on the correct dashboard.
+- Navigation only shows allowed hubs.
+- Unauthorized hubs are not visible.
+- Direct URL access to unauthorized hubs is blocked.
+- Backend API access is blocked where relevant.
+- Logout works.
+- Re-login respects current permissions.
+- Revoked hub access disappears after refresh/re-login.
+
+Required hub URLs to test at minimum:
+
+- Maintenance
+- System Admin
+- Crew Management
+- Logistics
+- AI Analytics
+- User Dashboard
+- Feedback / Flags
+- Equipment Intelligence
+- PdM Platform
+- Crew roster
+- Role/permission management
+
+If full browser tests cannot run in this environment, still create the tests and document the exact command to run them in CI/Replit.
+
+Update:
+
+docs/authenticated-navigation-verification.md
+
+Add a clear distinction between:
+
+- Static verification
+- Automated runtime verification
+- Manual runtime verification still required
+
+PHASE 3 — PERMISSION BACKFILL DRY-RUN AND APPLY RUNBOOK
+
+The backfill script currently exists, but it has not been run.
+
+Perform or document a safe runbook:
+
+1. Dry-run command
+2. Expected output
+3. How to review affected orgs
+4. Apply command
+5. How to confirm inserted grants
+6. How to confirm no duplicate grants
+7. How to confirm deliberate revocations were not overwritten
+8. How to refresh permission cache
+9. How affected admins should re-login
+10. Rollback strategy
+
+Required permission behavior:
+
+- Super Admin retains full access.
+- Admin receives only intended default permissions.
+- Company Admin and Chief Engineer retain intended predictive maintenance access.
+- Normal users do not receive predictive maintenance lifecycle permissions.
+- Viewer/Auditor does not receive mutation permissions.
+- Existing orgs are safely handled.
+- Script remains idempotent.
+
+Add tests if practical for:
+
+- dry run
+- apply
+- idempotency
+- no duplicate permission grants
+- no re-enabling deliberate revocations
+
+Update:
+
+docs/permission-backfill-notes.md
+
+PHASE 4 — VERIFY THREE REPORTED CONTROLS
+
+Reproduce and verify the three reported-but-unverified controls.
+
+1. system-administration “Publish Update”
+
+Check:
+- Does the button exist?
+- Is it visible only to allowed roles?
+- Does it call POST /api/admin/patches/publish?
+- Does it handle loading, success, and failure?
+- Does the UI refresh after success?
+- Does unauthorized access fail correctly?
+- Is the success message truthful?
+
+2. ScheduleGeneratorPanel PDF success toast
+
+Check:
+- Does PDF export only show success when export actually succeeds?
+- Does empty data show a correct no-data message?
+- Does failed export show failure?
+- Does the button become disabled during export?
+- Does it avoid false-positive success toasts?
+
+3. RolesDashboardsTab save-toast-on-settled
+
+Check:
+- Does save toast fire only on actual success?
+- Does failure show failure?
+- Does it avoid showing success in onSettled after failed mutation?
+- Does the saved dashboard config persist after reload?
+- Does permission restriction apply correctly?
+
+Fix only confirmed issues.
+
+Do not change code based on speculation.
+
+Update:
+
+docs/button-action-trust-verification.md
+
+PHASE 5 — EXPAND AUDIT ONLY WHERE NEEDED
+
+The current audit is route-level and internally consistent, but the original goal was to evaluate every feature, tab, and button.
+
+Do not try to audit literally every small icon in the app yet.
+
+Instead, expand the audit to button/action level for high-risk areas only:
+
+- System Admin
+- Roles and Permissions
+- Crew Management
+- Maintenance / Equipment Intelligence
+- Logistics
+- AI Analytics
+- Feedback / Flags
+- Any page with mutation buttons
+- Any page with export/publish/delete/assign/acknowledge/approve actions
+
+For each high-risk button/action, record:
+
+- Label
+- Component/file
+- Visible roles
+- Required permission
+- Backend route/mutation
+- Whether it works
+- Whether success/failure messages are truthful
+- Whether it should stay visible
+- Recommendation: KEEP / HIDE / ROLE-GATE / CONSOLIDATE / FIX / DELETE
+- Risk level
+
+Update:
+
+docs/ui-usefulness-density-audit.md
+docs/ui-usefulness-density-audit.json
+
+Add a new section:
+
+“High-Risk Button and Mutation Action Audit”
+
+PHASE 6 — FINAL OUTPUT
+
+Final response must include:
+
+1. Whether the equipment-hub Acknowledge/Assign contradiction was resolved
+2. Whether runtime persona tests were added
+3. Which personas are covered
+4. Whether tests can run in this environment or only in CI
+5. Whether permission backfill is safe to apply
+6. Whether the three reported controls were verified
+7. Any confirmed fixes made
+8. Any remaining unverified items
+9. Whether it is now safe to proceed to Phase 2 navigation simplification
+10. Recommended next coding prompt
+
+Acceptance criteria:
+
+- npx tsc --noEmit passes
+- existing unit tests pass
+- legacy redirect tests still pass
+- new persona navigation tests exist
+- permission backfill runbook is complete
+- equipment-hub Acknowledge/Assign contradiction is resolved
+- reported controls are either verified or clearly documented as blocked
+- no broad UI deletion is performed
+- audit is expanded for high-risk buttons/actions

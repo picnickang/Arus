@@ -36,6 +36,16 @@ import {
 import { RESOURCES, ACTIONS } from "../../config/permission-registry";
 import { DEFAULT_ROLE_TEMPLATES } from "../../config/default-role-templates";
 import { structuredLog } from "../../logging";
+import {
+  planPdmBackfill,
+  PDM_BACKFILL_ROLE_NAMES,
+  type PdmBackfillRoleResult,
+} from "./pdm-backfill-planner";
+
+// Re-export so existing importers (e.g. server/scripts/backfill-pdm-permissions.ts)
+// keep resolving these from the repository module.
+export { PDM_BACKFILL_ROLE_NAMES };
+export type { PdmBackfillRoleResult };
 
 function staticResources(): PermissionResource[] {
   return RESOURCES.map((r) => ({
@@ -261,48 +271,14 @@ export async function getOrProvisionRolesForOrg(orgId: string): Promise<Role[]> 
 }
 
 /**
- * Admin-capable template roles whose default template grants the
- * `predictive_maintenance` resource. `provisionTemplatesForOrg` only creates
- * MISSING roles — it never adds grants to roles that already exist. Orgs that
- * were seeded before `predictive_maintenance` was added to these templates are
- * therefore left without it. This backfill restores those grants.
- */
-export const PDM_BACKFILL_ROLE_NAMES = [
-  "super_admin",
-  "admin",
-  "company_admin",
-  "chief_engineer",
-] as const;
-
-const PDM_RESOURCE_CODE = "predictive_maintenance";
-
-export interface PdmBackfillRoleResult {
-  roleName: string;
-  /** null when the org has no role for this template (nothing to backfill). */
-  roleId: string | null;
-  /** Grants that had no row at all and were (or would be) inserted. */
-  added: Array<{ resource: string; action: string }>;
-  /**
-   * Grants that exist but are explicitly revoked (isGranted=false). Left
-   * untouched so a deliberate revocation is never silently re-enabled.
-   */
-  skippedRevoked: Array<{ resource: string; action: string }>;
-  /** Whether writes were actually performed (false in dry-run). */
-  applied: boolean;
-}
-
-/**
  * Idempotent, safe backfill of the default `predictive_maintenance` grants onto
  * the admin-capable template roles that should carry them.
  *
- * Safety properties:
- * - Only INSERTS grants that have no row at all (via `setPermissionGrant`, which
- *   checks-then-writes, so no duplicate rows are ever created).
- * - Never flips an existing `isGranted=false` row — a deliberate revocation is
- *   reported as `skippedRevoked` and left alone.
- * - Never touches non-admin roles, and only the `predictive_maintenance`
- *   resource — so it cannot over-grant.
- * - Re-running is a no-op once grants are present.
+ * All decision logic lives in the db-free `planPdmBackfill()` (see
+ * `pdm-backfill-planner.ts`); this function only gathers rows and performs the
+ * writes the plan calls for. Safety properties (idempotent, no duplicate rows,
+ * never re-enables a deliberate revocation, only `predictive_maintenance` on the
+ * four admin roles) are enforced — and unit-tested — in the planner.
  *
  * Pass `{ apply: false }` (the default) for a dry-run plan.
  */
@@ -313,52 +289,23 @@ export async function backfillPdmTemplateGrantsForOrg(
   const apply = options.apply ?? false;
   const templates = await listRoleTemplates();
   const existingRoles = await listRoles(orgId);
-  const results: PdmBackfillRoleResult[] = [];
 
-  for (const roleName of PDM_BACKFILL_ROLE_NAMES) {
-    const template = templates.find((t) => t.name === roleName);
-    if (!template) continue;
+  // Gather the grants for every existing role up front so the planner stays
+  // pure (no I/O). The role set per org is small (template roles + a few custom).
+  const grantsByRoleId = new Map<string, PermissionGrant[]>();
+  for (const role of existingRoles) {
+    grantsByRoleId.set(role.id, await getPermissionGrantsForRole(role.id));
+  }
 
-    const pdmPerms = (
-      JSON.parse(template.permissions) as Array<{ resource: string; action: string }>
-    ).filter((p) => p.resource === PDM_RESOURCE_CODE);
-    if (pdmPerms.length === 0) continue;
+  const results = planPdmBackfill(templates, existingRoles, grantsByRoleId, apply);
 
-    // Prefer an exact templateId match. Only fall back to name-matching for
-    // legacy roles that predate templateId tracking (templateId is null) — this
-    // avoids hijacking a custom role that happens to share a template name but
-    // is tracked under a different templateId.
-    const role =
-      existingRoles.find((r) => r.templateId === template.id) ??
-      existingRoles.find((r) => !r.templateId && r.name === template.name);
-    if (!role) {
-      results.push({ roleName, roleId: null, added: [], skippedRevoked: [], applied: apply });
-      continue;
-    }
-
-    const existingGrants = await getPermissionGrantsForRole(role.id);
-    const grantRow = (resource: string, action: string) =>
-      existingGrants.find((g) => g.resourceCode === resource && g.actionCode === action);
-
-    const added: Array<{ resource: string; action: string }> = [];
-    const skippedRevoked: Array<{ resource: string; action: string }> = [];
-
-    for (const perm of pdmPerms) {
-      const row = grantRow(perm.resource, perm.action);
-      if (!row) {
-        added.push({ resource: perm.resource, action: perm.action });
-      } else if (!row.isGranted) {
-        skippedRevoked.push({ resource: perm.resource, action: perm.action });
+  if (apply) {
+    for (const result of results) {
+      if (!result.roleId) continue;
+      for (const perm of result.added) {
+        await setPermissionGrant(result.roleId, perm.resource, perm.action, true);
       }
     }
-
-    if (apply) {
-      for (const perm of added) {
-        await setPermissionGrant(role.id, perm.resource, perm.action, true);
-      }
-    }
-
-    results.push({ roleName, roleId: role.id, added, skippedRevoked, applied: apply });
   }
 
   return results;
