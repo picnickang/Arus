@@ -8,8 +8,19 @@ import type {
 import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
 import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
+import { crew } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 import { fireInventoryMovementProjections } from "../../../db/inventory/index.js";
 import { broadcastChange } from "../../../db/workorders/types.js";
+
+export type AssignmentResponse = "accept" | "decline";
+
+export type RespondToAssignmentResult =
+  | { status: "ok"; workOrder: SelectWorkOrder }
+  | { status: "not_crew" }
+  | { status: "not_found" }
+  | { status: "forbidden" }
+  | { status: "no_assignment" };
 
 type WorkOrderPriority = "low" | "medium" | "high" | "critical";
 const VALID_PRIORITIES = new Set<WorkOrderPriority>(["low", "medium", "high", "critical"]);
@@ -105,6 +116,25 @@ export class WorkOrderApplicationService {
     userId?: string
   ): Promise<SelectWorkOrder> {
     const previous = await workOrderRepository.findById(id, orgId as string);
+
+    // Two-sided assignment: when a (re)assignment to a specific crew
+    // member happens, reset the acknowledgement loop so the crew member
+    // is prompted to accept or decline. We never overwrite an explicit
+    // crew response here — those go through `respondToAssignment`.
+    if (
+      typeof data.assignedCrewId === "string" &&
+      data.assignedCrewId.length > 0 &&
+      data.assignedCrewId !== previous?.assignedCrewId &&
+      data.assignmentStatus === undefined
+    ) {
+      data = {
+        ...data,
+        assignmentStatus: "assigned",
+        assignmentRespondedAt: null,
+        assignmentResponseReason: null,
+      };
+    }
+
     const workOrder = await workOrderRepository.update(id, data);
     const resolvedOrgId = workOrder.orgId || orgId || "default";
 
@@ -142,6 +172,115 @@ export class WorkOrderApplicationService {
     }
 
     return workOrder;
+  }
+
+  /**
+   * Resolve the crew record linked to a logged-in user within an org.
+   * The link is the nullable, unique `crew.userId` column; returns null
+   * when the user is not registered as a crew member for that org.
+   */
+  async resolveCrewForUser(
+    userId: string,
+    orgId: string
+  ): Promise<{ id: string; name: string } | null> {
+    const rows = await db
+      .select({ id: crew.id, name: crew.name })
+      .from(crew)
+      .where(and(eq(crew.userId, userId), eq(crew.orgId, orgId)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Work orders assigned to the crew member behind `userId`. Returns the
+   * open assignments (anything not completed/cancelled) so the crew
+   * member can see what they still need to acknowledge or work on.
+   */
+  async getAssignmentsForUser(
+    userId: string,
+    orgId: string
+  ): Promise<SelectWorkOrder[]> {
+    const crewMember = await this.resolveCrewForUser(userId, orgId);
+    if (!crewMember) {
+      return [];
+    }
+    const assignments = await workOrderRepository.findAll(undefined, orgId, {
+      assignedCrewId: crewMember.id,
+    });
+    return assignments.filter(
+      (wo) => wo.status !== "completed" && wo.status !== "cancelled"
+    );
+  }
+
+  /**
+   * Record an assigned crew member's accept/decline response on a work
+   * order. Accepting moves the work order into progress; declining
+   * reopens it and stores the reason so a supervisor can reassign.
+   * Returns a discriminated result the route maps to an HTTP status.
+   */
+  async respondToAssignment(
+    workOrderId: string,
+    userId: string,
+    orgId: string,
+    response: AssignmentResponse,
+    reason?: string
+  ): Promise<RespondToAssignmentResult> {
+    const crewMember = await this.resolveCrewForUser(userId, orgId);
+    if (!crewMember) {
+      return { status: "not_crew" };
+    }
+
+    const workOrder = await workOrderRepository.findById(workOrderId, orgId);
+    if (!workOrder) {
+      return { status: "not_found" };
+    }
+    if (!workOrder.assignedCrewId) {
+      return { status: "no_assignment" };
+    }
+    if (workOrder.assignedCrewId !== crewMember.id) {
+      return { status: "forbidden" };
+    }
+
+    const now = new Date();
+    const update: Partial<InsertWorkOrder> =
+      response === "accept"
+        ? {
+            assignmentStatus: "accepted",
+            assignmentRespondedAt: now,
+            assignmentResponseReason: null,
+            status: "in_progress",
+          }
+        : {
+            assignmentStatus: "declined",
+            assignmentRespondedAt: now,
+            assignmentResponseReason: reason ?? null,
+            status: "open",
+          };
+
+    const updated = await workOrderRepository.update(workOrderId, update);
+    const resolvedOrgId = updated.orgId || orgId;
+
+    if (workOrder.status !== update.status) {
+      await this.deps.eventPublisher.publish({
+        type: "WORK_ORDER_STATUS_CHANGED",
+        workOrderId: updated.id,
+        orgId: resolvedOrgId,
+        previousStatus: workOrder.status || "draft",
+        newStatus: update.status as string,
+        changedBy: userId,
+        timestamp: now,
+      });
+    } else {
+      await this.deps.eventPublisher.publish({
+        type: "WORK_ORDER_UPDATED",
+        workOrderId: updated.id,
+        orgId: resolvedOrgId,
+        changes: update,
+        timestamp: now,
+      });
+    }
+
+    return { status: "ok", workOrder: updated };
   }
 
   async deleteWorkOrder(id: string, orgId?: string, userId?: string): Promise<void> {

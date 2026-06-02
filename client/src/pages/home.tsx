@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
+import { MyAssignmentsPanel } from "@/components/work-orders/MyAssignmentsPanel";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
 import {
@@ -1285,6 +1286,8 @@ function UserPortalHome({
               </div>
             </div>
           )}
+
+          <MyAssignmentsPanel />
 
           {(showWidget("user_tasks") || showWidget("active_alerts")) && (
             <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">

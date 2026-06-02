@@ -140,13 +140,15 @@ export function useEquipmentHub(equipmentId: string) {
 
   const assignMutation = useMutation({
     mutationFn: async ({ workOrderId, crewId }: { workOrderId: string; crewId: string }) => {
+      // Only set the assignee. The server marks the assignment as
+      // "assigned" (awaiting response); the crew member then accepts
+      // (→ in_progress) or declines (→ open) from their Today screen.
       return apiRequest("PUT", `/api/work-orders/${workOrderId}`, {
         assignedCrewId: crewId,
-        status: "in_progress",
       });
     },
     onSuccess: () => {
-      toast({ title: "Work assigned" });
+      toast({ title: "Work assigned", description: "The crew member will be asked to accept it." });
       queryClient.invalidateQueries({ queryKey: ["/api/equipment-intelligence/hub", equipmentId] });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
     },

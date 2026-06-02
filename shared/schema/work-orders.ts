@@ -58,6 +58,13 @@ export const workOrders = pgTable(
     affectsVesselDowntime: boolean("affects_vessel_downtime").default(false),
     vesselDowntimeStartedAt: timestamp("vessel_downtime_started_at", { mode: "date" }),
     assignedCrewId: varchar("assigned_crew_id"),
+    // Two-sided assignment acknowledgement. When a supervisor assigns a
+    // work order to a crew member, `assignmentStatus` becomes "assigned".
+    // The crew member then accepts ("accepted") or declines ("declined",
+    // capturing a reason). null = never assigned to a specific crew member.
+    assignmentStatus: text("assignment_status"),
+    assignmentRespondedAt: timestamp("assignment_responded_at", { mode: "date" }),
+    assignmentResponseReason: text("assignment_response_reason"),
     requiredSkills: text("required_skills").array(),
     laborHours: real("labor_hours"),
     laborCost: real("labor_cost"),

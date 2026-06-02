@@ -26,10 +26,16 @@ import {
   parseDateRange,
   sendValidationError,
   sendBadRequest,
+  sendForbidden,
+  sendUnauthorized,
 } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
+const assignmentResponseSchema = z.object({
+  response: z.enum(["accept", "decline"]),
+  reason: z.string().max(1000).optional(),
+});
 const listQuerySchema = z.object({
   equipmentId: z.string().optional(),
   vesselId: z.string().optional(),
@@ -137,6 +143,65 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       ).length;
 
       res.json({ total, open, completed, overdue, overdueCount: overdue, highPriority });
+    })
+  );
+
+  // Crew-facing: the work orders assigned to the logged-in user (resolved
+  // via their linked crew record). Registered BEFORE "/:id" so the literal
+  // path is not swallowed by the dynamic param route.
+  app.get(
+    "/api/work-orders/my-assignments",
+    requireOrgId,
+    withErrorHandling("fetch my work order assignments", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id;
+      if (!userId) {
+        return sendUnauthorized(res);
+      }
+      const assignments = await workOrderService.getAssignmentsForUser(userId, authReq.orgId);
+      res.json(assignments);
+    })
+  );
+
+  // Crew-facing: accept or decline an assignment. Declining requires a
+  // non-empty reason so a supervisor knows why and can reassign.
+  app.post(
+    "/api/work-orders/:id/assignment-response",
+    requireOrgIdAndValidateBody,
+    writeOperationRateLimit,
+    withErrorHandling("respond to work order assignment", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id;
+      if (!userId) {
+        return sendUnauthorized(res);
+      }
+      const { id } = idParamSchema.parse(req.params);
+      const body = assignmentResponseSchema.parse(req.body);
+      const reason = body.reason?.trim();
+      if (body.response === "decline" && !reason) {
+        return sendBadRequest(res, "A reason is required to decline an assignment");
+      }
+
+      const result = await workOrderService.respondToAssignment(
+        id,
+        userId,
+        authReq.orgId,
+        body.response,
+        reason
+      );
+
+      switch (result.status) {
+        case "ok":
+          return res.json(result.workOrder);
+        case "not_crew":
+          return sendForbidden(res, "You are not registered as a crew member for this organization");
+        case "not_found":
+          return sendNotFound(res, "Work order");
+        case "no_assignment":
+          return sendBadRequest(res, "This work order is not assigned to a crew member");
+        case "forbidden":
+          return sendForbidden(res, "This work order is not assigned to you");
+      }
     })
   );
 
