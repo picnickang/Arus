@@ -202,6 +202,9 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
       { resource: "system_settings", action: "manage_config" },
       { resource: "audit_log", action: "view" },
       { resource: "audit_log", action: "export" },
+      { resource: "predictive_maintenance", action: "view" },
+      { resource: "predictive_maintenance", action: "manage_config" },
+      { resource: "predictive_maintenance", action: "override" },
     ],
   },
 
@@ -234,6 +237,9 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
       { resource: "permission_management", action: "view" },
       { resource: "permission_management", action: "edit" },
       { resource: "audit_log", action: "view" },
+      { resource: "predictive_maintenance", action: "view" },
+      { resource: "predictive_maintenance", action: "manage_config" },
+      { resource: "predictive_maintenance", action: "override" },
     ],
   },
 

@@ -2,7 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { TrainingPipelineService } from "./training-pipeline.service";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import { requireRole } from "../../../middleware/role-auth";
+import { requirePermission } from "../../permissions/middleware";
 
 const router = Router();
 const service = new TrainingPipelineService();
@@ -159,8 +159,10 @@ router.get("/runs/:id", async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // LR-3.5 / ML-1: model promotion is a write-once production swap; gate
-// behind admin/chief_engineer (parallel to /api/ml/models/:id/promote).
-router.post("/runs/:id/promote", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+// behind the `predictive_maintenance:manage_config` permission grant
+// (parallel to /api/ml/models/:id/promote and the frontend
+// `predictive_maintenance` resource gate; no hardcoded role list).
+router.post("/runs/:id/promote", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
     const parsed = promoteSchema.safeParse(req.body);

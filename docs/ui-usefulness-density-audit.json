@@ -175,12 +175,12 @@
   ],
 
   "backendOnlyDomains": [
-    {"domain": "dp-monitoring", "route": "/api/dp", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium"},
-    {"domain": "charter-compliance", "route": "/api/charter", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium"},
-    {"domain": "vetting", "route": "/api/vetting", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium"},
-    {"domain": "offshore-ops", "route": "/api/offshore-ops", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium"},
-    {"domain": "efms", "route": "/api/efms", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium"},
-    {"domain": "data-export", "route": "/api/data-export", "status": "admin/internal", "recommendation": "Surface in System Admin Advanced or document internal", "risk": "Low"},
+    {"domain": "dp-monitoring", "route": "/api/dp", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium", "decision": "KEEP backend-only — every route is gated by requireOrgId (authenticated + org-scoped), so it is not an open API gap. Niche OSV/DP feature consumed via API/integrations; no UI planned now. Defer UI build to product."},
+    {"domain": "charter-compliance", "route": "/api/charter", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium", "decision": "KEEP backend-only — every route gated by requireOrgId. Niche charter-KPI feature; API/integration consumer only; defer UI to product."},
+    {"domain": "vetting", "route": "/api/vetting", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium", "decision": "KEEP backend-only — every route gated by requireOrgId. OVID/SIRE vetting feature; API/integration consumer only; defer UI to product."},
+    {"domain": "offshore-ops", "route": "/api/offshore-ops", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium", "decision": "KEEP backend-only — every route gated by requireOrgId. Offshore-ops logging feature; API/integration consumer only; defer UI to product."},
+    {"domain": "efms", "route": "/api/efms", "status": "backend, no UI", "recommendation": "EXPOSE-OR-REMOVE", "risk": "Medium", "decision": "KEEP backend-only — every route gated by requireOrgId. EFMS integration feature; system-to-system/API consumer only; defer UI to product."},
+    {"domain": "data-export", "route": "/api/data-export", "status": "admin/internal", "recommendation": "Surface in System Admin Advanced or document internal", "risk": "Low", "decision": "KEEP backend-only — already hardened with requireAdminAuth + auditAdminAction. Documented internal/admin API; no broad UI needed."},
     {"domain": "iot-processing", "route": "/api/iot-processing", "status": "system-to-system", "recommendation": "KEEP, document non-UI", "risk": "Low"},
     {"domain": "sync", "route": "/api/sync", "status": "system-to-system", "recommendation": "KEEP, document non-UI", "risk": "Low"},
     {"domain": "software-updates", "route": "/api/software-updates", "status": "agent/installer", "recommendation": "KEEP, document non-UI", "risk": "Low"}
@@ -188,8 +188,8 @@
 
   "gatingMismatches": [
     {"area": "Attention Inbox", "frontend": "hidden for deck_officer/viewer", "backend": "requireAttentionInboxRole", "verdict": "aligned"},
-    {"area": "Safety Bulletins list", "frontend": "create-only gating; list visible to all authenticated", "backend": "list open to all authenticated; create = requireSafetyBulletinWriteRole", "verdict": "likely intentional (read-all, write-gated); flagged needs-confirmation, not a confirmed gap"},
-    {"area": "PdM platform routes", "frontend": "PermissionGate by resource:action", "backend": "several routes use requireRole (role-name)", "verdict": "permission-grant users may be blocked by hardcoded role lists"},
+    {"area": "Safety Bulletins list", "frontend": "create-only gating; list visible to all authenticated", "backend": "list open to all authenticated; create = requireSafetyBulletinWriteRole", "verdict": "CONFIRMED INTENTIONAL — deliberate read-all + write-gated model so safety notices reach all crew; documented inline on the GET route; no UI/API mismatch"},
+    {"area": "PdM platform routes", "frontend": "PermissionGate / hub gate on predictive_maintenance resource", "backend": "lifecycle mutations now use requirePermission(predictive_maintenance, manage_config)", "verdict": "RESOLVED — backend converted from requireRole(admin,chief_engineer) to permission-grant; admin/super_admin templates updated to retain manage_config; both sides now gate on the predictive_maintenance resource"},
     {"area": "Hub grant mutation", "frontend": "admin UI only", "backend": "requireSuperAdminRole", "verdict": "aligned"}
   ],
 

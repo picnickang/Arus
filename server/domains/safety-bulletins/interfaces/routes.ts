@@ -47,6 +47,14 @@ export function registerSafetyBulletinRoutes(
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;
   const writeLimit = writeOperationRateLimit || generalApiRateLimit;
 
+  // Authorization decision (confirmed): the LIST endpoint is intentionally
+  // readable by every authenticated org member (org-scoped only, no role
+  // gate). Safety notices must reach all crew — including user-portal roles
+  // (deck_officer/viewer) — and the frontend surfaces them on the shared
+  // dashboard "Safety Notices"/"Safety Status" cards for everyone. This is
+  // a deliberate read-all + write-gated model: only the portal-admin roles
+  // in SAFETY_BULLETIN_WRITE_ROLES may POST. Frontend gating matches this
+  // (list visible to all; create gated), so there is no UI/API mismatch.
   app.get(
     "/api/safety-bulletins",
     requireOrgId,

@@ -8,7 +8,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { AuthenticatedRequest } from "../middleware/auth.js";
-import { requireRole } from "../middleware/role-auth.js";
+import { requirePermission } from "../domains/permissions/middleware.js";
 import { idempotencyMiddleware } from "../middleware/idempotency.js";
 import { dbMlAnalyticsStorage } from "../repositories.js";
 import { mlTrainConfigSchema } from "@shared/schema-runtime";
@@ -208,7 +208,7 @@ router.post("/ml/train", idempotencyMiddleware({ required: true }), async (req: 
 // behind the same role check so the stricter promote workflow can't
 // be sidestepped by calling /deploy. Idempotency mounted because a
 // retried deploy POST without a key would replay the timestamp.
-router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/deploy", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -238,7 +238,7 @@ router.post("/ml/models/:id/deploy", requireRole("admin", "chief_engineer"), ide
 // without an idempotency key would overwrite the original archive
 // timestamp every time and obscure the audit trail. Mount idempotency
 // so a replay returns the original {message, model} payload unchanged.
-router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/archive", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -261,7 +261,7 @@ router.post("/ml/models/:id/archive", requireRole("admin", "chief_engineer"), id
 // no longer exists would return a 404 instead of the original 200 the
 // caller already saw. Mount idempotency so the original success
 // response is replayed instead of bouncing the retry.
-router.delete("/ml/models/:id", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
+router.delete("/ml/models/:id", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!model) {
@@ -315,11 +315,13 @@ router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Re
 // Promotion swaps the active production model for a given (org, equipmentType)
 // and there is no surgical way to roll back a bad prediction outcome after
 // the fact. We therefore gate `/promote` behind:
-//   (1) a `requireRole("admin", "chief_engineer")` role check;
+//   (1) a `requirePermission("predictive_maintenance", "manage_config")`
+//       permission-grant check (aligned with the rest of the PdM surface
+//       and the frontend `predictive_maintenance` resource gate);
 //   (2) a separate proposer step (`/promote/request`) that mints a
 //       short-lived `approvalToken` bound to (orgId, modelId, proposerUserId);
 //   (3) the `/promote` call must include that token AND be made by a
-//       DIFFERENT authenticated user (the approver) with the same role.
+//       DIFFERENT authenticated user (the approver) with the same grant.
 //
 // Tokens live in memory (single-instance launch posture). Multi-instance
 // deployments should replace `promotionApprovals` with a Redis-backed
@@ -350,7 +352,7 @@ function approvalKey(orgId: string, modelId: string, token: string): string {
 
 router.post(
   "/ml/models/:id/promote/request",
-  requireRole("admin", "chief_engineer"),
+  requirePermission("predictive_maintenance", "manage_config"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const proposerId = req.user?.id;
@@ -400,7 +402,7 @@ const promoteBodySchema = z.object({
 
 router.post(
   "/ml/models/:id/promote",
-  requireRole("admin", "chief_engineer"),
+  requirePermission("predictive_maintenance", "manage_config"),
   // LR-3.5 / TX-2: promote consumes the single-use approval token and
   // performs the atomic archive-deployed + deploy-candidate swap. A
   // retried POST without idempotency would 412 on the second call
@@ -491,7 +493,7 @@ router.post(
 // retry on the same id without idempotency would archive the (already-
 // archived) model and pick a different "previous" candidate the second
 // time. Cache the response per (orgId, method, path, idempotency key).
-router.post("/ml/models/:id/rollback", requireRole("admin", "chief_engineer"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/ml/models/:id/rollback", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
     if (!current) return sendNotFound(res, "ML model");

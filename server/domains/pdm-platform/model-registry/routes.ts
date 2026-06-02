@@ -2,7 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { ModelRegistryAdapter } from "./adapter";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import { requireRole } from "../../../middleware/role-auth";
+import { requirePermission } from "../../permissions/middleware";
 
 const router = Router();
 const registry = new ModelRegistryAdapter();
@@ -94,8 +94,10 @@ router.get("/:modelId/deployment", async (req: AuthenticatedRequest, res: Respon
 });
 
 // LR-3.5 / ML-1: deploy + rollback mutate live production routing for the
-// org; gate behind admin/chief_engineer just like /api/ml/models/:id/promote.
-router.post("/:modelId/deploy", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+// org; gate behind the `predictive_maintenance:manage_config` permission
+// grant, consistent with /api/ml/models/:id/promote and the frontend
+// `predictive_maintenance` resource gate (no hardcoded role list).
+router.post("/:modelId/deploy", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
     const parsed = deploySchema.safeParse(req.body);
@@ -111,7 +113,7 @@ router.post("/:modelId/deploy", requireRole("admin", "chief_engineer"), async (r
   }
 });
 
-router.post("/deployments/:deploymentId/rollback", requireRole("admin", "chief_engineer"), async (req: AuthenticatedRequest, res: Response) => {
+router.post("/deployments/:deploymentId/rollback", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
     const result = await registry.rollback(orgId, parseInt(req.params['deploymentId'] ?? '0'));
