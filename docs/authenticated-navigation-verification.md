@@ -197,3 +197,34 @@ seeded backend user + browser host to execute.
   they require real seeded accounts (env-driven, skipped when absent).
 - **Backfill verified by dry-run + unit tests.** The DB path runs in CI/staging;
   the decision logic is pinned by `pdm-backfill-planner.test.ts` (runs here).
+
+---
+
+## 9. Phase 2 update (Task #309) — 4-item user nav + no-hubs fallback
+
+The user portal now exposes **four** items (was two): Dashboard, Assigned Tasks,
+Feedback / Flags, Profile. Two new real, **non-hub-gated** pages back the added
+items:
+
+| Route | Page | Backend (real) |
+|---|---|---|
+| `/my-tasks` | `client/src/pages/my-tasks.tsx` | `GET /api/me/tasks` (read-only list of the caller's own tasks) |
+| `/profile` | `client/src/pages/profile.tsx` | `POST /api/me/change-password`, `POST /api/me/logout` |
+
+Both are registered in `App.tsx` outside `AdminPortalRouteGuard` (alongside
+`/feedback`), so a normal user reaches them without an admin grant, and neither
+deep-links into a gated hub.
+
+**Admin no-hubs fallback:** an admin with an empty hub allow-list now sees an
+explicit safe page (`shell-admin-no-hubs`) with a Profile link and logout,
+never a blank command center.
+
+**Pinned by:** `tests/unit/persona-navigation.test.ts` (4 user items / 5 admin
+hubs / filter / no-hubs), `tests/unit/lr35-ui-align-user-portal-home.test.ts`
+(user item labels), `tests/unit/phase2-admin-no-hubs-fallback.test.ts`
+(fallback render + gate), `tests/playwright/portal-nav.spec.ts` (CI-only
+browser smoke).
+
+**Pre-existing test drift (not introduced here):** some `lr35-*` source-scan
+tests assert string patterns in `home.tsx` / `BottomNav.tsx` / `portal-login.tsx`
+that drifted during the #218 refactor and fail independently of this task.

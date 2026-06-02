@@ -83,7 +83,7 @@
       "note": "Score is the clamped 0-100 sum of factor contributions; values below are the auditor's calibrated estimates."
     },
     "reportOnlyAtGeneration": true,
-    "statusCurrent": "Living document. Generated as analysis-only input; the implementation phases it fed (Phase 1 trust-fixes, Phase 1.5 blocker-closure) have since shipped production changes. brokenActions[] preserves the ORIGINAL findings for traceability; highRiskButtonAudit records the verified post-implementation state and supersedes any conflicting brokenActions row. Where they disagree, highRiskButtonAudit is authoritative.",
+    "statusCurrent": "Living document. Generated as analysis-only input; the implementation phases it fed (Phase 1 trust-fixes, Phase 1.5 blocker-closure) have since shipped production changes. brokenActions[] preserves the ORIGINAL findings for traceability; highRiskButtonAudit records the verified post-implementation state and supersedes any conflicting brokenActions row. Where they disagree, highRiskButtonAudit is authoritative. Phase 2 (Task #309, 2026-06-02) shipped the 5-hub admin / 4-item user navigation simplification — see phase2NavigationSimplification.",
     "inventoryGranularity": "Route/tab-level (every page, tab, route). High-risk individual buttons/mutations are catalogued in brokenActions[] and highRiskButtonAudit; not an exhaustive per-pixel widget catalogue."
   },
   "roleHierarchy": [
@@ -2055,5 +2055,47 @@
       ],
       "risk": "Medium"
     }
-  ]
+  ],
+  "phase2NavigationSimplification": {
+    "task": "Phase 2 — 5-Hub Navigation Rebuild (Task #309)",
+    "date": "2026-06-02",
+    "adminHubs": [
+      "maintenance",
+      "system",
+      "crew",
+      "logistics",
+      "analytics"
+    ],
+    "normalUserAreaShipped": [
+      "user-dashboard (/)",
+      "user-tasks (/my-tasks)",
+      "user-feedback (/feedback)",
+      "user-profile (/profile)"
+    ],
+    "normalUserAreaNote": "Shipped exactly four items. Optional my_logs/safety_notices/certifications/schedule from normalUserArea[] are NOT added unless backed by real features (deferred).",
+    "changes": [
+      "Publish Update control removed from visible System Admin UI; replaced with honest \"Publishing unavailable\" notice (no form/handler/toast/fake state).",
+      "User portal expanded from 2 to 4 items; new real non-hub-gated pages /my-tasks (GET /api/me/tasks) and /profile (POST /api/me/change-password, POST /api/me/logout).",
+      "Admin no-hubs safe fallback (shell-admin-no-hubs) replaces blank command center for admins with an empty hub allow-list.",
+      "Direct-URL hub gating confirmed: every admin hub route-group wrapped by AdminPortalRouteGuard; only /, /portal-login, /feedback, /my-tasks, /profile are non-gated."
+    ],
+    "tests": [
+      "tests/unit/persona-navigation.test.ts",
+      "tests/unit/lr35-ui-align-user-portal-home.test.ts",
+      "tests/unit/phase2-admin-no-hubs-fallback.test.ts",
+      "tests/playwright/portal-nav.spec.ts (CI-only)"
+    ],
+    "docs": [
+      "docs/phase-2-navigation-simplification-plan.md",
+      "docs/navigation-role-hub-matrix.md",
+      "docs/authenticated-navigation-verification.md",
+      "docs/button-action-trust-verification.md"
+    ],
+    "crewManagementPhase3Todo": [
+      "role-based roster tables",
+      "crew alert log inside the hub (no fake data)",
+      "reduced sub-tabs and consolidated row actions"
+    ],
+    "preExistingTestDrift": "Some lr35-* source-scan tests assert string patterns in home.tsx/BottomNav.tsx/portal-login.tsx that drifted during the #218 refactor; they fail independently of this task."
+  }
 }

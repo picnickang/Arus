@@ -16,7 +16,7 @@
  * rule. All such checks should now import from here.
  */
 
-import { Gauge, Flag } from "lucide-react";
+import { Gauge, Flag, ListChecks, UserCircle } from "lucide-react";
 import {
   getCategoryById,
   type NavigationCategory,
@@ -58,8 +58,12 @@ const ADMIN_LABEL_OVERRIDES: Record<string, string> = {
 /**
  * User portal categories. Synthetic — they do not correspond to any
  * row in `navigationCategories` because the user portal intentionally
- * exposes a drastically reduced surface (Dashboard + Feedback only,
- * per the pilot mockup).
+ * exposes a drastically reduced surface, per the Phase 2 target:
+ * Dashboard, Assigned Tasks, Feedback / Flags, Profile.
+ *
+ * Each `hubRoute` points to a real, non-hub-gated route (`/`,
+ * `/my-tasks`, `/feedback`, `/profile`) so a normal user can reach
+ * every item without tripping the admin-portal route guard.
  */
 const USER_PRIMARY_CATEGORIES: NavigationCategory[] = [
   {
@@ -71,11 +75,27 @@ const USER_PRIMARY_CATEGORIES: NavigationCategory[] = [
     children: [],
   },
   {
+    id: "user-tasks",
+    name: "Assigned Tasks",
+    icon: ListChecks,
+    hubRoute: "/my-tasks",
+    description: "Work assigned to you",
+    children: [],
+  },
+  {
     id: "user-feedback",
     name: "Feedback / Flags",
     icon: Flag,
     hubRoute: "/feedback",
     description: "Submit feedback or flag a concern",
+    children: [],
+  },
+  {
+    id: "user-profile",
+    name: "Profile",
+    icon: UserCircle,
+    hubRoute: "/profile",
+    description: "Your account and password",
     children: [],
   },
 ];

@@ -316,10 +316,10 @@ function SoftwareUpdatesTab() {
           <TabsTrigger value="available" data-testid="tab-available-updates">
             Available Updates
           </TabsTrigger>
-          <TabsTrigger value="publish" data-testid="tab-publish-update">
-            <Upload className="mr-2 h-4 w-4" />
-            Publish Update
-          </TabsTrigger>
+          {/* Phase 2: "Publish Update" tab removed from the visible nav.
+              The publish flow had no backing backend route, so it could
+              never succeed. See the "publish" TabsContent below for the
+              honest "unavailable" notice retained for any deep link. */}
           <TabsTrigger value="github" data-testid="tab-github-releases">
             <Github className="mr-2 h-4 w-4" />
             GitHub
@@ -514,248 +514,35 @@ function SoftwareUpdatesTab() {
           </Card>
         </TabsContent>
         <TabsContent value="publish" className="space-y-4">
+          {/*
+            Phase 2: the publish-update flow is intentionally disabled.
+            There is no backing backend route to create/publish a patch,
+            so the previous form could never succeed. We render an honest
+            "unavailable" notice instead of a broken form + fake toast.
+            Rebuilding a real patch-publishing backend is out of scope.
+          */}
           <Card data-testid="card-publish-update">
             <CardHeader>
               <CardTitle>Publish Software Update</CardTitle>
               <CardDescription>
-                Create and publish a new patch to GitHub Releases. Patches are automatically
-                detected from git commits.
+                Publishing software updates from the app is not available.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...s.publishForm}>
-                <form
-                  onSubmit={s.publishForm.handleSubmit(s.onPublishSubmit)}
-                  className="space-y-6"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={s.publishForm.control}
-                      name="fromVersion"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>From Version</FormLabel>
-                          <FormControl>
-                            <Input placeholder="1.0" {...field} data-testid="input-from-version" />
-                          </FormControl>
-                          <FormDescription>Source version (must be a git tag)</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={s.publishForm.control}
-                      name="version"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Version</FormLabel>
-                          <FormControl>
-                            <Input placeholder="1.0.1" {...field} data-testid="input-version" />
-                          </FormControl>
-                          <FormDescription>Target version (will create git tag)</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                      control={s.publishForm.control}
-                      name="severity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Severity</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-severity">
-                                <SelectValue placeholder="Select severity" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="critical">Critical</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="low">Low</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={s.publishForm.control}
-                      name="channel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Release Channel</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-channel">
-                                <SelectValue placeholder="Select channel" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="stable">Stable</SelectItem>
-                              <SelectItem value="beta">Beta</SelectItem>
-                              <SelectItem value="alpha">Alpha</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={s.publishForm.control}
-                      name="patchType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Patch Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-patch-type">
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="incremental">Incremental</SelectItem>
-                              <SelectItem value="full">Full</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={s.publishForm.control}
-                    name="requiresRestart"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Requires System Restart</FormLabel>
-                          <FormDescription>
-                            Check if the patch requires a full system restart to apply
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-requires-restart"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={s.publishForm.control}
-                    name="releaseNotes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Release Notes</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe the changes in this update..."
-                            className="min-h-[120px]"
-                            {...field}
-                            data-testid="textarea-release-notes"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Detailed description of changes (supports Markdown)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={s.publishMutation.isPending}
-                      data-testid="button-publish-patch"
-                    >
-                      {s.publishMutation.isPending ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Publishing...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Publish to GitHub
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={s.handlePreview}
-                      disabled={s.previewMutation.isPending}
-                      data-testid="button-preview-patch"
-                    >
-                      {s.previewMutation.isPending ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        "Preview Changes"
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-              {s.previewMutation.data && (
-                <div
-                  className="mt-6 p-4 border rounded-lg bg-muted/50"
-                  data-testid="preview-results"
-                >
-                  <h4 className="font-semibold mb-3">Patch Preview</h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                    <div>
-                      <span className="text-muted-foreground">Files Changed:</span>
-                      <p className="font-medium">
-                        {s.previewMutation.data?.filesChanged ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Additions:</span>
-                      <p className="font-medium text-green-600">
-                        +{s.previewMutation.data?.additions ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Deletions:</span>
-                      <p className="font-medium text-red-600">
-                        -{s.previewMutation.data?.deletions ?? 0}
-                      </p>
-                    </div>
-                  </div>
-                  {(s.previewMutation.data as object as { commits?: Array<{ sha: string; message: string }> })
-                    ?.commits && (
-                    <div className="space-y-2">
-                      <span className="text-sm text-muted-foreground">Commits:</span>
-                      {(
-                        s.previewMutation.data as object as {
-                          commits: Array<{ sha: string; message: string }>;
-                        }
-                      ).commits
-                        .slice(0, 5)
-                        .map((c) => (
-                          <div
-                            key={c.sha}
-                            className="flex items-start gap-2 text-sm p-2 bg-background rounded"
-                          >
-                            <span className="font-mono text-muted-foreground">
-                              {c.sha.substring(0, 7)}
-                            </span>
-                            <span className="flex-1 truncate">{c.message}</span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+              <div
+                className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300"
+                data-testid="notice-publish-unavailable"
+              >
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-medium">Publishing unavailable</div>
+                  <p className="mt-0.5 text-xs">
+                    This environment has no patch-publishing service, so
+                    updates cannot be created or published here. Releases are
+                    managed directly in your deployment pipeline.
+                  </p>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

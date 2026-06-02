@@ -461,3 +461,43 @@ for a scoped follow-up.
 ---
 
 *Generated as a read-only audit. No production routes, permissions, components, or behavior were modified. See `docs/ui-usefulness-density-audit.json` for the machine-readable, per-item dataset.*
+
+---
+
+## §23. Phase 2 — Navigation Simplification reconciliation (Task #309, 2026-06-02)
+
+This section records the post-implementation state for the Phase 2 5-hub
+rebuild. Where it disagrees with earlier sections, **§23 is authoritative for
+navigation shape**.
+
+**Admin portal:** five hubs — Maintenance, System Admin, Crew Management,
+Logistics, AI Analytics — projected by `getAdminPrimaryCategories()` and gated
+per-account by `filterCategoriesByHubAccess(cats, hubAccess)`. Hub access is an
+explicit `hubAdmin` grant, not a role name.
+
+**Normal-user area:** shipped **exactly four** items — Dashboard, Assigned
+Tasks, Feedback / Flags, Profile. The optional `normalUserArea[]` entries from
+the original audit (`my_logs`, `safety_notices`, certifications, schedule) are
+**not** added, because they are deferred until backed by real features.
+
+**Honesty fixes:**
+
+- **Publish Update** (class F, broken) → **hidden**. The visible control is
+  removed and replaced with an honest "Publishing unavailable" notice — no
+  form, handler, toast, or fake state.
+- New user pages are wired to **real** backend endpoints
+  (`/api/me/tasks`, `/api/me/change-password`, `/api/me/logout`) — no mocked
+  data.
+- **Admin no-hubs fallback** (`shell-admin-no-hubs`) replaces the blank command
+  center for an admin with an empty hub allow-list.
+
+**Direct-URL enforcement:** every admin hub route-group is wrapped by
+`AdminPortalRouteGuard`; only `/`, `/portal-login`, `/feedback`, `/my-tasks`,
+and `/profile` are outside it. The menu and the router derive from the same
+policy, so hiding is never the only defence.
+
+**Companion docs:** `docs/phase-2-navigation-simplification-plan.md`,
+`docs/navigation-role-hub-matrix.md`.
+
+**Crew Management — Phase 3 TODO:** role-based roster tables, crew alert log
+inside the hub (no fake data), reduced sub-tabs and consolidated actions.

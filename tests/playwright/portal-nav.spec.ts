@@ -26,7 +26,22 @@ const ADMIN_LABELS = [
   "AI Analytics",
 ] as const;
 
-const USER_LABELS = ["Dashboard", "Feedback / Flags"] as const;
+// The user portal sidebar renders four primary items. Note the
+// feedback category is label-overridden to "Report / Flag Issue" in
+// the user shell (the policy id stays `user-feedback`).
+const USER_LABELS = [
+  "Dashboard",
+  "Assigned Tasks",
+  "Report / Flag Issue",
+  "Profile",
+] as const;
+
+const USER_NAV_ITEM_IDS = [
+  "mobile-nav-item-user-dashboard",
+  "mobile-nav-item-user-tasks",
+  "mobile-nav-item-user-feedback",
+  "mobile-nav-item-user-profile",
+] as const;
 
 async function resetClientState(page: Page) {
   // Clear any prior role hint so each test starts from the same
@@ -79,35 +94,36 @@ test.describe("Portal split landing", () => {
     );
   });
 
-  test("User portal shows only Dashboard + Feedback (no admin leakage)", async ({
+  test("User portal shows the 4 user items and no admin hubs", async ({
     page,
   }) => {
     await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
     await page.getByTestId("button-card-portal-user").click();
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForLoadState("domcontentloaded");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    const bottomNav = page.getByTestId("bottom-nav");
-    await expect(bottomNav).toBeVisible();
+    // The user portal renders its own shell — the admin-only BottomNav
+    // (the hub launcher) must never appear for a user-portal account.
+    await expect(page.getByTestId("shell-user-portal")).toBeVisible();
+    await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
 
+    // Open the mobile nav sheet and assert the four user items are
+    // present, each carrying its policy-driven test id.
+    await page.getByTestId("button-mobile-menu").click();
+    const sheet = page.getByTestId("sheet-mobile-nav");
+    await expect(sheet).toBeVisible();
+
+    for (const id of USER_NAV_ITEM_IDS) {
+      await expect(sheet.getByTestId(id)).toBeVisible();
+    }
     for (const label of USER_LABELS) {
-      await expect(bottomNav.getByText(label, { exact: true })).toBeVisible();
+      await expect(sheet.getByText(label, { exact: true })).toBeVisible();
     }
 
-    // No admin category should be visible in the primary bar.
+    // No admin hub label may leak into the user-portal nav.
     for (const label of ADMIN_LABELS) {
-      await expect(bottomNav.getByText(label, { exact: true })).toHaveCount(0);
-    }
-
-    // The "More" sheet must also be policy-driven — opening it must
-    // not leak admin categories to the user portal.
-    await page.getByTestId("button-nav-more").click();
-    const moreSheet = page.getByText("All Categories");
-    await expect(moreSheet).toBeVisible();
-    for (const label of ADMIN_LABELS) {
-      await expect(page.getByTestId(/^link-category-/).getByText(label, { exact: true }))
-        .toHaveCount(0);
+      await expect(sheet.getByText(label, { exact: true })).toHaveCount(0);
     }
   });
 

@@ -97,7 +97,12 @@ describe("UI Align Phase 4 — user-portal page contract", () => {
 describe("UI Align Phase 4 — role-navigation-policy still scopes the user portal", () => {
   it("returns exactly Dashboard + Feedback / Flags for the user role", () => {
     const cats = getPrimaryCategoriesForRole("deck_officer");
-    expect(cats.map((c) => c.name)).toEqual(["Dashboard", "Feedback / Flags"]);
+    expect(cats.map((c) => c.name)).toEqual([
+      "Dashboard",
+      "Assigned Tasks",
+      "Feedback / Flags",
+      "Profile",
+    ]);
   });
 
   it("returns the admin five-category set for an admin role", () => {

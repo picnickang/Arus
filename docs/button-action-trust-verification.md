@@ -107,10 +107,28 @@ source. **No fix.** **Recommendation:** `KEEP`.
 |---|---|---|---|
 | Equipment Hub Acknowledge | real + tested | none | KEEP |
 | Equipment Hub Assign | real + tested | none | KEEP |
-| Publish Update | broken (missing backend route) | documented | FIX (backend) / HIDE until built |
+| Publish Update | broken (missing backend route) | **hidden** (Phase 2) | HIDDEN until backend built |
 | ScheduleGenerator PDF toast | no false-positive; silent on edge paths | documented | KEEP (optional polish) |
 | RolesDashboardsTab save | correct | none | KEEP |
 
 No code was changed for any of these controls in this pass: two are correct, two
 are correct-enough (no false success), and one is a missing-backend feature that
 is out of scope to build here.
+
+---
+
+## Phase 2 update (Task #309) — Publish Update hidden
+
+The "Publish Update" control in System Admin had no working backend route. In
+Phase 2 it was removed from the visible UI rather than left as a dead button:
+
+- The `TabsTrigger` for the publish tab is **removed** (a code comment marks
+  where it was).
+- The publish `TabsContent` body is replaced with an honest amber **"Publishing
+  unavailable"** notice card — **no form, no click handler, no success toast, no
+  fake state**. A code comment records that the backend route is absent.
+- `npx tsc --noEmit` is clean after the change.
+
+Net effect: there is no longer any clickable control that pretends to publish.
+The feature is hidden, not faked, and can be re-surfaced when the backend route
+exists. File: `client/src/pages/system-administration.tsx`.

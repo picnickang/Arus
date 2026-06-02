@@ -31,6 +31,8 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const DesktopSetup = lazy(() => import("@/pages/desktop-setup"));
 const PortalLogin = lazy(() => import("@/pages/portal-login"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
+const MyTasksPage = lazy(() => import("@/pages/my-tasks"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -333,6 +335,11 @@ function Router() {
               <Route path="/" component={HomePage} />
               <Route path="/portal-login" component={PortalLogin} />
               <Route path="/feedback" component={FeedbackPage} />
+              {/* User-portal pages: intentionally NOT hub-gated so a normal
+                  user can reach them. Auth is still enforced app-wide by
+                  SessionGate; these carry no admin data. */}
+              <Route path="/my-tasks" component={MyTasksPage} />
+              <Route path="/profile" component={ProfilePage} />
 
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>

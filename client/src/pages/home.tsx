@@ -24,6 +24,7 @@ import {
   Clock,
   ShieldAlert,
   ShieldCheck,
+  UserCircle,
   Wrench,
   AlertTriangle,
   Sparkles,
@@ -1452,6 +1453,44 @@ export default function HomePage() {
   const otherGroups = homePageGroups.filter(
     (g) => !pinnedGroupIds.includes(g.id) && isHubAllowed(g.id),
   );
+
+  // No-hubs fallback: an admin-portal account whose hub allow-list is a
+  // populated-but-empty set (granted admin access, zero hubs) would
+  // otherwise see a blank command center. Show a safe, explicit page with
+  // profile + logout access instead. `hubAccess === null` means "all hubs"
+  // (super-admin / dev) and never lands here.
+  if (pinnedGroups.length === 0 && otherGroups.length === 0) {
+    return (
+      <div
+        className="ops-surface flex min-h-screen items-center justify-center px-4"
+        data-testid="shell-admin-no-hubs"
+      >
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+            <ShieldAlert className="h-6 w-6 text-amber-500" />
+          </div>
+          <h1 className="text-lg font-semibold" data-testid="text-no-hubs-title">
+            No admin hubs assigned
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground" data-testid="text-no-hubs-body">
+            Your account has admin access but no hubs have been assigned yet.
+            Contact your Super Admin to be granted a hub.
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/profile")}
+              data-testid="button-no-hubs-profile"
+            >
+              <UserCircle className="h-4 w-4" />
+              Profile
+            </Button>
+            <LogoutButton variant="outline" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const kpiOverdueWO = attentionItems.find((i) => i.label === "Overdue work orders")?.count ?? 0;
   const kpiCriticalAlerts = attentionItems.find((i) => i.label === "Unacknowledged alerts")?.count ?? 0;
