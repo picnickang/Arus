@@ -8,5 +8,6 @@
 - [Dev auth bypass priority](dev-auth-bypass-priority.md) — a real login must always beat the no-login dev auto-admin; share the DEV_AUTH_BYPASS/VITE_DEV_AUTH_BYPASS kill switch and reset (not invalidate) the permissions cache on token change.
 - [Integration-test jest ESM mocking](integration-test-jest-esm-mocking.md) — config is native-ESM so `jest.mock` is a no-op (use `unstable_mockModule`); real route imports crash on db-config eager init — test the gate middlewares directly.
 - [Dev-mode auth mock-user bypass](dev-auth-mock-user-bypass.md) — in dev, requireAuthentication must only inject the mock admin when NO Bearer token is sent, else real `/api/me/*` logins (e.g. change-password) act as the dev admin and fail.
+- [Role-template grant drift](role-template-grant-drift.md) — provisionTemplatesForOrg only creates missing roles; adding a perm to a template never reaches already-seeded orgs — ship an idempotent backfill.
 - [Playwright sandbox limits](playwright-sandbox-limits.md) — Playwright can't launch a browser in-sandbox (missing libglib); author route-mocked specs, verify via tsc, let CI run them.
 - [Dev preview domain vs real API port](dev-preview-vs-real-api.md) — `$REPLIT_DEV_DOMAIN` routes to the mockup-sandbox preview (404s on /api); smoke-test the real Express API at localhost:5000.

@@ -260,6 +260,110 @@ export async function getOrProvisionRolesForOrg(orgId: string): Promise<Role[]> 
   return listRoles(orgId);
 }
 
+/**
+ * Admin-capable template roles whose default template grants the
+ * `predictive_maintenance` resource. `provisionTemplatesForOrg` only creates
+ * MISSING roles — it never adds grants to roles that already exist. Orgs that
+ * were seeded before `predictive_maintenance` was added to these templates are
+ * therefore left without it. This backfill restores those grants.
+ */
+export const PDM_BACKFILL_ROLE_NAMES = [
+  "super_admin",
+  "admin",
+  "company_admin",
+  "chief_engineer",
+] as const;
+
+const PDM_RESOURCE_CODE = "predictive_maintenance";
+
+export interface PdmBackfillRoleResult {
+  roleName: string;
+  /** null when the org has no role for this template (nothing to backfill). */
+  roleId: string | null;
+  /** Grants that had no row at all and were (or would be) inserted. */
+  added: Array<{ resource: string; action: string }>;
+  /**
+   * Grants that exist but are explicitly revoked (isGranted=false). Left
+   * untouched so a deliberate revocation is never silently re-enabled.
+   */
+  skippedRevoked: Array<{ resource: string; action: string }>;
+  /** Whether writes were actually performed (false in dry-run). */
+  applied: boolean;
+}
+
+/**
+ * Idempotent, safe backfill of the default `predictive_maintenance` grants onto
+ * the admin-capable template roles that should carry them.
+ *
+ * Safety properties:
+ * - Only INSERTS grants that have no row at all (via `setPermissionGrant`, which
+ *   checks-then-writes, so no duplicate rows are ever created).
+ * - Never flips an existing `isGranted=false` row — a deliberate revocation is
+ *   reported as `skippedRevoked` and left alone.
+ * - Never touches non-admin roles, and only the `predictive_maintenance`
+ *   resource — so it cannot over-grant.
+ * - Re-running is a no-op once grants are present.
+ *
+ * Pass `{ apply: false }` (the default) for a dry-run plan.
+ */
+export async function backfillPdmTemplateGrantsForOrg(
+  orgId: string,
+  options: { apply?: boolean } = {}
+): Promise<PdmBackfillRoleResult[]> {
+  const apply = options.apply ?? false;
+  const templates = await listRoleTemplates();
+  const existingRoles = await listRoles(orgId);
+  const results: PdmBackfillRoleResult[] = [];
+
+  for (const roleName of PDM_BACKFILL_ROLE_NAMES) {
+    const template = templates.find((t) => t.name === roleName);
+    if (!template) continue;
+
+    const pdmPerms = (
+      JSON.parse(template.permissions) as Array<{ resource: string; action: string }>
+    ).filter((p) => p.resource === PDM_RESOURCE_CODE);
+    if (pdmPerms.length === 0) continue;
+
+    // Prefer an exact templateId match. Only fall back to name-matching for
+    // legacy roles that predate templateId tracking (templateId is null) — this
+    // avoids hijacking a custom role that happens to share a template name but
+    // is tracked under a different templateId.
+    const role =
+      existingRoles.find((r) => r.templateId === template.id) ??
+      existingRoles.find((r) => !r.templateId && r.name === template.name);
+    if (!role) {
+      results.push({ roleName, roleId: null, added: [], skippedRevoked: [], applied: apply });
+      continue;
+    }
+
+    const existingGrants = await getPermissionGrantsForRole(role.id);
+    const grantRow = (resource: string, action: string) =>
+      existingGrants.find((g) => g.resourceCode === resource && g.actionCode === action);
+
+    const added: Array<{ resource: string; action: string }> = [];
+    const skippedRevoked: Array<{ resource: string; action: string }> = [];
+
+    for (const perm of pdmPerms) {
+      const row = grantRow(perm.resource, perm.action);
+      if (!row) {
+        added.push({ resource: perm.resource, action: perm.action });
+      } else if (!row.isGranted) {
+        skippedRevoked.push({ resource: perm.resource, action: perm.action });
+      }
+    }
+
+    if (apply) {
+      for (const perm of added) {
+        await setPermissionGrant(role.id, perm.resource, perm.action, true);
+      }
+    }
+
+    results.push({ roleName, roleId: role.id, added, skippedRevoked, applied: apply });
+  }
+
+  return results;
+}
+
 export async function listUserRoleAssignments(
   userId: string,
   orgId: string
@@ -450,6 +554,7 @@ export const permissionRepository = {
   createRoleFromTemplate,
   provisionTemplatesForOrg,
   getOrProvisionRolesForOrg,
+  backfillPdmTemplateGrantsForOrg,
   listUserRoleAssignments,
   assignRoleToUser,
   removeRoleFromUser,
