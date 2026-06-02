@@ -1,0 +1,416 @@
+You are working inside the main ARUS Replit full-stack React/TypeScript maritime operations app.
+
+Problem:
+The CRUD test suite passed, but when using the actual app manually, user login has conflicts and form/input actions do not produce accurate output.
+
+Goal:
+Diagnose and fix the runtime mismatch between:
+1. successful CRUD/API tests, and
+2. real user login/session/dashboard/crew-management behavior.
+
+Do not assume the tests prove the real app is correct. The issue likely exists in auth resolution, role/dashboard resolution, user identity mapping, form field mapping, cache invalidation, or UI-to-API transformation.
+
+Primary symptoms:
+- User login has conflicts.
+- The logged-in user may see the wrong dashboard, wrong permissions, wrong role, or wrong modules.
+- Input values in the UI do not produce accurate saved/displayed output.
+- CRUD tests pass, but manual usage does not behave correctly.
+
+Primary areas to inspect:
+- client auth/session provider
+- server auth middleware
+- dev auth bypass logic
+- role-auth middleware
+- effective role resolution
+- dashboard role resolution
+- permission registry
+- role templates
+- user access editor
+- crew access editor
+- role dashboard config
+- user assignment / role-grouped roster
+- Crew Management page
+- TanStack Query cache invalidation
+- API request/response DTO mapping
+- form schema validation
+- server update routes
+- database fields for users, roles, crew, vessel scope, dashboard profile, login status
+
+Relevant files may include:
+- client/src/pages/home.tsx
+- client/src/pages/CrewManagement.tsx
+- client/src/components/UnifiedCrewManagement/**
+- client/src/components/admin/**
+- client/src/components/crew/**
+- client/src/hooks/useCrewManagementData.ts
+- client/src/hooks/useAuth.ts
+- client/src/lib/queryClient.ts
+- client/src/config/**
+- shared/**
+- server/middleware/**
+- server/auth/**
+- server/routes/**
+- server/services/**
+- server/repositories/**
+- server/db/**
+- server/storage/**
+- server/permissions/**
+- role template / permission registry files
+
+Task 1: Reproduce the runtime issue using real UI flow
+
+Create or use a local test user, but run the flow through the actual login/session path, not only direct API calls.
+
+Test these flows manually or with Playwright:
+
+1. Login as super_admin.
+2. Login as admin.
+3. Login as fleet_manager.
+4. Login as captain.
+5. Login as crew_user.
+6. Login as logistics_user.
+7. Login as viewer.
+
+For each login, capture:
+- user id
+- username
+- linked crew id, if any
+- primary role
+- secondary roles
+- effective role
+- dashboard profile
+- permissions
+- vessel scope
+- hub/admin access
+- login enabled/disabled state
+- mustChangePassword state
+- temporary password state
+- modules visible in navigation
+- dashboard widgets visible
+- Crew Management access
+- Safety tab access
+
+Add temporary diagnostic logging in development only if needed.
+
+Do not leave noisy production logs.
+
+Expected output:
+Create a table/report showing what the app thinks each logged-in user is versus what the database/API says they are.
+
+Task 2: Find identity conflicts
+
+Search for all places where the current user is resolved.
+
+Look for conflicting concepts such as:
+- user.id
+- userId
+- account.id
+- authUser.id
+- session.userId
+- crew.userId
+- crewMember.userId
+- currentUser.id
+- profile.id
+- username
+- email
+- role
+- primaryRole
+- effectiveRole
+- dashboardRole
+
+Find whether different parts of the app are using different identifiers.
+
+Acceptance criteria:
+- There is one canonical logged-in user identity.
+- Crew-linked users consistently map from user account to crew profile.
+- Role/dashboard/permission logic all use the same canonical user object.
+- No page uses stale mock/dev-bypass identity when real login exists.
+
+Task 3: Audit dev auth bypass and session conflicts
+
+Inspect dev bypass logic.
+
+Check for:
+- dev bypass active when real login is used
+- hardcoded user overriding session user
+- default admin user being injected unintentionally
+- localStorage token overriding current session
+- old cookie/session still being used
+- multiple auth providers mounted at once
+- client and server disagreeing about the logged-in user
+- tests setting environment variables that affect manual app behavior
+
+Required fix:
+- Dev bypass must only activate when explicitly enabled by environment variable.
+- Real login must take priority over any demo/dev identity.
+- The client must clear or ignore stale auth state after logout.
+- The server must not silently replace failed auth with a default admin user.
+
+Acceptance criteria:
+- Manual login as each role returns the correct user from `/me` or equivalent endpoint.
+- Refreshing the page does not change the user identity.
+- Logging out and logging in as another user does not retain previous permissions/dashboard.
+
+Task 4: Audit role and dashboard resolution
+
+Inspect how the app chooses dashboard and permissions.
+
+Trace:
+- database role assignments
+- primary role
+- additional roles
+- effective role
+- dashboard role
+- dashboard config
+- navigation visibility
+- hub/module access
+
+Find mismatches such as:
+- UI uses `role`
+- backend uses `primaryRole`
+- dashboard uses `effectiveRole`
+- permissions use `roleNames`
+- crew roster uses `dashboardProfile`
+- admin tab uses different role vocabulary
+
+Required behavior:
+- Role resolution must be deterministic.
+- Super admin gets super admin dashboard and configuration access.
+- Admin users only see hubs/modules granted by super admin.
+- Crew roles see crew-specific dashboards.
+- Logistics roles see logistics dashboards.
+- Maintenance roles see maintenance dashboards.
+- Users with multiple roles follow a documented effective-role priority.
+
+Acceptance criteria:
+- Same logged-in user gets same effective role across home, sidebar, crew management, safety, and admin role dashboard pages.
+- Dashboard widgets match role config.
+- Navigation modules match permissions/hub grants.
+- Role-grouped roster displays the user under the correct role.
+
+Task 5: Audit UI input to API payload mapping
+
+Find every form involved in:
+- user login/access
+- user role assignment
+- dashboard config
+- crew creation
+- crew editing
+- vessel assignment
+- access readiness
+- offboarding
+- safety alarm clearing
+- alarm type management
+
+For each form, compare:
+1. UI input value
+2. form state value
+3. validation schema output
+4. API request payload
+5. backend DTO/body parser
+6. database save value
+7. API response value
+8. UI displayed value after refetch
+
+Look specifically for:
+- field name mismatches
+- camelCase/snake_case mismatch
+- enum mismatch
+- role name mismatch
+- vessel id/name mismatch
+- boolean string `"false"` treated as true
+- null/undefined difference
+- empty string saved instead of null
+- select components returning label instead of value
+- multi-select roles not saving correctly
+- checkboxes not included in payload
+- stale default values overwriting current values
+- form reset using old props
+- optimistic UI showing unsaved values
+- missing query invalidation after save
+
+Acceptance criteria:
+- Every key input round-trips accurately.
+- What the user selects is what the backend saves.
+- What the backend saves is what the UI displays after refetch.
+- No stale cache makes the output appear wrong.
+
+Task 6: Add round-trip tests for inaccurate input/output
+
+Add tests that prove form values round-trip correctly.
+
+Required tests:
+
+User access form:
+1. Select primary role `captain`; save; refetch; UI shows `captain`.
+2. Add secondary role `chief_engineer`; save; refetch; UI shows it.
+3. Remove secondary role; save; refetch; UI no longer shows it.
+4. Assign Vessel A; save; refetch; UI shows Vessel A.
+5. Change to Vessel B; save; refetch; UI shows Vessel B.
+6. Enable login; save; refetch; UI shows login enabled.
+7. Disable login; save; refetch; UI shows login disabled.
+8. Set temporary password; save; refetch; readiness shows temporary password issued/user pending.
+
+Crew form:
+1. Create crew with rank, vessel, department, emergency contact.
+2. Refetch profile and roster.
+3. Verify exact values match.
+4. Edit rank/vessel/department.
+5. Refetch and verify exact values match.
+
+Role dashboard form:
+1. Toggle widgets.
+2. Reorder widgets.
+3. Update high-impact questions.
+4. Save.
+5. Reload.
+6. Verify dashboard reflects saved config.
+
+Safety clear alarm form:
+1. Clear real alarm with resolution note.
+2. Refetch alert log.
+3. Verify exact resolution note appears.
+
+Acceptance criteria:
+- Tests fail before fix if input/output mapping is wrong.
+- Tests pass after fix.
+- Tests use the real UI or as close to the real UI as the project supports.
+
+Task 7: Fix TanStack Query invalidation and stale UI output
+
+Inspect all mutations in:
+- Crew Management
+- UserAccessEditor
+- RoleDashboard admin
+- Safety tab
+- Offboarding dialog
+- User assignment tab
+
+After each mutation, invalidate/refetch relevant queries.
+
+Examples:
+- crew list
+- crew profile
+- access readiness
+- former crew access risks
+- user list
+- role assignments
+- dashboard config
+- permissions
+- navigation/hub access
+- safety alarms
+- alert log
+- vessel readiness
+
+Acceptance criteria:
+- After saving, UI displays server-confirmed output, not stale local state.
+- Switching tabs does not reveal old values.
+- Refreshing page matches what the UI showed immediately after save.
+
+Task 8: Inspect duplicate/conflicting data sources
+
+Search for duplicate role/dashboard/config sources.
+
+Find whether the app has multiple competing files for:
+- role list
+- role labels
+- role priority
+- dashboard widgets
+- permission registry
+- default role templates
+- navigation policy
+- hub access
+- crew rank list
+- vessel list
+
+Required behavior:
+- There should be one canonical source or clearly derived sources.
+- UI selectors should use the same role values that backend expects.
+- Dashboard config should not use role names that cannot be assigned.
+- Backend should reject unknown roles instead of silently remapping.
+
+Acceptance criteria:
+- No duplicate role vocabulary causes login/dashboard conflicts.
+- No UI role option saves a value the backend does not understand.
+- No backend role exists that the UI cannot display/manage unless intentionally hidden.
+
+Task 9: Create a runtime diagnosis page or debug endpoint for development only
+
+Add a dev-only diagnostic endpoint or panel, guarded by environment and super_admin permission.
+
+It should show:
+- current session user
+- database user
+- primary role
+- additional roles
+- effective role
+- permissions
+- dashboard config key
+- vessel scope
+- hub access
+- crew profile link
+- login state
+- cache keys currently loaded, if feasible
+
+This is only for debugging and must not expose sensitive data in production.
+
+Acceptance criteria:
+- Super admin can quickly see why a login is getting the wrong dashboard/access.
+- Diagnostic tool is disabled in production.
+
+Task 10: Fix discovered bugs
+
+After tracing, implement targeted fixes.
+
+Do not rewrite the whole app.
+
+Likely fixes may include:
+- unify `effectiveRole` logic
+- normalize role names
+- fix select value mapping
+- fix DTO field names
+- fix auth `/me` response
+- remove stale dev-bypass identity
+- update query invalidations
+- fix form default values
+- fix mutation response handling
+- fix user/crew id mapping
+- fix dashboard config fallback
+- fix permissions/hub access checks
+
+Task 11: Re-run validation
+
+Run:
+- npm run check
+- npm run build
+- npm test or npm run test
+- npm run test:e2e if available
+- lint command if available
+
+Also manually test:
+1. Login as super_admin.
+2. Create/edit a user role.
+3. Create/edit crew access.
+4. Logout.
+5. Login as that user.
+6. Confirm dashboard, sidebar, permissions, and crew/safety access match exactly.
+7. Edit a form input.
+8. Confirm output after save/refetch matches exact input.
+9. Refresh page.
+10. Confirm output still matches.
+
+Deliverables:
+When finished, provide:
+1. Root cause of the login conflict.
+2. Root cause of inaccurate input/output behavior.
+3. Files changed.
+4. Auth/session changes made.
+5. Role/dashboard resolution changes made.
+6. Form mapping changes made.
+7. Query invalidation/cache changes made.
+8. Tests added.
+9. Validation commands run and results.
+10. Remaining risks or follow-up items.
+
+Final acceptance:
+Manual runtime behavior must match test behavior. A user logging in through the real app must receive the correct identity, role, dashboard, permissions, vessel scope, and visible modules. Any form input saved through the UI must refetch and display the accurate server-confirmed output.
