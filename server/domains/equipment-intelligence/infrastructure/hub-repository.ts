@@ -757,6 +757,10 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
           status: workOrders.status,
           createdAt: workOrders.createdAt,
           completedAt: workOrders.actualEndDate,
+          assignedCrewId: workOrders.assignedCrewId,
+          assignmentStatus: workOrders.assignmentStatus,
+          assignmentResponseReason: workOrders.assignmentResponseReason,
+          assignmentRespondedAt: workOrders.assignmentRespondedAt,
         })
         .from(workOrders)
         .where(and(eq(workOrders.equipmentId, equipmentId), eq(workOrders.orgId, orgId)))
@@ -769,6 +773,12 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         status: r.status,
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] ?? "" : "",
         completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] ?? null : null,
+        assignedCrewId: r.assignedCrewId ?? null,
+        assignmentStatus: r.assignmentStatus ?? null,
+        assignmentResponseReason: r.assignmentResponseReason ?? null,
+        assignmentRespondedAt: r.assignmentRespondedAt
+          ? new Date(r.assignmentRespondedAt).toISOString()
+          : null,
       }));
     } catch {
       return [];

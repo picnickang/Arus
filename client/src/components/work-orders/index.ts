@@ -5,3 +5,4 @@ export { WorkOrderFormDialog } from "./WorkOrderFormDialog";
 export { WorkOrderCloneDialog } from "./WorkOrderCloneDialog";
 export { LinkTemplateDialog } from "./LinkTemplateDialog";
 export { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
+export { AssignmentStatusBadge } from "./AssignmentStatusBadge";

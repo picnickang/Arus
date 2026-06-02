@@ -8,6 +8,10 @@ export interface WorkOrderSummary {
   status: string;
   createdAt: string;
   completedAt: string | null;
+  assignedCrewId: string | null;
+  assignmentStatus: string | null;
+  assignmentResponseReason: string | null;
+  assignmentRespondedAt: string | null;
 }
 export interface ServiceOrderSummary {
   id: string;

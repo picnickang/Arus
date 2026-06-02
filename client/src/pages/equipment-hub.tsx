@@ -35,6 +35,7 @@ import {
   BellOff,
 } from "lucide-react";
 import { useEquipmentHub } from "@/hooks/useEquipmentHub";
+import { AssignmentStatusBadge } from "@/components/work-orders";
 
 function riskColor(r: string) {
   if (r === "critical") {
@@ -444,6 +445,14 @@ export default function EquipmentHub() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {assignableWorkOrder && (
+                <AssignmentStatusBadge
+                  status={assignableWorkOrder.assignmentStatus}
+                  assignedTo={assignableWorkOrder.assignedCrewId}
+                  testId={`badge-assignable-status-${assignableWorkOrder.id}`}
+                />
+              )}
             </div>
           );
         })()}
@@ -591,8 +600,23 @@ export default function EquipmentHub() {
                       <div>
                         <div className="text-xs font-medium text-slate-200">{wo.title}</div>
                         <div className="text-[10px] text-slate-500">{wo.createdAt}</div>
+                        {wo.assignmentStatus === "declined" && wo.assignmentResponseReason && (
+                          <div
+                            className="text-[10px] text-red-400"
+                            data-testid={`text-assignment-decline-reason-${wo.id}`}
+                          >
+                            Declined: {wo.assignmentResponseReason}
+                          </div>
+                        )}
                       </div>
-                      <StatusBadge status={wo.status} />
+                      <div className="flex items-center gap-1.5">
+                        <AssignmentStatusBadge
+                          status={wo.assignmentStatus}
+                          assignedTo={wo.assignedCrewId}
+                          testId={`badge-assignment-status-${wo.id}`}
+                        />
+                        <StatusBadge status={wo.status} />
+                      </div>
                     </div>
                   ))}
                 </div>

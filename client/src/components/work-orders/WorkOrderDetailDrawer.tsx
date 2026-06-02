@@ -28,6 +28,7 @@ import { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
 import { LinkTemplateDialog } from "./LinkTemplateDialog";
 import { LinkedServiceOrdersPanel } from "./LinkedServiceOrdersPanel";
 import { WorkOrderCloseoutWizard, type CloseoutPredictionFeedback } from "./WorkOrderCloseoutWizard";
+import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { cn } from "@/lib/utils";
 import { useWorkOrderDetailData } from "@/features/work-orders";
 import type { WorkOrder } from "@shared/schema";
@@ -262,12 +263,48 @@ export function WorkOrderDetailDrawer({
                   value={getEquipmentName(workOrder.equipmentId)}
                   subValue={getEquipmentType(workOrder.equipmentId)}
                 />
-                <InfoCard
-                  icon={User}
-                  label="Assigned To"
-                  value={getCrewName(workOrder.assignedCrewId)}
-                  subValue={assignedCrewRate ? `$${assignedCrewRate.toFixed(2)}/hr` : undefined}
-                />
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="min-w-0">
+                    <span className="text-xs text-muted-foreground block">Assigned To</span>
+                    <span className="text-sm font-medium">
+                      {getCrewName(workOrder.assignedCrewId)}
+                    </span>
+                    {assignedCrewRate && (
+                      <span className="text-xs text-muted-foreground block">
+                        ${assignedCrewRate.toFixed(2)}/hr
+                      </span>
+                    )}
+                    {workOrder.assignedCrewId && workOrder.assignmentStatus && (
+                      <div className="mt-1.5">
+                        <AssignmentStatusBadge
+                          status={workOrder.assignmentStatus}
+                          assignedTo={workOrder.assignedCrewId}
+                          testId={`badge-assignment-status-${workOrder.id}`}
+                        />
+                        {workOrder.assignmentStatus === "declined" &&
+                          workOrder.assignmentResponseReason && (
+                            <p
+                              className="mt-1 text-xs text-muted-foreground"
+                              data-testid={`text-assignment-decline-reason-${workOrder.id}`}
+                            >
+                              Reason: {workOrder.assignmentResponseReason}
+                            </p>
+                          )}
+                        {workOrder.assignmentRespondedAt && (
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                            {workOrder.assignmentStatus === "declined"
+                              ? "Declined "
+                              : "Responded "}
+                            {formatDistanceToNow(new Date(workOrder.assignmentRespondedAt), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <InfoCard
                   icon={Calendar}
                   label="Due Date"
