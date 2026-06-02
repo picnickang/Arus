@@ -6,6 +6,7 @@ import { createGetIntelligenceUseCase } from "../application/get-intelligence.us
 import { createGetEquipmentHubUseCase } from "../application/get-equipment-hub.use-case.js";
 import { logger } from "../../../utils/logger.js";
 import { createAdminMiddleware } from "../../../shared/middleware.js";
+import type { AuthenticatedRequest } from "../../../middleware/auth.js";
 
 const repository = new PostgresEquipmentIntelligenceRepository();
 const useCase = createGetIntelligenceUseCase(repository);
@@ -136,6 +137,31 @@ router.post("/diagnostics/:equipmentId/run", async (req, res) => {
   } catch (error) {
     logger.error("Error running diagnostic:", error);
     return res.status(500).json({ error: "Failed to run diagnostic" });
+  }
+});
+
+router.post("/anomalies/:equipmentId/acknowledge", async (req, res) => {
+  try {
+    const orgId = resolveOrgId(req, res);
+    if (!orgId) {
+      return;
+    }
+    const parseResult = equipmentIdSchema.safeParse(req.params);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: "Invalid equipment ID" });
+    }
+    const { equipmentId } = parseResult.data;
+    const authReq = req as AuthenticatedRequest;
+    const acknowledgedBy =
+      authReq.user?.name || authReq.user?.email || authReq.user?.id || "system";
+    const result = await hubUseCase.acknowledgeAnomaly(orgId, equipmentId, acknowledgedBy);
+    if (!result) {
+      return res.status(404).json({ error: "No active anomaly to acknowledge" });
+    }
+    return res.json(result);
+  } catch (error) {
+    logger.error("Error acknowledging anomaly:", error);
+    return res.status(500).json({ error: "Failed to acknowledge anomaly" });
   }
 });
 

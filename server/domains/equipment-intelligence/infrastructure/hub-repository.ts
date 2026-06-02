@@ -1,6 +1,6 @@
 import { db } from "../../../db-config.js";
 import { equipment, vessels, failurePredictions, actionableInsights } from "@shared/schema-runtime";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
 import type { EquipmentHubRepository } from "../domain/ports.js";
 import type {
@@ -11,6 +11,7 @@ import type {
   WorkOrderSummary,
   OperationalContext,
   NeedsActionItem,
+  ActiveAnomaly,
 } from "../domain/types.js";
 
 function computeRisk(health: number): "critical" | "warning" | "low" {
@@ -101,6 +102,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       serviceOrders,
       diagnosticRuns,
       activityTimeline,
+      activeAnomaly,
     ] = await Promise.all([
       this.fetchPdmScores(orgId, equipmentId),
       this.fetchPredictions(orgId, equipmentId),
@@ -110,6 +112,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       this.getServiceOrdersForEquipment(orgId, equipmentId),
       this.getDiagnosticRuns(orgId, equipmentId),
       this.getActivityTimeline(orgId, equipmentId),
+      this.getActiveAnomaly(orgId, equipmentId),
     ]);
 
     const healthScore = pdmScores[0]?.healthIdx ?? 100;
@@ -193,11 +196,110 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       recommendedAction: recommendedActionText(risk, rul),
       operationalContext,
       needsAction,
+      activeAnomaly,
       workOrders,
       serviceOrders,
       diagnosticRuns,
       activityTimeline,
     };
+  }
+
+  private mapAnomalyRow(row: {
+    id: number;
+    anomalyType: string | null;
+    sensorType: string;
+    severity: string;
+    detectionTimestamp: Date | string | null;
+    acknowledgedBy: string | null;
+    acknowledgedAt: Date | string | null;
+  }): ActiveAnomaly {
+    return {
+      id: row.id,
+      anomalyType: row.anomalyType,
+      sensorType: row.sensorType,
+      severity: row.severity,
+      detectedAt: row.detectionTimestamp
+        ? new Date(row.detectionTimestamp).toISOString()
+        : new Date().toISOString(),
+      acknowledged: row.acknowledgedAt != null,
+      acknowledgedBy: row.acknowledgedBy,
+      acknowledgedAt: row.acknowledgedAt ? new Date(row.acknowledgedAt).toISOString() : null,
+    };
+  }
+
+  async getActiveAnomaly(orgId: string, equipmentId: string): Promise<ActiveAnomaly | null> {
+    try {
+      const { anomalyDetections } = await import("@shared/schema-runtime");
+      if (!anomalyDetections) {
+        return null;
+      }
+      const [row] = await db
+        .select({
+          id: anomalyDetections.id,
+          anomalyType: anomalyDetections.anomalyType,
+          sensorType: anomalyDetections.sensorType,
+          severity: anomalyDetections.severity,
+          detectionTimestamp: anomalyDetections.detectionTimestamp,
+          acknowledgedBy: anomalyDetections.acknowledgedBy,
+          acknowledgedAt: anomalyDetections.acknowledgedAt,
+        })
+        .from(anomalyDetections)
+        .where(
+          and(eq(anomalyDetections.equipmentId, equipmentId), eq(anomalyDetections.orgId, orgId))
+        )
+        .orderBy(desc(anomalyDetections.detectionTimestamp))
+        .limit(1);
+      if (!row) {
+        return null;
+      }
+      return this.mapAnomalyRow(row);
+    } catch (error) {
+      logger.warn("[EquipmentHub]", "Failed to fetch active anomaly", { error: String(error) });
+      return null;
+    }
+  }
+
+  async acknowledgeAnomaly(
+    orgId: string,
+    equipmentId: string,
+    acknowledgedBy: string
+  ): Promise<ActiveAnomaly | null> {
+    const { anomalyDetections } = await import("@shared/schema-runtime");
+    if (!anomalyDetections) {
+      return null;
+    }
+    const [target] = await db
+      .select({ id: anomalyDetections.id })
+      .from(anomalyDetections)
+      .where(
+        and(
+          eq(anomalyDetections.equipmentId, equipmentId),
+          eq(anomalyDetections.orgId, orgId),
+          isNull(anomalyDetections.acknowledgedAt)
+        )
+      )
+      .orderBy(desc(anomalyDetections.detectionTimestamp))
+      .limit(1);
+    if (!target) {
+      return null;
+    }
+    const [updated] = await db
+      .update(anomalyDetections)
+      .set({ acknowledgedBy, acknowledgedAt: new Date() })
+      .where(and(eq(anomalyDetections.id, target.id), eq(anomalyDetections.orgId, orgId)))
+      .returning({
+        id: anomalyDetections.id,
+        anomalyType: anomalyDetections.anomalyType,
+        sensorType: anomalyDetections.sensorType,
+        severity: anomalyDetections.severity,
+        detectionTimestamp: anomalyDetections.detectionTimestamp,
+        acknowledgedBy: anomalyDetections.acknowledgedBy,
+        acknowledgedAt: anomalyDetections.acknowledgedAt,
+      });
+    if (!updated) {
+      return null;
+    }
+    return this.mapAnomalyRow(updated);
   }
 
   async getServiceOrdersForEquipment(

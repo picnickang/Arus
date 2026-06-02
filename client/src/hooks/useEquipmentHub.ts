@@ -46,6 +46,22 @@ export interface OperationalContext {
   partsAvailability: string;
   maintenanceWindow: string | null;
 }
+export interface ActiveAnomaly {
+  id: number;
+  anomalyType: string | null;
+  sensorType: string;
+  severity: string;
+  detectedAt: string;
+  acknowledged: boolean;
+  acknowledgedBy: string | null;
+  acknowledgedAt: string | null;
+}
+export interface CrewMember {
+  id: string;
+  name: string;
+  rank: string | null;
+  vesselId: string | null;
+}
 export interface EquipmentHubData {
   id: string;
   name: string;
@@ -67,6 +83,7 @@ export interface EquipmentHubData {
   recommendedAction: string;
   operationalContext: OperationalContext;
   needsAction: NeedsActionItem[];
+  activeAnomaly: ActiveAnomaly | null;
   workOrders: WorkOrderSummary[];
   serviceOrders: ServiceOrderSummary[];
   diagnosticRuns: DiagnosticRunSummary[];
@@ -96,11 +113,63 @@ export function useEquipmentHub(equipmentId: string) {
     },
   });
 
+  const acknowledgeMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest<ActiveAnomaly>(
+        "POST",
+        `/api/equipment-intelligence/anomalies/${equipmentId}/acknowledge`
+      );
+    },
+    onSuccess: () => {
+      toast({ title: "Anomaly acknowledged" });
+      queryClient.invalidateQueries({ queryKey: ["/api/equipment-intelligence/hub", equipmentId] });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Failed to acknowledge",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const crewQuery = useQuery<CrewMember[]>({
+    queryKey: ["/api/crew"],
+    enabled: !!equipmentId,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async ({ workOrderId, crewId }: { workOrderId: string; crewId: string }) => {
+      return apiRequest("PUT", `/api/work-orders/${workOrderId}`, {
+        assignedCrewId: crewId,
+        status: "in_progress",
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Work assigned" });
+      queryClient.invalidateQueries({ queryKey: ["/api/equipment-intelligence/hub", equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Failed to assign work",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     data: query.data,
     isLoading: query.isLoading,
     error: query.error,
     runDiagnostic: diagnosticMutation.mutate,
     isDiagnosticPending: diagnosticMutation.isPending,
+    acknowledgeAnomaly: acknowledgeMutation.mutate,
+    isAcknowledgePending: acknowledgeMutation.isPending,
+    crew: crewQuery.data ?? [],
+    isCrewLoading: crewQuery.isLoading,
+    assignWork: assignMutation.mutate,
+    isAssignPending: assignMutation.isPending,
   };
 }

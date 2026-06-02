@@ -122,6 +122,17 @@ export interface NeedsActionItem {
   link: string;
 }
 
+export interface ActiveAnomaly {
+  id: number;
+  anomalyType: string | null;
+  sensorType: string;
+  severity: string;
+  detectedAt: string;
+  acknowledged: boolean;
+  acknowledgedBy: string | null;
+  acknowledgedAt: string | null;
+}
+
 export interface EquipmentHubAggregate {
   id: string;
   name: string;
@@ -143,6 +154,7 @@ export interface EquipmentHubAggregate {
   recommendedAction: string;
   operationalContext: OperationalContext;
   needsAction: NeedsActionItem[];
+  activeAnomaly: ActiveAnomaly | null;
   workOrders: WorkOrderSummary[];
   serviceOrders: ServiceOrderSummary[];
   diagnosticRuns: DiagnosticRunSummary[];

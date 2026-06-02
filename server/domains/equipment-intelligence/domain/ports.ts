@@ -8,6 +8,7 @@ import type {
   ServiceOrderSummary,
   DiagnosticRunSummary,
   ActivityTimelineEvent,
+  ActiveAnomaly,
 } from "./types.js";
 
 export interface EquipmentIntelligenceRepository {
@@ -30,4 +31,10 @@ export interface EquipmentHubRepository {
     summary: string
   ): Promise<DiagnosticRunSummary>;
   getActivityTimeline(orgId: string, equipmentId: string): Promise<ActivityTimelineEvent[]>;
+  getActiveAnomaly(orgId: string, equipmentId: string): Promise<ActiveAnomaly | null>;
+  acknowledgeAnomaly(
+    orgId: string,
+    equipmentId: string,
+    acknowledgedBy: string
+  ): Promise<ActiveAnomaly | null>;
 }

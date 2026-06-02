@@ -1,10 +1,22 @@
 import type { EquipmentHubRepository } from "../domain/ports.js";
-import type { EquipmentHubAggregate, DiagnosticRunSummary } from "../domain/types.js";
+import type {
+  EquipmentHubAggregate,
+  DiagnosticRunSummary,
+  ActiveAnomaly,
+} from "../domain/types.js";
 
 export function createGetEquipmentHubUseCase(repo: EquipmentHubRepository) {
   return {
     async getHub(orgId: string, equipmentId: string): Promise<EquipmentHubAggregate | null> {
       return repo.getHubAggregate(orgId, equipmentId);
+    },
+
+    async acknowledgeAnomaly(
+      orgId: string,
+      equipmentId: string,
+      acknowledgedBy: string
+    ): Promise<ActiveAnomaly | null> {
+      return repo.acknowledgeAnomaly(orgId, equipmentId, acknowledgedBy);
     },
 
     async runDiagnostic(
