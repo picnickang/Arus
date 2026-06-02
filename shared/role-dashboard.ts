@@ -164,8 +164,14 @@ export function safeMinimalDashboardConfig(): RoleDashboardConfig {
  * ------------------------------------------------------------------ */
 
 export const PROTECTED_ROLE_KEYS = [
+  "super_admin",
+  "system_admin",
+  "company_admin",
   "admin",
+  "fleet_manager",
+  "captain",
   "chief_engineer",
+  "supervisor",
   "technician",
   "vessel_master",
   "crew_member",
@@ -173,12 +179,14 @@ export const PROTECTED_ROLE_KEYS = [
   "procurement_user",
   "safety_officer",
   "maintenance_planner",
+  "viewer",
 ] as const;
 
 export type ProtectedRoleKey = (typeof PROTECTED_ROLE_KEYS)[number];
 
 /** Roles that carry admin-capability for lockout-protection purposes. */
 export const ADMIN_CAPABLE_ROLE_KEYS = [
+  "super_admin",
   "admin",
   "system_admin",
   "company_admin",
@@ -209,6 +217,7 @@ export type HubId = (typeof HUB_IDS)[number];
  * roles are a superset and are always-on regardless of the stored flag.
  */
 export const ADMIN_GRANT_ELIGIBLE_ROLE_KEYS = [
+  "super_admin",
   "admin",
   "system_admin",
   "company_admin",
@@ -216,6 +225,8 @@ export const ADMIN_GRANT_ELIGIBLE_ROLE_KEYS = [
   "captain",
   "vessel_master",
   "chief_engineer",
+  "supervisor",
+  "safety_officer",
   "manager",
 ] as const;
 
@@ -276,11 +287,66 @@ export function resolveHubAccess(
 }
 
 export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig> = {
+  super_admin: {
+    widgets: [...DASHBOARD_WIDGETS],
+    taskSources: [...TASK_SOURCES],
+    visibilityScope: "fleet",
+    quickActions: ["create_work_order", "view_analytics", "manage_roles"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  system_admin: {
+    widgets: [...DASHBOARD_WIDGETS],
+    taskSources: [...TASK_SOURCES],
+    visibilityScope: "fleet",
+    quickActions: ["create_work_order", "view_analytics", "manage_roles"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  company_admin: {
+    widgets: [...DASHBOARD_WIDGETS],
+    taskSources: [...TASK_SOURCES],
+    visibilityScope: "fleet",
+    quickActions: ["create_work_order", "view_analytics", "manage_roles"],
+    filters: {},
+    highImpactQuestions: {},
+  },
   admin: {
     widgets: [...DASHBOARD_WIDGETS],
     taskSources: [...TASK_SOURCES],
     visibilityScope: "fleet",
     quickActions: ["create_work_order", "view_analytics"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  fleet_manager: {
+    widgets: [...DASHBOARD_WIDGETS],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts"],
+    visibilityScope: "fleet",
+    quickActions: ["create_work_order", "view_analytics"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  captain: {
+    widgets: [...DASHBOARD_WIDGETS],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts"],
+    visibilityScope: "vessel",
+    quickActions: ["create_work_order"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  supervisor: {
+    widgets: [
+      "current_vessel",
+      "shift_status",
+      "safety_status",
+      "user_tasks",
+      "active_alerts",
+      "upcoming_maintenance",
+    ],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts"],
+    visibilityScope: "department",
+    quickActions: ["create_work_order"],
     filters: {},
     highImpactQuestions: {},
   },
@@ -352,6 +418,14 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
     taskSources: ["work_orders", "maintenance_schedules", "insights"],
     visibilityScope: "fleet",
     quickActions: ["create_work_order"],
+    filters: {},
+    highImpactQuestions: {},
+  },
+  viewer: {
+    widgets: ["current_vessel", "safety_status", "safety_notices", "active_alerts"],
+    taskSources: [],
+    visibilityScope: "self",
+    quickActions: [],
     filters: {},
     highImpactQuestions: {},
   },

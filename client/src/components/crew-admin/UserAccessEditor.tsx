@@ -85,7 +85,13 @@ export interface RoleSummary {
   id: string;
   name: string;
   displayName: string;
+  description?: string | null;
+  department?: string | null;
+  hierarchyLevel?: number;
+  isSystemRole?: boolean;
+  isProtected?: boolean;
   isActive: boolean;
+  assignedUserCount?: number;
 }
 
 export interface VesselLite {
@@ -273,7 +279,7 @@ export function UserAccessEditor({
     },
     onError: async (error) => {
       await invalidate();
-      onSaved?.();
+      // Keep the editor open so partial-save results remain visible and fixable.
       onError(error);
     },
   });

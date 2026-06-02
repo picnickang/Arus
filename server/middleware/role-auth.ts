@@ -25,6 +25,7 @@ export type CrewRole =
   | "cook"
   | "steward"
   | "cadet"
+  | "super_admin"
   | "admin"
   // Portal-level admin roles (see client role-navigation-policy).
   // Included so `requireRole(...)` can gate routes by portal, not
@@ -33,6 +34,11 @@ export type CrewRole =
   | "system_admin"
   | "company_admin"
   | "fleet_manager"
+  | "vessel_master"
+  | "supervisor"
+  | "logistics_user"
+  | "safety_officer"
+  | "crew_member"
   | "deck_officer"
   | "viewer";
 

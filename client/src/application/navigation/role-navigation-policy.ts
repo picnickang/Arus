@@ -92,11 +92,13 @@ const USER_PRIMARY_CATEGORIES: NavigationCategory[] = [
  */
 export function getPortalForRole(role: NavRoleId | string | null): PortalKind {
   switch (role) {
+    case "super_admin":
     case "admin":
     case "system_admin":
     case "company_admin":
     case "chief_engineer":
     case "fleet_manager":
+    case "vessel_master":
     case "captain":
       return "admin";
     case "deck_officer":

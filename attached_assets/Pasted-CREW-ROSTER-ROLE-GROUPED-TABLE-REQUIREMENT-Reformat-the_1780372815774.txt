@@ -1,0 +1,259 @@
+CREW ROSTER ROLE-GROUPED TABLE REQUIREMENT
+
+Reformat the Crew Management → Crew Members / Users roster so crew/user profiles are grouped into role-based tables.
+
+Instead of showing one undifferentiated user list, the roster should organize users by assigned role.
+
+Core requirement:
+Crew members should be displayed in tables according to the roles they have been assigned.
+
+Because users can have one primary role and optional secondary roles, support both:
+
+1. Primary role grouping
+2. Optional secondary-role visibility
+
+Default roster view:
+Group users by primaryRoleName.
+
+Example tables:
+
+* Super Admins
+* Admins
+* Vessel Masters
+* Chief Engineers
+* Supervisors
+* Technicians
+* Crew Members
+* Logistics Users
+* Safety Officers
+* Viewers
+* Custom Roles
+
+Each table should show users whose primary role matches that role.
+
+Table columns:
+
+* Name
+* Username
+* Primary Role
+* Secondary Roles
+* Assigned Vessel(s)
+* Department
+* Supervisor
+* Login Enabled
+* Active Status
+* Last Login
+* Password Change Required
+* Dashboard Profile / Preview
+* Actions
+
+Actions:
+
+* View profile
+* Edit assignment
+* Edit credentials, if permitted
+* Manage hub access, for Super Admin/admin-capable users if permitted
+* Deactivate user, if permitted
+
+Secondary role behavior:
+If a user has secondary roles, show them as badges inside the user’s row.
+
+Optional filter:
+Add a filter/toggle:
+
+* “Group by primary role”
+* “Show users with selected role, including secondary roles”
+
+Example:
+A user with:
+
+* primaryRoleName: chief_engineer
+* secondaryRoleNames: [safety_officer]
+
+Default view:
+
+* appears in the Chief Engineers table
+* shows Safety Officer as a secondary-role badge
+
+When filtering by Safety Officer:
+
+* user appears in the Safety Officer filtered result as “secondary role”
+
+Do not duplicate the same user across every role table by default. That would make the roster confusing. Use primary role as the grouping source, and show secondary roles inside the row.
+
+Role table ordering:
+Sort role tables by hierarchy level:
+
+1. Super Admin
+2. Admin
+3. Vessel Master
+4. Chief Engineer
+5. Supervisor
+6. Safety Officer
+7. Logistics User
+8. Technician
+9. Crew Member
+10. Viewer
+11. Custom Roles, sorted alphabetically or by configured hierarchy level
+
+Within each role table, sort users by:
+
+1. Active users first
+2. Vessel name
+3. Department
+4. Name
+
+Role table headers should show:
+
+* role display name
+* role description if available
+* user count
+* active user count
+* inactive user count
+* protected role badge if applicable
+
+Example header:
+“Chief Engineers — 4 users, 3 active”
+
+Empty role tables:
+Do not show empty role tables by default unless an admin enables “Show empty roles.”
+
+If shown, empty role tables should display:
+“No users assigned to this role.”
+
+Search behavior:
+Search should work across all grouped tables and preserve grouping in results.
+
+Filters:
+
+* role
+* vessel
+* department
+* active/inactive
+* login enabled/disabled
+* password change required
+* admin-capable users
+* users without vessel assignment
+* users without dashboard config
+* users missing login credentials
+
+Crew roster warnings:
+Highlight users who need admin attention:
+
+* no primary role
+* inactive assigned role
+* no vessel assignment where one is required
+* login disabled
+* password change required
+* dashboard config missing
+* user has admin role but no hub access
+* user has hub access but no admin-capable role
+* user assigned to deleted/deactivated role
+
+Super Admin view:
+Super Admin should see all role-grouped tables and all users.
+
+Admin view:
+Admin users should only see/edit users allowed by their granted hub access and permissions.
+
+Regular users:
+Regular users must not access the Crew Management roster.
+
+Backend/API support:
+Update GET /api/admin/crew or add query options to support role-grouped roster data.
+
+Preferred response should include enough data for grouped display:
+
+export interface CrewRosterUser {
+  id: string;
+  displayName: string;
+  username?: string | null;
+  primaryRoleName: string | null;
+  secondaryRoleNames: string[];
+  vesselIds: string[];
+  vesselNames: string[];
+  department?: string;
+  supervisorUserId?: string;
+  supervisorName?: string;
+  isActive: boolean;
+  loginEnabled: boolean;
+  mustChangePassword: boolean;
+  lastLoginAt?: string;
+  passwordChangedAt?: string;
+  dashboardPreviewLabel?: string;
+  hubAccessKeys?: string[];
+  warnings: string[];
+}
+export interface CrewRosterRoleGroup {
+  roleName: string;
+  displayName: string;
+  description?: string;
+  hierarchyLevel: number;
+  isProtected: boolean;
+  users: CrewRosterUser[];
+  totalCount: number;
+  activeCount: number;
+  inactiveCount: number;
+}
+export interface CrewRosterResponse {
+  groups: CrewRosterRoleGroup[];
+}
+
+If the existing API already returns a flat crew list, either:
+
+* group it safely on the frontend using typed helpers, or
+* add server-side grouping if that better matches existing backend patterns.
+
+Frontend implementation:
+Add a reusable grouped roster component, for example:
+
+* CrewRosterGroupedTables
+* CrewRoleGroupTable
+* CrewRosterFilters
+* CrewRosterWarningBadges
+
+Keep the existing edit drawer/dialog behavior. Opening a user from any role table should use the same user assignment/credential editor.
+
+TypeScript safety:
+
+* no any
+* no as any
+* no unsafe double-casts
+* use typed roster response and grouped-table props
+* avoid duplicating grouping logic across components
+* create one helper such as groupCrewUsersByPrimaryRole
+
+Tests:
+Add tests using existing patterns.
+
+Backend tests:
+
+* crew roster includes primary role and secondary roles
+* crew roster groups users by primary role if backend grouping is implemented
+* users with secondary roles are not duplicated across groups by default
+* users with no primary role are flagged
+* users with deactivated roles are flagged
+* admin without Crew Management permission cannot access roster
+* Super Admin can access full roster
+
+Frontend tests if infrastructure exists:
+
+* Crew Members tab renders grouped role tables
+* users appear under their primary role table
+* secondary roles render as badges
+* empty role tables are hidden by default
+* role filter can find users with secondary role
+* warnings render for users missing role/vessel/login/dashboard config
+* edit action opens existing user editor
+
+Manual verification:
+
+* assign users to different primary roles
+* assign a secondary role to a user
+* confirm roster groups by primary role
+* confirm secondary roles appear as badges
+* confirm user is not duplicated across multiple tables by default
+* filter by secondary role and confirm relevant users appear
+* confirm Super Admin sees all groups
+* confirm unauthorized users cannot access Crew Management
+* run npx tsc --noEmit

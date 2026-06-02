@@ -13,7 +13,7 @@ import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
 import { isHubId } from "@shared/role-dashboard";
 
-const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"] as const;
+const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
 
 // Granting / revoking hub-admin access is a system-administrator-only
@@ -24,7 +24,7 @@ const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
 // lockout-protection list) so this authz boundary is self-contained and
 // cannot be widened by an unrelated edit. It is deliberately narrower than
 // the broader crew-admin surface.
-const HUB_GRANT_ADMIN_ROLES = ["system_admin", "company_admin", "admin"] as const;
+const HUB_GRANT_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 const requireSuperAdminRole = requireRole(...HUB_GRANT_ADMIN_ROLES);
 
 const createRoleSchema = z.object({
