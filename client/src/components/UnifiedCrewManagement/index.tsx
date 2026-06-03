@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { CertificationExpiryAlertBanner } from "@/components/CertificationExpiryAlerts";
@@ -68,9 +68,14 @@ export function UnifiedCrewManagement({
   const accessEnabled = accessReadinessEnabled ?? isAdmin;
 
   const d = useUnifiedCrewData({ accessReadinessEnabled: accessEnabled });
+  const [, setLocation] = useLocation();
   const searchString = useSearch();
   const deepLinkTaskId = useMemo(
     () => new URLSearchParams(searchString).get("taskId"),
+    [searchString],
+  );
+  const deepLinkView = useMemo(
+    () => new URLSearchParams(searchString).get("view"),
     [searchString],
   );
   const [view, setView] = useState<RegistryView>("registry");
@@ -169,12 +174,20 @@ export function UnifiedCrewManagement({
 
   const attentionCount = combinedAttention.length;
 
-  // Deep-link from the personal me/tasks feed (`/crew-management?taskId=…`)
-  // opens the Tasks view with that task's detail pre-selected. Must run
-  // before any early return so hook order stays stable across renders.
+  // Deep-link into the Tasks view: `?taskId=…` (from the personal me/tasks
+  // feed) pre-selects that task's detail; `?view=tasks` (from the Crew nav
+  // "Crew Tasks" entry) opens the board directly. Must run before any early
+  // return so hook order stays stable across renders.
   useEffect(() => {
-    if (deepLinkTaskId && canViewTasks) setView("tasks");
-  }, [deepLinkTaskId, canViewTasks]);
+    if ((deepLinkTaskId || deepLinkView === "tasks") && canViewTasks) {
+      setView("tasks");
+    } else if (!deepLinkTaskId && deepLinkView !== "tasks") {
+      // The Tasks deep-link params were cleared (e.g. the user clicked the
+      // "Crew Management" nav entry). Only fall back from the Tasks subview so
+      // other subviews opened in-page (users/roles/current/…) are left intact.
+      setView((v) => (v === "tasks" ? "registry" : v));
+    }
+  }, [deepLinkTaskId, deepLinkView, canViewTasks]);
 
   const perms: CrewRowPermissions = {
     canManageCrew: canEdit("crew_members"),
@@ -237,7 +250,7 @@ export function UnifiedCrewManagement({
             canViewTasks={canViewTasks}
             onOpenCurrent={openCurrent}
             onOpenFormer={() => setView("former")}
-            onOpenTasks={() => setView("tasks")}
+            onOpenTasks={() => setLocation("/crew-management?view=tasks")}
             onAddCrew={() => d.setIsAddCrewDialogOpen(true)}
             onOpenUsers={() => setView("users")}
             onOpenRoles={() => setView("roles")}
@@ -253,7 +266,7 @@ export function UnifiedCrewManagement({
             canEdit={perms.canManageCrew}
             canDelete={perms.canDeleteCrew}
             initialTaskId={deepLinkTaskId}
-            onBack={() => setView("registry")}
+            onBack={() => setLocation("/crew-management")}
           />
         )}
 

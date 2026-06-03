@@ -9,6 +9,7 @@ import {
   Package,
   Users,
   ClipboardCheck,
+  ListChecks,
   Shield,
   Activity,
   Building,
@@ -232,6 +233,12 @@ export const navigationCategories: NavigationCategory[] = [
         href: "/crew-management",
         icon: Users,
         description: "Crew roster and details",
+      },
+      {
+        name: "Crew Tasks",
+        href: "/crew-management?view=tasks",
+        icon: ListChecks,
+        description: "Assign and track crew tasks",
       },
       {
         name: "Schedule Planner",
