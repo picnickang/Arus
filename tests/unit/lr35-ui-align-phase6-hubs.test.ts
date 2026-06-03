@@ -35,30 +35,48 @@ async function loadPage(key: keyof typeof PAGES): Promise<string> {
   return readFile(PAGES[key], "utf8");
 }
 
-describe("UI Align Phase 6 — Maintenance hub (panel 5)", () => {
-  it("binds to the work-order summary + list endpoints", async () => {
+describe("UI Align Phase 6 — Maintenance hub (panel 5, Figma 1:1418)", () => {
+  it("binds every stat tile to a real backend endpoint (no mock data)", async () => {
     const src = await loadPage("maintenance");
     expect(src).toContain('"/api/work-orders/summary"');
-    expect(src).toContain('"/api/work-orders"');
+    expect(src).toContain('"/api/alerts"');
+    expect(src).toContain('"/api/compliance/findings"');
+    expect(src).toContain('"/api/maintenance-schedules"');
+    expect(src).toContain('"/api/pdm/dashboard"');
   });
 
-  it("renders the status chips + new-work-order CTA + recent list", async () => {
+  it("renders the 2x2 stat-tile grid + Maintenance Modules list", async () => {
     const src = await loadPage("maintenance");
-    expect(src).toContain('"status-chip-open"');
-    expect(src).toContain('"status-chip-in-progress"');
-    expect(src).toContain('"status-chip-planned"');
-    expect(src).toContain('"status-chip-completed"');
-    expect(src).toContain('"status-chip-overdue"');
-    expect(src).toContain('"button-new-work-order"');
-    expect(src).toContain('data-testid="list-recent-work-orders"');
+    expect(src).toContain('data-testid="grid-maintenance-stats"');
+    expect(src).toContain('"tile-active-wos"');
+    expect(src).toContain('"tile-equipment-alerts"');
+    expect(src).toContain('"tile-due-inspections"');
+    expect(src).toContain('"tile-preventive-tasks"');
+    expect(src).toContain('data-testid="list-maintenance-modules"');
+    expect(src).toContain('"module-overview"');
+    expect(src).toContain('"module-equipment"');
+    expect(src).toContain('"module-equipment-intelligence"');
+    expect(src).toContain('"module-work-orders"');
+    expect(src).toContain('"module-preventive"');
+    expect(src).toContain('"module-inspections"');
+  });
+
+  it("surfaces loading + error states without inventing data", async () => {
+    const src = await loadPage("maintenance");
+    // Skeletons while live counts load, and an explicit banner when any
+    // query fails — never a silently-zeroed tile masquerading as real.
+    expect(src).toContain("Skeleton");
+    expect(src).toContain('data-testid="maintenance-data-error"');
   });
 
   it("links to existing deep-link routes (no in-hub RBAC)", async () => {
     const src = await loadPage("maintenance");
+    expect(src).toContain('href="/pdm-platform"');
+    expect(src).toContain('href="/equipment"');
+    expect(src).toContain('href="/equipment-intelligence"');
     expect(src).toContain('href="/work-orders"');
     expect(src).toContain('href="/maintenance"');
-    expect(src).toContain('href="/maintenance-templates"');
-    expect(src).toContain('href="/equipment-intelligence"');
+    expect(src).toContain('href="/logs/compliance"');
     expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
   });
 });

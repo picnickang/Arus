@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { isVesselRole } from "@/lib/briefing-redirect";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { MyAssignmentsPanel } from "@/components/work-orders/MyAssignmentsPanel";
-import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
+import { navigationCategories, type NavigationCategory } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
 import {
   Plus,
@@ -27,6 +27,7 @@ import {
   ClipboardList,
   Circle,
   Menu,
+  ChevronRight,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import { OpsStatusPill } from "@/components/ops/OpsStatusPill";
@@ -1020,42 +1021,29 @@ export default function HomePage() {
   // non-super-admin (e.g. manager) therefore gets the real hub launchers
   // rather than the user-portal categories `getPrimaryCategoriesForRole` would
   // return for their underlying role.
-  const policyCategoryIds = getAdminPrimaryCategories().map((c) => c.id);
-  // Phase 2: the admin home is anchored to EXACTLY the policy hubs (the same
-  // five the BottomNav surfaces). When the policy set is in force we must not
-  // leak the legacy 8-group dump under "More categories" — not even for an
-  // unrestricted super-admin (`hubAccess === null`), for whom `isHubAllowed`
-  // returns true for everything.
-  const usingPolicyHubs = policyCategoryIds.length > 0;
-  const pinnedGroupIds = usingPolicyHubs
-    ? policyCategoryIds
-    : (roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id));
   // Per-hub allow-list: `permissions.hubAccess === null` means "all hubs"
   // (super-admins / dev resolve to null server-side); a populated list
-  // restricts which hub shortcuts this account may see. Enforced here so a
-  // granted user never sees a tile for a hub outside their allow-list (the
-  // route guard blocks deep-links to the same hubs).
+  // restricts which hubs render. Enforced here so a granted user never sees
+  // a hub outside their allow-list (the route guard blocks deep-links to the
+  // same hubs, so the list and the guards stay in lockstep).
   const hubAccess = permissions.hubAccess;
   const isHubAllowed = (id: string) => !hubAccess || hubAccess.includes(id);
-  const pinnedGroups = pinnedGroupIds
-    .filter(isHubAllowed)
-    .map((id) => homePageGroups.find((g) => g.id === id))
-    .filter((g): g is HomePageGroup => g !== undefined);
-  // In policy-hub mode there are no "other" categories — the five hubs are the
-  // complete admin surface. Only the legacy fallback (no policy categories)
-  // still surfaces the remaining groups.
-  const otherGroups = usingPolicyHubs
-    ? []
-    : homePageGroups.filter(
-        (g) => !pinnedGroupIds.includes(g.id) && isHubAllowed(g.id),
-      );
+  // Anchor to the role-independent admin primaries (the label-overridden
+  // categories) and append the remaining nav categories so EVERY accessible
+  // hub is listed — not just the pinned set.
+  const adminPrimaries = getAdminPrimaryCategories();
+  const primaryIds = new Set(adminPrimaries.map((c) => c.id));
+  const otherCategories = navigationCategories.filter((c) => !primaryIds.has(c.id));
+  const visibleHubs: NavigationCategory[] = [...adminPrimaries, ...otherCategories].filter((c) =>
+    isHubAllowed(c.id),
+  );
 
   // No-hubs fallback: an admin-portal account whose hub allow-list is a
   // populated-but-empty set (granted admin access, zero hubs) would
   // otherwise see a blank command center. Show a safe, explicit page with
   // profile + logout access instead. `hubAccess === null` means "all hubs"
   // (super-admin / dev) and never lands here.
-  if (pinnedGroups.length === 0 && otherGroups.length === 0) {
+  if (visibleHubs.length === 0) {
     return (
       <div
         className="ops-surface flex min-h-screen items-center justify-center px-4"
@@ -1088,106 +1076,83 @@ export default function HomePage() {
     );
   }
 
-  const kpiOverdueWO = attentionItems.find((i) => i.label === "Overdue work orders")?.count ?? 0;
-  const kpiCriticalAlerts = attentionItems.find((i) => i.label === "Unacknowledged alerts")?.count ?? 0;
-  const kpiAtRisk = attentionItems.find((i) => i.label === "High-risk equipment")?.count ?? 0;
-  const elevatedRisk = kpiCriticalAlerts > 0 || kpiAtRisk > 0 || kpiOverdueWO >= 5;
+  const roleLabel = roleConfig?.label ?? "Admin";
 
   return (
     <div
       className="ops-surface ops-safe-bottom min-h-screen pb-24 md:pb-6"
-      data-testid="shell-admin-command-center"
+      data-testid="shell-admin-hubs"
     >
-      <PageHeader
-        title="Admin Hubs"
-        subtitle={roleConfig?.label ?? "System Admin"}
-        showHome={false}
-        showBack={true}
-        onBack={() => {
-          localStorage.removeItem(STORAGE_KEY);
-          setRole(null);
-        }}
-      />
+      <div className="mx-auto w-full max-w-3xl px-4 pt-6 md:px-6 lg:max-w-5xl">
+        <header className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              data-testid="text-admin-hubs-title"
+            >
+              Admin Hubs
+            </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Only permission-granted hubs appear here.
+            </p>
+          </div>
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"
+            data-testid="pill-role"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {roleLabel}
+          </span>
+        </header>
 
-      <PendingApprovalsBanner />
+        <PendingApprovalsBanner />
 
-      <div className="mx-auto w-full max-w-3xl px-4 pt-3 md:px-6 lg:max-w-6xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          {elevatedRisk ? (
-            <OpsStatusPill
-              label="ELEVATED RISK"
-              severity="warning"
-              testId="pill-elevated-risk"
-            />
-          ) : (
-            <OpsStatusPill
-              label="NOMINAL"
-              severity="success"
-              testId="pill-nominal-risk"
-            />
-          )}
-          <div className="flex items-center gap-2">
+        <div className="mt-4 space-y-3" data-testid="list-admin-hubs">
+          {visibleHubs.map((hub) => {
+            const Icon = hub.icon;
+            return (
+              <Link key={hub.id} href={hub.hubRoute}>
+                <div
+                  className="ops-card flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-white/5"
+                  data-testid={`card-hub-${hub.id}`}
+                >
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold">{hub.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {hub.description}
+                    </div>
+                  </div>
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
+                    data-testid={`pill-granted-${hub.id}`}
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    Granted access
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        <footer className="mt-6 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
+          <p
+            className="min-w-0 text-xs text-muted-foreground"
+            data-testid="text-hubs-footer"
+          >
+            Only accessible hubs are shown. Direct URLs are still blocked by route guards.
+          </p>
+          <div className="flex shrink-0 items-center gap-2">
             <LogoutButton />
             <SwitchPortalButton />
           </div>
-        </div>
-
-        {/* Hub launcher — admins land directly on their permission-gated
-            hubs (Phase 2: "a hub-launcher with only the five hubs"), not a
-            dense command-center dashboard. Operational detail (KPIs, tasks,
-            attention queue, AI findings) lives inside each hub and its own
-            routes. */}
-        <p
-          className="mb-4 text-sm text-muted-foreground"
-          data-testid="text-admin-hubs-intro"
-        >
-          Only permission-granted hubs appear here.
-        </p>
-
-        <section className="mb-4" data-testid="section-module-shortcuts">
-          <div
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            data-testid="grid-module-shortcuts"
-          >
-            {pinnedGroups.map((group) => {
-              const first = group.items[0];
-              if (!first) return null;
-              return (
-                <NavigationCard
-                  key={group.id}
-                  name={group.name}
-                  href={first.href}
-                  icon={first.icon}
-                  description={first.description}
-                />
-              );
-            })}
-          </div>
-        </section>
-
-        <p
-          className="text-xs text-muted-foreground"
-          data-testid="text-admin-hubs-footer"
-        >
-          Only accessible hubs are shown. Direct URLs are still blocked by
-          route guards.
-        </p>
+        </footer>
       </div>
-
-      <button
-        onClick={() => setQuickWoOpen(true)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
-        aria-label="Quick Work Order"
-        data-testid="button-quick-wo"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-
-      <QuickWorkOrderSheet
-        open={quickWoOpen}
-        onClose={() => setQuickWoOpen(false)}
-        vesselId={homeVesselId}
-      />
     </div>
   );
 }
+

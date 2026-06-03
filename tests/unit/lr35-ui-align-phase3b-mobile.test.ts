@@ -1,18 +1,20 @@
 /**
- * UI Align Phase 3B — mobile/tablet command-center re-skin.
+ * UI Align Phase 3B — mobile/tablet admin home re-skin.
  *
  * Pins the visual contract for client/src/pages/home.tsx:
  *   - Both the admin branch and the UserPortalHome branch wrap
- *     their root in the dark `ops-surface` shell with
- *     `ops-safe-bottom` so the mobile preview matches the
- *     attached spec image (no light `bg-background` shell).
- *   - The admin branch renders the 2x2 KPI grid (Critical
- *     Alerts / Work Orders / At-Risk Assets / Crew Issues), the
- *     elevated-risk status pill, the AI Recommendation card,
- *     the Critical Attention list, and the 5-module shortcut
- *     grid sourced from `getPrimaryCategoriesForRole`.
- *   - The admin command-center widgets do NOT leak into the
- *     user-portal branch.
+ *     their root in the dark `ops-surface` shell so the mobile
+ *     preview matches the Figma spec (no light `bg-background`
+ *     shell).
+ *   - The admin branch (Figma 1:1417, "Replace fully") renders a
+ *     clean Admin Hubs list: a title + role pill, and one tappable
+ *     card per accessible hub derived from the nav policy
+ *     (`getAdminPrimaryCategories` + the remaining
+ *     `navigationCategories`), gated by the account's `hubAccess`
+ *     allow-list. The legacy command-center widgets (KPI grid, AI
+ *     recommendation, Critical Attention, module shortcuts) are
+ *     gone.
+ *   - None of the admin widgets leak into the user-portal branch.
  *
  * Same Jest harness constraint as the other LR-3.5 UI-align tests
  * in this suite: `testEnvironment: "node"` and the swc/ESM
@@ -40,9 +42,10 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
     userBranch = userMatch![0];
 
     // Admin branch lives inside HomePage()'s final return — everything
-    // from the policyCategoryIds derivation through the FAB button.
+    // from the "Admin portal" derivation comment through the hub-list
+    // footer testid.
     const adminMatch = homeSrc.match(
-      /\/\/ Admin portal:[\s\S]*?<Plus className="h-6 w-6" \/>/,
+      /\/\/ Admin portal:[\s\S]*?data-testid="text-hubs-footer"/,
     );
     expect(adminMatch).not.toBeNull();
     adminBranch = adminMatch![0];
@@ -51,7 +54,7 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
   it("wraps the admin branch in the dark ops-surface shell", () => {
     expect(adminBranch).toMatch(/ops-surface/);
     expect(adminBranch).toMatch(/ops-safe-bottom/);
-    expect(adminBranch).toMatch(/data-testid="shell-admin-command-center"/);
+    expect(adminBranch).toMatch(/data-testid="shell-admin-hubs"/);
     // The legacy light shell must be gone from the admin branch.
     expect(adminBranch).not.toMatch(/bg-background pb-20 md:pb-4/);
   });
@@ -69,47 +72,43 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
     expect(userBranch).not.toMatch(/pb-24/);
   });
 
-  it("renders the 4-KPI grid in the admin branch", () => {
-    expect(adminBranch).toMatch(/data-testid="grid-admin-kpis"/);
-    // OpsMetricCard forwards `testId` -> data-testid at render time.
-    expect(adminBranch).toMatch(/testId="kpi-critical-alerts"/);
-    expect(adminBranch).toMatch(/testId="kpi-work-orders"/);
-    expect(adminBranch).toMatch(/testId="kpi-at-risk-assets"/);
-    expect(adminBranch).toMatch(/testId="kpi-crew-issues"/);
-    // Mobile-first: 2-col on phones, 4-col from md upward.
-    expect(adminBranch).toMatch(/grid-cols-2 gap-3 md:grid-cols-4/);
+  it("renders the Admin Hubs list with a per-hub card", () => {
+    expect(adminBranch).toMatch(/data-testid="text-admin-hubs-title"/);
+    expect(adminBranch).toMatch(/data-testid="list-admin-hubs"/);
+    expect(adminBranch).toMatch(/data-testid={`card-hub-\$\{hub\.id\}`}/);
+    // Legacy command-center widgets must be fully removed.
+    expect(adminBranch).not.toMatch(/data-testid="grid-admin-kpis"/);
+    expect(adminBranch).not.toMatch(/data-testid="card-ai-recommendation"/);
+    expect(adminBranch).not.toMatch(/data-testid="section-critical-attention"/);
+    expect(adminBranch).not.toMatch(/data-testid="section-module-shortcuts"/);
   });
 
-  it("surfaces the elevated-risk status pill and AI recommendation card", () => {
-    expect(adminBranch).toMatch(/pill-elevated-risk/);
-    expect(adminBranch).toMatch(/pill-nominal-risk/);
-    expect(adminBranch).toMatch(/data-testid="card-ai-recommendation"/);
-    // Regression guard: the AI Recommendation card must route to a
-    // registered path. `/agent` is NOT registered in `client/src/routes/`
-    // (only `/agent/activity` is) — landing there would hit NotFound.
-    expect(adminBranch).toMatch(/setLocation\("\/findings"\)/);
-    expect(adminBranch).not.toMatch(/setLocation\("\/agent"\)/);
+  it("surfaces the role pill and per-hub granted-access affordance", () => {
+    expect(adminBranch).toMatch(/data-testid="pill-role"/);
+    expect(adminBranch).toMatch(/data-testid={`pill-granted-\$\{hub\.id\}`}/);
   });
 
-  it("renders the Critical Attention list keyed off useAttentionItems", () => {
-    expect(adminBranch).toMatch(/data-testid="section-critical-attention"/);
-    expect(adminBranch).toMatch(/row-critical-attention-/);
-    expect(adminBranch).toMatch(/link-view-all-attention/);
+  it("derives the hub list from the nav policy, not mock data", () => {
+    // Admin primaries + remaining nav categories, deduped — every
+    // accessible hub is listed, sourced from the real policy module.
+    expect(adminBranch).toMatch(/getAdminPrimaryCategories\(\)/);
+    expect(adminBranch).toMatch(/navigationCategories/);
+    expect(adminBranch).toMatch(/visibleHubs/);
   });
 
-  it("renders the 5-module shortcut grid from the role policy", () => {
-    expect(adminBranch).toMatch(/data-testid="section-module-shortcuts"/);
-    expect(adminBranch).toMatch(/data-testid="grid-module-shortcuts"/);
-    // The shortcut row collapses to the 5 policy categories on
-    // desktop — must use lg:grid-cols-5 to match the BottomNav.
-    expect(adminBranch).toMatch(/lg:grid-cols-5/);
+  it("gates the hub list by the account's hubAccess allow-list", () => {
+    // The per-hub allow-list is the #194 security perimeter: a hub the
+    // account is not granted must never render even if it appears in the
+    // nav config.
+    expect(adminBranch).toMatch(/isHubAllowed/);
+    expect(adminBranch).toMatch(/permissions\.hubAccess/);
   });
 
   it("does not leak admin command-center widgets into the user-portal branch", () => {
-    expect(userBranch).not.toMatch(/data-testid="shell-admin-command-center"/);
-    expect(userBranch).not.toMatch(/data-testid="grid-admin-kpis"/);
-    expect(userBranch).not.toMatch(/data-testid="section-module-shortcuts"/);
-    expect(userBranch).not.toMatch(/data-testid="card-ai-recommendation"/);
+    expect(userBranch).not.toMatch(/data-testid="shell-admin-hubs"/);
+    expect(userBranch).not.toMatch(/data-testid="list-admin-hubs"/);
+    expect(userBranch).not.toMatch(/data-testid="pill-role"/);
+    expect(userBranch).not.toMatch(/card-hub-/);
   });
 
   it("adds a greeting header to the user-portal branch", () => {

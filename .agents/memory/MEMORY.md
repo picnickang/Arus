@@ -13,3 +13,4 @@
 - [Dev preview domain vs real API port](dev-preview-vs-real-api.md) — `$REPLIT_DEV_DOMAIN` routes to the mockup-sandbox preview (404s on /api); smoke-test the real Express API at localhost:5000.
 - [Stale service-worker app shell](stale-sw-app-shell.md) — "changes have not been applied" with correct code = SW serving non-hashed `/`/`index.html` cache-first; fix = network-first navigations + bump CACHE_NAME.
 - [Cross-domain wiring vs leak guard](cross-domain-composition-wiring.md) — put cross-domain db*Storage wiring in server/composition/ (check:domain-leaks section C only scans server/domains/**); alert_notifications is the de-facto org notification channel.
+- [lr35 source-scan UI tests](lr35-source-scan-ui-tests.md) — string-match testid/href/endpoint contracts; a screen redesign must update its lr35 test + nav-matrix playwright in lockstep. Lists known pre-existing reds.

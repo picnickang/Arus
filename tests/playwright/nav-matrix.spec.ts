@@ -341,22 +341,19 @@ test.describe("Reskin smoke — admin home interactions", () => {
     await page.setViewportSize({ width: 375, height: 812 });
   });
 
-  test('AI Recommendation card routes to /findings', async ({ page }) => {
+  test("Admin Hubs list renders with the role pill", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const card = page.getByTestId("card-ai-recommendation");
-    await expect(card).toBeVisible();
-    await card.click();
-    await expect(page).toHaveURL(/\/findings(\?|$)/);
+    await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+    await expect(page.getByTestId("list-admin-hubs")).toBeVisible();
+    await expect(page.getByTestId("pill-role")).toBeVisible();
   });
 
-  test('Critical Attention "View all" routes to /attention-inbox', async ({
-    page,
-  }) => {
+  test("Maintenance hub card routes to /maint", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const link = page.getByTestId("link-view-all-attention");
-    await expect(link).toBeVisible();
-    await link.click();
-    await expect(page).toHaveURL(/\/attention-inbox(\?|$)/);
+    const card = page.getByTestId("card-hub-maintenance");
+    await expect(card).toBeVisible();
+    await card.click();
+    await expect(page).toHaveURL(/\/maint(\?|$)/);
   });
 });
 
