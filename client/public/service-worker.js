@@ -3,7 +3,7 @@
  * Provides offline functionality and background sync
  */
 
-const CACHE_NAME = "arus-v1";
+const CACHE_NAME = "arus-v2";
 const RUNTIME_CACHE = "arus-runtime";
 const API_CACHE = "arus-api";
 
@@ -90,7 +90,32 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets - Cache first, fallback to network
+  // Navigation / HTML document requests - Network first.
+  // The app shell (`/`, `/index.html`) is NOT content-hashed, so serving it
+  // cache-first pins the browser to an old `index.html` that references stale
+  // JS bundles ("changes have not been applied"). Always fetch fresh when
+  // online; fall back to cache only when offline.
+  const accept = request.headers.get("accept") || "";
+  if (request.mode === "navigate" || (request.method === "GET" && accept.includes("text/html"))) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+    );
+    return;
+  }
+
+  // Static assets - Cache first, fallback to network.
+  // Vite build assets are content-hashed, so a new build produces new
+  // filenames; cache-first here is safe and never serves a stale asset.
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
