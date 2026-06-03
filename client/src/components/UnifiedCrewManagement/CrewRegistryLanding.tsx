@@ -312,8 +312,8 @@ export function CrewRegistryLanding({
       <ActionTile
         icon={<FileUp className="h-5 w-5 text-emerald-300" />}
         label="Upload docs"
-        hint="Certificates"
-        onClick={() => setLocation("/compliance-consolidated")}
+        hint="Pick a crew member"
+        onClick={() => onOpenCurrent("all")}
         enabled={canManageDocs}
         testId="action-upload-docs"
       />

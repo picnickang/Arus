@@ -17,6 +17,7 @@ import {
   UserPlus,
   X,
   KeyRound,
+  FileText,
 } from "lucide-react";
 import { useUnifiedCrewData, type CrewListItem } from "@/features/crew";
 import { createHeaders, resolveUrl } from "@/lib/queryClient";
@@ -211,6 +212,13 @@ export function CrewActionsMenu({
             >
               <Eye className="h-4 w-4 mr-2" />
               View Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => d.handleViewProfile(member, "documents")}
+              data-testid={`action-documents-${member.id}`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Documents
             </DropdownMenuItem>
             {canManageCrew && (
               <>

@@ -253,3 +253,39 @@ describe("consolidated crew landing source-scan", () => {
     expect(routes).not.toContain("crew-hub");
   });
 });
+
+/**
+ * Crew "Upload docs" destination (Task #328).
+ *
+ * Crew documents are uploaded per individual crew member and stored with that
+ * person's profile (`POST /api/crew/:id/documents`). The landing's "Upload docs"
+ * fast-action must NOT dead-end on the compliance/governance page; it routes the
+ * user into the current roster to pick a member, and each roster row exposes a
+ * one-click "Documents" action that opens that member's profile on the Documents
+ * tab. These checks pin that contract.
+ */
+describe("crew upload-docs destination source-scan", () => {
+  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+
+  it("'Upload docs' no longer dead-ends on the compliance page", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    // The Upload docs tile must route into the roster, not the compliance surface.
+    expect(src).toContain('testId="action-upload-docs"');
+    const tileStart = src.indexOf('testId="action-upload-docs"');
+    const tileBlock = src.slice(Math.max(0, tileStart - 400), tileStart);
+    expect(tileBlock).toContain('onClick={() => onOpenCurrent("all")}');
+    expect(tileBlock).not.toContain('/compliance-consolidated');
+  });
+
+  it("each roster member exposes a documents shortcut opening the Documents tab", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/crew-roster-shared.tsx");
+    expect(src).toContain('data-testid={`action-documents-${member.id}`}');
+    expect(src).toContain('d.handleViewProfile(member, "documents")');
+  });
+
+  it("the creation flow hands off to the new member's Documents tab", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/OnboardingChecklistDialog.tsx");
+    expect(src).toContain('data-testid="button-onboarding-docs"');
+    expect(src).toContain('d.openOnboardingProfileTab("documents")');
+  });
+});
