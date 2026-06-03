@@ -1435,10 +1435,15 @@ export default function HomePage() {
   // rather than the user-portal categories `getPrimaryCategoriesForRole` would
   // return for their underlying role.
   const policyCategoryIds = getAdminPrimaryCategories().map((c) => c.id);
-  const pinnedGroupIds =
-    policyCategoryIds.length > 0
-      ? policyCategoryIds
-      : (roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id));
+  // Phase 2: the admin home is anchored to EXACTLY the policy hubs (the same
+  // five the BottomNav surfaces). When the policy set is in force we must not
+  // leak the legacy 8-group dump under "More categories" — not even for an
+  // unrestricted super-admin (`hubAccess === null`), for whom `isHubAllowed`
+  // returns true for everything.
+  const usingPolicyHubs = policyCategoryIds.length > 0;
+  const pinnedGroupIds = usingPolicyHubs
+    ? policyCategoryIds
+    : (roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id));
   // Per-hub allow-list: `permissions.hubAccess === null` means "all hubs"
   // (super-admins / dev resolve to null server-side); a populated list
   // restricts which hub shortcuts this account may see. Enforced here so a
@@ -1450,9 +1455,14 @@ export default function HomePage() {
     .filter(isHubAllowed)
     .map((id) => homePageGroups.find((g) => g.id === id))
     .filter((g): g is HomePageGroup => g !== undefined);
-  const otherGroups = homePageGroups.filter(
-    (g) => !pinnedGroupIds.includes(g.id) && isHubAllowed(g.id),
-  );
+  // In policy-hub mode there are no "other" categories — the five hubs are the
+  // complete admin surface. Only the legacy fallback (no policy categories)
+  // still surfaces the remaining groups.
+  const otherGroups = usingPolicyHubs
+    ? []
+    : homePageGroups.filter(
+        (g) => !pinnedGroupIds.includes(g.id) && isHubAllowed(g.id),
+      );
 
   // No-hubs fallback: an admin-portal account whose hub allow-list is a
   // populated-but-empty set (granted admin access, zero hubs) would
