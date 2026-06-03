@@ -65,6 +65,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const [skippedLoginCrewIds, setSkippedLoginCrewIds] = useState<Set<string>>(new Set());
   const [profileInitialTab, setProfileInitialTab] = useState<CrewProfileTab>("details");
   const [skillAssignmentCrewId, setSkillAssignmentCrewId] = useState<string>("");
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 
   const { data: crew = [], isLoading: crewLoading } = useQuery<CrewListItem[]>({
     queryKey: ["/api/crew"],
@@ -100,6 +101,32 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     defaultValues: createDefaultSkillFormValues(),
   });
 
+  // Optional intake photo: the photo endpoint needs a crew id, which only
+  // exists after the create succeeds, so we upload it as a follow-up step.
+  const uploadCrewPhoto = async (crewId: string, photo: File) => {
+    const { createHeaders, resolveUrl, queryClient } = await import("@/lib/queryClient");
+    try {
+      const formData = new FormData();
+      formData.append("photo", photo);
+      const res = await fetch(resolveUrl(`/api/crew/${crewId}/photo`), {
+        method: "POST",
+        headers: createHeaders(false),
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error(`Photo upload failed (${res.status})`);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["/api/crew"] });
+    } catch (err) {
+      toast({
+        title: "Photo not saved",
+        description: err instanceof Error ? err.message : "The crew member was created without a photo.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const createCrewMutation = useCreateMutation<CrewFormData, CrewListItem>("/api/crew", {
     invalidateKeys: ["/api/crew"],
     successMessage: "Crew member created successfully",
@@ -107,6 +134,10 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       setOnboardingCrew(created);
       crewForm.reset();
       setIsAddCrewDialogOpen(false);
+      if (pendingPhotoFile && created?.id) {
+        void uploadCrewPhoto(created.id, pendingPhotoFile);
+      }
+      setPendingPhotoFile(null);
     },
   });
   const updateCrewMutation = useUpdateMutation("/api/crew", {
@@ -236,6 +267,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     setIsAddCrewDialogOpen(false);
     setIsEditCrewDialogOpen(false);
     setEditingCrew(null);
+    setPendingPhotoFile(null);
     crewForm.reset();
   };
   const closeSkillDialog = () => {
@@ -501,6 +533,8 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     skippedLoginCrewIds,
     crewForm,
     skillForm,
+    pendingPhotoFile,
+    setPendingPhotoFile,
     createCrewMutation,
     updateCrewMutation,
     deleteCrewMutation,

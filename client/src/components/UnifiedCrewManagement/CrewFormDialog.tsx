@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,7 +22,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
-import { ChevronDown, ChevronRight, DollarSign, IdCard, Phone, Ship, User } from "lucide-react";
+import { ChevronDown, ChevronRight, DollarSign, IdCard, ImagePlus, Phone, Ship, User } from "lucide-react";
 import {
   MARITIME_RANKS,
   CREW_STATUSES,
@@ -58,6 +58,93 @@ const STEPS: { key: StepKey; label: string; fields: (keyof CrewFormData)[] }[] =
   },
   { key: "pay", label: "Pay", fields: ["hourlyRate", "maxHours7d", "minRestH", "contractPenalty"] },
 ];
+
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const PHOTO_ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/** Optional profile photo during intake — held until the crew id exists. */
+function CrewIntakePhotoPicker({ d }: { d: UnifiedCrewData }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const file = d.pendingPhotoFile;
+    if (!file) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [d.pendingPhotoFile]);
+
+  const handleSelect = (selected: File | null | undefined) => {
+    setError(null);
+    if (!selected) {
+      return;
+    }
+    if (!PHOTO_ACCEPTED.includes(selected.type)) {
+      setError("Please choose a JPG, PNG, WebP, or GIF image.");
+      return;
+    }
+    if (selected.size > PHOTO_MAX_BYTES) {
+      setError("Image is too large. Maximum size is 5 MB.");
+      return;
+    }
+    d.setPendingPhotoFile(selected);
+  };
+
+  return (
+    <div className="flex items-center gap-4 rounded-md border border-dashed p-3">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
+        {preview ? (
+          <img src={preview} alt="Selected profile" className="h-full w-full object-cover" />
+        ) : (
+          <ImagePlus className="h-6 w-6 text-muted-foreground" />
+        )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium">Profile photo (optional)</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={PHOTO_ACCEPTED.join(",")}
+          className="hidden"
+          data-testid="input-intake-photo"
+          onChange={(e) => handleSelect(e.target.files?.[0])}
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => inputRef.current?.click()}
+            data-testid="button-intake-choose-photo"
+          >
+            {d.pendingPhotoFile ? "Change" : "Choose"}
+          </Button>
+          {d.pendingPhotoFile && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => d.setPendingPhotoFile(null)}
+              data-testid="button-intake-clear-photo"
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+        {error && (
+          <p className="text-xs text-destructive" data-testid="text-intake-photo-error">
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function CrewFormDialog({
   d,
@@ -182,6 +269,7 @@ export function CrewFormDialog({
                 <User className="h-4 w-4" />
                 Identity
               </h4>
+              {!d.editingCrew && <CrewIntakePhotoPicker d={d} />}
               <FormField
                 control={d.crewForm.control}
                 name="name"

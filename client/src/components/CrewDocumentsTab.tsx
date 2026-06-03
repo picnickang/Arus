@@ -69,18 +69,12 @@ import {
   type CrewDocument,
 } from "@/features/crew";
 
-const TRAVEL_IDENTITY_TYPES = ["passport", "seaman_book", "visa"];
-const PROFESSIONAL_TYPES = ["endorsement"];
-const MEDICAL_TYPES = ["medical"];
+// Two-bucket grouping per the Figma template: identity + medical papers vs.
+// training / professional endorsements.
+const IDENTITY_MEDICAL_TYPES = ["passport", "seaman_book", "visa", "medical"];
 
-function getDocCategory(type: string): "travel" | "medical" | "professional" {
-  if (TRAVEL_IDENTITY_TYPES.includes(type)) {
-    return "travel";
-  }
-  if (MEDICAL_TYPES.includes(type)) {
-    return "medical";
-  }
-  return "professional";
+function getDocCategory(type: string): "identity_medical" | "training" {
+  return IDENTITY_MEDICAL_TYPES.includes(type) ? "identity_medical" : "training";
 }
 
 interface CrewDocumentsTabProps {
@@ -111,7 +105,7 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
     getExpiryStatus,
   } = useCrewDocumentsData(crewId);
 
-  const [sortBy, setSortBy] = useState<"expiry" | "type">("expiry");
+  const [sortBy, setSortBy] = useState<"expiry" | "type" | "status">("expiry");
 
   // Rank expiry levels so the most urgent documents float to the top.
   const expiryRank: Record<string, number> = {
@@ -129,9 +123,16 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
           getDocumentTypeLabel(b.documentType)
         );
       }
-      const ra = expiryRank[getExpiryStatus(a.expiresAt)?.level ?? "ok"] ?? 5;
-      const rb = expiryRank[getExpiryStatus(b.expiresAt)?.level ?? "ok"] ?? 5;
-      return ra - rb;
+      if (sortBy === "status") {
+        const ra = expiryRank[getExpiryStatus(a.expiresAt)?.level ?? "ok"] ?? 5;
+        const rb = expiryRank[getExpiryStatus(b.expiresAt)?.level ?? "ok"] ?? 5;
+        return ra - rb;
+      }
+      // "expiry" — soonest actual expiry date first; documents without an expiry
+      // date sink to the bottom.
+      const ta = a.expiresAt ? new Date(a.expiresAt).getTime() : Number.POSITIVE_INFINITY;
+      const tb = b.expiresAt ? new Date(b.expiresAt).getTime() : Number.POSITIVE_INFINITY;
+      return ta - tb;
     });
 
   // Documents that are expired or expiring within 60 days need crew action.
@@ -191,14 +192,11 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
       <Check className="h-3 w-3" />
     );
 
-  const travelDocs = sortDocs(
-    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "travel")
+  const identityMedicalDocs = sortDocs(
+    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "identity_medical")
   );
-  const medicalDocs = sortDocs(
-    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "medical")
-  );
-  const professionalDocs = sortDocs(
-    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "professional")
+  const trainingDocs = sortDocs(
+    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "training")
   );
 
   const renderDocTable = (docs: CrewDocument[], emptyMsg: string) => {
@@ -280,14 +278,18 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
             Documents & Certifications ({documents.length})
           </h3>
           <div className="flex items-center gap-2">
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "expiry" | "type")}>
-              <SelectTrigger className="h-9 w-[150px]" data-testid="select-doc-sort">
+            <Select
+              value={sortBy}
+              onValueChange={(v) => setSortBy(v as "expiry" | "type" | "status")}
+            >
+              <SelectTrigger className="h-9 w-[160px]" data-testid="select-doc-sort">
                 <ArrowDownUp className="mr-1 h-3.5 w-3.5" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="expiry">Sort: Expiry</SelectItem>
-                <SelectItem value="type">Sort: Type</SelectItem>
+                <SelectItem value="expiry">Sort: Expiry soon</SelectItem>
+                <SelectItem value="type">Sort: Document type</SelectItem>
+                <SelectItem value="status">Sort: Status</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -359,23 +361,11 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
           <CardHeader className="py-3 pb-1">
             <CardTitle className="text-sm flex items-center gap-2">
               <Briefcase className="h-3.5 w-3.5" />
-              Travel & Identity Documents
+              Identity &amp; medical
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {renderDocTable(travelDocs, "No travel or identity documents on file")}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="py-3 pb-1">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Plus className="h-3.5 w-3.5" />
-              Medical Documents
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {renderDocTable(medicalDocs, "No medical documents on file")}
+            {renderDocTable(identityMedicalDocs, "No identity or medical documents on file")}
           </CardContent>
         </Card>
 
@@ -383,11 +373,11 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
           <CardHeader className="py-3 pb-1">
             <CardTitle className="text-sm flex items-center gap-2">
               <Shield className="h-3.5 w-3.5" />
-              Professional Certifications
+              Training certificates
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {renderDocTable(professionalDocs, "No professional certifications on file")}
+            {renderDocTable(trainingDocs, "No training certificates on file")}
           </CardContent>
         </Card>
       </div>

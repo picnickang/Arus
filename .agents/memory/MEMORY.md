@@ -19,3 +19,4 @@
 - [Crew Task Tracker linked-source editing](crew-task-tracker-figma.md) — a picker that only covers a subset of a polymorphic FK must treat "value not in my options" as leave-untouched, never clear-on-edit.
 - [me-tasks feed is role-config gated](me-tasks-source-gating.md) — a new task type only shows in /api/me/tasks & "My Tasks" if its source is in the role's taskSources; default changes reach new orgs only.
 - [In-page subview discoverability](subview-nav-discoverability.md) — a subview reachable only via an in-page tile is invisible from the app nav; add a deep-link nav entry + URL-driven view.
+- [Crew doc renewal-task pattern](crew-doc-renewal-task.md) — near-expiry crew docs spawn a crew_document-linked crew task (existing /api/crew-tasks); dedupe by linkedSourceId before create or re-saves spam duplicates.

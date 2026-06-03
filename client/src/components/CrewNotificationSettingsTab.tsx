@@ -29,6 +29,7 @@ import {
   Loader2,
   CheckCircle,
   ClipboardList,
+  Plus,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useCertificationExpiryData, useCrewDocumentsData } from "@/features/crew";
@@ -57,9 +58,51 @@ const LEVEL_CLASS: Record<CrewAlertEntry["level"], string> = {
  * and are managed (renewed) from the Documents tab.
  */
 function CrewAlertLog({ crewId }: { crewId: string }) {
+  const { toast } = useToast();
   const certData = useCertificationExpiryData({ daysAhead: 365 });
   const { documents, getExpiryStatus, getDocumentTypeLabel, isLoading: docsLoading } =
     useCrewDocumentsData(crewId);
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [alertType, setAlertType] = useState("");
+  const [alertRef, setAlertRef] = useState("");
+  const [alertDue, setAlertDue] = useState("");
+
+  const resetCreateForm = () => {
+    setAlertType("");
+    setAlertRef("");
+    setAlertDue("");
+  };
+
+  // Creating an alert reuses the existing crew-certification mechanism: a cert
+  // with a due date immediately surfaces in this log and the fleet expiring-certs
+  // feed. Severity is derived from how close the due date is — no new backend.
+  const createAlertMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/crew-certifications", {
+        crewId,
+        cert: alertType.trim(),
+        certNumber: alertRef.trim() || undefined,
+        expiresAt: new Date(alertDue).toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crew-certifications/expiring"] });
+      queryClient.invalidateQueries({ queryKey: ["crew", crewId, "certifications"] });
+      toast({ title: "Alert created", description: alertType.trim() });
+      setCreateOpen(false);
+      resetCreateForm();
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Could not create alert",
+        description: err.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const canSubmitAlert = alertType.trim().length > 0 && alertDue.length > 0;
 
   const certAlerts: CrewAlertEntry[] = (certData.data?.certifications ?? [])
     .filter((c) => c.crewId === crewId)
@@ -109,6 +152,16 @@ function CrewAlertLog({ crewId }: { crewId: string }) {
           <Badge variant="secondary" className="ml-auto" data-testid="badge-alert-count">
             {entries.filter((e) => !e.acknowledged).length} active
           </Badge>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={() => setCreateOpen(true)}
+            data-testid="button-create-alert"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            New alert
+          </Button>
         </div>
 
         {certData.isLoading || docsLoading ? (
@@ -212,6 +265,81 @@ function CrewAlertLog({ crewId }: { crewId: string }) {
               data-testid="button-confirm-ack"
             >
               {certData.isAcknowledging ? "Saving…" : "Acknowledge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            resetCreateForm();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new alert</DialogTitle>
+            <DialogDescription>
+              Adds a tracked item with a due date. It appears in this log and the
+              fleet expiring-certifications feed. The severity is set automatically
+              from how close the due date is.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="alert-type" className="text-sm">
+                Alert type / certification
+              </Label>
+              <Input
+                id="alert-type"
+                value={alertType}
+                onChange={(e) => setAlertType(e.target.value)}
+                placeholder="e.g. Medical fitness review"
+                data-testid="input-alert-type"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="alert-due" className="text-sm">
+                Due date
+              </Label>
+              <Input
+                id="alert-due"
+                type="date"
+                value={alertDue}
+                onChange={(e) => setAlertDue(e.target.value)}
+                data-testid="input-alert-due"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="alert-ref" className="text-sm">
+                Reference (optional)
+              </Label>
+              <Input
+                id="alert-ref"
+                value={alertRef}
+                onChange={(e) => setAlertRef(e.target.value)}
+                placeholder="e.g. document or case number"
+                data-testid="input-alert-ref"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateOpen(false)}
+              data-testid="button-cancel-create-alert"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => createAlertMutation.mutate()}
+              disabled={!canSubmitAlert || createAlertMutation.isPending}
+              data-testid="button-submit-create-alert"
+            >
+              {createAlertMutation.isPending ? "Creating…" : "Create alert"}
             </Button>
           </DialogFooter>
         </DialogContent>

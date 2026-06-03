@@ -7,6 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { apiRequest } from "@/lib/queryClient";
 import { format, differenceInDays } from "date-fns";
+import { useCreateCrewTask } from "./useCrewTasks";
+import type { CrewTaskView } from "../lib/crewTaskUtils";
+
+// A document this close to (or past) expiry spawns a renewal task on save.
+const RENEWAL_TASK_WINDOW_DAYS = 90;
 
 export interface CrewDocument {
   id: string;
@@ -81,6 +86,53 @@ export function useCrewDocumentsData(crewId: string) {
   const [selectedDoc, setSelectedDoc] = useState<CrewDocument | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  const createTaskMutation = useCreateCrewTask();
+
+  // When a saved/renewed document is at/near expiry, raise a linked renewal task
+  // (existing crew-task mechanism — no new backend). Skips if an open renewal
+  // task already exists for the document so re-saving never spawns duplicates.
+  const raiseRenewalTask = useCallback(
+    async (doc: { id: string; documentType: string; documentNumber?: string; expiresAt?: string }) => {
+      if (!doc.expiresAt) {
+        return;
+      }
+      const days = differenceInDays(new Date(doc.expiresAt), new Date());
+      if (days > RENEWAL_TASK_WINDOW_DAYS) {
+        return;
+      }
+      try {
+        const openTasks = await apiRequest<CrewTaskView[]>(
+          `/api/crew-tasks?assignedCrewId=${encodeURIComponent(crewId)}`
+        );
+        const alreadyOpen = openTasks?.some(
+          (t) => t.linkedSourceType === "crew_document" && t.linkedSourceId === doc.id
+        );
+        if (alreadyOpen) {
+          return;
+        }
+      } catch {
+        // If the lookup fails, fall through and create the task — a possible
+        // duplicate is better than silently dropping a renewal reminder.
+      }
+      const label = DOCUMENT_TYPES.find((d) => d.value === doc.documentType)?.label ?? doc.documentType;
+      const when = format(new Date(doc.expiresAt), "MMM d, yyyy");
+      createTaskMutation.mutate({
+        title: `Renew ${label}`,
+        description:
+          days <= 0
+            ? `${label}${doc.documentNumber ? ` (${doc.documentNumber})` : ""} expired ${when}. Submit renewal.`
+            : `${label}${doc.documentNumber ? ` (${doc.documentNumber})` : ""} expires ${when}. Submit renewal.`,
+        assignedCrewId: crewId,
+        priority: days <= 30 ? "high" : "medium",
+        dueDate: new Date(doc.expiresAt).toISOString(),
+        linkedSourceType: "crew_document",
+        linkedSourceId: doc.id,
+        linkedSourceLabel: label,
+      });
+    },
+    [createTaskMutation, crewId]
+  );
+
   const form = useForm<DocumentFormData, unknown, DocumentFormData>({
     resolver: zodResolver(documentFormSchema),
     defaultValues: {
@@ -101,10 +153,16 @@ export function useCrewDocumentsData(crewId: string) {
 
   const createMutation = useMutation({
     mutationFn: async (data: DocumentFormData) =>
-      apiRequest(`/api/crew/${crewId}/documents`, { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => {
+      apiRequest<CrewDocument>(`/api/crew/${crewId}/documents`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crew-documents/expiring"] });
+      if (doc?.id) {
+        void raiseRenewalTask(doc);
+      }
       toast({
         title: "Document Added",
         description: "The crew document has been added successfully.",
@@ -122,10 +180,16 @@ export function useCrewDocumentsData(crewId: string) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: DocumentFormData }) =>
-      apiRequest(`/api/crew-documents/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    onSuccess: () => {
+      apiRequest<CrewDocument>(`/api/crew-documents/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crew-documents/expiring"] });
+      if (doc?.id) {
+        void raiseRenewalTask(doc);
+      }
       toast({
         title: "Document Updated",
         description: "The crew document has been updated successfully.",
