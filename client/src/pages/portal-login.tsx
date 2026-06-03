@@ -12,7 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
 import { isSuperAdminRole } from "@shared/role-dashboard";
-import { Shield, User, ArrowRight, Anchor, ArrowLeft, LogIn } from "lucide-react";
+import {
+  Shield,
+  User,
+  ArrowLeft,
+  LogIn,
+  ShipWheel,
+  UserRound,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react";
 
 interface LoginResponse {
   sessionToken: string;
@@ -25,10 +34,10 @@ type PortalChoice = {
   roleHint: "system_admin" | "deck_officer";
   mode: "admin" | "user";
   title: string;
-  subtitle: string;
-  cta: string;
+  role: string;
+  badge: string;
   icon: typeof Shield;
-  accent: string;
+  iconWrap: string;
   testId: string;
 };
 
@@ -36,21 +45,21 @@ const PORTALS: PortalChoice[] = [
   {
     roleHint: "system_admin",
     mode: "admin",
-    title: "Admin Portal",
-    subtitle: "System administration, fleet management, and advanced tools.",
-    cta: "Admin Login",
-    icon: Shield,
-    accent: "bg-primary text-primary-foreground hover:bg-primary/90",
+    title: "Admin Login",
+    role: "Authorized Personnel",
+    badge: "Role-gated access",
+    icon: ShipWheel,
+    iconWrap: "bg-sky-500/10 text-sky-400 ring-1 ring-inset ring-sky-500/20",
     testId: "card-portal-admin",
   },
   {
     roleHint: "deck_officer",
     mode: "user",
-    title: "User Portal",
-    subtitle: "Operational dashboard, tasks, and feedback.",
-    cta: "User Login",
-    icon: User,
-    accent: "bg-teal-600 text-white hover:bg-teal-700",
+    title: "User Login",
+    role: "Personal Workflows",
+    badge: "Personal access",
+    icon: UserRound,
+    iconWrap: "bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20",
     testId: "card-portal-user",
   },
 ];
@@ -224,54 +233,70 @@ export default function PortalLoginPage() {
   if (view === "choose") {
     return (
       <div
-        className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+        className="relative min-h-screen overflow-hidden bg-[#070b14]"
         data-testid="page-portal-login"
       >
-        <div className="w-full max-w-3xl">
-          <div className="text-center mb-10 text-white">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 backdrop-blur">
-              <Anchor className="h-7 w-7" />
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight">Welcome to ARUS</h1>
-            <p className="mt-2 text-sm text-white/70">
-              Advanced Reliability &amp; Unified Systems
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_70%_at_50%_-10%,rgba(56,120,200,0.18),transparent_60%)]" />
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-16">
+          <div className="mb-10">
+            <h1
+              className="text-4xl font-bold tracking-tight text-white"
+              data-testid="text-brand"
+            >
+              ARUS
+            </h1>
+            <p className="mt-2 text-sm text-slate-400">Operational access for ARUS</p>
+          </div>
+
+          <div className="mb-7">
+            <h2 className="text-4xl font-bold tracking-tight text-white">Welcome</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
+              Choose the right login path to continue to your operational portal.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-4">
             {PORTALS.map((portal) => {
               const Icon = portal.icon;
               return (
-                <Card
-                  key={portal.roleHint}
-                  className="overflow-hidden border-white/10 bg-white/95 backdrop-blur transition hover:shadow-xl"
-                  data-testid={portal.testId}
-                >
-                  <CardContent className="flex flex-col items-center text-center gap-4 p-8">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-                      <Icon className="h-7 w-7 text-slate-700" />
+                <div key={portal.roleHint} data-testid={portal.testId}>
+                  <button
+                    type="button"
+                    onClick={() => enterPortal(portal.mode)}
+                    className="group w-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40"
+                    data-testid={`button-${portal.testId}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${portal.iconWrap}`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-base font-semibold text-white">
+                          {portal.title}
+                        </span>
+                        <span className="block text-sm text-slate-400">{portal.role}</span>
+                      </span>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-slate-300" />
                     </div>
-                    <div className="space-y-1">
-                      <h2 className="text-lg font-semibold text-slate-900">{portal.title}</h2>
-                      <p className="text-sm text-slate-600">{portal.subtitle}</p>
-                    </div>
-                    <Button
-                      className={`w-full ${portal.accent}`}
-                      onClick={() => enterPortal(portal.mode)}
-                      data-testid={`button-${portal.testId}`}
-                    >
-                      {portal.cta}
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <span className="mt-4 flex w-full items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-emerald-400">
+                      {portal.badge}
+                    </span>
+                  </button>
+                </div>
               );
             })}
           </div>
 
-          <p className="mt-8 text-center text-xs text-white/50">
-            Secure. Reliable. Maritime.
-          </p>
+          <div className="mt-auto pt-10">
+            <div className="border-t border-white/10" />
+            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-300">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              Secure. Role-based. Always.
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -284,7 +309,7 @@ export default function PortalLoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+      className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-[#0c1424] to-[#070b14]"
       data-testid="page-portal-login"
     >
       <Card className="w-full max-w-sm border-white/10 bg-white/95 backdrop-blur">
