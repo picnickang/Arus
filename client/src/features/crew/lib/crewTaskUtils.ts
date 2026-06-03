@@ -19,9 +19,27 @@ export interface CrewTaskView {
   priority: CrewTaskPriority;
   dueDate: string | null;
   blockedReason: string | null;
+  assignedTo: string | null;
+  linkedSourceType: string | null;
+  linkedSourceId: string | null;
+  linkedSourceLabel: string | null;
   createdBy: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+/** One activity-log entry: an auto system event or a user comment. */
+export interface CrewTaskEventView {
+  id: string;
+  orgId: string;
+  taskId: string;
+  eventType: string;
+  message: string;
+  actorId: string | null;
+  actorName: string | null;
+  actorRole: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string | null;
 }
 
 const PRIORITY_RANK: Record<CrewTaskPriority, number> = {
@@ -157,9 +175,9 @@ const STATUS_LABELS: Record<CrewTaskStatus, string> = {
 
 const PRIORITY_LABELS: Record<CrewTaskPriority, string> = {
   low: "Low",
-  medium: "Medium",
+  medium: "Normal",
   high: "High",
-  urgent: "Urgent",
+  urgent: "Critical",
 };
 
 export function statusLabel(status: CrewTaskStatus): string {
@@ -168,6 +186,48 @@ export function statusLabel(status: CrewTaskStatus): string {
 
 export function priorityLabel(priority: CrewTaskPriority): string {
   return PRIORITY_LABELS[priority] ?? priority;
+}
+
+/** Visual tone for a status chip — maps to Tailwind colour families. */
+export type ChipTone = "slate" | "blue" | "amber" | "green";
+
+const STATUS_TONES: Record<CrewTaskStatus, ChipTone> = {
+  open: "slate",
+  in_progress: "blue",
+  blocked: "amber",
+  done: "green",
+};
+
+export function statusTone(status: CrewTaskStatus): ChipTone {
+  return STATUS_TONES[status] ?? "slate";
+}
+
+const PRIORITY_TONES: Record<CrewTaskPriority, ChipTone> = {
+  low: "slate",
+  medium: "blue",
+  high: "amber",
+  urgent: "amber",
+};
+
+export function priorityTone(priority: CrewTaskPriority): ChipTone {
+  return PRIORITY_TONES[priority] ?? "slate";
+}
+
+/**
+ * Human label for an activity-event type (system events + comments).
+ * Falls back to the raw type so unknown future events stay readable.
+ */
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  created: "Created",
+  status_changed: "Status changed",
+  reassigned: "Reassigned",
+  owner_changed: "Owner changed",
+  linked_source: "Linked source",
+  comment: "Comment",
+};
+
+export function eventTypeLabel(eventType: string): string {
+  return EVENT_TYPE_LABELS[eventType] ?? eventType;
 }
 
 /** Human "due in 3 days" / "overdue 2 days" / "due today" string. */

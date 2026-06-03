@@ -11,6 +11,13 @@ import {
   User,
   Trash2,
   ArrowLeft,
+  Link2,
+  Play,
+  CheckCircle2,
+  UserCog,
+  Pencil,
+  MessageSquare,
+  ExternalLink,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,7 +28,10 @@ import {
   useCreateCrewTask,
   useUpdateCrewTask,
   useDeleteCrewTask,
+  useCrewTaskEvents,
+  useAddCrewTaskComment,
   invalidateCrewTasks,
+  invalidateCrewTaskEvents,
   countTasks,
   filterTasks,
   sortTasks,
@@ -29,12 +39,14 @@ import {
   isBlocked,
   statusLabel,
   priorityLabel,
+  eventTypeLabel,
   dueLabel,
   type CrewTaskView,
+  type CrewTaskEventView,
   type CrewTaskFilter,
+  type UpdateCrewTaskInput,
 } from "@/features/crew";
 import {
-  CREW_TASK_STATUSES,
   CREW_TASK_PRIORITIES,
   type CrewTaskStatus,
   type CrewTaskPriority,
@@ -56,6 +68,13 @@ interface MeTaskItem {
   source: string;
 }
 
+/** Minimal shape of `/api/crew/:crewId/documents` we use for linking. */
+interface CrewDocumentItem {
+  id: string;
+  documentType: string;
+  documentNumber: string | null;
+}
+
 interface CrewTaskTrackerProps {
   crew: CrewOption[];
   vessels: VesselOption[];
@@ -66,6 +85,8 @@ interface CrewTaskTrackerProps {
   initialVesselId?: string | null;
   /** Open this task's detail on mount (deep-link from the me/tasks feed). */
   initialTaskId?: string | null;
+  /** Open a crew member's full profile from a task's linked owner. */
+  onOpenCrewProfile?: (crewId: string) => void;
   onBack: () => void;
 }
 
@@ -89,6 +110,19 @@ const FILTERS: { key: CrewTaskFilter; label: string }[] = [
   { key: "overdue", label: "Overdue" },
   { key: "by_vessel", label: "By vessel" },
 ];
+
+/** "passport" → "Passport"; "seaman_book" → "Seaman Book". */
+function humanizeType(value: string): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function documentLabel(doc: CrewDocumentItem): string {
+  const type = humanizeType(doc.documentType);
+  return doc.documentNumber ? `${type} · ${doc.documentNumber}` : type;
+}
 
 function StatCard({
   icon,
@@ -124,6 +158,7 @@ export function CrewTaskTracker({
   canDelete,
   initialVesselId,
   initialTaskId,
+  onOpenCrewProfile,
   onBack,
 }: CrewTaskTrackerProps) {
   const { toast } = useToast();
@@ -133,6 +168,7 @@ export function CrewTaskTracker({
   const [vesselFilter, setVesselFilter] = useState<string>(initialVesselId ?? "");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initialTaskId ?? null);
+  const [showAll, setShowAll] = useState(false);
 
   const { data: tasks = [], isLoading, isError, refetch } = useCrewTasks({ includeDone: true });
   const { data: meTasks = [] } = useQuery<MeTaskItem[]>({
@@ -146,12 +182,14 @@ export function CrewTaskTracker({
     subscribe("crew_task.created");
     subscribe("crew_task.updated");
     subscribe("crew_task.deleted");
+    subscribe("crew_task.commented");
   }, [subscribe]);
   useEffect(() => {
     if (lastMessage?.channel?.startsWith("crew_task")) {
       invalidateCrewTasks();
+      if (selectedId) invalidateCrewTaskEvents(selectedId);
     }
-  }, [lastMessage]);
+  }, [lastMessage, selectedId]);
 
   const myTaskIds = useMemo(
     () => new Set(meTasks.filter((t) => t.source === "crew_tasks").map((t) => t.id)),
@@ -183,6 +221,10 @@ export function CrewTaskTracker({
     const activeOnly = filtered.filter((t) => t.status !== "done");
     return sortTasks(activeOnly);
   }, [tasks, filter, search, myTaskIds, vesselFilter]);
+
+  const PRIORITY_PREVIEW = 5;
+  const shown = showAll ? visible : visible.slice(0, PRIORITY_PREVIEW);
+  const hasMore = visible.length > PRIORITY_PREVIEW;
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedId) ?? null,
@@ -283,7 +325,7 @@ export function CrewTaskTracker({
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tasks…"
+          placeholder="Search tasks by title or details…"
           className="w-full rounded-xl border border-slate-700 bg-slate-900/60 py-2 pl-9 pr-3 text-sm text-white placeholder:text-slate-500"
           data-testid="input-task-search"
         />
@@ -305,25 +347,42 @@ export function CrewTaskTracker({
           No tasks match this view.
         </div>
       ) : (
-        <div className="space-y-2" data-testid="task-list">
-          {visible.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              crewName={crewName}
-              vesselName={vesselName}
-              onOpen={() => setSelectedId(task.id)}
-            />
-          ))}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-200" data-testid="text-priority-heading">
+              {showAll ? "All tasks" : "Priority tasks"}
+            </h3>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="text-xs font-medium text-sky-300 hover:text-sky-200"
+                data-testid="button-view-all"
+              >
+                {showAll ? "Show priority" : `View all (${visible.length})`}
+              </button>
+            )}
+          </div>
+          <div className="space-y-2" data-testid="task-list">
+            {shown.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                crewName={crewName}
+                vesselName={vesselName}
+                onOpen={() => setSelectedId(task.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       {createOpen && (
-        <CreateTaskDialog
+        <TaskFormDialog
           crew={crew}
           vessels={vessels}
           onClose={() => setCreateOpen(false)}
-          onCreated={() => {
+          onSaved={() => {
             setCreateOpen(false);
             toast({ title: "Task created" });
           }}
@@ -333,10 +392,13 @@ export function CrewTaskTracker({
       {selectedTask && (
         <TaskDetailDialog
           task={selectedTask}
+          crew={crew}
+          vessels={vessels}
           crewName={crewName}
           vesselName={vesselName}
           canEdit={canEdit}
           canDelete={canDelete}
+          onOpenCrewProfile={onOpenCrewProfile}
           onClose={() => setSelectedId(null)}
           onDeleted={() => {
             setSelectedId(null);
@@ -377,7 +439,10 @@ function TaskRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{task.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_TONE[task.status]}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_TONE[task.status]}`}
+            data-testid={`task-status-${task.id}`}
+          >
             {statusLabel(task.status)}
           </span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${PRIORITY_TONE[task.priority]}`}>
@@ -393,6 +458,12 @@ function TaskRow({
             <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
               <Ship className="h-3 w-3" />
               {vesselName.get(task.vesselId) ?? "Vessel"}
+            </span>
+          )}
+          {task.linkedSourceId && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+              <Link2 className="h-3 w-3" />
+              Linked
             </span>
           )}
         </div>
@@ -423,48 +494,132 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputClass =
   "w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500";
 
-function CreateTaskDialog({
+/**
+ * Create or edit a task. When `task` is provided the dialog prefills and
+ * PATCHes; otherwise it POSTs a new task. Linked source is picked from the
+ * assigned crew member's documents (the snapshot label is stored).
+ */
+function TaskFormDialog({
+  task,
   crew,
   vessels,
   onClose,
-  onCreated,
+  onSaved,
 }: {
+  task?: CrewTaskView;
   crew: CrewOption[];
   vessels: VesselOption[];
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
   const { toast } = useToast();
   const createTask = useCreateCrewTask();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<CrewTaskPriority>("medium");
-  const [assignedCrewId, setAssignedCrewId] = useState("");
-  const [vesselId, setVesselId] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const updateTask = useUpdateCrewTask();
+  const isEdit = Boolean(task);
+
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [priority, setPriority] = useState<CrewTaskPriority>(task?.priority ?? "medium");
+  const [assignedCrewId, setAssignedCrewId] = useState(task?.assignedCrewId ?? "");
+  const [assignedTo, setAssignedTo] = useState(task?.assignedTo ?? "");
+  const [vesselId, setVesselId] = useState(task?.vesselId ?? "");
+  const [dueDate, setDueDate] = useState(
+    task?.dueDate ? task.dueDate.slice(0, 10) : "",
+  );
+  const [linkedSourceId, setLinkedSourceId] = useState(task?.linkedSourceId ?? "");
+
+  // Load the chosen crew member's documents so we can offer them as a
+  // linkable source (and snapshot the label at save time).
+  const { data: documents = [] } = useQuery<CrewDocumentItem[]>({
+    queryKey: ["/api/crew", assignedCrewId, "documents"],
+    queryFn: () =>
+      apiRequest<CrewDocumentItem[]>(`/api/crew/${assignedCrewId}/documents`),
+    enabled: Boolean(assignedCrewId),
+  });
+
+  const isPending = createTask.isPending || updateTask.isPending;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    const linkedDoc = documents.find((d) => d.id === linkedSourceId);
+    const onError = () =>
+      toast({
+        title: isEdit ? "Could not update task" : "Could not create task",
+        variant: "destructive",
+      });
+
+    if (isEdit && task) {
+      // Only touch linked-source fields when the user actually changed the
+      // picker — otherwise an unrelated edit (or a link this picker can't
+      // represent, e.g. a certificate) would be silently cleared.
+      const linkChanged = linkedSourceId !== (task.linkedSourceId ?? "");
+      let linkPatch: Partial<
+        Pick<
+          UpdateCrewTaskInput,
+          "linkedSourceType" | "linkedSourceId" | "linkedSourceLabel"
+        >
+      > = {};
+      if (linkChanged) {
+        if (!linkedSourceId) {
+          linkPatch = {
+            linkedSourceType: null,
+            linkedSourceId: null,
+            linkedSourceLabel: null,
+          };
+        } else if (linkedDoc) {
+          linkPatch = {
+            linkedSourceType: "crew_document",
+            linkedSourceId: linkedDoc.id,
+            linkedSourceLabel: documentLabel(linkedDoc),
+          };
+        }
+      }
+      updateTask.mutate(
+        {
+          id: task.id,
+          patch: {
+            title: title.trim(),
+            description: description.trim() || null,
+            priority,
+            assignedCrewId: assignedCrewId || null,
+            assignedTo: assignedTo.trim() || null,
+            vesselId: vesselId || null,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+            ...linkPatch,
+          },
+        },
+        { onSuccess: onSaved, onError },
+      );
+      return;
+    }
+
     createTask.mutate(
       {
         title: title.trim(),
         priority,
         ...(description.trim() && { description: description.trim() }),
         ...(assignedCrewId && { assignedCrewId }),
+        ...(assignedTo.trim() && { assignedTo: assignedTo.trim() }),
         ...(vesselId && { vesselId }),
         ...(dueDate && { dueDate: new Date(dueDate).toISOString() }),
+        ...(linkedDoc && {
+          linkedSourceType: "crew_document" as const,
+          linkedSourceId: linkedDoc.id,
+          linkedSourceLabel: documentLabel(linkedDoc),
+        }),
       },
-      {
-        onSuccess: onCreated,
-        onError: () =>
-          toast({ title: "Could not create task", variant: "destructive" }),
-      },
+      { onSuccess: onSaved, onError },
     );
   };
 
   return (
-    <Overlay onClose={onClose} title="Create task" testId="dialog-create-task">
+    <Overlay
+      onClose={onClose}
+      title={isEdit ? "Edit task" : "Create task"}
+      testId={isEdit ? "dialog-edit-task" : "dialog-create-task"}
+    >
       <form onSubmit={submit} className="space-y-3">
         <Field label="Title">
           <input
@@ -472,7 +627,7 @@ function CreateTaskDialog({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={inputClass}
-            placeholder="e.g. Inspect bilge pump"
+            placeholder="e.g. Renew passport before expiry"
             data-testid="input-task-title"
           />
         </Field>
@@ -512,10 +667,13 @@ function CreateTaskDialog({
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Assignee">
+          <Field label="Crew member">
             <select
               value={assignedCrewId}
-              onChange={(e) => setAssignedCrewId(e.target.value)}
+              onChange={(e) => {
+                setAssignedCrewId(e.target.value);
+                setLinkedSourceId("");
+              }}
               className={inputClass}
               data-testid="select-task-assignee"
             >
@@ -527,22 +685,49 @@ function CreateTaskDialog({
               ))}
             </select>
           </Field>
-          <Field label="Vessel">
-            <select
-              value={vesselId}
-              onChange={(e) => setVesselId(e.target.value)}
+          <Field label="Assigned-to owner">
+            <input
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
               className={inputClass}
-              data-testid="select-task-vessel"
-            >
-              <option value="">None</option>
-              {vessels.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
+              placeholder="e.g. Crewing Admin"
+              data-testid="input-task-owner"
+            />
           </Field>
         </div>
+        <Field label="Vessel">
+          <select
+            value={vesselId}
+            onChange={(e) => setVesselId(e.target.value)}
+            className={inputClass}
+            data-testid="select-task-vessel"
+          >
+            <option value="">None</option>
+            {vessels.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Linked source (crew document)">
+          <select
+            value={linkedSourceId}
+            onChange={(e) => setLinkedSourceId(e.target.value)}
+            disabled={!assignedCrewId}
+            className={inputClass}
+            data-testid="select-task-linked-source"
+          >
+            <option value="">
+              {assignedCrewId ? "None" : "Pick a crew member first"}
+            </option>
+            {documents.map((d) => (
+              <option key={d.id} value={d.id}>
+                {documentLabel(d)}
+              </option>
+            ))}
+          </select>
+        </Field>
         <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
@@ -554,12 +739,12 @@ function CreateTaskDialog({
           </button>
           <button
             type="submit"
-            disabled={!title.trim() || createTask.isPending}
+            disabled={!title.trim() || isPending}
             className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500/90 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-500 disabled:opacity-50"
             data-testid="button-submit-create"
           >
-            {createTask.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create task
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEdit ? "Save changes" : "Create task"}
           </button>
         </div>
       </form>
@@ -567,48 +752,104 @@ function CreateTaskDialog({
   );
 }
 
+function ActionButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  tone = "default",
+  testId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "default" | "primary";
+  testId: string;
+}) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50";
+  const cls =
+    tone === "primary"
+      ? `${base} bg-emerald-500/90 text-white hover:bg-emerald-500`
+      : `${base} ops-card text-slate-200 hover:border-sky-500/40`;
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={cls} data-testid={testId}>
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function TaskDetailDialog({
   task,
+  crew,
+  vessels,
   crewName,
   vesselName,
   canEdit,
   canDelete,
+  onOpenCrewProfile,
   onClose,
   onDeleted,
 }: {
   task: CrewTaskView;
+  crew: CrewOption[];
+  vessels: VesselOption[];
   crewName: Map<string, string>;
   vesselName: Map<string, string>;
   canEdit: boolean;
   canDelete: boolean;
+  onOpenCrewProfile?: (crewId: string) => void;
   onClose: () => void;
   onDeleted: () => void;
 }) {
   const { toast } = useToast();
   const updateTask = useUpdateCrewTask();
   const deleteTask = useDeleteCrewTask();
-  const [status, setStatus] = useState<CrewTaskStatus>(task.status);
-  const [blockedReason, setBlockedReason] = useState(task.blockedReason ?? "");
+  const { data: events = [], isLoading: eventsLoading } = useCrewTaskEvents(task.id);
+  const addComment = useAddCrewTaskComment(task.id);
+
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [comment, setComment] = useState("");
 
   const due = dueLabel(task.dueDate);
-  const dirty =
-    status !== task.status ||
-    (status === "blocked" && blockedReason.trim() !== (task.blockedReason ?? "").trim());
 
-  const saveStatus = () => {
+  const setStatus = (status: CrewTaskStatus, blockedReason?: string) => {
     updateTask.mutate(
       {
         id: task.id,
         patch: {
           status,
-          blockedReason: status === "blocked" ? blockedReason.trim() || null : null,
+          blockedReason: status === "blocked" ? blockedReason ?? null : null,
         },
       },
       {
         onSuccess: () => toast({ title: "Task updated" }),
         onError: () =>
           toast({ title: "Could not update task", variant: "destructive" }),
+      },
+    );
+  };
+
+  const block = () => {
+    const reason = window.prompt("Why is this task blocked?")?.trim();
+    if (reason === undefined) return;
+    setStatus("blocked", reason || undefined);
+  };
+
+  const reassign = (crewId: string) => {
+    updateTask.mutate(
+      { id: task.id, patch: { assignedCrewId: crewId || null } },
+      {
+        onSuccess: () => {
+          setReassignOpen(false);
+          toast({ title: "Task reassigned" });
+        },
+        onError: () =>
+          toast({ title: "Could not reassign", variant: "destructive" }),
       },
     );
   };
@@ -621,9 +862,53 @@ function TaskDetailDialog({
     });
   };
 
+  const submitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = comment.trim();
+    if (!text) return;
+    addComment.mutate(text, {
+      onSuccess: () => setComment(""),
+      onError: () =>
+        toast({ title: "Could not add comment", variant: "destructive" }),
+    });
+  };
+
+  if (editOpen) {
+    return (
+      <TaskFormDialog
+        task={task}
+        crew={crew}
+        vessels={vessels}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          setEditOpen(false);
+          toast({ title: "Task updated" });
+        }}
+      />
+    );
+  }
+
   return (
     <Overlay onClose={onClose} title={task.title} testId="dialog-task-detail">
       <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[task.status]}`}>
+            {statusLabel(task.status)}
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_TONE[task.priority]}`}>
+            {priorityLabel(task.priority)}
+          </span>
+          {task.assignedCrewId && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-slate-500/15 px-2 py-0.5 text-[11px] text-slate-200"
+              data-testid="chip-detail-crew"
+            >
+              <User className="h-3 w-3" />
+              {crewName.get(task.assignedCrewId) ?? "Unknown"}
+            </span>
+          )}
+        </div>
+
         {task.description && (
           <p className="text-sm text-slate-300" data-testid="text-detail-description">
             {task.description}
@@ -632,17 +917,13 @@ function TaskDetailDialog({
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-xs text-slate-400">Priority</p>
-            <p className="font-medium text-white">{priorityLabel(task.priority)}</p>
-          </div>
-          <div>
             <p className="text-xs text-slate-400">Due</p>
             <p className="font-medium text-white">{due ?? "—"}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Assignee</p>
-            <p className="font-medium text-white">
-              {task.assignedCrewId ? crewName.get(task.assignedCrewId) ?? "Unknown" : "Unassigned"}
+            <p className="text-xs text-slate-400">Owner</p>
+            <p className="font-medium text-white" data-testid="text-detail-owner">
+              {task.assignedTo || "—"}
             </p>
           </div>
           <div>
@@ -651,38 +932,151 @@ function TaskDetailDialog({
               {task.vesselId ? vesselName.get(task.vesselId) ?? "Vessel" : "—"}
             </p>
           </div>
+          <div>
+            <p className="text-xs text-slate-400">Crew member</p>
+            <p className="font-medium text-white">
+              {task.assignedCrewId
+                ? crewName.get(task.assignedCrewId) ?? "Unknown"
+                : "Unassigned"}
+            </p>
+          </div>
         </div>
 
-        <Field label="Status">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as CrewTaskStatus)}
-            disabled={!canEdit}
-            className={inputClass}
-            data-testid="select-detail-status"
-          >
-            {CREW_TASK_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {statusLabel(s)}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {task.status === "blocked" && task.blockedReason && (
+          <div className="rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-200" data-testid="text-detail-blocked">
+            Blocked: {task.blockedReason}
+          </div>
+        )}
 
-        {status === "blocked" && (
-          <Field label="Blocked reason">
-            <input
-              value={blockedReason}
-              onChange={(e) => setBlockedReason(e.target.value)}
-              disabled={!canEdit}
-              className={inputClass}
-              placeholder="Why is this blocked?"
-              data-testid="input-detail-blocked-reason"
+        {task.linkedSourceId && (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2"
+            data-testid="detail-linked-source"
+          >
+            <Link2 className="h-4 w-4 text-sky-300" />
+            <div className="min-w-0">
+              <p className="text-xs text-slate-400">Linked source</p>
+              <p className="truncate text-sm font-medium text-white">
+                {task.linkedSourceLabel ?? "Linked document"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {task.assignedCrewId && onOpenCrewProfile && (
+          <button
+            type="button"
+            onClick={() => onOpenCrewProfile(task.assignedCrewId as string)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-300 hover:text-sky-200"
+            data-testid="button-open-crew-profile"
+          >
+            <ExternalLink className="h-4 w-4" /> Open crew profile
+          </button>
+        )}
+
+        {canEdit && (
+          <div className="flex flex-wrap gap-2" data-testid="task-actions">
+            {task.status !== "in_progress" && task.status !== "done" && (
+              <ActionButton
+                icon={<Play className="h-4 w-4" />}
+                label="Start"
+                onClick={() => setStatus("in_progress")}
+                disabled={updateTask.isPending}
+                testId="button-action-start"
+              />
+            )}
+            {task.status !== "blocked" && task.status !== "done" && (
+              <ActionButton
+                icon={<Ban className="h-4 w-4" />}
+                label="Block"
+                onClick={block}
+                disabled={updateTask.isPending}
+                testId="button-action-block"
+              />
+            )}
+            <ActionButton
+              icon={<UserCog className="h-4 w-4" />}
+              label="Reassign"
+              onClick={() => setReassignOpen((v) => !v)}
+              disabled={updateTask.isPending}
+              testId="button-action-reassign"
             />
+            {task.status !== "done" && (
+              <ActionButton
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                label="Complete"
+                onClick={() => setStatus("done")}
+                disabled={updateTask.isPending}
+                tone="primary"
+                testId="button-action-complete"
+              />
+            )}
+          </div>
+        )}
+
+        {reassignOpen && canEdit && (
+          <Field label="Reassign to">
+            <select
+              defaultValue={task.assignedCrewId ?? ""}
+              onChange={(e) => reassign(e.target.value)}
+              className={inputClass}
+              data-testid="select-reassign"
+            >
+              <option value="">Unassigned</option>
+              {crew.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </Field>
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="border-t border-slate-700 pt-3">
+          <h4 className="mb-2 text-sm font-semibold text-slate-200">Activity log</h4>
+          {eventsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-400" data-testid="events-loading">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading activity…
+            </div>
+          ) : events.length === 0 ? (
+            <p className="text-sm text-slate-400" data-testid="events-empty">
+              No activity yet.
+            </p>
+          ) : (
+            <ul className="space-y-2" data-testid="event-list">
+              {events.map((ev) => (
+                <ActivityEntry key={ev.id} event={ev} />
+              ))}
+            </ul>
+          )}
+
+          {canEdit && (
+            <form onSubmit={submitComment} className="mt-3 flex items-start gap-2">
+              <MessageSquare className="mt-2.5 h-4 w-4 shrink-0 text-slate-500" />
+              <input
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Add a comment…"
+                className={inputClass}
+                data-testid="input-comment"
+              />
+              <button
+                type="submit"
+                disabled={!comment.trim() || addComment.isPending}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-sky-500/90 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+                data-testid="button-add-comment"
+              >
+                {addComment.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Post"
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-slate-700 pt-3">
           {canDelete ? (
             confirmDelete ? (
               <div className="flex items-center gap-2">
@@ -726,18 +1120,46 @@ function TaskDetailDialog({
           {canEdit && (
             <button
               type="button"
-              onClick={saveStatus}
-              disabled={!dirty || updateTask.isPending}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500/90 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
-              data-testid="button-save-status"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl ops-card px-3 py-2 text-sm font-medium text-slate-200 hover:border-sky-500/40"
+              data-testid="button-edit-task"
             >
-              {updateTask.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save
+              <Pencil className="h-4 w-4" /> Edit
             </button>
           )}
         </div>
       </div>
     </Overlay>
+  );
+}
+
+function ActivityEntry({ event }: { event: CrewTaskEventView }) {
+  const when = event.createdAt
+    ? new Date(event.createdAt).toLocaleString()
+    : "";
+  const isComment = event.eventType === "comment";
+  return (
+    <li className="flex gap-2 text-sm" data-testid={`event-${event.id}`}>
+      <div
+        className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+          isComment ? "bg-sky-400" : "bg-slate-500"
+        }`}
+      />
+      <div className="min-w-0">
+        <p className="text-slate-200">
+          {!isComment && (
+            <span className="mr-1 font-medium text-slate-400">
+              {eventTypeLabel(event.eventType)}:
+            </span>
+          )}
+          {event.message}
+        </p>
+        <p className="text-[11px] text-slate-500">
+          {event.actorName ? `${event.actorName} · ` : ""}
+          {when}
+        </p>
+      </div>
+    </li>
   );
 }
 

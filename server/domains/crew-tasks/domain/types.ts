@@ -14,9 +14,40 @@ export interface CrewTaskEntity {
   priority: string;
   dueDate: Date | null;
   blockedReason: string | null;
+  /** Owner/actor responsible — distinct from the crew member it is about. */
+  assignedTo: string | null;
+  /** Optional link to an existing crew document / certificate. */
+  linkedSourceType: string | null;
+  linkedSourceId: string | null;
+  linkedSourceLabel: string | null;
   createdBy: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+}
+
+/** An activity-log entry: an auto system event or a user comment. */
+export interface CrewTaskEventEntity {
+  id: string;
+  orgId: string;
+  taskId: string;
+  eventType: string;
+  message: string;
+  actorId: string | null;
+  actorName: string | null;
+  actorRole: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date | null;
+}
+
+export interface CreateCrewTaskEventCommand {
+  orgId: string;
+  taskId: string;
+  eventType: string;
+  message: string;
+  actorId?: string | undefined;
+  actorName?: string | undefined;
+  actorRole?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 /** Who triggered a mutation — used for audit trail + notifications. */
@@ -36,6 +67,10 @@ export interface CreateCrewTaskCommand {
   priority?: string | undefined;
   dueDate?: string | undefined;
   blockedReason?: string | undefined;
+  assignedTo?: string | undefined;
+  linkedSourceType?: string | undefined;
+  linkedSourceId?: string | undefined;
+  linkedSourceLabel?: string | undefined;
   createdBy?: string | undefined;
 }
 
@@ -52,6 +87,10 @@ export interface UpdateCrewTaskCommand {
   priority?: string | undefined;
   dueDate?: string | null | undefined;
   blockedReason?: string | null | undefined;
+  assignedTo?: string | null | undefined;
+  linkedSourceType?: string | null | undefined;
+  linkedSourceId?: string | null | undefined;
+  linkedSourceLabel?: string | null | undefined;
 }
 
 export interface ListCrewTasksFilters {

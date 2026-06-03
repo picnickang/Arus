@@ -7,20 +7,33 @@
  * broadcast must not roll back the task mutation that triggered it.
  */
 
-import type { ICrewTaskEffects } from "../domain/ports";
-import type { CrewTaskEntity, CrewTaskActor } from "../domain/types";
+import type {
+  ICrewTaskEffects,
+  ICrewTaskEventRepository,
+} from "../domain/ports";
+import type {
+  CrewTaskEntity,
+  CrewTaskActor,
+  CrewTaskEventEntity,
+} from "../domain/types";
 import { db } from "../../../db";
 import { crew, notificationQueue } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import { auditService, type AuditEventType } from "../../../compliance/immutable-audit";
 import { getWebSocketServer } from "../../../websocket-server";
 import { log } from "../../../lib/structured-logger";
+import { crewTaskEventRepository } from "./crew-task-event-repository-adapter";
 
 type AssignmentNoticeKind = "assignment" | "status";
 
 export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
+  constructor(
+    private readonly eventRepo: ICrewTaskEventRepository = crewTaskEventRepository,
+  ) {}
+
   async onCreated(task: CrewTaskEntity, actor?: CrewTaskActor): Promise<void> {
     await this.audit("create", task, actor, undefined, this.snapshot(task), []);
+    await this.recordEvent(task, "created", "Task created", actor);
     this.broadcast("crew_task.created", task);
     if (task.assignedCrewId) {
       await this.enqueueAssignmentNotice(task, "assignment");
@@ -41,6 +54,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
       this.snapshot(after),
       changedFields,
     );
+    await this.recordChangeEvents(before, after, changedFields, actor);
     this.broadcast("crew_task.updated", after);
 
     const reassigned =
@@ -59,6 +73,108 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     this.broadcast("crew_task.deleted", task);
   }
 
+  async onCommented(
+    task: CrewTaskEntity,
+    event: CrewTaskEventEntity,
+    _actor?: CrewTaskActor,
+  ): Promise<void> {
+    this.broadcast("crew_task.commented", task, { eventId: event.id });
+  }
+
+  /** Persist auto system events for the meaningful field changes. */
+  private async recordChangeEvents(
+    before: CrewTaskEntity,
+    after: CrewTaskEntity,
+    changedFields: string[],
+    actor?: CrewTaskActor,
+  ): Promise<void> {
+    if (changedFields.includes("status")) {
+      await this.recordEvent(
+        after,
+        "status_changed",
+        `Status changed from "${before.status}" to "${after.status}"`,
+        actor,
+        { from: before.status, to: after.status },
+      );
+    }
+    if (changedFields.includes("assignedCrewId")) {
+      const name = await this.crewName(after.orgId, after.assignedCrewId);
+      const message = after.assignedCrewId
+        ? `Reassigned to ${name ?? "a crew member"}`
+        : "Unassigned";
+      await this.recordEvent(after, "reassigned", message, actor, {
+        from: before.assignedCrewId,
+        to: after.assignedCrewId,
+      });
+    }
+    if (changedFields.includes("assignedTo")) {
+      const message = after.assignedTo
+        ? `Owner set to ${after.assignedTo}`
+        : "Owner cleared";
+      await this.recordEvent(after, "owner_changed", message, actor, {
+        from: before.assignedTo,
+        to: after.assignedTo,
+      });
+    }
+    if (
+      changedFields.includes("linkedSourceId") ||
+      changedFields.includes("linkedSourceType")
+    ) {
+      const message = after.linkedSourceId
+        ? `Linked to ${after.linkedSourceLabel ?? after.linkedSourceType ?? "a source"}`
+        : "Linked source removed";
+      await this.recordEvent(after, "linked_source", message, actor, {
+        type: after.linkedSourceType,
+        id: after.linkedSourceId,
+        label: after.linkedSourceLabel,
+      });
+    }
+  }
+
+  private async recordEvent(
+    task: CrewTaskEntity,
+    eventType: string,
+    message: string,
+    actor: CrewTaskActor | undefined,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.eventRepo.add({
+        orgId: task.orgId,
+        taskId: task.id,
+        eventType,
+        message,
+        actorId: actor?.id,
+        actorName: actor?.name,
+        actorRole: actor?.role,
+        metadata,
+      });
+    } catch (err) {
+      log("warn", "CrewTasks", "activity event write failed", {
+        taskId: task.id,
+        eventType,
+        error: String(err),
+      });
+    }
+  }
+
+  private async crewName(
+    orgId: string,
+    crewId: string | null,
+  ): Promise<string | null> {
+    if (!crewId) return null;
+    try {
+      const [member] = await db
+        .select({ name: crew.name })
+        .from(crew)
+        .where(and(eq(crew.orgId, orgId), eq(crew.id, crewId)))
+        .limit(1);
+      return member?.name ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private snapshot(task: CrewTaskEntity): Record<string, unknown> {
     return {
       id: task.id,
@@ -70,6 +186,10 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
       priority: task.priority,
       dueDate: task.dueDate ? task.dueDate.toISOString() : null,
       blockedReason: task.blockedReason,
+      assignedTo: task.assignedTo,
+      linkedSourceType: task.linkedSourceType,
+      linkedSourceId: task.linkedSourceId,
+      linkedSourceLabel: task.linkedSourceLabel,
     };
   }
 
@@ -105,9 +225,17 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     }
   }
 
-  private broadcast(channel: string, task: CrewTaskEntity): void {
+  private broadcast(
+    channel: string,
+    task: CrewTaskEntity,
+    extra?: Record<string, unknown>,
+  ): void {
     try {
-      getWebSocketServer()?.broadcast(channel, { task }, task.orgId);
+      getWebSocketServer()?.broadcast(
+        channel,
+        { task, ...extra },
+        task.orgId,
+      );
     } catch (err) {
       log("warn", "CrewTasks", "broadcast failed", {
         taskId: task.id,

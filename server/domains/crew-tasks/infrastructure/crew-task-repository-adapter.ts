@@ -63,6 +63,10 @@ export class CrewTaskRepositoryAdapter implements ICrewTaskRepository {
       priority: command.priority ?? "medium",
       dueDate: command.dueDate ? new Date(command.dueDate) : null,
       blockedReason: command.blockedReason ?? null,
+      assignedTo: command.assignedTo ?? null,
+      linkedSourceType: command.linkedSourceType ?? null,
+      linkedSourceId: command.linkedSourceId ?? null,
+      linkedSourceLabel: command.linkedSourceLabel ?? null,
       createdBy: command.createdBy ?? null,
     };
 
@@ -94,6 +98,14 @@ export class CrewTaskRepositoryAdapter implements ICrewTaskRepository {
       updateValues.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
     if (patch.blockedReason !== undefined)
       updateValues.blockedReason = patch.blockedReason;
+    if (patch.assignedTo !== undefined)
+      updateValues.assignedTo = patch.assignedTo;
+    if (patch.linkedSourceType !== undefined)
+      updateValues.linkedSourceType = patch.linkedSourceType;
+    if (patch.linkedSourceId !== undefined)
+      updateValues.linkedSourceId = patch.linkedSourceId;
+    if (patch.linkedSourceLabel !== undefined)
+      updateValues.linkedSourceLabel = patch.linkedSourceLabel;
 
     const [updated] = await db
       .update(crewTasks)
@@ -124,6 +136,10 @@ export class CrewTaskRepositoryAdapter implements ICrewTaskRepository {
       priority: row.priority,
       dueDate: row.dueDate,
       blockedReason: row.blockedReason,
+      assignedTo: row.assignedTo,
+      linkedSourceType: row.linkedSourceType,
+      linkedSourceId: row.linkedSourceId,
+      linkedSourceLabel: row.linkedSourceLabel,
       createdBy: row.createdBy,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

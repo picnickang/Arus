@@ -9,8 +9,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { CrewTaskStatus, CrewTaskPriority } from "@shared/schema";
-import type { CrewTaskView } from "../lib/crewTaskUtils";
+import type {
+  CrewTaskStatus,
+  CrewTaskPriority,
+  CrewTaskLinkedSourceType,
+} from "@shared/schema";
+import type { CrewTaskView, CrewTaskEventView } from "../lib/crewTaskUtils";
 
 const TASKS_KEY = "/api/crew-tasks";
 const ME_TASKS_KEY = "/api/me/tasks";
@@ -61,6 +65,10 @@ export interface CreateCrewTaskInput {
   priority?: CrewTaskPriority;
   dueDate?: string;
   blockedReason?: string;
+  assignedTo?: string;
+  linkedSourceType?: CrewTaskLinkedSourceType;
+  linkedSourceId?: string;
+  linkedSourceLabel?: string;
 }
 
 export interface UpdateCrewTaskInput {
@@ -72,6 +80,10 @@ export interface UpdateCrewTaskInput {
   priority?: CrewTaskPriority;
   dueDate?: string | null;
   blockedReason?: string | null;
+  assignedTo?: string | null;
+  linkedSourceType?: CrewTaskLinkedSourceType | null;
+  linkedSourceId?: string | null;
+  linkedSourceLabel?: string | null;
 }
 
 function invalidateTaskQueries(client: ReturnType<typeof useQueryClient>) {
@@ -105,7 +117,36 @@ export function useDeleteCrewTask() {
   });
 }
 
+/** Activity log (system events + comments) for a single task. */
+export function useCrewTaskEvents(id: string | null) {
+  return useQuery<CrewTaskEventView[]>({
+    queryKey: [TASKS_KEY, id, "events"],
+    queryFn: () => apiRequest<CrewTaskEventView[]>(`${TASKS_KEY}/${id}/events`),
+    enabled: Boolean(id),
+  });
+}
+
+export function useAddCrewTaskComment(id: string | null) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (message: string) =>
+      apiRequest<CrewTaskEventView>(
+        "POST",
+        `${TASKS_KEY}/${id}/comments`,
+        { message },
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: [TASKS_KEY, id, "events"] });
+    },
+  });
+}
+
 /** Imperative invalidation for WebSocket-driven live refresh. */
 export function invalidateCrewTasks() {
   invalidateTaskQueries(queryClient);
+}
+
+/** Invalidate one task's activity log (WebSocket-driven live refresh). */
+export function invalidateCrewTaskEvents(id: string) {
+  queryClient.invalidateQueries({ queryKey: [TASKS_KEY, id, "events"] });
 }

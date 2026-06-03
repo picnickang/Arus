@@ -266,6 +266,10 @@ export function UnifiedCrewManagement({
             canEdit={perms.canManageCrew}
             canDelete={perms.canDeleteCrew}
             initialTaskId={deepLinkTaskId}
+            onOpenCrewProfile={(crewId) => {
+              const member = d.crew.find((c) => c.id === crewId);
+              if (member) d.handleViewProfile(member);
+            }}
             onBack={() => setLocation("/crew-management")}
           />
         )}

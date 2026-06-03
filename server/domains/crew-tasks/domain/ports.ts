@@ -9,6 +9,8 @@ import type {
   UpdateCrewTaskCommand,
   ListCrewTasksFilters,
   CrewTaskActor,
+  CrewTaskEventEntity,
+  CreateCrewTaskEventCommand,
 } from "./types";
 
 export interface ICrewTaskRepository {
@@ -30,6 +32,13 @@ export interface ICrewTaskRepository {
   delete(orgId: string, id: string): Promise<boolean>;
 }
 
+/** Activity-log persistence (auto system events + user comments). */
+export interface ICrewTaskEventRepository {
+  listByTask(orgId: string, taskId: string): Promise<CrewTaskEventEntity[]>;
+
+  add(command: CreateCrewTaskEventCommand): Promise<CrewTaskEventEntity>;
+}
+
 /**
  * Side effects fired after a successful mutation: audit trail, assignee
  * notifications, and websocket broadcast. Implementations MUST be
@@ -47,4 +56,11 @@ export interface ICrewTaskEffects {
   ): Promise<void>;
 
   onDeleted(task: CrewTaskEntity, actor?: CrewTaskActor): Promise<void>;
+
+  /** A user comment was added — broadcast so open detail views refresh. */
+  onCommented(
+    task: CrewTaskEntity,
+    event: CrewTaskEventEntity,
+    actor?: CrewTaskActor,
+  ): Promise<void>;
 }

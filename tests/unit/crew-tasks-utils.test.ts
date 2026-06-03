@@ -174,7 +174,9 @@ describe("labels", () => {
   });
 
   it("humanises priority", () => {
-    expect(priorityLabel("urgent")).toBe("Urgent");
+    expect(priorityLabel("urgent")).toBe("Critical");
+    expect(priorityLabel("high")).toBe("High");
+    expect(priorityLabel("medium")).toBe("Normal");
     expect(priorityLabel("low")).toBe("Low");
   });
 

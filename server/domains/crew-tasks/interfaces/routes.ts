@@ -19,7 +19,11 @@ import {
   sendDeleted,
   sendNotFound,
 } from "../../../lib/route-utils";
-import { CREW_TASK_STATUSES, CREW_TASK_PRIORITIES } from "@shared/schema";
+import {
+  CREW_TASK_STATUSES,
+  CREW_TASK_PRIORITIES,
+  CREW_TASK_LINKED_SOURCE_TYPES,
+} from "@shared/schema";
 import type { CrewTaskActor } from "../domain/types";
 
 const statusEnum = z.enum(
@@ -27,6 +31,10 @@ const statusEnum = z.enum(
 );
 const priorityEnum = z.enum(
   CREW_TASK_PRIORITIES as readonly [string, ...string[]],
+);
+
+const linkedSourceTypeEnum = z.enum(
+  CREW_TASK_LINKED_SOURCE_TYPES as readonly [string, ...string[]],
 );
 
 const createTaskSchema = z.object({
@@ -38,6 +46,10 @@ const createTaskSchema = z.object({
   priority: priorityEnum.optional(),
   dueDate: z.string().optional(),
   blockedReason: z.string().optional(),
+  assignedTo: z.string().optional(),
+  linkedSourceType: linkedSourceTypeEnum.optional(),
+  linkedSourceId: z.string().min(1).optional(),
+  linkedSourceLabel: z.string().optional(),
 });
 
 const updateTaskSchema = z
@@ -50,10 +62,18 @@ const updateTaskSchema = z
     priority: priorityEnum.optional(),
     dueDate: z.string().nullable().optional(),
     blockedReason: z.string().nullable().optional(),
+    assignedTo: z.string().nullable().optional(),
+    linkedSourceType: linkedSourceTypeEnum.nullable().optional(),
+    linkedSourceId: z.string().min(1).nullable().optional(),
+    linkedSourceLabel: z.string().nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field is required",
   });
+
+const addCommentSchema = z.object({
+  message: z.string().min(1).max(5000),
+});
 
 function actorFrom(req: Request): CrewTaskActor {
   const user = (req as AuthenticatedRequest).user;
@@ -176,5 +196,51 @@ export function registerCrewTaskRoutes(
       }
       return sendDeleted(res);
     }),
+  );
+
+  app.get(
+    "/api/crew-tasks/:id/events",
+    requireOrgId,
+    requirePermission("crew_members", "view"),
+    generalApiRateLimit,
+    withErrorHandling(
+      "list crew task events",
+      async (req: Request, res: Response) => {
+        const orgId = (req as AuthenticatedRequest).orgId;
+        const task = await crewTaskService.getTask(orgId, req.params["id"]);
+        if (!task) {
+          return sendNotFound(res, "Crew task");
+        }
+        const events = await crewTaskService.listEvents(
+          orgId,
+          req.params["id"],
+        );
+        return res.json(events);
+      },
+    ),
+  );
+
+  app.post(
+    "/api/crew-tasks/:id/comments",
+    requireOrgId,
+    requirePermission("crew_members", "edit"),
+    writeLimit,
+    withErrorHandling(
+      "add crew task comment",
+      async (req: Request, res: Response) => {
+        const orgId = (req as AuthenticatedRequest).orgId;
+        const { message } = addCommentSchema.parse(req.body);
+        const event = await crewTaskService.addComment(
+          orgId,
+          req.params["id"],
+          message,
+          actorFrom(req),
+        );
+        if (!event) {
+          return sendNotFound(res, "Crew task");
+        }
+        return sendCreated(res, event);
+      },
+    ),
   );
 }
