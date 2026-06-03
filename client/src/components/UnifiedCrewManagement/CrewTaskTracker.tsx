@@ -75,6 +75,13 @@ interface CrewDocumentItem {
   documentNumber: string | null;
 }
 
+/** Minimal shape of `/api/certificates?vesselId=` we use for linking. */
+interface CertificateItem {
+  id: string;
+  certificateName: string;
+  certificateNumber: string | null;
+}
+
 interface CrewTaskTrackerProps {
   crew: CrewOption[];
   vessels: VesselOption[];
@@ -122,6 +129,17 @@ function humanizeType(value: string): string {
 function documentLabel(doc: CrewDocumentItem): string {
   const type = humanizeType(doc.documentType);
   return doc.documentNumber ? `${type} · ${doc.documentNumber}` : type;
+}
+
+function certificateLabel(cert: CertificateItem): string {
+  return cert.certificateNumber
+    ? `${cert.certificateName} · ${cert.certificateNumber}`
+    : cert.certificateName;
+}
+
+/** Composite picker value, e.g. "crew_document:<id>" or "certificate:<id>". */
+function sourceKey(type: string, id: string): string {
+  return `${type}:${id}`;
 }
 
 function StatCard({
@@ -526,24 +544,81 @@ function TaskFormDialog({
   const [dueDate, setDueDate] = useState(
     task?.dueDate ? task.dueDate.slice(0, 10) : "",
   );
-  const [linkedSourceId, setLinkedSourceId] = useState(task?.linkedSourceId ?? "");
+  // Composite key "type:id" so one picker can offer both crew documents and
+  // vessel certificates. Empty string = no link.
+  const initialSourceKey =
+    task?.linkedSourceType && task?.linkedSourceId
+      ? sourceKey(task.linkedSourceType, task.linkedSourceId)
+      : "";
+  const [linkedKey, setLinkedKey] = useState(initialSourceKey);
 
-  // Load the chosen crew member's documents so we can offer them as a
-  // linkable source (and snapshot the label at save time).
+  // Load the chosen crew member's documents and the chosen vessel's
+  // certificates so we can offer either as a linkable source (snapshotting
+  // the label at save time).
   const { data: documents = [] } = useQuery<CrewDocumentItem[]>({
     queryKey: ["/api/crew", assignedCrewId, "documents"],
     queryFn: () =>
       apiRequest<CrewDocumentItem[]>(`/api/crew/${assignedCrewId}/documents`),
     enabled: Boolean(assignedCrewId),
   });
+  const { data: certificates = [] } = useQuery<CertificateItem[]>({
+    queryKey: ["/api/certificates", { vesselId }],
+    queryFn: () =>
+      apiRequest<CertificateItem[]>(`/api/certificates?vesselId=${vesselId}`),
+    enabled: Boolean(vesselId),
+  });
 
   const isPending = createTask.isPending || updateTask.isPending;
+
+  /**
+   * Resolve the picker's composite key into the three stored link fields.
+   * Returns `null` when the key can't be resolved to a loaded item (e.g. it
+   * points at an item not in the currently fetched lists) so callers can
+   * choose to leave the existing link untouched rather than corrupt it.
+   */
+  const resolveLink = (
+    key: string,
+  ):
+    | Pick<
+        UpdateCrewTaskInput,
+        "linkedSourceType" | "linkedSourceId" | "linkedSourceLabel"
+      >
+    | null => {
+    if (!key) {
+      return {
+        linkedSourceType: null,
+        linkedSourceId: null,
+        linkedSourceLabel: null,
+      };
+    }
+    const [type, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+    if (type === "crew_document") {
+      const doc = documents.find((d) => d.id === id);
+      return doc
+        ? {
+            linkedSourceType: "crew_document",
+            linkedSourceId: doc.id,
+            linkedSourceLabel: documentLabel(doc),
+          }
+        : null;
+    }
+    if (type === "certificate") {
+      const cert = certificates.find((c) => c.id === id);
+      return cert
+        ? {
+            linkedSourceType: "certificate",
+            linkedSourceId: cert.id,
+            linkedSourceLabel: certificateLabel(cert),
+          }
+        : null;
+    }
+    return null;
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const linkedDoc = documents.find((d) => d.id === linkedSourceId);
     const onError = () =>
       toast({
         title: isEdit ? "Could not update task" : "Could not create task",
@@ -553,29 +628,11 @@ function TaskFormDialog({
     if (isEdit && task) {
       // Only touch linked-source fields when the user actually changed the
       // picker — otherwise an unrelated edit (or a link this picker can't
-      // represent, e.g. a certificate) would be silently cleared.
-      const linkChanged = linkedSourceId !== (task.linkedSourceId ?? "");
-      let linkPatch: Partial<
-        Pick<
-          UpdateCrewTaskInput,
-          "linkedSourceType" | "linkedSourceId" | "linkedSourceLabel"
-        >
-      > = {};
-      if (linkChanged) {
-        if (!linkedSourceId) {
-          linkPatch = {
-            linkedSourceType: null,
-            linkedSourceId: null,
-            linkedSourceLabel: null,
-          };
-        } else if (linkedDoc) {
-          linkPatch = {
-            linkedSourceType: "crew_document",
-            linkedSourceId: linkedDoc.id,
-            linkedSourceLabel: documentLabel(linkedDoc),
-          };
-        }
-      }
+      // represent right now, e.g. its vessel/crew isn't loaded) would be
+      // silently cleared.
+      const linkChanged = linkedKey !== initialSourceKey;
+      const resolved = linkChanged ? resolveLink(linkedKey) : null;
+      const linkPatch = resolved ?? {};
       updateTask.mutate(
         {
           id: task.id,
@@ -595,6 +652,15 @@ function TaskFormDialog({
       return;
     }
 
+    const resolved = resolveLink(linkedKey);
+    const linkFields =
+      resolved && resolved.linkedSourceId
+        ? {
+            linkedSourceType: resolved.linkedSourceType ?? undefined,
+            linkedSourceId: resolved.linkedSourceId,
+            linkedSourceLabel: resolved.linkedSourceLabel ?? undefined,
+          }
+        : {};
     createTask.mutate(
       {
         title: title.trim(),
@@ -604,11 +670,7 @@ function TaskFormDialog({
         ...(assignedTo.trim() && { assignedTo: assignedTo.trim() }),
         ...(vesselId && { vesselId }),
         ...(dueDate && { dueDate: new Date(dueDate).toISOString() }),
-        ...(linkedDoc && {
-          linkedSourceType: "crew_document" as const,
-          linkedSourceId: linkedDoc.id,
-          linkedSourceLabel: documentLabel(linkedDoc),
-        }),
+        ...linkFields,
       },
       { onSuccess: onSaved, onError },
     );
@@ -672,7 +734,8 @@ function TaskFormDialog({
               value={assignedCrewId}
               onChange={(e) => {
                 setAssignedCrewId(e.target.value);
-                setLinkedSourceId("");
+                // A document link belongs to the previous crew member — drop it.
+                if (linkedKey.startsWith("crew_document:")) setLinkedKey("");
               }}
               className={inputClass}
               data-testid="select-task-assignee"
@@ -698,7 +761,11 @@ function TaskFormDialog({
         <Field label="Vessel">
           <select
             value={vesselId}
-            onChange={(e) => setVesselId(e.target.value)}
+            onChange={(e) => {
+              setVesselId(e.target.value);
+              // A certificate link belongs to the previous vessel — drop it.
+              if (linkedKey.startsWith("certificate:")) setLinkedKey("");
+            }}
             className={inputClass}
             data-testid="select-task-vessel"
           >
@@ -710,22 +777,43 @@ function TaskFormDialog({
             ))}
           </select>
         </Field>
-        <Field label="Linked source (crew document)">
+        <Field label="Linked source (crew document or vessel certificate)">
           <select
-            value={linkedSourceId}
-            onChange={(e) => setLinkedSourceId(e.target.value)}
-            disabled={!assignedCrewId}
+            value={linkedKey}
+            onChange={(e) => setLinkedKey(e.target.value)}
+            disabled={!assignedCrewId && !vesselId}
             className={inputClass}
             data-testid="select-task-linked-source"
           >
             <option value="">
-              {assignedCrewId ? "None" : "Pick a crew member first"}
+              {assignedCrewId || vesselId
+                ? "None"
+                : "Pick a crew member or vessel first"}
             </option>
-            {documents.map((d) => (
-              <option key={d.id} value={d.id}>
-                {documentLabel(d)}
-              </option>
-            ))}
+            {documents.length > 0 && (
+              <optgroup label="Crew documents">
+                {documents.map((d) => (
+                  <option
+                    key={d.id}
+                    value={sourceKey("crew_document", d.id)}
+                  >
+                    {documentLabel(d)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {certificates.length > 0 && (
+              <optgroup label="Vessel certificates">
+                {certificates.map((c) => (
+                  <option
+                    key={c.id}
+                    value={sourceKey("certificate", c.id)}
+                  >
+                    {certificateLabel(c)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </Field>
         <div className="flex justify-end gap-2 pt-1">
