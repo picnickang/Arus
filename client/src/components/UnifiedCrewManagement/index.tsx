@@ -169,6 +169,13 @@ export function UnifiedCrewManagement({
 
   const attentionCount = combinedAttention.length;
 
+  // Deep-link from the personal me/tasks feed (`/crew-management?taskId=…`)
+  // opens the Tasks view with that task's detail pre-selected. Must run
+  // before any early return so hook order stays stable across renders.
+  useEffect(() => {
+    if (deepLinkTaskId && canViewTasks) setView("tasks");
+  }, [deepLinkTaskId, canViewTasks]);
+
   const perms: CrewRowPermissions = {
     canManageCrew: canEdit("crew_members"),
     canDeleteCrew: canDelete("crew_members"),
@@ -191,12 +198,6 @@ export function UnifiedCrewManagement({
     d.setSelectedStatus(status);
     setView("current");
   };
-
-  // Deep-link from the personal me/tasks feed (`/crew-management?taskId=…`)
-  // opens the Tasks view with that task's detail pre-selected.
-  useEffect(() => {
-    if (deepLinkTaskId && canViewTasks) setView("tasks");
-  }, [deepLinkTaskId, canViewTasks]);
 
   return (
     <div className="ops-surface -mx-4 -my-4 min-h-[70vh] rounded-none p-4 md:-mx-6 md:-my-6 md:p-6">
