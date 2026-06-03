@@ -20,10 +20,18 @@ import {
   FileText,
   KeyRound,
   ListChecks,
+  Camera,
+  ShieldCheck,
+  ShieldAlert,
+  Archive,
+  ArrowRightLeft,
+  CalendarClock,
 } from "lucide-react";
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
 import { CrewAccessTab } from "@/components/crew-admin/CrewAccessTab";
+import { CrewAvatar } from "@/components/UnifiedCrewManagement/crew-roster-shared";
+import { CrewPhotoModal } from "@/components/UnifiedCrewManagement/CrewPhotoModal";
 import type { CrewProfileTab } from "@/features/crew";
 import { useRoleNames } from "@/hooks/useRoleNames";
 import {
@@ -31,6 +39,10 @@ import {
   useUpdateEmploymentHistory,
   useDeleteEmploymentHistory,
   useCrewTasks,
+  useCrewDocumentsData,
+  crewStatusLabel,
+  employmentTypeLabel,
+  formatRotation,
   statusLabel,
   priorityLabel,
   dueLabel,
@@ -343,12 +355,145 @@ interface ViewingCrewMember {
   contractEndDate?: string | null;
   contractPenalty?: number | null;
   skills?: string[];
+  photoPath?: string | null;
+  crewCode?: string | null;
+  status?: string | null;
+  employmentType?: string | null;
+  reportsToId?: string | null;
+  rotationOnDays?: number | null;
+  rotationOffDays?: number | null;
 }
 
 interface CrewViewDialogContentProps {
   crew: ViewingCrewMember;
   vessels: Vessel[];
   initialTab?: CrewProfileTab;
+  reportsToName?: string | null;
+  canManage?: boolean;
+  onEdit?: () => void;
+  onAssign?: () => void;
+  onArchive?: () => void;
+}
+
+/**
+ * Compliance snapshot derived purely from the crew member's live documents
+ * (passport / medical / training endorsement) plus whether a profile photo is
+ * on file. No fabricated state — each badge reflects a real record's expiry.
+ */
+function ComplianceSnapshot({
+  crewId,
+  hasPhoto,
+}: {
+  crewId: string;
+  hasPhoto: boolean;
+}) {
+  const { documents, isLoading, getExpiryStatus } = useCrewDocumentsData(crewId);
+
+  const evaluate = (types: string[]) => {
+    const matches = documents.filter((doc) => types.includes(doc.documentType));
+    if (matches.length === 0) {
+      return { tone: "missing" as const, label: "Missing" };
+    }
+    // Worst-case across all matching docs decides the badge tone.
+    let worst: "ok" | "due" = "ok";
+    for (const doc of matches) {
+      const status = getExpiryStatus(doc.expiresAt);
+      if (status && status.level !== "ok") {
+        worst = "due";
+      }
+    }
+    return worst === "ok"
+      ? { tone: "ok" as const, label: "Valid" }
+      : { tone: "due" as const, label: "Due" };
+  };
+
+  const items = [
+    { key: "passport", title: "Passport", ...evaluate(["passport"]) },
+    { key: "medical", title: "Medical", ...evaluate(["medical"]) },
+    { key: "stcw", title: "STCW / Training", ...evaluate(["endorsement", "seaman_book"]) },
+    {
+      key: "photo",
+      title: "Photo",
+      tone: hasPhoto ? ("ok" as const) : ("missing" as const),
+      label: hasPhoto ? "On file" : "Missing",
+    },
+  ];
+
+  const toneClass: Record<"ok" | "due" | "missing", string> = {
+    ok: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    due: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    missing: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="compliance-snapshot">
+      {items.map((item) => (
+        <div
+          key={item.key}
+          className={`flex flex-col gap-1 rounded-lg border px-3 py-2 ${toneClass[item.tone]}`}
+          data-testid={`compliance-${item.key}`}
+        >
+          <span className="flex items-center gap-1 text-[11px] uppercase tracking-wide opacity-80">
+            {item.tone === "ok" ? (
+              <ShieldCheck className="h-3 w-3" />
+            ) : (
+              <ShieldAlert className="h-3 w-3" />
+            )}
+            {item.title}
+          </span>
+          <span className="text-sm font-semibold">
+            {isLoading && item.key !== "photo" ? "…" : item.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Current-assignment summary card shown at the top of the History tab. */
+function CurrentAssignmentCard({
+  crew,
+  vesselName,
+  reportsToName,
+}: {
+  crew: ViewingCrewMember;
+  vesselName: string;
+  reportsToName?: string | null;
+}) {
+  const rotation = formatRotation(crew.rotationOnDays, crew.rotationOffDays);
+  const reliefDue = crew.contractEndDate
+    ? format(new Date(crew.contractEndDate), "MMM d, yyyy")
+    : null;
+  return (
+    <Card data-testid="card-current-assignment">
+      <CardContent className="p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Ship className="h-4 w-4" />
+          Current assignment
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p className="text-xs text-muted-foreground">Vessel</p>
+            <p className="font-medium" data-testid="text-current-vessel">{vesselName}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Rotation</p>
+            <p className="font-medium" data-testid="text-current-rotation">{rotation ?? "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Reports to</p>
+            <p className="font-medium" data-testid="text-current-reports-to">{reportsToName || "Not set"}</p>
+          </div>
+          <div>
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarClock className="h-3 w-3" /> Relief / contract due
+            </p>
+            <p className="font-medium" data-testid="text-current-relief">{reliefDue ?? "Open-ended"}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"];
@@ -411,15 +556,118 @@ export function CrewViewDialogContent({
   crew,
   vessels,
   initialTab = "details",
+  reportsToName,
+  canManage = false,
+  onEdit,
+  onAssign,
+  onArchive,
 }: CrewViewDialogContentProps) {
   const { hasAnyRole } = useRoleNames();
   const isAdmin = hasAnyRole(...CREW_ADMIN_ROLES);
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const vesselName = vessels.find((v) => v.id === crew.vesselId)?.name || "Unassigned";
+  const rotation = formatRotation(crew.rotationOnDays, crew.rotationOffDays);
+
   return (
-    <Tabs defaultValue={initialTab}>
+    <div className="space-y-4">
+      {/* Profile header — photo, identity, status chips, fast actions. */}
+      <div className="flex flex-col gap-4 rounded-xl border bg-white/[0.02] p-4 sm:flex-row sm:items-start">
+        <div className="flex flex-col items-center gap-2">
+          <CrewAvatar id={crew.id} name={crew.name} photoPath={crew.photoPath} />
+          {canManage && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPhotoModalOpen(true)}
+              data-testid="button-change-photo"
+            >
+              <Camera className="mr-1.5 h-3.5 w-3.5" />
+              Change
+            </Button>
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div>
+            <p className="text-lg font-semibold" data-testid="text-profile-name">{crew.name}</p>
+            <p className="text-sm text-muted-foreground" data-testid="text-profile-subtitle">
+              {formatRank(crew.rank)} · {vesselName}
+              {crew.crewCode ? ` · ${crew.crewCode}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant={crew.active ? "default" : "secondary"} data-testid="chip-status">
+              {crew.active ? crewStatusLabel(crew.status) : "Inactive"}
+            </Badge>
+            <Badge variant={crew.onDuty ? "default" : "outline"} data-testid="chip-duty">
+              {crew.onDuty ? "On duty" : "Off duty"}
+            </Badge>
+            {crew.employmentType && (
+              <Badge variant="outline" data-testid="chip-employment-type">
+                {employmentTypeLabel(crew.employmentType)}
+              </Badge>
+            )}
+            {rotation && (
+              <Badge variant="outline" data-testid="chip-rotation">
+                {rotation}
+              </Badge>
+            )}
+          </div>
+          {canManage && (onEdit || onAssign || onArchive) && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {onEdit && (
+                <Button type="button" size="sm" variant="secondary" onClick={onEdit} data-testid="button-profile-edit">
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
+              {onAssign && (
+                <Button type="button" size="sm" variant="outline" onClick={onAssign} data-testid="button-profile-assign">
+                  <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Assign
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveTab("notifications")}
+                data-testid="button-profile-add-alert"
+              >
+                <Bell className="mr-1.5 h-3.5 w-3.5" /> Alerts
+              </Button>
+              {onArchive && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={onArchive}
+                  data-testid="button-profile-archive"
+                >
+                  <Archive className="mr-1.5 h-3.5 w-3.5" /> Archive
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Compliance snapshot — live document-derived status. */}
+      <ComplianceSnapshot crewId={crew.id} hasPhoto={Boolean(crew.photoPath)} />
+
+      <CrewPhotoModal
+        crewId={crew.id}
+        crewName={crew.name}
+        photoPath={crew.photoPath}
+        open={photoModalOpen}
+        onOpenChange={setPhotoModalOpen}
+      />
+
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="w-full flex-wrap h-auto">
         <TabsTrigger value="details" data-testid="tab-crew-details">
           <User className="h-4 w-4 mr-2" />
-          Details
+          Overview
         </TabsTrigger>
         <TabsTrigger value="history" data-testid="tab-crew-history">
           <History className="h-4 w-4 mr-2" />
@@ -459,7 +707,7 @@ export function CrewViewDialogContent({
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Status</p>
             <Badge variant={crew.active ? "default" : "secondary"}>
-              {crew.active ? "Active" : "Inactive"}
+              {crew.active ? crewStatusLabel(crew.status) : "Inactive"}
             </Badge>
           </div>
           <div className="space-y-1">
@@ -481,6 +729,24 @@ export function CrewViewDialogContent({
             <p className="font-medium" data-testid="text-crew-hourly-rate">
               {crew.hourlyRate ? `$${crew.hourlyRate.toFixed(2)}/hr` : "Not set"}
             </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Crew Code</p>
+            <p className="font-medium" data-testid="text-crew-code">{crew.crewCode || "Not set"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Employment Type</p>
+            <p className="font-medium" data-testid="text-employment-type">
+              {employmentTypeLabel(crew.employmentType)}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Reports To</p>
+            <p className="font-medium" data-testid="text-reports-to">{reportsToName || "Not set"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Rotation</p>
+            <p className="font-medium" data-testid="text-rotation">{rotation ?? "Not set"}</p>
           </div>
         </div>
 
@@ -565,7 +831,12 @@ export function CrewViewDialogContent({
           </div>
         )}
       </TabsContent>
-      <TabsContent value="history" className="mt-4">
+      <TabsContent value="history" className="mt-4 space-y-4">
+        <CurrentAssignmentCard
+          crew={crew}
+          vesselName={vesselName}
+          reportsToName={reportsToName}
+        />
         <EmploymentHistoryPanel crewId={crew.id} />
       </TabsContent>
       <TabsContent value="documents" className="mt-4">
@@ -588,5 +859,6 @@ export function CrewViewDialogContent({
         </TabsContent>
       )}
     </Tabs>
+    </div>
   );
 }

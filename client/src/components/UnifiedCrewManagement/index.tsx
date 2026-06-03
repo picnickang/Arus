@@ -80,7 +80,18 @@ export function UnifiedCrewManagement({
   );
   const [view, setView] = useState<RegistryView>("registry");
   const [contactSectionOpen, setContactSectionOpen] = useState(false);
+  const [crewFormInitialStep, setCrewFormInitialStep] = useState(0);
   const lifecycle = useLifecycleDialog();
+
+  // Keep the crew-form step intent self-cleaning: any time the form is closed,
+  // reset to step 0 so the next open (Add Crew, row Edit, etc.) starts at the
+  // beginning. Only the profile "Assign" action explicitly bumps it to the
+  // assignment step right before opening.
+  useEffect(() => {
+    if (!d.isAddCrewDialogOpen && !d.isEditCrewDialogOpen) {
+      setCrewFormInitialStep(0);
+    }
+  }, [d.isAddCrewDialogOpen, d.isEditCrewDialogOpen]);
 
   const { data: formerCrew = [], isLoading: formerLoading } = useFormerCrew();
 
@@ -325,6 +336,7 @@ export function UnifiedCrewManagement({
         d={d}
         contactSectionOpen={contactSectionOpen}
         setContactSectionOpen={setContactSectionOpen}
+        initialStep={crewFormInitialStep}
       />
 
       <SkillFormDialog d={d} />
@@ -350,6 +362,32 @@ export function UnifiedCrewManagement({
             crew={d.viewingCrew}
             vessels={d.vessels}
             initialTab={d.profileInitialTab}
+            reportsToName={
+              d.viewingCrew.reportsToId
+                ? d.crew.find((c) => c.id === d.viewingCrew?.reportsToId)?.name ?? null
+                : null
+            }
+            canManage={perms.canManageCrew}
+            onEdit={() => {
+              const member = d.viewingCrew;
+              if (!member) return;
+              setCrewFormInitialStep(0);
+              d.closeProfileDialog();
+              d.handleEditCrew(member);
+            }}
+            onAssign={() => {
+              const member = d.viewingCrew;
+              if (!member) return;
+              setCrewFormInitialStep(1);
+              d.closeProfileDialog();
+              d.handleEditCrew(member);
+            }}
+            onArchive={() => {
+              const member = d.viewingCrew;
+              if (!member) return;
+              d.closeProfileDialog();
+              lifecycle.open("retire", member.id, member.name);
+            }}
           />
         )}
       </ResponsiveDialog>

@@ -16,6 +16,7 @@ import {
   createInsertSchema,
   z,
 } from "./base";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { organizations, users } from "./core";
 import { vessels } from "./vessels";
 import { roles } from "./permissions";
@@ -36,6 +37,14 @@ export const crew = pgTable(
     photoPath: text("photo_path"), // Profile photo object path (/objects/...); managed only via /api/crew/:id/photo
     emergencyContactName: text("emergency_contact_name"),
     emergencyContactPhone: text("emergency_contact_phone"),
+    crewCode: text("crew_code"), // Human-readable crew code e.g. "CRW-0001"
+    status: text("status").default("active"), // Explicit status: active | on_leave | standby | onboard
+    employmentType: text("employment_type"), // permanent | contract | temporary | rotational
+    reportsToId: varchar("reports_to_id").references((): AnyPgColumn => crew.id, {
+      onDelete: "set null",
+    }), // Supervisor (another crew member) this person reports to
+    rotationOnDays: integer("rotation_on_days"), // Rotation pattern: days on
+    rotationOffDays: integer("rotation_off_days"), // Rotation pattern: days off
     rank: text("rank"), // Legacy field, kept for backward compatibility
     roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }), // Link to RBAC permissions roles
     // Optional 1:1 link to a login account (users row). null = no login account.
@@ -63,6 +72,7 @@ export const crew = pgTable(
     vesselIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_vessel ON crew (vessel_id)`,
     activeIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_active ON crew (active, on_duty)`,
     roleIdx: index("idx_crew_role").on(table.roleId),
+    reportsToIdx: index("idx_crew_reports_to").on(table.reportsToId),
     terminationIdx: index("idx_crew_termination").on(table.terminationType),
     // Enforce optional 1:1 — a login account links to at most one crew member.
     // (Postgres treats NULLs as distinct, so unlinked crew rows are unconstrained.)

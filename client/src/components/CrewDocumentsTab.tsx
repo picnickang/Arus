@@ -56,7 +56,11 @@ import {
   Check,
   Shield,
   Briefcase,
+  Download,
+  RefreshCw,
+  ArrowDownUp,
 } from "lucide-react";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   useCrewDocumentsData,
@@ -107,6 +111,58 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
     getExpiryStatus,
   } = useCrewDocumentsData(crewId);
 
+  const [sortBy, setSortBy] = useState<"expiry" | "type">("expiry");
+
+  // Rank expiry levels so the most urgent documents float to the top.
+  const expiryRank: Record<string, number> = {
+    expired: 0,
+    critical: 1,
+    warning: 2,
+    notice: 3,
+    ok: 4,
+  };
+
+  const sortDocs = (docs: CrewDocument[]) =>
+    [...docs].sort((a, b) => {
+      if (sortBy === "type") {
+        return getDocumentTypeLabel(a.documentType).localeCompare(
+          getDocumentTypeLabel(b.documentType)
+        );
+      }
+      const ra = expiryRank[getExpiryStatus(a.expiresAt)?.level ?? "ok"] ?? 5;
+      const rb = expiryRank[getExpiryStatus(b.expiresAt)?.level ?? "ok"] ?? 5;
+      return ra - rb;
+    });
+
+  // Documents that are expired or expiring within 60 days need crew action.
+  const needsAction = documents.filter((doc: CrewDocument) => {
+    const level = getExpiryStatus(doc.expiresAt)?.level;
+    return level === "expired" || level === "critical" || level === "warning";
+  });
+
+  const handleExportCsv = () => {
+    const header = ["Type", "Number", "Country", "Authority", "Issued", "Expires", "Status", "Notes"];
+    const rows = documents.map((doc: CrewDocument) => [
+      getDocumentTypeLabel(doc.documentType),
+      doc.documentNumber || "",
+      doc.issuingCountry || "",
+      doc.issuingAuthority || "",
+      doc.issuedAt ? format(new Date(doc.issuedAt), "yyyy-MM-dd") : "",
+      doc.expiresAt ? format(new Date(doc.expiresAt), "yyyy-MM-dd") : "",
+      getExpiryStatus(doc.expiresAt)?.label ?? "",
+      (doc.notes || "").replace(/\s+/g, " ").trim(),
+    ]);
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${crewName.replace(/\s+/g, "_")}_documents.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -135,14 +191,14 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
       <Check className="h-3 w-3" />
     );
 
-  const travelDocs = documents.filter(
-    (d: CrewDocument) => getDocCategory(d.documentType) === "travel"
+  const travelDocs = sortDocs(
+    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "travel")
   );
-  const medicalDocs = documents.filter(
-    (d: CrewDocument) => getDocCategory(d.documentType) === "medical"
+  const medicalDocs = sortDocs(
+    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "medical")
   );
-  const professionalDocs = documents.filter(
-    (d: CrewDocument) => getDocCategory(d.documentType) === "professional"
+  const professionalDocs = sortDocs(
+    documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "professional")
   );
 
   const renderDocTable = (docs: CrewDocument[], emptyMsg: string) => {
@@ -218,16 +274,86 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Documents & Certifications ({documents.length})
           </h3>
-          <Button size="sm" onClick={handleOpenAddForm} data-testid="button-add-document">
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as "expiry" | "type")}>
+              <SelectTrigger className="h-9 w-[150px]" data-testid="select-doc-sort">
+                <ArrowDownUp className="mr-1 h-3.5 w-3.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expiry">Sort: Expiry</SelectItem>
+                <SelectItem value="type">Sort: Type</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={documents.length === 0}
+              data-testid="button-export-documents"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+            <Button size="sm" onClick={handleOpenAddForm} data-testid="button-add-document">
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
+
+        {needsAction.length > 0 && (
+          <div
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3"
+            data-testid="banner-docs-needs-action"
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+              <AlertTriangle className="h-4 w-4" />
+              {needsAction.length} document{needsAction.length > 1 ? "s need" : " needs"} attention
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {needsAction.map((doc: CrewDocument) => {
+                const status = getExpiryStatus(doc.expiresAt);
+                return (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between gap-2 text-sm"
+                    data-testid={`needs-action-${doc.id}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">{getDocumentTypeLabel(doc.documentType)}</span>
+                      {status && (
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs flex items-center gap-1 ${status.className}`}
+                        >
+                          {renderExpiryIcon(status.level)}
+                          {status.level === "expired"
+                            ? "Expired"
+                            : `Expires in ${status.label}`}
+                        </Badge>
+                      )}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEditForm(doc)}
+                      data-testid={`button-renew-doc-${doc.id}`}
+                    >
+                      <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                      Renew
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <Card>
           <CardHeader className="py-3 pb-1">

@@ -164,10 +164,20 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   });
 
   const onSubmitCrew = (data: CrewFormData) => {
+    // Empty Select values arrive as "" — coerce optional text fields to
+    // undefined so we never send "" for the reports_to FK (which would 23503)
+    // or store blank codes/types.
+    const cleaned: CrewFormData = {
+      ...data,
+      crewCode: data.crewCode?.trim() ? data.crewCode.trim() : undefined,
+      status: data.status || undefined,
+      employmentType: data.employmentType || undefined,
+      reportsToId: data.reportsToId || undefined,
+    };
     if (editingCrew) {
-      updateCrewMutation.mutate({ id: editingCrew.id, data });
+      updateCrewMutation.mutate({ id: editingCrew.id, data: cleaned });
     } else {
-      createCrewMutation.mutate(data);
+      createCrewMutation.mutate(cleaned);
     }
   };
   const onSubmitSkill = (data: SkillFormData) => {
@@ -179,6 +189,12 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       name: member.name,
       rank: member.rank,
       vesselId: member.vesselId,
+      crewCode: member.crewCode || "",
+      status: member.status || "active",
+      employmentType: member.employmentType || "",
+      reportsToId: member.reportsToId || "",
+      rotationOnDays: member.rotationOnDays ?? undefined,
+      rotationOffDays: member.rotationOffDays ?? undefined,
       maxHours7d: member.maxHours7d,
       minRestH: member.minRestH,
       hourlyRate: member.hourlyRate,

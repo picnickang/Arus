@@ -31,12 +31,53 @@ export interface CrewListItem {
   address?: string;
   emergencyContactName?: string;
   emergencyContactPhone?: string;
+  crewCode?: string | null;
+  status?: string | null;
+  employmentType?: string | null;
+  reportsToId?: string | null;
+  rotationOnDays?: number | null;
+  rotationOffDays?: number | null;
   startDate?: string;
   contractEndDate?: string;
   contractPenalty?: number;
   terminationType?: string;
   terminationDate?: string;
   terminationNotes?: string;
+}
+
+export const EMPLOYMENT_TYPES = [
+  { value: "permanent", label: "Permanent" },
+  { value: "contract", label: "Contract" },
+  { value: "temporary", label: "Temporary" },
+  { value: "rotational", label: "Rotational" },
+] as const;
+
+export const CREW_STATUSES = [
+  { value: "active", label: "Active" },
+  { value: "onboard", label: "Onboard" },
+  { value: "on_leave", label: "On leave" },
+  { value: "standby", label: "Standby" },
+] as const;
+
+export function crewStatusLabel(status?: string | null): string {
+  if (!status) {
+    return "Active";
+  }
+  return CREW_STATUSES.find((s) => s.value === status)?.label ?? status;
+}
+
+export function employmentTypeLabel(type?: string | null): string {
+  if (!type) {
+    return "Not set";
+  }
+  return EMPLOYMENT_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+
+export function formatRotation(onDays?: number | null, offDays?: number | null): string | null {
+  if (onDays == null && offDays == null) {
+    return null;
+  }
+  return `${onDays ?? 0} on / ${offDays ?? 0} off`;
 }
 
 export type CrewProfileTab = "details" | "history" | "documents" | "notifications" | "access" | "tasks";
@@ -144,6 +185,12 @@ export const crewFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   rank: z.string().min(1, "Rank is required"),
   vesselId: z.string().optional(),
+  crewCode: z.string().optional(),
+  status: z.string().optional(),
+  employmentType: z.string().optional(),
+  reportsToId: z.string().optional(),
+  rotationOnDays: z.coerce.number().int().min(0).max(365).optional(),
+  rotationOffDays: z.coerce.number().int().min(0).max(365).optional(),
   maxHours7d: z.coerce.number().min(40).max(84),
   minRestH: z.coerce.number().min(6).max(12),
   hourlyRate: z.coerce.number().min(0).optional(),
@@ -172,6 +219,12 @@ export function createDefaultCrewFormValues(): CrewFormData {
     name: "",
     rank: "Able Seaman",
     vesselId: "",
+    crewCode: "",
+    status: "active",
+    employmentType: "",
+    reportsToId: "",
+    rotationOnDays: undefined,
+    rotationOffDays: undefined,
     maxHours7d: 72,
     minRestH: 10,
     hourlyRate: undefined,
