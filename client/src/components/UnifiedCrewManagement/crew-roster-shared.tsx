@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { useUnifiedCrewData, type CrewListItem } from "@/features/crew";
+import { createHeaders, resolveUrl } from "@/lib/queryClient";
 import type { LifecycleAction } from "./LifecycleDialog";
 
 export type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
@@ -57,7 +59,71 @@ function avatarTone(seed: string): string {
   return AVATAR_TONES[hash % AVATAR_TONES.length];
 }
 
-export function CrewAvatar({ name, id }: { name: string; id: string }) {
+/**
+ * Loads an auth-gated object-storage path into a blob URL. The API uses
+ * Bearer-token auth, so a bare `<img src="/objects/…">` would not carry
+ * credentials — we fetch with the standard auth headers and hand back an
+ * object URL, revoking it on cleanup.
+ */
+function useAuthedObjectUrl(path?: string | null): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!path) {
+      setUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void (async () => {
+      try {
+        const res = await fetch(resolveUrl(path), {
+          headers: createHeaders(false),
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) {
+          return;
+        }
+        const blob = await res.blob();
+        if (cancelled) {
+          return;
+        }
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      } catch {
+        // Fall back to initials on any load failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      setUrl(null);
+    };
+  }, [path]);
+  return url;
+}
+
+export function CrewAvatar({
+  name,
+  id,
+  photoPath,
+}: {
+  name: string;
+  id: string;
+  photoPath?: string | null;
+}) {
+  const photoUrl = useAuthedObjectUrl(photoPath);
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={`${name} profile photo`}
+        className="h-10 w-10 shrink-0 rounded-full object-cover"
+        data-testid={`avatar-crew-${id}`}
+      />
+    );
+  }
   return (
     <div
       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarTone(

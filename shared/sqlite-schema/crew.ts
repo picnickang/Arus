@@ -22,6 +22,7 @@ export const crewSqlite = sqliteTable(
     joinDate: integer("join_date", { mode: "timestamp" }),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     notes: text("notes"),
+    photoPath: text("photo_path"),
     createdAt: integer("created_at", { mode: "timestamp" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },

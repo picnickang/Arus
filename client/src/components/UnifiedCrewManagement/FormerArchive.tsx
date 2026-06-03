@@ -81,7 +81,7 @@ function FormerCrewRow({
       className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
       data-testid={`row-crew-${member.id}`}
     >
-      <CrewAvatar name={member.name} id={member.id} />
+      <CrewAvatar name={member.name} id={member.id} photoPath={member.photoPath} />
       <button
         type="button"
         onClick={() => d.handleViewProfile(member as unknown as CrewListItem)}

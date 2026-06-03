@@ -11,6 +11,7 @@
 - [Role-template grant drift](role-template-grant-drift.md) — provisionTemplatesForOrg only creates missing roles; adding a perm to a template never reaches already-seeded orgs — ship an idempotent backfill.
 - [Playwright sandbox limits](playwright-sandbox-limits.md) — Playwright can't launch a browser in-sandbox (missing libglib); author route-mocked specs, verify via tsc, let CI run them.
 - [Dev preview domain vs real API port](dev-preview-vs-real-api.md) — `$REPLIT_DEV_DOMAIN` routes to the mockup-sandbox preview (404s on /api); smoke-test the real Express API at localhost:5000.
+- [Object-storage quota reclaim](object-storage-quota-reclaim.md) — upload routes that charge storage_bytes must reclaim the replaced object + compensate on DB-write failure or the per-org quota drifts upward.
 - [Stale service-worker app shell](stale-sw-app-shell.md) — "changes have not been applied" with correct code = SW serving non-hashed `/`/`index.html` cache-first; fix = network-first navigations + bump CACHE_NAME.
 - [Cross-domain wiring vs leak guard](cross-domain-composition-wiring.md) — put cross-domain db*Storage wiring in server/composition/ (check:domain-leaks section C only scans server/domains/**); alert_notifications is the de-facto org notification channel.
 - [lr35 source-scan UI tests](lr35-source-scan-ui-tests.md) — string-match testid/href/endpoint contracts; a screen redesign must update its lr35 test + nav-matrix playwright in lockstep. Lists known pre-existing reds.

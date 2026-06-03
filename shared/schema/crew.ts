@@ -33,6 +33,7 @@ export const crew = pgTable(
     email: text("email"),
     phone: text("phone"),
     address: text("address"),
+    photoPath: text("photo_path"), // Profile photo object path (/objects/...); managed only via /api/crew/:id/photo
     emergencyContactName: text("emergency_contact_name"),
     emergencyContactPhone: text("emergency_contact_phone"),
     rank: text("rank"), // Legacy field, kept for backward compatibility

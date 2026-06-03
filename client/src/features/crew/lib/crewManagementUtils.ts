@@ -17,6 +17,7 @@ export interface CrewListItem {
   id: string;
   name: string;
   rank: string;
+  photoPath?: string | null;
   vesselId?: string;
   maxHours7d: number;
   minRestH: number;

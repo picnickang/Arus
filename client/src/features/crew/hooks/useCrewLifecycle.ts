@@ -23,6 +23,7 @@ export interface CrewMemberBasic {
   name: string;
   email: string | null;
   rank: string;
+  photoPath?: string | null;
   vesselId: string | null;
   active: boolean;
   onDuty: boolean;
