@@ -45,7 +45,13 @@ interface CurrentRosterProps {
   formerCount: number;
   expiringCrewIds: Set<string>;
   expiryLoaded: boolean;
-  openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
+  openLifecycle: (
+    action: LifecycleAction,
+    crewId: string,
+    crewName: string,
+    vesselName?: string,
+    contractPenalty?: number,
+  ) => void;
   onSwitchToFormer: () => void;
   perms: CrewRowPermissions;
   canExport: boolean;
@@ -65,7 +71,13 @@ function CurrentCrewRow({
   member: CrewListItem;
   expiringCrewIds: Set<string>;
   expiryLoaded: boolean;
-  openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
+  openLifecycle: (
+    action: LifecycleAction,
+    crewId: string,
+    crewName: string,
+    vesselName?: string,
+    contractPenalty?: number,
+  ) => void;
   perms: CrewRowPermissions;
 }) {
   const vesselName = d.getVesselName(member.vesselId ?? "") || "Unassigned";

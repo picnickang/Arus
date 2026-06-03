@@ -386,7 +386,13 @@ export function UnifiedCrewManagement({
               const member = d.viewingCrew;
               if (!member) return;
               d.closeProfileDialog();
-              lifecycle.open("retire", member.id, member.name);
+              lifecycle.open(
+                "retire",
+                member.id,
+                member.name,
+                member.vesselId ? d.getVesselName(member.vesselId) : undefined,
+                member.contractPenalty,
+              );
             }}
           />
         )}

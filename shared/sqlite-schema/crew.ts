@@ -230,6 +230,7 @@ export const crewDocumentsSqlite = sqliteTable(
     crewId: text("crew_id").notNull(),
     documentType: text("document_type").notNull(),
     documentNumber: text("document_number"),
+    filePath: text("file_path"),
     title: text("title"),
     description: text("description"),
     issueDate: integer("issue_date", { mode: "timestamp" }),

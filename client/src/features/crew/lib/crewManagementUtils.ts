@@ -594,3 +594,97 @@ export function deriveRehireStatus(
   }
   return { key: "review", label: "Review" };
 }
+
+// Offboarding reasons — generic so the same list serves retire and cancel. The
+// chosen reason is folded into the structured exit note saved on the lifecycle
+// action (the backend already accepts a free-text note, so no new field).
+export const OFFBOARD_REASONS = [
+  { value: "end_of_contract", label: "End of contract" },
+  { value: "resignation", label: "Resignation" },
+  { value: "performance", label: "Performance" },
+  { value: "medical", label: "Medical" },
+  { value: "redundancy", label: "Redundancy" },
+  { value: "contract_breach", label: "Contract breach" },
+  { value: "other", label: "Other" },
+] as const;
+
+export function offboardReasonLabel(value?: string | null): string {
+  if (!value) {
+    return "";
+  }
+  return OFFBOARD_REASONS.find((r) => r.value === value)?.label ?? value;
+}
+
+/**
+ * Preview the rehire signal an offboarding choice WILL produce, before it is
+ * confirmed. Maps the operator's in-dialog action + the EFFECTIVE contract
+ * penalty (the amount that will actually persist) onto the same
+ * `deriveRehireStatus` rules the former-archive uses on stored records, so the
+ * dialog and the archive can never disagree:
+ *   retire                            -> Rehire OK
+ *   cancel WITH a positive penalty    -> No rehire
+ *   cancel (no/zero penalty)          -> Review
+ * Non-offboarding actions (reinstate/delete) have no rehire preview.
+ *
+ * `effectivePenalty` must be the amount that will be saved: the backend persists
+ * `applyPenalty ? crew.contractPenalty : null`, so the caller passes
+ * `applyPenalty ? (crew.contractPenalty ?? 0) : 0`. Ticking "apply penalty" when
+ * no penalty is configured still resolves to Review — matching the archive.
+ */
+export function previewRehireFromAction(
+  action: string,
+  effectivePenalty: number,
+): RehireStatus | null {
+  if (action === "retire") {
+    return deriveRehireStatus({ terminationType: "retired", contractPenalty: null });
+  }
+  if (action === "cancel") {
+    return deriveRehireStatus({
+      terminationType: "cancelled",
+      contractPenalty: effectivePenalty,
+    });
+  }
+  return null;
+}
+
+export interface OffboardingNoteInput {
+  reason?: string | null;
+  endDate?: string | null;
+  vesselName?: string | null;
+  handoverDocs?: boolean;
+  returnPpe?: boolean;
+  finalPayroll?: boolean;
+  exitNotes?: string | null;
+}
+
+/**
+ * Build the structured exit summary saved as the lifecycle note, so all the
+ * offboarding context (reason, end date, final vessel, checklist, exit notes)
+ * is preserved without a new backend field. Returns undefined when nothing was
+ * captured so we don't send an empty note.
+ */
+export function composeOffboardingNote(input: OffboardingNoteInput): string | undefined {
+  const lines: string[] = [];
+  if (input.reason) {
+    lines.push(`Reason: ${offboardReasonLabel(input.reason)}`);
+  }
+  if (input.endDate) {
+    lines.push(`End date: ${input.endDate}`);
+  }
+  if (input.vesselName) {
+    lines.push(`Final vessel: ${input.vesselName}`);
+  }
+  const checklist = [
+    input.handoverDocs && "Handed over documents",
+    input.returnPpe && "Returned PPE / access card",
+    input.finalPayroll && "Final payroll settled",
+  ].filter(Boolean) as string[];
+  if (checklist.length > 0) {
+    lines.push(`Checklist: ${checklist.join("; ")}`);
+  }
+  const trimmedExit = input.exitNotes?.trim();
+  if (trimmedExit) {
+    lines.push(`Exit notes: ${trimmedExit}`);
+  }
+  return lines.length > 0 ? lines.join("\n") : undefined;
+}

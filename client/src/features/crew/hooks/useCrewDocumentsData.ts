@@ -9,6 +9,7 @@ import { apiRequest, createHeaders, resolveUrl } from "@/lib/queryClient";
 import { format, differenceInDays } from "date-fns";
 import { useCreateCrewTask } from "./useCrewTasks";
 import type { CrewTaskView } from "../lib/crewTaskUtils";
+import { decideRenewalTask } from "../lib/crewTaskUtils";
 
 // Default renewal-reminder lead time (days). The form lets the user pick a
 // different lead time per document; a document within that window of expiry
@@ -107,34 +108,36 @@ export function useCrewDocumentsData(crewId: string) {
       if (!doc.expiresAt) {
         return;
       }
-      const days = differenceInDays(new Date(doc.expiresAt), new Date());
-      if (days > leadDays) {
-        return;
-      }
+      let openTasks: CrewTaskView[] = [];
       try {
-        const openTasks = await apiRequest<CrewTaskView[]>(
-          `/api/crew-tasks?assignedCrewId=${encodeURIComponent(crewId)}`
-        );
-        const alreadyOpen = openTasks?.some(
-          (t) => t.linkedSourceType === "crew_document" && t.linkedSourceId === doc.id
-        );
-        if (alreadyOpen) {
-          return;
-        }
+        openTasks =
+          (await apiRequest<CrewTaskView[]>(
+            `/api/crew-tasks?assignedCrewId=${encodeURIComponent(crewId)}`
+          )) ?? [];
       } catch {
-        // If the lookup fails, fall through and create the task — a possible
-        // duplicate is better than silently dropping a renewal reminder.
+        // If the lookup fails, fall through with no known open tasks — a
+        // possible duplicate is better than silently dropping a reminder.
+        openTasks = [];
+      }
+      const decision = decideRenewalTask({
+        docId: doc.id,
+        expiresAt: doc.expiresAt,
+        leadDays,
+        openTasks,
+      });
+      if (!decision.shouldRaise) {
+        return;
       }
       const label = DOCUMENT_TYPES.find((d) => d.value === doc.documentType)?.label ?? doc.documentType;
       const when = format(new Date(doc.expiresAt), "MMM d, yyyy");
       createTaskMutation.mutate({
         title: `Renew ${label}`,
         description:
-          days <= 0
+          decision.daysUntilExpiry <= 0
             ? `${label}${doc.documentNumber ? ` (${doc.documentNumber})` : ""} expired ${when}. Submit renewal.`
             : `${label}${doc.documentNumber ? ` (${doc.documentNumber})` : ""} expires ${when}. Submit renewal.`,
         assignedCrewId: crewId,
-        priority: days <= 30 ? "high" : "medium",
+        priority: decision.priority,
         dueDate: new Date(doc.expiresAt).toISOString(),
         linkedSourceType: "crew_document",
         linkedSourceId: doc.id,

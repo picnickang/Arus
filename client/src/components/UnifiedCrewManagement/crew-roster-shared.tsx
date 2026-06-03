@@ -178,7 +178,13 @@ export function CrewActionsMenu({
   d: UnifiedCrewData;
   member: CrewListItem;
   isFormerView: boolean;
-  openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
+  openLifecycle: (
+    action: LifecycleAction,
+    crewId: string,
+    crewName: string,
+    vesselName?: string,
+    contractPenalty?: number,
+  ) => void;
   perms: CrewRowPermissions;
 }) {
   const { canManageCrew, canDeleteCrew, canManageAccess } = perms;
@@ -238,14 +244,30 @@ export function CrewActionsMenu({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => openLifecycle("retire", member.id, member.name)}
+                  onClick={() =>
+                    openLifecycle(
+                      "retire",
+                      member.id,
+                      member.name,
+                      member.vesselId ? d.getVesselName(member.vesselId) : undefined,
+                      member.contractPenalty,
+                    )
+                  }
                   data-testid={`action-retire-${member.id}`}
                 >
                   <UserX className="h-4 w-4 mr-2" />
                   Retire
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => openLifecycle("cancel", member.id, member.name)}
+                  onClick={() =>
+                    openLifecycle(
+                      "cancel",
+                      member.id,
+                      member.name,
+                      member.vesselId ? d.getVesselName(member.vesselId) : undefined,
+                      member.contractPenalty,
+                    )
+                  }
                   className="text-destructive"
                   data-testid={`action-cancel-${member.id}`}
                 >

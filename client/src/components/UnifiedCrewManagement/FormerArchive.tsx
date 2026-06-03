@@ -69,7 +69,13 @@ function FormerCrewRow({
 }: {
   d: UnifiedCrewData;
   derived: DerivedFormer;
-  openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
+  openLifecycle: (
+    action: LifecycleAction,
+    crewId: string,
+    crewName: string,
+    vesselName?: string,
+    contractPenalty?: number,
+  ) => void;
   getVesselName: (vesselId: string) => string;
   perms: CrewRowPermissions;
 }) {
@@ -123,7 +129,13 @@ export function FormerArchive({
   formerCrew: FormerCrewMember[];
   formerLoading: boolean;
   currentCount: number;
-  openLifecycle: (action: LifecycleAction, crewId: string, crewName: string) => void;
+  openLifecycle: (
+    action: LifecycleAction,
+    crewId: string,
+    crewName: string,
+    vesselName?: string,
+    contractPenalty?: number,
+  ) => void;
   onSwitchToCurrent: () => void;
   perms: CrewRowPermissions;
   canExport: boolean;

@@ -5,6 +5,7 @@
  * reused by the Tasks view, the landing tile, and the attention feed.
  */
 
+import { differenceInDays } from "date-fns";
 import type { CrewTaskStatus, CrewTaskPriority } from "@shared/schema";
 
 /** Shape the API returns: dates are JSON strings, not `Date` objects. */
@@ -228,6 +229,50 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 
 export function eventTypeLabel(eventType: string): string {
   return EVENT_TYPE_LABELS[eventType] ?? eventType;
+}
+
+/**
+ * Pure decision for the document renewal-reminder task.
+ *
+ * A saved/renewed crew document raises a linked renewal task when it is at or
+ * within `leadDays` of expiry. It must NEVER spawn a duplicate, so it skips when
+ * an open task already links the same document. Priority escalates to `high`
+ * inside 30 days (including already-expired). Keeping this pure means the dedupe
+ * window + priority rules are unit-tested without React or the network.
+ */
+export interface RenewalTaskDecision {
+  shouldRaise: boolean;
+  priority: CrewTaskPriority;
+  daysUntilExpiry: number;
+}
+
+export function decideRenewalTask(args: {
+  docId: string;
+  expiresAt?: string | null;
+  leadDays: number;
+  openTasks: Pick<CrewTaskView, "linkedSourceType" | "linkedSourceId">[];
+  now?: Date;
+}): RenewalTaskDecision {
+  const { docId, expiresAt, leadDays, openTasks, now = new Date() } = args;
+  if (!expiresAt) {
+    return { shouldRaise: false, priority: "medium", daysUntilExpiry: Number.NaN };
+  }
+  const expiry = new Date(expiresAt);
+  if (Number.isNaN(expiry.getTime())) {
+    return { shouldRaise: false, priority: "medium", daysUntilExpiry: Number.NaN };
+  }
+  // Use date-fns `differenceInDays` to stay byte-for-byte identical with the
+  // prior inline rule (`differenceInDays(new Date(expiresAt), new Date())`) —
+  // truncated full-day difference, so edge boundaries don't shift.
+  const days = differenceInDays(expiry, now);
+  const priority: CrewTaskPriority = days <= 30 ? "high" : "medium";
+  if (days > leadDays) {
+    return { shouldRaise: false, priority, daysUntilExpiry: days };
+  }
+  const alreadyOpen = openTasks.some(
+    (t) => t.linkedSourceType === "crew_document" && t.linkedSourceId === docId,
+  );
+  return { shouldRaise: !alreadyOpen, priority, daysUntilExpiry: days };
 }
 
 /** Human "due in 3 days" / "overdue 2 days" / "due today" string. */
