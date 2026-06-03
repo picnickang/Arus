@@ -57,7 +57,31 @@ const LEVEL_CLASS: Record<CrewAlertEntry["level"], string> = {
  * real acknowledge action; document alerts are derived from the crew's documents
  * and are managed (renewed) from the Documents tab.
  */
-function CrewAlertLog({ crewId }: { crewId: string }) {
+// Maps the shared expiry "level" to the severity word the create dialog previews.
+// Uses the same taxonomy (expired/critical/warning/notice) and the same colour map
+// (LEVEL_CLASS) as the alert list rows, so the preview matches what saves.
+function severityFromLevel(level?: string): { label: string; className: string } {
+  switch (level) {
+    case "expired":
+      return { label: "Expired", className: LEVEL_CLASS.expired };
+    case "critical":
+      return { label: "Critical", className: LEVEL_CLASS.critical };
+    case "warning":
+      return { label: "Warning", className: LEVEL_CLASS.warning };
+    case "notice":
+      return { label: "Notice", className: LEVEL_CLASS.notice };
+    default:
+      return { label: "Informational", className: "bg-muted text-muted-foreground" };
+  }
+}
+
+function CrewAlertLog({
+  crewId,
+  crewVesselName,
+}: {
+  crewId: string;
+  crewVesselName?: string;
+}) {
   const { toast } = useToast();
   const certData = useCertificationExpiryData({ daysAhead: 365 });
   const { documents, getExpiryStatus, getDocumentTypeLabel, isLoading: docsLoading } =
@@ -193,7 +217,7 @@ function CrewAlertLog({ crewId }: { crewId: string }) {
                       variant="secondary"
                       className={`text-xs ${LEVEL_CLASS[entry.level]}`}
                     >
-                      {entry.level === "expired" ? "Expired" : entry.level}
+                      {severityFromLevel(entry.level).label}
                     </Badge>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">{entry.detail}</p>
@@ -325,6 +349,25 @@ function CrewAlertLog({ crewId }: { crewId: string }) {
                 data-testid="input-alert-ref"
               />
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+              <div className="text-xs text-muted-foreground">
+                Vessel
+                <span className="ml-1 font-medium text-foreground" data-testid="text-alert-vessel">
+                  {crewVesselName || "Unassigned"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                Severity
+                <Badge
+                  className={severityFromLevel(getExpiryStatus(alertDue || undefined)?.level).className}
+                  data-testid="badge-alert-severity-preview"
+                >
+                  {alertDue
+                    ? severityFromLevel(getExpiryStatus(alertDue)?.level).label
+                    : "Set a due date"}
+                </Badge>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -352,6 +395,7 @@ interface CrewNotificationSettingsTabProps {
   crewId: string;
   crewName: string;
   crewEmail?: string | null;
+  crewVesselName?: string;
 }
 
 interface NotificationSettings {
@@ -368,6 +412,7 @@ export function CrewNotificationSettingsTab({
   crewId,
   crewName,
   crewEmail,
+  crewVesselName,
 }: CrewNotificationSettingsTabProps) {
   const { toast } = useToast();
   const [localSettings, setLocalSettings] = useState<NotificationSettings | null>(null);
@@ -448,7 +493,7 @@ export function CrewNotificationSettingsTab({
 
   return (
     <div className="space-y-4">
-      <CrewAlertLog crewId={crewId} />
+      <CrewAlertLog crewId={crewId} {...(crewVesselName != null && { crewVesselName })} />
 
       <Card>
         <CardContent className="pt-4 space-y-4">

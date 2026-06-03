@@ -22,7 +22,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
-import { ChevronDown, ChevronRight, DollarSign, IdCard, ImagePlus, Phone, Ship, User } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  IdCard,
+  ImagePlus,
+  Phone,
+  ShieldCheck,
+  Ship,
+  User,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   MARITIME_RANKS,
   CREW_STATUSES,
@@ -141,6 +153,137 @@ function CrewIntakePhotoPicker({ d }: { d: UnifiedCrewData }) {
             {error}
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Indicative access a rank typically inherits. This is a client-side preview to
+ * set expectations during assignment — actual permissions are enforced by the
+ * assigned role, not the rank, so the panel labels it as indicative.
+ */
+function accessChipsForRank(rank?: string): string[] {
+  const r = (rank || "").toLowerCase();
+  const senior = ["captain", "chief officer", "chief engineer"];
+  const officer = [
+    "second officer",
+    "third officer",
+    "second engineer",
+    "third engineer",
+    "fourth engineer",
+  ];
+  if (senior.some((s) => r.includes(s))) {
+    return ["Command & approvals", "Crew oversight", "Vessel data", "Maintenance sign-off"];
+  }
+  if (officer.some((s) => r.includes(s))) {
+    return ["Vessel data", "Maintenance tasks", "Watch & logs"];
+  }
+  return ["Assigned tasks", "Vessel data (read)"];
+}
+
+/**
+ * Client-only assignment sanity panel: flags duplicate same-rank postings, bad
+ * reporting lines, and rotation mistakes, and previews rank-inherited access.
+ * Purely advisory — it never blocks submit and calls no backend.
+ */
+function AssignmentInsights({ d }: { d: UnifiedCrewData }) {
+  const rank = d.crewForm.watch("rank");
+  const vesselId = d.crewForm.watch("vesselId");
+  const reportsToId = d.crewForm.watch("reportsToId");
+  const onDays = d.crewForm.watch("rotationOnDays");
+  const offDays = d.crewForm.watch("rotationOffDays");
+  const selfId = d.editingCrew?.id;
+
+  const conflicts: string[] = [];
+
+  if (vesselId && rank) {
+    const dup = d.crew.find(
+      (c) =>
+        c.id !== selfId &&
+        c.vesselId === vesselId &&
+        c.active &&
+        (c.rank || "").toLowerCase() === rank.toLowerCase(),
+    );
+    if (dup) {
+      conflicts.push(`${dup.name} is already an active ${formatRank(rank)} on this vessel.`);
+    }
+  }
+
+  if (reportsToId) {
+    if (reportsToId === selfId) {
+      conflicts.push("A crew member cannot report to themselves.");
+    } else {
+      const byId = new Map(d.crew.map((c) => [c.id, c.reportsToId || ""]));
+      const seen = new Set<string>();
+      let cursor: string | undefined = reportsToId;
+      while (cursor) {
+        if (cursor === selfId) {
+          conflicts.push("This reporting line loops back to this crew member.");
+          break;
+        }
+        if (seen.has(cursor)) {
+          break;
+        }
+        seen.add(cursor);
+        cursor = byId.get(cursor) || undefined;
+      }
+    }
+  }
+
+  const hasOn = onDays != null;
+  const hasOff = offDays != null;
+  if (hasOn && hasOff) {
+    if ((onDays as number) + (offDays as number) > 365) {
+      conflicts.push("Rotation on + off days exceed a full year.");
+    }
+    if ((onDays as number) > 0 && offDays === 0) {
+      conflicts.push("Days-on is set but days-off is zero — check the rotation.");
+    }
+  } else if (hasOn !== hasOff) {
+    conflicts.push("Set both rotation days-on and days-off, or leave both empty.");
+  }
+
+  const access = accessChipsForRank(rank);
+
+  return (
+    <div className="space-y-3 rounded-md border bg-muted/30 p-3" data-testid="panel-assignment-insights">
+      {conflicts.length > 0 ? (
+        <div className="space-y-1.5" data-testid="list-assignment-conflicts">
+          {conflicts.map((c, i) => (
+            <p
+              key={i}
+              className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400"
+              data-testid={`text-assignment-conflict-${i}`}
+            >
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{c}</span>
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p
+          className="flex items-center gap-2 text-xs text-muted-foreground"
+          data-testid="text-assignment-no-conflicts"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+          No assignment conflicts detected.
+        </p>
+      )}
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+          Access inherited from rank (indicative)
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {access.map((a) => (
+            <Badge key={a} variant="secondary" data-testid={`chip-access-${a}`}>
+              {a}
+            </Badge>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Actual permissions are set by the crew member&apos;s assigned role.
+        </p>
       </div>
     </div>
   );
@@ -510,6 +653,8 @@ export function CrewFormDialog({
                   )}
                 />
               </div>
+
+              <AssignmentInsights d={d} />
 
               <div className="border-t pt-4">
                 <Collapsible open={contactSectionOpen} onOpenChange={setContactSectionOpen}>

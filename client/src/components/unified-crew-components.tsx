@@ -843,7 +843,7 @@ export function CrewViewDialogContent({
         <CrewDocumentsTab crewId={crew.id} crewName={crew.name} />
       </TabsContent>
       <TabsContent value="notifications" className="mt-4">
-        <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} {...(crew.email != null && { crewEmail: crew.email })} />
+        <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} crewVesselName={vesselName} {...(crew.email != null && { crewEmail: crew.email })} />
       </TabsContent>
       <TabsContent value="tasks" className="mt-4">
         <CrewProfileTasksTab crewId={crew.id} crewName={crew.name} />

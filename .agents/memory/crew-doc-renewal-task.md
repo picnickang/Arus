@@ -16,7 +16,3 @@ save MUST first query open tasks (`GET /api/crew-tasks?assignedCrewId=…`) and 
 one already exists for the same `linkedSourceType`+`linkedSourceId`. Re-saving an
 unchanged near-expiry document otherwise spawns duplicate open tasks. Lookup failure
 should fall through and create (a possible dup beats a dropped reminder).
-
-Profile-photo crop (CrewPhotoModal) exports a **square** 512px JPEG, not a circular
-PNG: JPEG has no alpha so a circular mask bakes black corners; avatars are clipped
-circular via CSS instead.

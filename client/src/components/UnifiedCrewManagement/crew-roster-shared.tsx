@@ -66,7 +66,7 @@ function avatarTone(seed: string): string {
  * credentials — we fetch with the standard auth headers and hand back an
  * object URL, revoking it on cleanup.
  */
-function useAuthedObjectUrl(path?: string | null): string | null {
+export function useAuthedObjectUrl(path?: string | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!path) {

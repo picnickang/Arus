@@ -297,6 +297,7 @@ export const crewDocuments = pgTable(
       .references(() => crew.id),
     documentType: varchar("document_type", { length: 50 }).notNull(),
     documentNumber: varchar("document_number", { length: 100 }),
+    filePath: varchar("file_path", { length: 1024 }),
     issuingAuthority: varchar("issuing_authority", { length: 255 }),
     issuingCountry: varchar("issuing_country", { length: 100 }),
     issuedAt: timestamp("issued_at", { mode: "date" }),

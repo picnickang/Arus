@@ -59,6 +59,9 @@ import {
   Download,
   RefreshCw,
   ArrowDownUp,
+  Upload,
+  Eye,
+  Paperclip,
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -68,6 +71,42 @@ import {
   COMMON_COUNTRIES,
   type CrewDocument,
 } from "@/features/crew";
+import { useAuthedObjectUrl } from "@/components/UnifiedCrewManagement/crew-roster-shared";
+
+/**
+ * Authed "view" link for a private document scan. The object endpoint needs
+ * Bearer auth, so we resolve a blob URL (same pattern as crew photos) rather
+ * than linking the raw /objects/… path which would 401.
+ */
+function DocFileLink({
+  filePath,
+  testId,
+  label = "View",
+}: {
+  filePath: string;
+  testId?: string;
+  label?: string;
+}) {
+  const url = useAuthedObjectUrl(filePath);
+  if (!url) {
+    return (
+      <span className="text-xs text-muted-foreground" data-testid={testId}>
+        Loading…
+      </span>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-primary underline"
+      data-testid={testId}
+    >
+      <Eye className="h-3 w-3" /> {label}
+    </a>
+  );
+}
 
 // Two-bucket grouping per the Figma template: identity + medical papers vs.
 // training / professional endorsements.
@@ -101,6 +140,10 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
     handleCloseForm,
     handleOpenDeleteDialog,
     onSubmit,
+    stagedFile,
+    setStagedFile,
+    uploadError,
+    isSaving,
     getDocumentTypeLabel,
     getExpiryStatus,
   } = useCrewDocumentsData(crewId);
@@ -240,7 +283,14 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1">
+                    {doc.filePath ? (
+                      <DocFileLink
+                        filePath={doc.filePath}
+                        label=""
+                        testId={`link-view-doc-${doc.id}`}
+                      />
+                    ) : null}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -393,7 +443,31 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit((d) => onSubmit(d, true))}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="action"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Action</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-doc-action">
+                          <SelectValue placeholder="Select action" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="new">New document</SelectItem>
+                        <SelectItem value="renewal">Renewal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="documentType"
@@ -506,6 +580,36 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
               />
               <FormField
                 control={form.control}
+                name="reminderLeadDays"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Renewal reminder</FormLabel>
+                    <Select
+                      value={String(field.value)}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-doc-reminder">
+                          <SelectValue placeholder="Select lead time" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="30">30 days before expiry</SelectItem>
+                        <SelectItem value="60">60 days before expiry</SelectItem>
+                        <SelectItem value="90">90 days before expiry</SelectItem>
+                        <SelectItem value="120">120 days before expiry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      A renewal task is raised automatically once the document is within
+                      this many days of expiry.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
@@ -522,7 +626,47 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <FormItem>
+                <FormLabel>Scan / file (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg"
+                    onChange={(e) => setStagedFile(e.target.files?.[0] ?? null)}
+                    data-testid="input-doc-file"
+                  />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  PDF, PNG or JPEG up to 10 MB.
+                  {selectedDoc?.filePath ? (
+                    <span className="ml-1 inline-flex items-center gap-1">
+                      A file is already attached.
+                      <DocFileLink
+                        filePath={selectedDoc.filePath}
+                        label="View current"
+                        testId="link-doc-file-current"
+                      />
+                    </span>
+                  ) : null}
+                </p>
+                {stagedFile ? (
+                  <p
+                    className="flex items-center gap-1 text-xs text-foreground"
+                    data-testid="text-doc-file-staged"
+                  >
+                    <Paperclip className="h-3 w-3" /> {stagedFile.name}
+                  </p>
+                ) : null}
+                {uploadError ? (
+                  <p
+                    className="text-xs text-destructive"
+                    data-testid="text-doc-file-error"
+                  >
+                    {uploadError}
+                  </p>
+                ) : null}
+              </FormItem>
+              <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -532,15 +676,27 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
                   Cancel
                 </Button>
                 <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isSaving}
+                  onClick={form.handleSubmit((d) => onSubmit(d, false))}
+                  data-testid="button-savedraft-doc-form"
+                >
+                  {isSaving ? "Saving..." : "Save draft"}
+                </Button>
+                <Button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={isSaving}
                   data-testid="button-submit-doc-form"
                 >
-                  {createMutation.isPending || updateMutation.isPending
+                  <Upload className="mr-1 h-4 w-4" />
+                  {isSaving
                     ? "Saving..."
-                    : isEditing
-                      ? "Update Document"
-                      : "Add Document"}
+                    : stagedFile
+                      ? "Save & upload"
+                      : isEditing
+                        ? "Update Document"
+                        : "Add Document"}
                 </Button>
               </DialogFooter>
             </form>
