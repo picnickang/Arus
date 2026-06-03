@@ -60,6 +60,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useUpcomingMaintenance } from "@/features/maintenance/hooks/useMaintenance";
 import {
   deriveAlertSlots,
+  deriveAssignedSummary,
   deriveMyTasks,
   deriveSafetyNotices,
   deriveSafetyStatus,
@@ -69,6 +70,7 @@ import {
 } from "./derivers";
 import type {
   ActiveAlertSlot,
+  AssignedSummary,
   CurrentVesselSlot,
   MyTaskSlot,
   SafetyNoticeSlot,
@@ -79,6 +81,7 @@ import type {
 
 export {
   deriveAlertSlots,
+  deriveAssignedSummary,
   deriveMyTasks,
   deriveSafetyNotices,
   deriveSafetyStatus,
@@ -87,6 +90,7 @@ export {
 export type {
   ActiveAlertSlot,
   AlertSeverity,
+  AssignedSummary,
   CurrentVesselSlot,
   MyTaskSlot,
   SafetyNoticeSlot,
@@ -104,6 +108,7 @@ export interface UserDashboardViewModel {
   safetyNotices: SafetyNoticeSlot[];
   safetyStatus: SafetyStatusSlot;
   myTasks: MyTaskSlot[];
+  assignedSummary: AssignedSummary;
   upcomingMaintenance: UpcomingMaintenanceSlot[];
   shiftStatus: ShiftStatusSlot;
 }
@@ -117,6 +122,7 @@ interface RawVessel {
 interface RawWorkOrderRow {
   id: string;
   title?: string | null;
+  status?: string | null;
   priority?: number | null;
   dueDate?: string | null;
   equipmentName?: string | null;
@@ -161,6 +167,17 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
   // free of direct useQuery calls (task #220 constraint).
   const { data: workOrders, isLoading: tasksLoading } = useQuery<RawWorkOrderRow[]>({
     queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
+    refetchInterval: 60000,
+  });
+
+  // All work orders assigned to me, across every status — the denominator
+  // for the "Today's Overview" completion tile. Kept separate from the
+  // open-only `workOrders` read above so the "Assigned Tasks" list still
+  // shows only actionable (open) items while the % reflects real progress.
+  const { data: allAssigned, isLoading: allAssignedLoading } = useQuery<
+    RawWorkOrderRow[]
+  >({
+    queryKey: ["/api/work-orders", { assignedToMe: "true" }],
     refetchInterval: 60000,
   });
 
@@ -239,13 +256,24 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
     [workOrders, now],
   );
 
+  const assignedSummary = useMemo<AssignedSummary>(
+    () => deriveAssignedSummary(Array.isArray(allAssigned) ? allAssigned : []),
+    [allAssigned],
+  );
+
   return {
-    isLoading: vesselsLoading || alertsLoading || tasksLoading || maintLoading,
+    isLoading:
+      vesselsLoading ||
+      alertsLoading ||
+      tasksLoading ||
+      allAssignedLoading ||
+      maintLoading,
     currentVessel,
     activeAlerts,
     safetyNotices,
     safetyStatus,
     myTasks,
+    assignedSummary,
     upcomingMaintenance,
     shiftStatus,
   };

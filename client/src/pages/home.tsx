@@ -6,31 +6,26 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { NavigationCard } from "@/components/navigation/NavigationCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { MyAssignmentsPanel } from "@/components/work-orders/MyAssignmentsPanel";
 import { navigationCategories, type NavigationCategory } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
 import {
-  Plus,
   Flag,
   CheckCircle2,
   Bell,
   Ship,
-  Clock,
   ShieldAlert,
   ShieldCheck,
   UserCircle,
-  Wrench,
   AlertTriangle,
   ClipboardList,
-  Circle,
   Menu,
   ChevronRight,
+  type LucideIcon,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
-import { OpsStatusPill } from "@/components/ops/OpsStatusPill";
 import type { RoleConfig } from "@/config/roles";
 import {
   getAdminPrimaryCategories,
@@ -54,20 +49,13 @@ import {
 } from "@/components/ui/sheet";
 import {
   useUserDashboardViewModel,
-  type ActiveAlertSlot,
-  type CurrentVesselSlot,
   type MyTaskSlot,
-  type SafetyNoticeSlot,
-  type SafetyStatusSlot,
-  type ShiftStatusSlot,
-  type UpcomingMaintenanceSlot,
 } from "@/application/user-dashboard/user-dashboard-view-model";
+import { listSessionFeedback } from "@/application/feedback/feedback-submission";
 import { EmergencyAlarmBanner } from "@/components/safety/EmergencyAlarmBanner";
 import {
   safeMinimalDashboardConfig,
-  TASK_SOURCE_LABELS,
   type RoleDashboardConfig,
-  type TaskSourceKey,
   type WidgetKey,
 } from "@shared/role-dashboard";
 import { formatDistanceToNow } from "date-fns";
@@ -176,120 +164,139 @@ function useAttentionItems() {
   return { attentionItems, sinceLastVisit: summary?.newSinceLastVisit };
 }
 
-function CurrentVesselCard({ vessel }: { vessel: CurrentVesselSlot | undefined }) {
-  if (!vessel) {
-    return (
-      <div
-        className="rounded-lg border bg-card p-4"
-        data-testid="card-current-vessel-empty"
-      >
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Ship className="h-4 w-4" />
-          No vessel assigned yet.
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="ops-card p-4" data-testid="card-current-vessel">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <Ship className="h-3.5 w-3.5" /> My Vessel
-      </div>
-      <div className="mt-1 text-base font-semibold" data-testid="text-current-vessel-name">
-        {vessel.name}
-      </div>
-      <div className="mt-0.5 text-xs text-muted-foreground" data-testid="text-current-vessel-imo">
-        {vessel.imo ? `IMO ${vessel.imo}` : "IMO not on record"}
-      </div>
-    </div>
-  );
-}
-
-function ShiftStatusCard({ shift }: { shift: ShiftStatusSlot }) {
-  const hours = Math.floor(shift.remainingMinutes / 60);
-  const minutes = shift.remainingMinutes % 60;
-  return (
-    <div className="ops-card p-4" data-testid="card-shift-status">
-      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5" /> My Shift
-        </span>
-        <span className="font-medium normal-case" data-testid="text-shift-date">
-          {shift.dateLabel}
-        </span>
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="text-base font-semibold">{shift.windowLabel}</span>
-        {shift.source === "fallback" && (
-          <span
-            className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
-            data-testid="badge-shift-estimated"
-          >
-            Estimated
-          </span>
-        )}
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground" data-testid="text-shift-remaining">
-        {shift.label === "On duty"
-          ? `${hours}h ${minutes}m remaining`
-          : "Off duty"}
-      </div>
-      <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
-        <div
-          className="h-1.5 rounded-full bg-primary"
-          style={{ width: `${shift.progressPercent}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function SafetyStatusCard({ status }: { status: SafetyStatusSlot }) {
-  const palette =
-    status.level === "good"
-      ? {
-          icon: <ShieldCheck className="h-3.5 w-3.5" />,
-          card: "ops-card-success",
-          dot: "bg-green-500",
-          value: "text-green-400",
-        }
-      : status.level === "caution"
-        ? {
-            icon: <ShieldAlert className="h-3.5 w-3.5" />,
-            card: "ops-card-warning",
-            dot: "bg-amber-500",
-            value: "text-amber-400",
-          }
-        : {
-            icon: <ShieldAlert className="h-3.5 w-3.5" />,
-            card: "ops-card-critical",
-            dot: "bg-red-500",
-            value: "text-red-400",
-          };
+function OverviewTile({
+  icon: Icon,
+  label,
+  value,
+  tone,
+  loading,
+  testId,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  tone: string;
+  loading: boolean;
+  testId: string;
+}) {
   return (
     <div
-      className={cn("ops-card p-4", palette.card)}
-      data-testid="card-safety-status"
-      data-status={status.level}
+      className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center"
+      data-testid={testId}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        {palette.icon} Safety Status
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className={cn("h-2.5 w-2.5 rounded-full", palette.dot)} />
+      <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg", tone)}>
+        <Icon className="h-5 w-5" />
+      </span>
+      {loading ? (
+        <Skeleton className="h-6 w-8" />
+      ) : (
         <span
-          className={cn("text-base font-semibold", palette.value)}
-          data-testid="text-safety-status"
+          className="text-xl font-bold leading-none tabular-nums text-foreground"
+          data-testid={`${testId}-value`}
         >
-          {status.label}
+          {value}
         </span>
-      </div>
-      <div className="mt-0.5 text-xs text-muted-foreground">
-        {status.activeCount === 0
-          ? "No active safety notices"
-          : `${status.activeCount} active safety notice${status.activeCount > 1 ? "s" : ""}`}
-      </div>
+      )}
+      <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+        {label}
+      </span>
     </div>
+  );
+}
+
+function AssignedTaskRow({
+  task,
+  onOpen,
+}: {
+  task: MyTaskSlot;
+  onOpen: (id: string) => void;
+}) {
+  const overdue = task.dayPill === "overdue";
+  const dueLabel =
+    task.dayPill === "overdue"
+      ? "Overdue"
+      : task.dayPill === "today"
+        ? "Due today"
+        : task.dayPill === "tomorrow"
+          ? "Due tomorrow"
+          : "No due date";
+  const dotTone = overdue
+    ? "bg-rose-400"
+    : task.dayPill === "today"
+      ? "bg-amber-400"
+      : "bg-sky-400";
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(task.id)}
+      data-testid={`row-assigned-task-${task.id}`}
+      className="flex w-full items-center gap-3 rounded-xl bg-white/[0.03] p-3 text-left transition-colors hover:bg-white/[0.06]"
+    >
+      <span className={cn("h-2 w-2 shrink-0 rounded-full", dotTone)} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-foreground">{task.title}</div>
+        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{dueLabel}</span>
+          {task.equipmentName && (
+            <>
+              <span className="opacity-50">•</span>
+              <span className="truncate">{task.equipmentName}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <span
+        className={cn(
+          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+          overdue ? "bg-rose-500/15 text-rose-400" : "bg-sky-500/15 text-sky-400",
+        )}
+      >
+        {overdue ? "Overdue" : "Open"}
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}
+
+function AlertNoticeRow({
+  icon: Icon,
+  tone,
+  title,
+  meta,
+  when,
+  onOpen,
+  testId,
+}: {
+  icon: LucideIcon;
+  tone: string;
+  title: string;
+  meta?: string | null;
+  when: string | null;
+  onOpen: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      data-testid={testId}
+      className="flex w-full items-center gap-3 rounded-xl bg-white/[0.03] p-3 text-left transition-colors hover:bg-white/[0.06]"
+    >
+      <span className={cn("inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", tone)}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-foreground">{title}</div>
+        {(meta || when) && (
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {meta && <span className="truncate">{meta}</span>}
+            {meta && when && <span className="opacity-50">•</span>}
+            {when && <span className="shrink-0">{when}</span>}
+          </div>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
   );
 }
 
@@ -302,280 +309,6 @@ function relativeTime(iso: string | undefined): string | null {
   } catch {
     return null;
   }
-}
-
-const TASK_DAY_PILL_STYLES: Record<
-  NonNullable<MyTaskSlot["dayPill"]>,
-  { label: string; className: string }
-> = {
-  overdue: { label: "Overdue", className: "bg-destructive/15 text-destructive" },
-  today: { label: "Today", className: "bg-primary/15 text-primary" },
-  tomorrow: { label: "Tomorrow", className: "bg-muted text-muted-foreground" },
-};
-
-interface MeTaskItem {
-  id: string;
-  source: TaskSourceKey;
-  title: string;
-  status: string | null;
-  priority: string | null;
-  vesselId: string | null;
-  link: string;
-}
-
-/**
- * Config-driven personal task feed. Aggregates across the task sources enabled
- * by the caller's active role config (`/api/me/tasks` does the scoping + merge
- * server-side). Rendered only when the `user_tasks` widget is enabled.
- */
-function MyTaskFeed() {
-  const [, navigate] = useLocation();
-  const { data: tasks = [], isLoading } = useQuery<MeTaskItem[]>({
-    queryKey: ["/api/me/tasks"],
-    refetchInterval: 60000,
-  });
-
-  return (
-    <div className="ops-card p-4" data-testid="card-my-tasks">
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <ClipboardList className="h-3.5 w-3.5" /> My Tasks
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-16 w-full" />
-      ) : tasks.length === 0 ? (
-        <div
-          className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/30 p-3"
-          data-testid="empty-my-tasks"
-        >
-          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
-          <div>
-            <div className="text-sm font-medium">You're all caught up</div>
-            <div className="text-xs text-muted-foreground">
-              Nothing needs your attention right now.
-            </div>
-          </div>
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {tasks.slice(0, 8).map((task) => (
-            <li key={`${task.source}-${task.id}`}>
-              <button
-                type="button"
-                onClick={() => navigate(task.link)}
-                data-testid={`button-task-${task.id}`}
-                className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-background/30 p-3 text-left transition-colors hover:border-primary/50"
-              >
-                <Circle
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    task.priority === "high" || task.priority === "critical"
-                      ? "text-destructive"
-                      : task.priority === "medium"
-                        ? "text-amber-500"
-                        : "text-muted-foreground",
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{task.title}</div>
-                </div>
-                <span className="shrink-0 rounded border px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
-                  {TASK_SOURCE_LABELS[task.source] ?? task.source}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function ActiveAlertsCard({
-  alerts,
-  onViewAll,
-}: {
-  alerts: ActiveAlertSlot[];
-  onViewAll: () => void;
-}) {
-  if (alerts.length === 0) {
-    return (
-      <div className="ops-card p-4" data-testid="card-active-alerts-empty">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
-        </div>
-        <div className="mt-2 text-sm text-muted-foreground">No active alerts.</div>
-      </div>
-    );
-  }
-  return (
-    <div className="ops-card p-4" data-testid="card-active-alerts">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <AlertTriangle className="h-3.5 w-3.5" /> Active Alerts
-        </h2>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="text-xs text-primary hover:underline"
-          data-testid="link-view-all-alerts"
-        >
-          View all alerts
-        </button>
-      </div>
-      <ul className="space-y-2">
-        {alerts.map((a) => {
-          const when = relativeTime(a.createdAt);
-          return (
-            <li
-              key={a.id}
-              className="flex items-start justify-between gap-2 text-sm"
-              data-testid={`row-active-alert-${a.id}`}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{a.title}</div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {a.source && <span className="truncate">{a.source}</span>}
-                  {a.source && when && <span className="opacity-50">·</span>}
-                  {when && <span className="shrink-0">{when}</span>}
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase",
-                  a.severity === "critical" || a.severity === "high"
-                    ? "bg-destructive/10 text-destructive"
-                    : a.severity === "medium"
-                      ? "bg-yellow-500/10 text-yellow-600"
-                      : "bg-muted text-muted-foreground",
-                )}
-              >
-                {a.severity}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function SafetyNoticesCard({
-  notices,
-  onViewAll,
-}: {
-  notices: SafetyNoticeSlot[];
-  onViewAll: () => void;
-}) {
-  if (notices.length === 0) {
-    return (
-      <div
-        className="ops-card ops-card-success p-4"
-        data-testid="card-safety-notices-empty"
-      >
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5" /> Safety Notices
-        </div>
-        <div className="mt-2 text-sm text-muted-foreground">No safety notices.</div>
-      </div>
-    );
-  }
-  return (
-    <div
-      className="ops-card ops-card-success p-4"
-      data-testid="card-safety-notices"
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5" /> Safety Notices
-        </h2>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="text-xs text-primary hover:underline"
-          data-testid="link-view-all-notices"
-        >
-          View all notices
-        </button>
-      </div>
-      <ul className="space-y-2">
-        {notices.map((n) => {
-          const when = relativeTime(n.postedAt);
-          return (
-            <li
-              key={n.id}
-              className="text-sm"
-              data-testid={`row-safety-notice-${n.id}`}
-            >
-              <div className="truncate font-medium">{n.title}</div>
-              {when && <div className="text-xs text-muted-foreground">{when}</div>}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function UpcomingMaintenanceCard({
-  items,
-  now,
-  onViewAll,
-}: {
-  items: UpcomingMaintenanceSlot[];
-  now: Date;
-  onViewAll: () => void;
-}) {
-  if (items.length === 0) {
-    return (
-      <div className="ops-card p-4" data-testid="card-upcoming-maintenance-empty">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
-        </div>
-        <div className="mt-2 text-sm text-muted-foreground">
-          Nothing scheduled in the next 7 days.
-        </div>
-      </div>
-    );
-  }
-  const dueLabel = (date: Date): string => {
-    const ms = date.getTime() - now.getTime();
-    const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
-    if (days < 0) return `Overdue by ${Math.abs(days)}d`;
-    if (days === 0) return "Due today";
-    if (days === 1) return "Due in 1 day";
-    return `Due in ${days} days`;
-  };
-  return (
-    <div className="ops-card p-4" data-testid="card-upcoming-maintenance">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <Wrench className="h-3.5 w-3.5" /> Upcoming Maintenance
-        </h2>
-        <button
-          type="button"
-          onClick={onViewAll}
-          className="text-xs text-primary hover:underline"
-          data-testid="link-user-view-maintenance"
-        >
-          View schedule
-        </button>
-      </div>
-      <ul className="space-y-2">
-        {items.map((m) => (
-          <li
-            key={m.id}
-            className="flex items-center justify-between gap-2 text-sm"
-            data-testid={`row-upcoming-maintenance-${m.id}`}
-          >
-            <span className="min-w-0 flex-1 truncate font-medium">{m.title}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {dueLabel(m.scheduledDate)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function greetingForNow(now: Date): string {
@@ -624,6 +357,11 @@ function UserPortalHome({
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  // Count of flags/feedback the crew member has submitted this session.
+  // Session-scoped (no submitted-feedback backend list endpoint exists),
+  // so this is the honest count we can show without fabricating numbers.
+  const flagCount = useMemo(() => listSessionFeedback().length, []);
 
   // Sidebar items are sourced from the centralised role-navigation
   // policy (Dashboard + Feedback/Flags for the user portal) — the
@@ -809,22 +547,29 @@ function UserPortalHome({
           <div className="mb-4">
             <EmergencyAlarmBanner />
           </div>
-          <div className="mb-5">
-            <div
-              className="text-xs uppercase tracking-wide text-muted-foreground"
-              data-testid="text-user-greeting-label"
-            >
-              {greeting},
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div
+                className="text-xs uppercase tracking-wide text-muted-foreground"
+                data-testid="text-user-greeting-label"
+              >
+                {greeting},
+              </div>
+              <div
+                className="truncate text-xl font-semibold text-foreground sm:text-2xl"
+                data-testid="text-user-greeting-name"
+              >
+                {displayName}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                Here's your operational overview for today.
+              </div>
             </div>
-            <div
-              className="truncate text-xl font-semibold text-foreground sm:text-2xl"
-              data-testid="text-user-greeting-name"
-            >
-              {displayName}
-            </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              Stay safe out there.
-            </div>
+            <Avatar className="h-11 w-11 shrink-0 ring-2 ring-primary/30">
+              <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
+                {initials || "U"}
+              </AvatarFallback>
+            </Avatar>
           </div>
 
           {dashboardError && (
@@ -837,92 +582,199 @@ function UserPortalHome({
             </div>
           )}
 
-          {(showWidget("current_vessel") ||
-            showWidget("shift_status") ||
-            showWidget("safety_status")) && (
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {showWidget("current_vessel") && (
-                <CurrentVesselCard vessel={vm.currentVessel} />
-              )}
-              {showWidget("shift_status") && <ShiftStatusCard shift={vm.shiftStatus} />}
-              {showWidget("safety_status") && (
-                <SafetyStatusCard status={vm.safetyStatus} />
-              )}
+          <section className="ops-card mb-4 p-4" data-testid="card-todays-overview">
+            <h2 className="mb-3 text-sm font-semibold text-foreground">
+              Today's Overview
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <OverviewTile
+                icon={ClipboardList}
+                label="Tasks Assigned"
+                value={vm.assignedSummary.active}
+                tone="bg-blue-500/15 text-blue-400"
+                loading={vm.isLoading}
+                testId="tile-tasks-assigned"
+              />
+              <OverviewTile
+                icon={Bell}
+                label="Alerts New"
+                value={vm.activeAlerts.length}
+                tone="bg-amber-500/15 text-amber-400"
+                loading={vm.isLoading}
+                testId="tile-alerts-new"
+              />
+              <OverviewTile
+                icon={Flag}
+                label="Flags Submitted"
+                value={flagCount}
+                tone="bg-violet-500/15 text-violet-400"
+                loading={false}
+                testId="tile-flags-submitted"
+              />
+              <OverviewTile
+                icon={CheckCircle2}
+                label="Tasks Complete"
+                value={`${vm.assignedSummary.completionPct}%`}
+                tone="bg-emerald-500/15 text-emerald-400"
+                loading={vm.isLoading}
+                testId="tile-tasks-complete"
+              />
             </div>
-          )}
-
-          {attentionItems.length > 0 ? (
-            <AttentionBanner
-              items={attentionItems.map((item) =>
-                item.href.startsWith("/attention-inbox")
-                  ? { ...item, href: "/" }
-                  : item,
-              )}
-              className="mb-4"
-            />
-          ) : (
-            <div
-              className="mb-4 flex items-center gap-3 rounded-lg border border-border/60 bg-background/30 px-4 py-3"
-              data-testid="empty-attention"
-            >
-              <Bell className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-              <div>
-                <div className="text-sm font-medium">Nothing needs your attention</div>
-                <div className="text-xs text-muted-foreground">
-                  We'll surface anything urgent here.
-                </div>
-              </div>
-            </div>
-          )}
+          </section>
 
           <MyAssignmentsPanel />
 
-          {(showWidget("user_tasks") || showWidget("active_alerts")) && (
-            <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {showWidget("user_tasks") && <MyTaskFeed />}
-              {showWidget("active_alerts") && (
-                <ActiveAlertsCard
-                  alerts={vm.activeAlerts}
-                  onViewAll={() => setLocation("/alerts")}
-                />
+          {showWidget("user_tasks") && (
+            <section className="ops-card mb-4 p-4" data-testid="card-assigned-tasks">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <ClipboardList className="h-4 w-4 text-blue-400" />
+                  Assigned Tasks
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/work-orders")}
+                  className="text-xs font-medium text-primary hover:underline"
+                  data-testid="link-view-all-tasks"
+                >
+                  View all
+                </button>
+              </div>
+              {vm.isLoading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : vm.myTasks.length === 0 ? (
+                <div
+                  className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-3"
+                  data-testid="empty-my-tasks"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      You're all caught up
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      No tasks assigned to you right now.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {vm.myTasks.map((task) => (
+                    <AssignedTaskRow
+                      key={task.id}
+                      task={task}
+                      onOpen={(id) => setLocation(`/work-orders?id=${id}`)}
+                    />
+                  ))}
+                </div>
               )}
-            </div>
+            </section>
           )}
 
-          {(showWidget("safety_notices") || showWidget("upcoming_maintenance")) && (
-            <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {showWidget("safety_notices") && (
-                <SafetyNoticesCard
-                  notices={vm.safetyNotices}
-                  onViewAll={() => setLocation("/safety-bulletins")}
-                />
-              )}
-              {showWidget("upcoming_maintenance") && (
-                <UpcomingMaintenanceCard
-                  items={vm.upcomingMaintenance}
-                  now={now}
-                  onViewAll={() => setLocation("/maintenance")}
-                />
-              )}
+          <section className="ops-card mb-4 p-4" data-testid="card-user-feedback-cta">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Flag className="h-4 w-4 text-violet-400" />
+                Feedback / Flags
+              </h2>
+              <button
+                type="button"
+                onClick={() => setLocation("/feedback")}
+                className="text-xs font-medium text-primary hover:underline"
+                data-testid="link-view-my-flags"
+              >
+                View mine
+              </button>
             </div>
-          )}
-
-          <div
-            className="ops-card border-dashed p-6 text-center"
-            data-testid="card-user-feedback-cta"
-          >
-            <Flag className="mx-auto mb-2 h-6 w-6 text-primary" />
-            <h3 className="mb-1 text-sm font-semibold">Spot something off?</h3>
-            <p className="mb-4 text-xs text-muted-foreground">
-              Submit feedback or flag a concern for the team.
+            <p className="text-sm text-foreground" data-testid="text-flag-count">
+              {flagCount === 0
+                ? "You have no submitted flags this session."
+                : `You have ${flagCount} submitted flag${flagCount > 1 ? "s" : ""} this session.`}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Spot something off? Submit feedback or flag a concern for the team.
             </p>
             <Button
               onClick={() => setLocation("/feedback")}
+              className="mt-3 w-full"
               data-testid="button-user-open-feedback"
             >
+              <Flag className="mr-2 h-4 w-4" />
               Submit Feedback / Flag
             </Button>
-          </div>
+          </section>
+
+          {(showWidget("active_alerts") || showWidget("safety_notices")) && (
+            <section className="ops-card mb-4 p-4" data-testid="card-alerts-notices">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Bell className="h-4 w-4 text-amber-400" />
+                  Alerts / Notices
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/alerts")}
+                  className="text-xs font-medium text-primary hover:underline"
+                  data-testid="link-view-all-alerts"
+                >
+                  View all
+                </button>
+              </div>
+              {vm.isLoading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : vm.activeAlerts.length === 0 && vm.safetyNotices.length === 0 ? (
+                <div
+                  className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-3"
+                  data-testid="empty-attention"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Nothing needs your attention
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      We'll surface alerts and safety notices here.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {showWidget("active_alerts") &&
+                    vm.activeAlerts.map((alert) => (
+                      <AlertNoticeRow
+                        key={`alert-${alert.id}`}
+                        icon={AlertTriangle}
+                        tone={
+                          alert.severity === "critical" || alert.severity === "high"
+                            ? "bg-rose-500/15 text-rose-400"
+                            : alert.severity === "medium"
+                              ? "bg-amber-500/15 text-amber-400"
+                              : "bg-slate-500/15 text-slate-300"
+                        }
+                        title={alert.title}
+                        meta={alert.source ?? null}
+                        when={relativeTime(alert.createdAt)}
+                        onOpen={() => setLocation(`/alerts?id=${alert.id}`)}
+                        testId={`row-active-alert-${alert.id}`}
+                      />
+                    ))}
+                  {showWidget("safety_notices") &&
+                    vm.safetyNotices.map((notice) => (
+                      <AlertNoticeRow
+                        key={`notice-${notice.id}`}
+                        icon={ShieldCheck}
+                        tone="bg-emerald-500/15 text-emerald-400"
+                        title={notice.title}
+                        meta="Safety notice"
+                        when={relativeTime(notice.postedAt)}
+                        onOpen={() => setLocation("/safety-bulletins")}
+                        testId={`row-safety-notice-${notice.id}`}
+                      />
+                    ))}
+                </div>
+              )}
+            </section>
+          )}
         </main>
       </div>
     </div>

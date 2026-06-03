@@ -1,11 +1,11 @@
 /**
  * UI Align Phase 4 — User Portal Dashboard.
  *
- * Pins the contract described in task #188:
- *   - The user-portal branch of /home renders the new cards
- *     (current vessel, shift, active alerts, safety notices,
- *     upcoming maintenance) and preserves the three stable
- *     empty-state ids (`empty-attention`, `empty-my-tasks`,
+ * Pins the user-portal dashboard contract:
+ *   - The user-portal branch of /home renders the Figma dashboard
+ *     sections (Today's Overview, Assigned Tasks, Feedback / Flags,
+ *     Alerts / Notices) and preserves the three stable empty-state
+ *     ids (`empty-attention`, `empty-my-tasks`,
  *     `empty-feedback-history`) that other surfaces key off.
  *   - The user-portal branch does NOT mount the admin
  *     `WorkflowCommandCenter` (admin module must not leak).
@@ -26,6 +26,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   deriveAlertSlots,
+  deriveAssignedSummary,
   deriveSafetyNotices,
   deriveSafetyStatus,
   deriveShiftStatus,
@@ -51,12 +52,11 @@ describe("UI Align Phase 4 — user-portal page contract", () => {
     userBranch = match![0];
   });
 
-  it("renders the five Phase 4 cards inside the user-portal branch", () => {
-    expect(userBranch).toMatch(/<CurrentVesselCard\b/);
-    expect(userBranch).toMatch(/<ShiftStatusCard\b/);
-    expect(userBranch).toMatch(/<ActiveAlertsCard\b/);
-    expect(userBranch).toMatch(/<SafetyNoticesCard\b/);
-    expect(userBranch).toMatch(/<UpcomingMaintenanceCard\b/);
+  it("renders the Figma dashboard sections inside the user-portal branch", () => {
+    expect(userBranch).toMatch(/data-testid="card-todays-overview"/);
+    expect(userBranch).toMatch(/data-testid="card-assigned-tasks"/);
+    expect(userBranch).toMatch(/data-testid="card-user-feedback-cta"/);
+    expect(userBranch).toMatch(/data-testid="card-alerts-notices"/);
   });
 
   it("preserves the stable empty-state ids in their respective branches", () => {
@@ -178,6 +178,32 @@ describe("UI Align Phase 4 — view-model derivers", () => {
         { id: "old", title: "Expired", severity: "critical", active: false },
       ]),
     ).toMatchObject({ level: "good", activeCount: 0 });
+  });
+
+  it("deriveAssignedSummary buckets statuses and excludes cancelled from the %", () => {
+    const out = deriveAssignedSummary([
+      { id: "1", status: "open" },
+      { id: "2", status: "in_progress" },
+      { id: "3", status: "completed" },
+      { id: "4", status: "VERIFIED" },
+      { id: "5", status: "cancelled" },
+      { id: "6", status: null },
+    ]);
+    // open + in_progress + null = 3 active; completed + verified = 2;
+    // cancelled is excluded from both active and the denominator.
+    expect(out.active).toBe(3);
+    expect(out.completed).toBe(2);
+    expect(out.total).toBe(5);
+    expect(out.completionPct).toBe(40);
+  });
+
+  it("deriveAssignedSummary returns zeroes for an empty list", () => {
+    expect(deriveAssignedSummary([])).toEqual({
+      active: 0,
+      completed: 0,
+      total: 0,
+      completionPct: 0,
+    });
   });
 
   it("deriveShiftStatus reports On duty mid-shift and Off duty outside", () => {

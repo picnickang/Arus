@@ -7,6 +7,7 @@
 import type {
   ActiveAlertSlot,
   AlertSeverity,
+  AssignedSummary,
   MyTaskSlot,
   SafetyNoticeSlot,
   SafetyStatusSlot,
@@ -275,11 +276,41 @@ function buildShiftSlot(
 interface RawWorkOrder {
   id: string;
   title?: string | null;
+  status?: string | null;
   priority?: number | null;
   dueDate?: string | null;
   equipmentName?: string | null;
   vesselName?: string | null;
   equipment?: { name?: string | null } | null;
+}
+
+const COMPLETED_STATUSES = new Set(["completed", "closed", "done", "verified"]);
+const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "rejected", "void"]);
+
+/**
+ * Headline counts for the "Today's Overview" completion tile, derived
+ * from ALL work orders assigned to the user (every status). Cancelled
+ * and other terminal-non-completed rows are excluded from both `active`
+ * and the completion denominator so neither the active workload nor the
+ * completion percentage is inflated. Pure so the status bucketing is
+ * unit-testable.
+ */
+export function deriveAssignedSummary(rows: RawWorkOrder[]): AssignedSummary {
+  let completed = 0;
+  let cancelled = 0;
+  for (const r of rows) {
+    const s = (r.status ?? "").trim().toLowerCase();
+    if (COMPLETED_STATUSES.has(s)) completed += 1;
+    else if (CANCELLED_STATUSES.has(s)) cancelled += 1;
+  }
+  const active = Math.max(0, rows.length - completed - cancelled);
+  const total = active + completed;
+  return {
+    active,
+    completed,
+    total,
+    completionPct: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
 }
 
 /**

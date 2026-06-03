@@ -57,6 +57,23 @@ export interface MyTaskSlot {
   dayPill: TaskDayPill;
 }
 
+/**
+ * Headline counts for the user-portal "Today's Overview" completion
+ * tile. Derived from all work orders assigned to the user (every
+ * status), with cancelled/terminal-non-completed rows excluded from
+ * both `active` and the completion math so the numbers stay honest:
+ *   - active        → assigned work that is neither completed nor cancelled.
+ *   - completed     → assigned work in a terminal "done" state.
+ *   - total         → active + completed (the completion denominator).
+ *   - completionPct → completed / total, rounded; 0 when no tasks.
+ */
+export interface AssignedSummary {
+  active: number;
+  completed: number;
+  total: number;
+  completionPct: number;
+}
+
 export interface UpcomingMaintenanceSlot {
   id: string;
   title: string;
