@@ -5,7 +5,6 @@ import { isVesselRole } from "@/lib/briefing-redirect";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { NavigationCard } from "@/components/navigation/NavigationCard";
-import { QuickActions } from "@/components/shared/QuickActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
@@ -14,8 +13,6 @@ import { MyAssignmentsPanel } from "@/components/work-orders/MyAssignmentsPanel"
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
 import {
-  ChevronRight,
-  History,
   Plus,
   Flag,
   CheckCircle2,
@@ -27,17 +24,11 @@ import {
   UserCircle,
   Wrench,
   AlertTriangle,
-  Sparkles,
-  Users,
   ClipboardList,
-  Activity,
   Circle,
   Menu,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
-import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
-import { RoleTodayPanel } from "@/features/workflow/components/RoleTodayPanel";
-import { OpsMetricCard } from "@/components/ops/OpsMetricCard";
 import { OpsStatusPill } from "@/components/ops/OpsStatusPill";
 import type { RoleConfig } from "@/config/roles";
 import {
@@ -70,7 +61,6 @@ import {
   type ShiftStatusSlot,
   type UpcomingMaintenanceSlot,
 } from "@/application/user-dashboard/user-dashboard-view-model";
-import { useDashboardSummary } from "@/features/analytics/hooks/useDashboardSummary";
 import { EmergencyAlarmBanner } from "@/components/safety/EmergencyAlarmBanner";
 import {
   safeMinimalDashboardConfig,
@@ -80,7 +70,6 @@ import {
   type WidgetKey,
 } from "@shared/role-dashboard";
 import { formatDistanceToNow } from "date-fns";
-import { ExternalLink } from "lucide-react";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -184,136 +173,6 @@ function useAttentionItems() {
   }, [summary]);
 
   return { attentionItems, sinceLastVisit: summary?.newSinceLastVisit };
-}
-
-function SinceLastVisit({
-  data,
-}: {
-  data: { newAlerts: number; newWorkOrders: number; completedWorkOrders: number };
-}) {
-  const total = data.newAlerts + data.newWorkOrders + data.completedWorkOrders;
-  if (total === 0) {
-    return null;
-  }
-
-  return (
-    <div className="mb-6 p-4 rounded-lg border bg-card" data-testid="section-since-last-visit">
-      <div className="flex items-center gap-2 mb-3">
-        <History className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">Since Your Last Visit</h3>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {data.newAlerts > 0 && (
-          <div className="text-center p-2 rounded bg-yellow-500/10">
-            <div className="text-lg font-bold text-yellow-600" data-testid="text-new-alerts">
-              {data.newAlerts}
-            </div>
-            <div className="text-xs text-muted-foreground">New Alerts</div>
-          </div>
-        )}
-        {data.newWorkOrders > 0 && (
-          <div className="text-center p-2 rounded bg-blue-500/10">
-            <div className="text-lg font-bold text-blue-600" data-testid="text-new-work-orders">
-              {data.newWorkOrders}
-            </div>
-            <div className="text-xs text-muted-foreground">New Work Orders</div>
-          </div>
-        )}
-        {data.completedWorkOrders > 0 && (
-          <div className="text-center p-2 rounded bg-green-500/10">
-            <div
-              className="text-lg font-bold text-green-600"
-              data-testid="text-completed-work-orders"
-            >
-              {data.completedWorkOrders}
-            </div>
-            <div className="text-xs text-muted-foreground">Completed</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface MyTask {
-  id: string;
-  title?: string;
-  priority?: number;
-  dueDate?: string | null;
-  status?: string;
-  equipmentName?: string | null;
-  vesselName?: string | null;
-  equipment?: { name?: string | null } | null;
-}
-
-interface MyTasksProps {
-  /**
-   * Optional empty-state node to render when the user has no open
-   * work orders. When omitted, the section is hidden entirely
-   * (legacy admin-portal behaviour). The user portal passes a calmer
-   * "you're all caught up" affordance.
-   */
-  emptyState?: import("react").ReactNode;
-}
-
-function MyTasks({ emptyState }: MyTasksProps = {}) {
-  const { data: myWorkOrders } = useQuery<MyTask[]>({
-    queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
-    refetchInterval: 60000,
-  });
-
-  const [, setLocation] = useLocation();
-  const tasks: MyTask[] = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
-
-  if (tasks.length === 0) {
-    return emptyState ? <>{emptyState}</> : null;
-  }
-
-  return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-foreground">My Tasks</h2>
-        <button
-          onClick={() => setLocation("/work-orders?assignedToMe=true")}
-          data-testid="link-view-all-tasks"
-          className="text-xs text-primary hover:underline flex items-center gap-1"
-        >
-          View all <ChevronRight className="h-3 w-3" />
-        </button>
-      </div>
-      <div className="space-y-2">
-        {tasks.map((task) => (
-          <button
-            key={task.id}
-            onClick={() => setLocation(`/work-orders?id=${task.id}`)}
-            data-testid={`button-task-${task.id}`}
-            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border
-                       bg-card hover:border-primary/50 transition-colors text-left touch-target"
-          >
-            <div
-              className={cn(
-                "w-2 h-2 rounded-full flex-shrink-0",
-                task.priority === 1
-                  ? "bg-destructive"
-                  : task.priority === 2
-                    ? "bg-yellow-500"
-                    : "bg-muted-foreground"
-              )}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{task.title}</div>
-              <div className="text-xs text-muted-foreground">
-                {task.equipmentName || task.equipment?.name || "Unassigned equipment"}
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground flex-shrink-0">
-              {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function CurrentVesselCard({ vessel }: { vessel: CurrentVesselSlot | undefined }) {
@@ -718,279 +577,6 @@ function UpcomingMaintenanceCard({
   );
 }
 
-function AIFleetSummaryCard() {
-  const [, setLocation] = useLocation();
-  const { metrics, equipmentHealth, insightsSnapshot } = useDashboardSummary();
-
-  const fleetHealth = metrics?.fleetHealth ?? 0;
-  const openWorkOrders = metrics?.openWorkOrders ?? 0;
-  const criticalEquipmentCount = (equipmentHealth ?? []).filter(
-    (eq) => (eq.healthIndex ?? 100) < 40,
-  ).length;
-
-  const parts: string[] = [];
-  if (fleetHealth >= 80) {
-    parts.push("Fleet health is stable.");
-  } else if (fleetHealth >= 60) {
-    parts.push("Fleet health is below target — some equipment needs attention.");
-  } else {
-    parts.push(
-      "Fleet health is degraded — multiple equipment items require immediate action.",
-    );
-  }
-  if (criticalEquipmentCount > 0) {
-    parts.push(
-      `${criticalEquipmentCount} equipment item${criticalEquipmentCount > 1 ? "s" : ""} ${criticalEquipmentCount > 1 ? "are" : "is"} in critical condition.`,
-    );
-  }
-  if (openWorkOrders > 0) {
-    parts.push(`${openWorkOrders} work order${openWorkOrders > 1 ? "s" : ""} open.`);
-  }
-  if (insightsSnapshot?.summary) {
-    parts.push(insightsSnapshot.summary);
-  }
-  if (parts.length <= 2) {
-    parts.push("No anomalies detected in the last 24 hours.");
-  }
-
-  return (
-    <section className="mb-6" data-testid="section-ai-fleet-summary">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        AI Summary
-      </h2>
-      <div
-        className="ops-card ops-card-info p-4"
-        data-testid="card-ai-fleet-summary"
-      >
-        <p
-          className="text-sm leading-relaxed text-foreground"
-          data-testid="text-ai-fleet-summary"
-        >
-          {parts.join(" ")}
-        </p>
-        <button
-          type="button"
-          onClick={() => setLocation("/equipment-intelligence")}
-          className="mt-2 inline-flex items-center gap-1 text-xs text-sky-300 hover:underline"
-          data-testid="link-ai-fleet-summary-details"
-        >
-          View Equipment Intelligence <ExternalLink className="h-3 w-3" />
-        </button>
-      </div>
-    </section>
-  );
-}
-
-interface RecentActivityItem {
-  id: string;
-  time: string;
-  message: string;
-  type: "telemetry" | "work-order" | "prediction";
-  severity?: "critical" | "warning" | "info";
-}
-
-type RecentActivityFilter = "all" | "work-order" | "telemetry" | "prediction";
-
-const RECENT_ACTIVITY_FILTER_KEY = "arus:home:recent-activity-filter";
-
-const RECENT_ACTIVITY_TABS: ReadonlyArray<{
-  value: RecentActivityFilter;
-  label: string;
-  emptyMessage: string;
-}> = [
-  {
-    value: "all",
-    label: "All",
-    emptyMessage: "No recent activity. Events will appear here as they occur.",
-  },
-  {
-    value: "work-order",
-    label: "Work Orders",
-    emptyMessage: "No new work order activity in the last 24 hours.",
-  },
-  {
-    value: "telemetry",
-    label: "Alerts",
-    emptyMessage: "No new alerts in the last 24 hours.",
-  },
-  {
-    value: "prediction",
-    label: "Equipment",
-    emptyMessage: "No equipment health issues right now.",
-  },
-];
-
-function RecentActivityFeed() {
-  const { workOrders, equipmentHealth, operatingAlerts } = useDashboardSummary();
-  const [filter, setFilter] = useState<RecentActivityFilter>(() => {
-    if (typeof window === "undefined") return "all";
-    try {
-      const stored = window.sessionStorage.getItem(RECENT_ACTIVITY_FILTER_KEY);
-      if (
-        stored === "all" ||
-        stored === "work-order" ||
-        stored === "telemetry" ||
-        stored === "prediction"
-      ) {
-        return stored;
-      }
-    } catch {
-      // ignore
-    }
-    return "all";
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.sessionStorage.setItem(RECENT_ACTIVITY_FILTER_KEY, filter);
-    } catch {
-      // ignore
-    }
-  }, [filter]);
-
-  const items: RecentActivityItem[] = [];
-
-  for (const wo of (workOrders ?? []).slice(0, 6)) {
-    const created = wo.createdAt;
-    if (!created) continue;
-    const label =
-      wo.status === "completed"
-        ? "Completed"
-        : wo.status === "in_progress"
-          ? "Started"
-          : "Created";
-    items.push({
-      id: `wo-${wo.id}`,
-      time: created,
-      message: `${label}: ${wo.title ?? wo.workOrderNumber ?? wo.id}`,
-      type: "work-order",
-      severity:
-        wo.priority === 2 || wo.priority === "high" ? "warning" : "info",
-    });
-  }
-
-  for (const alert of (operatingAlerts ?? []).slice(0, 4)) {
-    if (!alert.createdAt) continue;
-    items.push({
-      id: `alert-${alert.id}`,
-      time: alert.createdAt,
-      message: `Alert: operating threshold exceeded${alert.equipmentId ? ` — ${alert.equipmentId}` : ""}`,
-      type: "telemetry",
-      severity: alert.severity === "critical" ? "critical" : "warning",
-    });
-  }
-
-  for (const eq of (equipmentHealth ?? [])
-    .filter((e) => (e.healthIndex ?? 100) < 40)
-    .slice(0, 4)) {
-    items.push({
-      id: `eq-${eq.id}`,
-      time: new Date().toISOString(),
-      message: `Equipment health: ${eq.name ?? eq.id} at ${eq.healthIndex}%${eq.vesselName ? ` — ${eq.vesselName}` : ""}`,
-      type: "prediction",
-      severity: (eq.healthIndex ?? 100) < 30 ? "critical" : "warning",
-    });
-  }
-
-  items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-  const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
-  const visible = filtered.slice(0, 12);
-  const activeTab =
-    RECENT_ACTIVITY_TABS.find((t) => t.value === filter) ?? RECENT_ACTIVITY_TABS[0];
-
-  const typeDot: Record<RecentActivityItem["type"], string> = {
-    telemetry: "bg-blue-500",
-    "work-order": "bg-amber-500",
-    prediction: "bg-purple-500",
-  };
-  const severityText: Record<NonNullable<RecentActivityItem["severity"]>, string> = {
-    critical: "text-red-600 dark:text-red-400",
-    warning: "text-amber-600 dark:text-amber-400",
-    info: "text-foreground",
-  };
-
-  return (
-    <section className="mb-6" data-testid="section-recent-activity">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Recent Activity
-      </h2>
-      <div
-        role="tablist"
-        aria-label="Filter recent activity"
-        className="mb-3 inline-flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1"
-        data-testid="tabs-recent-activity-filter"
-      >
-        {RECENT_ACTIVITY_TABS.map((tab) => {
-          const isActive = tab.value === filter;
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setFilter(tab.value)}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                isActive
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              data-testid={`tab-recent-activity-${tab.value}`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-      {visible.length === 0 ? (
-        <div
-          className="rounded-lg border bg-card p-4 text-center text-xs text-muted-foreground"
-          data-testid="empty-recent-activity"
-        >
-          {activeTab.emptyMessage}
-        </div>
-      ) : (
-        <div className="rounded-lg border bg-card px-4">
-          {visible.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-3 border-b border-border/40 py-2.5 last:border-0"
-              data-testid={`row-recent-activity-${item.id}`}
-            >
-              <div
-                className={cn(
-                  "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                  typeDot[item.type],
-                )}
-              />
-              <p
-                className={cn(
-                  "min-w-0 flex-1 text-sm",
-                  item.severity ? severityText[item.severity] : "text-foreground",
-                )}
-              >
-                {item.message}
-              </p>
-              <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-                {(() => {
-                  try {
-                    return formatDistanceToNow(new Date(item.time), {
-                      addSuffix: true,
-                    });
-                  } catch {
-                    return "Recently";
-                  }
-                })()}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function greetingForNow(now: Date): string {
   const h = now.getHours();
   if (h < 12) return "Good morning";
@@ -1353,7 +939,7 @@ export default function HomePage() {
   const [quickWoOpen, setQuickWoOpen] = useState(false);
   const [, setLocation] = useLocation();
 
-  const { attentionItems, sinceLastVisit } = useAttentionItems();
+  const { attentionItems } = useAttentionItems();
   const { permissions } = usePermissions();
   // DB role assignments (from /api/permissions/me) are authoritative for
   // the User/Admin page pivot. The locally-stored `role` hint is only a
@@ -1513,7 +1099,7 @@ export default function HomePage() {
       data-testid="shell-admin-command-center"
     >
       <PageHeader
-        title="Command Center"
+        title="Admin Hubs"
         subtitle={roleConfig?.label ?? "System Admin"}
         showHome={false}
         showBack={true}
@@ -1546,129 +1132,21 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Mobile-first 2x2 KPI grid → tablet/desktop expand to 4 across.
-            All values come from the existing attention-summary query. */}
-        <div
-          className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4"
-          data-testid="grid-admin-kpis"
+        {/* Hub launcher — admins land directly on their permission-gated
+            hubs (Phase 2: "a hub-launcher with only the five hubs"), not a
+            dense command-center dashboard. Operational detail (KPIs, tasks,
+            attention queue, AI findings) lives inside each hub and its own
+            routes. */}
+        <p
+          className="mb-4 text-sm text-muted-foreground"
+          data-testid="text-admin-hubs-intro"
         >
-          <OpsMetricCard
-            label="Critical Alerts"
-            value={kpiCriticalAlerts}
-            severity={kpiCriticalAlerts > 0 ? "critical" : "neutral"}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            testId="kpi-critical-alerts"
-          />
-          <OpsMetricCard
-            label="Work Orders"
-            value={kpiOverdueWO}
-            severity={kpiOverdueWO > 0 ? "warning" : "info"}
-            hint="Needs action"
-            icon={<ClipboardList className="h-4 w-4" />}
-            testId="kpi-work-orders"
-          />
-          <OpsMetricCard
-            label="At-Risk Assets"
-            value={kpiAtRisk}
-            severity={kpiAtRisk > 0 ? "critical" : "neutral"}
-            icon={<Activity className="h-4 w-4" />}
-            testId="kpi-at-risk-assets"
-          />
-          <OpsMetricCard
-            label="Crew Issues"
-            value={sinceLastVisit?.newAlerts ?? 0}
-            severity={(sinceLastVisit?.newAlerts ?? 0) > 0 ? "warning" : "neutral"}
-            icon={<Users className="h-4 w-4" />}
-            testId="kpi-crew-issues"
-          />
-        </div>
+          Only permission-granted hubs appear here.
+        </p>
 
-        {/* AI Recommendation strip — links into the existing AI hub. */}
-        <button
-          type="button"
-          onClick={() => setLocation("/findings")}
-          className="ops-card ops-card-info mb-4 flex w-full items-center gap-3 p-4 text-left"
-          data-testid="card-ai-recommendation"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs uppercase tracking-wide text-sky-300/80">
-              AI Recommendation
-            </div>
-            <div className="truncate text-sm font-semibold text-foreground">
-              Open the AI copilot for prioritised actions
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </button>
-
-        {/* Critical Attention list — reuses AttentionBanner items. */}
-        {attentionItems.length > 0 && (
-          <section className="mb-4" data-testid="section-critical-attention">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Critical Attention
-              </h2>
-              <button
-                type="button"
-                onClick={() => setLocation("/attention-inbox")}
-                className="text-xs text-sky-300 hover:underline"
-                data-testid="link-view-all-attention"
-              >
-                View all
-              </button>
-            </div>
-            <ul className="space-y-2">
-              {attentionItems.slice(0, 4).map((item) => (
-                <li key={`${item.label}-${item.href}`}>
-                  <button
-                    type="button"
-                    onClick={() => setLocation(item.href)}
-                    className={cn(
-                      "ops-card flex w-full items-center justify-between gap-3 p-3 text-left",
-                      item.severity === "critical" && "ops-card-critical",
-                      item.severity === "warning" && "ops-card-warning",
-                    )}
-                    data-testid={`row-critical-attention-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                      {item.label}
-                    </span>
-                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                      {item.count}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <RoleTodayPanel roleId={effectiveRole} />
-
-        <WorkflowCommandCenter roleId={effectiveRole} />
-
-        {roleConfig && <QuickActions actions={roleConfig.quickActions} className="mb-6" />}
-
-        {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
-
-        <MyTasks />
-
-        <AIFleetSummaryCard />
-
-        <RecentActivityFeed />
-
-        {/* Module shortcuts — the 5 policy categories. Mobile: 2-col,
-            tablet: 3-col, desktop: 5-col so the row matches the
-            policy and BottomNav surface 1:1. */}
-        <section className="mb-6" data-testid="section-module-shortcuts">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Modules
-          </h2>
+        <section className="mb-4" data-testid="section-module-shortcuts">
           <div
-            className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
             data-testid="grid-module-shortcuts"
           >
             {pinnedGroups.map((group) => {
@@ -1687,54 +1165,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Pinned-group detail (each group's items as a sub-grid). */}
-        <div className="space-y-6">
-          {pinnedGroups.map((group) => (
-            <div key={group.id}>
-              <h2 className="mb-3 text-sm font-semibold text-foreground">{group.name}</h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {group.items.map((item) => (
-                  <NavigationCard
-                    key={item.href}
-                    name={item.name}
-                    href={item.href}
-                    icon={item.icon}
-                    description={item.description}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {otherGroups.length > 0 && (
-          <details className="mt-8">
-            <summary
-              className="mb-3 cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground"
-              data-testid="button-more-categories"
-            >
-              More categories ({otherGroups.length})
-            </summary>
-            <div className="mt-3 space-y-6">
-              {otherGroups.map((group) => (
-                <div key={group.id}>
-                  <h2 className="mb-3 text-sm font-semibold text-foreground">{group.name}</h2>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {group.items.map((item) => (
-                      <NavigationCard
-                        key={item.href}
-                        name={item.name}
-                        href={item.href}
-                        icon={item.icon}
-                        description={item.description}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="text-admin-hubs-footer"
+        >
+          Only accessible hubs are shown. Direct URLs are still blocked by
+          route guards.
+        </p>
       </div>
 
       <button
