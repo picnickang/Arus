@@ -337,6 +337,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       selectedRank,
       selectedStatus: includeStatusFilter ? selectedStatus : "all",
       selectedSkill,
+      getVesselName,
     });
     if (includeAccessFilter && selectedAccessStatus !== "all") {
       filtered = filtered.filter(

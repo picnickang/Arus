@@ -14,3 +14,4 @@
 - [Stale service-worker app shell](stale-sw-app-shell.md) — "changes have not been applied" with correct code = SW serving non-hashed `/`/`index.html` cache-first; fix = network-first navigations + bump CACHE_NAME.
 - [Cross-domain wiring vs leak guard](cross-domain-composition-wiring.md) — put cross-domain db*Storage wiring in server/composition/ (check:domain-leaks section C only scans server/domains/**); alert_notifications is the de-facto org notification channel.
 - [lr35 source-scan UI tests](lr35-source-scan-ui-tests.md) — string-match testid/href/endpoint contracts; a screen redesign must update its lr35 test + nav-matrix playwright in lockstep. Lists known pre-existing reds.
+- [Crew former-rehire is derived](crew-former-rehire-derived.md) — no rehire-eligibility column exists; "Rehire OK/Review/No rehire" is computed from latest employment period's terminationType + contractPenalty.

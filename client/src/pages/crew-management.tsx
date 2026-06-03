@@ -22,7 +22,7 @@ export default function CrewManagementPage() {
 
   return (
     <PermissionGate resource="crew_members" action="view" fallback={<PagePermissionDenied />}>
-      <div className="min-h-screen">
+      <div className="min-h-screen" data-testid="page-crew-management">
         <div className="p-4 md:p-6">
           {hasTabbedSurface ? (
             <Tabs defaultValue="roster" className="space-y-4">

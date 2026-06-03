@@ -236,6 +236,9 @@ export interface CrewFilterOptions {
   selectedStatus: string;
   selectedSkill: string;
   selectedAccessStatus?: string;
+  // When provided, the free-text search also matches the resolved vessel name
+  // (the roster lets users search "crew, role, vessel").
+  getVesselName?: (vesselId: string) => string;
 }
 
 export function filterCrew(crew: CrewListItem[], filters: CrewFilterOptions): CrewListItem[] {
@@ -243,11 +246,16 @@ export function filterCrew(crew: CrewListItem[], filters: CrewFilterOptions): Cr
 
   if (filters.searchTerm) {
     const search = filters.searchTerm.toLowerCase();
+    const resolveVessel = filters.getVesselName;
     filtered = filtered.filter(
       (c) =>
         c.name?.toLowerCase().includes(search) ||
         c.rank?.toLowerCase().includes(search) ||
-        (c.skills ?? []).some((skill) => skill.toLowerCase().includes(search))
+        formatRank(c.rank).toLowerCase().includes(search) ||
+        (c.skills ?? []).some((skill) => skill.toLowerCase().includes(search)) ||
+        (!!resolveVessel &&
+          !!c.vesselId &&
+          resolveVessel(c.vesselId).toLowerCase().includes(search))
     );
   }
 
@@ -380,4 +388,155 @@ export function prepareCrewExportData(
 export function getVesselNameById(vessels: VesselListItem[], vesselId: string): string {
   const vessel = vessels.find((v) => v.id === vesselId);
   return vessel ? vessel.name : vesselId;
+}
+
+// --- Role-group bucketing (current roster "sort by role") ---------------------
+// Maps an individual maritime rank into one of a small set of display groups so
+// the roster can render collapsible role sections (Figma crew-management board).
+export const ROLE_GROUP_ORDER = [
+  "Captains",
+  "Officers",
+  "Engineering",
+  "Deck Crew",
+  "Catering",
+  "Other",
+] as const;
+
+export type RoleGroup = (typeof ROLE_GROUP_ORDER)[number];
+
+const RANK_TO_ROLE_GROUP: Record<string, RoleGroup> = {
+  captain: "Captains",
+  master: "Captains",
+  chief_officer: "Officers",
+  first_officer: "Officers",
+  second_officer: "Officers",
+  third_officer: "Officers",
+  navigator: "Officers",
+  chief_engineer: "Engineering",
+  senior_engineer: "Engineering",
+  second_engineer: "Engineering",
+  third_engineer: "Engineering",
+  fourth_engineer: "Engineering",
+  engineer: "Engineering",
+  engine_fitter: "Engineering",
+  oiler: "Engineering",
+  wiper: "Engineering",
+  bosun: "Deck Crew",
+  able_seaman: "Deck Crew",
+  ordinary_seaman: "Deck Crew",
+  chief_cook: "Catering",
+};
+
+export function getRoleGroup(rank: string | null | undefined): RoleGroup {
+  if (!rank) {
+    return "Other";
+  }
+  const key = rank.toLowerCase().replace(/\s+/g, "_");
+  return RANK_TO_ROLE_GROUP[key] ?? "Other";
+}
+
+export interface RoleGroupBucket<T> {
+  group: RoleGroup;
+  members: T[];
+}
+
+export function groupCrewByRole<T extends { rank: string }>(crew: T[]): RoleGroupBucket<T>[] {
+  const buckets = new Map<RoleGroup, T[]>();
+  for (const member of crew) {
+    const group = getRoleGroup(member.rank);
+    const list = buckets.get(group);
+    if (list) {
+      list.push(member);
+    } else {
+      buckets.set(group, [member]);
+    }
+  }
+  return ROLE_GROUP_ORDER.filter((group) => buckets.has(group)).map((group) => ({
+    group,
+    members: buckets.get(group) ?? [],
+  }));
+}
+
+export const RELIEF_POOL_ID = "__relief_pool__";
+
+export interface VesselGroupBucket<T> {
+  vesselId: string;
+  vesselName: string;
+  isReliefPool: boolean;
+  members: T[];
+}
+
+export function groupCrewByVessel<T extends { vesselId?: string | null }>(
+  crew: T[],
+  getVesselName: (vesselId: string) => string,
+): VesselGroupBucket<T>[] {
+  const buckets = new Map<string, T[]>();
+  for (const member of crew) {
+    const vesselId = member.vesselId ?? RELIEF_POOL_ID;
+    const key = vesselId === "" ? RELIEF_POOL_ID : vesselId;
+    const list = buckets.get(key);
+    if (list) {
+      list.push(member);
+    } else {
+      buckets.set(key, [member]);
+    }
+  }
+  const assigned: VesselGroupBucket<T>[] = [];
+  let reliefPool: VesselGroupBucket<T> | null = null;
+  for (const [vesselId, members] of buckets.entries()) {
+    if (vesselId === RELIEF_POOL_ID) {
+      reliefPool = {
+        vesselId: RELIEF_POOL_ID,
+        vesselName: "Unassigned / Relief Pool",
+        isReliefPool: true,
+        members,
+      };
+    } else {
+      assigned.push({
+        vesselId,
+        vesselName: getVesselName(vesselId) || "Unknown vessel",
+        isReliefPool: false,
+        members,
+      });
+    }
+  }
+  assigned.sort((a, b) => a.vesselName.localeCompare(b.vesselName));
+  return reliefPool ? [...assigned, reliefPool] : assigned;
+}
+
+// --- Former-crew rehire status -----------------------------------------------
+// NOTE: there is no dedicated rehire-eligibility / do-not-rehire column on the
+// crew or employment-history records. We derive a transparent status from the
+// real fields we DO have (most-recent employment period's terminationType and
+// contractPenalty) rather than fabricating a flag:
+//   retired                          -> Rehire OK   (left on good terms)
+//   cancelled WITH contract penalty  -> No rehire   (contract breached)
+//   cancelled (no penalty) / unknown -> Review      (needs manual review)
+export type RehireStatusKey = "rehire_ok" | "review" | "no_rehire";
+
+export interface RehireStatus {
+  key: RehireStatusKey;
+  label: string;
+}
+
+export interface FormerEmploymentLike {
+  terminationType: "retired" | "cancelled" | null;
+  contractPenalty: number | null;
+  endDate?: string | null;
+  vesselId?: string | null;
+  rank?: string | null;
+}
+
+export function deriveRehireStatus(
+  latestPeriod: FormerEmploymentLike | undefined,
+): RehireStatus {
+  const terminationType = latestPeriod?.terminationType ?? null;
+  const penalty = latestPeriod?.contractPenalty ?? 0;
+  if (terminationType === "retired") {
+    return { key: "rehire_ok", label: "Rehire OK" };
+  }
+  if (terminationType === "cancelled" && penalty > 0) {
+    return { key: "no_rehire", label: "No rehire" };
+  }
+  return { key: "review", label: "Review" };
 }
