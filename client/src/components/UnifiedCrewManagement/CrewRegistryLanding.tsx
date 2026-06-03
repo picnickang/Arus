@@ -16,13 +16,14 @@ import {
   CalendarCheck,
   Clock,
   Shield,
+  ListChecks,
 } from "lucide-react";
 
 export type AttentionUrgency = "critical" | "warning" | "notice";
 
 export interface AttentionItem {
   id: string;
-  kind: "cert" | "doc";
+  kind: "cert" | "doc" | "task";
   crewName: string;
   label: string;
   daysUntilExpiry: number;
@@ -34,8 +35,13 @@ interface SummaryCounts {
   current: number;
   onDuty: number;
   onLeave: number;
+  /** Combined cert/doc + task feed size (drives the "Needs attention" tile). */
   attention: number;
+  /** Cert/doc-only count for the "Review alerts" CTA → /certificates. */
+  complianceAttention: number;
   former: number;
+  taskActive: number;
+  taskOverdue: number;
 }
 
 interface CrewRegistryLandingProps {
@@ -46,8 +52,10 @@ interface CrewRegistryLandingProps {
   canManageDocs: boolean;
   isAdmin: boolean;
   canUseSafety: boolean;
+  canViewTasks: boolean;
   onOpenCurrent: (status?: "all" | "on_duty" | "off_duty") => void;
   onOpenFormer: () => void;
+  onOpenTasks: () => void;
   onAddCrew: () => void;
   onOpenUsers: () => void;
   onOpenRoles: () => void;
@@ -153,18 +161,31 @@ function Cluster({ title, testId, children }: { title: string; testId: string; c
   );
 }
 
-function AttentionRow({ item, onOpen }: { item: AttentionItem; onOpen: (href: string) => void }) {
+function AttentionRow({ item, onOpen }: { item: AttentionItem; onOpen: (item: AttentionItem) => void }) {
   const days = item.daysUntilExpiry;
-  const daysLabel = days < 0 ? `Expired ${Math.abs(days)}d ago` : `${days}d left`;
+  const daysLabel =
+    item.kind === "task"
+      ? days < 0
+        ? `Overdue ${Math.abs(days)}d`
+        : "Blocked"
+      : days < 0
+        ? `Expired ${Math.abs(days)}d ago`
+        : `${days}d left`;
   return (
     <button
       type="button"
-      onClick={() => onOpen(item.href)}
+      onClick={() => onOpen(item)}
       className="ops-card flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:border-sky-500/40"
       data-testid={`attention-row-${item.id}`}
     >
       <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${URGENCY_TONE[item.urgency]}`}>
-        {item.kind === "cert" ? <Shield className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
+        {item.kind === "cert" ? (
+          <Shield className="h-4 w-4" />
+        ) : item.kind === "task" ? (
+          <ListChecks className="h-4 w-4" />
+        ) : (
+          <FileUp className="h-4 w-4" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{item.crewName}</p>
@@ -185,14 +206,21 @@ export function CrewRegistryLanding({
   canManageDocs,
   isAdmin,
   canUseSafety,
+  canViewTasks,
   onOpenCurrent,
   onOpenFormer,
+  onOpenTasks,
   onAddCrew,
   onOpenUsers,
   onOpenRoles,
   onOpenSafety,
 }: CrewRegistryLandingProps) {
   const [, setLocation] = useLocation();
+  // Every item (incl. tasks via `/crew-management?taskId=…`) carries a real
+  // href, so a row click deep-links straight to the relevant detail.
+  const openAttention = (item: AttentionItem) => {
+    setLocation(item.href);
+  };
   const attentionValue = expiryLoading ? "…" : counts.attention;
   const showAdminCluster = isAdmin || canUseSafety;
   const attentionRef = useRef<HTMLDivElement>(null);
@@ -255,6 +283,33 @@ export function CrewRegistryLanding({
         </div>
         <ArrowRight className="h-4 w-4 text-slate-400" />
       </button>
+      {canViewTasks && (
+        <button
+          type="button"
+          onClick={onOpenTasks}
+          className="ops-card flex w-full items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:border-sky-500/40"
+          data-testid="card-open-tasks"
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15">
+            <ListChecks className="h-5 w-5 text-emerald-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">Open tasks</p>
+            <p className="text-xs text-slate-400" data-testid="text-task-tile-counts">
+              {counts.taskActive} active
+              {counts.taskOverdue > 0 ? ` • ${counts.taskOverdue} overdue` : ""}
+            </p>
+          </div>
+          {counts.taskOverdue > 0 && (
+            <span
+              className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500/90 px-1 text-[10px] font-semibold text-white"
+              data-testid="badge-task-overdue"
+            >
+              {counts.taskOverdue}
+            </span>
+          )}
+        </button>
+      )}
       <button
         type="button"
         onClick={onOpenFormer}
@@ -266,6 +321,7 @@ export function CrewRegistryLanding({
     </div>
   );
 
+  const hasComplianceItems = attentionItems.some((item) => item.kind !== "task");
   const attention = (
     <div key="attention" ref={attentionRef}>
       <div className="mb-2 flex items-center justify-between">
@@ -273,7 +329,7 @@ export function CrewRegistryLanding({
         {!expiryLoading && attentionItems.length > 0 && (
           <button
             type="button"
-            onClick={() => setLocation("/compliance-consolidated")}
+            onClick={() => (hasComplianceItems ? setLocation("/compliance-consolidated") : onOpenTasks())}
             className="inline-flex items-center gap-1 text-xs font-medium text-sky-300 hover:text-sky-200"
             data-testid="button-attention-view-all"
           >
@@ -283,16 +339,16 @@ export function CrewRegistryLanding({
       </div>
       {expiryLoading ? (
         <div className="ops-card rounded-2xl p-4 text-sm text-slate-400" data-testid="attention-loading">
-          Checking certificates and documents…
+          Checking what needs attention…
         </div>
       ) : attentionItems.length === 0 ? (
         <div className="ops-card rounded-2xl p-4 text-sm text-slate-400" data-testid="attention-empty">
-          All crew certificates and documents are current.
+          Nothing needs your attention right now.
         </div>
       ) : (
         <div className="space-y-2" data-testid="attention-list">
           {attentionItems.slice(0, 6).map((item) => (
-            <AttentionRow key={item.id} item={item} onOpen={(href) => setLocation(href)} />
+            <AttentionRow key={item.id} item={item} onOpen={openAttention} />
           ))}
         </div>
       )}
@@ -322,7 +378,7 @@ export function CrewRegistryLanding({
         label="Review alerts"
         hint="Expiring docs"
         onClick={() => setLocation("/certificates")}
-        badgeCount={expiryLoading ? undefined : counts.attention}
+        badgeCount={expiryLoading ? undefined : counts.complianceAttention}
         testId="action-review-alerts"
       />
     </Cluster>

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearch } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { CertificationExpiryAlertBanner } from "@/components/CertificationExpiryAlerts";
@@ -10,6 +11,10 @@ import {
   useFormerCrew,
   useCertificationExpiryData,
   useDocumentExpiryData,
+  useCrewTasks,
+  countTasks,
+  isOverdue,
+  isBlocked,
   formatRank,
 } from "@/features/crew";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -26,13 +31,20 @@ import { VesselReadinessPanel } from "./VesselReadinessPanel";
 import { CrewRegistryLanding, type AttentionItem } from "./CrewRegistryLanding";
 import { CurrentRoster } from "./CurrentRoster";
 import { FormerArchive } from "./FormerArchive";
+import { CrewTaskTracker } from "./CrewTaskTracker";
 import type { CrewRowPermissions } from "./crew-roster-shared";
 
 interface UnifiedCrewManagementProps {
   accessReadinessEnabled?: boolean;
 }
 
-type RegistryView = "registry" | "current" | "former" | "users" | "roles" | "safety";
+type RegistryView = "registry" | "current" | "former" | "users" | "roles" | "safety" | "tasks";
+
+const TASK_URGENCY_RANK: Record<AttentionItem["urgency"], number> = {
+  critical: 0,
+  warning: 1,
+  notice: 2,
+};
 
 // Must mirror the server-side crew-admin gate (`requireCrewAdminRole` →
 // CREW_ADMIN_ROLES in server/domains/crew-admin/interfaces/routes.ts). Roles
@@ -56,6 +68,11 @@ export function UnifiedCrewManagement({
   const accessEnabled = accessReadinessEnabled ?? isAdmin;
 
   const d = useUnifiedCrewData({ accessReadinessEnabled: accessEnabled });
+  const searchString = useSearch();
+  const deepLinkTaskId = useMemo(
+    () => new URLSearchParams(searchString).get("taskId"),
+    [searchString],
+  );
   const [view, setView] = useState<RegistryView>("registry");
   const [contactSectionOpen, setContactSectionOpen] = useState(false);
   const lifecycle = useLifecycleDialog();
@@ -102,7 +119,55 @@ export function UnifiedCrewManagement({
     });
   }, [certExpiry, docExpiry, getDocumentTypeLabel]);
 
-  const attentionCount = attentionItems.length;
+  const complianceAttentionCount = attentionItems.length;
+
+  // Crew tasks power the landing "Open tasks" tile, the task attention rows,
+  // and the Tasks view itself. includeDone so counts reflect the full board.
+  const canViewTasks = hasPermission("crew_members", "view");
+  const { data: crewTasks = [] } = useCrewTasks({ includeDone: true });
+  const taskCounts = useMemo(() => countTasks(crewTasks), [crewTasks]);
+
+  const taskCrewNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of d.crew) map.set(c.id, c.name);
+    return map;
+  }, [d.crew]);
+
+  // Overdue or blocked tasks surface in the shared "Needs attention" feed.
+  const taskAttention: AttentionItem[] = useMemo(() => {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    return crewTasks
+      .filter((t) => isOverdue(t) || isBlocked(t))
+      .map((t) => {
+        const overdue = isOverdue(t);
+        const days = t.dueDate
+          ? Math.round((new Date(t.dueDate).getTime() - now) / dayMs)
+          : 0;
+        return {
+          id: `task-${t.id}`,
+          kind: "task" as const,
+          crewName: t.assignedCrewId
+            ? taskCrewNames.get(t.assignedCrewId) ?? "Unassigned"
+            : "Unassigned",
+          label: t.title,
+          daysUntilExpiry: days,
+          urgency: (overdue ? "critical" : "warning") as AttentionItem["urgency"],
+          href: `/crew-management?taskId=${t.id}`,
+        };
+      });
+  }, [crewTasks, taskCrewNames]);
+
+  const combinedAttention: AttentionItem[] = useMemo(
+    () =>
+      [...attentionItems, ...taskAttention].sort((a, b) => {
+        const byUrgency = TASK_URGENCY_RANK[a.urgency] - TASK_URGENCY_RANK[b.urgency];
+        return byUrgency !== 0 ? byUrgency : a.daysUntilExpiry - b.daysUntilExpiry;
+      }),
+    [attentionItems, taskAttention],
+  );
+
+  const attentionCount = combinedAttention.length;
 
   const perms: CrewRowPermissions = {
     canManageCrew: canEdit("crew_members"),
@@ -127,10 +192,16 @@ export function UnifiedCrewManagement({
     setView("current");
   };
 
+  // Deep-link from the personal me/tasks feed (`/crew-management?taskId=…`)
+  // opens the Tasks view with that task's detail pre-selected.
+  useEffect(() => {
+    if (deepLinkTaskId && canViewTasks) setView("tasks");
+  }, [deepLinkTaskId, canViewTasks]);
+
   return (
     <div className="ops-surface -mx-4 -my-4 min-h-[70vh] rounded-none p-4 md:-mx-6 md:-my-6 md:p-6">
       <div className="mx-auto max-w-3xl space-y-4">
-        {view !== "registry" && (
+        {view !== "registry" && view !== "tasks" && (
           <button
             type="button"
             onClick={() => setView("registry")}
@@ -151,20 +222,37 @@ export function UnifiedCrewManagement({
               onDuty: onDutyCount,
               onLeave: onLeaveCount,
               attention: attentionCount,
+              complianceAttention: complianceAttentionCount,
               former: formerCrew.length,
+              taskActive: taskCounts.active,
+              taskOverdue: taskCounts.overdue,
             }}
-            attentionItems={attentionItems}
+            attentionItems={combinedAttention}
             expiryLoading={expiryLoading}
             canCreate={userCanCreate}
             canManageDocs={perms.canManageCrew}
             isAdmin={isAdmin}
             canUseSafety={canUseSafety}
+            canViewTasks={canViewTasks}
             onOpenCurrent={openCurrent}
             onOpenFormer={() => setView("former")}
+            onOpenTasks={() => setView("tasks")}
             onAddCrew={() => d.setIsAddCrewDialogOpen(true)}
             onOpenUsers={() => setView("users")}
             onOpenRoles={() => setView("roles")}
             onOpenSafety={() => setView("safety")}
+          />
+        )}
+
+        {view === "tasks" && canViewTasks && (
+          <CrewTaskTracker
+            crew={d.crew.map((c) => ({ id: c.id, name: c.name, rank: c.rank }))}
+            vessels={d.vessels.map((v) => ({ id: v.id, name: v.name }))}
+            canCreate={userCanCreate}
+            canEdit={perms.canManageCrew}
+            canDelete={perms.canDeleteCrew}
+            initialTaskId={deepLinkTaskId}
+            onBack={() => setView("registry")}
           />
         )}
 

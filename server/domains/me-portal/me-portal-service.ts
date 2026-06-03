@@ -21,6 +21,8 @@ import {
 } from "../../repositories";
 import { crewAdminService } from "../crew-admin/service";
 import { safetyAlarmService, AlarmValidationError } from "../safety-alarms/service";
+import { crewTaskService } from "../crew-tasks/service";
+import { crew } from "@shared/schema";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -309,6 +311,33 @@ export class MePortalService {
           vesselId,
           link: `/alerts?id=${id}`,
         });
+      }
+    }
+
+    if (sources.has("crew_tasks")) {
+      // Personal crew-task feed = tasks assigned to THIS user's crew record.
+      // The portal identity is a `users` row; crew tasks reference `crew.id`,
+      // so resolve the 1:1 crew link first. No crew record => no crew tasks.
+      const [crewMember] = await db
+        .select({ id: crew.id })
+        .from(crew)
+        .where(and(eq(crew.orgId, user.orgId), eq(crew.userId, user.id)))
+        .limit(1);
+      if (crewMember) {
+        const tasks = await crewTaskService.listTasks(user.orgId, {
+          assignedCrewId: crewMember.id,
+        });
+        for (const task of tasks) {
+          items.push({
+            id: task.id,
+            source: "crew_tasks",
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            vesselId: task.vesselId,
+            link: `/crew-management?taskId=${task.id}`,
+          });
+        }
       }
     }
 

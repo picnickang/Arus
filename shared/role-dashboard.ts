@@ -60,6 +60,7 @@ export const TASK_SOURCES = [
   "work_orders",
   "maintenance_schedules",
   "alerts",
+  "crew_tasks",
   "insights",
   "purchase_requests",
   "service_requests",
@@ -72,6 +73,7 @@ export const TASK_SOURCE_LABELS: Record<TaskSourceKey, string> = {
   work_orders: "Work Orders",
   maintenance_schedules: "Maintenance",
   alerts: "Alerts",
+  crew_tasks: "Crew Tasks",
   insights: "Insights",
   purchase_requests: "Purchase Requests",
   service_requests: "Service Requests",
@@ -90,6 +92,7 @@ export const IMPLEMENTED_TASK_SOURCES = [
   "work_orders",
   "maintenance_schedules",
   "alerts",
+  "crew_tasks",
 ] as const;
 
 /** Filter an arbitrary task-source list down to the implemented set, in canonical order. */
@@ -329,7 +332,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
   },
   captain: {
     widgets: [...DASHBOARD_WIDGETS],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts"],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts", "crew_tasks"],
     visibilityScope: "vessel",
     quickActions: ["create_work_order"],
     filters: {},
@@ -344,7 +347,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
       "active_alerts",
       "upcoming_maintenance",
     ],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts"],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts", "crew_tasks"],
     visibilityScope: "department",
     quickActions: ["create_work_order"],
     filters: {},
@@ -359,7 +362,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
       "active_alerts",
       "upcoming_maintenance",
     ],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts", "purchase_requests"],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts", "purchase_requests", "crew_tasks"],
     visibilityScope: "vessel",
     quickActions: ["create_work_order"],
     filters: {},
@@ -367,7 +370,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
   },
   technician: {
     widgets: ["current_vessel", "shift_status", "user_tasks", "upcoming_maintenance", "active_alerts"],
-    taskSources: ["work_orders", "maintenance_schedules"],
+    taskSources: ["work_orders", "maintenance_schedules", "crew_tasks"],
     visibilityScope: "self",
     quickActions: ["complete_work_order"],
     filters: {},
@@ -375,7 +378,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
   },
   vessel_master: {
     widgets: [...DASHBOARD_WIDGETS],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts", "service_requests"],
+    taskSources: ["work_orders", "maintenance_schedules", "alerts", "service_requests", "crew_tasks"],
     visibilityScope: "vessel",
     quickActions: [],
     filters: {},
@@ -383,7 +386,7 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
   },
   crew_member: {
     widgets: ["current_vessel", "shift_status", "safety_status", "user_tasks", "safety_notices"],
-    taskSources: ["work_orders"],
+    taskSources: ["work_orders", "crew_tasks"],
     visibilityScope: "self",
     quickActions: [],
     filters: {},

@@ -31,6 +31,8 @@ export {
 } from "./hooks/useDocumentExpiryData";
 export type { ExpiringDocument, ExpiringDocsResponse } from "./hooks/useDocumentExpiryData";
 export * from "./hooks/useCertificationExpiryData";
+export * from "./hooks/useCrewTasks";
+export * from "./lib/crewTaskUtils";
 export * from "./lib/stcwValidation";
 export * from "./lib/gridPatterns";
 export * from "./lib/crewScheduling";

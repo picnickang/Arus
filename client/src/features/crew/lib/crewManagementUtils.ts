@@ -39,7 +39,7 @@ export interface CrewListItem {
   terminationNotes?: string;
 }
 
-export type CrewProfileTab = "details" | "history" | "documents" | "notifications" | "access";
+export type CrewProfileTab = "details" | "history" | "documents" | "notifications" | "access" | "tasks";
 
 export const CREW_ACCESS_STATUS_LABELS: Record<CrewAccessReadinessStatus, string> = {
   ready: "Ready",

@@ -548,6 +548,15 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
   },
 
+  // Crew Tasks (hexagonal, cloud-only) — assignable crew task tracker
+  // surfaced as the "Tasks" view inside Crew Management.
+  {
+    name: "CrewTasks",
+    importPath: "../domains/crew-tasks/index.js",
+    functionName: "registerCrewTaskRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }),
+  },
+
   // Safety Alarms (hexagonal, cloud-only) — admin-managed alarm types +
   // active vessel safety alarms with acknowledgement.
   {

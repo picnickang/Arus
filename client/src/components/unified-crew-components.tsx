@@ -19,6 +19,7 @@ import {
   History,
   FileText,
   KeyRound,
+  ListChecks,
 } from "lucide-react";
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
@@ -29,6 +30,11 @@ import {
   useEmploymentHistory,
   useUpdateEmploymentHistory,
   useDeleteEmploymentHistory,
+  useCrewTasks,
+  statusLabel,
+  priorityLabel,
+  dueLabel,
+  isOverdue,
   formatRank,
   type EmploymentHistoryRecord,
   type UpdateEmploymentHistoryInput,
@@ -347,6 +353,60 @@ interface CrewViewDialogContentProps {
 
 const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"];
 
+function CrewProfileTasksTab({ crewId, crewName }: { crewId: string; crewName: string }) {
+  const { data: tasks = [], isLoading } = useCrewTasks({ assignedCrewId: crewId });
+  const active = tasks.filter((t) => t.status !== "done");
+
+  if (isLoading) {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="text-crew-tasks-loading">
+        Loading tasks…
+      </p>
+    );
+  }
+
+  if (active.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="text-crew-tasks-empty">
+        No open tasks assigned to {crewName}.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2" data-testid="list-crew-profile-tasks">
+      {active.map((task) => {
+        const overdue = isOverdue(task);
+        const due = dueLabel(task.dueDate);
+        return (
+          <div
+            key={task.id}
+            className="rounded-lg border p-3"
+            data-testid={`row-crew-task-${task.id}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium" data-testid={`text-crew-task-title-${task.id}`}>
+                {task.title}
+              </p>
+              <Badge variant="secondary" data-testid={`badge-crew-task-priority-${task.id}`}>
+                {priorityLabel(task.priority)}
+              </Badge>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span data-testid={`text-crew-task-status-${task.id}`}>{statusLabel(task.status)}</span>
+              {due && (
+                <span className={overdue ? "text-destructive" : ""} data-testid={`text-crew-task-due-${task.id}`}>
+                  {due}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CrewViewDialogContent({
   crew,
   vessels,
@@ -372,6 +432,10 @@ export function CrewViewDialogContent({
         <TabsTrigger value="notifications" data-testid="tab-crew-notifications">
           <Bell className="h-4 w-4 mr-2" />
           Alerts
+        </TabsTrigger>
+        <TabsTrigger value="tasks" data-testid="tab-crew-tasks">
+          <ListChecks className="h-4 w-4 mr-2" />
+          Tasks
         </TabsTrigger>
         {isAdmin && (
           <TabsTrigger value="access" data-testid="tab-crew-access">
@@ -509,6 +573,9 @@ export function CrewViewDialogContent({
       </TabsContent>
       <TabsContent value="notifications" className="mt-4">
         <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} {...(crew.email != null && { crewEmail: crew.email })} />
+      </TabsContent>
+      <TabsContent value="tasks" className="mt-4">
+        <CrewProfileTasksTab crewId={crew.id} crewName={crew.name} />
       </TabsContent>
       {isAdmin && (
         <TabsContent value="access" className="mt-4">
