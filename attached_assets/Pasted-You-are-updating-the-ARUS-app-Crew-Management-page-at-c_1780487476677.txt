@@ -1,0 +1,174 @@
+You are updating the ARUS app Crew Management page at /crew-management.
+
+The redesign must match the Figma crew-management frames:
+- 05_mobile_crew_management
+- arus_crew_management_expanded_mobile_board
+
+Functional target:
+Create a mobile-first crew experience with this hierarchy:
+
+Crew Management
+→ Current Crew / Former Crew status split
+→ Current Crew sortable by Role or Vessel
+→ Former Crew archive with rehire-aware status
+→ Crew profile
+→ Forms for intake, edit, vessel assignment, role assignment, documents, photo upload, alerts, archive/offboard, and rehire
+
+Critical requirements:
+1. Preserve all real data wiring.
+2. Preserve all existing auth and permission gating.
+3. Do not use fabricated counts, placeholder rosters, fake crew arrays, mock crew data, or static demo numbers in production components.
+4. If a new UI feature is added, connect it to a real backend endpoint, database field, service method, and permission rule.
+5. If backend support does not exist yet, implement the backend properly before enabling the frontend button/form.
+6. Any incomplete feature must be hidden, disabled, or feature-flagged with a clear reason.
+7. Backend must enforce permissions; frontend hiding is not enough.
+
+Before coding:
+Produce a Crew Management Connection Matrix with columns:
+- UI element
+- route/component
+- expected user action
+- frontend handler/hook
+- API endpoint
+- backend service/controller
+- database table/field
+- permission required
+- test file covering it
+- status: existing / new / missing
+
+Do not proceed until every visible action has either:
+- a real backend connection,
+- a tested permission-based disabled/hidden state,
+- or a feature flag.
+
+Implementation requirements:
+- Current Crew tab must fetch real current crew from backend.
+- Former Crew tab must fetch real former crew from backend.
+- Sort by Role must group real current crew by assigned role.
+- Sort by Vessel must group real current crew by assigned vessel.
+- Former Crew archive must display real former crew records and real rehire eligibility/status.
+- Crew counts must come from backend response or derived from fetched backend data.
+- Crew profile links must open real crew profiles by ID.
+- Forms must submit to real backend endpoints and update cached frontend data after success.
+- Mutations must invalidate or update the relevant TanStack Query cache keys.
+- Loading, empty, error, and permission-denied states must be implemented.
+
+Required backend/API coverage:
+Verify or implement equivalent endpoints for:
+- list current crew
+- list former crew
+- get crew profile
+- create crew member
+- update crew profile
+- assign/change role
+- assign/change vessel
+- upload/change/remove crew photo
+- upload/manage crew documents
+- create/manage crew alerts
+- archive/offboard crew
+- rehire former crew
+
+Testing requirements:
+Add or update tests at these levels:
+
+1. Backend API tests:
+- authenticated allowed user succeeds
+- unauthorized user fails
+- user without permission fails
+- invalid payload fails validation
+- valid payload persists to database
+- response returns real saved data
+
+2. Frontend component/hook tests:
+- /crew-management uses real API hooks
+- no production mock crew arrays or hardcoded counts
+- Current/Former tabs render correct states
+- role/vessel sort controls render correct groupings
+- form validation works
+- mutations call correct API functions
+
+3. Playwright E2E tests using a seeded test database:
+Run in a mobile viewport.
+Test:
+- permitted admin can open /crew-management
+- current crew tab shows only seeded current crew
+- former crew tab shows only seeded former crew
+- sort by role groups crew correctly
+- sort by vessel groups crew correctly
+- crew profile opens from roster row
+- new crew form creates a real backend record
+- edit form updates a real backend record
+- vessel assignment updates backend and UI
+- archive action moves a crew member from Current to Former
+- rehire action moves a former crew member back to Current or draft/current state according to app rules
+- denied users cannot see or use restricted actions
+- backend rejects restricted API calls even if attempted directly
+
+4. Regression checks:
+- existing crew permissions still work
+- existing navigation still works
+- existing dashboard links to crew management still work
+- no TypeScript errors
+- no lint errors introduced
+- no broken API contracts
+
+Add stable selectors only where necessary:
+Use semantic roles and accessible names first.
+Where needed, add data-testid attributes such as:
+- crew-management-page
+- crew-status-current-tab
+- crew-status-former-tab
+- crew-sort-role
+- crew-sort-vessel
+- crew-card-{id}
+- crew-profile-link-{id}
+- crew-create-button
+- crew-photo-upload-button
+- crew-archive-button
+- crew-rehire-button
+- crew-intake-form
+- crew-assignment-form
+- crew-offboarding-form
+
+Seed test data:
+Create deterministic test records:
+- one current captain assigned to Vessel A
+- one current engineer assigned to Vessel B
+- one current deck crew unassigned
+- one former captain marked rehire eligible
+- one former engineer marked not eligible for rehire
+
+Assertions:
+- Current Crew count equals seeded current crew count.
+- Former Crew count equals seeded former crew count.
+- Counts must change after archive/rehire mutations.
+- No hardcoded crew counts are allowed.
+- If the backend returns empty data, UI must show an empty state, not fake sample rows.
+- If the backend returns an error, UI must show an error state.
+- If permission is denied, UI must show the correct restricted state or redirect.
+
+Deliverables:
+1. Updated /crew-management implementation.
+2. Crew Management Connection Matrix.
+3. Backend endpoints/services/migrations if missing.
+4. Permission updates if needed.
+5. Frontend API hooks/mutations.
+6. Unit/component tests.
+7. Backend API tests.
+8. Playwright mobile E2E tests.
+9. Seed data/test fixtures.
+10. Final report listing:
+   - every button tested
+   - every form tested
+   - every API endpoint tested
+   - every permission tested
+   - any feature intentionally disabled or feature-flagged
+
+Completion rule:
+Do not mark the redesign complete unless:
+- npm run typecheck passes
+- npm run lint passes
+- backend/API tests pass
+- frontend tests pass
+- Playwright mobile E2E tests pass
+- no production mock crew data or fabricated crew counts remain
