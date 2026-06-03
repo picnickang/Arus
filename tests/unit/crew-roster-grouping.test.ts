@@ -183,3 +183,73 @@ describe("roster controls source-scan", () => {
     expect(src).toContain("deriveRehireStatus");
   });
 });
+
+/**
+ * Consolidated crew page source-scan (Task #327).
+ *
+ * Crew Overview (/crew) and Crew Management (/crew-management) are merged into
+ * one landing. These checks pin the consolidation contract that the merge must
+ * not regress: clustered fast actions (Crew / Admin / Go to), a single merged
+ * "Needs attention" list, clickable summary counters that filter the roster,
+ * and removal of the old admin tab bar from the page wrapper.
+ */
+describe("consolidated crew landing source-scan", () => {
+  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+
+  it("landing renders the three labeled fast-action clusters", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    expect(src).toContain('testId="cluster-crew"');
+    expect(src).toContain('testId="cluster-admin"');
+    expect(src).toContain('testId="cluster-goto"');
+  });
+
+  it("landing keeps admin/safety actions permission-gated", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    // User Accounts + Roles render only for admins; Safety only with the gate.
+    expect(src).toContain("{isAdmin &&");
+    expect(src).toContain("{canUseSafety &&");
+    expect(src).toContain("const showAdminCluster = isAdmin || canUseSafety;");
+  });
+
+  it("landing merges expiring certs + alerts into one attention list", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    expect(src).toContain('data-testid="attention-list"');
+    expect(src).toContain('data-testid={`attention-row-${item.id}`}');
+  });
+
+  it("landing exposes clickable counters that filter the roster", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    expect(src).toContain('testId="tile-onduty-count"');
+    expect(src).toContain('testId="tile-onleave-count"');
+    expect(src).toContain('onClick={() => onOpenCurrent("on_duty")}');
+    expect(src).toContain('onClick={() => onOpenCurrent("off_duty")}');
+    // The "Needs attention" counter focuses the on-page attention list
+    // instead of navigating away to the compliance surface.
+    expect(src).toContain('onClick={scrollToAttention}');
+    expect(src).toContain("scrollIntoView");
+  });
+
+  it("index merges cert + doc expiries into a ranked attention feed", () => {
+    const src = read("client/src/components/UnifiedCrewManagement/index.tsx");
+    expect(src).toContain("attentionItems");
+    expect(src).toContain("URGENCY_RANK");
+    // Admin surfaces moved from the page tab bar into in-page views.
+    expect(src).toContain('view === "users"');
+    expect(src).toContain('view === "roles"');
+    expect(src).toContain('view === "safety"');
+  });
+
+  it("page wrapper drops the old admin tab bar", () => {
+    const src = read("client/src/pages/crew-management.tsx");
+    expect(src).not.toContain("TabsTrigger");
+    expect(src).not.toContain('data-testid="tab-crew-roster"');
+    expect(src).toContain("UnifiedCrewManagement");
+  });
+
+  it("retired /crew route redirects to the consolidated page", () => {
+    const nav = read("client/src/config/navigationConfig.ts");
+    expect(nav).toContain('"/crew": "/crew-management"');
+    const routes = read("client/src/routes/crew.ts");
+    expect(routes).not.toContain("crew-hub");
+  });
+});

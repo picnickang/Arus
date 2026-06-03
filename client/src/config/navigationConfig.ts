@@ -224,7 +224,7 @@ export const navigationCategories: NavigationCategory[] = [
     id: "crew",
     name: "Crew",
     icon: Users,
-    hubRoute: "/crew",
+    hubRoute: "/crew-management",
     description: "Crew management and scheduling",
     children: [
       {
@@ -429,6 +429,7 @@ export function getHubIdForRoute(path: string): string | null {
 
 // Route migration map for legacy dock entries
 export const routeMigrations: Record<string, string> = {
+  "/crew": "/crew-management",
   "/attention": "/attention-inbox",
   "/outbox": "/offline-outbox",
   "/sync-outbox": "/offline-outbox",
