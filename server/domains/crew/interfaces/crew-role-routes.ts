@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { CREW_DOCUMENT_TYPE_VALUES } from "@shared/schema";
 import { crewAppService as crewService } from "../application/index.js";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
 import { requirePermission } from "../../permissions/middleware.js";
@@ -41,6 +42,10 @@ const roleDefaultsShape = {
   defaultMaxHours: nullableNumber(0, 168),
   defaultWatchKeeping: nullableText(100),
   defaultRoleId: nullableText(64),
+  // Document types this role requires. Absent = leave untouched; an explicit
+  // (possibly empty) array replaces the stored set. Validated against the
+  // crew_documents type catalog so only real document types can be required.
+  requiredDocuments: z.array(z.enum(CREW_DOCUMENT_TYPE_VALUES)).optional(),
 };
 
 const createRoleSchema = z.object({
@@ -78,6 +83,20 @@ export function registerCrewRoleRoutes({ app, rateLimit }: CrewRouteDeps): void 
     })
   );
 
+  // Per-crew document compliance against each crew member's role requirements.
+  // Org-scoped read; powers the roster needs-action highlight. Only returns crew
+  // with at least one missing or soon-expiring required document.
+  app.get(
+    "/api/crew-roles/document-compliance",
+    requireOrgId,
+    requirePermission("crew_members", "view"),
+    generalApiRateLimit,
+    withErrorHandling("crew role document compliance", async (req, res) => {
+      const rows = await crewService.getRoleDocumentCompliance(req.orgId);
+      res.json(rows);
+    })
+  );
+
   app.post(
     "/api/crew-roles",
     requireOrgIdAndValidateBody,
@@ -94,6 +113,7 @@ export function registerCrewRoleRoutes({ app, rateLimit }: CrewRouteDeps): void 
         defaultMaxHours: body.defaultMaxHours,
         defaultWatchKeeping: body.defaultWatchKeeping,
         defaultRoleId: body.defaultRoleId,
+        requiredDocuments: body.requiredDocuments,
       });
       sendCreated(res, role);
     })

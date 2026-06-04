@@ -21,5 +21,6 @@
 - [me-tasks feed is role-config gated](me-tasks-source-gating.md) — a new task type only shows in /api/me/tasks & "My Tasks" if its source is in the role's taskSources; default changes reach new orgs only.
 - [In-page subview discoverability](subview-nav-discoverability.md) — a subview reachable only via an in-page tile is invisible from the app nav; add a deep-link nav entry + URL-driven view.
 - [Crew doc renewal-task pattern](crew-doc-renewal-task.md) — near-expiry crew docs spawn a crew_document-linked crew task (existing /api/crew-tasks); dedupe by linkedSourceId before create or re-saves spam duplicates.
+- [Crew rank ↔ crew_roles matching](crew-rank-role-matching.md) — crew.rank is stored inconsistently vs Title-Case crew_roles.name; match via normRoleKey (lowercase+spaces→_), not exact name, or it silently returns empty.
 - [Crew role catalog is name-keyed](crew-role-catalog-name-keyed.md) — crew.rank stores the role NAME (no FK to crew_roles); rename must propagate name→crew.rank atomically, in-use delete guard counts by name.
 - [Crew edit-clear needs null not undefined](crew-edit-clear-null.md) — useUpdateMutation omits undefined keys, so clearing an optional crew field on edit must send explicit null or the old value sticks.

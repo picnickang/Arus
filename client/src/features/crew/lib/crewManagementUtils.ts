@@ -543,6 +543,7 @@ export interface CrewRole {
   defaultMaxHours?: number | null;
   defaultWatchKeeping?: string | null;
   defaultRoleId?: string | null;
+  requiredDocuments?: string[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -558,7 +559,7 @@ export interface RoleLookup {
   categoryOf: (rank: string) => string;
 }
 
-function normRoleKey(value: string): string {
+export function normRoleKey(value: string): string {
   return value.toLowerCase().replace(/\s+/g, "_");
 }
 

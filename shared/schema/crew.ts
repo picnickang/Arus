@@ -203,6 +203,12 @@ export const crewRoles = pgTable(
     defaultRoleId: varchar("default_role_id").references(() => roles.id, {
       onDelete: "set null",
     }),
+    // Document types this role REQUIRES every crew member to hold. Drives the
+    // per-crew compliance snapshot + Docs tab (Valid / Due soon / Missing) and
+    // the roster needs-action highlight. Empty / null = no requirements, so the
+    // crew member's compliance view behaves exactly as it did before. Values are
+    // drawn from CREW_DOCUMENT_TYPE_VALUES (the crew_documents type catalog).
+    requiredDocuments: text("required_documents").array(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
@@ -211,6 +217,19 @@ export const crewRoles = pgTable(
     orgNameUnique: unique("uq_crew_roles_org_name").on(table.orgId, table.name),
   })
 );
+
+// Canonical catalog of crew document types. Single source of truth shared by the
+// document form (client), the per-role "required documents" picker, and the
+// server-side validation of a role's requirements. Mirrors the labelled
+// DOCUMENT_TYPES list on the client.
+export const CREW_DOCUMENT_TYPE_VALUES = [
+  "passport",
+  "seaman_book",
+  "visa",
+  "medical",
+  "endorsement",
+] as const;
+export type CrewDocumentType = (typeof CREW_DOCUMENT_TYPE_VALUES)[number];
 
 export const skills = pgTable("skills", {
   id: varchar("id")

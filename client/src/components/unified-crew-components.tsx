@@ -40,6 +40,8 @@ import {
   useDeleteEmploymentHistory,
   useCrewTasks,
   useCrewDocumentsData,
+  useRoleRequiredDocuments,
+  DOCUMENT_TYPES,
   crewStatusLabel,
   employmentTypeLabel,
   formatRotation,
@@ -383,41 +385,60 @@ interface CrewViewDialogContentProps {
 function ComplianceSnapshot({
   crewId,
   hasPhoto,
+  rank,
 }: {
   crewId: string;
   hasPhoto: boolean;
+  rank?: string | null;
 }) {
   const { documents, isLoading, getExpiryStatus } = useCrewDocumentsData(crewId);
+  const requiredDocuments = useRoleRequiredDocuments(rank);
 
   const evaluate = (types: string[]) => {
     const matches = documents.filter((doc) => types.includes(doc.documentType));
     if (matches.length === 0) {
       return { tone: "missing" as const, label: "Missing" };
     }
-    // Worst-case across all matching docs decides the badge tone.
-    let worst: "ok" | "due" = "ok";
-    for (const doc of matches) {
+    // Best-case across all matching docs decides the badge tone (matches the
+    // backend "best document per type" rule): one valid/non-expiring doc on file
+    // satisfies the requirement even if an older expired copy also exists.
+    const hasValid = matches.some((doc) => {
       const status = getExpiryStatus(doc.expiresAt);
-      if (status && status.level !== "ok") {
-        worst = "due";
-      }
-    }
-    return worst === "ok"
+      return !status || status.level === "ok";
+    });
+    return hasValid
       ? { tone: "ok" as const, label: "Valid" }
       : { tone: "due" as const, label: "Due" };
   };
 
-  const items = [
-    { key: "passport", title: "Passport", ...evaluate(["passport"]) },
-    { key: "medical", title: "Medical", ...evaluate(["medical"]) },
-    { key: "stcw", title: "STCW / Training", ...evaluate(["endorsement", "seaman_book"]) },
-    {
-      key: "photo",
-      title: "Photo",
-      tone: hasPhoto ? ("ok" as const) : ("missing" as const),
-      label: hasPhoto ? "On file" : "Missing",
-    },
-  ];
+  const documentTypeLabel = (type: string) =>
+    DOCUMENT_TYPES.find((d) => d.value === type)?.label ?? type;
+
+  // When the crew member's role declares required documents, show one tile per
+  // required type (Valid / Due / Missing). Otherwise keep the original default
+  // snapshot so roles without requirements behave exactly as before.
+  const photoItem = {
+    key: "photo",
+    title: "Photo",
+    tone: hasPhoto ? ("ok" as const) : ("missing" as const),
+    label: hasPhoto ? "On file" : "Missing",
+  };
+  const items =
+    requiredDocuments.length > 0
+      ? [
+          ...requiredDocuments.map((type) => ({
+            key: type,
+            title: documentTypeLabel(type),
+            ...evaluate([type]),
+          })),
+          photoItem,
+        ]
+      : [
+          { key: "passport", title: "Passport", ...evaluate(["passport"]) },
+          { key: "medical", title: "Medical", ...evaluate(["medical"]) },
+          { key: "stcw", title: "STCW / Training", ...evaluate(["endorsement", "seaman_book"]) },
+          photoItem,
+        ];
 
   const toneClass: Record<"ok" | "due" | "missing", string> = {
     ok: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -653,7 +674,7 @@ export function CrewViewDialogContent({
       </div>
 
       {/* Compliance snapshot — live document-derived status. */}
-      <ComplianceSnapshot crewId={crew.id} hasPhoto={Boolean(crew.photoPath)} />
+      <ComplianceSnapshot crewId={crew.id} hasPhoto={Boolean(crew.photoPath)} rank={crew.rank} />
 
       <CrewPhotoModal
         crewId={crew.id}
@@ -840,7 +861,7 @@ export function CrewViewDialogContent({
         <EmploymentHistoryPanel crewId={crew.id} />
       </TabsContent>
       <TabsContent value="documents" className="mt-4">
-        <CrewDocumentsTab crewId={crew.id} crewName={crew.name} />
+        <CrewDocumentsTab crewId={crew.id} crewName={crew.name} rank={crew.rank} />
       </TabsContent>
       <TabsContent value="notifications" className="mt-4">
         <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} crewVesselName={vesselName} {...(crew.email != null && { crewEmail: crew.email })} />

@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { CrewRole } from "@/features/crew";
+import { DOCUMENT_TYPES, type CrewRole } from "@/features/crew";
 
 const ROLES_KEY = ["/api/crew-roles"] as const;
 const PERMISSION_ROLES_KEY = ["/api/permissions/roles"] as const;
@@ -47,6 +48,7 @@ interface RoleDefaults {
   maxHours: string;
   watch: string;
   defaultRoleId: string;
+  requiredDocuments: string[];
 }
 
 const EMPTY_DEFAULTS: RoleDefaults = {
@@ -55,6 +57,7 @@ const EMPTY_DEFAULTS: RoleDefaults = {
   maxHours: "",
   watch: "",
   defaultRoleId: "",
+  requiredDocuments: [],
 };
 
 function defaultsFromRole(role: CrewRole): RoleDefaults {
@@ -64,6 +67,7 @@ function defaultsFromRole(role: CrewRole): RoleDefaults {
     maxHours: role.defaultMaxHours != null ? String(role.defaultMaxHours) : "",
     watch: role.defaultWatchKeeping ?? "",
     defaultRoleId: role.defaultRoleId ?? "",
+    requiredDocuments: role.requiredDocuments ?? [],
   };
 }
 
@@ -74,6 +78,7 @@ function defaultsToPayload(d: RoleDefaults) {
     defaultMaxHours: d.maxHours,
     defaultWatchKeeping: d.watch,
     defaultRoleId: d.defaultRoleId,
+    requiredDocuments: d.requiredDocuments,
   };
 }
 
@@ -168,6 +173,38 @@ function RoleDefaultsFields({
           data-testid={`input-${idPrefix}-watch`}
         />
       </div>
+      <div className="col-span-2">
+        <label className="mb-1 block text-xs text-slate-400">Required documents</label>
+        <div className="flex flex-wrap gap-2">
+          {DOCUMENT_TYPES.map((doc) => {
+            const checked = values.requiredDocuments.includes(doc.value);
+            return (
+              <label
+                key={doc.value}
+                className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-xs"
+              >
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(v) => {
+                    const next = new Set(values.requiredDocuments);
+                    if (v === true) {
+                      next.add(doc.value);
+                    } else {
+                      next.delete(doc.value);
+                    }
+                    onChange({ requiredDocuments: Array.from(next) });
+                  }}
+                  data-testid={`checkbox-${idPrefix}-req-${doc.value}`}
+                />
+                {doc.label}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Crew in this role are flagged when a required document is missing or due soon.
+        </p>
+      </div>
     </div>
   );
 }
@@ -211,7 +248,7 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: Record<string, string>) => apiRequest("POST", "/api/crew-roles", data),
+    mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/crew-roles", data),
     onSuccess: () => {
       setNewName("");
       setNewCategory("");
@@ -226,7 +263,7 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Record<string, string>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Record<string, unknown>) =>
       apiRequest("PATCH", `/api/crew-roles/${id}`, data),
     onSuccess: () => {
       setEditingId(null);

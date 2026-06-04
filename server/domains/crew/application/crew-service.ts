@@ -66,6 +66,7 @@ export interface CrewExtensionsStoragePort {
   updateCrewDocument(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
   deleteCrewDocument(id: string, orgId: string): Promise<unknown>;
   getDocumentsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<SelectCrewDocument[]>;
+  getCrewDocumentTypesByOrg(orgId: string): Promise<{ crewId: string; documentType: string; expiresAt: Date | null }[]>;
   acknowledgeDocumentAlert(docId: string, userId: string | undefined, notes: string | undefined): Promise<unknown>;
   updateDocumentAlertFlags(orgId: string): Promise<unknown>;
   getCrewNotificationSettings(crewId: string, orgId: string): Promise<CrewNotificationSettingsLike | undefined>;
@@ -328,6 +329,93 @@ export class CrewApplicationService {
   ): Promise<SelectCrewRole> {
     await this.assertDefaultRoleValid(orgId, data.defaultRoleId);
     return this.deps.crewExtensionsStorage.updateCrewRole(id, orgId, data);
+  }
+
+  /**
+   * Per-crew document compliance against each crew member's role requirements.
+   * For every active crew member whose role declares required document types,
+   * reports which required types are MISSING (no document on file) and which are
+   * EXPIRING (on file but expired or within 30 days). Roles with no requirements
+   * are skipped entirely, so crew on those roles never appear here.
+   */
+  async getRoleDocumentCompliance(
+    orgId: string
+  ): Promise<{ crewId: string; missing: string[]; expiring: string[] }[]> {
+    const roles = await this.deps.crewExtensionsStorage.getCrewRoles(orgId);
+    // Crew ranks are stored inconsistently (slug "first_officer", mixed-case
+    // "Chief Engineer", lowercase "captain"), so match on a normalized role key
+    // — lowercase with spaces collapsed to underscores — exactly as the client
+    // RoleLookup does, otherwise a rank never matches its role.
+    const normRoleKey = (value: string): string =>
+      value.toLowerCase().replace(/\s+/g, "_");
+    const requiredByRoleKey = new Map<string, string[]>();
+    for (const role of roles) {
+      const required = role.requiredDocuments ?? [];
+      if (required.length > 0) {
+        requiredByRoleKey.set(normRoleKey(role.name), required);
+      }
+    }
+    if (requiredByRoleKey.size === 0) {
+      return [];
+    }
+
+    const [crew, docs] = await Promise.all([
+      this.deps.crewMemberRepository.findAllCrew(orgId),
+      this.deps.crewExtensionsStorage.getCrewDocumentTypesByOrg(orgId),
+    ]);
+
+    // crewId -> documentType -> "best" (latest / non-expiring) expiry on file.
+    const heldByCrew = new Map<string, Map<string, Date | null>>();
+    for (const doc of docs) {
+      let held = heldByCrew.get(doc.crewId);
+      if (!held) {
+        held = new Map<string, Date | null>();
+        heldByCrew.set(doc.crewId, held);
+      }
+      const incoming = doc.expiresAt ?? null;
+      if (!held.has(doc.documentType)) {
+        held.set(doc.documentType, incoming);
+      } else {
+        const current = held.get(doc.documentType) ?? null;
+        // A null expiry means "never expires" — always best. Otherwise keep the
+        // furthest-out expiry so a renewed document supersedes an old one.
+        if (current !== null && (incoming === null || incoming.getTime() > current.getTime())) {
+          held.set(doc.documentType, incoming);
+        }
+      }
+    }
+
+    const soonMs = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const result: { crewId: string; missing: string[]; expiring: string[] }[] = [];
+    for (const member of crew) {
+      if (!member.active) {
+        continue;
+      }
+      const required = member.rank
+        ? requiredByRoleKey.get(normRoleKey(member.rank))
+        : undefined;
+      if (!required) {
+        continue;
+      }
+      const held = heldByCrew.get(member.id);
+      const missing: string[] = [];
+      const expiring: string[] = [];
+      for (const type of required) {
+        if (!held || !held.has(type)) {
+          missing.push(type);
+          continue;
+        }
+        const expiry = held.get(type) ?? null;
+        if (expiry !== null && expiry.getTime() - now <= soonMs) {
+          expiring.push(type);
+        }
+      }
+      if (missing.length > 0 || expiring.length > 0) {
+        result.push({ crewId: member.id, missing, expiring });
+      }
+    }
+    return result;
   }
 
   async reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]> {

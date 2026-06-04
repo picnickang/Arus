@@ -67,6 +67,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import {
   useCrewDocumentsData,
+  useRoleRequiredDocuments,
   DOCUMENT_TYPES,
   COMMON_COUNTRIES,
   type CrewDocument,
@@ -119,9 +120,10 @@ function getDocCategory(type: string): "identity_medical" | "training" {
 interface CrewDocumentsTabProps {
   crewId: string;
   crewName: string;
+  rank?: string | null;
 }
 
-export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
+export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabProps) {
   const {
     documents,
     isLoading,
@@ -183,6 +185,31 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
     const level = getExpiryStatus(doc.expiresAt)?.level;
     return level === "expired" || level === "critical" || level === "warning";
   });
+
+  // Documents this crew member's ROLE requires (empty when the role declares
+  // none — the section is hidden in that case, preserving legacy behaviour).
+  const requiredDocuments = useRoleRequiredDocuments(rank);
+  const requiredStatuses = requiredDocuments.map((type) => {
+    const matches = documents.filter((doc: CrewDocument) => doc.documentType === type);
+    if (matches.length === 0) {
+      return { type, tone: "missing" as const, label: "Missing" };
+    }
+    // Best-case across all docs of this type (matches the backend "best document
+    // per type" rule): a document with no expiry, or any current valid copy,
+    // satisfies the requirement even if an older expired copy also exists.
+    const hasValid = matches.some((doc) => {
+      const level = getExpiryStatus(doc.expiresAt)?.level;
+      return !level || level === "ok";
+    });
+    return hasValid
+      ? { type, tone: "ok" as const, label: "Valid" }
+      : { type, tone: "due" as const, label: "Due soon" };
+  });
+  const requiredToneClass: Record<"ok" | "due" | "missing", string> = {
+    ok: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    due: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    missing: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+  };
 
   const handleExportCsv = () => {
     const header = ["Type", "Number", "Country", "Authority", "Issued", "Expires", "Status", "Notes"];
@@ -403,6 +430,31 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {requiredStatuses.length > 0 && (
+          <div
+            className="rounded-lg border border-white/10 bg-white/[0.02] p-3"
+            data-testid="section-required-documents"
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <FileText className="h-4 w-4" />
+              Required for {rank || "this role"}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {requiredStatuses.map((item) => (
+                <Badge
+                  key={item.type}
+                  variant="secondary"
+                  className={`flex items-center gap-1 border text-xs ${requiredToneClass[item.tone]}`}
+                  data-testid={`required-doc-${item.type}`}
+                >
+                  <span className="font-medium">{getDocumentTypeLabel(item.type)}</span>
+                  <span className="opacity-80">· {item.label}</span>
+                </Badge>
+              ))}
             </div>
           </div>
         )}

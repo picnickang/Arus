@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
@@ -107,6 +108,15 @@ export function UnifiedCrewManagement({
     ...(certExpiry?.certifications ?? []).map((c) => c.crewId),
     ...(docExpiry?.documents ?? []).map((doc) => doc.crewId),
   ]);
+
+  // Crew missing a document their ROLE requires. Powers the roster needs-action
+  // highlight. Empty for orgs whose roles declare no required documents.
+  const { data: docCompliance = [] } = useQuery<
+    { crewId: string; missing: string[]; expiring: string[] }[]
+  >({ queryKey: ["/api/crew-roles/document-compliance"] });
+  const needsActionCrewIds = new Set<string>(
+    docCompliance.filter((r) => r.missing.length > 0).map((r) => r.crewId)
+  );
 
   // Merge expiring certificates and documents into one urgency-ranked list so
   // the landing shows a single "Needs attention" feed (no duplicate sections).
@@ -305,6 +315,7 @@ export function UnifiedCrewManagement({
               d={d}
               formerCount={formerCrew.length}
               expiringCrewIds={expiringCrewIds}
+              needsActionCrewIds={needsActionCrewIds}
               expiryLoaded={expiryLoaded}
               openLifecycle={lifecycle.open}
               onSwitchToFormer={() => setView("former")}

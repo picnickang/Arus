@@ -218,6 +218,18 @@ export class DbCrewExtensionsStorage {
       .where(and(...c))
       .orderBy(asc(crewDocuments.expiresAt));
   }
+  async getCrewDocumentTypesByOrg(
+    orgId: string
+  ): Promise<{ crewId: string; documentType: string; expiresAt: Date | null }[]> {
+    return db
+      .select({
+        crewId: crewDocuments.crewId,
+        documentType: crewDocuments.documentType,
+        expiresAt: crewDocuments.expiresAt,
+      })
+      .from(crewDocuments)
+      .where(eq(crewDocuments.orgId, orgId));
+  }
   async acknowledgeDocumentAlert(
     docId: string,
     userId?: string,

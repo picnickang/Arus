@@ -44,6 +44,7 @@ interface CurrentRosterProps {
   d: UnifiedCrewData;
   formerCount: number;
   expiringCrewIds: Set<string>;
+  needsActionCrewIds: Set<string>;
   expiryLoaded: boolean;
   openLifecycle: (
     action: LifecycleAction,
@@ -63,6 +64,7 @@ function CurrentCrewRow({
   d,
   member,
   expiringCrewIds,
+  needsActionCrewIds,
   expiryLoaded,
   openLifecycle,
   perms,
@@ -70,6 +72,7 @@ function CurrentCrewRow({
   d: UnifiedCrewData;
   member: CrewListItem;
   expiringCrewIds: Set<string>;
+  needsActionCrewIds: Set<string>;
   expiryLoaded: boolean;
   openLifecycle: (
     action: LifecycleAction,
@@ -83,6 +86,7 @@ function CurrentCrewRow({
   const vesselName = d.getVesselName(member.vesselId ?? "") || "Unassigned";
   const access = d.accessReadinessEnabled ? d.accessReadinessByCrewId.get(member.id) : undefined;
   const hasExpiring = expiringCrewIds.has(member.id);
+  const needsDocs = needsActionCrewIds.has(member.id);
   return (
     <div
       className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
@@ -110,12 +114,18 @@ function CurrentCrewRow({
               Relief
             </StatusPill>
           )}
+          {needsDocs && (
+            <StatusPill tone="danger" testId={`pill-docs-missing-${member.id}`}>
+              Docs missing
+            </StatusPill>
+          )}
           {hasExpiring ? (
             <StatusPill tone="warning" testId={`pill-compliance-${member.id}`}>
               Docs expiring
             </StatusPill>
           ) : (
-            expiryLoaded && (
+            expiryLoaded &&
+            !needsDocs && (
               <StatusPill tone="success" testId={`pill-compliance-${member.id}`}>
                 Docs OK
               </StatusPill>
@@ -196,6 +206,7 @@ export function CurrentRoster({
   d,
   formerCount,
   expiringCrewIds,
+  needsActionCrewIds,
   expiryLoaded,
   openLifecycle,
   onSwitchToFormer,
@@ -415,6 +426,7 @@ export function CurrentRoster({
               d={d}
               member={member}
               expiringCrewIds={expiringCrewIds}
+              needsActionCrewIds={needsActionCrewIds}
               expiryLoaded={expiryLoaded}
               openLifecycle={openLifecycle}
               perms={perms}
@@ -440,6 +452,7 @@ export function CurrentRoster({
                     d={d}
                     member={member}
                     expiringCrewIds={expiringCrewIds}
+                    needsActionCrewIds={needsActionCrewIds}
                     expiryLoaded={expiryLoaded}
                     openLifecycle={openLifecycle}
                     perms={perms}
@@ -472,6 +485,7 @@ export function CurrentRoster({
                     d={d}
                     member={member}
                     expiringCrewIds={expiringCrewIds}
+                    needsActionCrewIds={needsActionCrewIds}
                     expiryLoaded={expiryLoaded}
                     openLifecycle={openLifecycle}
                     perms={perms}

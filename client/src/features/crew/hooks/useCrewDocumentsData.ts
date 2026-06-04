@@ -8,8 +8,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { apiRequest, createHeaders, resolveUrl } from "@/lib/queryClient";
 import { format, differenceInDays } from "date-fns";
 import { useCreateCrewTask } from "./useCrewTasks";
+import { normRoleKey } from "../lib/crewManagementUtils";
 import type { CrewTaskView } from "../lib/crewTaskUtils";
 import { decideRenewalTask } from "../lib/crewTaskUtils";
+import { CREW_DOCUMENT_TYPE_VALUES } from "@shared/schema";
+import type { CrewRole } from "@shared/schema";
 
 // Default renewal-reminder lead time (days). The form lets the user pick a
 // different lead time per document; a document within that window of expiry
@@ -73,7 +76,7 @@ export const documentFormSchema = z.object({
   // "new" vs "renewal" only affects messaging + the renewal-task copy; both
   // paths persist the same document record (extra keys are stripped server-side).
   action: z.enum(["new", "renewal"]).default("new"),
-  documentType: z.enum(["passport", "seaman_book", "visa", "medical", "endorsement"]),
+  documentType: z.enum(CREW_DOCUMENT_TYPE_VALUES),
   documentNumber: z.string().min(1, "Document number is required"),
   issuedAt: z.string().optional(),
   expiresAt: z.string().optional(),
@@ -421,4 +424,25 @@ export function useCrewDocumentsData(crewId: string) {
     getDocumentTypeLabel,
     getExpiryStatus,
   };
+}
+
+/**
+ * Returns the document types a crew member's role requires, matched by rank
+ * (crew.rank === crewRole.name). Returns an empty array when the rank is unknown
+ * or the role declares no requirements — callers treat empty as "no required-doc
+ * view", so the compliance surfaces fall back to their default behaviour.
+ */
+export function useRoleRequiredDocuments(rank?: string | null): string[] {
+  const { data: roles = [] } = useQuery<CrewRole[]>({
+    queryKey: ["/api/crew-roles"],
+  });
+  if (!rank) {
+    return [];
+  }
+  // Crew ranks are stored inconsistently (slug "first_officer", mixed-case
+  // "Chief Engineer", lowercase "captain"). Normalize both sides to the same
+  // role key so a rank matches its role regardless of how it was stored.
+  const wantKey = normRoleKey(rank);
+  const role = roles.find((r) => normRoleKey(r.name) === wantKey);
+  return role?.requiredDocuments ?? [];
 }
