@@ -9,6 +9,7 @@ import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
+import { auditService } from "../../compliance/immutable-audit.service";
 import { stripUndefined } from "../../lib/strip-undefined";
 import { validateResponse } from "../../lib/api-helpers";
 import {
@@ -429,18 +430,90 @@ export function registerPermissionRoutes(app: Express) {
         .parse(req.body);
       const grantsArray = Array.isArray(bodyShape) ? bodyShape : bodyShape.grants;
 
+      const authReq = req as AuthenticatedRequest;
+
+      // Lockout guard: refuse any change that would leave the org with no role
+      // able to manage permissions (permission_management:edit). This protects
+      // both the acting admin's own role and the org as a whole from being
+      // locked out of access administration.
+      const MANAGE_RESOURCE = "permission_management";
+      const MANAGE_ACTION = "edit";
+      const revokesManage = grantsArray.some(
+        (g) =>
+          g.resourceCode === MANAGE_RESOURCE &&
+          g.actionCode === MANAGE_ACTION &&
+          g.isGranted === false
+      );
+      if (revokesManage) {
+        const proposedChange = [...grantsArray]
+          .reverse()
+          .find(
+            (g) => g.resourceCode === MANAGE_RESOURCE && g.actionCode === MANAGE_ACTION
+          );
+        const roleGrantsManage = async (roleId: string): Promise<boolean> => {
+          if (roleId === id && proposedChange) {
+            return proposedChange.isGranted;
+          }
+          const grants = await permissionRepository.getPermissionGrantsForRole(roleId);
+          return grants.some(
+            (g) =>
+              g.resourceCode === MANAGE_RESOURCE &&
+              g.actionCode === MANAGE_ACTION &&
+              g.isGranted !== false
+          );
+        };
+        const orgRoles = await permissionRepository.listRoles(orgId);
+        let someoneRetainsManage = false;
+        for (const r of orgRoles) {
+          if (await roleGrantsManage(r.id)) {
+            someoneRetainsManage = true;
+            break;
+          }
+        }
+        if (!someoneRetainsManage) {
+          return res.status(400).json({
+            message:
+              "This change would remove the last role that can manage permissions, locking everyone out of access administration. Keep at least one role with Permission Management edit access.",
+          });
+        }
+      }
+
+      const before = await permissionRepository.getPermissionGrantsForRole(id);
+
       await permissionRepository.bulkSetPermissionGrants(id, grantsArray);
 
-      const authReq = req as AuthenticatedRequest;
+      const after = await permissionRepository.getPermissionGrantsForRole(id);
+
+      const changedFields = grantsArray.map((g) => `${g.resourceCode}:${g.actionCode}`);
+      const actorId = authReq.user?.id || "system";
+
       await permissionRepository.logPermissionChange(
         orgId,
-        authReq.user?.id || "system",
+        actorId,
         "update_grants",
         "role",
         id,
-        null,
-        JSON.stringify({ grants: grantsArray.length })
+        JSON.stringify({ grants: before }),
+        JSON.stringify({ grants: after })
       );
+
+      // Tamper-evident, hash-chained audit of the before -> after grant change.
+      await auditService.logEvent({
+        orgId,
+        eventCategory: "security_event",
+        eventType: "permission_changed",
+        entityType: "role",
+        entityId: id,
+        previousState: { roleName: role.name, grants: before },
+        newState: { roleName: role.name, grants: after },
+        changedFields,
+        performedBy: actorId,
+        performedByType: "user",
+        performedByName: authReq.user?.name,
+        performedByRole: authReq.user?.role,
+        complianceStandard: "IMO 2021 Cybersecurity",
+        retentionRequired: true,
+      });
 
       permissionService.invalidateOrgPermissionCache(orgId);
 
