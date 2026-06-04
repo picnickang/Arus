@@ -75,9 +75,39 @@ export const userVesselAssignments = pgTable(
   }),
 );
 
+/**
+ * Per-account dashboard personalization layered on top of the role config.
+ * Stores ONLY the user's personal tweaks (hidden widgets, custom order,
+ * per-widget setting overrides, preferred landing route). Resolution intersects
+ * these with what the access level + job already allow — it never widens access.
+ */
+export const userDashboardPreferences = pgTable(
+  "user_dashboard_preferences",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: varchar("user_id").notNull(),
+    prefsJson: jsonb("prefs_json").notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgUserUnique: unique("uq_user_dashboard_prefs").on(table.orgId, table.userId),
+    orgUserIdx: index("idx_user_dashboard_prefs_org_user").on(table.orgId, table.userId),
+  }),
+);
+
 export const insertRoleDashboardConfigSchema = createInsertSchema(roleDashboardConfigs).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserDashboardPreferenceSchema = createInsertSchema(userDashboardPreferences).omit({
+  id: true,
   updatedAt: true,
 });
 
@@ -91,3 +121,19 @@ export type RoleDashboardConfigRow = typeof roleDashboardConfigs.$inferSelect;
 export type InsertRoleDashboardConfigRow = z.infer<typeof insertRoleDashboardConfigSchema>;
 export type UserVesselAssignment = typeof userVesselAssignments.$inferSelect;
 export type InsertUserVesselAssignment = z.infer<typeof insertUserVesselAssignmentSchema>;
+export type UserDashboardPreferenceRow = typeof userDashboardPreferences.$inferSelect;
+export type InsertUserDashboardPreferenceRow = z.infer<typeof insertUserDashboardPreferenceSchema>;
+
+/**
+ * Shape of the JSON stored in `user_dashboard_preferences.prefs_json`. Kept as
+ * a shared schema so both me-portal (read/write) and the client (optimistic
+ * updates) validate the same structure. All fields optional — a missing field
+ * means "inherit the role default".
+ */
+export const userDashboardPrefsSchema = z.object({
+  hiddenWidgets: z.array(z.string()).optional(),
+  widgetOrder: z.array(z.string()).optional(),
+  widgetSettings: z.record(z.record(z.unknown())).optional(),
+  landingRoute: z.string().optional(),
+});
+export type UserDashboardPrefs = z.infer<typeof userDashboardPrefsSchema>;

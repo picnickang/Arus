@@ -46,6 +46,8 @@ import {
   startEventLoopMonitoring,
   getLocalModeFlag,
 } from "./bootstrap";
+import { seedAccessForAllOrgs } from "./composition/access-seeding";
+import { wireCrewAdminPermissionCache } from "./composition/crew-admin-cache-wiring";
 
 setupErrorHandlers();
 
@@ -173,6 +175,14 @@ if (!isInitDbMode && !isHealthCheckMode) {
         await runMigrationsOnBoot();
         await initializeDatabase();
         await seedDevelopmentUser();
+        try {
+          wireCrewAdminPermissionCache();
+          await seedAccessForAllOrgs();
+        } catch (seedError: unknown) {
+          logger.warn("⚠️ Access & permissions seeding skipped (non-fatal):", {
+            details: seedError instanceof Error ? seedError.message : String(seedError),
+          });
+        }
         isDatabaseReady = true;
         databaseStatus = "ready";
       } catch (dbError: unknown) {

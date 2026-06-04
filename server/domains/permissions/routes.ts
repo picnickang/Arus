@@ -59,6 +59,27 @@ const fromTemplateBodySchema = z.object({
   overrides: z.record(z.unknown()).optional(),
 });
 
+/**
+ * Super-admin-only gate for permission/role MUTATIONS. By policy ONLY the true
+ * super-admin tier (super_admin / system_admin / company_admin) may create,
+ * edit, or delete roles and grants — a regular `admin` reaches the admin hub
+ * but cannot rewrite the access model. The no-login dev-bypass identity is
+ * allowed through so local development keeps working.
+ */
+function requireSuperAdminForPermissions(req: Request, res: Response, next: () => void) {
+  const sessionUser = (req as AuthenticatedRequest).user ?? null;
+  const isDevBypass =
+    isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+  if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
+    res.status(403).json({
+      code: "INSUFFICIENT_PERMISSIONS",
+      message: "Only a Super Admin can change roles and permissions.",
+    });
+    return;
+  }
+  next();
+}
+
 export function registerPermissionRoutes(app: Express) {
   app.get(
     "/api/permissions/me",
@@ -243,6 +264,7 @@ export function registerPermissionRoutes(app: Express) {
   app.post(
     "/api/permissions/roles",
     requireOrgId,
+    requireSuperAdminForPermissions,
     withErrorHandling("create role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const rawBody = z.record(z.unknown()).parse(req.body);
@@ -267,6 +289,7 @@ export function registerPermissionRoutes(app: Express) {
   app.put(
     "/api/permissions/roles/:id",
     requireOrgId,
+    requireSuperAdminForPermissions,
     withErrorHandling("update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
@@ -301,6 +324,7 @@ export function registerPermissionRoutes(app: Express) {
   app.patch(
     "/api/permissions/roles/:id",
     requireOrgId,
+    requireSuperAdminForPermissions,
     withErrorHandling("partial update role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
@@ -339,6 +363,7 @@ export function registerPermissionRoutes(app: Express) {
   app.delete(
     "/api/permissions/roles/:id",
     requireOrgId,
+    requireSuperAdminForPermissions,
     withErrorHandling("delete role", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
@@ -410,6 +435,7 @@ export function registerPermissionRoutes(app: Express) {
   app.put(
     "/api/permissions/roles/:id/grants",
     requireOrgId,
+    requireSuperAdminForPermissions,
     requirePermission("permission_management", "edit"),
     withErrorHandling("update role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;

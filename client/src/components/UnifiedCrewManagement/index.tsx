@@ -20,8 +20,7 @@ import {
 } from "@/features/crew";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useRoleNames } from "@/hooks/useRoleNames";
-import { UserAssignmentTab } from "@/components/crew-admin/UserAssignmentTab";
-import { RolesDashboardsTab } from "@/components/crew-admin/RolesDashboardsTab";
+import { AccessPermissionsView } from "@/components/crew-admin/AccessPermissionsView";
 import { SafetyTab } from "@/components/crew-admin/SafetyTab";
 
 import { LifecycleDialog, useLifecycleDialog } from "./LifecycleDialog";
@@ -44,8 +43,7 @@ type RegistryView =
   | "registry"
   | "current"
   | "former"
-  | "users"
-  | "roles"
+  | "access"
   | "safety"
   | "tasks"
   | "orgchart";
@@ -219,6 +217,19 @@ export function UnifiedCrewManagement({
     }
   }, [deepLinkTaskId, deepLinkView, canViewTasks]);
 
+  // Back-compat deep links: the old standalone subviews `?view=users` /
+  // `?view=roles` now both resolve to the consolidated Access & Permissions
+  // page (which opens on the matching inner tab). `?view=access` is the new
+  // canonical link.
+  useEffect(() => {
+    if (
+      (deepLinkView === "access" || deepLinkView === "users" || deepLinkView === "roles") &&
+      isAdmin
+    ) {
+      setView("access");
+    }
+  }, [deepLinkView, isAdmin]);
+
   const perms: CrewRowPermissions = {
     canManageCrew: canEdit("crew_members"),
     canDeleteCrew: canDelete("crew_members"),
@@ -283,8 +294,7 @@ export function UnifiedCrewManagement({
             onOpenOrgChart={() => setView("orgchart")}
             onOpenTasks={() => setLocation("/crew-management?view=tasks")}
             onAddCrew={() => d.setIsAddCrewDialogOpen(true)}
-            onOpenUsers={() => setView("users")}
-            onOpenRoles={() => setView("roles")}
+            onOpenAccess={() => setView("access")}
             onOpenSafety={() => setView("safety")}
           />
         )}
@@ -307,8 +317,9 @@ export function UnifiedCrewManagement({
 
         {view === "orgchart" && <CrewOrgChart d={d} />}
 
-        {view === "users" && isAdmin && <UserAssignmentTab />}
-        {view === "roles" && isAdmin && <RolesDashboardsTab />}
+        {view === "access" && isAdmin && (
+          <AccessPermissionsView initialTab={deepLinkView === "roles" ? "roles" : "accounts"} />
+        )}
         {view === "safety" && canUseSafety && <SafetyTab />}
 
         {view === "current" && (

@@ -16,15 +16,14 @@ import { isHubId } from "@shared/role-dashboard";
 const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
 
-// Granting / revoking hub-admin access is a system-administrator-only
-// capability. By policy the system-administrator tier is exactly the
-// super-admin roles (system_admin / company_admin / admin) — the same
-// accounts that are always-full and can never be locked out. They are
-// enumerated in a dedicated constant here (rather than reusing a
-// lockout-protection list) so this authz boundary is self-contained and
-// cannot be widened by an unrelated edit. It is deliberately narrower than
-// the broader crew-admin surface.
-const HUB_GRANT_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
+// Granting / revoking hub-admin access and editing the access model is a
+// SUPER-admin-only capability. The super-admin tier is exactly
+// super_admin / system_admin / company_admin — deliberately EXCLUDING the
+// regular `admin` access level, which reaches the admin hub but cannot rewrite
+// who can see what. Mirrors SUPER_ADMIN_ROLE_KEYS in shared/role-dashboard.ts;
+// kept as a local constant so this authz boundary is self-contained and cannot
+// be widened by an unrelated edit.
+const HUB_GRANT_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin"] as const;
 const requireSuperAdminRole = requireRole(...HUB_GRANT_ADMIN_ROLES);
 
 const createRoleSchema = z.object({

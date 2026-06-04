@@ -11,7 +11,6 @@ import {
   FileUp,
   ClipboardCheck,
   UserCog,
-  LayoutDashboard,
   ShieldAlert,
   CalendarCheck,
   Clock,
@@ -59,8 +58,7 @@ interface CrewRegistryLandingProps {
   onOpenOrgChart: () => void;
   onOpenTasks: () => void;
   onAddCrew: () => void;
-  onOpenUsers: () => void;
-  onOpenRoles: () => void;
+  onOpenAccess: () => void;
   onOpenSafety: () => void;
 }
 
@@ -214,8 +212,7 @@ export function CrewRegistryLanding({
   onOpenOrgChart,
   onOpenTasks,
   onAddCrew,
-  onOpenUsers,
-  onOpenRoles,
+  onOpenAccess,
   onOpenSafety,
 }: CrewRegistryLandingProps) {
   const [, setLocation] = useLocation();
@@ -407,19 +404,10 @@ export function CrewRegistryLanding({
       {isAdmin && (
         <ActionTile
           icon={<UserCog className="h-5 w-5 text-sky-300" />}
-          label="User Accounts"
-          hint="Logins & access"
-          onClick={onOpenUsers}
-          testId="action-user-accounts"
-        />
-      )}
-      {isAdmin && (
-        <ActionTile
-          icon={<LayoutDashboard className="h-5 w-5 text-violet-300" />}
-          label="Roles & Dashboards"
-          hint="Permissions"
-          onClick={onOpenRoles}
-          testId="action-roles-dashboards"
+          label="Access & Permissions"
+          hint="Accounts, roles & dashboards"
+          onClick={onOpenAccess}
+          testId="action-access-permissions"
         />
       )}
       {canUseSafety && (

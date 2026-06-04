@@ -53,6 +53,43 @@ export const WIDGET_HIGH_IMPACT_QUESTIONS: Record<WidgetKey, string> = {
 };
 
 /* ------------------------------------------------------------------ *
+ * Widget domain tags (job / department families)
+ *
+ * Each widget belongs to a job/department domain so the dashboard layout
+ * editor can offer only the widgets relevant to a person's job. New
+ * domain-specific widgets are added later; today we simply tag the existing
+ * set. A domain with no widgets yet (e.g. "logistics") drives the empty-state
+ * guidance in the layout editor.
+ * ------------------------------------------------------------------ */
+
+export const WIDGET_DOMAINS = ["fleet", "crewing", "maintenance", "logistics", "safety"] as const;
+export type WidgetDomain = (typeof WIDGET_DOMAINS)[number];
+
+export const WIDGET_DOMAIN_LABELS: Record<WidgetDomain, string> = {
+  fleet: "Fleet",
+  crewing: "Crewing",
+  maintenance: "Maintenance",
+  logistics: "Logistics",
+  safety: "Safety",
+};
+
+export const WIDGET_DOMAIN_TAGS: Record<WidgetKey, WidgetDomain> = {
+  current_vessel: "fleet",
+  shift_status: "crewing",
+  safety_status: "safety",
+  user_tasks: "crewing",
+  active_alerts: "maintenance",
+  safety_notices: "safety",
+  upcoming_maintenance: "maintenance",
+};
+
+/** Widgets tagged with any of the given domains, in canonical order. */
+export function widgetsForDomains(domains: readonly WidgetDomain[]): WidgetKey[] {
+  const wanted = new Set(domains);
+  return DASHBOARD_WIDGETS.filter((w) => wanted.has(WIDGET_DOMAIN_TAGS[w]));
+}
+
+/* ------------------------------------------------------------------ *
  * Personal task-feed sources
  * ------------------------------------------------------------------ */
 
@@ -132,6 +169,17 @@ export const roleDashboardConfigSchema = z.object({
   quickActions: z.array(z.string()).default([]),
   filters: z.record(z.unknown()).default({}),
   highImpactQuestions: z.record(z.string()).default({}),
+  // --- Additive, back-compatible extensions (all optional so already-stored
+  // string-array configs keep parsing) ---
+  // Which page opens first for this access level. Validated against the
+  // level's allowed hubs at resolution time; falls back to a safe default.
+  landingRoute: z.string().optional(),
+  // Widgets an admin marks mandatory for this access level — users cannot hide
+  // them (e.g. Safety Notices). Must be a subset of `widgets`.
+  pinnedWidgets: z.array(z.enum(DASHBOARD_WIDGETS)).optional(),
+  // Per-widget small settings (e.g. time window, severity filter) keyed by
+  // widget id, with an optional personal override layered on top per account.
+  widgetSettings: z.record(z.record(z.unknown())).optional(),
 });
 
 export type RoleDashboardConfig = z.infer<typeof roleDashboardConfigSchema>;
@@ -195,6 +243,118 @@ export const ADMIN_CAPABLE_ROLE_KEYS = [
   "company_admin",
 ] as const;
 
+/**
+ * The TRUE super-admin tier. These roles bypass per-hub gating (all hubs),
+ * are always full hub-admins, and are the ONLY roles allowed to edit
+ * permissions / access-level definitions. Deliberately EXCLUDES the regular
+ * `admin` access level, which reaches the admin hub but is otherwise hub-gated
+ * to its explicit allow-list and cannot edit permissions.
+ */
+export const SUPER_ADMIN_ROLE_KEYS = [
+  "super_admin",
+  "system_admin",
+  "company_admin",
+] as const;
+
+/* ------------------------------------------------------------------ *
+ * Curated access levels (user-facing permission roles)
+ *
+ * A SHORT curated set presented as the access-level choices, distinct from
+ * maritime ranks. Each maps to an existing protected role key underneath.
+ * ------------------------------------------------------------------ */
+
+export interface AccessLevelDef {
+  key: string;
+  label: string;
+  description: string;
+}
+
+export const ACCESS_LEVELS: readonly AccessLevelDef[] = [
+  {
+    key: "super_admin",
+    label: "Super Admin",
+    description:
+      "Full control of every hub and all permissions. The only level that can edit access levels and permissions.",
+  },
+  {
+    key: "admin",
+    label: "Admin",
+    description:
+      "Reaches the admin hub plus any hubs explicitly granted on this page. Cannot edit permissions.",
+  },
+  {
+    key: "manager",
+    label: "Manager",
+    description: "Department oversight with broad visibility. No admin hub.",
+  },
+  {
+    key: "crew_member",
+    label: "Crew",
+    description: "Personal dashboard and assigned tasks for day-to-day work.",
+  },
+  {
+    key: "viewer",
+    label: "Read-only",
+    description: "View-only access with no edit rights.",
+  },
+] as const;
+
+export const ACCESS_LEVEL_KEYS = ACCESS_LEVELS.map((a) => a.key);
+
+/** The least-privileged sensible access level for brand-new crew profiles. */
+export const LEAST_PRIVILEGED_ACCESS_LEVEL = "viewer";
+
+export function isAccessLevelKey(value: string | null | undefined): boolean {
+  if (value == null) return false;
+  return ACCESS_LEVEL_KEYS.includes(value.trim().toLowerCase());
+}
+
+/**
+ * Default Rank → Access Level mapping used to SUGGEST a sensible access level
+ * when a rank is picked, and to drive the existing-crew backfill. Always
+ * overridable per profile; this is only the default. Ranks not listed fall
+ * back to the least-privileged sensible "crew_member" level (a real crew
+ * person), while a profile with no rank at all defaults to read-only.
+ */
+export const DEFAULT_RANK_TO_ACCESS_LEVEL: Record<string, string> = {
+  super_admin: "super_admin",
+  system_admin: "super_admin",
+  company_admin: "super_admin",
+  admin: "admin",
+  fleet_manager: "manager",
+  captain: "manager",
+  vessel_master: "manager",
+  chief_engineer: "manager",
+  supervisor: "manager",
+  safety_officer: "manager",
+  maintenance_planner: "manager",
+  technician: "crew_member",
+  logistics_user: "crew_member",
+  procurement_user: "crew_member",
+  crew_member: "crew_member",
+  viewer: "viewer",
+};
+
+/** Normalise an arbitrary rank/role label into a snake_case lookup key. */
+export function normalizeRankKey(rank: string | null | undefined): string {
+  if (rank == null) return "";
+  return rank.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+/**
+ * Suggest a default access level for a rank, honouring an optional editable
+ * override map. Unknown ranks → "crew_member"; missing rank → read-only.
+ */
+export function defaultAccessLevelForRank(
+  rank: string | null | undefined,
+  overrides?: Record<string, string>,
+): string {
+  const key = normalizeRankKey(rank);
+  if (!key) return LEAST_PRIVILEGED_ACCESS_LEVEL;
+  const mapped = overrides?.[key] ?? DEFAULT_RANK_TO_ACCESS_LEVEL[key];
+  return mapped ?? "crew_member";
+}
+
 /* --------------------------- Hub access control --------------------------- */
 
 /**
@@ -239,6 +399,22 @@ export function isHubId(value: string): value is HubId {
 
 /** A super-admin role is always a full-hub admin and cannot be edited/revoked. */
 export function isSuperAdminRole(role: string | null | undefined): boolean {
+  if (role == null) return false;
+  const key = role.trim().toLowerCase();
+  return (SUPER_ADMIN_ROLE_KEYS as readonly string[]).includes(key);
+}
+
+/**
+ * Whether a role may EDIT permissions / access-level definitions. Restricted to
+ * the true super-admin tier — a regular `admin` is excluded. Enforced on both
+ * the UI and the API.
+ */
+export function isPermissionEditorRole(role: string | null | undefined): boolean {
+  return isSuperAdminRole(role);
+}
+
+/** Whether a role is in the lockout-protected admin-capable set (super OR admin). */
+export function isAdminCapableRole(role: string | null | undefined): boolean {
   if (role == null) return false;
   const key = role.trim().toLowerCase();
   return (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(key);
@@ -615,16 +791,22 @@ export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashb
   const widgetSet = new Set<WidgetKey>();
   const taskSet = new Set<TaskSourceKey>();
   const quickActions = new Set<string>();
+  const pinnedSet = new Set<WidgetKey>();
   let filters: Record<string, unknown> = {};
   let highImpactQuestions: Record<string, string> = {};
+  let widgetSettings: Record<string, Record<string, unknown>> = {};
+  let landingRoute: string | undefined;
   let scopeRank = VISIBILITY_SCOPE_RANK.self;
 
   for (const config of configs) {
     for (const widget of config.widgets) widgetSet.add(widget);
     for (const source of config.taskSources) taskSet.add(source);
     for (const action of config.quickActions) quickActions.add(action);
+    for (const widget of config.pinnedWidgets ?? []) pinnedSet.add(widget);
     filters = { ...filters, ...config.filters };
     highImpactQuestions = { ...highImpactQuestions, ...config.highImpactQuestions };
+    widgetSettings = { ...widgetSettings, ...(config.widgetSettings ?? {}) };
+    if (landingRoute === undefined && config.landingRoute) landingRoute = config.landingRoute;
     scopeRank = Math.max(scopeRank, VISIBILITY_SCOPE_RANK[config.visibilityScope]);
   }
 
@@ -638,6 +820,95 @@ export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashb
     quickActions: [...quickActions],
     filters,
     highImpactQuestions,
+    pinnedWidgets: DASHBOARD_WIDGETS.filter((widget) => pinnedSet.has(widget)),
+    widgetSettings,
+    landingRoute,
+  };
+}
+
+/**
+ * Per-account personalization layer. Takes the role-resolved (merged) config
+ * and the user's personal preferences and returns a NEW config that reflects
+ * the user's tweaks — but ONLY ever narrows access, never widens it:
+ *
+ *   - hiddenWidgets removes widgets the user chose to hide, EXCEPT pinned
+ *     widgets (admin-mandated, e.g. Safety Notices) which can never be hidden.
+ *   - widgetOrder reorders only widgets the role already grants; unknown or
+ *     no-longer-granted widget ids are dropped, and any granted widget the
+ *     user didn't mention is appended in its original order so nothing vanishes.
+ *   - widgetSettings are shallow-merged per widget on top of the role defaults,
+ *     and only for widgets that survive the steps above.
+ *   - landingRoute is honored only when it points at a hub the role allows;
+ *     otherwise the role default stands.
+ *
+ * Pure + deterministic so the client can apply the exact same transform for
+ * offline/optimistic rendering.
+ */
+export interface UserDashboardPrefsInput {
+  hiddenWidgets?: string[];
+  widgetOrder?: string[];
+  widgetSettings?: Record<string, Record<string, unknown>>;
+  landingRoute?: string;
+}
+
+export function applyUserDashboardPrefs(
+  config: RoleDashboardConfig,
+  prefs: UserDashboardPrefsInput | null | undefined,
+  allowedLandingRoutes?: readonly string[],
+): RoleDashboardConfig {
+  if (!prefs) return config;
+
+  const pinned = new Set<WidgetKey>(config.pinnedWidgets ?? []);
+  const granted = new Set<WidgetKey>(config.widgets);
+
+  // 1. Hide widgets the user opted out of, but never a pinned (mandatory) one.
+  const hidden = new Set<string>(prefs.hiddenWidgets ?? []);
+  let visible = config.widgets.filter((w) => !hidden.has(w) || pinned.has(w));
+
+  // 2. Reorder per the user's order, keeping only still-granted widgets and
+  //    appending any granted-but-unmentioned widget in its original position.
+  if (prefs.widgetOrder && prefs.widgetOrder.length > 0) {
+    const visibleSet = new Set<WidgetKey>(visible);
+    const ordered: WidgetKey[] = [];
+    const seen = new Set<WidgetKey>();
+    for (const id of prefs.widgetOrder) {
+      if (granted.has(id as WidgetKey) && visibleSet.has(id as WidgetKey) && !seen.has(id as WidgetKey)) {
+        ordered.push(id as WidgetKey);
+        seen.add(id as WidgetKey);
+      }
+    }
+    for (const w of visible) {
+      if (!seen.has(w)) ordered.push(w);
+    }
+    visible = ordered;
+  }
+
+  // 3. Shallow-merge per-widget settings for surviving widgets only.
+  let widgetSettings = config.widgetSettings;
+  if (prefs.widgetSettings) {
+    const survivors = new Set<WidgetKey>(visible);
+    const merged: Record<string, Record<string, unknown>> = { ...(config.widgetSettings ?? {}) };
+    for (const [widgetId, settings] of Object.entries(prefs.widgetSettings)) {
+      if (!survivors.has(widgetId as WidgetKey)) continue;
+      merged[widgetId] = { ...(merged[widgetId] ?? {}), ...settings };
+    }
+    widgetSettings = merged;
+  }
+
+  // 4. Honor a personal landing route ONLY when the caller supplies an explicit
+  //    allow-list and the route is in it. Fail-closed: with no allow-list a
+  //    personal landingRoute is ignored so prefs can never widen where the role
+  //    drops the user (intersect-only contract).
+  let landingRoute = config.landingRoute;
+  if (prefs.landingRoute && allowedLandingRoutes?.includes(prefs.landingRoute)) {
+    landingRoute = prefs.landingRoute;
+  }
+
+  return {
+    ...config,
+    widgets: visible,
+    widgetSettings,
+    landingRoute,
   };
 }
 

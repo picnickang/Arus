@@ -13,11 +13,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useRoleNames } from "@/hooks/useRoleNames";
 import { AlertTriangle } from "lucide-react";
 import {
   HUB_IDS,
   isSuperAdminRole,
   isAdminGrantEligibleRole,
+  isPermissionEditorRole,
 } from "@shared/role-dashboard";
 
 const HUB_LABELS: Record<string, string> = {
@@ -98,6 +100,13 @@ export function RolePermissionsDialog({
   onOpenChange,
 }: RolePermissionsDialogProps) {
   const { toast } = useToast();
+  const { roleNames } = useRoleNames();
+  // ONLY the super-admin tier (the signed-in user) may change access
+  // permissions. Mirrors the backend gate (isPermissionEditorRole →
+  // requireSuperAdminForPermissions / requireSuperAdminRole) so system_admin and
+  // company_admin are not falsely locked into read-only. Everyone else gets a
+  // read-only view.
+  const canEditPermissions = roleNames.some((r) => isPermissionEditorRole(r));
   const [draft, setDraft] = useState<Record<string, boolean>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -273,7 +282,7 @@ export function RolePermissionsDialog({
             </div>
             <Checkbox
               checked={hubAdminDraft}
-              disabled={isSuperAdmin || !canBeHubAdmin}
+              disabled={isSuperAdmin || !canBeHubAdmin || !canEditPermissions}
               onCheckedChange={(v) => setHubAdminDraft(v === true)}
               data-testid="checkbox-hub-admin"
             />
@@ -300,6 +309,7 @@ export function RolePermissionsDialog({
                 >
                   <Checkbox
                     checked={hubDraft.has(hub)}
+                    disabled={!canEditPermissions}
                     onCheckedChange={() => toggleHub(hub)}
                     data-testid={`checkbox-hub-${hub}`}
                   />
@@ -360,6 +370,7 @@ export function RolePermissionsDialog({
                                 >
                                   <Checkbox
                                     checked={isChecked(key)}
+                                    disabled={!canEditPermissions}
                                     onCheckedChange={() => toggle(key)}
                                     data-testid={`checkbox-grant-${resource.code}-${actionCode}`}
                                   />
@@ -385,20 +396,32 @@ export function RolePermissionsDialog({
           </div>
         )}
 
+        {!canEditPermissions && (
+          <div
+            className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground"
+            data-testid="text-readonly-permissions"
+          >
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Only a Super Admin can change access permissions. This is a read-only view.</span>
+          </div>
+        )}
+
         <DialogFooter className="items-center gap-2">
           <span className="text-xs text-muted-foreground mr-auto" data-testid="text-perm-changes">
             {changedCount === 0 ? "No changes" : `${changedCount} change(s) pending`}
           </span>
           <Button variant="outline" onClick={() => handleOpenChange(false)} data-testid="button-cancel-permissions">
-            Cancel
+            {canEditPermissions ? "Cancel" : "Close"}
           </Button>
-          <Button
-            onClick={() => save.mutate()}
-            disabled={save.isPending || changedCount === 0}
-            data-testid="button-save-permissions"
-          >
-            Save Access
-          </Button>
+          {canEditPermissions && (
+            <Button
+              onClick={() => save.mutate()}
+              disabled={save.isPending || changedCount === 0}
+              data-testid="button-save-permissions"
+            >
+              Save Access
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

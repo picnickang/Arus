@@ -80,8 +80,27 @@ function humanizeRoleName(name: string): string {
     .join(" ");
 }
 
+/**
+ * Optional hook so a composition root can clear the permissions domain's
+ * in-memory permission/hub cache after this domain mutates role hub-access or
+ * user↔role assignments. Kept as an injected port (not a direct import) so the
+ * crew-admin domain never reaches into the permissions domain — preserving the
+ * hexagonal boundary enforced by `check:domain-leaks`.
+ */
+export interface PermissionCacheInvalidatorPort {
+  invalidateOrg(orgId: string): void;
+  invalidateUser(userId: string, orgId: string): void;
+}
+
 export class CrewAdminApplicationService {
+  private permissionCacheInvalidator: PermissionCacheInvalidatorPort | null = null;
+
   constructor(private readonly repo: ICrewAdminRepository) {}
+
+  /** Wired from `server/composition/` at boot. No-op until set. */
+  setPermissionCacheInvalidator(invalidator: PermissionCacheInvalidatorPort): void {
+    this.permissionCacheInvalidator = invalidator;
+  }
 
   /* ----------------------------- Roles ----------------------------- */
 
@@ -173,6 +192,9 @@ export class CrewAdminApplicationService {
     if (!updated) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
     }
+    // Hub access feeds the cached effective-permission resolution, so every
+    // user holding this role must re-resolve on their next request.
+    this.permissionCacheInvalidator?.invalidateOrg(orgId);
     return { role: updated, previousHubState };
   }
 
@@ -539,6 +561,8 @@ export class CrewAdminApplicationService {
       }
     }
     await this.repo.replaceRoleAssignments(orgId, userId, unique, assignedBy);
+    // Role membership changes this user's effective permissions immediately.
+    this.permissionCacheInvalidator?.invalidateUser(userId, orgId);
   }
 
   /**
@@ -588,6 +612,7 @@ export class CrewAdminApplicationService {
       await this.assertNotLastAdmin(orgId, userId);
     }
     await this.repo.setRole(orgId, userId, newRole);
+    this.permissionCacheInvalidator?.invalidateUser(userId, orgId);
   }
 
   /** Assign (or clear, with null) the user's supervisor. */
@@ -648,6 +673,7 @@ export class CrewAdminApplicationService {
     }
     const normalizedAccess = hubAdmin ? normalizeHubAccess(hubAccess) : null;
     await this.repo.setHubAccessGrant(orgId, userId, hubAdmin, normalizedAccess);
+    this.permissionCacheInvalidator?.invalidateUser(userId, orgId);
   }
 
   /* ----------------------------- Credentials ----------------------- */

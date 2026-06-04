@@ -97,6 +97,34 @@ export function registerMePortalRoutes(
   );
 
   app.get(
+    "/api/me/dashboard/preferences",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("get me dashboard preferences", async (req: Request, res: Response) => {
+      try {
+        return res.json(await mePortalService.getPreferences(resolveMeUser(req)));
+      } catch (error) {
+        if (handleMeError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.put(
+    "/api/me/dashboard/preferences",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("save me dashboard preferences", async (req: Request, res: Response) => {
+      try {
+        return res.json(await mePortalService.savePreferences(resolveMeUser(req), req.body));
+      } catch (error) {
+        if (handleMeError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
+  app.get(
     "/api/me/tasks",
     requireAuthentication,
     generalApiRateLimit,

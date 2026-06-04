@@ -11,6 +11,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "../../db";
 import { users, adminSessions } from "@shared/schema";
+import { userDashboardPreferences } from "@shared/schema/role-dashboards";
+import { userDashboardPrefsSchema, type UserDashboardPrefs } from "@shared/schema/role-dashboards";
 import { and, eq, sql } from "drizzle-orm";
 import {
   dbAlertStorage,
@@ -29,6 +31,7 @@ import {
   type VisibilityScope,
   ALARM_SEVERITY_RANK,
   mergeDashboardConfigs,
+  applyUserDashboardPrefs,
   scopeForSource,
   scopeForAlarms,
 } from "@shared/role-dashboard";
@@ -88,6 +91,8 @@ export interface DashboardPayload {
   vessels: Array<{ id: string; name: string }>;
   fleetWide: boolean;
   mustChangePassword: boolean;
+  /** The caller's raw personal preferences (for the edit UI). */
+  prefs: UserDashboardPrefs | null;
 }
 
 interface SessionResult {
@@ -180,7 +185,11 @@ export class MePortalService {
       user.id,
       user.role,
     );
-    const config = mergeDashboardConfigs(configs);
+    const roleConfig = mergeDashboardConfigs(configs);
+    // Layer the caller's personal tweaks on top (intersect-only: hidden/order/
+    // settings/landing). Never widens what the role grants.
+    const prefs = await this.getPreferences(user);
+    const config = applyUserDashboardPrefs(roleConfig, prefs);
     const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
     // Dashboard vessel roster is reference context, scoped to the broadest scope
     // the user legitimately holds across any role.
@@ -210,7 +219,47 @@ export class MePortalService {
       vessels: visibleVessels,
       fleetWide: scope.fleetWide,
       mustChangePassword: record?.mustChangePassword ?? false,
+      prefs,
     };
+  }
+
+  /**
+   * Read the caller's stored personal dashboard preferences (or null when they
+   * have none yet). Org-scoped so a token can only ever read its own org's row.
+   */
+  async getPreferences(user: MeUser): Promise<UserDashboardPrefs | null> {
+    await this.assertPasswordChangeNotRequired(user);
+    const [row] = await db
+      .select({ prefsJson: userDashboardPreferences.prefsJson })
+      .from(userDashboardPreferences)
+      .where(
+        and(
+          eq(userDashboardPreferences.orgId, user.orgId),
+          eq(userDashboardPreferences.userId, user.id),
+        ),
+      )
+      .limit(1);
+    if (!row) return null;
+    const parsed = userDashboardPrefsSchema.safeParse(row.prefsJson);
+    return parsed.success ? parsed.data : null;
+  }
+
+  /**
+   * Upsert the caller's personal dashboard preferences. Validates against the
+   * shared schema (unknown fields stripped) and stores only the personal tweak
+   * layer — the role config is never mutated here.
+   */
+  async savePreferences(user: MeUser, prefs: unknown): Promise<UserDashboardPrefs> {
+    await this.assertPasswordChangeNotRequired(user);
+    const validated = userDashboardPrefsSchema.parse(prefs);
+    await db
+      .insert(userDashboardPreferences)
+      .values({ orgId: user.orgId, userId: user.id, prefsJson: validated })
+      .onConflictDoUpdate({
+        target: [userDashboardPreferences.orgId, userDashboardPreferences.userId],
+        set: { prefsJson: validated, updatedAt: new Date() },
+      });
+    return validated;
   }
 
   async getTasks(user: MeUser): Promise<TaskItem[]> {
