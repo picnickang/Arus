@@ -20,13 +20,13 @@ import {
 
 describe("isSuperAdminRole", () => {
   it("is true for every super-admin role", () => {
-    for (const role of ["admin", "system_admin", "company_admin"]) {
+    for (const role of ["super_admin", "system_admin", "company_admin"]) {
       expect(isSuperAdminRole(role)).toBe(true);
     }
   });
 
-  it("is false for grant-eligible-but-not-super roles", () => {
-    for (const role of ["fleet_manager", "captain", "chief_engineer", "manager", "vessel_master"]) {
+  it("is false for grant-eligible-but-not-super roles (incl. demoted admin)", () => {
+    for (const role of ["admin", "fleet_manager", "captain", "chief_engineer", "manager", "vessel_master"]) {
       expect(isSuperAdminRole(role)).toBe(false);
     }
   });
@@ -41,9 +41,13 @@ describe("isSuperAdminRole", () => {
 
 describe("isAdminGrantEligibleRole", () => {
   it("is true for super-admin roles (superset of grant-eligible)", () => {
-    for (const role of ["admin", "system_admin", "company_admin"]) {
+    for (const role of ["super_admin", "system_admin", "company_admin"]) {
       expect(isAdminGrantEligibleRole(role)).toBe(true);
     }
+  });
+
+  it("is true for the demoted admin role (grant-eligible, not super)", () => {
+    expect(isAdminGrantEligibleRole("admin")).toBe(true);
   });
 
   it("is true for manager-or-above roles", () => {
@@ -101,9 +105,14 @@ describe("normalizeHubAccess", () => {
 
 describe("resolveHubAdmin", () => {
   it("super-admin role is always-on regardless of the stored flag", () => {
+    expect(resolveHubAdmin(["super_admin"], false)).toBe(true);
     expect(resolveHubAdmin(["system_admin"], false)).toBe(true);
     expect(resolveHubAdmin(["company_admin"], false)).toBe(true);
-    expect(resolveHubAdmin(["admin"], false)).toBe(true);
+  });
+
+  it("a demoted admin is NOT always-on — it needs the stored grant", () => {
+    expect(resolveHubAdmin(["admin"], false)).toBe(false);
+    expect(resolveHubAdmin(["admin"], true)).toBe(true);
   });
 
   it("non-admin with no stored grant is off", () => {
@@ -129,7 +138,7 @@ describe("resolveHubAdmin", () => {
 describe("resolveHubAccess", () => {
   it("super-admin always gets full access (null), ignoring any stored allow-list", () => {
     expect(resolveHubAccess(["system_admin"], ["maintenance"])).toBeNull();
-    expect(resolveHubAccess(["admin"], [])).toBeNull();
+    expect(resolveHubAccess(["super_admin"], [])).toBeNull();
   });
 
   it("non-admin null stored access stays null (= all hubs they are granted)", () => {

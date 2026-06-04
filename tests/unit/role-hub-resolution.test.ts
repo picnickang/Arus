@@ -34,7 +34,12 @@ const role = (
 describe("resolveEffectiveHubAdmin (role-level)", () => {
   it("a super-admin role is always a hub admin, regardless of stored flag", () => {
     expect(resolveEffectiveHubAdmin([role("super_admin")], false)).toBe(true);
-    expect(resolveEffectiveHubAdmin([role("admin")], false)).toBe(true);
+  });
+
+  it("a demoted admin role is NOT always-on — it needs the stored flag or override", () => {
+    expect(resolveEffectiveHubAdmin([role("admin")], false)).toBe(false);
+    expect(resolveEffectiveHubAdmin([role("admin", true)], false)).toBe(true);
+    expect(resolveEffectiveHubAdmin([role("admin")], true)).toBe(true);
   });
 
   it("a grant-eligible role carrying hubAdmin is a hub admin", () => {

@@ -31,13 +31,23 @@ describe("isAdminPortalAccess", () => {
 
   describe("super-admin is always-on", () => {
     it("grants access even with hubAdmin=false and ready=true", () => {
-      for (const role of ["admin", "system_admin", "company_admin"]) {
+      for (const role of ["super_admin", "system_admin", "company_admin"]) {
         expect(isAdminPortalAccess(role, false, true)).toBe(true);
       }
     });
 
     it("grants access even while permissions are still loading", () => {
       expect(isAdminPortalAccess("system_admin", false, false)).toBe(true);
+    });
+  });
+
+  describe("demoted admin is no longer always-on", () => {
+    it("denies a plain admin with hubAdmin=false once permissions are ready", () => {
+      expect(isAdminPortalAccess("admin", false, true)).toBe(false);
+    });
+
+    it("grants a plain admin once the server-computed hubAdmin flag is true", () => {
+      expect(isAdminPortalAccess("admin", true, true)).toBe(true);
     });
   });
 
