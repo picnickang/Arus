@@ -6,13 +6,20 @@
  */
 
 import { db } from "../../db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, or, inArray, type SQL } from "drizzle-orm";
 import {
   permissionGrants,
   userRoleAssignments,
+  roles,
   type CompiledPermissions,
   type PermissionCheckResult,
 } from "../../../shared/schema/permissions";
+import { users } from "../../../shared/schema";
+import {
+  resolveEffectiveHubAdmin,
+  resolveEffectiveHubAccess,
+  type RoleHubFields,
+} from "../../../shared/role-dashboard";
 import { RESOURCES, ACTIONS, type ActionCode } from "../../config/permission-registry";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -251,8 +258,79 @@ export function getResourceDefinitions() {
   return RESOURCES;
 }
 
+/**
+ * Resolve a user's EFFECTIVE hub access from their role(s) + any explicit
+ * per-user grant. This is the canonical hub-access entry point: it reads the
+ * user's primary role plus their assigned roles, loads the org-scoped role hub
+ * fields, and folds them through the shared resolvers.
+ *
+ *   - A super-admin role => full hub access (null).
+ *   - A non-admin role   => no hubs.
+ *   - An admin role with a null hub list => all hubs; otherwise its allow-list.
+ *
+ * Role names are matched case-insensitively against the stored role rows.
+ */
+export async function getEffectiveHubAccess(
+  userId: string,
+  orgId: string,
+): Promise<{ hubAdmin: boolean; hubAccess: string[] | null }> {
+  const [userRow] = await db
+    .select({ role: users.role, hubAdmin: users.hubAdmin, hubAccess: users.hubAccess })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+
+  const primaryRoleName = userRow?.role ?? null;
+  // `getUserRoles` returns role IDs (user_role_assignments.roleId), NOT names —
+  // so the assigned roles must be matched on `roles.id`. The primary role
+  // (`users.role`) is a role NAME and is matched on `roles.name`.
+  const assignedRoleIds = await getUserRoles(userId, orgId);
+
+  const orConditions: SQL[] = [];
+  if (assignedRoleIds.length) {
+    orConditions.push(inArray(roles.id, assignedRoleIds));
+  }
+  if (primaryRoleName) {
+    orConditions.push(eq(roles.name, primaryRoleName));
+  }
+  const roleRows = orConditions.length
+    ? await db
+        .select({ name: roles.name, hubAdmin: roles.hubAdmin, hubAccess: roles.hubAccess })
+        .from(roles)
+        .where(and(eq(roles.orgId, orgId), or(...orConditions)))
+    : [];
+
+  const fieldsByName = new Map<string, RoleHubFields>();
+  for (const row of roleRows) {
+    fieldsByName.set(row.name.toLowerCase(), {
+      name: row.name,
+      hubAdmin: row.hubAdmin ?? false,
+      hubAccess: row.hubAccess ?? null,
+    });
+  }
+  // The primary role name is always represented even when it has no `roles`
+  // row (e.g. a legacy/built-in role name): super-admin detection is by NAME,
+  // so dropping it here would silently strip a super-admin's full access.
+  if (primaryRoleName && !fieldsByName.has(primaryRoleName.toLowerCase())) {
+    fieldsByName.set(primaryRoleName.toLowerCase(), {
+      name: primaryRoleName,
+      hubAdmin: false,
+      hubAccess: null,
+    });
+  }
+  const roleHubFields = [...fieldsByName.values()];
+
+  const storedHubAdmin = userRow?.hubAdmin ?? false;
+  const storedHubAccess = userRow?.hubAccess ?? null;
+  return {
+    hubAdmin: resolveEffectiveHubAdmin(roleHubFields, storedHubAdmin),
+    hubAccess: resolveEffectiveHubAccess(roleHubFields, storedHubAdmin, storedHubAccess),
+  };
+}
+
 export const permissionService = {
   authorize,
+  getEffectiveHubAccess,
   hasPermission,
   hasAnyPermission,
   hasAllPermissions,

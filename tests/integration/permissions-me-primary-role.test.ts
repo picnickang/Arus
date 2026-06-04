@@ -71,6 +71,7 @@ interface CompiledStub {
 let compiledStub: CompiledStub;
 let orgRolesStub: OrgRole[];
 let userRowStub: UserRow | undefined;
+let hubResolutionStub: { hubAdmin: boolean; hubAccess: string[] | null };
 
 beforeEach(() => {
   compiledStub = {
@@ -81,6 +82,7 @@ beforeEach(() => {
   };
   orgRolesStub = [];
   userRowStub = undefined;
+  hubResolutionStub = { hubAdmin: false, hubAccess: null };
 });
 
 // ---------------------------------------------------------------------------
@@ -127,6 +129,8 @@ beforeAll(async () => {
     permissionService: {
       invalidateOrgPermissionCache: () => {},
       invalidateUserPermissionCache: () => {},
+      // Hub resolution now lives in the service; the /me route delegates to it.
+      getEffectiveHubAccess: async () => hubResolutionStub,
     },
   }));
 
@@ -162,6 +166,14 @@ beforeAll(async () => {
         }),
       }),
     },
+    // The audit chain (transitively imported by routes.ts) imports other
+    // named exports from `../db` (the real module re-exports these from
+    // db-config). Provide stubs so ESM module linking succeeds; the /me GET
+    // path never touches them.
+    pool: {},
+    libsqlClient: undefined,
+    isLocalMode: false,
+    deploymentMode: "cloud",
   }));
 
   const express = (await import("express")).default;

@@ -77,6 +77,15 @@ interface RoleDashboardConfigView {
   isCustomized: boolean;
 }
 
+interface PermissionAuditEntry {
+  id?: string | number;
+  actorUserId?: string | null;
+  action: string;
+  targetType?: string | null;
+  targetId?: string | null;
+  createdAt?: string | null;
+}
+
 export function RolesDashboardsTab() {
   const { toast } = useToast();
   const onError = (error: unknown) =>
@@ -108,6 +117,9 @@ export function RolesDashboardsTab() {
   });
   const { data: configs = [] } = useQuery<RoleDashboardConfigView[]>({
     queryKey: ["/api/admin/role-dashboards"],
+  });
+  const { data: auditLog = [] } = useQuery<PermissionAuditEntry[]>({
+    queryKey: ["/api/permissions/audit"],
   });
 
   const invalidateRoles = () =>
@@ -378,6 +390,52 @@ export function RolesDashboardsTab() {
           ))}
           {roles.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">No roles defined.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-permission-audit">
+        <CardHeader>
+          <CardTitle className="text-base">Access &amp; Permission Activity</CardTitle>
+          <CardDescription>
+            Recent changes to roles, hub access, and permission grants across the
+            organization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {auditLog.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="text-audit-empty"
+            >
+              No recent permission activity.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {auditLog.slice(0, 10).map((entry, index) => (
+                <li
+                  key={String(entry.id ?? index)}
+                  className="flex items-start justify-between gap-3 border-b pb-2 last:border-b-0 last:pb-0"
+                  data-testid={`row-audit-${entry.id ?? index}`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{entry.action}</p>
+                    {(entry.targetType || entry.targetId) && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[entry.targetType, entry.targetId]
+                          .filter(Boolean)
+                          .join(": ")}
+                      </p>
+                    )}
+                  </div>
+                  {entry.createdAt && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

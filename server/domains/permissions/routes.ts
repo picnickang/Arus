@@ -31,13 +31,8 @@ import { structuredLog, type LogContext } from "../../logging";
 import { db } from "../../db";
 import { users } from "@shared/schema";
 import { crew } from "../../../shared/schema/crew";
-import {
-  resolveEffectiveHubAdmin,
-  resolveEffectiveHubAccess,
-  isSuperAdminRole,
-  type RoleHubFields,
-} from "@shared/role-dashboard";
-import { and, eq, inArray } from "drizzle-orm";
+import { isSuperAdminRole } from "@shared/role-dashboard";
+import { and, eq } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
@@ -63,41 +58,6 @@ const fromTemplateBodySchema = z.object({
   templateId: z.string().min(1),
   overrides: z.record(z.unknown()).optional(),
 });
-
-/**
- * Resolve a user's effective hub-admin flag + hub allow-list from BOTH their
- * role rows (the role-level grants stored on `roles.hub_admin`/`roles.hub_access`)
- * and their per-user override columns. Loads each named role's hub fields
- * org-scoped, then defers to the shared resolvers so the read path and the
- * landing logic agree on the same effective access.
- */
-async function resolveUserHubAccess(
-  orgId: string,
-  roleNames: readonly string[],
-  storedHubAdmin: boolean,
-  storedHubAccess: string[] | null,
-): Promise<{ hubAdmin: boolean; hubAccess: string[] | null }> {
-  const uniqueNames = [...new Set(roleNames.filter((n) => n && n.length > 0))];
-  const roleRows = uniqueNames.length
-    ? await db
-        .select({ name: roles.name, hubAdmin: roles.hubAdmin, hubAccess: roles.hubAccess })
-        .from(roles)
-        .where(and(eq(roles.orgId, orgId), inArray(roles.name, uniqueNames)))
-    : [];
-  const byName = new Map(roleRows.map((r) => [r.name.toLowerCase(), r]));
-  const roleHubFields: RoleHubFields[] = uniqueNames.map((name) => {
-    const row = byName.get(name.toLowerCase());
-    return {
-      name,
-      hubAdmin: row?.hubAdmin ?? false,
-      hubAccess: row?.hubAccess ?? null,
-    };
-  });
-  return {
-    hubAdmin: resolveEffectiveHubAdmin(roleHubFields, storedHubAdmin),
-    hubAccess: resolveEffectiveHubAccess(roleHubFields, storedHubAdmin, storedHubAccess),
-  };
-}
 
 export function registerPermissionRoutes(app: Express) {
   app.get(
@@ -152,27 +112,16 @@ export function registerPermissionRoutes(app: Express) {
       };
       const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
-      // Hub access lives on the user row (explicit grant) + the user's role
-      // names (super-admins are always-on). Read the columns and resolve.
+      // Hub access is resolved in the permissions service from the user's
+      // role(s) + any explicit per-user grant (see getEffectiveHubAccess). The
+      // primary-role column is still read here for the role-merge below.
       const [userRow] = await db
-        .select({
-          role: users.role,
-          hubAdmin: users.hubAdmin,
-          hubAccess: users.hubAccess,
-        })
+        .select({ role: users.role })
         .from(users)
         .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
         .limit(1);
-      const roleNames = [
-        ...(userRow ? [userRow.role] : []),
-        ...mapped.roles.map((r) => r.name),
-      ];
-      const { hubAdmin, hubAccess } = await resolveUserHubAccess(
-        orgId,
-        roleNames,
-        userRow?.hubAdmin ?? false,
-        userRow?.hubAccess ?? null,
-      );
+      const { hubAdmin, hubAccess } =
+        await permissionService.getEffectiveHubAccess(userId, orgId);
 
       // The user's PRIMARY role (`users.role`) is what server-side route
       // guards authorize against (`requireRole(...)` checks `user.role`
@@ -760,6 +709,7 @@ export function registerPermissionRoutes(app: Express) {
   app.get(
     "/api/permissions/audit",
     requireOrgId,
+    requirePermission("permission_management", "view"),
     withErrorHandling("get permission audit log", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { limit } = auditQuerySchema.parse(req.query);
@@ -885,16 +835,8 @@ export function registerPermissionRoutes(app: Express) {
       };
       const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
-      const roleNames = [
-        ...(dbUser ? [dbUser.role] : []),
-        ...mapped.roles.map((r) => r.name),
-      ];
-      const { hubAdmin, hubAccess } = await resolveUserHubAccess(
-        orgId,
-        roleNames,
-        dbUser?.hubAdmin ?? false,
-        dbUser?.hubAccess ?? null,
-      );
+      const { hubAdmin, hubAccess } =
+        await permissionService.getEffectiveHubAccess(userId, orgId);
 
       // Permission grant summary — counts only, to keep the payload bounded.
       let grantedActions = 0;
