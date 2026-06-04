@@ -312,19 +312,20 @@ export interface RoleHubFields {
  * Normalise a role's requested hub access to its canonical stored form.
  *
  * Role-level semantics differ DELIBERATELY from the user-level
- * `normalizeHubAccess`: a non-admin role can never carry hubs, and an admin
- * role with an empty or full list collapses to `null` (= all hubs). This stops
- * every freshly created role from silently inheriting "all hubs" (the trap that
- * reusing the user-level meaning blindly would create).
+ * `normalizeHubAccess`. `null` is reserved for "all hubs" (an admin role with
+ * no explicit list, or one that ticks every hub). An EMPTY explicit list is
+ * preserved as `[]` — an admin role with no accessible hubs (lands on the
+ * overview with every hub locked) — and must NOT collapse to `null`, or that
+ * role would silently inherit all hubs. A non-admin role can never carry hubs.
  */
 export function normalizeRoleHubAccess(
   hubAdmin: boolean,
   hubAccess: readonly string[] | null | undefined,
 ): { hubAdmin: boolean; hubAccess: string[] | null } {
   if (!hubAdmin) return { hubAdmin: false, hubAccess: null };
-  if (!hubAccess) return { hubAdmin: true, hubAccess: null };
+  if (hubAccess == null) return { hubAdmin: true, hubAccess: null };
   const valid = [...new Set(hubAccess.filter(isHubId))];
-  if (valid.length === 0 || valid.length === HUB_IDS.length) {
+  if (valid.length === HUB_IDS.length) {
     return { hubAdmin: true, hubAccess: null };
   }
   return { hubAdmin: true, hubAccess: valid };

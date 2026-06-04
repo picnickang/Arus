@@ -18,7 +18,7 @@ import {
   Ship,
   ShieldAlert,
   ShieldCheck,
-  UserCircle,
+  Lock,
   AlertTriangle,
   ClipboardList,
   Menu,
@@ -874,59 +874,21 @@ export default function HomePage() {
   // rather than the user-portal categories `getPrimaryCategoriesForRole` would
   // return for their underlying role.
   // Per-hub allow-list: `permissions.hubAccess === null` means "all hubs"
-  // (super-admins / dev resolve to null server-side); a populated list
-  // restricts which hubs render. Enforced here so a granted user never sees
-  // a hub outside their allow-list (the route guard blocks deep-links to the
-  // same hubs, so the list and the guards stay in lockstep).
+  // (super-admins / dev resolve to null server-side); a populated list marks
+  // which hubs the role may OPEN. The overview lists EVERY admin hub so the
+  // operator sees their full reach — accessible hubs are tappable, locked hubs
+  // are shown but non-actionable. The route guard blocks deep-links to locked
+  // hubs, so the list and the guards stay in lockstep.
   const hubAccess = permissions.hubAccess;
   const isHubAllowed = (id: string) => !hubAccess || hubAccess.includes(id);
   // Anchor to the role-independent admin primaries (the label-overridden
-  // categories) and append the remaining nav categories so EVERY accessible
-  // hub is listed — not just the pinned set.
+  // categories) and append the remaining nav categories so EVERY hub is
+  // listed — accessible or locked.
   const adminPrimaries = getAdminPrimaryCategories();
   const primaryIds = new Set(adminPrimaries.map((c) => c.id));
   const otherCategories = navigationCategories.filter((c) => !primaryIds.has(c.id));
-  const visibleHubs: NavigationCategory[] = [...adminPrimaries, ...otherCategories].filter((c) =>
-    isHubAllowed(c.id),
-  );
-
-  // No-hubs fallback: an admin-portal account whose hub allow-list is a
-  // populated-but-empty set (granted admin access, zero hubs) would
-  // otherwise see a blank command center. Show a safe, explicit page with
-  // profile + logout access instead. `hubAccess === null` means "all hubs"
-  // (super-admin / dev) and never lands here.
-  if (visibleHubs.length === 0) {
-    return (
-      <div
-        className="ops-surface flex min-h-screen items-center justify-center px-4"
-        data-testid="shell-admin-no-hubs"
-      >
-        <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-            <ShieldAlert className="h-6 w-6 text-amber-500" />
-          </div>
-          <h1 className="text-lg font-semibold" data-testid="text-no-hubs-title">
-            No admin hubs assigned
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground" data-testid="text-no-hubs-body">
-            Your account has admin access but no hubs have been assigned yet.
-            Contact your Super Admin to be granted a hub.
-          </p>
-          <div className="mt-5 flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setLocation("/profile")}
-              data-testid="button-no-hubs-profile"
-            >
-              <UserCircle className="h-4 w-4" />
-              Profile
-            </Button>
-            <LogoutButton variant="outline" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const allHubs: NavigationCategory[] = [...adminPrimaries, ...otherCategories];
+  const accessibleCount = allHubs.filter((c) => isHubAllowed(c.id)).length;
 
   const roleLabel = roleConfig?.label ?? "Admin";
 
@@ -945,7 +907,7 @@ export default function HomePage() {
               Admin Hubs
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Only permission-granted hubs appear here.
+              Every hub is listed. Open the ones your role unlocks.
             </p>
           </div>
           <span
@@ -959,9 +921,53 @@ export default function HomePage() {
 
         <PendingApprovalsBanner />
 
+        {accessibleCount === 0 && (
+          <div
+            className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+            data-testid="banner-no-hubs"
+          >
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <span>
+              Your account has admin access but no hubs are unlocked yet. Every
+              hub below is locked — contact your Super Admin to be granted one.
+            </span>
+          </div>
+        )}
+
         <div className="mt-4 space-y-3" data-testid="list-admin-hubs">
-          {visibleHubs.map((hub) => {
+          {allHubs.map((hub) => {
             const Icon = hub.icon;
+            const allowed = isHubAllowed(hub.id);
+            if (!allowed) {
+              // Locked: shown for full visibility but non-actionable. No Link
+              // wrapper, so it never navigates; the route guard also blocks
+              // direct deep-links to this hub.
+              return (
+                <div
+                  key={hub.id}
+                  className="ops-card flex cursor-not-allowed items-center gap-3 p-4 opacity-60"
+                  aria-disabled="true"
+                  data-testid={`card-hub-${hub.id}`}
+                >
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold">{hub.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {hub.description}
+                    </div>
+                  </div>
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                    data-testid={`pill-locked-${hub.id}`}
+                  >
+                    <Lock className="h-3 w-3" />
+                    Locked
+                  </span>
+                </div>
+              );
+            }
             return (
               <Link key={hub.id} href={hub.hubRoute}>
                 <div
@@ -996,7 +1002,7 @@ export default function HomePage() {
             className="min-w-0 text-xs text-muted-foreground"
             data-testid="text-hubs-footer"
           >
-            Only accessible hubs are shown. Direct URLs are still blocked by route guards.
+            Every hub is listed. Locked hubs can't be opened, and direct URLs are blocked by route guards too.
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <LogoutButton />

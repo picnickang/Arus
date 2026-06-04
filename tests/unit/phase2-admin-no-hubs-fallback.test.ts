@@ -1,17 +1,20 @@
 /**
- * Phase 2 (Task #309) — admin no-hubs safe fallback.
+ * Admin no-hubs overview contract (Task #359 — supersedes the #309 blank
+ * fallback).
  *
  * An admin-portal account whose hub allow-list is a populated-but-empty
  * set (granted admin access, zero hubs) must NOT see a blank command
- * center. `HomePage` renders an explicit, honest fallback page with a
- * profile link and a logout affordance when both `pinnedGroups` and
- * `otherGroups` resolve to empty.
+ * center, and must NOT be hidden from the hubs either. The overview lists
+ * EVERY admin hub — all rendered as LOCKED — with an explicit banner
+ * explaining that nothing is unlocked yet, plus a logout affordance.
  *
  * Two layers are pinned here:
  *   1. Policy layer — `filterCategoriesByHubAccess(cats, [])` returns an
- *      empty set, which is the precondition that drives the fallback.
- *   2. Source contract — `home.tsx` contains the gated fallback render
- *      (`shell-admin-no-hubs`) so the safe page can't silently regress.
+ *      empty set (zero hubs OPENABLE), distinct from `null` (all hubs).
+ *   2. Source contract — `home.tsx` maps over the full hub set, renders
+ *      locked hubs non-actionably, and shows the `banner-no-hubs` notice
+ *      when `accessibleCount === 0` (the old `shell-admin-no-hubs` blank
+ *      fallback is gone).
  *
  * This is a source-scan (not a DOM render) on purpose: the admin
  * `HomePage` pulls in the full command-center dependency graph, which is
@@ -46,19 +49,27 @@ describe("Phase 2 — admin no-hubs safe fallback", () => {
       homeSrc = await readSrc("client/src/pages/home.tsx");
     });
 
-    it("renders the safe fallback shell when no hubs are visible", () => {
-      expect(homeSrc).toMatch(/data-testid="shell-admin-no-hubs"/);
+    it("lists every admin hub (accessible or locked), not just the granted ones", () => {
+      expect(homeSrc).toMatch(/const allHubs/);
+      expect(homeSrc).toMatch(/allHubs\.map\(/);
+      expect(homeSrc).toMatch(/data-testid={`card-hub-\$\{hub\.id\}`}/);
     });
 
-    it("gates the fallback on both group sets being empty", () => {
-      expect(homeSrc).toMatch(
-        /pinnedGroups\.length === 0 && otherGroups\.length === 0/,
-      );
+    it("renders locked hubs as non-actionable with a Locked pill", () => {
+      expect(homeSrc).toMatch(/data-testid={`pill-locked-\$\{hub\.id\}`}/);
+      expect(homeSrc).toMatch(/aria-disabled="true"/);
     });
 
-    it("offers a profile route and a logout affordance from the fallback", () => {
-      expect(homeSrc).toMatch(/data-testid="button-no-hubs-profile"/);
-      expect(homeSrc).toMatch(/setLocation\("\/profile"\)/);
+    it("shows an explicit banner when the admin has zero accessible hubs", () => {
+      expect(homeSrc).toMatch(/accessibleCount === 0/);
+      expect(homeSrc).toMatch(/data-testid="banner-no-hubs"/);
+    });
+
+    it("no longer renders the old blank no-hubs fallback shell", () => {
+      expect(homeSrc).not.toMatch(/data-testid="shell-admin-no-hubs"/);
+    });
+
+    it("keeps a logout affordance available on the overview", () => {
       expect(homeSrc).toMatch(/<LogoutButton\b/);
     });
   });

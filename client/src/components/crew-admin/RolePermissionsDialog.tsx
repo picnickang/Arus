@@ -106,34 +106,37 @@ export function RolePermissionsDialog({
   const isSuperAdmin = isSuperAdminRole(roleName);
   const canBeHubAdmin = isAdminGrantEligibleRole(roleName);
   const [hubAdminDraft, setHubAdminDraft] = useState(roleHubAdmin);
-  // null roleHubAccess on an admin role means "all hubs" — represent that as the
-  // full set in the editor so every box is ticked and the user can untick.
+  // Hub allow-list semantics: a `null` roleHubAccess on an admin role means
+  // "all hubs" (represented as every box ticked); an explicit `[]` means "no
+  // hubs" (every box unticked) — these are distinct and both must round-trip.
   const [hubDraft, setHubDraft] = useState<Set<string>>(new Set());
+
+  // The set the editor should show for the current stored value: null → all
+  // hubs ticked; an explicit list (including []) → exactly those ticked.
+  const currentHubSet = useMemo(
+    () =>
+      roleHubAccess == null
+        ? [...HUB_IDS]
+        : roleHubAccess.filter((h) => (HUB_IDS as readonly string[]).includes(h)),
+    [roleHubAccess],
+  );
 
   useEffect(() => {
     if (!open) return;
     setHubAdminDraft(isSuperAdmin || roleHubAdmin);
-    setHubDraft(
-      new Set(
-        roleHubAccess && roleHubAccess.length > 0
-          ? roleHubAccess.filter((h) => (HUB_IDS as readonly string[]).includes(h))
-          : [...HUB_IDS],
-      ),
-    );
+    setHubDraft(new Set(currentHubSet));
     setSaveError(null);
-  }, [open, roleId, roleHubAdmin, roleHubAccess, isSuperAdmin]);
+  }, [open, roleId, roleHubAdmin, isSuperAdmin, currentHubSet]);
 
   const hubsChanged = useMemo(() => {
     if (isSuperAdmin) return false;
     if (hubAdminDraft !== roleHubAdmin) return true;
     if (!hubAdminDraft) return false;
-    const current = new Set(
-      roleHubAccess && roleHubAccess.length > 0 ? roleHubAccess : [...HUB_IDS],
-    );
+    const current = new Set(currentHubSet);
     if (current.size !== hubDraft.size) return true;
     for (const h of hubDraft) if (!current.has(h)) return true;
     return false;
-  }, [isSuperAdmin, hubAdminDraft, roleHubAdmin, roleHubAccess, hubDraft]);
+  }, [isSuperAdmin, hubAdminDraft, roleHubAdmin, hubDraft, currentHubSet]);
 
   const toggleHub = (id: string) => {
     setHubDraft((prev) => {
@@ -202,12 +205,15 @@ export function RolePermissionsDialog({
       if (changes.length > 0) {
         await apiRequest("PUT", `/api/permissions/roles/${roleId}/grants`, { grants: changes });
       }
-      // 2) Admin-hub access (only when changed). An admin role with every hub
-      // ticked sends null (= all hubs); a non-admin role clears its access.
+      // 2) Admin-hub access (only when changed). A non-admin role clears its
+      // access (null). For an admin role: every hub ticked sends null (= all
+      // hubs), zero ticked sends [] (admin with no accessible hubs — distinct
+      // from "all"), and a partial selection sends that explicit list.
       if (hubsChanged) {
         const ticked = [...hubDraft];
-        const hubAccess =
-          !hubAdminDraft || ticked.length === 0 || ticked.length === HUB_IDS.length
+        const hubAccess = !hubAdminDraft
+          ? null
+          : ticked.length === HUB_IDS.length
             ? null
             : ticked;
         await apiRequest("PATCH", `/api/admin/crew/roles/${roleId}/hub-access`, {

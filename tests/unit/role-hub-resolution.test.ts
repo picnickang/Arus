@@ -20,6 +20,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
   resolveEffectiveHubAdmin,
   resolveEffectiveHubAccess,
+  normalizeRoleHubAccess,
   HUB_IDS,
   type RoleHubFields,
 } from "@shared/role-dashboard";
@@ -109,5 +110,56 @@ describe("resolveEffectiveHubAccess (role-level)", () => {
     expect(
       resolveEffectiveHubAccess([role("crew_member")], true, ["analytics"]),
     ).toBeNull();
+  });
+});
+
+describe("normalizeRoleHubAccess (write-path normalisation)", () => {
+  it("a non-admin role is forced to {hubAdmin:false, hubAccess:null}", () => {
+    expect(normalizeRoleHubAccess(false, ["maintenance"])).toEqual({
+      hubAdmin: false,
+      hubAccess: null,
+    });
+    expect(normalizeRoleHubAccess(false, [])).toEqual({
+      hubAdmin: false,
+      hubAccess: null,
+    });
+  });
+
+  it("an admin with a null list means ALL hubs (stays null)", () => {
+    expect(normalizeRoleHubAccess(true, null)).toEqual({
+      hubAdmin: true,
+      hubAccess: null,
+    });
+    expect(normalizeRoleHubAccess(true, undefined)).toEqual({
+      hubAdmin: true,
+      hubAccess: null,
+    });
+  });
+
+  it("an admin with an EMPTY list stays [] (no hubs) — never collapses to null", () => {
+    // Regression guard: `[]` (admin, zero hubs) is semantically distinct
+    // from `null` (admin, all hubs). Collapsing `[]`→null would silently
+    // grant every hub to an admin meant to have none.
+    expect(normalizeRoleHubAccess(true, [])).toEqual({
+      hubAdmin: true,
+      hubAccess: [],
+    });
+  });
+
+  it("an admin granted every hub collapses to null (all hubs)", () => {
+    expect(normalizeRoleHubAccess(true, [...HUB_IDS])).toEqual({
+      hubAdmin: true,
+      hubAccess: null,
+    });
+  });
+
+  it("an admin with a partial list keeps that list (deduped, unknowns dropped)", () => {
+    const result = normalizeRoleHubAccess(true, [
+      "maintenance",
+      "maintenance",
+      "not-a-real-hub",
+    ]);
+    expect(result.hubAdmin).toBe(true);
+    expect(result.hubAccess).toEqual(["maintenance"]);
   });
 });

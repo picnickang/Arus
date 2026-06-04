@@ -88,12 +88,22 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
     expect(adminBranch).toMatch(/data-testid={`pill-granted-\$\{hub\.id\}`}/);
   });
 
+  it("shows locked hubs as non-actionable alongside accessible ones", () => {
+    // Task #359: the overview lists EVERY hub — locked ones are rendered
+    // but non-actionable (no Link wrapper, aria-disabled, a Locked pill).
+    expect(adminBranch).toMatch(/data-testid={`pill-locked-\$\{hub\.id\}`}/);
+    expect(adminBranch).toMatch(/aria-disabled="true"/);
+    // The no-accessible-hub banner replaces the old blank fallback shell.
+    expect(adminBranch).toMatch(/data-testid="banner-no-hubs"/);
+    expect(adminBranch).not.toMatch(/data-testid="shell-admin-no-hubs"/);
+  });
+
   it("derives the hub list from the nav policy, not mock data", () => {
-    // Admin primaries + remaining nav categories, deduped — every
-    // accessible hub is listed, sourced from the real policy module.
+    // Admin primaries + remaining nav categories, deduped — every hub
+    // (accessible or locked) is listed, sourced from the real policy module.
     expect(adminBranch).toMatch(/getAdminPrimaryCategories\(\)/);
     expect(adminBranch).toMatch(/navigationCategories/);
-    expect(adminBranch).toMatch(/visibleHubs/);
+    expect(adminBranch).toMatch(/allHubs/);
   });
 
   it("gates the hub list by the account's hubAccess allow-list", () => {
