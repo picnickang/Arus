@@ -24,3 +24,4 @@
 - [Crew rank ↔ crew_roles matching](crew-rank-role-matching.md) — crew.rank is stored inconsistently vs Title-Case crew_roles.name; match via normRoleKey (lowercase+spaces→_), not exact name, or it silently returns empty.
 - [Crew role catalog is name-keyed](crew-role-catalog-name-keyed.md) — crew.rank stores the role NAME (no FK to crew_roles); rename must propagate name→crew.rank atomically, in-use delete guard counts by name.
 - [Crew edit-clear needs null not undefined](crew-edit-clear-null.md) — useUpdateMutation omits undefined keys, so clearing an optional crew field on edit must send explicit null or the old value sticks.
+- [Permission-grants routes need explicit authz](permission-grants-authz.md) — `/api/permissions/roles/:id/grants` had only requireOrgId; org-scope is isolation not authz — gate with requirePermission("permission_management",…).

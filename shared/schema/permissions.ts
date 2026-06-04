@@ -40,6 +40,14 @@ export const roles = pgTable(
     permissions: text("permissions"),
     isSystemRole: boolean("is_system_role").default(false),
     isActive: boolean("is_active").default(true),
+    // Role-level admin-portal ("hub") access. Mirrors the user-level columns on
+    // `users` but makes hub access a property of the ROLE. Semantics differ from
+    // the user level (see shared/role-dashboard.ts): a role is an admin only
+    // when `hubAdmin = true`; `hubAccess` enumerates the granted hub ids; a NULL
+    // list means "no specific hubs" for a non-admin role and "all hubs" only
+    // when `hubAdmin = true`. New roles default to non-admin (no hub access).
+    hubAdmin: boolean("hub_admin").notNull().default(false),
+    hubAccess: text("hub_access").array(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

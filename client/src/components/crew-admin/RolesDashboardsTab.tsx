@@ -42,7 +42,7 @@ import {
   type TaskSourceKey,
   type VisibilityScope,
 } from "@shared/role-dashboard";
-import { Plus, Settings2, Trash2, Pencil, RotateCcw, ShieldCheck } from "lucide-react";
+import { Plus, Settings2, Trash2, Pencil, RotateCcw, ShieldCheck, Shield, Users, Lock } from "lucide-react";
 import { RolePermissionsDialog } from "./RolePermissionsDialog";
 import {
   AlertDialog,
@@ -65,6 +65,8 @@ interface RoleSummary {
   isProtected: boolean;
   isActive: boolean;
   assignedUserCount: number;
+  hubAdmin: boolean;
+  hubAccess: string[] | null;
 }
 
 interface RoleDashboardConfigView {
@@ -235,8 +237,50 @@ export function RolesDashboardsTab() {
 
   const editingRole = roles.find((r) => r.id === editConfigRole);
 
+  const totalUsersAssigned = roles.reduce((acc, r) => acc + r.assignedUserCount, 0);
+  const adminHubRoleCount = roles.filter((r) => r.hubAdmin).length;
+
   return (
     <div className="space-y-6" data-testid="tab-content-roles">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-base">Total Roles</CardTitle>
+            <Shield className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-total-roles">
+              {roles.length}
+            </div>
+            <p className="text-sm text-muted-foreground">Active role definitions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-base">Users Assigned</CardTitle>
+            <Users className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-total-users">
+              {totalUsersAssigned}
+            </div>
+            <p className="text-sm text-muted-foreground">Across all roles</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-base">Admin Hub Access</CardTitle>
+            <Lock className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-admin-hub-roles">
+              {adminHubRoleCount}
+            </div>
+            <p className="text-sm text-muted-foreground">Roles with admin landing</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
@@ -595,6 +639,9 @@ export function RolesDashboardsTab() {
       <RolePermissionsDialog
         roleId={permRoleId}
         roleDisplayName={roles.find((r) => r.id === permRoleId)?.displayName ?? "Role"}
+        roleName={roles.find((r) => r.id === permRoleId)?.name ?? ""}
+        roleHubAdmin={roles.find((r) => r.id === permRoleId)?.hubAdmin ?? false}
+        roleHubAccess={roles.find((r) => r.id === permRoleId)?.hubAccess ?? null}
         open={permRoleId !== null}
         onOpenChange={(o) => !o && setPermRoleId(null)}
       />

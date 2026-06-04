@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { AlertTriangle } from "lucide-react";
+import {
+  HUB_IDS,
+  isSuperAdminRole,
+  isAdminGrantEligibleRole,
+} from "@shared/role-dashboard";
+
+const HUB_LABELS: Record<string, string> = {
+  operations: "Operations",
+  fleet: "Fleet",
+  maintenance: "Maintenance",
+  crew: "Crew",
+  logistics: "Logistics",
+  records: "Records",
+  analytics: "Analytics",
+  system: "System",
+};
 
 interface ResourceDef {
   code: string;
@@ -64,6 +81,9 @@ function grantKey(resourceCode: string, actionCode: string) {
 interface RolePermissionsDialogProps {
   roleId: string | null;
   roleDisplayName: string;
+  roleName: string;
+  roleHubAdmin: boolean;
+  roleHubAccess: string[] | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -71,11 +91,58 @@ interface RolePermissionsDialogProps {
 export function RolePermissionsDialog({
   roleId,
   roleDisplayName,
+  roleName,
+  roleHubAdmin,
+  roleHubAccess,
   open,
   onOpenChange,
 }: RolePermissionsDialogProps) {
   const { toast } = useToast();
   const [draft, setDraft] = useState<Record<string, boolean>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Hub-access draft. A super-admin role is always-on (every hub) and cannot be
+  // edited here; a role that is not "manager or above" cannot be made an admin.
+  const isSuperAdmin = isSuperAdminRole(roleName);
+  const canBeHubAdmin = isAdminGrantEligibleRole(roleName);
+  const [hubAdminDraft, setHubAdminDraft] = useState(roleHubAdmin);
+  // null roleHubAccess on an admin role means "all hubs" — represent that as the
+  // full set in the editor so every box is ticked and the user can untick.
+  const [hubDraft, setHubDraft] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open) return;
+    setHubAdminDraft(isSuperAdmin || roleHubAdmin);
+    setHubDraft(
+      new Set(
+        roleHubAccess && roleHubAccess.length > 0
+          ? roleHubAccess.filter((h) => (HUB_IDS as readonly string[]).includes(h))
+          : [...HUB_IDS],
+      ),
+    );
+    setSaveError(null);
+  }, [open, roleId, roleHubAdmin, roleHubAccess, isSuperAdmin]);
+
+  const hubsChanged = useMemo(() => {
+    if (isSuperAdmin) return false;
+    if (hubAdminDraft !== roleHubAdmin) return true;
+    if (!hubAdminDraft) return false;
+    const current = new Set(
+      roleHubAccess && roleHubAccess.length > 0 ? roleHubAccess : [...HUB_IDS],
+    );
+    if (current.size !== hubDraft.size) return true;
+    for (const h of hubDraft) if (!current.has(h)) return true;
+    return false;
+  }, [isSuperAdmin, hubAdminDraft, roleHubAdmin, roleHubAccess, hubDraft]);
+
+  const toggleHub = (id: string) => {
+    setHubDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const { data: registry } = useQuery<RegistryResponse>({
     queryKey: ["/api/permissions/registry"],
@@ -112,7 +179,7 @@ export function RolePermissionsDialog({
   const categories = registry?.categories ?? [];
   const resources = registry?.resources ?? [];
 
-  const changedCount = useMemo(() => {
+  const grantChangeCount = useMemo(() => {
     let n = 0;
     for (const key of Object.keys(draft)) {
       if (draft[key] !== original.has(key)) n += 1;
@@ -120,36 +187,61 @@ export function RolePermissionsDialog({
     return n;
   }, [draft, original]);
 
+  const changedCount = grantChangeCount + (hubsChanged ? 1 : 0);
+
   const save = useMutation({
     mutationFn: async () => {
       if (!roleId) return;
+      // 1) Permission grants (only the diff).
       const changes = Object.keys(draft)
         .filter((key) => draft[key] !== original.has(key))
         .map((key) => {
           const [resourceCode, actionCode] = key.split(":");
           return { resourceCode, actionCode, isGranted: draft[key] };
         });
-      if (changes.length === 0) return;
-      await apiRequest("PUT", `/api/permissions/roles/${roleId}/grants`, { grants: changes });
+      if (changes.length > 0) {
+        await apiRequest("PUT", `/api/permissions/roles/${roleId}/grants`, { grants: changes });
+      }
+      // 2) Admin-hub access (only when changed). An admin role with every hub
+      // ticked sends null (= all hubs); a non-admin role clears its access.
+      if (hubsChanged) {
+        const ticked = [...hubDraft];
+        const hubAccess =
+          !hubAdminDraft || ticked.length === 0 || ticked.length === HUB_IDS.length
+            ? null
+            : ticked;
+        await apiRequest("PATCH", `/api/admin/crew/roles/${roleId}/hub-access`, {
+          hubAdmin: hubAdminDraft,
+          hubAccess,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/roles", roleId, "grants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/crew/roles"] });
       setDraft({});
+      setSaveError(null);
       onOpenChange(false);
-      toast({ title: "Access permissions saved" });
+      toast({ title: "Role access saved" });
     },
-    onError: (error: unknown) =>
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Please try again.";
+      setSaveError(message);
       toast({
-        title: "Could not save permissions",
-        description: error instanceof Error ? error.message : "Please try again.",
+        title: "Could not save role access",
+        description: message,
         variant: "destructive",
-      }),
+      });
+    },
   });
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setDraft({});
+    if (!next) {
+      setDraft({});
+      setSaveError(null);
+    }
     onOpenChange(next);
   };
 
@@ -163,6 +255,64 @@ export function RolePermissionsDialog({
             area of the app.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-md border p-4 space-y-3" data-testid="hub-access-section">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">Admin hub access</h4>
+              <p className="text-xs text-muted-foreground">
+                Turn this on to give the role the admin landing page and pick which hubs it
+                can open. Off means the role only sees its own work area.
+              </p>
+            </div>
+            <Checkbox
+              checked={hubAdminDraft}
+              disabled={isSuperAdmin || !canBeHubAdmin}
+              onCheckedChange={(v) => setHubAdminDraft(v === true)}
+              data-testid="checkbox-hub-admin"
+            />
+          </div>
+
+          {isSuperAdmin && (
+            <p className="text-xs text-muted-foreground">
+              Super-admin roles always have access to every hub. This can't be changed here.
+            </p>
+          )}
+          {!isSuperAdmin && !canBeHubAdmin && (
+            <p className="text-xs text-muted-foreground">
+              Only manager-level roles and above can be given admin hub access.
+            </p>
+          )}
+
+          {hubAdminDraft && !isSuperAdmin && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {HUB_IDS.map((hub) => (
+                <label
+                  key={hub}
+                  className="flex items-center gap-2 text-sm"
+                  data-testid={`label-hub-${hub}`}
+                >
+                  <Checkbox
+                    checked={hubDraft.has(hub)}
+                    onCheckedChange={() => toggleHub(hub)}
+                    data-testid={`checkbox-hub-${hub}`}
+                  />
+                  {HUB_LABELS[hub] ?? hub}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {saveError && (
+          <div
+            className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            data-testid="text-save-error"
+          >
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{saveError}</span>
+          </div>
+        )}
 
         {grantsLoading ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Loading permissions…</p>
@@ -241,7 +391,7 @@ export function RolePermissionsDialog({
             disabled={save.isPending || changedCount === 0}
             data-testid="button-save-permissions"
           >
-            Save Permissions
+            Save Access
           </Button>
         </DialogFooter>
       </DialogContent>

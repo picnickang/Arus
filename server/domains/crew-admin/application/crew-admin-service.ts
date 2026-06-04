@@ -33,6 +33,7 @@ import {
   isSuperAdminRole,
   isAdminGrantEligibleRole,
   normalizeHubAccess,
+  normalizeRoleHubAccess,
   type RoleDashboardConfig,
 } from "@shared/role-dashboard";
 
@@ -114,6 +115,52 @@ export class CrewAdminApplicationService {
       );
     }
     const updated = await this.repo.updateRole(orgId, id, patch);
+    if (!updated) {
+      throw new CrewAdminError("Role not found", "NOT_FOUND");
+    }
+    return updated;
+  }
+
+  /**
+   * Grant / revoke a ROLE's hub-admin access and set its hub allow-list. Mirrors
+   * the per-user `setHubAccess` rules at the role level:
+   *
+   *   - Super-admin roles always have full hub access and cannot be edited here
+   *     (the grant is implicit and non-revocable).
+   *   - Only "manager or above" roles may be granted hub-admin access.
+   *   - The pair is normalised via `normalizeRoleHubAccess`: a non-admin role
+   *     carries no hubs, and an admin role with an empty/full set collapses to
+   *     `null` (= all hubs).
+   */
+  async setRoleHubAccess(
+    orgId: string,
+    id: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<RoleSummary> {
+    const role = await this.repo.findRoleById(orgId, id);
+    if (!role) {
+      throw new CrewAdminError("Role not found", "NOT_FOUND");
+    }
+    if (isSuperAdminRole(role.name)) {
+      throw new CrewAdminError(
+        "System administrator roles always have full hub access",
+        "ADMIN_ROLE_PROTECTED",
+      );
+    }
+    if (hubAdmin && !isAdminGrantEligibleRole(role.name)) {
+      throw new CrewAdminError(
+        "Only manager-or-above roles can be granted hub access",
+        "ROLE_NOT_ELIGIBLE",
+      );
+    }
+    const normalized = normalizeRoleHubAccess(hubAdmin, hubAccess);
+    const updated = await this.repo.setRoleHubAccess(
+      orgId,
+      id,
+      normalized.hubAdmin,
+      normalized.hubAccess,
+    );
     if (!updated) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
     }

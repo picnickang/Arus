@@ -78,6 +78,13 @@ const REQUIRED_CASCADE_FKS: ReadonlyArray<{ table: string; column: string; from:
   { table: "purchase_request_items", column: "pr_id", from: "0023 FK cascade" },
 ];
 
+// Columns the application assumes exist post-migration. Asserted after every
+// apply so a deploy that silently skipped a migration fails loudly.
+const REQUIRED_COLUMNS: ReadonlyArray<{ table: string; column: string; from: string }> = [
+  { table: "roles", column: "hub_admin", from: "0033 role hub access" },
+  { table: "roles", column: "hub_access", from: "0033 role hub access" },
+];
+
 /**
  * Prod-hardening: exported entry point for boot-time migration.
  *
@@ -304,6 +311,19 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
     );
     if (!res.rowCount || res.rowCount === 0) {
       missing.push(`FK ON DELETE CASCADE on ${fk.table}.${fk.column} (${fk.from})`);
+    }
+  }
+
+  for (const col of REQUIRED_COLUMNS) {
+    const res = await pool.query(
+      `SELECT 1
+         FROM information_schema.columns
+        WHERE table_name = $1 AND column_name = $2
+        LIMIT 1`,
+      [col.table, col.column]
+    );
+    if (!res.rowCount || res.rowCount === 0) {
+      missing.push(`column ${col.table}.${col.column} (${col.from})`);
     }
   }
 

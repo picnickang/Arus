@@ -120,6 +120,22 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     await db.delete(roles).where(and(eq(roles.orgId, orgId), eq(roles.id, id)));
   }
 
+  async setRoleHubAccess(
+    orgId: string,
+    id: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<RoleSummary | undefined> {
+    const [updated] = await db
+      .update(roles)
+      .set({ hubAdmin, hubAccess, updatedAt: new Date() })
+      .where(and(eq(roles.orgId, orgId), eq(roles.id, id)))
+      .returning();
+    if (!updated) return undefined;
+    const count = await this.countUsersForRole(orgId, updated.name);
+    return this.mapRole(updated, count);
+  }
+
   /* ----------------------- Dashboard configs ----------------------- */
 
   async getStoredConfig(orgId: string, roleId: string): Promise<RoleDashboardConfig | undefined> {
@@ -482,6 +498,8 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       isProtected: (row.isSystemRole ?? false) || isProtectedRoleName(row.name),
       isActive: row.isActive ?? true,
       assignedUserCount,
+      hubAdmin: row.hubAdmin ?? false,
+      hubAccess: row.hubAccess ?? null,
     };
   }
 

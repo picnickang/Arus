@@ -23,6 +23,13 @@ export interface ICrewAdminRepository {
   createRole(command: CreateRoleCommand): Promise<RoleSummary>;
   updateRole(orgId: string, id: string, patch: UpdateRoleCommand): Promise<RoleSummary | undefined>;
   deleteRole(orgId: string, id: string): Promise<void>;
+  /** Persist a role's hub-admin grant + allow-list (null hubAccess = all hubs). */
+  setRoleHubAccess(
+    orgId: string,
+    id: string,
+    hubAdmin: boolean,
+    hubAccess: string[] | null,
+  ): Promise<RoleSummary | undefined>;
 
   // Dashboard configs (raw row, undefined when no override stored)
   getStoredConfig(orgId: string, roleId: string): Promise<RoleDashboardConfig | undefined>;

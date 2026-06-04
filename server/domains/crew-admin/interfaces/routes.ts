@@ -228,6 +228,39 @@ export function registerCrewAdminRoutes(
     }),
   );
 
+  app.patch(
+    "/api/admin/crew/roles/:id/hub-access",
+    requireOrgId,
+    requireSuperAdminRole,
+    writeLimit,
+    withErrorHandling("set crew role hub access", async (req: Request, res: Response) => {
+      const authReq = req as AuthenticatedRequest;
+      const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
+      try {
+        const role = await crewAdminService.setRoleHubAccess(
+          authReq.orgId,
+          req.params['id'],
+          hubAdmin,
+          hubAccess ?? null,
+        );
+        await auditService.logEvent({
+          orgId: authReq.orgId,
+          eventCategory: "security_event",
+          eventType: "permission_changed",
+          entityType: "role",
+          entityId: req.params['id'],
+          performedBy: authReq.user?.id ?? "unknown",
+          performedByRole: authReq.user?.role,
+          newState: { hubAdmin: role.hubAdmin, hubAccess: role.hubAccess },
+        });
+        return res.json(role);
+      } catch (error) {
+        if (handleCrewError(error, res)) return undefined;
+        throw error;
+      }
+    }),
+  );
+
   /* ----------------------- Dashboard configs ----------------------- */
 
   app.get(

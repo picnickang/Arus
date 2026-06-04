@@ -8,6 +8,7 @@ import type { Express, Request, Response } from "express";
 import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
+import { requirePermission } from "./middleware";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { auditService } from "../../compliance/immutable-audit.service";
 import { stripUndefined } from "../../lib/strip-undefined";
@@ -30,11 +31,17 @@ import { structuredLog, type LogContext } from "../../logging";
 import { db } from "../../db";
 import { users } from "@shared/schema";
 import { crew } from "../../../shared/schema/crew";
-import { resolveHubAdmin, resolveHubAccess, isSuperAdminRole } from "@shared/role-dashboard";
-import { and, eq } from "drizzle-orm";
+import {
+  resolveEffectiveHubAdmin,
+  resolveEffectiveHubAccess,
+  isSuperAdminRole,
+  type RoleHubFields,
+} from "@shared/role-dashboard";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
+  roles,
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
@@ -56,6 +63,41 @@ const fromTemplateBodySchema = z.object({
   templateId: z.string().min(1),
   overrides: z.record(z.unknown()).optional(),
 });
+
+/**
+ * Resolve a user's effective hub-admin flag + hub allow-list from BOTH their
+ * role rows (the role-level grants stored on `roles.hub_admin`/`roles.hub_access`)
+ * and their per-user override columns. Loads each named role's hub fields
+ * org-scoped, then defers to the shared resolvers so the read path and the
+ * landing logic agree on the same effective access.
+ */
+async function resolveUserHubAccess(
+  orgId: string,
+  roleNames: readonly string[],
+  storedHubAdmin: boolean,
+  storedHubAccess: string[] | null,
+): Promise<{ hubAdmin: boolean; hubAccess: string[] | null }> {
+  const uniqueNames = [...new Set(roleNames.filter((n) => n && n.length > 0))];
+  const roleRows = uniqueNames.length
+    ? await db
+        .select({ name: roles.name, hubAdmin: roles.hubAdmin, hubAccess: roles.hubAccess })
+        .from(roles)
+        .where(and(eq(roles.orgId, orgId), inArray(roles.name, uniqueNames)))
+    : [];
+  const byName = new Map(roleRows.map((r) => [r.name.toLowerCase(), r]));
+  const roleHubFields: RoleHubFields[] = uniqueNames.map((name) => {
+    const row = byName.get(name.toLowerCase());
+    return {
+      name,
+      hubAdmin: row?.hubAdmin ?? false,
+      hubAccess: row?.hubAccess ?? null,
+    };
+  });
+  return {
+    hubAdmin: resolveEffectiveHubAdmin(roleHubFields, storedHubAdmin),
+    hubAccess: resolveEffectiveHubAccess(roleHubFields, storedHubAdmin, storedHubAccess),
+  };
+}
 
 export function registerPermissionRoutes(app: Express) {
   app.get(
@@ -125,8 +167,12 @@ export function registerPermissionRoutes(app: Express) {
         ...(userRow ? [userRow.role] : []),
         ...mapped.roles.map((r) => r.name),
       ];
-      const hubAdmin = resolveHubAdmin(roleNames, userRow?.hubAdmin ?? false);
-      const hubAccess = resolveHubAccess(roleNames, userRow?.hubAccess ?? null);
+      const { hubAdmin, hubAccess } = await resolveUserHubAccess(
+        orgId,
+        roleNames,
+        userRow?.hubAdmin ?? false,
+        userRow?.hubAccess ?? null,
+      );
 
       // The user's PRIMARY role (`users.role`) is what server-side route
       // guards authorize against (`requireRole(...)` checks `user.role`
@@ -387,6 +433,7 @@ export function registerPermissionRoutes(app: Express) {
   app.get(
     "/api/permissions/roles/:id/grants",
     requireOrgId,
+    requirePermission("permission_management", "view"),
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
@@ -414,6 +461,7 @@ export function registerPermissionRoutes(app: Express) {
   app.put(
     "/api/permissions/roles/:id/grants",
     requireOrgId,
+    requirePermission("permission_management", "edit"),
     withErrorHandling("update role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
@@ -841,8 +889,12 @@ export function registerPermissionRoutes(app: Express) {
         ...(dbUser ? [dbUser.role] : []),
         ...mapped.roles.map((r) => r.name),
       ];
-      const hubAdmin = resolveHubAdmin(roleNames, dbUser?.hubAdmin ?? false);
-      const hubAccess = resolveHubAccess(roleNames, dbUser?.hubAccess ?? null);
+      const { hubAdmin, hubAccess } = await resolveUserHubAccess(
+        orgId,
+        roleNames,
+        dbUser?.hubAdmin ?? false,
+        dbUser?.hubAccess ?? null,
+      );
 
       // Permission grant summary — counts only, to keep the payload bounded.
       let grantedActions = 0;

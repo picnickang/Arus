@@ -239,12 +239,16 @@ export function isHubId(value: string): value is HubId {
 
 /** A super-admin role is always a full-hub admin and cannot be edited/revoked. */
 export function isSuperAdminRole(role: string | null | undefined): boolean {
-  return role != null && (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(role);
+  if (role == null) return false;
+  const key = role.trim().toLowerCase();
+  return (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(key);
 }
 
 /** Whether a role is eligible to be granted hub-admin access. */
 export function isAdminGrantEligibleRole(role: string | null | undefined): boolean {
-  return role != null && (ADMIN_GRANT_ELIGIBLE_ROLE_KEYS as readonly string[]).includes(role);
+  if (role == null) return false;
+  const key = role.trim().toLowerCase();
+  return (ADMIN_GRANT_ELIGIBLE_ROLE_KEYS as readonly string[]).includes(key);
 }
 
 /**
@@ -287,6 +291,103 @@ export function resolveHubAccess(
 ): string[] | null {
   if (roleNames.some((r) => isSuperAdminRole(r))) return null;
   return normalizeHubAccess(storedHubAccess);
+}
+
+/* ----------------------- Role-level hub access (CRUD) ---------------------- */
+
+/**
+ * The hub-access fields stored on a single ROLE row. `name` is the role's
+ * snake_case key (used for super-admin / eligibility checks), `hubAdmin` is the
+ * role-level admin flag, and `hubAccess` is the role's enumerated hub allow-list
+ * (`null` = "no specific hubs" for a non-admin role, "all hubs" when the role is
+ * an admin — see the module doc).
+ */
+export interface RoleHubFields {
+  name: string;
+  hubAdmin: boolean;
+  hubAccess: readonly string[] | null;
+}
+
+/**
+ * Normalise a role's requested hub access to its canonical stored form.
+ *
+ * Role-level semantics differ DELIBERATELY from the user-level
+ * `normalizeHubAccess`: a non-admin role can never carry hubs, and an admin
+ * role with an empty or full list collapses to `null` (= all hubs). This stops
+ * every freshly created role from silently inheriting "all hubs" (the trap that
+ * reusing the user-level meaning blindly would create).
+ */
+export function normalizeRoleHubAccess(
+  hubAdmin: boolean,
+  hubAccess: readonly string[] | null | undefined,
+): { hubAdmin: boolean; hubAccess: string[] | null } {
+  if (!hubAdmin) return { hubAdmin: false, hubAccess: null };
+  if (!hubAccess) return { hubAdmin: true, hubAccess: null };
+  const valid = [...new Set(hubAccess.filter(isHubId))];
+  if (valid.length === 0 || valid.length === HUB_IDS.length) {
+    return { hubAdmin: true, hubAccess: null };
+  }
+  return { hubAdmin: true, hubAccess: valid };
+}
+
+/**
+ * Effective hub-admin flag for a user resolved across ALL their roles plus the
+ * existing per-user override. A user is a hub admin when: any role is a
+ * super-admin role, OR any grant-eligible role carries `hubAdmin`, OR the
+ * per-user override flag is set on a grant-eligible role (the eligibility
+ * re-check is preserved so a demoted user loses effective access).
+ */
+export function resolveEffectiveHubAdmin(
+  roles: readonly RoleHubFields[],
+  userStoredHubAdmin: boolean,
+): boolean {
+  if (roles.some((r) => isSuperAdminRole(r.name))) return true;
+  if (roles.some((r) => r.hubAdmin && isAdminGrantEligibleRole(r.name))) return true;
+  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) return true;
+  return false;
+}
+
+/**
+ * Effective hub allow-list for a user resolved across ALL their roles plus the
+ * existing per-user override (additive layer). Super-admins always get full
+ * access (`null`). Otherwise the union of every grant-eligible admin role's
+ * hubs PLUS the per-user override is taken; a contributing source with a `null`
+ * list (full) or a union that covers every hub collapses to `null` (all hubs).
+ * An empty union returns `[]` (admin with no hubs → lands on the overview with
+ * every hub locked). Returns `null` for a non-admin (landing → dashboard).
+ */
+export function resolveEffectiveHubAccess(
+  roles: readonly RoleHubFields[],
+  userStoredHubAdmin: boolean,
+  userStoredHubAccess: readonly string[] | null,
+): string[] | null {
+  if (roles.some((r) => isSuperAdminRole(r.name))) return null;
+  if (!resolveEffectiveHubAdmin(roles, userStoredHubAdmin)) return null;
+
+  const granted = new Set<string>();
+  let anyFull = false;
+
+  for (const r of roles) {
+    if (!r.hubAdmin || !isAdminGrantEligibleRole(r.name)) continue;
+    if (r.hubAccess == null) {
+      anyFull = true;
+    } else {
+      for (const h of r.hubAccess) if (isHubId(h)) granted.add(h);
+    }
+  }
+
+  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) {
+    if (userStoredHubAccess == null) {
+      anyFull = true;
+    } else {
+      for (const h of userStoredHubAccess) if (isHubId(h)) granted.add(h);
+    }
+  }
+
+  if (anyFull) return null;
+  const valid = [...granted].filter(isHubId);
+  if (valid.length === HUB_IDS.length) return null;
+  return valid;
 }
 
 export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig> = {

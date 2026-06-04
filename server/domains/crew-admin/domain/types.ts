@@ -25,6 +25,10 @@ export interface RoleSummary {
   isProtected: boolean;
   isActive: boolean;
   assignedUserCount: number;
+  /** Role-level admin-portal access flag (super-admin roles are always-on). */
+  hubAdmin: boolean;
+  /** Role's hub allow-list (nav category ids); null = all hubs when hubAdmin. */
+  hubAccess: string[] | null;
 }
 
 export interface CreateRoleCommand {
