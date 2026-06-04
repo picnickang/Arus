@@ -387,7 +387,12 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles/:id/grants",
     requireOrgId,
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
       const { id } = idParamSchema.parse(req.params);
+      const role = await permissionRepository.getRoleById(id, orgId);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
       const grants = await permissionRepository.getPermissionGrantsForRole(id);
       return res.json(
         validateResponse(

@@ -42,7 +42,8 @@ import {
   type TaskSourceKey,
   type VisibilityScope,
 } from "@shared/role-dashboard";
-import { Plus, Settings2, Trash2, Pencil, RotateCcw } from "lucide-react";
+import { Plus, Settings2, Trash2, Pencil, RotateCcw, ShieldCheck } from "lucide-react";
+import { RolePermissionsDialog } from "./RolePermissionsDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,6 +99,7 @@ export function RolesDashboardsTab() {
   const [editRoleId, setEditRoleId] = useState<string | null>(null);
   const [editRoleForm, setEditRoleForm] = useState({ displayName: "", department: "" });
   const [resetRoleId, setResetRoleId] = useState<string | null>(null);
+  const [permRoleId, setPermRoleId] = useState<string | null>(null);
 
   const { data: roles = [] } = useQuery<RoleSummary[]>({
     queryKey: ["/api/admin/crew/roles"],
@@ -288,6 +290,14 @@ export function RolesDashboardsTab() {
                   data-testid={`button-edit-role-${r.id}`}
                 >
                   <Pencil className="h-4 w-4 mr-1" /> Rename
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPermRoleId(r.id)}
+                  data-testid={`button-permissions-role-${r.id}`}
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1" /> Permissions
                 </Button>
                 <Button
                   size="sm"
@@ -581,6 +591,13 @@ export function RolesDashboardsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RolePermissionsDialog
+        roleId={permRoleId}
+        roleDisplayName={roles.find((r) => r.id === permRoleId)?.displayName ?? "Role"}
+        open={permRoleId !== null}
+        onOpenChange={(o) => !o && setPermRoleId(null)}
+      />
     </div>
   );
 }
