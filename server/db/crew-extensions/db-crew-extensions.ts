@@ -9,6 +9,7 @@ import {
   crewCertification,
   crewDocuments,
   crewNotificationSettings,
+  crewAlerts,
   portCall,
   drydockWindow,
   type SelectCrewCertification,
@@ -16,6 +17,8 @@ import {
   type SelectCrewDocument,
   type InsertCrewDocument,
   type CrewNotificationSettings,
+  type SelectCrewAlert,
+  type InsertCrewAlert,
   type PortCall as SelectPortCall,
   type InsertPortCall,
   type DrydockWindow as SelectDrydockWindow,
@@ -301,6 +304,50 @@ export class DbCrewExtensionsStorage {
       .select()
       .from(crewNotificationSettings)
       .where(eq(crewNotificationSettings.orgId, orgId));
+  }
+
+  // Manager-raised custom crew alerts
+  async getCrewAlerts(crewId: string, orgId: string): Promise<SelectCrewAlert[]> {
+    return db
+      .select()
+      .from(crewAlerts)
+      .where(and(eq(crewAlerts.crewId, crewId), eq(crewAlerts.orgId, orgId)))
+      .orderBy(asc(crewAlerts.acknowledged), asc(crewAlerts.createdAt));
+  }
+  async createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert> {
+    const [n] = await db.insert(crewAlerts).values(data).returning();
+    if (!n) throw new Error("createCrewAlert: insert returned no row");
+    return n;
+  }
+  async acknowledgeCrewAlert(
+    alertId: string,
+    orgId: string,
+    userId?: string,
+    notes?: string
+  ): Promise<SelectCrewAlert> {
+    const [u] = await db
+      .update(crewAlerts)
+      .set({
+        acknowledged: true,
+        acknowledgedAt: new Date(),
+        acknowledgedBy: userId || null,
+        acknowledgedNotes: notes || null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(crewAlerts.id, alertId), eq(crewAlerts.orgId, orgId)))
+      .returning();
+    if (!u) {
+      throw new Error(`Crew alert ${alertId} not found`);
+    }
+    return u;
+  }
+  async deleteCrewAlert(alertId: string, orgId: string): Promise<void> {
+    const r = await db
+      .delete(crewAlerts)
+      .where(and(eq(crewAlerts.id, alertId), eq(crewAlerts.orgId, orgId)));
+    if (r.rowCount === 0) {
+      throw new Error(`Crew alert ${alertId} not found`);
+    }
   }
 
   async getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {

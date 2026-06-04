@@ -135,6 +135,40 @@ export const crewNotificationSettings = pgTable(
   })
 );
 
+// Manager-raised ad-hoc alerts/notes against a crew member (e.g. "follow up
+// on visa", "performance review due"). These live alongside the expiry-derived
+// alerts surfaced in the crew Alerts tab, but unlike certifications/documents
+// they carry no expiry-scan machinery — the severity is chosen by the manager.
+export const crewAlerts = pgTable(
+  "crew_alerts",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    crewId: varchar("crew_id")
+      .notNull()
+      .references(() => crew.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    detail: text("detail"),
+    severity: text("severity").notNull().default("notice"), // critical | warning | notice
+    dueAt: timestamp("due_at", { mode: "date" }), // optional follow-up date
+    createdBy: varchar("created_by", { length: 255 }),
+    acknowledged: boolean("acknowledged").default(false),
+    acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
+    acknowledgedBy: varchar("acknowledged_by", { length: 255 }),
+    acknowledgedNotes: text("acknowledged_notes"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index("idx_crew_alerts_org").on(table.orgId),
+    crewIdx: index("idx_crew_alerts_crew").on(table.crewId),
+  })
+);
+
 export const skills = pgTable("skills", {
   id: varchar("id")
     .primaryKey()
@@ -410,6 +444,15 @@ export const insertCrewEmploymentHistorySchema = createInsertSchema(crewEmployme
 export const insertCrewNotificationSettingsSchema = createInsertSchema(
   crewNotificationSettings
 ).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCrewAlertSchema = createInsertSchema(crewAlerts).omit({
+  id: true,
+  acknowledged: true,
+  acknowledgedAt: true,
+  acknowledgedBy: true,
+  acknowledgedNotes: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertSkillSchema = createInsertSchema(skills).omit({
   id: true,
   createdAt: true,
@@ -456,6 +499,9 @@ export type SelectCrewEmploymentHistory = CrewEmploymentHistory;
 export type InsertCrewEmploymentHistory = z.infer<typeof insertCrewEmploymentHistorySchema>;
 export type CrewNotificationSettings = typeof crewNotificationSettings.$inferSelect;
 export type InsertCrewNotificationSettings = z.infer<typeof insertCrewNotificationSettingsSchema>;
+export type CrewAlert = typeof crewAlerts.$inferSelect;
+export type SelectCrewAlert = CrewAlert;
+export type InsertCrewAlert = z.infer<typeof insertCrewAlertSchema>;
 export type Skill = typeof skills.$inferSelect;
 export type SelectSkill = Skill;
 export type InsertSkill = z.infer<typeof insertSkillSchema>;

@@ -22,6 +22,7 @@ import { registerAssignmentRoutes } from "./assignment-routes.js";
 import { registerCertificationRoutes } from "./certification-routes.js";
 import { registerDocumentRoutes } from "./document-routes.js";
 import { registerNotificationRoutes } from "./notification-routes.js";
+import { registerCrewAlertRoutes } from "./crew-alert-routes.js";
 import crewLifecycleRoutes from "./crew-lifecycle-routes.js";
 import { logger } from "../../../utils/logger.js";
 
@@ -43,10 +44,11 @@ export function registerCrewRoutes(app: Express, rateLimit: RateLimitMiddleware)
   registerCertificationRoutes(deps);
   registerDocumentRoutes(deps);
   registerNotificationRoutes(deps);
+  registerCrewAlertRoutes(deps);
 
   logger.info(
     "CrewRoutes",
-    "Registered (members: 5, skills: 5, leave: 4, assignments: 4, certs: 6, docs: 6, notifications: 3, lifecycle: 7)"
+    "Registered (members: 5, skills: 5, leave: 4, assignments: 4, certs: 6, docs: 6, notifications: 3, alerts: 4, lifecycle: 7)"
   );
 }
 
@@ -58,4 +60,5 @@ export {
   registerCertificationRoutes,
   registerDocumentRoutes,
   registerNotificationRoutes,
+  registerCrewAlertRoutes,
 };

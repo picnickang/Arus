@@ -16,6 +16,8 @@ import { eq, and } from "drizzle-orm";
 import type {
   SelectCrewCertification,
   SelectCrewDocument,
+  SelectCrewAlert,
+  InsertCrewAlert,
 } from "@shared/schema";
 
 interface CrewNotificationSettingsLike {
@@ -67,6 +69,10 @@ export interface CrewExtensionsStoragePort {
   getCrewNotificationSettings(crewId: string, orgId: string): Promise<CrewNotificationSettingsLike | undefined>;
   upsertCrewNotificationSettings(crewId: string, orgId: string, data: Record<string, unknown>): Promise<unknown>;
   getAllCrewNotificationSettings(orgId: string): Promise<unknown>;
+  getCrewAlerts(crewId: string, orgId: string): Promise<SelectCrewAlert[]>;
+  createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert>;
+  acknowledgeCrewAlert(alertId: string, orgId: string, userId?: string, notes?: string): Promise<SelectCrewAlert>;
+  deleteCrewAlert(alertId: string, orgId: string): Promise<void>;
 }
 
 export interface CrewServiceDependencies {
@@ -243,6 +249,23 @@ export class CrewApplicationService {
 
   async getAllCrewNotificationSettings(orgId: string) {
     return this.deps.crewExtensionsStorage.getAllCrewNotificationSettings(orgId);
+  }
+
+  // Crew alerts (manager-raised, ad-hoc) - delegated via port
+  async listCrewAlerts(crewId: string, orgId: string) {
+    return this.deps.crewExtensionsStorage.getCrewAlerts(crewId, orgId);
+  }
+
+  async createCrewAlert(data: InsertCrewAlert) {
+    return this.deps.crewExtensionsStorage.createCrewAlert(data);
+  }
+
+  async acknowledgeCrewAlert(alertId: string, orgId: string, userId?: string, notes?: string) {
+    return this.deps.crewExtensionsStorage.acknowledgeCrewAlert(alertId, orgId, userId, notes);
+  }
+
+  async deleteCrewAlert(alertId: string, orgId: string) {
+    return this.deps.crewExtensionsStorage.deleteCrewAlert(alertId, orgId);
   }
 
   async listSkills(orgId: string) {

@@ -22,6 +22,8 @@ import type {
   SelectCrewDocument,
   InsertCrewDocument,
   CrewNotificationSettings,
+  SelectCrewAlert,
+  InsertCrewAlert,
   SelectCrewRestSheet,
   InsertCrewRestSheet,
   SelectCrewRestDay,
@@ -168,6 +170,17 @@ export interface ICrewStorage {
     }
   ): Promise<CrewNotificationSettings>;
   getAllCrewNotificationSettings(orgId: string): Promise<CrewNotificationSettings[]>;
+
+  // Crew Alerts (manager-raised, ad-hoc)
+  getCrewAlerts(crewId: string, orgId: string): Promise<SelectCrewAlert[]>;
+  createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert>;
+  acknowledgeCrewAlert(
+    alertId: string,
+    orgId: string,
+    userId?: string,
+    notes?: string
+  ): Promise<SelectCrewAlert>;
+  deleteCrewAlert(alertId: string, orgId: string): Promise<void>;
 
   // Crew Rest Hours
   createCrewRestSheet(sheet: InsertCrewRestSheet): Promise<SelectCrewRestSheet>;
