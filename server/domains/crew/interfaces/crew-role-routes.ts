@@ -21,9 +21,32 @@ import type { CrewRouteDeps } from "./types.js";
 
 const roleIdParamSchema = z.object({ id: z.string().min(1) });
 
+// Optional per-role defaults. An empty string from the form means "no default"
+// and is normalized to null (clears the column); an absent key leaves it
+// untouched on update.
+const nullableText = (max: number) =>
+  z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().trim().max(max).nullable().optional()
+  );
+const nullableNumber = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === null ? null : v),
+    z.coerce.number().min(min).max(max).nullable().optional()
+  );
+
+const roleDefaultsShape = {
+  defaultDepartment: nullableText(100),
+  defaultMinRestHours: nullableNumber(0, 24),
+  defaultMaxHours: nullableNumber(0, 168),
+  defaultWatchKeeping: nullableText(100),
+  defaultRoleId: nullableText(64),
+};
+
 const createRoleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   category: z.string().trim().min(1).max(100).default("Other"),
+  ...roleDefaultsShape,
 });
 
 const updateRoleSchema = z
@@ -31,8 +54,9 @@ const updateRoleSchema = z
     name: z.string().trim().min(1).max(100).optional(),
     category: z.string().trim().min(1).max(100).optional(),
     active: z.boolean().optional(),
+    ...roleDefaultsShape,
   })
-  .refine((v) => v.name !== undefined || v.category !== undefined || v.active !== undefined, {
+  .refine((v) => Object.keys(v).length > 0, {
     message: "No fields to update",
   });
 
@@ -65,6 +89,11 @@ export function registerCrewRoleRoutes({ app, rateLimit }: CrewRouteDeps): void 
         orgId: req.orgId,
         name: body.name,
         category: body.category,
+        defaultDepartment: body.defaultDepartment,
+        defaultMinRestHours: body.defaultMinRestHours,
+        defaultMaxHours: body.defaultMaxHours,
+        defaultWatchKeeping: body.defaultWatchKeeping,
+        defaultRoleId: body.defaultRoleId,
       });
       sendCreated(res, role);
     })

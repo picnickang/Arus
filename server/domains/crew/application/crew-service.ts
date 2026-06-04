@@ -84,11 +84,23 @@ export interface CrewExtensionsStoragePort {
   countCrewByRoleName(orgId: string, name: string): Promise<number>;
 }
 
+/**
+ * Narrow port into the RBAC permissions domain so the crew service can verify a
+ * suggested default-access role actually exists in the org WITHOUT importing the
+ * permissions domain directly (hexagonal boundary; wired in
+ * server/composition/). The crew-role and RBAC-role systems stay separate — this
+ * only confirms a referenced role id is real before we persist it.
+ */
+export interface PermissionRolesPort {
+  roleExists(orgId: string, roleId: string): Promise<boolean>;
+}
+
 export interface CrewServiceDependencies {
   crewMemberRepository: ICrewMemberRepository;
   eventPublisher: ICrewEventPublisher;
   crewStorage: CrewStoragePort;
   crewExtensionsStorage: CrewExtensionsStoragePort;
+  permissionRoles: PermissionRolesPort;
 }
 
 export class CrewApplicationService {
@@ -282,7 +294,26 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.getCrewRoles(orgId);
   }
 
+  /**
+   * Validate the optional suggested default-access role: if a non-null
+   * defaultRoleId is set, it must reference a real RBAC role in this org.
+   * Fails explicitly rather than silently dropping a bad reference.
+   */
+  private async assertDefaultRoleValid(
+    orgId: string,
+    defaultRoleId: string | null | undefined
+  ): Promise<void> {
+    if (typeof defaultRoleId !== "string" || defaultRoleId.length === 0) {
+      return;
+    }
+    const exists = await this.deps.permissionRoles.roleExists(orgId, defaultRoleId);
+    if (!exists) {
+      throw new Error(`Suggested access role ${defaultRoleId} does not exist in this organization`);
+    }
+  }
+
   async createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole> {
+    await this.assertDefaultRoleValid(data.orgId, data.defaultRoleId);
     // New roles append to the bottom (lowest position). Seeding defaults first
     // (via getCrewRoles) keeps the ordering relative to the seeded list.
     const existing = await this.deps.crewExtensionsStorage.getCrewRoles(data.orgId);
@@ -295,6 +326,7 @@ export class CrewApplicationService {
     orgId: string,
     data: Partial<InsertCrewRole>
   ): Promise<SelectCrewRole> {
+    await this.assertDefaultRoleValid(orgId, data.defaultRoleId);
     return this.deps.crewExtensionsStorage.updateCrewRole(id, orgId, data);
   }
 

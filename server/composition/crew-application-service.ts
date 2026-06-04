@@ -16,9 +16,11 @@ import { dbCrewStorage, dbCrewExtensionsStorage } from "../repositories.js";
 import {
   CrewApplicationService,
   type CrewStoragePort,
+  type PermissionRolesPort,
 } from "../domains/crew/application/crew-service.js";
 import { crewMemberRepository } from "../domains/crew/infrastructure/crew-repository-adapter.js";
 import { crewEventPublisher } from "../domains/crew/infrastructure/event-publisher-adapter.js";
+import { permissionRepository } from "../domains/permissions/repository.js";
 import { db } from "../db-config.js";
 import { crew, crewSkill } from "@shared/schema-runtime";
 import { and, eq } from "drizzle-orm";
@@ -67,9 +69,20 @@ const crewStoragePort: CrewStoragePort = {
   },
 } as CrewStoragePort;
 
+// Narrow read-only adapter into the RBAC permissions domain: confirms a
+// suggested default-access role id is a real role in the org before the crew
+// service persists it. The crew-role and RBAC-role systems remain separate.
+const permissionRolesPort: PermissionRolesPort = {
+  roleExists: async (orgId, roleId) => {
+    const role = await permissionRepository.getRoleById(roleId, orgId);
+    return Boolean(role);
+  },
+};
+
 export const crewAppService = new CrewApplicationService({
   crewMemberRepository,
   eventPublisher: crewEventPublisher,
   crewStorage: crewStoragePort,
   crewExtensionsStorage: dbCrewExtensionsStorage,
+  permissionRoles: permissionRolesPort,
 });

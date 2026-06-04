@@ -46,6 +46,8 @@ export const crew = pgTable(
     rotationOnDays: integer("rotation_on_days"), // Rotation pattern: days on
     rotationOffDays: integer("rotation_off_days"), // Rotation pattern: days off
     rank: text("rank"), // Legacy field, kept for backward compatibility
+    department: text("department"), // Department/section (e.g. bridge, engine, deck) — pre-filled from crew role default
+    watchKeeping: text("watch_keeping"), // Standard watch/shift pattern — pre-filled from crew role default
     roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }), // Link to RBAC permissions roles
     // Optional 1:1 link to a login account (users row). null = no login account.
     userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
@@ -187,6 +189,20 @@ export const crewRoles = pgTable(
     category: text("category").notNull().default("Other"),
     sortOrder: integer("sort_order").notNull().default(0),
     active: boolean("active").notNull().default(true),
+    // Per-role defaults pre-filled (editable) onto a crew member when this role
+    // is selected in the Add/Edit Crew form. All optional — null means "no
+    // default, leave the crew field untouched".
+    defaultDepartment: text("default_department"),
+    defaultMinRestHours: real("default_min_rest_hours"),
+    defaultMaxHours: real("default_max_hours"),
+    defaultWatchKeeping: text("default_watch_keeping"),
+    // Optional SUGGESTED RBAC permission role to offer when assigning this crew
+    // role. Purely a suggestion surfaced in the form — never auto-applied and
+    // always overridable. Deliberately a soft FK into the separate `roles`
+    // (RBAC) table; the two systems are NOT merged.
+    defaultRoleId: varchar("default_role_id").references(() => roles.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

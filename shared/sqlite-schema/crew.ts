@@ -17,6 +17,7 @@ export const crewSqlite = sqliteTable(
     phone: text("phone"),
     rank: text("rank"),
     department: text("department"),
+    watchKeeping: text("watch_keeping"),
     vesselId: text("vessel_id"),
     userId: text("user_id"),
     joinDate: integer("join_date", { mode: "timestamp" }),

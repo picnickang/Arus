@@ -48,6 +48,18 @@ type UnifiedCrewData = ReturnType<typeof useUnifiedCrewData>;
 
 type StepKey = "identify" | "profile" | "pay";
 
+// "Leave unset" sentinel — a SelectItem cannot use an empty-string value. Mapped
+// back to "" before storing.
+const CREW_DEPT_NONE = "__none__";
+
+const CREW_DEPARTMENTS = [
+  { value: "bridge", label: "Bridge" },
+  { value: "engine", label: "Engine" },
+  { value: "deck", label: "Deck" },
+  { value: "steward", label: "Steward" },
+  { value: "admin", label: "Admin" },
+] as const;
+
 const STEPS: { key: StepKey; label: string; fields: (keyof CrewFormData)[] }[] = [
   { key: "identify", label: "Identify", fields: ["name", "rank", "crewCode", "status", "employmentType"] },
   {
@@ -329,6 +341,33 @@ export function CrewFormDialog({
     }
   };
 
+  // When the role (rank) changes, pre-fill the per-role defaults configured on
+  // the matching crew-role and suggest its app-access. Everything stays editable
+  // afterwards — only fields with a configured default are overwritten, so a
+  // role without defaults leaves the form untouched.
+  const applyRoleDefaults = (roleName: string) => {
+    const role = d.crewRoles.find((r) => r.name === roleName);
+    if (!role) {
+      return;
+    }
+    const opts = { shouldDirty: true } as const;
+    if (role.defaultDepartment) {
+      d.crewForm.setValue("department", role.defaultDepartment, opts);
+    }
+    if (role.defaultWatchKeeping) {
+      d.crewForm.setValue("watchKeeping", role.defaultWatchKeeping, opts);
+    }
+    if (role.defaultMinRestHours != null) {
+      d.crewForm.setValue("minRestH", role.defaultMinRestHours, opts);
+    }
+    if (role.defaultMaxHours != null) {
+      d.crewForm.setValue("maxHours7d", role.defaultMaxHours, opts);
+    }
+    if (role.defaultRoleId) {
+      d.crewForm.setValue("roleId", role.defaultRoleId, opts);
+    }
+  };
+
   return (
     <ResponsiveDialog
       open={open}
@@ -437,7 +476,13 @@ export function CrewFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          applyRoleDefaults(value);
+                        }}
+                      >
                         <FormControl>
                           <SelectTrigger data-testid="select-crew-rank">
                             <SelectValue />
@@ -476,6 +521,87 @@ export function CrewFormDialog({
                   )}
                 />
               </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={d.crewForm.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <Select
+                        value={field.value || CREW_DEPT_NONE}
+                        onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-crew-department">
+                            <SelectValue placeholder="None" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={CREW_DEPT_NONE}>None</SelectItem>
+                          {CREW_DEPARTMENTS.map((dep) => (
+                            <SelectItem key={dep.value} value={dep.value}>
+                              {dep.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={d.crewForm.control}
+                  name="watchKeeping"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Watch / Shift Pattern</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ""}
+                          placeholder="e.g. 0000–0400 / 1200–1600"
+                          data-testid="input-crew-watchkeeping"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={d.crewForm.control}
+                name="roleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <ShieldCheck className="h-3.5 w-3.5" /> App Access (suggested)
+                    </FormLabel>
+                    <Select
+                      value={field.value || CREW_DEPT_NONE}
+                      onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-crew-access">
+                          <SelectValue placeholder="No app access" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={CREW_DEPT_NONE}>No app access</SelectItem>
+                        {d.permissionRoles.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.displayName || r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Suggested from the role — change or clear it as needed.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   control={d.crewForm.control}

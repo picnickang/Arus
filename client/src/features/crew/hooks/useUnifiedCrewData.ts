@@ -42,6 +42,13 @@ interface UseUnifiedCrewDataOptions {
   accessReadinessEnabled?: boolean;
 }
 
+/** Minimal shape of an RBAC permission role for the app-access pickers. */
+export interface PermissionRoleOption {
+  id: string;
+  name: string;
+  displayName?: string | null;
+}
+
 export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const { toast } = useToast();
   const accessReadinessEnabled = options.accessReadinessEnabled ?? false;
@@ -78,6 +85,12 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   });
   const { data: crewRoles = [], isLoading: crewRolesLoading } = useQuery<CrewRole[]>({
     queryKey: ["/api/crew-roles"],
+  });
+  // RBAC permission roles — used to populate the per-crew-role "suggested app
+  // access" picker and the crew form's app-access field. Kept separate from the
+  // crew-role catalog (the two systems are not merged).
+  const { data: permissionRoles = [] } = useQuery<PermissionRoleOption[]>({
+    queryKey: ["/api/permissions/roles"],
   });
   const {
     data: accessReadiness = [],
@@ -210,9 +223,24 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       status: data.status || undefined,
       employmentType: data.employmentType || undefined,
       reportsToId: data.reportsToId || undefined,
+      department: data.department || undefined,
+      watchKeeping: data.watchKeeping || undefined,
+      roleId: data.roleId || undefined,
     };
     if (editingCrew) {
-      updateCrewMutation.mutate({ id: editingCrew.id, data: cleaned });
+      // On edit, send explicit null (not undefined) for cleared optional fields
+      // so the backend actually clears them — undefined would omit the key and
+      // leave the previously stored value untouched. This is what makes the
+      // suggested app access (roleId) overridable/clearable.
+      updateCrewMutation.mutate({
+        id: editingCrew.id,
+        data: {
+          ...cleaned,
+          department: data.department?.trim() ? data.department : null,
+          watchKeeping: data.watchKeeping?.trim() ? data.watchKeeping : null,
+          roleId: data.roleId?.trim() ? data.roleId : null,
+        },
+      });
     } else {
       createCrewMutation.mutate(cleaned);
     }
@@ -225,6 +253,9 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     crewForm.reset({
       name: member.name,
       rank: member.rank,
+      department: member.department || "",
+      watchKeeping: member.watchKeeping || "",
+      roleId: member.roleId || "",
       vesselId: member.vesselId,
       crewCode: member.crewCode || "",
       status: member.status || "active",
@@ -538,6 +569,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     vesselsLoading,
     crewRoles,
     crewRolesLoading,
+    permissionRoles,
     roleLookup,
     rankOptions,
     accessReadinessEnabled,

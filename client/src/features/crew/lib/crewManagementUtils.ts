@@ -17,6 +17,9 @@ export interface CrewListItem {
   id: string;
   name: string;
   rank: string;
+  department?: string | null;
+  watchKeeping?: string | null;
+  roleId?: string | null;
   photoPath?: string | null;
   vesselId?: string;
   maxHours7d: number;
@@ -184,6 +187,9 @@ export const COMMON_SKILLS = [
 export const crewFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   rank: z.string().min(1, "Rank is required"),
+  department: z.string().optional(),
+  watchKeeping: z.string().optional(),
+  roleId: z.string().optional(),
   vesselId: z.string().optional(),
   crewCode: z.string().optional(),
   status: z.string().optional(),
@@ -218,6 +224,9 @@ export function createDefaultCrewFormValues(): CrewFormData {
   return {
     name: "",
     rank: "Able Seaman",
+    department: "",
+    watchKeeping: "",
+    roleId: "",
     vesselId: "",
     crewCode: "",
     status: "active",
@@ -529,6 +538,11 @@ export interface CrewRole {
   category: string;
   sortOrder: number;
   active: boolean;
+  defaultDepartment?: string | null;
+  defaultMinRestHours?: number | null;
+  defaultMaxHours?: number | null;
+  defaultWatchKeeping?: string | null;
+  defaultRoleId?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
