@@ -115,6 +115,47 @@ const CREW_ROLES_FIXTURE = [
   { id: "role-ab", orgId: "org-test", name: "Able Seaman", category: "Deck", sortOrder: 40, active: true },
 ];
 
+/**
+ * Two crew members who are BOTH inactive (`active: false`). CrewOrgChart filters
+ * on `active` before building the tree, so this fixture must produce the same
+ * empty state as an empty list — proving the active-filter branch, not just the
+ * "no rows at all" branch.
+ */
+const INACTIVE_CREW_FIXTURE = [
+  {
+    id: "off-1",
+    name: "Former Captain",
+    rank: "Captain",
+    crewCode: "CRW-9001",
+    photoPath: null,
+    active: false,
+    onDuty: false,
+    status: "inactive",
+    employmentType: "permanent",
+    reportsToId: null,
+    vesselId: "v1",
+    skills: [],
+    maxHours7d: 72,
+    minRestH: 10,
+  },
+  {
+    id: "off-2",
+    name: "Former Engineer",
+    rank: "Chief Engineer",
+    crewCode: "CRW-9002",
+    photoPath: null,
+    active: false,
+    onDuty: false,
+    status: "inactive",
+    employmentType: "permanent",
+    reportsToId: "off-1",
+    vesselId: "v1",
+    skills: [],
+    maxHours7d: 72,
+    minRestH: 10,
+  },
+];
+
 const VESSELS_FIXTURE = [{ id: "v1", name: "MV Northern Star" }];
 
 /** Permissions payload granting crew view/create/edit. */
@@ -135,8 +176,12 @@ function permissionsBody(): string {
 const EMPTY_ARRAY = (route: Route) =>
   route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
 
-/** Stub every backend dependency the crew landing + org chart + profile touch. */
-async function stubCrewApis(page: Page): Promise<void> {
+/**
+ * Stub every backend dependency the crew landing + org chart + profile touch.
+ * `crew` defaults to the populated fixture; pass an empty or all-inactive list
+ * to exercise the org chart's empty state.
+ */
+async function stubCrewApis(page: Page, crew: unknown[] = CREW_FIXTURE): Promise<void> {
   // Order matters: Playwright checks the most recently registered route first,
   // so register the broad `/api/crew*` glob BEFORE the narrower globs.
   await page.route("**/api/crew*", (route: Route) => {
@@ -146,7 +191,7 @@ async function stubCrewApis(page: Page): Promise<void> {
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(CREW_FIXTURE),
+      body: JSON.stringify(crew),
     });
   });
   await page.route("**/api/crew/former*", EMPTY_ARRAY);
@@ -191,6 +236,18 @@ async function openOrgChart(page: Page): Promise<void> {
   await page.getByTestId("card-open-orgchart").click();
   await expect(page.getByTestId("crew-org-chart")).toBeVisible();
   await expect(page.getByTestId("org-chart-roots")).toBeVisible();
+}
+
+/**
+ * Landing -> open the org chart view when no active crew exist. Unlike
+ * `openOrgChart`, this does NOT wait for `org-chart-roots` — that branch never
+ * renders here. The chart container still mounts; the empty card replaces the
+ * roots tree.
+ */
+async function openOrgChartEmpty(page: Page): Promise<void> {
+  await page.goto("/crew-management", { waitUntil: "domcontentloaded" });
+  await page.getByTestId("card-open-orgchart").click();
+  await expect(page.getByTestId("crew-org-chart")).toBeVisible();
 }
 
 test.describe("Crew org chart", () => {
@@ -252,5 +309,29 @@ test.describe("Crew org chart", () => {
     await page.getByTestId(`orgnode-open-${REPORT_CHIEF}`).click();
     await expect(page.getByTestId("text-profile-name")).toBeVisible();
     await expect(page.getByTestId("text-profile-name")).toHaveText("Zoe Chief");
+  });
+
+  test("shows the empty state when there are no active crew", async ({ page }) => {
+    // Only inactive crew exist — CrewOrgChart filters on `active`, so the tree
+    // never builds and the empty card renders instead of the roots branch.
+    await stubCrewApis(page, INACTIVE_CREW_FIXTURE);
+    await openOrgChartEmpty(page);
+
+    // The empty card is visible with its copy...
+    await expect(page.getByTestId("org-chart-empty")).toBeVisible();
+    await expect(page.getByTestId("org-chart-empty")).toHaveText("No active crew to chart yet.");
+
+    // ...and the roots branch (and any org nodes) are absent from the DOM.
+    await expect(page.getByTestId("org-chart-roots")).toHaveCount(0);
+    await expect(page.locator('[data-testid^="orgnode-"]')).toHaveCount(0);
+  });
+
+  test("shows the empty state when the crew list is empty", async ({ page }) => {
+    // No crew at all — same empty branch as the all-inactive case.
+    await stubCrewApis(page, []);
+    await openOrgChartEmpty(page);
+
+    await expect(page.getByTestId("org-chart-empty")).toBeVisible();
+    await expect(page.getByTestId("org-chart-roots")).toHaveCount(0);
   });
 });
