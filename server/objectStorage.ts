@@ -24,51 +24,61 @@ function isReplitEnvironment(): boolean {
   return !!(process.env['REPL_ID'] || process.env['REPL_SLUG'] || process.env['REPLIT_DB_URL']);
 }
 
-// Lazy-initialized storage client
+// Lazy-initialized storage client.
+//
+// We memoize the in-flight initialization *promise* (not just a "started"
+// boolean) so concurrent callers await the same async import. The earlier
+// boolean guard set `_clientInitAttempted = true` synchronously before the
+// `await import(...)` resolved, so a second request arriving during that
+// window got a still-null client back and failed with "Object storage not
+// available" — even though the client finished initializing milliseconds
+// later. Sharing the promise removes that race.
 let _objectStorageClient: Storage | null = null;
-let _clientInitAttempted = false;
+let _clientInitPromise: Promise<Storage | null> | null = null;
 let _clientInitError: Error | null = null;
 
 async function getObjectStorageClient(): Promise<Storage | null> {
-  if (_clientInitAttempted) {
-    return _objectStorageClient;
+  if (_clientInitPromise) {
+    return _clientInitPromise;
   }
 
-  _clientInitAttempted = true;
+  _clientInitPromise = (async () => {
+    try {
+      // Only initialize GCS client in Replit environment
+      if (isReplitEnvironment()) {
+        // LAZY IMPORT: Only load @google-cloud/storage when in Replit environment
+        const { Storage } = await import("@google-cloud/storage");
 
-  try {
-    // Only initialize GCS client in Replit environment
-    if (isReplitEnvironment()) {
-      // LAZY IMPORT: Only load @google-cloud/storage when in Replit environment
-      const { Storage } = await import("@google-cloud/storage");
-
-      _objectStorageClient = new Storage({
-        credentials: {
-          audience: "replit",
-          subject_token_type: "access_token",
-          token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-          type: "external_account",
-          credential_source: {
-            url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-            format: {
-              type: "json",
-              subject_token_field_name: "access_token",
+        _objectStorageClient = new Storage({
+          credentials: {
+            audience: "replit",
+            subject_token_type: "access_token",
+            token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+            type: "external_account",
+            credential_source: {
+              url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+              format: {
+                type: "json",
+                subject_token_field_name: "access_token",
+              },
             },
+            universe_domain: "googleapis.com",
           },
-          universe_domain: "googleapis.com",
-        },
-        projectId: "",
-      });
-      logger.info("✓ Object storage client initialized (Replit environment)");
-    } else {
-      logger.info("ℹ Object storage not initialized (non-Replit environment). GCS features disabled.");
+          projectId: "",
+        });
+        logger.info("✓ Object storage client initialized (Replit environment)");
+      } else {
+        logger.info("ℹ Object storage not initialized (non-Replit environment). GCS features disabled.");
+      }
+    } catch (error) {
+      _clientInitError = error as Error;
+      logger.warn("⚠ Failed to initialize object storage client:", { details: error });
     }
-  } catch (error) {
-    _clientInitError = error as Error;
-    logger.warn("⚠ Failed to initialize object storage client:", { details: error });
-  }
 
-  return _objectStorageClient;
+    return _objectStorageClient;
+  })();
+
+  return _clientInitPromise;
 }
 
 // Initialize client on first import (but now it's async and safe)

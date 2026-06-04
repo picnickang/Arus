@@ -9,6 +9,7 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling, sendNotFound, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { requireAuthentication } from "../../security/authentication";
 
 interface StorageConfigDependencies {}
 
@@ -160,6 +161,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
   // path even for legacy objects.
   app.get(
     "/objects/:objectPath(*)",
+    requireAuthentication,
     requireOrgId,
     withErrorHandling("access object", async (req: Request, res: Response) => {
       const { ObjectStorageService, ObjectNotFoundError } = await import("../../objectStorage");
