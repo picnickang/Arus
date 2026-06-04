@@ -37,7 +37,10 @@ let _objectStorageClient: Storage | null = null;
 let _clientInitPromise: Promise<Storage | null> | null = null;
 let _clientInitError: Error | null = null;
 
-async function getObjectStorageClient(): Promise<Storage | null> {
+// Exported for regression testing of the promise-memoized init race
+// (concurrent callers must share one in-flight init, never get a transient
+// null client). Production callers go through the ObjectStorageService methods.
+export async function getObjectStorageClient(): Promise<Storage | null> {
   if (_clientInitPromise) {
     return _clientInitPromise;
   }
