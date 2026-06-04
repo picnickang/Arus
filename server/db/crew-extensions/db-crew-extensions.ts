@@ -3,13 +3,15 @@ import type { WidenPartial } from "../../lib/widen-partial";
  * Crew Extensions - Database Storage
  */
 
-import { eq, and, lte, asc, isNull } from "drizzle-orm";
+import { eq, and, lte, asc, isNull, count } from "drizzle-orm";
 import { db } from "../../db";
 import {
+  crew,
   crewCertification,
   crewDocuments,
   crewNotificationSettings,
   crewAlerts,
+  crewRoles,
   portCall,
   drydockWindow,
   type SelectCrewCertification,
@@ -19,12 +21,37 @@ import {
   type CrewNotificationSettings,
   type SelectCrewAlert,
   type InsertCrewAlert,
+  type SelectCrewRole,
+  type InsertCrewRole,
   type PortCall as SelectPortCall,
   type InsertPortCall,
   type DrydockWindow as SelectDrydockWindow,
   type InsertDrydockWindow,
 } from "@shared/schema";
 import type { AlertScanResult, NotificationSettingsData } from "./types.js";
+
+/**
+ * Default crew roles seeded (idempotently) for an org on first read. Mirrors the
+ * legacy frontend MARITIME_RANKS list + its category mapping + group order so
+ * existing crew group exactly as they did before roles became data-driven.
+ */
+export const DEFAULT_CREW_ROLES: { name: string; category: string }[] = [
+  { name: "Captain", category: "Captains" },
+  { name: "Chief Officer", category: "Officers" },
+  { name: "Second Officer", category: "Officers" },
+  { name: "Third Officer", category: "Officers" },
+  { name: "Chief Engineer", category: "Engineering" },
+  { name: "Second Engineer", category: "Engineering" },
+  { name: "Third Engineer", category: "Engineering" },
+  { name: "Fourth Engineer", category: "Engineering" },
+  { name: "Bosun", category: "Deck Crew" },
+  { name: "Able Seaman", category: "Deck Crew" },
+  { name: "Ordinary Seaman", category: "Deck Crew" },
+  { name: "Chief Cook", category: "Catering" },
+  { name: "Engine Fitter", category: "Engineering" },
+  { name: "Oiler", category: "Engineering" },
+  { name: "Wiper", category: "Engineering" },
+];
 
 export class DbCrewExtensionsStorage {
   async getCrewCertifications(crewId?: string): Promise<SelectCrewCertification[]> {
@@ -348,6 +375,115 @@ export class DbCrewExtensionsStorage {
     if (r.rowCount === 0) {
       throw new Error(`Crew alert ${alertId} not found`);
     }
+  }
+
+  // ---- Crew Roles (manageable positions backing crew.rank) ------------------
+  private async ensureDefaultCrewRoles(orgId: string): Promise<void> {
+    const existing = await db
+      .select({ id: crewRoles.id })
+      .from(crewRoles)
+      .where(eq(crewRoles.orgId, orgId))
+      .limit(1);
+    if (existing.length > 0) return;
+    const rows = DEFAULT_CREW_ROLES.map((r, i) => ({
+      orgId,
+      name: r.name,
+      category: r.category,
+      sortOrder: (i + 1) * 10,
+      active: true,
+    }));
+    await db.insert(crewRoles).values(rows).onConflictDoNothing();
+  }
+
+  async getCrewRoles(orgId: string): Promise<SelectCrewRole[]> {
+    await this.ensureDefaultCrewRoles(orgId);
+    return db
+      .select()
+      .from(crewRoles)
+      .where(eq(crewRoles.orgId, orgId))
+      .orderBy(asc(crewRoles.sortOrder), asc(crewRoles.name));
+  }
+
+  async getCrewRoleById(id: string, orgId: string): Promise<SelectCrewRole | undefined> {
+    const [row] = await db
+      .select()
+      .from(crewRoles)
+      .where(and(eq(crewRoles.id, id), eq(crewRoles.orgId, orgId)));
+    return row;
+  }
+
+  async createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole> {
+    const [n] = await db.insert(crewRoles).values(data).returning();
+    if (!n) throw new Error("createCrewRole: insert returned no row");
+    return n;
+  }
+
+  async updateCrewRole(
+    id: string,
+    orgId: string,
+    data: Partial<InsertCrewRole>
+  ): Promise<SelectCrewRole> {
+    // crew.rank stores the role NAME (not an id), so a rename must propagate
+    // to every crew row currently on the old name — otherwise existing crew
+    // detach into uncategorized legacy text and the in-use delete guard
+    // (which counts by name) stops seeing them. Do both writes atomically.
+    return db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(crewRoles)
+        .where(and(eq(crewRoles.id, id), eq(crewRoles.orgId, orgId)));
+      if (!current) {
+        throw new Error(`Crew role ${id} not found`);
+      }
+      const [u] = await tx
+        .update(crewRoles)
+        .set({ ...data, updatedAt: new Date() })
+        .where(and(eq(crewRoles.id, id), eq(crewRoles.orgId, orgId)))
+        .returning();
+      if (!u) {
+        throw new Error(`Crew role ${id} not found`);
+      }
+      if (data.name !== undefined && data.name !== current.name) {
+        await tx
+          .update(crew)
+          .set({ rank: data.name })
+          .where(and(eq(crew.orgId, orgId), eq(crew.rank, current.name)));
+      }
+      return u;
+    });
+  }
+
+  async deleteCrewRole(id: string, orgId: string): Promise<void> {
+    const r = await db
+      .delete(crewRoles)
+      .where(and(eq(crewRoles.id, id), eq(crewRoles.orgId, orgId)));
+    if (r.rowCount === 0) {
+      throw new Error(`Crew role ${id} not found`);
+    }
+  }
+
+  async reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]> {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx
+          .update(crewRoles)
+          .set({ sortOrder: (i + 1) * 10, updatedAt: new Date() })
+          .where(and(eq(crewRoles.id, orderedIds[i]!), eq(crewRoles.orgId, orgId)));
+      }
+    });
+    return db
+      .select()
+      .from(crewRoles)
+      .where(eq(crewRoles.orgId, orgId))
+      .orderBy(asc(crewRoles.sortOrder), asc(crewRoles.name));
+  }
+
+  async countCrewByRoleName(orgId: string, name: string): Promise<number> {
+    const [row] = await db
+      .select({ value: count() })
+      .from(crew)
+      .where(and(eq(crew.orgId, orgId), eq(crew.rank, name)));
+    return Number(row?.value ?? 0);
   }
 
   async getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {

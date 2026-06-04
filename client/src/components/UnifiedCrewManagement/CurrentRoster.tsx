@@ -24,11 +24,11 @@ import {
 import { format } from "date-fns";
 import {
   formatRank,
-  groupCrewByRole,
+  groupCrewByRoleWith,
   groupCrewByVessel,
-  MARITIME_RANKS,
   type CrewListItem,
 } from "@/features/crew";
+import { CrewRoleManager } from "./CrewRoleManager";
 import type { LifecycleAction } from "./LifecycleDialog";
 import {
   CrewAvatar,
@@ -229,8 +229,8 @@ export function CurrentRoster({
     groupMode === "role" ? "role" : groupMode === "vessel" ? "vessel" : "name";
 
   const roleGroups = useMemo(
-    () => (groupMode === "role" ? groupCrewByRole(displayCrew) : []),
-    [groupMode, displayCrew],
+    () => (groupMode === "role" ? groupCrewByRoleWith(displayCrew, d.roleLookup) : []),
+    [groupMode, displayCrew, d.roleLookup],
   );
   const vesselGroups = useMemo(
     () => (groupMode === "vessel" ? groupCrewByVessel(displayCrew, d.getVesselName) : []),
@@ -283,6 +283,7 @@ export function CurrentRoster({
               <Download className="mr-1.5 h-3.5 w-3.5" /> Export
             </Button>
           )}
+          <CrewRoleManager canManage={perms.canManageCrew} />
           {canCreate && (
             <Button
               size="sm"
@@ -362,11 +363,11 @@ export function CurrentRoster({
           </Select>
           <Select value={d.selectedRank} onValueChange={d.setSelectedRank}>
             <SelectTrigger data-testid="select-rank-filter">
-              <SelectValue placeholder="All Ranks" />
+              <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Ranks</SelectItem>
-              {MARITIME_RANKS.map((rank) => (
+              <SelectItem value="all">All Roles</SelectItem>
+              {d.rankOptions.map((rank) => (
                 <SelectItem key={rank} value={rank}>
                   {rank}
                 </SelectItem>

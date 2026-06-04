@@ -348,8 +348,11 @@ export function sortCrew(
   crew: CrewListItem[],
   sortField: SortField,
   sortDirection: SortDirection,
-  getVesselName: (vesselId: string) => string
+  getVesselName: (vesselId: string) => string,
+  getRankIndex?: (rank: string) => number
 ): CrewListItem[] {
+  const rankIndex =
+    getRankIndex ?? ((rank: string) => (MARITIME_RANKS as readonly string[]).indexOf(rank));
   return [...crew].sort((a, b) => {
     let compareA: string | number;
     let compareB: string | number;
@@ -360,8 +363,8 @@ export function sortCrew(
         compareB = b.name.toLowerCase();
         break;
       case "rank":
-        compareA = (MARITIME_RANKS as readonly string[]).indexOf(a.rank);
-        compareB = (MARITIME_RANKS as readonly string[]).indexOf(b.rank);
+        compareA = rankIndex(a.rank);
+        compareB = rankIndex(b.rank);
         break;
       case "vessel":
         compareA = getVesselName(a.vesselId ?? "").toLowerCase();
@@ -506,6 +509,119 @@ export function groupCrewByRole<T extends { rank: string }>(crew: T[]): RoleGrou
     }
   }
   return ROLE_GROUP_ORDER.filter((group) => buckets.has(group)).map((group) => ({
+    group,
+    members: buckets.get(group) ?? [],
+  }));
+}
+
+// --- Data-driven role lookup (manageable crew roles) -------------------------
+// `crew.rank` stores a role NAME (e.g. "Chief Engineer"). The org's manageable
+// crew roles (from /api/crew-roles) supply the ordering (sortOrder) and the
+// grouping category. `buildRoleLookup` turns that list into the small set of
+// helpers the roster needs. When the list is empty (e.g. roles not loaded yet)
+// it synthesizes the same behaviour from the legacy MARITIME_RANKS + getRoleGroup
+// constants, so there is a single code path whether roles are loaded or not.
+
+export interface CrewRole {
+  id: string;
+  orgId: string;
+  name: string;
+  category: string;
+  sortOrder: number;
+  active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface RoleLookup {
+  /** Roles keyed by a normalized name (lowercase, spaces → underscore). */
+  byKey: Map<string, CrewRole>;
+  /** Distinct categories in display order (by each category's min sortOrder). */
+  orderedCategories: string[];
+  /** Position index for a rank — lower = higher in the roster. */
+  sortIndex: (rank: string) => number;
+  /** Display category/group for a rank. */
+  categoryOf: (rank: string) => string;
+}
+
+function normRoleKey(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, "_");
+}
+
+export function buildRoleLookup(roles: CrewRole[]): RoleLookup {
+  // Fall back to the legacy constants when no roles are provided so the roster
+  // still groups/sorts identically before the API responds.
+  const effective: CrewRole[] =
+    roles.length > 0
+      ? roles
+      : MARITIME_RANKS.map((name, i) => ({
+          id: `legacy-${i}`,
+          orgId: "",
+          name,
+          category: getRoleGroup(name),
+          sortOrder: (i + 1) * 10,
+          active: true,
+        }));
+
+  const byKey = new Map<string, CrewRole>();
+  for (const role of effective) {
+    byKey.set(normRoleKey(role.name), role);
+  }
+
+  // Order categories by the smallest sortOrder seen within each.
+  const categoryMinOrder = new Map<string, number>();
+  for (const role of effective) {
+    const current = categoryMinOrder.get(role.category);
+    if (current === undefined || role.sortOrder < current) {
+      categoryMinOrder.set(role.category, role.sortOrder);
+    }
+  }
+  const orderedCategories = Array.from(categoryMinOrder.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([category]) => category);
+
+  const MAX = Number.MAX_SAFE_INTEGER;
+  const sortIndex = (rank: string): number => {
+    if (!rank) return MAX;
+    return byKey.get(normRoleKey(rank))?.sortOrder ?? MAX;
+  };
+  const categoryOf = (rank: string): string => {
+    if (!rank) return "Other";
+    return byKey.get(normRoleKey(rank))?.category ?? getRoleGroup(rank);
+  };
+
+  return { byKey, orderedCategories, sortIndex, categoryOf };
+}
+
+export interface RoleCategoryBucket<T> {
+  group: string;
+  members: T[];
+}
+
+/**
+ * Group crew into category buckets using a data-driven RoleLookup. Categories
+ * appear in the lookup's order, with any uncategorized crew falling into
+ * "Other" at the end.
+ */
+export function groupCrewByRoleWith<T extends { rank: string }>(
+  crew: T[],
+  lookup: RoleLookup
+): RoleCategoryBucket<T>[] {
+  const buckets = new Map<string, T[]>();
+  for (const member of crew) {
+    const group = lookup.categoryOf(member.rank);
+    const list = buckets.get(group);
+    if (list) {
+      list.push(member);
+    } else {
+      buckets.set(group, [member]);
+    }
+  }
+  const order = [...lookup.orderedCategories];
+  if (!order.includes("Other")) {
+    order.push("Other");
+  }
+  return order.filter((group) => buckets.has(group)).map((group) => ({
     group,
     members: buckets.get(group) ?? [],
   }));

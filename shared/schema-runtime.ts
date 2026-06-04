@@ -136,6 +136,7 @@ export const crewRestSheet = pickSchema(isLocalMode, sqliteVessel.crewRestSheetS
 export const crewRestDay = pickSchema(isLocalMode, sqliteVessel.crewRestDaySqlite, pgSchema.crewRestDay);
 export const crewNotificationSettings = pgSchema.crewNotificationSettings;
 export const crewAlerts = pgSchema.crewAlerts;
+export const crewRoles = pgSchema.crewRoles;
 
 // Sensors & Monitoring
 export const sensorConfigurations = pickSchema(isLocalMode, sqliteVessel.sensorConfigurationsSqlite, pgSchema.sensorConfigurations);

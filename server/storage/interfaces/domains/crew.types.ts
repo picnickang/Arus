@@ -24,6 +24,8 @@ import type {
   CrewNotificationSettings,
   SelectCrewAlert,
   InsertCrewAlert,
+  SelectCrewRole,
+  InsertCrewRole,
   SelectCrewRestSheet,
   InsertCrewRestSheet,
   SelectCrewRestDay,
@@ -181,6 +183,15 @@ export interface ICrewStorage {
     notes?: string
   ): Promise<SelectCrewAlert>;
   deleteCrewAlert(alertId: string, orgId: string): Promise<void>;
+
+  // Crew Roles (manageable positions backing crew.rank)
+  getCrewRoles(orgId: string): Promise<SelectCrewRole[]>;
+  getCrewRoleById(id: string, orgId: string): Promise<SelectCrewRole | undefined>;
+  createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole>;
+  updateCrewRole(id: string, orgId: string, data: Partial<InsertCrewRole>): Promise<SelectCrewRole>;
+  deleteCrewRole(id: string, orgId: string): Promise<void>;
+  reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]>;
+  countCrewByRoleName(orgId: string, name: string): Promise<number>;
 
   // Crew Rest Hours
   createCrewRestSheet(sheet: InsertCrewRestSheet): Promise<SelectCrewRestSheet>;

@@ -169,6 +169,33 @@ export const crewAlerts = pgTable(
   })
 );
 
+// Manageable crew roles (positions / ranks). This is the crew POSITION concept
+// backing the `crew.rank` text column — deliberately SEPARATE from the RBAC
+// permission roles in `permissions.ts` (`crew.roleId`). Org-scoped; `name` is
+// the value stored in `crew.rank`, `category` drives roster grouping, and
+// `sortOrder` orders positions top (highest) to bottom (lowest).
+export const crewRoles = pgTable(
+  "crew_roles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    name: text("name").notNull(),
+    category: text("category").notNull().default("Other"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index("idx_crew_roles_org").on(table.orgId),
+    orgNameUnique: unique("uq_crew_roles_org_name").on(table.orgId, table.name),
+  })
+);
+
 export const skills = pgTable("skills", {
   id: varchar("id")
     .primaryKey()
@@ -453,6 +480,11 @@ export const insertCrewAlertSchema = createInsertSchema(crewAlerts).omit({
   createdAt: true,
   updatedAt: true,
 });
+export const insertCrewRoleSchema = createInsertSchema(crewRoles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertSkillSchema = createInsertSchema(skills).omit({
   id: true,
   createdAt: true,
@@ -502,6 +534,10 @@ export type InsertCrewNotificationSettings = z.infer<typeof insertCrewNotificati
 export type CrewAlert = typeof crewAlerts.$inferSelect;
 export type SelectCrewAlert = CrewAlert;
 export type InsertCrewAlert = z.infer<typeof insertCrewAlertSchema>;
+
+export type CrewRole = typeof crewRoles.$inferSelect;
+export type SelectCrewRole = CrewRole;
+export type InsertCrewRole = z.infer<typeof insertCrewRoleSchema>;
 export type Skill = typeof skills.$inferSelect;
 export type SelectSkill = Skill;
 export type InsertSkill = z.infer<typeof insertSkillSchema>;

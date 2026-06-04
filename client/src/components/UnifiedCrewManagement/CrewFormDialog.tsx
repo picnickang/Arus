@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-  MARITIME_RANKS,
   CREW_STATUSES,
   EMPLOYMENT_TYPES,
   capitalizeNames,
@@ -437,7 +436,7 @@ export function CrewFormDialog({
                   name="rank"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rank</FormLabel>
+                      <FormLabel>Role</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger data-testid="select-crew-rank">
@@ -445,7 +444,7 @@ export function CrewFormDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MARITIME_RANKS.map((rank) => (
+                          {d.rankOptions.map((rank) => (
                             <SelectItem key={rank} value={rank}>
                               {rank}
                             </SelectItem>

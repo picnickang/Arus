@@ -18,6 +18,8 @@ import type {
   SelectCrewDocument,
   SelectCrewAlert,
   InsertCrewAlert,
+  SelectCrewRole,
+  InsertCrewRole,
 } from "@shared/schema";
 
 interface CrewNotificationSettingsLike {
@@ -73,6 +75,13 @@ export interface CrewExtensionsStoragePort {
   createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert>;
   acknowledgeCrewAlert(alertId: string, orgId: string, userId?: string, notes?: string): Promise<SelectCrewAlert>;
   deleteCrewAlert(alertId: string, orgId: string): Promise<void>;
+  getCrewRoles(orgId: string): Promise<SelectCrewRole[]>;
+  getCrewRoleById(id: string, orgId: string): Promise<SelectCrewRole | undefined>;
+  createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole>;
+  updateCrewRole(id: string, orgId: string, data: Partial<InsertCrewRole>): Promise<SelectCrewRole>;
+  deleteCrewRole(id: string, orgId: string): Promise<void>;
+  reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]>;
+  countCrewByRoleName(orgId: string, name: string): Promise<number>;
 }
 
 export interface CrewServiceDependencies {
@@ -266,6 +275,60 @@ export class CrewApplicationService {
 
   async deleteCrewAlert(alertId: string, orgId: string) {
     return this.deps.crewExtensionsStorage.deleteCrewAlert(alertId, orgId);
+  }
+
+  // ---- Crew Roles (manageable positions backing crew.rank) ------------------
+  async listCrewRoles(orgId: string): Promise<SelectCrewRole[]> {
+    return this.deps.crewExtensionsStorage.getCrewRoles(orgId);
+  }
+
+  async createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole> {
+    // New roles append to the bottom (lowest position). Seeding defaults first
+    // (via getCrewRoles) keeps the ordering relative to the seeded list.
+    const existing = await this.deps.crewExtensionsStorage.getCrewRoles(data.orgId);
+    const maxOrder = existing.reduce((m, r) => Math.max(m, r.sortOrder), 0);
+    return this.deps.crewExtensionsStorage.createCrewRole({ ...data, sortOrder: maxOrder + 10 });
+  }
+
+  async updateCrewRole(
+    id: string,
+    orgId: string,
+    data: Partial<InsertCrewRole>
+  ): Promise<SelectCrewRole> {
+    return this.deps.crewExtensionsStorage.updateCrewRole(id, orgId, data);
+  }
+
+  async reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]> {
+    return this.deps.crewExtensionsStorage.reorderCrewRoles(orgId, orderedIds);
+  }
+
+  /**
+   * Usage of a role = number of crew whose `rank` matches the role name. Used to
+   * block deletion of an in-use role so no crew member is left uncategorized.
+   */
+  async getCrewRoleUsage(
+    id: string,
+    orgId: string
+  ): Promise<{ role: SelectCrewRole | undefined; assignedCount: number }> {
+    const role = await this.deps.crewExtensionsStorage.getCrewRoleById(id, orgId);
+    if (!role) {
+      return { role: undefined, assignedCount: 0 };
+    }
+    const assignedCount = await this.deps.crewExtensionsStorage.countCrewByRoleName(orgId, role.name);
+    return { role, assignedCount };
+  }
+
+  async deleteCrewRole(id: string, orgId: string): Promise<void> {
+    const { role, assignedCount } = await this.getCrewRoleUsage(id, orgId);
+    if (!role) {
+      throw new Error(`Crew role ${id} not found`);
+    }
+    if (assignedCount > 0) {
+      throw new Error(
+        `Cannot delete crew role "${role.name}" while ${assignedCount} crew member(s) are assigned to it`
+      );
+    }
+    return this.deps.crewExtensionsStorage.deleteCrewRole(id, orgId);
   }
 
   async listSkills(orgId: string) {

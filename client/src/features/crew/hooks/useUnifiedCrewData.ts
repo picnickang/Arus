@@ -33,6 +33,9 @@ import {
   countActiveFilters,
   prepareCrewExportData,
   getVesselNameById,
+  buildRoleLookup,
+  MARITIME_RANKS,
+  type CrewRole,
 } from "../lib/crewManagementUtils";
 
 interface UseUnifiedCrewDataOptions {
@@ -72,6 +75,9 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   });
   const { data: vessels = [], isLoading: vesselsLoading } = useQuery<VesselListItem[]>({
     queryKey: ["/api/vessels"],
+  });
+  const { data: crewRoles = [], isLoading: crewRolesLoading } = useQuery<CrewRole[]>({
+    queryKey: ["/api/crew-roles"],
   });
   const {
     data: accessReadiness = [],
@@ -299,6 +305,16 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
 
   const getVesselName = (vesselId: string) => getVesselNameById(vessels, vesselId);
   const stats = useMemo(() => calculateCrewStats(crew), [crew]);
+  // Always build a lookup — buildRoleLookup falls back to legacy constants when
+  // the role list is empty, so roster grouping/sorting works before the API
+  // responds and stays identical to the previous hardcoded behaviour.
+  const roleLookup = useMemo(() => buildRoleLookup(crewRoles), [crewRoles]);
+  // Options for the rank/role dropdowns + filters: managed role names when
+  // available, otherwise the legacy constants.
+  const rankOptions = useMemo(
+    () => (crewRoles.length > 0 ? crewRoles.map((r) => r.name) : [...MARITIME_RANKS]),
+    [crewRoles]
+  );
   const accessReadinessByCrewId = useMemo(() => {
     const map = new Map<string, CrewAccessReadiness>();
     for (const item of accessReadiness) {
@@ -353,7 +369,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
         (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus,
       );
     }
-    return sortCrew(filtered, sortField, sortDirection, getVesselName);
+    return sortCrew(filtered, sortField, sortDirection, getVesselName, roleLookup.sortIndex);
   }, [
     crew,
     debouncedSearchTerm,
@@ -367,6 +383,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     sortField,
     sortDirection,
     vessels,
+    roleLookup,
   ]);
   const getFilteredSortedCrew = (
     baseCrew: CrewListItem[],
@@ -410,7 +427,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
         }
       });
     }
-    return sortCrew(filtered, sortField, sortDirection, getVesselName);
+    return sortCrew(filtered, sortField, sortDirection, getVesselName, roleLookup.sortIndex);
   };
   const activeFilterCount = useMemo(
     () =>
@@ -519,6 +536,10 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     crewLoading,
     vessels,
     vesselsLoading,
+    crewRoles,
+    crewRolesLoading,
+    roleLookup,
+    rankOptions,
     accessReadinessEnabled,
     accessReadiness,
     accessReadinessLoading,
