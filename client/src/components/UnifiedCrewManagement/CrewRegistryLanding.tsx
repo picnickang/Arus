@@ -17,6 +17,7 @@ import {
   Clock,
   Shield,
   ListChecks,
+  Network,
 } from "lucide-react";
 
 export type AttentionUrgency = "critical" | "warning" | "notice";
@@ -55,6 +56,7 @@ interface CrewRegistryLandingProps {
   canViewTasks: boolean;
   onOpenCurrent: (status?: "all" | "on_duty" | "off_duty") => void;
   onOpenFormer: () => void;
+  onOpenOrgChart: () => void;
   onOpenTasks: () => void;
   onAddCrew: () => void;
   onOpenUsers: () => void;
@@ -209,6 +211,7 @@ export function CrewRegistryLanding({
   canViewTasks,
   onOpenCurrent,
   onOpenFormer,
+  onOpenOrgChart,
   onOpenTasks,
   onAddCrew,
   onOpenUsers,
@@ -310,6 +313,21 @@ export function CrewRegistryLanding({
           )}
         </button>
       )}
+      <button
+        type="button"
+        onClick={onOpenOrgChart}
+        className="ops-card flex w-full items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:border-sky-500/40"
+        data-testid="card-open-orgchart"
+      >
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/15">
+          <Network className="h-5 w-5 text-violet-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white">Org chart</p>
+          <p className="text-xs text-slate-400">Reporting lines &amp; chain of command</p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-slate-400" />
+      </button>
       <button
         type="button"
         onClick={onOpenFormer}

@@ -31,6 +31,7 @@ import { OnboardingChecklistDialog } from "./OnboardingChecklistDialog";
 import { VesselReadinessPanel } from "./VesselReadinessPanel";
 import { CrewRegistryLanding, type AttentionItem } from "./CrewRegistryLanding";
 import { CurrentRoster } from "./CurrentRoster";
+import { CrewOrgChart } from "./CrewOrgChart";
 import { FormerArchive } from "./FormerArchive";
 import { CrewTaskTracker } from "./CrewTaskTracker";
 import type { CrewRowPermissions } from "./crew-roster-shared";
@@ -39,7 +40,15 @@ interface UnifiedCrewManagementProps {
   accessReadinessEnabled?: boolean;
 }
 
-type RegistryView = "registry" | "current" | "former" | "users" | "roles" | "safety" | "tasks";
+type RegistryView =
+  | "registry"
+  | "current"
+  | "former"
+  | "users"
+  | "roles"
+  | "safety"
+  | "tasks"
+  | "orgchart";
 
 const TASK_URGENCY_RANK: Record<AttentionItem["urgency"], number> = {
   critical: 0,
@@ -271,6 +280,7 @@ export function UnifiedCrewManagement({
             canViewTasks={canViewTasks}
             onOpenCurrent={openCurrent}
             onOpenFormer={() => setView("former")}
+            onOpenOrgChart={() => setView("orgchart")}
             onOpenTasks={() => setLocation("/crew-management?view=tasks")}
             onAddCrew={() => d.setIsAddCrewDialogOpen(true)}
             onOpenUsers={() => setView("users")}
@@ -294,6 +304,8 @@ export function UnifiedCrewManagement({
             onBack={() => setLocation("/crew-management")}
           />
         )}
+
+        {view === "orgchart" && <CrewOrgChart d={d} />}
 
         {view === "users" && isAdmin && <UserAssignmentTab />}
         {view === "roles" && isAdmin && <RolesDashboardsTab />}
