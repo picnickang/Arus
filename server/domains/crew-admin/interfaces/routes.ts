@@ -237,7 +237,7 @@ export function registerCrewAdminRoutes(
       const authReq = req as AuthenticatedRequest;
       const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
       try {
-        const role = await crewAdminService.setRoleHubAccess(
+        const { role, previousHubState } = await crewAdminService.setRoleHubAccess(
           authReq.orgId,
           req.params['id'],
           hubAdmin,
@@ -251,6 +251,10 @@ export function registerCrewAdminRoutes(
           entityId: req.params['id'],
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
+          previousState: {
+            hubAdmin: previousHubState.hubAdmin,
+            hubAccess: previousHubState.hubAccess,
+          },
           newState: { hubAdmin: role.hubAdmin, hubAccess: role.hubAccess },
         });
         return res.json(role);

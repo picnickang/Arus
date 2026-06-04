@@ -36,6 +36,7 @@ import {
 import { RESOURCES, ACTIONS } from "../../config/permission-registry";
 import { DEFAULT_ROLE_TEMPLATES } from "../../config/default-role-templates";
 import { structuredLog } from "../../logging";
+import { auditService } from "../../compliance/immutable-audit.service";
 import {
   planPdmBackfill,
   PDM_BACKFILL_ROLE_NAMES,
@@ -379,11 +380,32 @@ export async function logPermissionChange(
 }
 
 export async function getPermissionAuditLog(
-  _orgId: string,
-  _limit = 100
+  orgId: string,
+  limit = 100
 ): Promise<PermissionAuditEntry[]> {
-  // permission_audit_log table does not exist; return empty.
-  return [];
+  // Permission and hub-access changes are recorded in the tamper-evident
+  // immutable audit trail (eventType "permission_changed") by the grants and
+  // hub-access write paths. Read them back so admins can review the history in
+  // the unified Roles & Dashboards surface. (There is no separate
+  // permission_audit_log table — the immutable trail is the single source.)
+  const records = await auditService.queryEvents({
+    orgId,
+    eventType: "permission_changed",
+    limit,
+  });
+  return records.map((r) => ({
+    id: r.id,
+    orgId: r.orgId,
+    userId: r.performedBy,
+    action: r.eventType,
+    targetType: r.entityType,
+    targetId: r.entityId ?? null,
+    previousValue:
+      r.previousState != null ? JSON.stringify(r.previousState) : null,
+    newValue: r.newState != null ? JSON.stringify(r.newState) : null,
+    ipAddress: r.ipAddress ?? null,
+    createdAt: r.eventTimestamp ?? null,
+  }));
 }
 
 export async function seedDefaultRoleTemplates(): Promise<{ created: number; skipped: number }> {

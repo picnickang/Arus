@@ -9,8 +9,7 @@ authorization: any authenticated org member could read/mutate role grants.
 
 **Rule:** every permission-management mutation (role grants, role hub-access, etc.)
 must carry an explicit gate — `requirePermission("permission_management", "view"|"edit")`
-from `server/domains/permissions/middleware.ts` (exported as `requirePermission`,
-also re-exported as `n`) — in addition to `requireOrgId`.
+from `server/domains/permissions/middleware.ts` — in addition to `requireOrgId`.
 
 **Why:** a reviewer flagged the grants PUT as broken access control; the per-role
 permission-matrix editor made it reachable from the UI. The lockout guard inside

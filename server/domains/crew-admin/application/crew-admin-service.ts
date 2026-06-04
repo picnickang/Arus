@@ -137,7 +137,10 @@ export class CrewAdminApplicationService {
     id: string,
     hubAdmin: boolean,
     hubAccess: string[] | null,
-  ): Promise<RoleSummary> {
+  ): Promise<{
+    role: RoleSummary;
+    previousHubState: { hubAdmin: boolean; hubAccess: string[] | null };
+  }> {
     const role = await this.repo.findRoleById(orgId, id);
     if (!role) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
@@ -154,6 +157,12 @@ export class CrewAdminApplicationService {
         "ROLE_NOT_ELIGIBLE",
       );
     }
+    // Capture the before-state so the audit trail records before -> after,
+    // not just the resulting state.
+    const previousHubState = {
+      hubAdmin: role.hubAdmin,
+      hubAccess: role.hubAccess,
+    };
     const normalized = normalizeRoleHubAccess(hubAdmin, hubAccess);
     const updated = await this.repo.setRoleHubAccess(
       orgId,
@@ -164,7 +173,7 @@ export class CrewAdminApplicationService {
     if (!updated) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
     }
-    return updated;
+    return { role: updated, previousHubState };
   }
 
   async deleteRole(orgId: string, id: string): Promise<void> {
