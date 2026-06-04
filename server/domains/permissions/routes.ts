@@ -432,10 +432,10 @@ export function registerPermissionRoutes(app: Express) {
 
       const authReq = req as AuthenticatedRequest;
 
-      // Lockout guard: refuse any change that would leave the org with no role
-      // able to manage permissions (permission_management:edit). This protects
-      // both the acting admin's own role and the org as a whole from being
-      // locked out of access administration.
+      // Lockout guard: refuse any change that would (a) leave the org with no
+      // role able to manage permissions (permission_management:edit), or
+      // (b) strip the acting admin's own ability to manage permissions. Both
+      // are evaluated against the PROPOSED state before anything is persisted.
       const MANAGE_RESOURCE = "permission_management";
       const MANAGE_ACTION = "edit";
       const revokesManage = grantsArray.some(
@@ -450,22 +450,35 @@ export function registerPermissionRoutes(app: Express) {
           .find(
             (g) => g.resourceCode === MANAGE_RESOURCE && g.actionCode === MANAGE_ACTION
           );
-        const roleGrantsManage = async (roleId: string): Promise<boolean> => {
-          if (roleId === id && proposedChange) {
-            return proposedChange.isGranted;
-          }
+
+        // Does this role grant manage today? (cached per role id)
+        const currentManageCache = new Map<string, boolean>();
+        const roleManagesNow = async (roleId: string): Promise<boolean> => {
+          const cached = currentManageCache.get(roleId);
+          if (cached !== undefined) return cached;
           const grants = await permissionRepository.getPermissionGrantsForRole(roleId);
-          return grants.some(
+          const value = grants.some(
             (g) =>
               g.resourceCode === MANAGE_RESOURCE &&
               g.actionCode === MANAGE_ACTION &&
               g.isGranted !== false
           );
+          currentManageCache.set(roleId, value);
+          return value;
         };
+        // Will this role grant manage AFTER this change is applied?
+        const roleManagesAfter = async (roleId: string): Promise<boolean> => {
+          if (roleId === id && proposedChange) {
+            return proposedChange.isGranted;
+          }
+          return roleManagesNow(roleId);
+        };
+
+        // (a) Org-level: at least one role must still manage permissions.
         const orgRoles = await permissionRepository.listRoles(orgId);
         let someoneRetainsManage = false;
         for (const r of orgRoles) {
-          if (await roleGrantsManage(r.id)) {
+          if (await roleManagesAfter(r.id)) {
             someoneRetainsManage = true;
             break;
           }
@@ -475,6 +488,46 @@ export function registerPermissionRoutes(app: Express) {
             message:
               "This change would remove the last role that can manage permissions, locking everyone out of access administration. Keep at least one role with Permission Management edit access.",
           });
+        }
+
+        // (b) Self-lockout: if the acting admin can manage permissions today
+        // (via any of their primary or assigned roles), the change must not
+        // remove that ability from them.
+        const actorId = authReq.user?.id;
+        if (actorId) {
+          const assignments = await permissionRepository.listUserRoleAssignments(
+            actorId,
+            orgId
+          );
+          const actorRoleIds = new Set(assignments.map((a) => a.roleId));
+          const primaryRoleName = authReq.user?.role;
+          if (primaryRoleName) {
+            const primaryRole = orgRoles.find((r) => r.name === primaryRoleName);
+            if (primaryRole) actorRoleIds.add(primaryRole.id);
+          }
+
+          let actorManagesNow = false;
+          for (const roleId of actorRoleIds) {
+            if (await roleManagesNow(roleId)) {
+              actorManagesNow = true;
+              break;
+            }
+          }
+          if (actorManagesNow) {
+            let actorManagesAfter = false;
+            for (const roleId of actorRoleIds) {
+              if (await roleManagesAfter(roleId)) {
+                actorManagesAfter = true;
+                break;
+              }
+            }
+            if (!actorManagesAfter) {
+              return res.status(400).json({
+                message:
+                  "This change would remove your own ability to manage permissions, locking you out of access administration. Keep Permission Management edit access on one of your roles.",
+              });
+            }
+          }
         }
       }
 
