@@ -21,7 +21,7 @@ import {
 
 export type AttentionUrgency = "critical" | "warning" | "notice";
 
-export interface AttentionItem {
+export interface CrewAttentionItem {
   id: string;
   kind: "cert" | "doc" | "task";
   crewName: string;
@@ -46,7 +46,7 @@ interface SummaryCounts {
 
 interface CrewRegistryLandingProps {
   counts: SummaryCounts;
-  attentionItems: AttentionItem[];
+  attentionItems: CrewAttentionItem[];
   expiryLoading: boolean;
   canCreate: boolean;
   canManageDocs: boolean;
@@ -161,7 +161,7 @@ function Cluster({ title, testId, children }: { title: string; testId: string; c
   );
 }
 
-function AttentionRow({ item, onOpen }: { item: AttentionItem; onOpen: (item: AttentionItem) => void }) {
+function AttentionRow({ item, onOpen }: { item: CrewAttentionItem; onOpen: (item: CrewAttentionItem) => void }) {
   const days = item.daysUntilExpiry;
   const daysLabel =
     item.kind === "task"
@@ -218,7 +218,7 @@ export function CrewRegistryLanding({
   const [, setLocation] = useLocation();
   // Every item (incl. tasks via `/crew-management?taskId=…`) carries a real
   // href, so a row click deep-links straight to the relevant detail.
-  const openAttention = (item: AttentionItem) => {
+  const openAttention = (item: CrewAttentionItem) => {
     setLocation(item.href);
   };
   const attentionValue = expiryLoading ? "…" : counts.attention;

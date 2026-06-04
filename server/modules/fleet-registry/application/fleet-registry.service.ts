@@ -1,5 +1,5 @@
 import type { WidenPartial } from "../../../lib/widen-partial";
-import type { Equipment } from "@shared/schema-runtime";
+import type { Equipment } from "@shared/schema";
 import type {
   InsertVessel,
   InsertPortCall,

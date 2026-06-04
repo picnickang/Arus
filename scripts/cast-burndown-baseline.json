@@ -1,18 +1,19 @@
 {
   "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-05-21T17:44:39.570Z",
-  "total": 5,
+  "generatedAt": "2026-06-04T21:12:18.903Z",
+  "total": 4,
   "summary": {
     "byTopFiles": {
-      "server/domains/autofill-logs/routes.ts": 1,
-      "server/domains/crew-extensions/interfaces/scheduler-routes.ts": 1,
-      "server/domains/vibration/routes.ts": 1,
-      "server/domains/work-orders/interfaces/parts.ts": 1,
-      "server/ml-prediction/storage.ts": 1
+      "server/domains/work-orders/application/work-order-service.ts": 1,
+      "server/objectStorage.ts": 1,
+      "server/replit_integrations/object_storage/objectStorage.ts": 1,
+      "server/services/data-export-import/entity-upserters.ts": 1
     },
     "byTopDirs": {
-      "server/domains": 4,
-      "server/ml-prediction": 1
+      "server/domains": 1,
+      "server/objectStorage.ts": 1,
+      "server/replit_integrations": 1,
+      "server/services": 1
     }
   }
 }

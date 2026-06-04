@@ -131,7 +131,7 @@ export class ObjectStorageService {
         }
       } else {
         console.warn("[ObjectStorage] downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
-          objectName: (file as unknown as { name?: string }).name,
+          objectName: file.name,
         });
       }
 

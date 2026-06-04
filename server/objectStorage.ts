@@ -218,7 +218,7 @@ export class ObjectStorageService {
         }
       } else {
         logger.warn("downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
-          objectName: (file as unknown as { name?: string }).name,
+          objectName: file.name,
         });
       }
 
@@ -446,7 +446,7 @@ export class ObjectStorageService {
   ): { allowed: boolean; ownerOrgId: string | null; legacy: boolean } {
     // file.name is the object-within-bucket path. With our upload
     // layout it includes the `uploads/orgs/<id>/<uuid>` suffix.
-    const objectName = (file as unknown as { name?: string }).name ?? "";
+    const objectName = file.name ?? "";
     const match = objectName.match(/(?:^|\/)uploads\/orgs\/([^/]+)\//);
     if (match) {
       const ownerOrgId = match[1] ?? null;

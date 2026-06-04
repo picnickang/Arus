@@ -28,7 +28,7 @@ import { CrewFormDialog } from "./CrewFormDialog";
 import { SkillFormDialog } from "./SkillFormDialog";
 import { OnboardingChecklistDialog } from "./OnboardingChecklistDialog";
 import { VesselReadinessPanel } from "./VesselReadinessPanel";
-import { CrewRegistryLanding, type AttentionItem } from "./CrewRegistryLanding";
+import { CrewRegistryLanding, type CrewAttentionItem } from "./CrewRegistryLanding";
 import { CurrentRoster } from "./CurrentRoster";
 import { CrewOrgChart } from "./CrewOrgChart";
 import { FormerArchive } from "./FormerArchive";
@@ -48,7 +48,7 @@ type RegistryView =
   | "tasks"
   | "orgchart";
 
-const TASK_URGENCY_RANK: Record<AttentionItem["urgency"], number> = {
+const TASK_URGENCY_RANK: Record<CrewAttentionItem["urgency"], number> = {
   critical: 0,
   warning: 1,
   notice: 2,
@@ -60,7 +60,7 @@ const TASK_URGENCY_RANK: Record<AttentionItem["urgency"], number> = {
 // them the admin actions would only surface failing requests.
 const ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"];
 
-const URGENCY_RANK: Record<AttentionItem["urgency"], number> = {
+const URGENCY_RANK: Record<CrewAttentionItem["urgency"], number> = {
   critical: 0,
   warning: 1,
   notice: 2,
@@ -127,8 +127,8 @@ export function UnifiedCrewManagement({
 
   // Merge expiring certificates and documents into one urgency-ranked list so
   // the landing shows a single "Needs attention" feed (no duplicate sections).
-  const attentionItems: AttentionItem[] = useMemo(() => {
-    const certItems: AttentionItem[] = (certExpiry?.certifications ?? []).map((c) => ({
+  const attentionItems: CrewAttentionItem[] = useMemo(() => {
+    const certItems: CrewAttentionItem[] = (certExpiry?.certifications ?? []).map((c) => ({
       id: `cert-${c.id}`,
       kind: "cert",
       crewName: c.crewMemberName,
@@ -137,7 +137,7 @@ export function UnifiedCrewManagement({
       urgency: c.urgencyLevel,
       href: "/certificates",
     }));
-    const docItems: AttentionItem[] = (docExpiry?.documents ?? []).map((doc) => ({
+    const docItems: CrewAttentionItem[] = (docExpiry?.documents ?? []).map((doc) => ({
       id: `doc-${doc.id}`,
       kind: "doc",
       crewName: doc.crewMemberName,
@@ -167,7 +167,7 @@ export function UnifiedCrewManagement({
   }, [d.crew]);
 
   // Overdue or blocked tasks surface in the shared "Needs attention" feed.
-  const taskAttention: AttentionItem[] = useMemo(() => {
+  const taskAttention: CrewAttentionItem[] = useMemo(() => {
     const dayMs = 24 * 60 * 60 * 1000;
     const now = Date.now();
     return crewTasks
@@ -185,13 +185,13 @@ export function UnifiedCrewManagement({
             : "Unassigned",
           label: t.title,
           daysUntilExpiry: days,
-          urgency: (overdue ? "critical" : "warning") as AttentionItem["urgency"],
+          urgency: (overdue ? "critical" : "warning") as CrewAttentionItem["urgency"],
           href: `/crew-management?taskId=${t.id}`,
         };
       });
   }, [crewTasks, taskCrewNames]);
 
-  const combinedAttention: AttentionItem[] = useMemo(
+  const combinedAttention: CrewAttentionItem[] = useMemo(
     () =>
       [...attentionItems, ...taskAttention].sort((a, b) => {
         const byUrgency = TASK_URGENCY_RANK[a.urgency] - TASK_URGENCY_RANK[b.urgency];

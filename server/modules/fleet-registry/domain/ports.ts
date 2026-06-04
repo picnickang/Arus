@@ -1,4 +1,4 @@
-import type { Equipment } from "@shared/schema-runtime";
+import type { Equipment } from "@shared/schema";
 import type {
   Vessel,
   InsertVessel,

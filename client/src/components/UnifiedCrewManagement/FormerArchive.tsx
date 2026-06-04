@@ -60,6 +60,29 @@ function latestPeriod(
   })[0];
 }
 
+// The former-crew API returns full `crew` rows, so at runtime each member also
+// carries the rest-hour metrics (`maxHours7d`/`minRestH`, defaults 72/10) even
+// though the declared `FormerCrewMember` type omits them. This view type lets us
+// read those real values without an unsafe `as unknown` cast.
+type FormerWithMetrics = FormerCrewMember &
+  Partial<Pick<CrewListItem, "maxHours7d" | "minRestH" | "skills">>;
+
+function toCrewListItem(member: FormerCrewMember): CrewListItem {
+  // Preserve every runtime field the prior `as unknown as CrewListItem` cast
+  // passed through (incl. rank, the rest-hour metrics, employmentPeriods, notes).
+  // We only normalize the two null→undefined type mismatches and fall back to
+  // safe defaults for fields a former-crew row genuinely lacks (e.g. skills).
+  const m = member as FormerWithMetrics;
+  return {
+    ...m,
+    vesselId: m.vesselId ?? undefined,
+    email: m.email ?? undefined,
+    maxHours7d: m.maxHours7d ?? 72,
+    minRestH: m.minRestH ?? 10,
+    skills: m.skills ?? [],
+  };
+}
+
 function FormerCrewRow({
   d,
   derived,
@@ -90,7 +113,7 @@ function FormerCrewRow({
       <CrewAvatar name={member.name} id={member.id} photoPath={member.photoPath} />
       <button
         type="button"
-        onClick={() => d.handleViewProfile(member as unknown as CrewListItem)}
+        onClick={() => d.handleViewProfile(toCrewListItem(member))}
         className="min-w-0 flex-1 text-left"
         data-testid={`button-open-crew-${member.id}`}
       >
@@ -106,7 +129,7 @@ function FormerCrewRow({
       </StatusPill>
       <CrewActionsMenu
         d={d}
-        member={member as unknown as CrewListItem}
+        member={toCrewListItem(member)}
         isFormerView
         openLifecycle={openLifecycle}
         perms={perms}
@@ -263,7 +286,7 @@ export function FormerArchive({
             className="h-8 border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.06]"
             onClick={() =>
               d.handleExportCSV(
-                sorted.map((row) => row.member) as unknown as CrewListItem[],
+                sorted.map((row) => toCrewListItem(row.member)),
                 "former-crew-roster",
               )
             }
@@ -369,7 +392,7 @@ export function FormerArchive({
                       type="button"
                       onClick={() =>
                         d.handleExportCSV(
-                          bucket.members.map((row) => row.member) as unknown as CrewListItem[],
+                          bucket.members.map((row) => toCrewListItem(row.member)),
                           `former-${bucket.group.toLowerCase().replace(/\s+/g, "-")}`,
                         )
                       }
