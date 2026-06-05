@@ -312,5 +312,4 @@ jobs:
       - run: npm ci
 
       - name: Run knip
-        run: npx knip
-        continue-on-error: true
+        run: npm run check:dead-code

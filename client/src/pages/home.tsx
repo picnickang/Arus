@@ -3,14 +3,11 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { isVesselRole } from "@/lib/briefing-redirect";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/navigation/PageHeader";
-import { NavigationCard } from "@/components/navigation/NavigationCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
-import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { MyAssignmentsPanel } from "@/components/work-orders/MyAssignmentsPanel";
 import { navigationCategories, type NavigationCategory } from "@/config/navigationConfig";
-import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
+import { trackPageVisit, recordVisitTime } from "@/lib/pageTracking";
 import {
   Flag,
   CheckCircle2,
@@ -23,7 +20,6 @@ import {
   ClipboardList,
   Menu,
   ChevronRight,
-  type LucideIcon,
 } from "lucide-react";
 import { ROLES, ROLE_STORAGE_KEY } from "@/config/roles";
 import type { RoleConfig } from "@/config/roles";
@@ -47,10 +43,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  useUserDashboardViewModel,
-  type MyTaskSlot,
-} from "@/application/user-dashboard/user-dashboard-view-model";
+import { useUserDashboardViewModel } from "@/application/user-dashboard/user-dashboard-view-model";
 import { listSessionFeedback } from "@/application/feedback/feedback-submission";
 import { EmergencyAlarmBanner } from "@/components/safety/EmergencyAlarmBanner";
 import {
@@ -58,275 +51,17 @@ import {
   type RoleDashboardConfig,
   type WidgetKey,
 } from "@shared/role-dashboard";
-import { formatDistanceToNow } from "date-fns";
+import { RoleSelector } from "./home/role-selector";
+import { useAttentionItems } from "./home/use-attention-items";
+import { AlertNoticeRow, AssignedTaskRow, OverviewTile } from "./home/portal-rows";
+import { greetingForNow, relativeTime } from "./home/time";
 
 export { trackPageVisit };
 export type { RoleConfig };
 
 const STORAGE_KEY = ROLE_STORAGE_KEY;
 
-function RoleSelector({ onSelect }: { onSelect: (roleId: string) => void }) {
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-      <div className="max-w-lg w-full text-center mb-8">
-        <h1 className="text-2xl font-bold mb-2" data-testid="text-welcome-title">
-          Welcome to ARUS
-        </h1>
-        <p className="text-muted-foreground">
-          Choose your role to customize your home screen. You can change this anytime in Settings.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg w-full">
-        {Object.values(ROLES).map((role) => {
-          const Icon = role.icon;
-          return (
-            <button
-              key={role.id}
-              onClick={() => onSelect(role.id)}
-              data-testid={`button-role-${role.id}`}
-              className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border
-                         bg-card hover:border-primary hover:bg-primary/5 transition-all
-                         text-left cursor-pointer touch-target"
-            >
-              <Icon className="h-8 w-8 text-primary" />
-              <div className="text-center">
-                <div className="font-semibold text-sm">{role.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">{role.description}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <button
-        onClick={() => onSelect("default")}
-        data-testid="button-skip-role"
-        className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        Skip — show all categories
-      </button>
-    </div>
-  );
-}
-
-function useAttentionItems() {
-  const lastVisit = getLastVisitTime();
-
-  const { data: summary } = useQuery<{
-    overdueWorkOrders: number;
-    unacknowledgedAlerts: number;
-    highRiskEquipment: number;
-    newSinceLastVisit?: {
-      newAlerts: number;
-      newWorkOrders: number;
-      completedWorkOrders: number;
-    };
-  }>({
-    queryKey: ["/api/home/attention-summary", lastVisit ? { since: lastVisit } : {}],
-    refetchInterval: 60000,
-  });
-
-  const attentionItems = useMemo(() => {
-    if (!summary) {
-      return [];
-    }
-    const items: Array<{ label: string; count: number; severity: string; href: string }> = [];
-
-    if (summary.overdueWorkOrders > 0) {
-      items.push({
-        label: "Overdue work orders",
-        count: summary.overdueWorkOrders,
-        severity: "critical",
-        href: "/work-orders?status=overdue",
-      });
-    }
-    if (summary.unacknowledgedAlerts > 0) {
-      items.push({
-        label: "Unacknowledged alerts",
-        count: summary.unacknowledgedAlerts,
-        severity: "warning",
-        href: "/attention-inbox",
-      });
-    }
-    if (summary.highRiskEquipment > 0) {
-      items.push({
-        label: "High-risk equipment",
-        count: summary.highRiskEquipment,
-        severity: "warning",
-        href: "/equipment-intelligence",
-      });
-    }
-
-    return items;
-  }, [summary]);
-
-  return { attentionItems, sinceLastVisit: summary?.newSinceLastVisit };
-}
-
-function OverviewTile({
-  icon: Icon,
-  label,
-  value,
-  tone,
-  loading,
-  testId,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string | number;
-  tone: string;
-  loading: boolean;
-  testId: string;
-}) {
-  return (
-    <div
-      className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center"
-      data-testid={testId}
-    >
-      <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-lg", tone)}>
-        <Icon className="h-5 w-5" />
-      </span>
-      {loading ? (
-        <Skeleton className="h-6 w-8" />
-      ) : (
-        <span
-          className="text-xl font-bold leading-none tabular-nums text-foreground"
-          data-testid={`${testId}-value`}
-        >
-          {value}
-        </span>
-      )}
-      <span className="text-[11px] font-medium leading-tight text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function AssignedTaskRow({
-  task,
-  onOpen,
-}: {
-  task: MyTaskSlot;
-  onOpen: (id: string) => void;
-}) {
-  const overdue = task.dayPill === "overdue";
-  const dueLabel =
-    task.dayPill === "overdue"
-      ? "Overdue"
-      : task.dayPill === "today"
-        ? "Due today"
-        : task.dayPill === "tomorrow"
-          ? "Due tomorrow"
-          : "No due date";
-  const dotTone = overdue
-    ? "bg-rose-400"
-    : task.dayPill === "today"
-      ? "bg-amber-400"
-      : "bg-sky-400";
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(task.id)}
-      data-testid={`row-assigned-task-${task.id}`}
-      className="flex w-full items-center gap-3 rounded-xl bg-white/[0.03] p-3 text-left transition-colors hover:bg-white/[0.06]"
-    >
-      <span className={cn("h-2 w-2 shrink-0 rounded-full", dotTone)} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-foreground">{task.title}</div>
-        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>{dueLabel}</span>
-          {task.equipmentName && (
-            <>
-              <span className="opacity-50">•</span>
-              <span className="truncate">{task.equipmentName}</span>
-            </>
-          )}
-        </div>
-      </div>
-      <span
-        className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-          overdue ? "bg-rose-500/15 text-rose-400" : "bg-sky-500/15 text-sky-400",
-        )}
-      >
-        {overdue ? "Overdue" : "Open"}
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </button>
-  );
-}
-
-function AlertNoticeRow({
-  icon: Icon,
-  tone,
-  title,
-  meta,
-  when,
-  onOpen,
-  testId,
-}: {
-  icon: LucideIcon;
-  tone: string;
-  title: string;
-  meta?: string | null;
-  when: string | null;
-  onOpen: () => void;
-  testId: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      data-testid={testId}
-      className="flex w-full items-center gap-3 rounded-xl bg-white/[0.03] p-3 text-left transition-colors hover:bg-white/[0.06]"
-    >
-      <span className={cn("inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", tone)}>
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-foreground">{title}</div>
-        {(meta || when) && (
-          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-            {meta && <span className="truncate">{meta}</span>}
-            {meta && when && <span className="opacity-50">•</span>}
-            {when && <span className="shrink-0">{when}</span>}
-          </div>
-        )}
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </button>
-  );
-}
-
-function relativeTime(iso: string | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  try {
-    return formatDistanceToNow(d, { addSuffix: true });
-  } catch {
-    return null;
-  }
-}
-
-function greetingForNow(now: Date): string {
-  const h = now.getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-}
-
-function UserPortalHome({
-  role,
-  roleLabel,
-  onSwitchRole,
-}: {
-  role: string;
-  roleLabel: string | undefined;
-  onSwitchRole: () => void;
-}) {
+function UserPortalHome({ role, roleLabel }: { role: string; roleLabel: string | undefined }) {
   const [location, setLocation] = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { attentionItems } = useAttentionItems();
@@ -396,9 +131,7 @@ function UserPortalHome({
               <Ship className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold tracking-wide text-foreground">
-                ARUS
-              </div>
+              <div className="truncate text-sm font-bold tracking-wide text-foreground">ARUS</div>
               <div className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
                 Marine Ops
               </div>
@@ -460,10 +193,7 @@ function UserPortalHome({
                     Primary navigation and account actions
                   </SheetDescription>
                 </SheetHeader>
-                <nav
-                  className="flex flex-1 flex-col gap-1 px-3 py-4"
-                  aria-label="Primary"
-                >
+                <nav className="flex flex-1 flex-col gap-1 px-3 py-4" aria-label="Primary">
                   {sidebarItems.map((item) => (
                     <button
                       key={item.id}
@@ -476,7 +206,7 @@ function UserPortalHome({
                         "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         item.isActive
                           ? "bg-primary/15 text-primary"
-                          : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+                          : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
                       )}
                       data-testid={`mobile-nav-item-${item.id}`}
                       aria-current={item.isActive ? "page" : undefined}
@@ -532,9 +262,7 @@ function UserPortalHome({
                 </AvatarFallback>
               </Avatar>
               <div className="hidden min-w-0 leading-tight sm:block">
-                <div className="truncate text-xs font-medium text-foreground">
-                  {displayName}
-                </div>
+                <div className="truncate text-xs font-medium text-foreground">{displayName}</div>
                 <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
                   {roleLabel ?? "User Portal"}
                 </div>
@@ -577,15 +305,12 @@ function UserPortalHome({
               className="mb-4 rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
               data-testid="text-dashboard-fallback"
             >
-              Showing a limited safe dashboard — your role configuration could not be
-              loaded.
+              Showing a limited safe dashboard — your role configuration could not be loaded.
             </div>
           )}
 
           <section className="ops-card mb-4 p-4" data-testid="card-todays-overview">
-            <h2 className="mb-3 text-sm font-semibold text-foreground">
-              Today's Overview
-            </h2>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">Today's Overview</h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <OverviewTile
                 icon={ClipboardList}
@@ -649,9 +374,7 @@ function UserPortalHome({
                 >
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
                   <div>
-                    <div className="text-sm font-medium text-foreground">
-                      You're all caught up
-                    </div>
+                    <div className="text-sm font-medium text-foreground">You're all caught up</div>
                     <div className="text-xs text-muted-foreground">
                       No tasks assigned to you right now.
                     </div>
@@ -789,10 +512,9 @@ export default function HomePage() {
       return null;
     }
   });
-  const [quickWoOpen, setQuickWoOpen] = useState(false);
   const [, setLocation] = useLocation();
 
-  const { attentionItems } = useAttentionItems();
+  const { attentionItems: _attentionItems } = useAttentionItems();
   const { permissions } = usePermissions();
   // DB role assignments (from /api/permissions/me) are authoritative for
   // the User/Admin page pivot. The locally-stored `role` hint is only a
@@ -806,7 +528,7 @@ export default function HomePage() {
     enabled: isVesselRole(),
     staleTime: 5 * 60 * 1000,
   });
-  const homeVesselId = isVesselRole() && vessels?.length ? vessels[0]?.id : undefined;
+  const _homeVesselId = isVesselRole() && vessels?.length ? vessels[0]?.id : undefined;
 
   useEffect(() => {
     if (role) {
@@ -846,7 +568,7 @@ export default function HomePage() {
   const isAdmin = isAdminPortalAccess(
     effectiveRole,
     permissions.hubAdmin || permissions.isDevMode,
-    ready,
+    ready
   );
 
   // User portal: re-skinned per UI Align Phase 4 (preview panel 2 /
@@ -856,18 +578,14 @@ export default function HomePage() {
   // Empty-state ids `empty-attention` / `empty-my-tasks` are
   // preserved verbatim because other surfaces and tests key off them.
   if (!isAdmin) {
-    return <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} onSwitchRole={() => {
-      localStorage.removeItem(STORAGE_KEY);
-      setRole(null);
-    }} />;
+    return <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} />;
   }
 
   // Admin portal: anchor the home-grid to the same 5 categories the
   // BottomNav and policy surface, instead of the legacy 8-group dump.
   // UI Align Phase 3 + 3B: re-skinned as the dark operational
-  // command-center (preview panel 2). KPI counts reuse the existing
-  // `useAttentionItems` query (`/api/home/attention-summary`) — no
-  // new backend endpoints.
+  // command-center (preview panel 2). Existing home queries are preserved;
+  // no new backend endpoints are introduced.
   // The portal decision above already gated on the hub-admin grant, so anchor
   // the home-grid to the role-independent admin primaries. A granted
   // non-super-admin (e.g. manager) therefore gets the real hub launchers
@@ -900,10 +618,7 @@ export default function HomePage() {
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 md:px-6 lg:max-w-5xl">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1
-              className="text-2xl font-bold tracking-tight"
-              data-testid="text-admin-hubs-title"
-            >
+            <h1 className="text-2xl font-bold tracking-tight" data-testid="text-admin-hubs-title">
               Admin Hubs
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
@@ -928,8 +643,8 @@ export default function HomePage() {
           >
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
             <span>
-              Your account has admin access but no hubs are unlocked yet. Every
-              hub below is locked — contact your Super Admin to be granted one.
+              Your account has admin access but no hubs are unlocked yet. Every hub below is locked
+              — contact your Super Admin to be granted one.
             </span>
           </div>
         )}
@@ -954,9 +669,7 @@ export default function HomePage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{hub.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {hub.description}
-                    </div>
+                    <div className="truncate text-xs text-muted-foreground">{hub.description}</div>
                   </div>
                   <span
                     className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
@@ -979,9 +692,7 @@ export default function HomePage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{hub.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {hub.description}
-                    </div>
+                    <div className="truncate text-xs text-muted-foreground">{hub.description}</div>
                   </div>
                   <span
                     className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
@@ -998,11 +709,9 @@ export default function HomePage() {
         </div>
 
         <footer className="mt-6 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
-          <p
-            className="min-w-0 text-xs text-muted-foreground"
-            data-testid="text-hubs-footer"
-          >
-            Every hub is listed. Locked hubs can't be opened, and direct URLs are blocked by route guards too.
+          <p className="min-w-0 text-xs text-muted-foreground" data-testid="text-hubs-footer">
+            Every hub is listed. Locked hubs can't be opened, and direct URLs are blocked by route
+            guards too.
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <LogoutButton />
@@ -1013,4 +722,3 @@ export default function HomePage() {
     </div>
   );
 }
-

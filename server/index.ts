@@ -3,7 +3,7 @@
  * Modular initialization using server/bootstrap/ modules
  */
 
-process.env['TF_CPP_MIN_LOG_LEVEL'] = "2";
+process.env["TF_CPP_MIN_LOG_LEVEL"] = "2";
 
 // Wave 2.1: OpenTelemetry MUST init before any other app module so its
 // auto-instrumentation hooks Node's module loader (Express, http, pg,
@@ -17,7 +17,6 @@ import "./otel";
 import "./instrument";
 
 import { createLogger } from "./lib/structured-logger";
-import { initWorkOrderAssignmentNotifier } from "./composition/work-order-assignment-notifier.js";
 const logger = createLogger("Index");
 import {
   setupErrorHandlers,
@@ -29,75 +28,26 @@ import {
   initializeDatabase,
   runMigrationsOnBoot,
   seedDevelopmentUser,
-  initializeJobQueue,
-  initializeMLServices,
-  applyTimescaleOptimizations,
-  applyGraphBootstrap,
-  startSyncServices,
-  initializeTelemetryBatchWriter,
-  initializeAutoReplanPolicy,
-  initializeFmccPolling,
-  initializePatchingSystem,
-  initializeSchedulers,
-  initializeBackgroundJobs,
   configureStaticServing,
   configureFinalErrorHandlers,
   setupShutdownHandlers,
   startEventLoopMonitoring,
-  getLocalModeFlag,
 } from "./bootstrap";
+import { initializePostDatabaseServices } from "./bootstrap/background-services";
+import {
+  getStartupModes,
+  runHealthCheckMode,
+  runInitDbMode,
+  shouldRunHttpServer,
+} from "./bootstrap/startup-modes";
 import { seedAccessForAllOrgs } from "./composition/access-seeding";
 import { wireCrewAdminPermissionCache } from "./composition/crew-admin-cache-wiring";
 
 setupErrorHandlers();
 
-const isInitDbMode = process.argv.includes("--init-db");
-const isHealthCheckMode = process.argv.includes("--health-check");
-
-if (isInitDbMode) {
-  import("./init-db-entry.js")
-    .then((m: { initDb: () => unknown }) => m.initDb())
-    .then(() => {
-      logger.info("[ARUS] --init-db complete");
-      process.exit(0);
-    })
-    .catch((err: unknown) => {
-      logger.error("[ARUS] --init-db failed:", undefined, err);
-      process.exit(1);
-    });
-}
-
-if (isHealthCheckMode) {
-  logger.info("[ARUS] Health check: testing native module loading...");
-  (async () => {
-    try {
-      const { createClient } = await import("@libsql/client");
-      const client = createClient({ url: ":memory:" });
-      await client.execute("SELECT 1 AS ok");
-      client.close();
-      logger.info("[ARUS] Health check: @libsql/client OK");
-
-      const bcrypt = await import("bcryptjs");
-      const bcryptApi = bcrypt as object as {
-        hash: (s: string, n: number) => Promise<string>;
-        compare: (a: string, b: string) => Promise<boolean>;
-      };
-      const hash = await bcryptApi.hash("test", 8);
-      const ok = await bcryptApi.compare("test", hash);
-      if (!ok) {
-        throw new Error("bcryptjs hash/compare mismatch");
-      }
-      logger.info("[ARUS] Health check: bcryptjs OK");
-
-      logger.info("[ARUS] Health check: PASSED");
-      process.exit(0);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("[ARUS] Health check: FAILED —", undefined, msg);
-      process.exit(1);
-    }
-  })();
-}
+const startupModes = getStartupModes();
+runInitDbMode(startupModes, logger);
+runHealthCheckMode(startupModes, logger);
 
 logger.info("→ Starting module imports...");
 
@@ -128,7 +78,7 @@ app.get("/readyz", (_req, res) => {
 
 export { app };
 
-if (!isInitDbMode && !isHealthCheckMode) {
+if (shouldRunHttpServer(startupModes)) {
   (async () => {
     let server: ReturnType<typeof import("http").createServer> | null = null;
 
@@ -156,9 +106,11 @@ if (!isInitDbMode && !isHealthCheckMode) {
       server = await registerRoutes(app);
       logger.info("✓ Routes registered");
 
-      const port = Number.parseInt(process.env['PORT'] || "5000", 10);
+      const port = Number.parseInt(process.env["PORT"] || "5000", 10);
       server.listen(port, "0.0.0.0", () => {
-        logger.info(`✅ Server listening on port ${port} (initialization continuing in background...)`);
+        logger.info(
+          `✅ Server listening on port ${port} (initialization continuing in background...)`
+        );
       });
 
       // Set up Vite/static serving FIRST so frontend loads while database initializes
@@ -188,87 +140,19 @@ if (!isInitDbMode && !isHealthCheckMode) {
       } catch (dbError: unknown) {
         isDatabaseReady = false;
         databaseStatus = "failed";
-        logger.error("⚠️ Database initialization failed:", undefined, dbError instanceof Error ? dbError.message : String(dbError));
+        logger.error(
+          "⚠️ Database initialization failed:",
+          undefined,
+          dbError instanceof Error ? dbError.message : String(dbError)
+        );
         logger.info("   Frontend available, API will return 503 until database reconnects");
 
-        if (process.env['EMBEDDED_MODE'] !== "true" && process.env['LOCAL_MODE'] !== "true") {
+        if (process.env["EMBEDDED_MODE"] !== "true" && process.env["LOCAL_MODE"] !== "true") {
           throw dbError;
         }
       }
 
-      try {
-        await initializeJobQueue();
-      } catch (jobError: unknown) {
-        logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: jobError instanceof Error ? jobError.message : String(jobError) });
-      }
-
-      await initializeMLServices();
-
-      const localModeFlag = getLocalModeFlag();
-
-      // These services depend on database - wrap in try/catch for resilience
-      try {
-        await applyTimescaleOptimizations(localModeFlag);
-      } catch (e: unknown) {
-        logger.warn("⚠️ TimescaleDB optimizations skipped:", { details: e instanceof Error ? e.message : String(e) });
-      }
-
-      // Push A2 — Knowledge graph bootstrap runs independently of
-      // the Timescale gate (reviewer's sixth-pass comment) so local
-      // PG + AGE testing works without Timescale being enabled.
-      try {
-        await applyGraphBootstrap();
-      } catch (e: unknown) {
-        logger.warn("⚠️ Knowledge graph bootstrap skipped:", { details: e instanceof Error ? e.message : String(e) });
-      }
-
-      try {
-        await startSyncServices(localModeFlag);
-      } catch (e: unknown) {
-        logger.warn("⚠️ Sync services initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
-      }
-
-      logger.info("→ Initializing domain event bus...");
-      try {
-        const { initAllBridges } = await import("./lib/domain-event-bus/bridge.js");
-        initAllBridges();
-        initWorkOrderAssignmentNotifier();
-        logger.info("✓ Domain event bus initialized");
-      } catch (e: unknown) {
-        logger.warn("⚠️ Domain event bus initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
-      }
-
-      // Push B3 — Event-streaming spine. Outbox bridge + worker + analytics
-      // sink default-on; env-gated off for read-only / CLI processes.
-      try {
-        const { startEventSpine } = await import("./lib/event-spine/index.js");
-        startEventSpine();
-        logger.info("✓ Event-streaming spine initialized");
-      } catch (e: unknown) {
-        logger.warn("⚠️ Event-streaming spine initialization skipped:", {
-          details: e instanceof Error ? e.message : String(e),
-        });
-      }
-
-      const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
-
-      try {
-        await initializeBackgroundJobs(isEmbedded);
-        await initializeTelemetryBatchWriter();
-        await initializeSchedulers(isEmbedded);
-        await initializeAutoReplanPolicy();
-        await initializeFmccPolling();
-        await initializePatchingSystem(isEmbedded);
-      } catch (e: unknown) {
-        logger.warn("⚠️ Background services partially initialized:", { details: e instanceof Error ? e.message : String(e) });
-      }
-
-      try {
-        const { startEmailWorker } = await import("./purchasing/email-worker");
-        startEmailWorker();
-      } catch (e: unknown) {
-        logger.warn("⚠️ Email worker initialization skipped:", { details: e instanceof Error ? e.message : String(e) });
-      }
+      await initializePostDatabaseServices(logger);
 
       await configureFinalErrorHandlers(app);
 
@@ -300,7 +184,7 @@ if (!isInitDbMode && !isHealthCheckMode) {
         server.close();
       }
 
-      if (process.env['EMBEDDED_MODE'] === "true" || process.env['LOCAL_MODE'] === "true") {
+      if (process.env["EMBEDDED_MODE"] === "true" || process.env["LOCAL_MODE"] === "true") {
         logger.error("⚠️ Embedded/local mode: Starting with degraded functionality");
         markStartupComplete();
       } else {
