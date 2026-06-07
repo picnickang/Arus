@@ -10,7 +10,7 @@ import {
 import { asyncHandler } from "../../../lib/async-handler";
 import { logger } from "../../../utils/logger.js";
 import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
-import { requirePermission } from "../../../lib/permissions/middleware.js";
+import { requirePermission } from "../../../lib/permissions-middleware.js";
 import { z } from "zod";
 
 const idParamSchema = z.object({ id: z.string().min(1) });

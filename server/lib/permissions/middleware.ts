@@ -4,4 +4,4 @@ export {
   requireAllPermissions,
   requireAnyPermission,
   requirePermission,
-} from "../../domains/permissions/middleware.js";
+} from "../permissions-middleware.js";
