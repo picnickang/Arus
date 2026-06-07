@@ -21,7 +21,7 @@ interface AlertConfig {
 }
 
 function getRows(result: unknown): Record<string, unknown>[] {
-  if (Array.isArray(result)) return result as Record<string, unknown>[];
+  if (Array.isArray(result)) {return result as Record<string, unknown>[];}
   const rows = (result as { rows?: unknown[] } | null)?.rows;
   return (Array.isArray(rows) ? rows : []) as Record<string, unknown>[];
 }
@@ -318,7 +318,7 @@ class RmsAlertService {
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
       const pi = polygon[i];
       const pj = polygon[j];
-      if (!pi || !pj) continue;
+      if (!pi || !pj) {continue;}
       const xi = pi.lat,
         yi = pi.lon;
       const xj = pj.lat,

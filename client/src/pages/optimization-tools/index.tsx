@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizationData } from "@/features/maintenance";
+import { apiRequest } from "@/lib/queryClient";
 import { ConfigDialog } from "./ConfigDialog";
 import { ScenariosTab } from "./ScenariosTab";
 import { RunsTab } from "./RunsTab";
@@ -35,21 +36,13 @@ export default function OptimizationTools() {
   const { data: vessels } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/vessels"],
     queryFn: async () => {
-      const r = await fetch("/api/vessels", { headers: { "x-org-id": "default-org-id" } });
-      if (!r.ok) {
-        throw new Error("Failed to fetch vessels");
-      }
-      return r.json();
+      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/vessels");
     },
   });
   const { data: crew } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/crew"],
     queryFn: async () => {
-      const r = await fetch("/api/crew", { headers: { "x-org-id": "default-org-id" } });
-      if (!r.ok) {
-        throw new Error("Failed to fetch crew");
-      }
-      return r.json();
+      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/crew");
     },
   });
   const fleetStats = {

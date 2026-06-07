@@ -405,7 +405,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         summary: diagnosticRuns.summary,
         createdAt: diagnosticRuns.createdAt,
       });
-    if (!row) throw new Error("saveDiagnosticRun: no row returned");
+    if (!row) {throw new Error("saveDiagnosticRun: no row returned");}
 
     return {
       id: row.id,

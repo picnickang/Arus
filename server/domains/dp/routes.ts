@@ -2,14 +2,14 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
 
 const MODULE = "dp-system";
 const router = Router();
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId as string;
+  return authenticatedRequest(req).orgId as string;
 }
 
 function getRows(result: unknown): Array<Record<string, unknown>> {

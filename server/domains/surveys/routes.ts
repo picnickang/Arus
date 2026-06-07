@@ -116,9 +116,9 @@ export function registerSurveyRoutes(
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
           return res.json([]);
-        } else {
-          throw error;
         }
+          throw error;
+
       }
     })
   );

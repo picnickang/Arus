@@ -19,8 +19,8 @@ export function SessionGate({ children }: { children: ReactNode }) {
 
   // Both admins and regular users authenticate via `/api/portal/login`, which
   // sets an in-memory session token. Track its presence reactively so any
-  // signed-in user passes the gate. Admin sign-in is username + password only —
-  // there is no shared-password unlock here anymore.
+  // signed-in user passes the gate. The legacy "Unlock ARUS" shared-password
+  // gate is intentionally retired; Admin sign-in is username + password only.
   const hasSession = useSyncExternalStore(
     subscribeToApiSessionToken,
     () => getApiSessionToken() !== null,

@@ -5,10 +5,14 @@ export type EntityType =
   | "assignment"
   | "leave"
   | "certification"
+  | "inventory_item"
+  | "inventory_stock"
+  | "logistics_task"
   | "work_order"
   | "logbook"
   | "checklist"
   | "alert"
+  | "safety_acknowledgement"
   | "handover"
   | "parts"
   | "pdm_risk"
@@ -305,7 +309,7 @@ export async function setLastSyncTime(time: Date): Promise<void> {
 }
 
 export function isOnline(): boolean {
-  return typeof navigator !== "undefined" ? navigator.onLine : true;
+  return typeof navigator === "undefined" || navigator.onLine !== false;
 }
 
 export type OnlineStatusCallback = (online: boolean) => void;
@@ -408,13 +412,35 @@ const MUTATION_TO_OPERATION: Record<string, OperationType> = {
 };
 
 export function classifyOfflineEntity(url: string): EntityType {
-  if (url.startsWith("/api/work-orders") && url.includes("/parts")) return "parts";
-  if (url.startsWith("/api/work-orders")) return "work_order";
-  if (url.startsWith("/api/logbook/")) return "logbook";
-  if (url.startsWith("/api/maintenance-checklist")) return "checklist";
-  if (url.startsWith("/api/attention/")) return "handover";
-  if (url.startsWith("/api/rms/alerts") || url.startsWith("/api/alerts")) return "alert";
-  if (url.startsWith("/api/pdm/risk")) return "pdm_risk";
+  const path = url.split("?")[0] ?? url;
+  if (
+    /\/acknowledge$/.test(path) &&
+    (path.startsWith("/api/rms/alerts/") || path.startsWith("/api/me/safety-alarms/"))
+  ) {
+    return "safety_acknowledgement";
+  }
+  if (path.startsWith("/api/parts-inventory/") && /\/stock$/.test(path)) {return "inventory_stock";}
+  if (path.startsWith("/api/parts-inventory")) {return "inventory_item";}
+  if (path.startsWith("/api/work-orders") && path.includes("/parts")) {return "parts";}
+  if (path.startsWith("/api/work-orders")) {return "work_order";}
+  if (
+    path.startsWith("/api/offshore-ops") ||
+    path.startsWith("/api/service-requests") ||
+    path.startsWith("/api/service-orders")
+  ) {
+    return "logistics_task";
+  }
+  if (path.startsWith("/api/logbook/")) {return "logbook";}
+  if (path.startsWith("/api/maintenance-checklist")) {return "checklist";}
+  if (path.startsWith("/api/attention/")) {return "handover";}
+  if (
+    path.startsWith("/api/rms/alerts") ||
+    path.startsWith("/api/alerts") ||
+    path.startsWith("/api/admin/safety-alarms")
+  ) {
+    return "alert";
+  }
+  if (path.startsWith("/api/pdm/risk")) {return "pdm_risk";}
   return "api_request";
 }
 
@@ -429,7 +455,13 @@ export function isQueueableMutation(method: string, url: string): boolean {
   }
 
   return [
+    "/api/parts-inventory",
     "/api/work-orders",
+    "/api/offshore-ops",
+    "/api/service-requests",
+    "/api/service-orders",
+    "/api/me/safety-alarms",
+    "/api/admin/safety-alarms",
     "/api/logbook/deck",
     "/api/logbook/engine",
     "/api/maintenance-checklist",

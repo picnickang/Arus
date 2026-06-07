@@ -9,8 +9,8 @@ import {
 } from "../lifecycle/lifecycle-validation";
 import { asyncHandler } from "../../../lib/async-handler";
 import { logger } from "../../../utils/logger.js";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import { z } from "zod";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
@@ -24,7 +24,7 @@ router.post(
   requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
 
@@ -42,7 +42,7 @@ router.post(
   requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
 
@@ -60,7 +60,7 @@ router.post(
   requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
 
@@ -77,7 +77,7 @@ router.get(
   requireOrgId,
   requirePermission("crew_members", "view"),
   asyncHandler(async (req: Request, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const formerCrew = await crewLifecycleService.getFormerCrewWithHistory(orgId);
     res.json(formerCrew);
@@ -90,7 +90,7 @@ router.get(
   requirePermission("crew_members", "view"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const history = await crewLifecycleService.getEmploymentHistory(id, orgId);
     res.json(history);
@@ -103,7 +103,7 @@ router.put(
   requirePermission("crew_members", "edit"),
   asyncHandler(async (req: Request, res: Response) => {
     const { historyId } = historyIdParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
 
     const validated = updateEmploymentHistorySchema.parse(req.body);
@@ -120,7 +120,7 @@ router.delete(
   requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
     const { historyId } = historyIdParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
 
     await crewLifecycleService.deleteEmploymentHistory(historyId, orgId);
@@ -136,7 +136,7 @@ router.delete(
   requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = idParamSchema.parse(req.params);
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
 
@@ -152,7 +152,7 @@ router.delete(
   requireOrgId,
   requirePermission("crew_members", "delete"),
   asyncHandler(async (req: Request, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const orgId = authReq.orgId;
     const userId = authReq.user?.id;
 

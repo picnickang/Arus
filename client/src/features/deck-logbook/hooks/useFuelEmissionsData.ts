@@ -25,6 +25,11 @@ interface FMCCStatus {
   capabilities: string[];
 }
 
+interface FuelAutofillResult {
+  recordsCreated?: number;
+  recordsSkipped?: number;
+}
+
 export function useFuelEmissionsData() {
   const { toast } = useToast();
   const [selectedVessel, setSelectedVessel] = useState<string>("");
@@ -90,7 +95,7 @@ export function useFuelEmissionsData() {
 
   const autoFillMutation = useMutation({
     mutationFn: async (vesselId: string) =>
-      apiRequest("/api/logbook/fuel-emissions/autofill", {
+      apiRequest<FuelAutofillResult>("/api/logbook/fuel-emissions/autofill", {
         method: "POST",
         body: JSON.stringify({
           vesselId,
@@ -98,8 +103,8 @@ export function useFuelEmissionsData() {
           endDate: dateParams.end.toISOString(),
           periodType: "hourly",
         }),
-      }) as Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
-    onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
+      }),
+    onSuccess: (data: FuelAutofillResult) => {
       toast({
         title: "Auto-fill Complete",
         description: `Created ${data.recordsCreated} fuel/emissions records`,

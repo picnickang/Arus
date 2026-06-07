@@ -29,7 +29,7 @@ export class TwinDefinitionAdapter implements TwinDefinitionPort {
 
   async createTemplate(data: InsertAssetTwinTemplate): Promise<AssetTwinTemplate> {
     const [result] = await db.insert(assetTwinTemplates).values(data).returning();
-    if (!result) throw new Error("Failed to create twin template");
+    if (!result) {throw new Error("Failed to create twin template");}
     return result;
   }
 
@@ -51,7 +51,7 @@ export class TwinDefinitionAdapter implements TwinDefinitionPort {
 
   async createTwin(data: InsertAssetTwin): Promise<AssetTwin> {
     const [result] = await db.insert(assetTwins).values(data).returning();
-    if (!result) throw new Error("Failed to create asset twin");
+    if (!result) {throw new Error("Failed to create asset twin");}
     return result;
   }
 }

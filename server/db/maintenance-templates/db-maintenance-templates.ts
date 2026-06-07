@@ -114,7 +114,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     template: InsertMaintenanceTemplate
   ): Promise<MaintenanceTemplate> {
     const [n] = await db.insert(maintenanceTemplates).values(template).returning();
-    if (!n) throw new Error("createMaintenanceTemplate: no row returned");
+    if (!n) {throw new Error("createMaintenanceTemplate: no row returned");}
     await recordAndPublish("maintenance_template" as EntityType, n.id, "create", n);
     return n;
   }
@@ -185,7 +185,7 @@ export class DatabaseMaintenanceTemplatesStorage {
           updatedAt: new Date(),
         } as InsertMaintenanceTemplate)
         .returning();
-      if (!cloned) throw new Error("cloneMaintenanceTemplate: clone insert returned no row");
+      if (!cloned) {throw new Error("cloneMaintenanceTemplate: clone insert returned no row");}
 
       // Clone all checklist items, ordered by stepNumber (not sortOrder).
       // Strip id so new ones are generated; re-point templateId to the clone.
@@ -259,7 +259,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     item: InsertMaintenanceChecklistItem
   ): Promise<MaintenanceChecklistItem> {
     const [n] = await db.insert(maintenanceChecklistItems).values(item).returning();
-    if (!n) throw new Error("createChecklistItem: no row returned");
+    if (!n) {throw new Error("createChecklistItem: no row returned");}
     await recordAndPublish("maintenance_checklist_item" as EntityType, n.id, "create", n);
     return n;
   }
@@ -299,7 +299,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     return db.transaction(async (tx) => {
       for (let i = 0; i < itemIds.length; i++) {
         const itemId = itemIds[i];
-        if (!itemId) continue;
+        if (!itemId) {continue;}
         await tx
           .update(maintenanceChecklistItems)
           .set({ stepNumber: i })
@@ -376,7 +376,7 @@ export class DatabaseMaintenanceTemplatesStorage {
 
   async createPdmScoreLog(log: InsertPdmScoreLog): Promise<PdmScoreLog> {
     const [n] = await db.insert(pdmScoreLogs).values(log).returning();
-    if (!n) throw new Error("createPdmScoreLog: no row returned");
+    if (!n) {throw new Error("createPdmScoreLog: no row returned");}
     return n;
   }
 
@@ -424,7 +424,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     schedule: InsertMaintenanceSchedule
   ): Promise<MaintenanceSchedule> {
     const [n] = await db.insert(maintenanceSchedules).values(schedule).returning();
-    if (!n) throw new Error("createMaintenanceSchedule: no row returned");
+    if (!n) {throw new Error("createMaintenanceSchedule: no row returned");}
     const ws = getWebSocketServer();
     ws?.broadcastMaintenanceScheduleChange("create", n);
     return n;

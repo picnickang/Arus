@@ -91,7 +91,7 @@ const fakeRepo = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) return obj[prop];
+      if (prop in obj) {return obj[prop];}
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
@@ -178,7 +178,7 @@ describe("role hub-access route — mounted", () => {
 
 describe("PATCH role hub-access — before -> after audit", () => {
   it("records BOTH previousState and newState on a hub-access change", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     // Prior: admin with only "operations". Change to operations + fleet.
     priorRole = makeRole({ hubAdmin: true, hubAccess: ["operations"] });
     const res = await request(app)
@@ -213,7 +213,7 @@ describe("PATCH role hub-access — before -> after audit", () => {
   });
 
   it("captures previousState when revoking all hub access (empty -> kept distinct from null)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     // Prior: admin with a partial list. Now revoke to no hubs ([]).
     priorRole = makeRole({ hubAdmin: true, hubAccess: ["operations"] });
     const res = await request(app)

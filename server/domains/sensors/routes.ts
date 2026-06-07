@@ -2,12 +2,12 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
 
 type SqlResultLike<T> = T[] | { rows: T[] };
 function rowsOf<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result as T[];
+  if (Array.isArray(result)) {return result as T[];}
   const maybe = result as { rows?: T[] } | null | undefined;
   const rows = maybe?.rows;
   return Array.isArray(rows) ? (rows as T[]) : [];
@@ -31,7 +31,7 @@ interface SensorRow {
 const router = Router();
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId as string;
+  return authenticatedRequest(req).orgId as string;
 }
 
 const SENSOR_TYPES = [
@@ -369,7 +369,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
     `);
 
     logger.info("SensorCalibration", "Calibration recorded", {
-      sensorId: sensorId,
+      sensorId,
       sensorTag: sensor.sensor_tag,
       status: data.status,
       nextDue: nextDue.toISOString(),

@@ -26,7 +26,7 @@ const savedMetadata = new Map<string, unknown>();
 let failMode: "none" | "all" = "none";
 
 function maybeFail() {
-  if (failMode === "all") throw new Error("object storage unavailable");
+  if (failMode === "all") {throw new Error("object storage unavailable");}
 }
 
 function makeFakeFile(name: string) {
@@ -43,7 +43,7 @@ function makeFakeFile(name: string) {
     async save(body: string | Buffer, opts?: unknown) {
       maybeFail();
       storage.set(name, Buffer.isBuffer(body) ? body : Buffer.from(body));
-      if (opts !== undefined) savedMetadata.set(name, opts);
+      if (opts !== undefined) {savedMetadata.set(name, opts);}
     },
     async delete() {
       maybeFail();
@@ -91,7 +91,7 @@ function makeSummary(
 
 function readPersisted(): { updatedAt: string; runs: WarehouseExportJobSummary[] } {
   const buf = storage.get(RECENT_RUNS_KEY);
-  if (!buf) throw new Error("recent-runs file not written");
+  if (!buf) {throw new Error("recent-runs file not written");}
   return JSON.parse(buf.toString("utf-8")) as {
     updatedAt: string;
     runs: WarehouseExportJobSummary[];

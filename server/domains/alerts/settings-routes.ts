@@ -5,8 +5,10 @@
 
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { alertSettingsService } from "./settings-service";
 import { emailTemplatesService } from "./email-templates-service";
+import type { EmailTemplate } from "./email-templates-service";
 import {
   insertAlertSettingsSchema,
   insertAlertSettingsVesselSchema,
@@ -20,13 +22,13 @@ function stripUndefined<T extends Record<string, unknown>>(
 ): { [K in keyof T]: Exclude<T[K], undefined> } {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
-    if (v !== undefined) out[k] = v;
+    if (v !== undefined) {out[k] = v;}
   }
   return out as { [K in keyof T]: Exclude<T[K], undefined> };
 }
 
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 
 const updateSettingsSchema = insertAlertSettingsSchema.partial().extend({
   apiKey: z.string().optional(),
@@ -42,9 +44,14 @@ const keyParamSchema = z.object({ key: z.string().min(1) });
 const typeParamSchema = z.object({ type: z.enum(["purchaseOrder", "serviceOrder"]) });
 const categoryQuerySchema = z.object({ category: z.string().optional() });
 const vesselIdQuerySchema = z.object({ vesselId: z.string().optional() });
+const emailTemplateSchema = z.object({
+  subject: z.string(),
+  body: z.string(),
+  enabled: z.boolean(),
+}) satisfies z.ZodType<EmailTemplate>;
 const previewBodySchema = z.object({
-  template: z.unknown(),
-  type: z.string(),
+  template: emailTemplateSchema,
+  type: z.enum(["purchaseOrder", "serviceOrder"]),
 });
 
 const emailLogsQuerySchema = z.object({
@@ -58,7 +65,7 @@ const emailLogsQuerySchema = z.object({
 });
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId || "default-org-id";
+  return authenticatedRequest(req).orgId || "default-org-id";
 }
 
 export function registerAlertSettingsRoutes(
@@ -334,7 +341,7 @@ export function registerAlertSettingsRoutes(
     writeOperationRateLimit,
     withErrorHandling("update email templates", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const body = z.record(z.unknown()).parse(req.body);
+      const body = jsonRecordSchema.parse(req.body);
       const templates = await emailTemplatesService.updateTemplates(
         orgId,
         body as Parameters<typeof emailTemplatesService.updateTemplates>[1]
@@ -366,10 +373,7 @@ export function registerAlertSettingsRoutes(
         return res.status(400).json({ message: "Template and type are required" });
       }
       const { template, type } = parsed.data;
-      const preview = emailTemplatesService.generatePreview(
-        template as Parameters<typeof emailTemplatesService.generatePreview>[0],
-        type as Parameters<typeof emailTemplatesService.generatePreview>[1]
-      );
+      const preview = emailTemplatesService.generatePreview(template, type);
       return res.json(preview);
     })
   );

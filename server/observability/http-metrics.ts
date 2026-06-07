@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import client from "prom-client";
 import { structuredLog } from "../logging";
 import { trackPerformance } from "./performance-tracking";
@@ -50,7 +50,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   const start = Date.now();
   const requestId = `req_${Date.now()}_${cryptoRandomId(7)}`;
 
-  (req as AuthenticatedRequest).requestId = requestId;
+  authenticatedRequest(req).requestId = requestId;
   checkResourceUsage();
 
   res.on("finish", () => {

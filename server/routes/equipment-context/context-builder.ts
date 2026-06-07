@@ -38,7 +38,7 @@ const pickNum = (obj: object, key: string): number | null => {
 const pickDate = (obj: object, key: string): Date | null => {
   if (key in obj) {
     const v = (obj as Record<string, unknown>)[key];
-    if (v instanceof Date) return v;
+    if (v instanceof Date) {return v;}
     if (typeof v === "string" || typeof v === "number") {
       const d = new Date(v);
       return Number.isNaN(d.getTime()) ? null : d;
@@ -89,10 +89,10 @@ export async function buildEquipmentContext(
 
   const now = new Date();
   const scheduleDate = (s: object): Date | null => {
-    if (!("scheduledDate" in s)) return null;
+    if (!("scheduledDate" in s)) {return null;}
     const v = (s as { scheduledDate?: unknown }).scheduledDate;
-    if (v instanceof Date) return v;
-    if (typeof v === "string" || typeof v === "number") return new Date(v);
+    if (v instanceof Date) {return v;}
+    if (typeof v === "string" || typeof v === "number") {return new Date(v);}
     return null;
   };
   const scheduleStatus = (s: object): string | undefined =>

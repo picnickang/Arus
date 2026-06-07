@@ -91,7 +91,7 @@ async function fetchDiagnostic(): Promise<DiagnosticResponse> {
     let message = `${res.status}`;
     try {
       const body = (await res.json()) as { message?: string };
-      if (body?.message) message = `${res.status}: ${body.message}`;
+      if (body?.message) {message = `${res.status}: ${body.message}`;}
     } catch {
       // non-JSON body — keep the status-only message
     }
@@ -101,14 +101,14 @@ async function fetchDiagnostic(): Promise<DiagnosticResponse> {
 }
 
 function formatTimestamp(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) {return "—";}
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) {return "—";}
   return d.toLocaleString();
 }
 
 function boolLabel(value: boolean | null | undefined): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) {return "—";}
   return value ? "Yes" : "No";
 }
 
@@ -137,6 +137,14 @@ function DefRow({
 }
 
 export default function AccessDiagnosticPage() {
+  const { data, isLoading, error, refetch, isFetching } = useQuery<DiagnosticResponse>({
+    queryKey: [DIAGNOSTIC_PATH],
+    queryFn: fetchDiagnostic,
+    enabled: !import.meta.env.PROD,
+    retry: false,
+    staleTime: 0,
+  });
+
   // Mirror the backend: the endpoint is 404 in production. Never render the
   // panel there — show a clear "not available" state instead.
   if (import.meta.env.PROD) {
@@ -156,14 +164,7 @@ export default function AccessDiagnosticPage() {
     );
   }
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery<DiagnosticResponse>({
-    queryKey: [DIAGNOSTIC_PATH],
-    queryFn: fetchDiagnostic,
-    retry: false,
-    staleTime: 0,
-  });
-
-  const err = error as Error | null;
+  const err = error;
   const isForbidden = !!err && (/^403/.test(err.message) || /super-admin/i.test(err.message));
   const isNotFound = !!err && /^404/.test(err.message);
 

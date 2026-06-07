@@ -397,7 +397,6 @@ export function registerRagRoutes(
               reason: "Invalid or expired streaming token",
             });
             return res.status(401).json({ error: "Invalid or expired streaming token" });
-            return;
           }
           orgId = tokenPayload.orgId;
           userId = tokenPayload.userId;
@@ -414,7 +413,6 @@ export function registerRagRoutes(
               error:
                 "Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.",
             });
-          return;
         }
 
         let query = req.query['query'] as string;
@@ -457,13 +455,11 @@ export function registerRagRoutes(
 
         if (!query) {
           return res.status(400).json({ error: "Query is required" });
-          return;
         }
 
         const apiKey = await getOpenAIApiKey();
         if (!apiKey) {
           return res.status(503).json({ error: "OpenAI API key not configured" });
-          return;
         }
 
         if (!streamingService.isInitialized()) {
@@ -535,11 +531,11 @@ export function registerRagRoutes(
         const message = error instanceof Error ? error.message : "Streaming failed";
         if (!res.headersSent) {
           return res.status(500).json({ error: message });
-        } else {
+        }
           // Send error event through SSE
           res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
           return res.end();
-        }
+
       }
     }
   );

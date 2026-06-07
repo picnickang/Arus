@@ -1,6 +1,6 @@
 const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
 if (process.env.NODE_ENV === "development") {
-  console.log(`[Schema Runtime] Mode: ${isLocalMode ? "SQLite (Vessel)" : "PostgreSQL (Cloud)"}`);
+  console.info(`[Schema Runtime] Mode: ${isLocalMode ? "SQLite (Vessel)" : "PostgreSQL (Cloud)"}`);
 }
 const DEPLOYMENT_MODE = isLocalMode ? "VESSEL" : "CLOUD";
 const IS_SQLITE = isLocalMode;
@@ -150,7 +150,7 @@ const knowledgeBaseItems = isLocalMode ? sqliteVessel.knowledgeBaseItemsSqlite :
 const syncConflicts = isLocalMode ? sqliteVessel.syncConflictsSqlite : pgSchema.syncConflicts || sqliteVessel.syncConflictsSqlite;
 const softwarePatches = IS_POSTGRES ? pgSchema.softwarePatches : void 0;
 const configAuditLog = IS_POSTGRES ? pgSchema.configAuditLog : void 0;
-const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSchema.updateSettingsSqlite;
+const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSync.updateSettingsSqlite;
 const patchDownloads = IS_POSTGRES ? pgSchema.patchDownloads : void 0;
 const adminSessions = IS_POSTGRES ? pgSchema.adminSessions : void 0;
 const modelDeployments = IS_POSTGRES ? pgSchema.modelDeployments : void 0;

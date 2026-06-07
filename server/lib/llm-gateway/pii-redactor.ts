@@ -57,7 +57,7 @@ export function redactPII(input: string): RedactionResult {
   });
   out = out.replace(PHONE_RE, (match) => {
     const digitCount = (match.match(/\d/g) || []).length;
-    if (digitCount < 7 || digitCount > 15) return match;
+    if (digitCount < 7 || digitCount > 15) {return match;}
     phones++;
     return "[REDACTED_PHONE]";
   });
@@ -75,7 +75,7 @@ export function redactMessages<T extends { role: string; content: unknown }>(
 ): { messages: T[]; totalHits: number } {
   let totalHits = 0;
   const out = messages.map((m) => {
-    if (typeof m.content !== "string") return m;
+    if (typeof m.content !== "string") {return m;}
     const { redacted, hits } = redactPII(m.content);
     totalHits += hits.emails + hits.phones + hits.longDigits + hits.ssns;
     return { ...m, content: redacted } as T;

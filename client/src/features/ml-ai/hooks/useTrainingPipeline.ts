@@ -12,11 +12,7 @@ export function useTrainingDatasets(status?: string) {
         params.append("status", status);
       }
       const url = `/api/pdm/training/datasets${params.toString() ? `?${params}` : ""}`;
-      const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "default-org-id" } });
-      if (!res.ok) {
-        throw new Error("Failed to fetch training datasets");
-      }
-      return res.json();
+      return apiRequest("GET", url);
     },
     enabled: !!currentOrgId,
   });
@@ -35,11 +31,7 @@ export function useTrainingRuns(filters?: { status?: string; datasetId?: string 
         params.append("datasetId", filters.datasetId);
       }
       const url = `/api/pdm/training/runs${params.toString() ? `?${params}` : ""}`;
-      const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "default-org-id" } });
-      if (!res.ok) {
-        throw new Error("Failed to fetch training runs");
-      }
-      return res.json();
+      return apiRequest("GET", url);
     },
     enabled: !!currentOrgId,
   });
@@ -116,13 +108,7 @@ export function useTrainingArtifacts(modelVersionId: string) {
   return useQuery({
     queryKey: ["/api/pdm/training/artifacts", currentOrgId, modelVersionId],
     queryFn: async () => {
-      const res = await fetch(`/api/pdm/training/artifacts?modelVersionId=${modelVersionId}`, {
-        headers: { "x-org-id": currentOrgId || "default-org-id" },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch artifacts");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/pdm/training/artifacts?modelVersionId=${modelVersionId}`);
     },
     enabled: !!modelVersionId && !!currentOrgId,
   });

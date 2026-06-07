@@ -74,7 +74,7 @@ export async function projectEquipment(
   orgId: string,
   eq: EquipmentProjection
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   await safe(async () => {
     await upsertNode(orgId, NodeLabel.Equipment, eq.id, {
       name: eq.name ?? undefined,
@@ -100,7 +100,7 @@ export async function projectFailureHistory(
   orgId: string,
   fh: FailureHistoryProjection
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   const sourceId = `fh:${String(fh.failureHistoryId)}`;
   await safe(async () => {
     await upsertNode(orgId, NodeLabel.FailureMode, fh.failureMode, {});
@@ -132,7 +132,7 @@ export async function projectInventoryMovement(
   orgId: string,
   mv: InventoryMovementProjection
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   const sourceId = `mv:${mv.movementId}`;
   await safe(async () => {
     await upsertNode(orgId, NodeLabel.Part, mv.partId, {
@@ -174,7 +174,7 @@ export async function projectDependency(
   upstreamEquipmentId: string,
   downstreamEquipmentId: string
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   await safe(async () => {
     await upsertEdge(
       orgId,
@@ -199,7 +199,7 @@ export async function retractInstalledOn(
   equipmentId: string,
   vesselId: string
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   await safe(async () => {
     const ok = await deleteEdge(
       orgId,
@@ -229,7 +229,7 @@ export async function retractDependency(
   upstreamEquipmentId: string,
   downstreamEquipmentId: string
 ): Promise<void> {
-  if (!isGraphAvailable()) return;
+  if (!isGraphAvailable()) {return;}
   await safe(async () => {
     const ok = await deleteEdge(
       orgId,

@@ -66,7 +66,7 @@ function collectColumnParams(cond: unknown): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   let lastColumn: string | null = null;
   function walk(node: unknown): void {
-    if (node == null) return;
+    if (node == null) {return;}
     if (Array.isArray(node)) {
       node.forEach(walk);
       return;
@@ -80,9 +80,9 @@ function collectColumnParams(cond: unknown): Record<string, string[]> {
       if (ctor === "Param" && lastColumn) {
         (out[lastColumn] ??= []).push(String(n['value']));
       }
-      if (n['queryChunks']) walk(n['queryChunks']);
-      if (n['column']) walk(n['column']);
-      if (Array.isArray(n['value'])) walk(n['value']);
+      if (n['queryChunks']) {walk(n['queryChunks']);}
+      if (n['column']) {walk(n['column']);}
+      if (Array.isArray(n['value'])) {walk(n['value']);}
     }
   }
   walk((cond as { queryChunks?: unknown }).queryChunks ?? cond);
@@ -119,10 +119,10 @@ beforeAll(async () => {
         from: (tbl: unknown) => ({
           where: (cond: unknown) => {
             let rows: unknown[];
-            if (tbl === usersTable) rows = userRows;
-            else if (tbl === assignmentsTable) rows = assignmentRows;
-            else if (tbl === rolesTable) rows = rolesForCondition(cond);
-            else rows = [];
+            if (tbl === usersTable) {rows = userRows;}
+            else if (tbl === assignmentsTable) {rows = assignmentRows;}
+            else if (tbl === rolesTable) {rows = rolesForCondition(cond);}
+            else {rows = [];}
             return {
               // The users query chains `.limit(1)`; the assignment + roles
               // queries await the `.where(...)` result directly.
@@ -152,7 +152,7 @@ describe("getEffectiveHubAccess — module loads", () => {
 
 describe("getEffectiveHubAccess — assignment-derived roles", () => {
   it("folds in an ASSIGNED role's hub grant (resolved by role id, not name)", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     // Non-admin primary role with no stored override.
     userRows = [{ role: "deck_officer", hubAdmin: false, hubAccess: null }];
     // Assignment carries a role ID — getUserRoles returns ["role-chief"].
@@ -169,7 +169,7 @@ describe("getEffectiveHubAccess — assignment-derived roles", () => {
   });
 
   it("returns no hub access for a plain non-admin with no grants", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     userRows = [{ role: "deck_officer", hubAdmin: false, hubAccess: null }];
     assignmentRows = [{ roleId: "role-deck" }];
     roleRows = [{ id: "role-deck", name: "deck_officer", hubAdmin: false, hubAccess: null }];
@@ -182,7 +182,7 @@ describe("getEffectiveHubAccess — assignment-derived roles", () => {
 
 describe("getEffectiveHubAccess — primary role name", () => {
   it("grants full access to a super-admin primary role even with NO roles row", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     // Super-admin authority lives only on the primary users.role column; there
     // is no matching `roles` row. Super-admin detection is by NAME, so the
     // primary role name must still be represented.
@@ -197,7 +197,7 @@ describe("getEffectiveHubAccess — primary role name", () => {
   });
 
   it("resolves the primary role by NAME when it has a roles row", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     // No assignments — only the primary role name should match (by roles.name).
     userRows = [{ role: "fleet_manager", hubAdmin: false, hubAccess: null }];
     assignmentRows = [];
@@ -213,7 +213,7 @@ describe("getEffectiveHubAccess — primary role name", () => {
 
 describe("getEffectiveHubAccess — per-user stored override", () => {
   it("honours a stored per-user hub override on a grant-eligible role", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     // `captain` is grant-eligible, so the per-user override survives the
     // eligibility re-check and contributes its allow-list.
     userRows = [{ role: "captain", hubAdmin: true, hubAccess: ["logistics"] }];
@@ -226,7 +226,7 @@ describe("getEffectiveHubAccess — per-user stored override", () => {
   });
 
   it("drops a stored override when the role is NOT grant-eligible (demotion re-check)", async () => {
-    if (importError) throw new Error(importError);
+    if (importError) {throw new Error(importError);}
     // `deck_officer` is below the grant-eligible tier, so a stale stored
     // override must NOT grant hub access.
     userRows = [

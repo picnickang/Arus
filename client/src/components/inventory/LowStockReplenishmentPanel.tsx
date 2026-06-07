@@ -44,6 +44,10 @@ interface LowStockReplenishmentPanelProps {
   requestedBy?: string;
 }
 
+interface PurchaseRequestResponse {
+  id: string;
+}
+
 const CRITICALITY_COLOR: Record<string, string> = {
   critical: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -121,10 +125,10 @@ export function LowStockReplenishmentPanel({
 
   const createPRMutation = useMutation({
     mutationFn: async (selectedParts: SmartReplenishmentSuggestion[]) => {
-      const pr = (await apiRequest("POST", "/api/purchase-requests", {
+      const pr = await apiRequest<PurchaseRequestResponse>("POST", "/api/purchase-requests", {
         requestedBy,
         notes: `Auto-generated from smart replenishment — ${new Date().toLocaleDateString()}`,
-      })) as { id: string };
+      });
 
       for (const part of selectedParts) {
         const woContext =

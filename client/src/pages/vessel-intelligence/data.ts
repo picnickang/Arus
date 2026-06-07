@@ -22,7 +22,7 @@ export interface EquipmentRecord {
   sectionKey?: string;
 }
 
-export interface WorkOrderRecord {
+export interface VesselIntelligenceWorkOrderRecord {
   id?: string;
   vesselId?: string;
   title?: string;
@@ -33,7 +33,7 @@ export interface WorkOrderRecord {
   dueDate?: string;
 }
 
-export interface AlertRecord {
+export interface VesselIntelligenceAlertRecord {
   id?: string;
   vesselId?: string;
   title?: string;
@@ -49,8 +49,12 @@ export interface RegistryDiagramRecord {
   id: string;
   diagramType: string;
   title: string;
+  description?: string | null;
   status: string;
   activeVersionId?: string | null;
+  currentSectionMapId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface RegistrySectionAssignmentRecord {
@@ -75,13 +79,21 @@ export interface RegistrySectionRecord {
 
 export interface RegistrySectionMapRecord {
   id: string;
+  vesselId?: string;
+  diagramId?: string | null;
+  diagramVersionId?: string | null;
+  sourceMapId?: string | null;
   name: string;
   status: string;
   coordinateMode: "normalized_percent";
   diagramWidth: number;
   diagramHeight: number;
   diagramKind: string;
+  validationSummary?: { blockers: number; warnings: number; checkedAt: string } | null;
+  publishedAt?: string | null;
   sections: RegistrySectionRecord[];
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface RegistrySummaryRecord {
@@ -126,11 +138,11 @@ export function equipmentNameFor(equipment: EquipmentRecord): string {
   );
 }
 
-export function workOrderTitleFor(workOrder: WorkOrderRecord): string {
+export function workOrderTitleFor(workOrder: VesselIntelligenceWorkOrderRecord): string {
   return workOrder.title ?? workOrder.description ?? workOrder.id ?? "Work order";
 }
 
-export function alertTitleFor(alert: AlertRecord): string {
+export function alertTitleFor(alert: VesselIntelligenceAlertRecord): string {
   return alert.title ?? alert.message ?? alert.id ?? "Alert";
 }
 

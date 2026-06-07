@@ -36,7 +36,7 @@ export function detectIQRAnomalies(values: number[], timestamps: Date[]): Anomal
   values.forEach((value, i) => {
     if (value < lowerBound || value > upperBound) {
       const ts = timestamps[i];
-      if (!ts) return;
+      if (!ts) {return;}
       const expectedValue = (q1 + q3) / 2;
       const deviation = Math.abs(value - expectedValue);
       const severity = classifyAnomalySeverity(deviation, iqr);
@@ -66,7 +66,7 @@ export function detectZScoreAnomalies(values: number[], timestamps: Date[]): Ano
 
     if (zScore > 2.5) {
       const ts = timestamps[i];
-      if (!ts) return;
+      if (!ts) {return;}
       const deviation = Math.abs(value - meanValue);
       const severity = classifyAnomalySeverity(deviation, stdDev);
 

@@ -234,8 +234,8 @@ describe("consolidated crew landing source-scan", () => {
     expect(src).toContain("attentionItems");
     expect(src).toContain("URGENCY_RANK");
     // Admin surfaces moved from the page tab bar into in-page views.
-    expect(src).toContain('view === "users"');
-    expect(src).toContain('view === "roles"');
+    expect(src).toContain('view === "access"');
+    expect(src).toContain('deepLinkView === "roles"');
     expect(src).toContain('view === "safety"');
   });
 

@@ -390,7 +390,7 @@ class AmosImportService {
       },
       priorVesselId: string | null
     ) => {
-      if (!orgId) return;
+      if (!orgId) {return;}
       if (priorVesselId && priorVesselId !== persisted.vesselId) {
         await retractInstalledOn(orgId, persisted.id, priorVesselId);
       }

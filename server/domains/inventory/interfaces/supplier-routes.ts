@@ -3,7 +3,7 @@ import { z } from "zod";
 import { inventorySupplierService } from "../supplier-service";
 import { asyncHandler } from "../../../lib/async-handler";
 import { createLogger } from "../../../lib/structured-logger";
-import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { RateLimiters } from "../../../lib/rate-limit-factory";
 
 const logger = createLogger("inventory-supplier-routes");
@@ -63,7 +63,7 @@ inventorySupplierRouter.post(
   asyncHandler(async (req, res) => {
     const { inventoryItemId } = inventoryItemIdParamSchema.parse(req.params);
     const data = linkSupplierSchema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     try {
       const link = await inventorySupplierService.linkSupplier(
@@ -92,7 +92,7 @@ inventorySupplierRouter.post(
   asyncHandler(async (req, res) => {
     const { inventoryItemId } = inventoryItemIdParamSchema.parse(req.params);
     const { supplierIds } = bulkLinkSchema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const links = await inventorySupplierService.bulkLinkSuppliers(
       inventoryItemId,
@@ -114,7 +114,7 @@ inventorySupplierRouter.put(
   asyncHandler(async (req, res) => {
     const { inventoryItemId } = inventoryItemIdParamSchema.parse(req.params);
     const { supplierIds } = z.object({ supplierIds: z.array(z.string()) }).parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const links = await inventorySupplierService.replaceSupplierLinks(
       inventoryItemId,
@@ -140,7 +140,7 @@ inventorySupplierRouter.put(
       preferredSupplierId: z.string().optional(),
     });
     const { supplierIds, preferredSupplierId } = schema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const links = await inventorySupplierService.replaceSupplierLinks(
       inventoryItemId,
@@ -172,7 +172,7 @@ inventorySupplierRouter.patch(
   asyncHandler(async (req, res) => {
     const { linkId } = linkIdParamSchema.parse(req.params);
     const data = updateLinkSchema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const link = await inventorySupplierService.updateSupplierLink(linkId, data, userId);
     if (!link) {
@@ -190,7 +190,7 @@ inventorySupplierRouter.delete(
   writeLimit,
   asyncHandler(async (req, res) => {
     const { linkId } = linkIdParamSchema.parse(req.params);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const deleted = await inventorySupplierService.unlinkSupplier(linkId, userId);
     if (!deleted) {
@@ -209,7 +209,7 @@ inventorySupplierRouter.post(
   asyncHandler(async (req, res) => {
     const { inventoryItemId } = inventoryItemIdParamSchema.parse(req.params);
     const { supplierId } = setPreferredSchema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     try {
       await inventorySupplierService.setPreferredSupplier(inventoryItemId, supplierId, userId);

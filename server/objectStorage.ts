@@ -492,35 +492,35 @@ export class ObjectStorageService {
  * only need to distinguish safe families from "everything else".
  */
 export function sniffMimeFamily(head: Buffer): string {
-  if (head.length === 0) return "unknown";
+  if (head.length === 0) {return "unknown";}
   // JPEG
-  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return "image/jpeg";
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {return "image/jpeg";}
   // PNG
   if (
     head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47 &&
     head[4] === 0x0d && head[5] === 0x0a && head[6] === 0x1a && head[7] === 0x0a
-  ) return "image/png";
+  ) {return "image/png";}
   // GIF
-  if (head.slice(0, 6).toString("ascii") === "GIF87a" || head.slice(0, 6).toString("ascii") === "GIF89a") return "image/gif";
+  if (head.slice(0, 6).toString("ascii") === "GIF87a" || head.slice(0, 6).toString("ascii") === "GIF89a") {return "image/gif";}
   // WebP (RIFF....WEBP)
-  if (head.slice(0, 4).toString("ascii") === "RIFF" && head.slice(8, 12).toString("ascii") === "WEBP") return "image/webp";
+  if (head.slice(0, 4).toString("ascii") === "RIFF" && head.slice(8, 12).toString("ascii") === "WEBP") {return "image/webp";}
   // PDF
-  if (head.slice(0, 4).toString("ascii") === "%PDF") return "application/pdf";
+  if (head.slice(0, 4).toString("ascii") === "%PDF") {return "application/pdf";}
   // GLB (glTF binary)
-  if (head.slice(0, 4).toString("ascii") === "glTF") return "model/gltf-binary";
+  if (head.slice(0, 4).toString("ascii") === "glTF") {return "model/gltf-binary";}
   // ZIP family (covers .zip, .docx, .xlsx, .pptx)
-  if (head[0] === 0x50 && head[1] === 0x4b && (head[2] === 0x03 || head[2] === 0x05 || head[2] === 0x07)) return "application/zip";
+  if (head[0] === 0x50 && head[1] === 0x4b && (head[2] === 0x03 || head[2] === 0x05 || head[2] === 0x07)) {return "application/zip";}
   // MP4 (ftyp box at offset 4)
-  if (head.slice(4, 8).toString("ascii") === "ftyp") return "video/mp4";
+  if (head.slice(4, 8).toString("ascii") === "ftyp") {return "video/mp4";}
   // OGG
-  if (head.slice(0, 4).toString("ascii") === "OggS") return "audio/ogg";
+  if (head.slice(0, 4).toString("ascii") === "OggS") {return "audio/ogg";}
   // MP3 (ID3 or sync frame)
-  if (head.slice(0, 3).toString("ascii") === "ID3") return "audio/mpeg";
-  if (head[0] === 0xff && (head[1] !== undefined && (head[1] & 0xe0) === 0xe0)) return "audio/mpeg";
+  if (head.slice(0, 3).toString("ascii") === "ID3") {return "audio/mpeg";}
+  if (head[0] === 0xff && (head[1] !== undefined && (head[1] & 0xe0) === 0xe0)) {return "audio/mpeg";}
   // Text-looking head (HTML/SVG/XML/JSON/plain) — return generic
   // "text" so pickSafeContentType can force attachment defensively.
   const printable = head.slice(0, 64).every((b) => b === 0x09 || b === 0x0a || b === 0x0d || (b >= 0x20 && b <= 0x7e));
-  if (printable) return "text";
+  if (printable) {return "text";}
   return "unknown";
 }
 

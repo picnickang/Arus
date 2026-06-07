@@ -45,7 +45,7 @@ describe("Workflow Gap-Closure Integration", () => {
     const health = await api("GET", "/api/healthz");
     expect(health.status).toBe(200);
     const wo = await pickOpenWorkOrder();
-    if (!wo) throw new Error("No open work order available for tests");
+    if (!wo) {throw new Error("No open work order available for tests");}
     workOrderId = wo;
   }, 30000);
 
@@ -194,7 +194,7 @@ describe("Workflow Gap-Closure Integration", () => {
 
     beforeAll(async () => {
       const wo = await pickOpenWorkOrder(workOrderId);
-      if (!wo) throw new Error("Need a second open WO for closeout test");
+      if (!wo) {throw new Error("Need a second open WO for closeout test");}
       closeoutWorkOrderId = wo;
     });
 

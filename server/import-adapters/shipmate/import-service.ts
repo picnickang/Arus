@@ -259,7 +259,7 @@ class ShipmateImportService {
       const originalHeaders = Object.keys(row);
       for (let i = 0; i < originalHeaders.length; i++) {
         const origKey = originalHeaders[i];
-        if (!origKey) continue;
+        if (!origKey) {continue;}
         const newKey = normalizedHeaders[i] || origKey;
         normalized[newKey] = row[origKey] ?? "";
       }
@@ -373,7 +373,7 @@ class ShipmateImportService {
           })
           .returning({ id: importManifest.id });
 
-        if (!manifest) throw new Error("import: manifest insert returned no row");
+        if (!manifest) {throw new Error("import: manifest insert returned no row");}
         manifestId = manifest.id;
 
         // Upsert each valid row within the same transaction.
@@ -485,7 +485,7 @@ class ShipmateImportService {
             initiatedBy: options.initiatedBy ?? null,
           })
           .returning({ id: importManifest.id });
-        if (!failedManifest) throw new Error("import: failed-manifest insert returned no row");
+        if (!failedManifest) {throw new Error("import: failed-manifest insert returned no row");}
         manifestId = failedManifest.id;
       } catch (manifestErr) {
         // Can't even record the failure — log and carry on so the caller
@@ -676,7 +676,7 @@ class ShipmateImportService {
       },
       priorVesselId: string | null
     ) => {
-      if (!orgId) return;
+      if (!orgId) {return;}
       pendingEquipmentProjections.push({
         orgId,
         id: persisted.id,
@@ -824,7 +824,7 @@ class ShipmateImportService {
           updatedAt: new Date(),
         } as object as never)
         .returning({ id: parts.id });
-      if (!inserted) throw new Error("import: parts insert returned no row");
+      if (!inserted) {throw new Error("import: parts insert returned no row");}
       partId = inserted.id;
     }
 

@@ -16,8 +16,8 @@
 
 import { and, desc, eq, lte } from "drizzle-orm";
 import { db } from "../../../db";
-import { equipmentFeatures, failurePredictions } from "@shared/schema";
-import type { EquipmentFeature } from "@shared/schema";
+import { equipmentFeatures, failurePredictions } from "@shared/schema-runtime";
+import type { EquipmentFeature } from "@shared/schema-runtime";
 
 export async function getFeaturesBySnapshotId(
   orgId: string,
@@ -56,7 +56,7 @@ export async function getFeaturesByPredictionId(
       and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId))
     )
     .limit(1);
-  if (!pred?.snapshotId) return null;
+  if (!pred?.snapshotId) {return null;}
   return getFeaturesBySnapshotId(orgId, pred.snapshotId);
 }
 

@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { logger } from "../../../utils/logger.js";
 import { getRagSecurityServices } from "./index.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -31,7 +31,7 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
   const isDev = process.env['NODE_ENV'] === "development";
 
   // Try to get auth context from session first
-  const session = (req as AuthenticatedRequest).session;
+  const session = authenticatedRequest(req).session;
   let userId = session?.userId || "anonymous";
   let orgId = session?.orgId;
   let authenticated = !!session?.orgId;

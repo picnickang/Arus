@@ -64,7 +64,7 @@ try {
 } catch (err) {
   // Don't crash boot on permission errors — log + continue; uploads
   // will surface a clear 500 with the underlying ENOENT/EACCES.
-  logger.warn(`[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${(err as Error).message}`);
+  logger.warn(`[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${((err instanceof Error ? err.message : String(err)))}`);
 }
 
 // Magic-byte signatures for the allowed mimetypes. Multer's

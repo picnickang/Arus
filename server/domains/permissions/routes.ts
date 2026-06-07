@@ -7,7 +7,7 @@
 import type { Express, Request, Response } from "express";
 import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
-import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { requirePermission } from "./middleware";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { auditService } from "../../compliance/immutable-audit.service";
@@ -36,11 +36,11 @@ import { and, eq } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
-  roles,
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 
 const DEV_ORG_ID = "default-org-id";
 const DEV_USER_ID = "dev-user-id";
@@ -56,7 +56,7 @@ const auditQuerySchema = z.object({
 });
 const fromTemplateBodySchema = z.object({
   templateId: z.string().min(1),
-  overrides: z.record(z.unknown()).optional(),
+  overrides: jsonRecordSchema.optional(),
 });
 
 /**
@@ -67,7 +67,7 @@ const fromTemplateBodySchema = z.object({
  * allowed through so local development keeps working.
  */
 function requireSuperAdminForPermissions(req: Request, res: Response, next: () => void) {
-  const sessionUser = (req as AuthenticatedRequest).user ?? null;
+  const sessionUser = authenticatedRequest(req).user ?? null;
   const isDevBypass =
     isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
   if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
@@ -85,7 +85,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/me",
     requireOrgId,
     withErrorHandling("get current user permissions", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const realUserId = authReq.user?.id;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
@@ -239,7 +239,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles",
     requireOrgId,
     withErrorHandling("list roles", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const roles = await permissionRepository.listRoles(orgId);
       return res.json(validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles"));
     })
@@ -249,7 +249,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles/:id",
     requireOrgId,
     withErrorHandling("get role", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const role = await permissionRepository.getRoleById(id, orgId);
       if (!role) {
@@ -266,12 +266,12 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requireSuperAdminForPermissions,
     withErrorHandling("create role", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const orgId = authenticatedRequest(req).orgId;
+      const rawBody = jsonRecordSchema.parse(req.body);
       const data = insertRoleSchema.parse({ ...rawBody, orgId });
       const role = await permissionRepository.createRole(data);
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -291,7 +291,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requireSuperAdminForPermissions,
     withErrorHandling("update role", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
@@ -299,12 +299,12 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       // Security: Strip orgId from body to prevent cross-tenant mutation
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
       const { orgId: _, ...bodyWithoutOrgId } = rawBody;
       const data = stripUndefined(insertRoleSchema.partial().parse(bodyWithoutOrgId));
       const updated = await permissionRepository.updateRole(id, orgId, data);
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -326,7 +326,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requireSuperAdminForPermissions,
     withErrorHandling("partial update role", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
@@ -338,12 +338,12 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       // Security: Strip orgId from body to prevent cross-tenant mutation
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
       const { orgId: _, ...bodyWithoutOrgId } = rawBody;
       const data = stripUndefined(insertRoleSchema.partial().parse(bodyWithoutOrgId));
       const updated = await permissionRepository.updateRole(id, orgId, data);
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -365,7 +365,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requireSuperAdminForPermissions,
     withErrorHandling("delete role", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const existing = await permissionRepository.getRoleById(id, orgId);
       if (!existing) {
@@ -386,7 +386,7 @@ export function registerPermissionRoutes(app: Express) {
 
       await permissionRepository.deleteRole(id, orgId);
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -409,7 +409,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requirePermission("permission_management", "view"),
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const role = await permissionRepository.getRoleById(id, orgId);
       if (!role) {
@@ -438,7 +438,7 @@ export function registerPermissionRoutes(app: Express) {
     requireSuperAdminForPermissions,
     requirePermission("permission_management", "edit"),
     withErrorHandling("update role permission grants", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const role = await permissionRepository.getRoleById(id, orgId);
       if (!role) {
@@ -453,7 +453,7 @@ export function registerPermissionRoutes(app: Express) {
         .parse(req.body);
       const grantsArray = Array.isArray(bodyShape) ? bodyShape : bodyShape.grants;
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
 
       // Lockout guard: refuse any change that would (a) leave the org with no
       // role able to manage permissions (permission_management:edit), or
@@ -478,7 +478,7 @@ export function registerPermissionRoutes(app: Express) {
         const currentManageCache = new Map<string, boolean>();
         const roleManagesNow = async (roleId: string): Promise<boolean> => {
           const cached = currentManageCache.get(roleId);
-          if (cached !== undefined) return cached;
+          if (cached !== undefined) {return cached;}
           const grants = await permissionRepository.getPermissionGrantsForRole(roleId);
           const value = grants.some(
             (g) =>
@@ -526,7 +526,7 @@ export function registerPermissionRoutes(app: Express) {
           const primaryRoleName = authReq.user?.role;
           if (primaryRoleName) {
             const primaryRole = orgRoles.find((r) => r.name === primaryRoleName);
-            if (primaryRole) actorRoleIds.add(primaryRole.id);
+            if (primaryRole) {actorRoleIds.add(primaryRole.id);}
           }
 
           let actorManagesNow = false;
@@ -616,12 +616,12 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/roles/from-template",
     requireOrgId,
     withErrorHandling("create role from template", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { templateId, overrides } = fromTemplateBodySchema.parse(req.body);
 
       const role = await permissionRepository.createRoleFromTemplate(templateId, orgId, overrides);
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await permissionRepository.logPermissionChange(
         orgId,
         authReq.user?.id || "system",
@@ -640,7 +640,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/users/:userId/assignments",
     requireOrgId,
     withErrorHandling("list user role assignments", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { userId } = userIdParamSchema.parse(req.params);
       const assignments = await permissionRepository.listUserRoleAssignments(
         userId,
@@ -660,10 +660,10 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/users/:userId/assignments",
     requireOrgId,
     withErrorHandling("assign role to user", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const authReq = req as AuthenticatedRequest;
+      const orgId = authenticatedRequest(req).orgId;
+      const authReq = authenticatedRequest(req);
       const { userId } = userIdParamSchema.parse(req.params);
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
 
       const data = insertUserRoleAssignmentSchema.parse({
         ...rawBody,
@@ -694,8 +694,8 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/users/:userId/assignments/:roleId",
     requireOrgId,
     withErrorHandling("remove role from user", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const authReq = req as AuthenticatedRequest;
+      const orgId = authenticatedRequest(req).orgId;
+      const authReq = authenticatedRequest(req);
       const { userId, roleId } = userIdRoleIdParamSchema.parse(req.params);
 
       await permissionRepository.removeRoleFromUser(userId, roleId, orgId);
@@ -720,7 +720,7 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/users-with-roles",
     requireOrgId,
     withErrorHandling("list users with role assignments", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const usersWithRoles = await permissionRepository.listUsersWithRoles(orgId);
       return res.json(
         validateResponse(
@@ -737,7 +737,7 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     requirePermission("permission_management", "view"),
     withErrorHandling("get permission audit log", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { limit } = auditQuerySchema.parse(req.query);
       const auditLog = await permissionRepository.getPermissionAuditLog(orgId, limit);
       return res.json(
@@ -776,8 +776,8 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/setup",
     requireOrgId,
     withErrorHandling("initial permission setup", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const authReq = req as AuthenticatedRequest;
+      const orgId = authenticatedRequest(req).orgId;
+      const authReq = authenticatedRequest(req);
 
       await permissionRepository.seedResourcesAndActions();
       const templatesResult = await permissionRepository.seedDefaultRoleTemplates();
@@ -815,7 +815,7 @@ export function registerPermissionRoutes(app: Express) {
         return res.status(404).json({ message: "Not found" });
       }
 
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const sessionUser = authReq.user ?? null;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
@@ -870,7 +870,7 @@ export function registerPermissionRoutes(app: Express) {
       for (const actions of Object.values(mapped.permissions)) {
         const granted = Object.values(actions).filter(Boolean).length;
         grantedActions += granted;
-        if (granted > 0) resourcesWithAnyGrant += 1;
+        if (granted > 0) {resourcesWithAnyGrant += 1;}
       }
 
       // Crew link (optional 1:1 login-account link, if any).

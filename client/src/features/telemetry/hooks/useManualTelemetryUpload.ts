@@ -54,7 +54,7 @@ export function useManualTelemetryUpload() {
     }) as object as (csvData: string) => Promise<ImportResult>,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
-    errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import CSV data",
+    errorMessage: (error: unknown) => ((error instanceof Error ? error.message : undefined)) || "Failed to import CSV data",
     onSuccess: (result: ImportResult) => {
       setUploadProgress(100);
       setLastResult(result);
@@ -79,7 +79,7 @@ export function useManualTelemetryUpload() {
     }) as object as (jsonData: string) => Promise<ImportResult>,
     invalidateKeys: [["/api/raw-telemetry"]],
     successMessage: (result: ImportResult) => result.message,
-    errorMessage: (error: unknown) => (error as Error)?.message || "Failed to import JSON data",
+    errorMessage: (error: unknown) => ((error instanceof Error ? error.message : undefined)) || "Failed to import JSON data",
     onSuccess: (result: ImportResult) => {
       setUploadProgress(100);
       setLastResult(result);

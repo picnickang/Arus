@@ -205,7 +205,7 @@ export function CrewTaskTracker({
   useEffect(() => {
     if (lastMessage?.channel?.startsWith("crew_task")) {
       invalidateCrewTasks();
-      if (selectedId) invalidateCrewTaskEvents(selectedId);
+      if (selectedId) {invalidateCrewTaskEvents(selectedId);}
     }
   }, [lastMessage, selectedId]);
 
@@ -216,12 +216,12 @@ export function CrewTaskTracker({
 
   const crewName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const c of crew) map.set(c.id, c.name);
+    for (const c of crew) {map.set(c.id, c.name);}
     return map;
   }, [crew]);
   const vesselName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const v of vessels) map.set(v.id, v.name);
+    for (const v of vessels) {map.set(v.id, v.name);}
     return map;
   }, [vessels]);
 
@@ -617,7 +617,7 @@ function TaskFormDialog({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {return;}
 
     const onError = () =>
       toast({
@@ -654,7 +654,7 @@ function TaskFormDialog({
 
     const resolved = resolveLink(linkedKey);
     const linkFields =
-      resolved && resolved.linkedSourceId
+      resolved?.linkedSourceId
         ? {
             linkedSourceType: resolved.linkedSourceType ?? undefined,
             linkedSourceId: resolved.linkedSourceId,
@@ -735,7 +735,7 @@ function TaskFormDialog({
               onChange={(e) => {
                 setAssignedCrewId(e.target.value);
                 // A document link belongs to the previous crew member — drop it.
-                if (linkedKey.startsWith("crew_document:")) setLinkedKey("");
+                if (linkedKey.startsWith("crew_document:")) {setLinkedKey("");}
               }}
               className={inputClass}
               data-testid="select-task-assignee"
@@ -764,7 +764,7 @@ function TaskFormDialog({
             onChange={(e) => {
               setVesselId(e.target.value);
               // A certificate link belongs to the previous vessel — drop it.
-              if (linkedKey.startsWith("certificate:")) setLinkedKey("");
+              if (linkedKey.startsWith("certificate:")) {setLinkedKey("");}
             }}
             className={inputClass}
             data-testid="select-task-vessel"
@@ -924,7 +924,7 @@ function TaskDetailDialog({
 
   const block = () => {
     const reason = window.prompt("Why is this task blocked?")?.trim();
-    if (reason === undefined) return;
+    if (reason === undefined) {return;}
     setStatus("blocked", reason || undefined);
   };
 
@@ -953,7 +953,7 @@ function TaskDetailDialog({
   const submitComment = (e: React.FormEvent) => {
     e.preventDefault();
     const text = comment.trim();
-    if (!text) return;
+    if (!text) {return;}
     addComment.mutate(text, {
       onSuccess: () => setComment(""),
       onError: () =>

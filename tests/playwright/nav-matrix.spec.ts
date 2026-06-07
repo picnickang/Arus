@@ -91,7 +91,7 @@ function buildTargets(): NavTarget[] {
     }
     for (const child of cat.children) {
       const resolvedChild = migrateRoute(child.href);
-      if (seen.has(resolvedChild)) continue;
+      if (seen.has(resolvedChild)) {continue;}
       seen.add(resolvedChild);
       out.push({
         label: child.name,
@@ -113,9 +113,9 @@ const NAV_TARGETS = buildTargets();
  * inherits the same blast radius — never broaden without review.
  */
 function isBenignConsoleError(text: string): boolean {
-  if (text.includes("Failed to load resource") && text.includes("favicon")) return true;
-  if (text.includes("[vite] connecting...")) return true;
-  if (text.includes("[vite] connected.")) return true;
+  if (text.includes("Failed to load resource") && text.includes("favicon")) {return true;}
+  if (text.includes("[vite] connecting...")) {return true;}
+  if (text.includes("[vite] connected.")) {return true;}
   return false;
 }
 
@@ -125,9 +125,9 @@ function attachErrorListeners(
   pageErrors: string[],
 ) {
   const onConsole = (msg: ConsoleMessage) => {
-    if (msg.type() !== "error") return;
+    if (msg.type() !== "error") {return;}
     const text = msg.text();
-    if (isBenignConsoleError(text)) return;
+    if (isBenignConsoleError(text)) {return;}
     consoleErrors.push(text);
   };
   const onPageError = (err: Error) => {
@@ -199,9 +199,9 @@ test.describe("UI nav regression matrix", () => {
           const stepConsole: string[] = [];
           const stepPage: string[] = [];
           const onConsole = (msg: ConsoleMessage) => {
-            if (msg.type() !== "error") return;
+            if (msg.type() !== "error") {return;}
             const text = msg.text();
-            if (isBenignConsoleError(text)) return;
+            if (isBenignConsoleError(text)) {return;}
             stepConsole.push(text);
           };
           const onPage = (err: Error) => {
@@ -276,8 +276,8 @@ test.describe("UI nav regression matrix", () => {
 
         if (failures.length > 0) {
           throw new Error(
-            `${failures.length} nav target(s) failed for ${role} @ ${viewport.name}:\n` +
-              failures.map((f) => `  - ${f}`).join("\n"),
+            `${failures.length} nav target(s) failed for ${role} @ ${viewport.name}:\n${
+              failures.map((f) => `  - ${f}`).join("\n")}`,
           );
         }
       });
@@ -285,7 +285,7 @@ test.describe("UI nav regression matrix", () => {
   }
 
   test.afterAll(async () => {
-    if (results.length === 0) return;
+    if (results.length === 0) {return;}
     const totalsByStatus = results.reduce<Record<string, number>>((acc, r) => {
       acc[r.status] = (acc[r.status] ?? 0) + 1;
       return acc;

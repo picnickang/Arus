@@ -35,7 +35,7 @@ const logger = createLogger("BackgroundJobs");
  * fleet-wide jobs that intentionally have no tenant scope.
  */
 function extractOrgId(data: unknown): string | undefined {
-  if (!data || typeof data !== "object") return undefined;
+  if (!data || typeof data !== "object") {return undefined;}
   const candidate = (data as Record<string, unknown>)['orgId'];
   if (typeof candidate === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) {
     return candidate;
@@ -55,7 +55,7 @@ async function ensureQueue(boss: PgBoss, queueName: string): Promise<void> {
     await boss.createQueue(queueName);
   } catch (err) {
     const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-    if (msg.includes("already exists") || msg.includes("duplicate")) return;
+    if (msg.includes("already exists") || msg.includes("duplicate")) {return;}
     throw err;
   }
 }
@@ -200,8 +200,8 @@ class BackgroundJobQueue {
   }
 
   async start(): Promise<void> {
-    if (this.started) return;
-    if (this.initPromise) return this.initPromise;
+    if (this.started) {return;}
+    if (this.initPromise) {return this.initPromise;}
 
     this.initPromise = this.initialize();
     try {
@@ -302,7 +302,7 @@ class BackgroundJobQueue {
   }
 
   private async wireHandler(type: string, handler: JobHandler<unknown>): Promise<void> {
-    if (!this.boss) return;
+    if (!this.boss) {return;}
     try {
       // pg-boss v10 uses `batchSize` for parallelism; the legacy v9
       // `teamSize`/`teamConcurrency` keys are no longer in WorkOptions.
@@ -335,7 +335,7 @@ class BackgroundJobQueue {
   ): Promise<void> {
     const { id: jobId, data } = job;
     this.counters.processing += 1;
-    if (this.counters.queued > 0) this.counters.queued -= 1;
+    if (this.counters.queued > 0) {this.counters.queued -= 1;}
     const start = Date.now();
     const recentEntry: RecentJob = {
       id: jobId,
@@ -458,7 +458,7 @@ class BackgroundJobQueue {
   }
 
   async stop(): Promise<void> {
-    if (!this.boss) return;
+    if (!this.boss) {return;}
     try {
       await this.boss.stop({ graceful: true, timeout: 5000 });
       logger.info("Background job queue stopped");

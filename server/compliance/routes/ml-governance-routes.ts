@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { z } from "zod";
 import { auditService } from "../immutable-audit.service";
 import { requireAdminAuth, auditAdminAction } from "../../security";
@@ -176,7 +176,7 @@ router.patch(
         return res.status(404).json({ error: "Engineer override not found" });
       }
       const validatedData = updateOutcomeSchema.parse(req.body);
-      const outcomeRecordedBy = (req as AuthenticatedRequest).adminId || "admin";
+      const outcomeRecordedBy = authenticatedRequest(req).adminId || "admin";
       const override = await dbMlAnalyticsStorage.updateEngineerOverride(
         id,
         { ...validatedData, outcomeRecordedBy },

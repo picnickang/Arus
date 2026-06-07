@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { jsonValueSchema } from "@shared/validation/json";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import type { AgentTaskService } from "../../application/task-service";
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SOURCES } from "../../domain/task-types";
 import type { AgentTaskFilter } from "../../domain/task-types";
@@ -38,7 +39,7 @@ const taskIdParamSchema = z.object({ id: z.string().min(1) });
 
 const taskUpdateSchema = z.object({
   status: z.string().optional(),
-  outcome: z.unknown().optional(),
+  outcome: jsonValueSchema.optional(),
   title: z.string().optional(),
   description: z.string().nullable().optional(),
   priority: z.string().optional(),
@@ -53,7 +54,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const q = tasksListQuerySchema.parse(req.query);
         const filter: AgentTaskFilter = {};
         if (q.status && (TASK_STATUSES as readonly string[]).includes(q.status)) {
@@ -65,8 +66,8 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         if (q.source && (TASK_SOURCES as readonly string[]).includes(q.source)) {
           filter.source = q.source as AgentTaskFilter["source"];
         }
-        if (q.equipmentId) filter.equipmentId = q.equipmentId;
-        if (q.vesselId) filter.vesselId = q.vesselId;
+        if (q.equipmentId) {filter.equipmentId = q.equipmentId;}
+        if (q.vesselId) {filter.vesselId = q.vesselId;}
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const tasks = await taskService.list(orgId, filter);
@@ -83,7 +84,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const parsed = taskCreateSchema.safeParse(req.body);
         if (!parsed.success) {
           return res
@@ -104,7 +105,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const counts = await taskService.countByStatus(orgId);
         return res.json(counts);
       } catch (error: unknown) {
@@ -119,7 +120,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = taskIdParamSchema.parse(req.params);
         const task = await taskService.getById(id, orgId);
         if (!task) {
@@ -138,7 +139,7 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = taskIdParamSchema.parse(req.params);
         const { status, outcome, title, description, priority } = taskUpdateSchema.parse(req.body);
         if (status && (TASK_STATUSES as readonly string[]).includes(status)) {
@@ -151,12 +152,12 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
           return res.json(task);
         }
         const updateData: Record<string, unknown> = {};
-        if (title) updateData['title'] = title;
-        if (description !== undefined) updateData['description'] = description;
+        if (title) {updateData['title'] = title;}
+        if (description !== undefined) {updateData['description'] = description;}
         if (priority && (TASK_PRIORITIES as readonly string[]).includes(priority)) {
           updateData['priority'] = priority;
         }
-        if (outcome !== undefined) updateData['outcome'] = outcome;
+        if (outcome !== undefined) {updateData['outcome'] = outcome;}
         const task = await taskService.update(id, orgId, updateData);
         return res.json(task);
       } catch (error: unknown) {

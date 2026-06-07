@@ -67,7 +67,7 @@ export async function registerFile(
       storedPath: multerFile.path,
     })
     .returning();
-  if (!record) throw new Error("Failed to register agent file");
+  if (!record) {throw new Error("Failed to register agent file");}
   return record;
 }
 

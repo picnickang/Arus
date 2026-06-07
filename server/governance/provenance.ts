@@ -31,7 +31,7 @@ async function lastHash(): Promise<string | null> {
     }
 
     const lastLine = lines[lines.length - 1];
-    if (!lastLine) return null;
+    if (!lastLine) {return null;}
     const last = JSON.parse(lastLine);
     return last.hash as string;
   } catch (error: unknown) {
@@ -396,7 +396,7 @@ export async function verifyChain(
     // Verify chain integrity
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      if (!event) continue;
+      if (!event) {continue;}
 
       // Verify hash
       const copy = { ...event };

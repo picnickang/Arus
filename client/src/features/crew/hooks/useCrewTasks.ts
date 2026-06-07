@@ -31,12 +31,12 @@ function buildListKey(filters?: CrewTaskListFilters) {
 }
 
 function buildQueryString(filters?: CrewTaskListFilters): string {
-  if (!filters) return "";
+  if (!filters) {return "";}
   const params = new URLSearchParams();
-  if (filters.vesselId) params.set("vesselId", filters.vesselId);
-  if (filters.assignedCrewId) params.set("assignedCrewId", filters.assignedCrewId);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.includeDone) params.set("includeDone", "true");
+  if (filters.vesselId) {params.set("vesselId", filters.vesselId);}
+  if (filters.assignedCrewId) {params.set("assignedCrewId", filters.assignedCrewId);}
+  if (filters.status) {params.set("status", filters.status);}
+  if (filters.includeDone) {params.set("includeDone", "true");}
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }

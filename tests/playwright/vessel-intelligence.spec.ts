@@ -36,6 +36,9 @@ function makeFixtures(options?: { viewer?: boolean }) {
 
   const activeSectionMap = {
     id: "map-full-hub-v2",
+    vesselId: "vessel-1",
+    diagramId: "diagram-side-elevation",
+    diagramVersionId: "version-3",
     name: "Full Hub v2 Section Map",
     status: "published",
     coordinateMode: sectionMap.coordinateMode,
@@ -60,6 +63,38 @@ function makeFixtures(options?: { viewer?: boolean }) {
       })),
     })),
   };
+  const draftBlankMap = {
+    ...activeSectionMap,
+    id: "map-draft-blank",
+    name: "Blank draft map",
+    status: "draft",
+    sections: [],
+  };
+  const sideElevationDiagram = {
+    id: "diagram-side-elevation",
+    diagramType: "side_elevation",
+    title: "Side Elevation - Full Hub v2",
+    status: "active",
+    activeVersionId: "version-3",
+    currentSectionMapId: activeSectionMap.id,
+    updatedAt: "2026-06-01T00:00:00.000Z",
+  };
+  const versions = [
+    {
+      id: "version-3",
+      vesselId: "vessel-1",
+      diagramId: "diagram-side-elevation",
+      versionNumber: 3,
+      status: "active",
+      originalFileName: "side-elevation.svg",
+      mimeType: "image/svg+xml",
+      fileSizeBytes: 1024,
+      uploadedBy: "admin-user",
+      uploadedAt: "2026-06-01T00:00:00.000Z",
+      mediaUrl:
+        "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions/version-3/media",
+    },
+  ];
 
   const permissions = viewer
     ? { "vessel-intelligence": { view: true } }
@@ -98,23 +133,25 @@ function makeFixtures(options?: { viewer?: boolean }) {
     "/api/pdm/dashboard": { status: "connected" },
     "/api/agent/drafts": [],
     "/api/agent/suggestions": [],
+    "/api/vessel-intelligence/section-map-templates": [
+      { id: "osv_workboat", name: "OSV / Workboat", description: "Workboat starter" },
+      { id: "ahts", name: "AHTS", description: "Anchor handler starter" },
+      { id: "psv", name: "PSV", description: "Supply vessel starter" },
+      { id: "tugboat", name: "Tugboat", description: "Tugboat starter" },
+      { id: "pilot_vessel", name: "Pilot Vessel", description: "Pilot vessel starter" },
+      { id: "crew_boat", name: "Crew Boat", description: "Crew boat starter" },
+      { id: "custom_blank", name: "Custom Blank", description: "Blank map" },
+    ],
+    "/api/vessel-intelligence/vessel-1/diagrams": [sideElevationDiagram],
+    "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation": sideElevationDiagram,
+    "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions": versions,
+    "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions/active": versions[0],
+    "/api/vessel-intelligence/vessel-1/section-maps": [activeSectionMap, draftBlankMap],
+    "/api/vessel-intelligence/vessel-1/section-maps/map-full-hub-v2": activeSectionMap,
+    "/api/vessel-intelligence/vessel-1/section-maps/map-draft-blank": draftBlankMap,
     "/api/vessel-intelligence/vessel-1/summary": {
-      diagrams: [
-        {
-          id: "diagram-side-elevation",
-          diagramType: "side_elevation",
-          title: "Side Elevation - Full Hub v2",
-          status: "active",
-          activeVersionId: "version-3",
-        },
-      ],
-      activeDiagram: {
-        id: "diagram-side-elevation",
-        diagramType: "side_elevation",
-        title: "Side Elevation - Full Hub v2",
-        status: "active",
-        activeVersionId: "version-3",
-      },
+      diagrams: [sideElevationDiagram],
+      activeDiagram: sideElevationDiagram,
       sectionMaps: [activeSectionMap],
       activeSectionMap,
       validationIssues: [],
@@ -133,6 +170,39 @@ async function installVesselFixtures(page: Page, options?: { viewer?: boolean })
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/media")) {
       await route.fulfill({ status: 200, contentType: "image/svg+xml", body: BASE_SVG });
+      return;
+    }
+    if (route.request().method() === "POST" && url.pathname.endsWith("/versions/upload")) {
+      const activeVersion = fixtures[
+        "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions"
+      ][0];
+      const draftBlankMap = fixtures[
+        "/api/vessel-intelligence/vessel-1/section-maps/map-draft-blank"
+      ];
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          version: { ...activeVersion, id: "version-4", versionNumber: 4, status: "draft" },
+          draftMap: draftBlankMap,
+          warnings: [],
+        }),
+      });
+      return;
+    }
+    if (route.request().method() === "POST" && url.pathname.endsWith("/validate")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          summary: { blockers: 0, warnings: 0, checkedAt: "2026-06-01T00:00:00.000Z" },
+          issues: [],
+        }),
+      });
+      return;
+    }
+    if (route.request().method() === "POST" && /\/(publish|archive|restore-draft)$/.test(url.pathname)) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(versions[0]) });
       return;
     }
     const body = Object.hasOwn(fixtures, url.pathname)
@@ -187,5 +257,70 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await expect(page.getByTestId("button-thumbnail-manager")).toHaveCount(0);
     await expect(page.getByTestId("diagram-replacement-options")).toHaveCount(0);
     await expect(page.getByTestId("settings-link")).toHaveCount(0);
+  });
+
+  test("admin registry controls open real screens and complete start blank replacement", async ({ page }, testInfo) => {
+    const uploadFile = testInfo.outputPath("replacement.svg");
+    fs.writeFileSync(uploadFile, BASE_SVG);
+    await installVesselFixtures(page);
+    await page.goto("/vessel-intelligence/vessel-1/diagrams", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("diagram-manager")).toBeVisible();
+    await expect(page.getByTestId("diagram-type-card-side_elevation")).toContainText("Side Elevation");
+    await page.screenshot({
+      path: testInfo.outputPath("vessel-intelligence-diagram-manager.png"),
+      fullPage: false,
+    });
+    await page.getByTestId("button-upload-replace-diagram").first().click();
+    await expect(page.getByTestId("dialog-upload-replace-diagram")).toBeVisible();
+    await expect(page.getByTestId("replacement-option-keep-existing")).toBeVisible();
+    await expect(page.getByTestId("replacement-option-start-blank")).toBeVisible();
+    await expect(page.getByTestId("replacement-option-copy-vessel")).toBeVisible();
+    await expect(page.getByTestId("replacement-option-copy-template")).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath("vessel-intelligence-upload-replace-dialog.png"),
+      fullPage: false,
+    });
+    await page.getByTestId("replacement-option-start-blank").click();
+    await page.locator("#diagram-upload-file").setInputFiles(uploadFile);
+    await page.getByTestId("button-submit-upload-replace").click();
+
+    await expect(page).toHaveURL(/section-maps\/map-draft-blank\/edit/);
+    await expect(page.getByText("No sections yet. Draw or add your first section.")).toBeVisible();
+    await expect(page.getByTestId("button-validate-map")).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath("vessel-intelligence-blank-map-editor.png"),
+      fullPage: false,
+    });
+  });
+
+  test("versions and thumbnails routes expose working registry actions", async ({ page }, testInfo) => {
+    await installVesselFixtures(page);
+    await page.goto("/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions", {
+      waitUntil: "domcontentloaded",
+    });
+
+    await expect(page.getByText("Version History")).toBeVisible();
+    await expect(page.getByText("side-elevation.svg")).toBeVisible();
+    await expect(page.getByText("Archive")).toBeVisible();
+    await expect(page.getByText("Restore as draft")).toBeVisible();
+
+    await page.goto("/vessel-intelligence/vessel-1/thumbnails", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("thumbnail-manager")).toBeVisible();
+    await expect(page.getByTestId("section-thumbnail-upload").first()).toBeVisible();
+    await expect(page.getByTestId("equipment-thumbnail-upload").first()).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath("vessel-intelligence-thumbnail-manager.png"),
+      fullPage: false,
+    });
+  });
+
+  test("viewer registry route disables mutation controls with clear reasons", async ({ page }) => {
+    await installVesselFixtures(page, { viewer: true });
+    await page.goto("/vessel-intelligence/vessel-1/diagrams", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("diagram-manager")).toBeVisible();
+    await expect(page.getByText("You can view this registry, but you do not have permission to configure diagrams.")).toBeVisible();
+    await expect(page.getByTestId("button-upload-replace-diagram").first()).toBeDisabled();
   });
 });

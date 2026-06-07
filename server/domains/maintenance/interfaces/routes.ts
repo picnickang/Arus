@@ -6,11 +6,8 @@ import {
 } from "@shared/schema-runtime";
 import { maintenanceService } from "../service";
 import { stripUndefined } from "../../../lib/strip-undefined";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -56,7 +53,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       // LR-3.5 / TEN-1: was missing `requireOrgId` and the service call
       // dropped orgId entirely, returning schedules from every tenant.
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentId, status } = schedulesListQuerySchema.parse(req.query);
       const schedules = await maintenanceService.listSchedules(orgId, equipmentId, status);
       return res.json(schedules);
@@ -70,7 +67,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling(
       "fetch upcoming maintenance schedules",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { daysAhead } = upcomingQuerySchema.parse(req.query);
 
         const schedules = await maintenanceService.getUpcomingSchedules(orgId, daysAhead ?? 30);
@@ -84,7 +81,7 @@ export function registerMaintenanceRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch maintenance schedule", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const schedule = await maintenanceService.getScheduleById(id, orgId);
 
@@ -104,7 +101,7 @@ export function registerMaintenanceRoutes(
       const scheduleData = insertMaintenanceScheduleSchema.parse(req.body);
       const schedule = await maintenanceService.createSchedule(
         scheduleData,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       sendCreated(res, schedule);
@@ -116,14 +113,14 @@ export function registerMaintenanceRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update maintenance schedule", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const scheduleData = stripUndefined(insertMaintenanceScheduleSchema.partial().parse(req.body));
       const schedule = await maintenanceService.updateSchedule(
         id,
         scheduleData,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       return res.json(schedule);
@@ -135,12 +132,12 @@ export function registerMaintenanceRoutes(
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete maintenance schedule", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       await maintenanceService.deleteSchedule(
         id,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       sendDeleted(res);
     })
@@ -162,7 +159,7 @@ export function registerMaintenanceRoutes(
       const schedule = await maintenanceService.autoScheduleForEquipment(
         equipmentId,
         parsed.data.pdmScore,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       sendCreated(res, schedule);
@@ -175,7 +172,7 @@ export function registerMaintenanceRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch maintenance templates", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentType, isActive } = templatesListQuerySchema.parse(req.query);
 
       const templates = await maintenanceService.listTemplates(
@@ -192,7 +189,7 @@ export function registerMaintenanceRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch maintenance template", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const template = await maintenanceService.getTemplateById(id, orgId);
 
@@ -212,7 +209,7 @@ export function registerMaintenanceRoutes(
       const templateData = insertMaintenanceTemplateSchema.parse(req.body);
       const template = await maintenanceService.createTemplate(
         templateData,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       sendCreated(res, template);
@@ -224,7 +221,7 @@ export function registerMaintenanceRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update maintenance template", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
       const templateData = stripUndefined(insertMaintenanceTemplateSchema.partial().parse(req.body));
@@ -232,7 +229,7 @@ export function registerMaintenanceRoutes(
         id,
         templateData,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       return res.json(template);
@@ -244,13 +241,13 @@ export function registerMaintenanceRoutes(
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete maintenance template", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
       await maintenanceService.deleteTemplate(
         id,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       sendDeleted(res);
     })

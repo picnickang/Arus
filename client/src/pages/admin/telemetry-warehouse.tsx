@@ -63,31 +63,31 @@ interface StatusResponse {
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "—";
-  if (bytes === 0) return "0 B";
+  if (!Number.isFinite(bytes) || bytes < 0) {return "—";}
+  if (bytes === 0) {return "0 B";}
   const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
 }
 
 function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "—";
-  if (ms < 1000) return `${ms} ms`;
+  if (!Number.isFinite(ms) || ms < 0) {return "—";}
+  if (ms < 1000) {return `${ms} ms`;}
   const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(1)} s`;
+  if (s < 60) {return `${s.toFixed(1)} s`;}
   const m = Math.floor(s / 60);
   const rs = Math.round(s - m * 60);
   return `${m}m ${rs}s`;
 }
 
 function statusBadge(status: WarehouseExportRunSummary["status"]) {
-  if (status === "exported") return <Badge data-testid={`badge-status-${status}`}>Exported</Badge>;
+  if (status === "exported") {return <Badge data-testid={`badge-status-${status}`}>Exported</Badge>;}
   if (status === "skipped-empty")
-    return (
+    {return (
       <Badge variant="secondary" data-testid={`badge-status-${status}`}>
         Skipped (empty)
       </Badge>
-    );
+    );}
   return (
     <Badge variant="destructive" data-testid={`badge-status-${status}`}>
       Failed
@@ -96,13 +96,13 @@ function statusBadge(status: WarehouseExportRunSummary["status"]) {
 }
 
 function findGaps(entries: WarehouseExportEntry[]): string[] {
-  if (entries.length < 2) return [];
+  if (entries.length < 2) {return [];}
   const sorted = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1));
   const gaps: string[] = [];
   const oneDay = 24 * 60 * 60 * 1000;
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(`${sorted[i - 1]!.date}T00:00:00Z`).getTime();
-    const cur = new Date(`${sorted[i]!.date}T00:00:00Z`).getTime();
+    const prev = new Date(`${sorted[i - 1].date}T00:00:00Z`).getTime();
+    const cur = new Date(`${sorted[i].date}T00:00:00Z`).getTime();
     let cursor = prev + oneDay;
     while (cursor < cur) {
       gaps.push(new Date(cursor).toISOString().slice(0, 10));

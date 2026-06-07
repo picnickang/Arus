@@ -69,7 +69,7 @@ export class DbCrewExtended {
       .insert(crewAssignmentTable)
       .values({ id: randomUUID(), ...assignment, createdAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create crew assignment");
+    if (!n) {throw new Error("Failed to create crew assignment");}
     return n;
   }
   async updateCrewAssignment(
@@ -169,7 +169,7 @@ export class DbCrewExtended {
       .insert(crewCertificationTable)
       .values({ id: randomUUID(), ...cert, createdAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create crew certification");
+    if (!n) {throw new Error("Failed to create crew certification");}
     return n;
   }
   async updateCrewCertification(
@@ -304,7 +304,7 @@ export class DbCrewExtended {
         createdAt: new Date(),
       })
       .returning();
-    if (!n) throw new Error("Failed to create crew leave");
+    if (!n) {throw new Error("Failed to create crew leave");}
     return n;
   }
   async updateCrewLeave(

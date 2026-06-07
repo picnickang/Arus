@@ -92,7 +92,7 @@ const fakeRepo = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) return obj[prop];
+      if (prop in obj) {return obj[prop];}
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
@@ -181,7 +181,7 @@ describe("hub-access route — mounted", () => {
 
 describe("PATCH hub-access — authz gate", () => {
   it("rejects a non-super-admin caller with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", "caller-fm:fleet_manager")
@@ -192,7 +192,7 @@ describe("PATCH hub-access — authz gate", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app).patch(PATH).send({ hubAdmin: true });
     expect(res.status).toBe(401);
     expect(grantCalls).toHaveLength(0);
@@ -203,7 +203,7 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   const adminHeader = "caller-admin:system_admin";
 
   it("rejects editing a super-admin target with 409 ADMIN_ROLE_PROTECTED", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     targetUser = makeUser({ role: "company_admin" });
     const res = await request(app)
       .patch(PATH)
@@ -216,7 +216,7 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("rejects granting hub-admin to a non-eligible role with 400 ROLE_NOT_ELIGIBLE", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     targetUser = makeUser({ role: "technician" });
     const res = await request(app)
       .patch(PATH)
@@ -229,7 +229,7 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("rejects an unknown hub id in the allow-list with 400 (body schema)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)
@@ -239,7 +239,7 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("returns 404 when the target user does not exist", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     targetUser = undefined;
     const res = await request(app)
       .patch(PATH)
@@ -254,7 +254,7 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   const adminHeader = "caller-admin:admin";
 
   it("persists a valid grant with a normalised partial allow-list and audits it", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)
@@ -280,7 +280,7 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   });
 
   it("collapses a full allow-list to null (= all hubs) on grant", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const { HUB_IDS } = await import("@shared/role-dashboard");
     const res = await request(app)
       .patch(PATH)
@@ -292,7 +292,7 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   });
 
   it("revokes the grant: hubAdmin=false clears the allow-list to null and audits it", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)

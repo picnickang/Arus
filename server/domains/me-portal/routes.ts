@@ -14,7 +14,7 @@ import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 
 const loginSchema = z.object({
   username: z.string().min(1).max(60),
@@ -28,7 +28,7 @@ const changePasswordSchema = z.object({
 });
 
 function resolveMeUser(req: Request): MeUser {
-  const authReq = req as AuthenticatedRequest;
+  const authReq = authenticatedRequest(req);
   const user = authReq.user;
   if (!user) {
     throw new MePortalError("Authentication required", "UNAUTHENTICATED", 401);
@@ -74,7 +74,7 @@ export function registerMePortalRoutes(
         });
         return res.json(result);
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -90,7 +90,7 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getDashboard(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -104,7 +104,7 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getPreferences(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -118,7 +118,7 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.savePreferences(resolveMeUser(req), req.body));
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -132,7 +132,7 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getTasks(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -148,7 +148,7 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getVisibleAlarms(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -180,7 +180,7 @@ export function registerMePortalRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -219,7 +219,7 @@ export function registerMePortalRoutes(
         }
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -251,7 +251,7 @@ export function registerMePortalRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) return undefined;
+        if (handleMeError(error, res)) {return undefined;}
         throw error;
       }
     }),

@@ -10,7 +10,7 @@ import type {
 export class AgentFindingRepositoryAdapter implements AgentFindingRepositoryPort {
   async create(data: InsertAgentFinding): Promise<AgentFinding> {
     const [finding] = await db.insert(agentFindings).values(data).returning();
-    if (!finding) throw new Error("Failed to create agent finding");
+    if (!finding) {throw new Error("Failed to create agent finding");}
     return finding;
   }
 
@@ -58,7 +58,7 @@ export class AgentFindingRepositoryAdapter implements AgentFindingRepositoryPort
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentFindings.id, id))
       .returning();
-    if (!finding) throw new Error(`Failed to update agent finding ${id}`);
+    if (!finding) {throw new Error(`Failed to update agent finding ${id}`);}
     return finding;
   }
 

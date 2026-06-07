@@ -191,7 +191,7 @@ export class PdfExtractor implements TextExtractor {
 
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
-      if (!table) continue;
+      if (!table) {continue;}
       const header = table.headerRow?.join(" | ") || "";
       const tableMarker = `\n[TABLE ${i + 1}: ${header}]\n`;
 

@@ -25,7 +25,7 @@ import {
   roleDashboardConfigs,
   adminSessions,
   type Role,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import {
   PROTECTED_ROLE_KEYS,
   ADMIN_CAPABLE_ROLE_KEYS,
@@ -58,7 +58,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .from(roles)
       .where(and(eq(roles.orgId, orgId), eq(roles.id, id)))
       .limit(1);
-    if (!row) return undefined;
+    if (!row) {return undefined;}
     const count = await this.countUsersForRole(orgId, row.name);
     return this.mapRole(row, count);
   }
@@ -69,7 +69,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .from(roles)
       .where(and(eq(roles.orgId, orgId), eq(roles.name, name)))
       .limit(1);
-    if (!row) return undefined;
+    if (!row) {return undefined;}
     const count = await this.countUsersForRole(orgId, row.name);
     return this.mapRole(row, count);
   }
@@ -100,18 +100,18 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     patch: UpdateRoleCommand,
   ): Promise<RoleSummary | undefined> {
     const updateValues: Partial<typeof roles.$inferInsert> = { updatedAt: new Date() };
-    if (patch.displayName !== undefined) updateValues.displayName = patch.displayName;
-    if (patch.description !== undefined) updateValues.description = patch.description;
-    if (patch.department !== undefined) updateValues.department = patch.department;
-    if (patch.hierarchyLevel !== undefined) updateValues.hierarchyLevel = patch.hierarchyLevel;
-    if (patch.isActive !== undefined) updateValues.isActive = patch.isActive;
+    if (patch.displayName !== undefined) {updateValues.displayName = patch.displayName;}
+    if (patch.description !== undefined) {updateValues.description = patch.description;}
+    if (patch.department !== undefined) {updateValues.department = patch.department;}
+    if (patch.hierarchyLevel !== undefined) {updateValues.hierarchyLevel = patch.hierarchyLevel;}
+    if (patch.isActive !== undefined) {updateValues.isActive = patch.isActive;}
 
     const [updated] = await db
       .update(roles)
       .set(updateValues)
       .where(and(eq(roles.orgId, orgId), eq(roles.id, id)))
       .returning();
-    if (!updated) return undefined;
+    if (!updated) {return undefined;}
     const count = await this.countUsersForRole(orgId, updated.name);
     return this.mapRole(updated, count);
   }
@@ -131,7 +131,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .set({ hubAdmin, hubAccess, updatedAt: new Date() })
       .where(and(eq(roles.orgId, orgId), eq(roles.id, id)))
       .returning();
-    if (!updated) return undefined;
+    if (!updated) {return undefined;}
     const count = await this.countUsersForRole(orgId, updated.name);
     return this.mapRole(updated, count);
   }
@@ -146,7 +146,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
         and(eq(roleDashboardConfigs.orgId, orgId), eq(roleDashboardConfigs.roleId, roleId)),
       )
       .limit(1);
-    if (!row) return undefined;
+    if (!row) {return undefined;}
     return this.parseConfig(row.configJson);
   }
 
@@ -198,7 +198,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
 
   async listUsers(orgId: string): Promise<CrewUserSummary[]> {
     const userRows = await db.select().from(users).where(eq(users.orgId, orgId));
-    if (userRows.length === 0) return [];
+    if (userRows.length === 0) {return [];}
     const ids = userRows.map((row) => row.id);
     const assignmentRows = await db
       .select()
@@ -238,7 +238,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .where(and(eq(crew.orgId, orgId), inArray(crew.userId, ids)));
     const crewByUser = new Map<string, { id: string; name: string }>();
     for (const row of crewRows) {
-      if (row.userId) crewByUser.set(row.userId, { id: row.crewId, name: row.crewName });
+      if (row.userId) {crewByUser.set(row.userId, { id: row.crewId, name: row.crewName });}
     }
     return userRows.map((row) =>
       this.mapUser(
@@ -256,7 +256,7 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
       .from(users)
       .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
       .limit(1);
-    if (!row) return undefined;
+    if (!row) {return undefined;}
     const assignments = await this.getAssignments(orgId, userId);
     const assignedRoleNames = await this.listAssignedRoleNames(orgId, userId);
     const linkedCrew = await this.findCrewByUserId(orgId, userId);
@@ -422,12 +422,12 @@ export class CrewAdminRepositoryAdapter implements ICrewAdminRepository {
     patch: { username?: string; passwordHash?: string; loginEnabled?: boolean },
   ): Promise<void> {
     const updateValues: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
-    if (patch.username !== undefined) updateValues.username = patch.username;
+    if (patch.username !== undefined) {updateValues.username = patch.username;}
     if (patch.passwordHash !== undefined) {
       updateValues.passwordHash = patch.passwordHash;
       updateValues.passwordUpdatedAt = new Date();
     }
-    if (patch.loginEnabled !== undefined) updateValues.loginEnabled = patch.loginEnabled;
+    if (patch.loginEnabled !== undefined) {updateValues.loginEnabled = patch.loginEnabled;}
     await db
       .update(users)
       .set(updateValues)

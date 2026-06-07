@@ -7,7 +7,7 @@
 import type { Express } from "express";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { dbMlAnalyticsStorage } from "../../../db/ml-analytics/index.js";
 import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
 
@@ -17,7 +17,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
   app.get(
     "/api/analytics/export/ml-models",
     withErrorHandling("export ML models", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, format = "json" } = req.query;
 
       const models = await dbMlAnalyticsStorage.getMlModels(orgId as string);
 
@@ -84,7 +84,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
     "/api/analytics/export/telemetry",
     withErrorHandling("export telemetry", async (req, res) => {
       const {
-        orgId = (req as AuthenticatedRequest).orgId,
+        orgId = authenticatedRequest(req).orgId,
         equipmentId,
         startDate,
         endDate,
@@ -145,7 +145,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
   app.get(
     "/api/analytics/export/predictions",
     withErrorHandling("export predictions", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, format = "json" } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, format = "json" } = req.query;
 
       const predictions = await dbMlAnalyticsStorage.getFailurePredictions(orgId as string);
 

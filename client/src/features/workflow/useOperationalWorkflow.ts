@@ -5,7 +5,7 @@ import type {
   AttentionItem,
   AttentionWorkflowResponse,
   WorkflowQueue,
-  WorkOrderRecord,
+  WorkflowWorkOrderRecord,
   WorkflowSeverity,
 } from "./types";
 
@@ -24,7 +24,7 @@ function numeric(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function normalizeWorkOrders(data: unknown): WorkOrderRecord[] {
+function normalizeWorkOrders(data: unknown): WorkflowWorkOrderRecord[] {
   if (!Array.isArray(data)) {
     return [];
   }
@@ -96,7 +96,7 @@ const emptyHandover: AttentionHandoverSummary = {
   suggestedSummary: [],
 };
 
-function fallbackQueues(summary: AttentionSummary | undefined, workOrders: WorkOrderRecord[]): WorkflowQueue[] {
+function fallbackQueues(summary: AttentionSummary | undefined, workOrders: WorkflowWorkOrderRecord[]): WorkflowQueue[] {
   const overdue = numeric(summary?.overdueWorkOrders);
   const alerts = numeric(summary?.unacknowledgedAlerts);
   const highRisk = numeric(summary?.highRiskEquipment);
@@ -177,7 +177,7 @@ function fallbackQueues(summary: AttentionSummary | undefined, workOrders: WorkO
   ];
 }
 
-function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrders: WorkOrderRecord[]): AttentionItem[] {
+function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrders: WorkflowWorkOrderRecord[]): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   const overdue = numeric(summary?.overdueWorkOrders);

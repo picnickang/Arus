@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Activity, ArrowRight, CheckCircle2, Loader2, ShieldCheck, Smartphone, Target, Users } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, ShieldCheck, Smartphone, Target, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,9 @@ import type { OperatorRole } from "../types";
 const DEFAULT_ROLE: OperatorRole = "chief_engineer";
 
 function priorityVariant(priority: string): "default" | "secondary" | "destructive" | "outline" {
-  if (priority === "immediate") return "destructive";
-  if (priority === "urgent") return "secondary";
-  if (priority === "soon") return "outline";
+  if (priority === "immediate") {return "destructive";}
+  if (priority === "urgent") {return "secondary";}
+  if (priority === "soon") {return "outline";}
   return "default";
 }
 
@@ -40,7 +40,7 @@ export default function OperatorExperiencePage() {
   }, [role, location]);
 
   const weakestPillar = useMemo(() => {
-    if (!brief?.pillarScores.length) return null;
+    if (!brief?.pillarScores.length) {return null;}
     return [...brief.pillarScores].sort((a, b) => a.score - b.score)[0];
   }, [brief]);
 

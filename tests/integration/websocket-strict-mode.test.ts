@@ -16,7 +16,7 @@
  * delivery" called out in the task's done-looks-like.
  */
 
-import { jest } from "@jest/globals";
+import { beforeAll, jest } from "@jest/globals";
 import { createServer, Server } from "node:http";
 import { AddressInfo } from "node:net";
 import crypto from "node:crypto";
@@ -40,7 +40,7 @@ const users = new Map<string, { id: string; orgId: string; isActive: boolean }>(
   ["user-b", { id: "user-b", orgId: ORG_B, isActive: true }],
 ]);
 
-jest.mock("../../server/repositories", () => ({
+jest.unstable_mockModule("../../server/repositories", () => ({
   dbAlertStorage: {
     getAlertNotifications: jest.fn(async () => []),
   },
@@ -57,16 +57,22 @@ jest.mock("../../server/repositories", () => ({
 process.env.REQUIRE_TENANT_AUTH = "true";
 process.env.NODE_ENV = "production";
 
-// Imports must be after env + jest.mock setup.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { TelemetryWebSocketServer } = require("../../server/websocket");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const {
-  InProcessFanoutBus,
-  SYSTEM_ORG_ID,
-} = require("../../server/websocket-fanout");
+// Imports must be after env + unstable_mockModule setup.
+type TelemetryWebSocketServerType =
+  typeof import("../../server/websocket").TelemetryWebSocketServer;
+type InProcessFanoutBusType =
+  typeof import("../../server/websocket-fanout").InProcessFanoutBus;
 
-type AnyTws = InstanceType<typeof TelemetryWebSocketServer>;
+let TelemetryWebSocketServer: TelemetryWebSocketServerType;
+let InProcessFanoutBus: InProcessFanoutBusType;
+let SYSTEM_ORG_ID: string;
+
+beforeAll(async () => {
+  ({ TelemetryWebSocketServer } = await import("../../server/websocket"));
+  ({ InProcessFanoutBus, SYSTEM_ORG_ID } = await import("../../server/websocket-fanout"));
+});
+
+type AnyTws = InstanceType<TelemetryWebSocketServerType>;
 
 interface Harness {
   http: Server;
@@ -116,7 +122,7 @@ function collectFrames(ws: WebSocket): { frames: Array<Record<string, unknown>> 
   ws.on("message", (data) => {
     try {
       const parsed = JSON.parse(data.toString());
-      if (parsed.type === "connection" || parsed.type === "pong") return;
+      if (parsed.type === "connection" || parsed.type === "pong") {return;}
       frames.push(parsed);
     } catch {
       /* ignore non-json frames */
@@ -127,6 +133,14 @@ function collectFrames(ws: WebSocket): { frames: Array<Record<string, unknown>> 
 
 async function settle(ms = 60): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
+}
+
+async function closeSocket(ws: WebSocket): Promise<void> {
+  if (ws.readyState === WebSocket.CLOSED) {return;}
+  await new Promise<void>((resolve) => {
+    ws.once("close", () => resolve());
+    ws.close();
+  });
 }
 
 describe("websocket strict mode / cross-tenant isolation", () => {
@@ -141,7 +155,7 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     await teardown(h);
   });
 
-  test("without strict mode, a SYSTEM_ORG_ID broadcast still reaches both tenants (legacy behaviour)", async () => {
+  test("production default drops SYSTEM_ORG_ID broadcasts unless strict mode is explicitly disabled", async () => {
     delete process.env.WS_TENANT_STRICT_MODE;
     const a = await connect(h.port, TOKEN_A);
     const b = await connect(h.port, TOKEN_B);
@@ -155,11 +169,10 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     h.wsServer.broadcast("updates", { type: "ping", data: { hello: "world" } });
     await settle();
 
-    expect(aCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(true);
-    expect(bCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(true);
+    expect(aCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(false);
+    expect(bCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(false);
 
-    a.close();
-    b.close();
+    await Promise.all([closeSocket(a), closeSocket(b)]);
   });
 
   test("strict mode drops SYSTEM_ORG_ID broadcasts — neither tenant receives them", async () => {
@@ -183,8 +196,7 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     expect(aCap.frames).toEqual([]);
     expect(bCap.frames).toEqual([]);
 
-    a.close();
-    b.close();
+    await Promise.all([closeSocket(a), closeSocket(b)]);
   });
 
   test("strict mode: a tenant-scoped event reaches only that tenant's client", async () => {
@@ -209,7 +221,6 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     expect(bSawA).toBe(false);
     expect(bCap.frames).toEqual([]);
 
-    a.close();
-    b.close();
+    await Promise.all([closeSocket(a), closeSocket(b)]);
   });
 });

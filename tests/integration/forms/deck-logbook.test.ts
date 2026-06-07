@@ -43,7 +43,7 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
   });
 
   it("entry is fetchable via GET /api/logbook/deck/daily/:id", async () => {
-    if (!entryId) return;
+    if (!entryId) {return;}
     const { status, data } = await api<{ id: string }>(
       "GET",
       `/api/logbook/deck/daily/${entryId}`
@@ -53,7 +53,7 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
   });
 
   it("entry appears in vessel-scoped list", async () => {
-    if (!entryId) return;
+    if (!entryId) {return;}
     const { status, data } = await api<unknown>(
       "GET",
       `/api/logbook/deck/daily?vesselId=${vesselId}`

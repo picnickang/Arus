@@ -1,13 +1,27 @@
 import express, { type RequestHandler } from "express";
 import request from "supertest";
-import { describe, expect, it, beforeEach } from "@jest/globals";
-import { registerVesselDiagramRegistryRoutes } from "../../server/domains/vessel-diagram-registry/interfaces/routes";
+import { describe, expect, it, beforeAll, beforeEach, jest } from "@jest/globals";
+import type { registerVesselDiagramRegistryRoutes as registerVesselDiagramRegistryRoutesType } from "../../server/domains/vessel-diagram-registry/interfaces/routes";
 import { VesselDiagramRegistryService } from "../../server/domains/vessel-diagram-registry/application/service";
 import { InMemoryVesselDiagramRegistryStore } from "../../server/domains/vessel-diagram-registry/infrastructure/in-memory-store";
 import { InMemoryVesselRegistryMediaStore } from "../../server/domains/vessel-diagram-registry/infrastructure/in-memory-media-store";
 
+jest.unstable_mockModule(
+  "../../server/domains/vessel-diagram-registry/infrastructure/postgres-store",
+  () => ({
+    postgresVesselDiagramRegistryStore: {},
+  })
+);
+
+jest.unstable_mockModule("../../server/lib/permissions/middleware.js", () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
+let registerVesselDiagramRegistryRoutes: typeof registerVesselDiagramRegistryRoutesType;
+
 const ORG_ID = "org-test";
 const VESSEL_ID = "vessel-test";
+const OTHER_VESSEL_ID = "vessel-other";
 const limit: RequestHandler = (_req, _res, next) => next();
 const auth: RequestHandler = (req, _res, next) => {
   req.user = {
@@ -69,8 +83,35 @@ function sampleSection() {
   };
 }
 
+async function createDiagram(app: express.Express, title = "General arrangement") {
+  return request(app)
+    .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams`)
+    .send({
+      diagramType: "side_elevation",
+      title,
+    })
+    .expect(201);
+}
+
+function svgUploadBody(overrides: Record<string, unknown> = {}) {
+  return {
+    originalFileName: "general-arrangement.svg",
+    mimeType: "image/svg+xml",
+    contentBase64: Buffer.from(
+      `<svg viewBox="0 0 895 420"><path d="M0 0h10v10z"/></svg>`
+    ).toString("base64"),
+    ...overrides,
+  };
+}
+
 describe("vessel diagram registry routes", () => {
   let app: express.Express;
+
+  beforeAll(async () => {
+    ({ registerVesselDiagramRegistryRoutes } = await import(
+      "../../server/domains/vessel-diagram-registry/interfaces/routes"
+    ));
+  });
 
   beforeEach(() => {
     ({ app } = buildApp());
@@ -233,5 +274,257 @@ describe("vessel diagram registry routes", () => {
       .expect((res) => {
         expect(res.body).toHaveLength(0);
       });
+  });
+
+  it("creates draft maps for all four replacement behaviors", async () => {
+    const diagram = await createDiagram(app, "Replacement behavior diagram");
+    const baseVersion = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody())
+      .expect(201);
+
+    const activeMap = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/section-maps`)
+      .send({
+        name: "Existing map",
+        diagramId: diagram.body.id,
+        diagramVersionId: baseVersion.body.id,
+        sections: [sampleSection()],
+      })
+      .expect(201);
+
+    const keepExisting = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody({ replacementBehavior: "keep_existing" }))
+      .expect(201);
+
+    expect(keepExisting.body.version.status).toBe("draft");
+    expect(keepExisting.body.draftMap.sourceMapId).toBe(activeMap.body.id);
+    expect(keepExisting.body.draftMap.sections).toHaveLength(1);
+    expect(keepExisting.body.warnings[0]).toContain("draft overlay");
+
+    const startBlank = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody({ replacementBehavior: "start_blank" }))
+      .expect(201);
+
+    expect(startBlank.body.draftMap.sections).toHaveLength(0);
+
+    const copyVessel = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(
+        svgUploadBody({
+          replacementBehavior: "copy_vessel",
+          sourceVesselId: VESSEL_ID,
+          sourceMapId: activeMap.body.id,
+        })
+      )
+      .expect(201);
+
+    expect(copyVessel.body.draftMap.sourceMapId).toBe(activeMap.body.id);
+    expect(copyVessel.body.draftMap.sections[0].equipment).toHaveLength(0);
+    expect(copyVessel.body.warnings[0]).toContain("Equipment assignments");
+
+    await request(app)
+      .get("/api/vessel-intelligence/section-map-templates")
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.map((template: { id: string }) => template.id)).toEqual(
+          expect.arrayContaining(["osv_workboat", "ahts", "psv", "tugboat", "pilot_vessel", "crew_boat", "custom_blank"])
+        );
+      });
+
+    const copyTemplate = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody({ replacementBehavior: "copy_template", templateId: "tugboat" }))
+      .expect(201);
+
+    expect(copyTemplate.body.draftMap.sections.length).toBeGreaterThan(0);
+    expect(copyTemplate.body.draftMap.sections[0].sectionKey).toContain("tug");
+  });
+
+  it("publishes, archives, restores, and fetches active diagram versions", async () => {
+    const diagram = await createDiagram(app, "Version lifecycle diagram");
+    const upload = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody())
+      .expect(201);
+
+    await request(app)
+      .post(
+        `/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/${upload.body.id}/publish`
+      )
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe("active");
+      });
+
+    await request(app)
+      .get(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/active`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe(upload.body.id);
+      });
+
+    await request(app)
+      .post(
+        `/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/${upload.body.id}/archive`
+      )
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe("archived");
+      });
+
+    await request(app)
+      .post(
+        `/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/${upload.body.id}/restore-draft`
+      )
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe("draft");
+      });
+  });
+
+  it("supports section map edit, validation, export, assignment, and thumbnail alias flows", async () => {
+    const diagram = await createDiagram(app, "Editable map diagram");
+    const upload = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody())
+      .expect(201);
+    const map = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/section-maps`)
+      .send({
+        name: "Editable map",
+        diagramId: diagram.body.id,
+        diagramVersionId: upload.body.id,
+      })
+      .expect(201);
+
+    const section = await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections`)
+      .send(sampleSection())
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`)
+      .send({ name: "Updated Engine Room", color: "#38bdf8" })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.name).toBe("Updated Engine Room");
+      });
+
+    await request(app)
+      .put(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`)
+      .send({
+        polygonNormalized: [
+          { x: 0.1, y: 0.1 },
+          { x: 0.4, y: 0.1 },
+          { x: 0.4, y: 0.3 },
+          { x: 0.1, y: 0.3 },
+        ],
+        labelNormalized: { x: 0.25, y: 0.2 },
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.polygonNormalized).toHaveLength(4);
+      });
+
+    const assignment = await request(app)
+      .post(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/equipment`
+      )
+      .send({ equipmentName: "Updated Pump", assetCode: "P-01" })
+      .expect(201);
+
+    await request(app)
+      .get(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/equipment-assignments`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ equipmentName: "Updated Pump" }),
+          ])
+        );
+      });
+
+    await request(app)
+      .patch(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/equipment/${assignment.body.id}`
+      )
+      .send({ system: "Bilge" })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.system).toBe("Bilge");
+      });
+
+    await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/sections/${section.body.id}/thumbnail`)
+      .send({
+        originalFileName: "section.png",
+        mimeType: "image/png",
+        contentBase64: PNG_1X1.toString("base64"),
+      })
+      .expect(201);
+
+    await request(app)
+      .delete(`/api/vessel-intelligence/${VESSEL_ID}/sections/${section.body.id}/thumbnail`)
+      .expect(204);
+
+    await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/equipment/equipment-1/thumbnail`)
+      .send({
+        originalFileName: "equipment.png",
+        mimeType: "image/png",
+        contentBase64: PNG_1X1.toString("base64"),
+      })
+      .expect(201);
+
+    await request(app)
+      .delete(`/api/vessel-intelligence/${VESSEL_ID}/equipment/equipment-1/thumbnail`)
+      .expect(204);
+
+    await request(app)
+      .post(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/validate`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.summary.blockers).toBe(0);
+      });
+
+    await request(app)
+      .get(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/export`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.id).toBe(map.body.id);
+      });
+
+    await request(app)
+      .delete(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/equipment/${assignment.body.id}`
+      )
+      .expect(204);
+
+    await request(app)
+      .delete(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`)
+      .expect(200);
+
+    await request(app)
+      .delete(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`)
+      .expect(204);
+
+    await request(app)
+      .delete(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}`)
+      .expect(204);
+  });
+
+  it("blocks cross-vessel registry access", async () => {
+    const diagram = await createDiagram(app, "Tenant isolation diagram");
+    await request(app)
+      .get(`/api/vessel-intelligence/${OTHER_VESSEL_ID}/diagrams/${diagram.body.id}`)
+      .expect(404);
+
+    await request(app)
+      .post(`/api/vessel-intelligence/${OTHER_VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .send(svgUploadBody())
+      .expect(404);
   });
 });

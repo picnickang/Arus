@@ -162,7 +162,7 @@ export function UnifiedCrewManagement({
 
   const taskCrewNames = useMemo(() => {
     const map = new Map<string, string>();
-    for (const c of d.crew) map.set(c.id, c.name);
+    for (const c of d.crew) {map.set(c.id, c.name);}
     return map;
   }, [d.crew]);
 
@@ -309,7 +309,7 @@ export function UnifiedCrewManagement({
             initialTaskId={deepLinkTaskId}
             onOpenCrewProfile={(crewId) => {
               const member = d.crew.find((c) => c.id === crewId);
-              if (member) d.handleViewProfile(member);
+              if (member) {d.handleViewProfile(member);}
             }}
             onBack={() => setLocation("/crew-management")}
           />
@@ -404,21 +404,21 @@ export function UnifiedCrewManagement({
             canManage={perms.canManageCrew}
             onEdit={() => {
               const member = d.viewingCrew;
-              if (!member) return;
+              if (!member) {return;}
               setCrewFormInitialStep(0);
               d.closeProfileDialog();
               d.handleEditCrew(member);
             }}
             onAssign={() => {
               const member = d.viewingCrew;
-              if (!member) return;
+              if (!member) {return;}
               setCrewFormInitialStep(1);
               d.closeProfileDialog();
               d.handleEditCrew(member);
             }}
             onArchive={() => {
               const member = d.viewingCrew;
-              if (!member) return;
+              if (!member) {return;}
               d.closeProfileDialog();
               lifecycle.open(
                 "retire",

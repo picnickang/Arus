@@ -4,6 +4,7 @@ import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   useCreateMutation,
   useUpdateMutation,
@@ -30,6 +31,7 @@ interface WipeDataResult {
 
 export function useVesselManagementData() {
   const { toast } = useToast();
+  const { currentOrgId } = useOrganization();
   const queryClient = useQueryClient();
 
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
@@ -69,7 +71,7 @@ export function useVesselManagementData() {
 
   const exportVesselMutation = useCustomMutation<string, VesselExportData>({
     mutationFn: (id: string) =>
-      apiRequest("GET", `/api/vessels/${id}/export`, undefined, { headers: { "x-org-id": "default-org-id" } }),
+      apiRequest("GET", `/api/vessels/${id}/export`),
     invalidateKeys: [],
     onSuccess: ((data: unknown, vesselId: string) => {
       const success = exportToJSON(data, {
@@ -88,7 +90,7 @@ export function useVesselManagementData() {
 
   const importVesselMutation = useCustomMutation<VesselExportData, VesselImportResult>({
     mutationFn: (data: VesselExportData) =>
-      apiRequest("POST", `/api/vessels/import`, data, { headers: { "x-org-id": "default-org-id" } }),
+      apiRequest("POST", `/api/vessels/import`, data),
     invalidateKeys: [["/api/vessels"], ["/api/equipment"], ["/api/crew"]],
     onSuccess: (result) =>
       `Imported ${result.equipmentCount} equipment and ${result.crewCount} crew members`,
@@ -123,7 +125,7 @@ export function useVesselManagementData() {
   const form = useForm({
     resolver: zodResolver(insertVesselSchema),
     defaultValues: {
-      orgId: "default-org-id",
+      orgId: currentOrgId ?? "",
       name: "",
       vesselClass: "",
       condition: "good",
@@ -135,7 +137,7 @@ export function useVesselManagementData() {
   const editForm = useForm({
     resolver: zodResolver(insertVesselSchema),
     defaultValues: {
-      orgId: "default-org-id",
+      orgId: currentOrgId ?? "",
       name: "",
       vesselClass: "",
       condition: "good",

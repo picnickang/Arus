@@ -3,7 +3,6 @@
  */
 
 import { eq, and, sql, type SQL } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
@@ -44,7 +43,7 @@ export class DatabaseGdprStorage {
   }
   async createDataSubjectRequest(request: InsertDataSubjectRequest): Promise<DataSubjectRequest> {
     const [n] = await db.insert(dataSubjectRequests).values(request).returning();
-    if (!n) throw new Error("Failed to create data subject request");
+    if (!n) {throw new Error("Failed to create data subject request");}
     return n;
   }
   async updateDataSubjectRequest(
@@ -86,9 +85,8 @@ export class DatabaseGdprStorage {
     return u;
   }
   async getDataSubjectRequestsByEmail(email: string): Promise<DataSubjectRequest[]> {
-    const col = tableColumns(dataSubjectRequests)
-      ['subjectEmail'];
-    if (!col) return [];
+    const col = tableColumns(dataSubjectRequests)['subjectEmail'];
+    if (!col) {return [];}
     return db
       .select()
       .from(dataSubjectRequests)
@@ -286,9 +284,8 @@ export class DatabaseGdprStorage {
       conditions.push(eq(engineerOverrides.overrideType, overrideType));
     }
     if (isActive !== undefined) {
-      const col = tableColumns(engineerOverrides)
-        ['isActive'];
-      if (col) conditions.push(eq(col, isActive));
+      const col = tableColumns(engineerOverrides)['isActive'];
+      if (col) {conditions.push(eq(col, isActive));}
     }
     const query = conditions.length > 0
       ? db.select().from(engineerOverrides).where(and(...conditions))
@@ -301,7 +298,7 @@ export class DatabaseGdprStorage {
   }
   async createMlEngineerOverride(override: InsertEngineerOverride): Promise<EngineerOverride> {
     const [n] = await db.insert(engineerOverrides).values(override).returning();
-    if (!n) throw new Error("Failed to create engineer override");
+    if (!n) {throw new Error("Failed to create engineer override");}
     return n;
   }
   async updateMlEngineerOverride(
@@ -322,10 +319,9 @@ export class DatabaseGdprStorage {
     await db.delete(engineerOverrides).where(eq(engineerOverrides.id, id));
   }
   async getActiveOverridesForEquipment(equipmentId: string): Promise<EngineerOverride[]> {
-    const isActiveCol = tableColumns(engineerOverrides)
-      ['isActive'];
+    const isActiveCol = tableColumns(engineerOverrides)['isActive'];
     const c: SQL[] = [eq(engineerOverrides.equipmentId, equipmentId)];
-    if (isActiveCol) c.push(eq(isActiveCol, true));
+    if (isActiveCol) {c.push(eq(isActiveCol, true));}
     return db
       .select()
       .from(engineerOverrides)

@@ -22,9 +22,9 @@ import rateLimit from "express-rate-limit";
  */
 function maxFromEnv(envVar: string, productionDefault: number): number {
   const raw = process.env[envVar];
-  if (!raw) return productionDefault;
+  if (!raw) {return productionDefault;}
   const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return productionDefault;
+  if (!Number.isFinite(parsed) || parsed <= 0) {return productionDefault;}
   return parsed;
 }
 

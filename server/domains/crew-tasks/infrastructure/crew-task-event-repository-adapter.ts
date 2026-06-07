@@ -14,7 +14,7 @@ import {
   crewTaskEvents,
   type CrewTaskEvent,
   type InsertCrewTaskEvent,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { and, asc, eq } from "drizzle-orm";
 
 export class CrewTaskEventRepositoryAdapter

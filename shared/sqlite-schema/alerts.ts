@@ -67,6 +67,7 @@ export const alertSuppressionsSqlite = sqliteTable(
     orgId: text("org_id").notNull(),
     alertConfigId: text("alert_config_id"),
     equipmentId: text("equipment_id"),
+    alertType: text("alert_type"),
     suppressionType: text("suppression_type").notNull(),
     reason: text("reason"),
     startTime: integer("start_time", { mode: "timestamp" }).notNull(),

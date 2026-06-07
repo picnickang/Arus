@@ -89,7 +89,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
           windowDays,
         })
         .returning();
-      if (!result) throw new Error("Failed to insert drift metric");
+      if (!result) {throw new Error("Failed to insert drift metric");}
       results.push(result);
     }
 

@@ -32,7 +32,7 @@ import { db } from "./db";
 import {
   predictionExplanations,
   featureImportances as featureImportancesTable,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { createLogger } from "./lib/structured-logger";
 
 const logger = createLogger("MlExplainability");
@@ -93,18 +93,18 @@ function coerceProb(value: unknown): number {
   }
   if (value && typeof value === "object") {
     const v = value as { failureRisk?: number; failureProbability?: number };
-    if (typeof v.failureRisk === "number") return coerceProb(v.failureRisk);
-    if (typeof v.failureProbability === "number") return coerceProb(v.failureProbability);
+    if (typeof v.failureRisk === "number") {return coerceProb(v.failureRisk);}
+    if (typeof v.failureProbability === "number") {return coerceProb(v.failureProbability);}
   }
   return 0.1;
 }
 
 function extractFeatureMap(input: unknown): Record<string, number> {
-  if (!input || typeof input !== "object") return {};
+  if (!input || typeof input !== "object") {return {};}
   const candidate = (input as { features?: unknown }).features ?? input;
   const out: Record<string, number> = {};
   for (const [k, v] of Object.entries(candidate as Record<string, unknown>)) {
-    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+    if (typeof v === "number" && Number.isFinite(v)) {out[k] = v;}
   }
   return out;
 }
@@ -125,7 +125,7 @@ async function permutationImportance(
 
   for (const [name, currentValue] of Object.entries(features)) {
     const baseline = DEFAULT_BASELINES[name] ?? 0;
-    if (baseline === currentValue) continue;
+    if (baseline === currentValue) {continue;}
     const perturbed = { ...features, [name]: baseline };
     let withoutProb: number;
     try {
@@ -138,7 +138,7 @@ async function permutationImportance(
       continue;
     }
     const delta = baselineProb - withoutProb;
-    if (!Number.isFinite(delta) || Math.abs(delta) < 1e-6) continue;
+    if (!Number.isFinite(delta) || Math.abs(delta) < 1e-6) {continue;}
     results.push({
       feature: name,
       delta: Math.abs(delta),
@@ -173,7 +173,7 @@ export async function explainLSTMPrediction(
 
   const m = model as PredictableModel;
   const predictFn = (f: Record<string, number>): number => {
-    if (typeof m.predict === "function") return coerceProb(m.predict(f));
+    if (typeof m.predict === "function") {return coerceProb(m.predict(f));}
     return 0.1;
   };
 
@@ -234,9 +234,9 @@ export async function explainXGBoostPrediction(
 
   const m = model as PredictableModel & Partial<AsyncPredictableModel>;
   const predictFn = async (f: Record<string, number>): Promise<number> => {
-    if (typeof m.predict !== "function") return 0.1;
+    if (typeof m.predict !== "function") {return 0.1;}
     const out = m.predict(f) as number | Promise<number> | { failureProbability?: number };
-    if (out instanceof Promise) return coerceProb(await out);
+    if (out instanceof Promise) {return coerceProb(await out);}
     return coerceProb(out);
   };
 
@@ -256,7 +256,7 @@ export async function storeFeatureImportances(
   explanation: Explanation,
   ctx: StoreContext
 ): Promise<void> {
-  if (!explanation.topFeatures.length) return;
+  if (!explanation.topFeatures.length) {return;}
 
   const predictionIdNum =
     typeof ctx.failurePredictionId === "number"

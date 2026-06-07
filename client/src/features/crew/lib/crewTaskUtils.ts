@@ -69,17 +69,17 @@ export function isActive(task: CrewTaskView): boolean {
  * `now` is injectable so tests are deterministic.
  */
 export function isOverdue(task: CrewTaskView, now: Date = new Date()): boolean {
-  if (isDone(task) || !task.dueDate) return false;
+  if (isDone(task) || !task.dueDate) {return false;}
   const due = new Date(task.dueDate);
-  if (Number.isNaN(due.getTime())) return false;
+  if (Number.isNaN(due.getTime())) {return false;}
   return due.getTime() < now.getTime();
 }
 
 /** Due within the next 7 days (and not already overdue / done). */
 export function isDueThisWeek(task: CrewTaskView, now: Date = new Date()): boolean {
-  if (isDone(task) || !task.dueDate) return false;
+  if (isDone(task) || !task.dueDate) {return false;}
   const due = new Date(task.dueDate);
-  if (Number.isNaN(due.getTime())) return false;
+  if (Number.isNaN(due.getTime())) {return false;}
   const ms = due.getTime() - now.getTime();
   const week = 7 * 24 * 60 * 60 * 1000;
   return ms >= 0 && ms <= week;
@@ -105,10 +105,10 @@ export function countTasks(
   let dueThisWeek = 0;
   let blocked = 0;
   for (const task of tasks) {
-    if (isActive(task)) active += 1;
-    if (isOverdue(task, now)) overdue += 1;
-    if (isDueThisWeek(task, now)) dueThisWeek += 1;
-    if (isBlocked(task)) blocked += 1;
+    if (isActive(task)) {active += 1;}
+    if (isOverdue(task, now)) {overdue += 1;}
+    if (isDueThisWeek(task, now)) {dueThisWeek += 1;}
+    if (isBlocked(task)) {blocked += 1;}
   }
   return { active, overdue, dueThisWeek, blocked };
 }
@@ -124,14 +124,14 @@ export function sortTasks(
   return [...tasks].sort((a, b) => {
     const aOverdue = isOverdue(a, now) ? 0 : 1;
     const bOverdue = isOverdue(b, now) ? 0 : 1;
-    if (aOverdue !== bOverdue) return aOverdue - bOverdue;
+    if (aOverdue !== bOverdue) {return aOverdue - bOverdue;}
 
     const byPriority = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    if (byPriority !== 0) return byPriority;
+    if (byPriority !== 0) {return byPriority;}
 
     const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
     const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-    if (aDue !== bDue) return aDue - bDue;
+    if (aDue !== bDue) {return aDue - bDue;}
 
     return a.title.localeCompare(b.title);
   });
@@ -154,14 +154,14 @@ export function filterTasks(
   const { filter, search, myTaskIds, vesselId, now = new Date() } = options;
   const query = (search ?? "").trim().toLowerCase();
   return tasks.filter((task) => {
-    if (filter === "mine" && !(myTaskIds?.has(task.id) ?? false)) return false;
-    if (filter === "overdue" && !isOverdue(task, now)) return false;
+    if (filter === "mine" && !(myTaskIds?.has(task.id) ?? false)) {return false;}
+    if (filter === "overdue" && !isOverdue(task, now)) {return false;}
     if (filter === "by_vessel" && vesselId && task.vesselId !== vesselId) {
       return false;
     }
     if (query) {
       const haystack = `${task.title} ${task.description ?? ""}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
+      if (!haystack.includes(query)) {return false;}
     }
     return true;
   });
@@ -280,9 +280,9 @@ export function dueLabel(
   dueDate: string | null,
   now: Date = new Date(),
 ): string | null {
-  if (!dueDate) return null;
+  if (!dueDate) {return null;}
   const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return null;
+  if (Number.isNaN(due.getTime())) {return null;}
   const dayMs = 24 * 60 * 60 * 1000;
   const startOfToday = new Date(
     now.getFullYear(),
@@ -295,7 +295,7 @@ export function dueLabel(
     due.getDate(),
   ).getTime();
   const days = Math.round((startOfDue - startOfToday) / dayMs);
-  if (days === 0) return "Due today";
-  if (days < 0) return `Overdue ${Math.abs(days)}d`;
+  if (days === 0) {return "Due today";}
+  if (days < 0) {return `Overdue ${Math.abs(days)}d`;}
   return `Due in ${days}d`;
 }

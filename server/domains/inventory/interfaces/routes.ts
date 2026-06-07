@@ -9,11 +9,8 @@ import { inventorySupplierRouter } from "./supplier-routes";
 import { supplierPerformanceRouter } from "./supplier-performance-routes";
 import { replenishmentRouter } from "./replenishment-routes";
 import { insertPartsInventorySchema } from "@shared/schema-runtime";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -79,8 +76,7 @@ const updatePartsInventoryBodySchema = z
     supplierPartNumber: z.string().nullable().optional(),
     leadTimeDays: z.number().nullable().optional(),
     isActive: z.boolean().optional(),
-  })
-  .passthrough();
+  });
 
 const updateCostBodySchema = z.object({
   unitCost: z.number().nonnegative(),
@@ -118,7 +114,7 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch parts", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const parts = await inventoryService.listParts(orgId);
       res.json(parts);
     })
@@ -130,7 +126,7 @@ export function registerInventoryRoutes(
     requirePermission("inventory", "delete"),
     criticalOperationRateLimit,
     withErrorHandling("delete part", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       await inventoryService.deletePart(id, orgId, req.user?.id);
       sendDeleted(res);
@@ -142,7 +138,7 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("check part availability", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { partId, quantity } = availabilityBodySchema.parse(req.body);
       const availability = await inventoryService.checkAvailability(partId, quantity, orgId);
       res.json(availability);
@@ -166,7 +162,7 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch compatible equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { partId } = partIdParamSchema.parse(req.params);
       const equipment = await inventoryService.getCompatibleEquipment(partId, orgId);
       res.json(equipment);
@@ -179,7 +175,7 @@ export function registerInventoryRoutes(
     requirePermission("inventory", "edit"),
     writeOperationRateLimit,
     withErrorHandling("update part compatibility", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { partId } = partIdParamSchema.parse(req.params);
       const { equipmentIds } = compatibilityBodySchema.parse(req.body);
       const part = await inventoryService.updateCompatibility(
@@ -197,7 +193,7 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch parts inventory", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const query = partsInventoryQuerySchema.parse(req.query);
       const { limit, page } = query;
       const offset = (page - 1) * limit;
@@ -265,7 +261,7 @@ export function registerInventoryRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch low stock suggestions", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const lowStockParts = await inventoryService.getLowStockParts(orgId);
 
       const suggestions = lowStockParts.map((part) => {
@@ -335,7 +331,7 @@ export function registerInventoryRoutes(
     requirePermission("inventory", "create"),
     writeOperationRateLimit,
     withErrorHandling("create parts inventory item", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const body = createPartsInventoryBodySchema.parse(req.body);
 
       const dbData = {
@@ -405,7 +401,7 @@ export function registerInventoryRoutes(
         throw validationResult.error;
       }
 
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const item = await inventoryService.updateInventoryItem(
         id,
         validationResult.data,

@@ -6,7 +6,7 @@ import { createGetIntelligenceUseCase } from "../application/get-intelligence.us
 import { createGetEquipmentHubUseCase } from "../application/get-equipment-hub.use-case.js";
 import { logger } from "../../../utils/logger.js";
 import { createAdminMiddleware } from "../../../shared/middleware.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth.js";
+import { authenticatedRequest } from "../../../middleware/auth.js";
 
 const repository = new PostgresEquipmentIntelligenceRepository();
 const useCase = createGetIntelligenceUseCase(repository);
@@ -151,7 +151,7 @@ router.post("/anomalies/:equipmentId/acknowledge", async (req, res) => {
       return res.status(400).json({ error: "Invalid equipment ID" });
     }
     const { equipmentId } = parseResult.data;
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const acknowledgedBy =
       authReq.user?.name || authReq.user?.email || authReq.user?.id || "system";
     const result = await hubUseCase.acknowledgeAnomaly(orgId, equipmentId, acknowledgedBy);

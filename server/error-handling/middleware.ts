@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { z } from "zod";
 import { trackError } from "../logging";
 import { AppError } from "./types";
@@ -11,7 +11,7 @@ import { circuitBreakers } from "./circuit-breaker";
 import { ERROR_HANDLING_CONFIG } from "./types";
 
 export function enhancedErrorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
-  const requestId = (req as AuthenticatedRequest).requestId;
+  const requestId = authenticatedRequest(req).requestId;
 
   trackError(err, {
     requestId,

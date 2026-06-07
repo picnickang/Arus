@@ -20,12 +20,12 @@ type PoolHolder = { [POOL_KEY]?: Pool };
 export default async function globalTeardown(): Promise<void> {
   const holder = process as unknown as PoolHolder;
   const pool = holder[POOL_KEY];
-  if (!pool) return;
+  if (!pool) {return;}
   try {
     await pool.end();
   } catch (err) {
     // Surface but don't fail teardown — a noisy log beats a silent leak.
-    // eslint-disable-next-line no-console
+
     console.warn("[integration globalTeardown] pool.end() failed:", err);
   } finally {
     delete holder[POOL_KEY];

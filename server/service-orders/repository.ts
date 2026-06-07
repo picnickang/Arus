@@ -38,7 +38,7 @@ export async function createServiceOrder(
   executor: { insert: typeof db.insert } = db
 ): Promise<ServiceOrder> {
   const [so] = await executor.insert(serviceOrders).values(data).returning();
-  if (!so) throw new Error("createServiceOrder: no row returned");
+  if (!so) {throw new Error("createServiceOrder: no row returned");}
   await executor.insert(serviceOrderEvents).values({
     orgId: data.orgId,
     soId: so.id,

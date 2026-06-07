@@ -119,7 +119,7 @@ export async function getRoleByName(name: string, orgId: string): Promise<Role |
 
 export async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
-  if (!role) throw new Error("Failed to create role");
+  if (!role) {throw new Error("Failed to create role");}
   return role;
 }
 
@@ -302,7 +302,7 @@ export async function backfillPdmTemplateGrantsForOrg(
 
   if (apply) {
     for (const result of results) {
-      if (!result.roleId) continue;
+      if (!result.roleId) {continue;}
       for (const perm of result.added) {
         await setPermissionGrant(result.roleId, perm.resource, perm.action, true);
       }
@@ -332,7 +332,7 @@ export async function assignRoleToUser(
   data: InsertUserRoleAssignment
 ): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
-  if (!assignment) throw new Error("Failed to assign role to user");
+  if (!assignment) {throw new Error("Failed to assign role to user");}
   return assignment;
 }
 

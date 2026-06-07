@@ -164,7 +164,7 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
     tx?: unknown
   ): Promise<PostCommitEmit | null> {
     const built = envelopeFor(event);
-    if (!built) return null;
+    if (!built) {return null;}
     try {
       await enqueueOutboxFromEnvelope(built.envelope, tx as TxOrDb | undefined);
     } catch (error) {
@@ -190,11 +190,11 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
     const deferred: PostCommitEmit[] = [];
     for (const event of events) {
       const post = await this.publish(event, tx);
-      if (post) deferred.push(post);
+      if (post) {deferred.push(post);}
     }
-    if (deferred.length === 0) return null;
+    if (deferred.length === 0) {return null;}
     return () => {
-      for (const fn of deferred) fn();
+      for (const fn of deferred) {fn();}
     };
   },
 };

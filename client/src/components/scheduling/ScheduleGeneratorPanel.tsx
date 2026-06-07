@@ -90,7 +90,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
         from,
         days,
         fillUnassignedOnly: !allowUpdateDrafts,
-      })) as SimulationResult,
+      })),
     onSuccess: (data: SimulationResult) => {
       setSimulationResult(data);
       setAppliedRunId(null);
@@ -116,7 +116,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
         simulationResult,
         skipCollisions: true,
         vesselIds: vesselIds && vesselIds.length > 0 ? vesselIds : undefined,
-      })) as ApplyResult;
+      }));
     },
     onSuccess: (data: ApplyResult) => {
       setAppliedRunId(data.runId);
@@ -153,7 +153,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
 
   const clearHistoryMutation = useMutation({
     mutationFn: async (): Promise<{ deleted: number }> =>
-      (await apiRequest("DELETE", "/api/schedule/runs")) as { deleted: number },
+      (await apiRequest("DELETE", "/api/schedule/runs")),
     onSuccess: (data: { deleted: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/assignments"] });

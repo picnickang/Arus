@@ -98,7 +98,7 @@ const CODE_INDEX: Map<string, Iso14224FailureMode> = new Map(
 
 /** Look up a failure mode by its ISO 14224 code. Case-insensitive. */
 export function getFailureMode(code: string | null | undefined): Iso14224FailureMode | undefined {
-  if (!code) return undefined;
+  if (!code) {return undefined;}
   return CODE_INDEX.get(code.toUpperCase());
 }
 
@@ -149,10 +149,10 @@ const LEGACY_SYNONYMS: Record<string, string> = {
 };
 
 export function coerceFailureMode(input: string | null | undefined): string {
-  if (!input) return "UNK";
+  if (!input) {return "UNK";}
   const trimmed = input.trim();
-  if (!trimmed) return "UNK";
-  if (isFailureModeCode(trimmed)) return trimmed.toUpperCase();
+  if (!trimmed) {return "UNK";}
+  if (isFailureModeCode(trimmed)) {return trimmed.toUpperCase();}
   const lookup = LEGACY_SYNONYMS[trimmed.toLowerCase()];
   return lookup ?? "OTH";
 }

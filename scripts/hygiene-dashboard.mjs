@@ -75,11 +75,10 @@ const METRICS = [
     exclude: null,
     description:
       "@ts-expect-error directives (better than @ts-ignore — tracks when the ignored error resolves)",
-    goodIsHigher: true, // More @ts-expect-error vs @ts-ignore is an improvement
   },
   {
     name: "todo-markers",
-    pattern: "(TODO|FIXME|XXX|HACK)",
+    pattern: "(^|[^A-Za-z0-9_])(TODO(\\([^)]*\\))?|FIXME|XXX|HACK)\\s*(:|\\()",
     exclude: null,
     description: "TODO/FIXME/XXX/HACK markers (keep linked to tracked issues)",
   },

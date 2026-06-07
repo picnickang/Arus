@@ -12,6 +12,8 @@ const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/r
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
+const REGISTRY_API_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry-api.ts");
+const REGISTRY_SCREENS_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry-screens.tsx");
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 
 const EXPECTED_ROUTES = [
@@ -139,5 +141,86 @@ describe("Vessel Intelligence Hub v2 backend registry", () => {
     expect(registry).toContain('name: "VesselDiagramRegistry"');
     expect(registry).toContain("../domains/vessel-diagram-registry/index.js");
     expect(registry).toContain("registerVesselDiagramRegistryRoutes");
+  });
+});
+
+describe("Replaceable Diagram Registry controls", () => {
+  it("provides API hooks for every visible registry mutation surface", async () => {
+    const api = await load(REGISTRY_API_PATH);
+
+    for (const hook of [
+      "useVesselDiagrams",
+      "useDiagramDetail",
+      "useDiagramVersions",
+      "useUploadDiagramVersion",
+      "usePublishDiagramVersion",
+      "useArchiveDiagramVersion",
+      "useRestoreDiagramVersion",
+      "useSectionMaps",
+      "useSectionMap",
+      "useCreateSectionMap",
+      "useCloneSectionMap",
+      "useValidateSectionMap",
+      "usePublishSectionMap",
+      "useSectionAssignments",
+      "useAssignEquipmentToSection",
+      "useUploadSectionThumbnail",
+      "useUploadEquipmentThumbnail",
+      "useSectionMapTemplates",
+    ]) {
+      expect(api).toContain(`function ${hook}`);
+    }
+
+    expect(api).toContain("/versions/upload");
+    expect(api).toContain("/publish");
+    expect(api).toContain("/archive");
+    expect(api).toContain("/restore-draft");
+    expect(api).toContain("/section-map-templates");
+    expect(api).toContain("/thumbnail");
+  });
+
+  it("pins replacement options, critical test ids, and permission-denied UI", async () => {
+    const screens = await load(REGISTRY_SCREENS_PATH);
+
+    for (const testId of [
+      "diagram-manager",
+      "diagram-type-card-",
+      "button-upload-replace-diagram",
+      "dialog-upload-replace-diagram",
+      "replacement-option-keep-existing",
+      "replacement-option-start-blank",
+      "replacement-option-copy-vessel",
+      "replacement-option-copy-template",
+      "button-submit-upload-replace",
+      "button-view-versions",
+      "button-manage-thumbnails",
+      "button-validate-map",
+      "button-publish-map",
+      "thumbnail-manager",
+      "section-thumbnail-upload",
+      "equipment-thumbnail-upload",
+    ]) {
+      expect(screens).toContain(testId);
+    }
+
+    expect(screens).toContain("Keep existing section map as draft overlay");
+    expect(screens).toContain("Start blank section map");
+    expect(screens).toContain("Copy section map from another vessel");
+    expect(screens).toContain("Copy section map from vessel type template");
+    expect(screens).toContain("PermissionDeniedInline");
+    expect(screens).toContain("Requires vessel-intelligence:upload-diagram");
+    expect(screens).toContain("Requires vessel-intelligence:publish-map");
+    expect(screens).toContain("No sections yet. Draw or add your first section.");
+    expect(screens).toContain("No equipment assigned to this section.");
+  });
+
+  it("routes legacy target query links to the intended hub tab", async () => {
+    const page = await load(PAGE_PATH);
+
+    expect(page).toContain('new URLSearchParams(path.split("?")[1] ?? "")');
+    expect(page).toContain('target === "sections"');
+    expect(page).toContain('target === "performance"');
+    expect(page).toContain('target === "alerts"');
+    expect(page).toContain("RegistryRouteScreen");
   });
 });

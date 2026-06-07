@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route-utils";
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
@@ -58,7 +58,7 @@ export const completeWithFeedbackSchema = z
 export { closeoutSchema as _closeoutSchemaForTests };
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+  return authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
 }
 
 function getUserId(req: Request): string {

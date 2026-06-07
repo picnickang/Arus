@@ -37,9 +37,11 @@ export const vesselDiagramTypeValues = [
 
 export const vesselDiagramStatusValues = ["draft", "active", "archived"] as const;
 export const vesselDiagramVersionStatusValues = [
+  "draft",
   "uploaded",
   "active",
   "superseded",
+  "archived",
   "rejected",
 ] as const;
 export const vesselSectionMapStatusValues = ["draft", "published", "archived"] as const;

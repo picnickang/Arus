@@ -6,6 +6,7 @@
 
 import type { Express } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { engineLogStorage } from "../../../repositories";
 import type { RateLimiters, EventFilters } from "./types";
 import { validateUUID } from "../../../utils/validation";
@@ -19,8 +20,8 @@ import {
 const idParamSchema = z.object({ id: z.string().min(1) });
 const dailyLogIdParamSchema = z.object({ dailyLogId: z.string().min(1) });
 const dayIdParamSchema = z.object({ dayId: z.string().min(1) });
-const bodyRecordSchema = z.record(z.unknown());
-const bulkEntriesBodySchema = z.object({ entries: z.array(z.record(z.unknown())) });
+const bodyRecordSchema = jsonRecordSchema;
+const bulkEntriesBodySchema = z.object({ entries: z.array(jsonRecordSchema) });
 const eventsQuerySchema = z.object({
   eventType: z.string().optional(),
   source: z.string().optional(),
@@ -29,7 +30,7 @@ const eventsQuerySchema = z.object({
 });
 const eventCreateBodySchema = z
   .object({ dayId: z.string().min(1) })
-  .and(z.record(z.unknown()));
+  .and(jsonRecordSchema);
 
 type EngineLogHourlyInput = Parameters<typeof engineLogStorage.upsertEngineLogHourly>[0];
 type EngineLogHourlyBulkInput = Parameters<typeof engineLogStorage.bulkUpsertEngineLogHourly>[0];

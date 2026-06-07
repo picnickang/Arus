@@ -32,8 +32,8 @@ const BUDGETS: Record<VitalEntry["name"], { good: number; poor: number }> = {
 
 function rate(name: VitalEntry["name"], value: number): VitalEntry["rating"] {
   const b = BUDGETS[name];
-  if (value <= b.good) return "good";
-  if (value <= b.poor) return "needs-improvement";
+  if (value <= b.good) {return "good";}
+  if (value <= b.poor) {return "needs-improvement";}
   return "poor";
 }
 
@@ -48,7 +48,7 @@ function record(name: VitalEntry["name"], value: number): void {
   };
   collected.push(entry);
   if (entry.rating === "poor") {
-    // eslint-disable-next-line no-console
+
     console.warn(`[web-vitals] ${name}=${entry.value} on ${entry.route} (budget breached)`);
   }
 }
@@ -57,7 +57,7 @@ function safeObserve(type: string, cb: (entries: PerformanceEntryList) => void):
   try {
     const supported = (PerformanceObserver as object as { supportedEntryTypes?: string[] })
       .supportedEntryTypes;
-    if (supported && !supported.includes(type)) return;
+    if (supported && !supported.includes(type)) {return;}
     const obs = new PerformanceObserver((list) => cb(list.getEntries()));
     obs.observe({ type, buffered: true } as PerformanceObserverInit);
   } catch {
@@ -66,7 +66,7 @@ function safeObserve(type: string, cb: (entries: PerformanceEntryList) => void):
 }
 
 function flush(): void {
-  if (collected.length === 0) return;
+  if (collected.length === 0) {return;}
   const payload = JSON.stringify({
     sentAt: Date.now(),
     href: window.location.href,
@@ -96,7 +96,7 @@ function flush(): void {
 let initialized = false;
 
 export function initWebVitals(): void {
-  if (initialized || typeof window === "undefined") return;
+  if (initialized || typeof window === "undefined") {return;}
   initialized = true;
 
   // LCP: latest entry wins per the spec.
@@ -113,7 +113,7 @@ export function initWebVitals(): void {
   safeObserve("event", (entries) => {
     for (const e of entries) {
       const d = (e as PerformanceEntry & { duration: number }).duration;
-      if (typeof d === "number" && d > largestEventDuration) largestEventDuration = d;
+      if (typeof d === "number" && d > largestEventDuration) {largestEventDuration = d;}
     }
   });
 
@@ -122,35 +122,35 @@ export function initWebVitals(): void {
   safeObserve("layout-shift", (entries) => {
     for (const e of entries) {
       const ls = e as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
-      if (!ls.hadRecentInput) clsValue += ls.value || 0;
+      if (!ls.hadRecentInput) {clsValue += ls.value || 0;}
     }
   });
 
   // FCP: paint entry named "first-contentful-paint".
   safeObserve("paint", (entries) => {
     for (const e of entries) {
-      if (e.name === "first-contentful-paint") record("FCP", e.startTime);
+      if (e.name === "first-contentful-paint") {record("FCP", e.startTime);}
     }
   });
 
   // TTFB from the navigation entry.
   try {
     const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-    if (nav) record("TTFB", nav.responseStart);
+    if (nav) {record("TTFB", nav.responseStart);}
   } catch {
     // ignore
   }
 
   const finalize = () => {
-    if (lastLcp > 0) record("LCP", lastLcp);
-    if (largestEventDuration > 0) record("INP", largestEventDuration);
+    if (lastLcp > 0) {record("LCP", lastLcp);}
+    if (largestEventDuration > 0) {record("INP", largestEventDuration);}
     record("CLS", clsValue);
     flush();
   };
 
   // visibilitychange + pagehide are the recommended terminals for vitals.
   window.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") finalize();
+    if (document.visibilityState === "hidden") {finalize();}
   });
   window.addEventListener("pagehide", finalize, { once: true });
 }

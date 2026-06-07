@@ -19,7 +19,7 @@ export function detectBearingFault(
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) continue;
+    if (f === undefined || m === undefined) {continue;}
     if (f >= bearingBandLow && f <= bearingBandHigh && m > maxMagnitude) {
       maxMagnitude = m;
       faultFreq = f;
@@ -48,7 +48,7 @@ export function detectGearFault(
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) continue;
+    if (f === undefined || m === undefined) {continue;}
     if (f >= gearBandLow && f <= gearBandHigh && m > maxMagnitude) {
       maxMagnitude = m;
       faultFreq = f;
@@ -71,7 +71,7 @@ export function detectCavitation(
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) continue;
+    if (f === undefined || m === undefined) {continue;}
     if (f >= cavitationBandLow && f <= cavitationBandHigh) {
       bandEnergy += m;
     }
@@ -92,7 +92,7 @@ export function detectLeakage(
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) continue;
+    if (f === undefined || m === undefined) {continue;}
     if (f >= ultrasonicThreshold) {
       ultrasonicEnergy += m;
     }
@@ -122,7 +122,7 @@ export function detectImbalance(
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) continue;
+    if (f === undefined || m === undefined) {continue;}
     if (Math.abs(f - rotationFreq) < tolerance) {
       maxMagnitude = Math.max(maxMagnitude, m);
     }

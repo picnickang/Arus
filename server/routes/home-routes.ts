@@ -1,5 +1,5 @@
 import type { Express, Request, RequestHandler, Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { withErrorHandling } from "../lib/route-utils";
 import { validateResponse } from "../lib/api-helpers";
 import { logger } from "../utils/logger";
@@ -35,7 +35,7 @@ export function registerHomeRoutes(
     generalApiRateLimit,
     requireOrgId,
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
 
       const sinceParam = (req.query['since'] as string) || (req.headers["x-last-visit"] as string);
       const lastVisitTime = sinceParam ? new Date(sinceParam) : null;

@@ -108,11 +108,11 @@ export function ThresholdCalibratorCard() {
     } catch (error) {
       setLastResult({
         success: false,
-        message: (error as Error).message || "Calibration failed",
+        message: ((error instanceof Error ? error.message : String(error))) || "Calibration failed",
       });
       toast({
         title: "Calibration Failed",
-        description: (error as Error).message,
+        description: ((error instanceof Error ? error.message : String(error))),
         variant: "destructive",
       });
     } finally {

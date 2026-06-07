@@ -337,9 +337,9 @@ function resolutionSummary(record: BlockerResolutionRecord | undefined): Blocker
 }
 
 function issueHref(target: IssueReportRecord["target"], issueId: string): string {
-  if (target === "work_order") return `/work-orders?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
-  if (target === "finding") return `/findings?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
-  if (target === "log_note") return `/logs/deck?flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
+  if (target === "work_order") {return `/work-orders?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
+  if (target === "finding") {return `/findings?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
+  if (target === "log_note") {return `/logs/deck?flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
   return `/attention-inbox?view=handover&issueId=${encodeURIComponent(issueId)}`;
 }
 

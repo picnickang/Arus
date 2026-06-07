@@ -39,7 +39,7 @@ export function parseCSV(content: string): StormGeoCSVRow[] {
     const numeric: Partial<Record<keyof StormGeoCSVRow, number>> = {};
     headers.forEach((header, index) => {
       const value = values[index];
-      if (value === "" || value === undefined) return;
+      if (value === "" || value === undefined) {return;}
       if (header === "timestamp") {
         timestamp = value;
         return;

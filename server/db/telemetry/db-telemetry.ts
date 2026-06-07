@@ -288,7 +288,7 @@ export class DatabaseTelemetryStorage {
       .insert(pdmScoreLogs)
       .values({ id: randomUUID(), ts: new Date(), ...score })
       .returning();
-    if (!n) throw new Error("createPdmScore: insert returned no row");
+    if (!n) {throw new Error("createPdmScore: insert returned no row");}
     return n;
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
@@ -325,14 +325,14 @@ export class DatabaseTelemetryStorage {
         .set({ ...heartbeat, ts: new Date() } as never)
         .where(eq(idCol as never, eRow.id as never))
         .returning();
-      if (!u) throw new Error("upsertHeartbeat: update returned no row");
+      if (!u) {throw new Error("upsertHeartbeat: update returned no row");}
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
       .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as never)
       .returning();
-    if (!n) throw new Error("upsertHeartbeat: insert returned no row");
+    if (!n) {throw new Error("upsertHeartbeat: insert returned no row");}
     return n;
   }
 }

@@ -531,7 +531,7 @@ export function groupCrewByRole<T extends { rank: string }>(crew: T[]): RoleGrou
 // it synthesizes the same behaviour from the legacy MARITIME_RANKS + getRoleGroup
 // constants, so there is a single code path whether roles are loaded or not.
 
-export interface CrewRole {
+export interface CrewManagementRole {
   id: string;
   orgId: string;
   name: string;
@@ -550,7 +550,7 @@ export interface CrewRole {
 
 export interface RoleLookup {
   /** Roles keyed by a normalized name (lowercase, spaces → underscore). */
-  byKey: Map<string, CrewRole>;
+  byKey: Map<string, CrewManagementRole>;
   /** Distinct categories in display order (by each category's min sortOrder). */
   orderedCategories: string[];
   /** Position index for a rank — lower = higher in the roster. */
@@ -563,10 +563,10 @@ export function normRoleKey(value: string): string {
   return value.toLowerCase().replace(/\s+/g, "_");
 }
 
-export function buildRoleLookup(roles: CrewRole[]): RoleLookup {
+export function buildRoleLookup(roles: CrewManagementRole[]): RoleLookup {
   // Fall back to the legacy constants when no roles are provided so the roster
   // still groups/sorts identically before the API responds.
-  const effective: CrewRole[] =
+  const effective: CrewManagementRole[] =
     roles.length > 0
       ? roles
       : MARITIME_RANKS.map((name, i) => ({
@@ -578,7 +578,7 @@ export function buildRoleLookup(roles: CrewRole[]): RoleLookup {
           active: true,
         }));
 
-  const byKey = new Map<string, CrewRole>();
+  const byKey = new Map<string, CrewManagementRole>();
   for (const role of effective) {
     byKey.set(normRoleKey(role.name), role);
   }
@@ -597,11 +597,11 @@ export function buildRoleLookup(roles: CrewRole[]): RoleLookup {
 
   const MAX = Number.MAX_SAFE_INTEGER;
   const sortIndex = (rank: string): number => {
-    if (!rank) return MAX;
+    if (!rank) {return MAX;}
     return byKey.get(normRoleKey(rank))?.sortOrder ?? MAX;
   };
   const categoryOf = (rank: string): string => {
-    if (!rank) return "Other";
+    if (!rank) {return "Other";}
     return byKey.get(normRoleKey(rank))?.category ?? getRoleGroup(rank);
   };
 

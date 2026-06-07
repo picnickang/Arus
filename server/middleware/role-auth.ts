@@ -5,10 +5,10 @@
 
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Middleware:RoleAuth");
-import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "./auth";
+import type { Request, Response, NextFunction } from "express";
+import { authenticatedRequest } from "./auth";
 
-export type CrewRole =
+export type AuthCrewRole =
   | "chief_engineer"
   | "second_engineer"
   | "third_engineer"
@@ -42,7 +42,7 @@ export type CrewRole =
   | "deck_officer"
   | "viewer";
 
-const PARTS_MANAGEMENT_ROLES: CrewRole[] = ["chief_engineer", "second_engineer"];
+const PARTS_MANAGEMENT_ROLES: AuthCrewRole[] = ["chief_engineer", "second_engineer"];
 
 /**
  * LR-3.5 / SEC-1: the previous implementation bypassed the role check
@@ -65,9 +65,9 @@ function devBypassAllowed(): boolean {
   );
 }
 
-export function requireRole(...allowedRoles: CrewRole[]) {
+export function requireRole(...allowedRoles: AuthCrewRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const user = (req as AuthenticatedRequest).user;
+    const user = authenticatedRequest(req).user;
 
     if (devBypassAllowed() && !user) {
       logger.warn("[RBAC] Bypassed via RBAC_DEV_NO_AUTH=1 — must NEVER be set in production");
@@ -83,7 +83,7 @@ export function requireRole(...allowedRoles: CrewRole[]) {
       return;
     }
 
-    const userRole = user.role?.toLowerCase() as CrewRole;
+    const userRole = user.role?.toLowerCase() as AuthCrewRole;
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       logger.warn("[RBAC] Access denied", {

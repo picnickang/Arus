@@ -10,8 +10,8 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { safetyAlarmService, AlarmValidationError } from "../service";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
 import { broadcastSafetyAlarmEvent } from "../../../lib/safety-alarm-events";
@@ -95,7 +95,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarm_types", "view"),
     generalApiRateLimit,
     withErrorHandling("list safety alarm types", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { includeInactive } = z
         .object({
           includeInactive: z
@@ -115,7 +115,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("create safety alarm type", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = createTypeSchema.parse(req.body);
       try {
         const created = await safetyAlarmService.createType({
@@ -135,7 +135,7 @@ export function registerSafetyAlarmRoutes(
         });
         return res.status(201).json(created);
       } catch (error) {
-        if (handleAlarmError(error, res)) return undefined;
+        if (handleAlarmError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -147,7 +147,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("update safety alarm type", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = updateTypeSchema.parse(req.body);
       try {
         const updated = await safetyAlarmService.updateType(authReq.orgId, req.params['id'], data);
@@ -163,7 +163,7 @@ export function registerSafetyAlarmRoutes(
         });
         return res.json(updated);
       } catch (error) {
-        if (handleAlarmError(error, res)) return undefined;
+        if (handleAlarmError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -175,7 +175,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarm_types", "manage"),
     writeLimit,
     withErrorHandling("delete safety alarm type", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         await safetyAlarmService.deleteType(authReq.orgId, req.params['id']);
         await auditService.logEvent({
@@ -189,7 +189,7 @@ export function registerSafetyAlarmRoutes(
         });
         return res.status(204).send();
       } catch (error) {
-        if (handleAlarmError(error, res)) return undefined;
+        if (handleAlarmError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -201,7 +201,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarms", "view"),
     generalApiRateLimit,
     withErrorHandling("list safety alarms", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId, includeCleared } = z
         .object({
           vesselId: z.string().optional(),
@@ -225,7 +225,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarms", "trigger"),
     writeLimit,
     withErrorHandling("trigger safety alarm", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { confirmed, ...data } = triggerSchema.parse(req.body);
       try {
         const alarm = await safetyAlarmService.triggerAlarm(
@@ -256,7 +256,7 @@ export function registerSafetyAlarmRoutes(
         });
         return res.status(201).json(alarm);
       } catch (error) {
-        if (handleAlarmError(error, res)) return undefined;
+        if (handleAlarmError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -268,7 +268,7 @@ export function registerSafetyAlarmRoutes(
     requirePermission("safety_alarms", "clear"),
     writeLimit,
     withErrorHandling("clear safety alarm", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { resolutionNote } = clearSchema.parse(req.body);
       try {
         const cleared = await safetyAlarmService.clearAlarm(
@@ -294,7 +294,7 @@ export function registerSafetyAlarmRoutes(
         });
         return res.json(cleared);
       } catch (error) {
-        if (handleAlarmError(error, res)) return undefined;
+        if (handleAlarmError(error, res)) {return undefined;}
         throw error;
       }
     }),

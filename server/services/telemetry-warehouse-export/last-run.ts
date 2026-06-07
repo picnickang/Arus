@@ -47,10 +47,10 @@ async function loadPersisted(): Promise<WarehouseExportJobSummary[]> {
   const bucket = objectStorageClient.bucket(target.bucketName);
   const file = bucket.file(recentRunsKey());
   const [exists] = await file.exists();
-  if (!exists) return [];
+  if (!exists) {return [];}
   const [buf] = await file.download();
   const parsed = JSON.parse(buf.toString("utf-8")) as Partial<PersistedRecentRuns>;
-  if (!parsed || !Array.isArray(parsed.runs)) return [];
+  if (!parsed || !Array.isArray(parsed.runs)) {return [];}
   return parsed.runs.slice(-CAPACITY);
 }
 
@@ -73,7 +73,7 @@ async function savePersisted(runs: WarehouseExportJobSummary[]): Promise<void> {
 }
 
 async function ensureHydrated(): Promise<void> {
-  if (hydrated) return;
+  if (hydrated) {return;}
   if (!hydratePromise) {
     hydratePromise = (async () => {
       try {
@@ -127,7 +127,7 @@ export async function getRecentRuns(
   limit = CAPACITY,
 ): Promise<WarehouseExportJobSummary[]> {
   await ensureHydrated();
-  if (recent.length === 0) return [];
+  if (recent.length === 0) {return [];}
   const n = Math.max(1, Math.min(limit, recent.length));
   return recent.slice(-n).reverse();
 }

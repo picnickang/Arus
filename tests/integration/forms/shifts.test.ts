@@ -34,7 +34,7 @@ describe("Shift forms — CRUD + propagation", () => {
   });
 
   it("shift appears in GET /api/shifts", async () => {
-    if (!shiftId) return;
+    if (!shiftId) {return;}
     await expectInList<{ id: string }>(
       "/api/shifts",
       (s) => s.id === shiftId,
@@ -43,7 +43,7 @@ describe("Shift forms — CRUD + propagation", () => {
   });
 
   it("PUT updates the shift", async () => {
-    if (!shiftId) return;
+    if (!shiftId) {return;}
     const { status } = await api("PUT", `/api/shifts/${shiftId}`, {
       role: `qa-updated-${RUN_ID}`.slice(0, 32),
       start: "06:00",
@@ -54,7 +54,7 @@ describe("Shift forms — CRUD + propagation", () => {
   });
 
   it("DELETE removes the shift", async () => {
-    if (!shiftId) return;
+    if (!shiftId) {return;}
     const { status } = await api("DELETE", `/api/shifts/${shiftId}`);
     expect([200, 204]).toContain(status);
     shiftId = undefined;

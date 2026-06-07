@@ -14,7 +14,7 @@ export {
 
 export { storePrediction } from "./ml-prediction/storage.js";
 
-export type CircuitState = {
+export type LegacyCircuitState = {
   state: "open" | "closed" | "half-open";
   failureCount: number;
   lastFailureTime: number | null;
@@ -29,7 +29,7 @@ export type PredictionFilter = {
 export interface MlPredictionServiceShim {
   predict(input: { equipmentId: string; orgId: string }): Promise<MLPredictionResult | null>;
   getPredictions(filter?: PredictionFilter): Promise<MLPredictionResult[]>;
-  getCircuitState(): Promise<CircuitState>;
+  getCircuitState(): Promise<LegacyCircuitState>;
 }
 
 export const mlPredictionService: MlPredictionServiceShim = {

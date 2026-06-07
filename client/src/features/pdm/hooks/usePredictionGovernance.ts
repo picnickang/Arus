@@ -30,7 +30,7 @@ export function usePredictionGovernance(status?: string) {
         params.set("status", status);
       }
       const url = `/api/pdm/governance/predictions${params.toString() ? `?${params}` : ""}`;
-      return (await apiRequest("GET", url)) as GovernancePrediction[];
+      return (await apiRequest("GET", url));
     },
     enabled: !!currentOrgId,
   });
@@ -44,7 +44,7 @@ export function useGovernanceDetail(id: number | null) {
       (await apiRequest(
         "GET",
         `/api/pdm/governance/predictions/${id}`
-      )) as GovernancePrediction,
+      )),
     enabled: id != null && !!currentOrgId,
   });
 }

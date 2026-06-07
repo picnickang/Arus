@@ -23,7 +23,7 @@ const importBodySchema = z.object({
 const exportIdParamSchema = z.object({ exportId: z.string().min(1) });
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { getDataExportImportService } from "../../services/data-export-import";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
@@ -53,7 +53,7 @@ export function registerDataExportRoutes(app: Express, deps: DataExportDependenc
     withErrorHandling("export data", async (req: Request, res: Response) => {
       const service = getDataExportImportService();
       const orgId = DEFAULT_ORG_ID;
-      const exportedBy = (req as AuthenticatedRequest).user?.id || "admin";
+      const exportedBy = authenticatedRequest(req).user?.id || "admin";
 
       const body = exportBodySchema.parse(req.body ?? {});
       const result = await service.exportOrg(

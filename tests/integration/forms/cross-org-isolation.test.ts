@@ -22,8 +22,8 @@ describe("Cross-org isolation — list endpoints respect x-org-id", () => {
   let supplierId: string | undefined;
 
   afterAll(async () => {
-    if (woId) await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
-    if (supplierId) await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});
+    if (woId) {await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});}
+    if (supplierId) {await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});}
     await cleanupByRunId(RUN_ID, ["work_orders", "suppliers"]);
   });
 
@@ -46,7 +46,7 @@ describe("Cross-org isolation — list endpoints respect x-org-id", () => {
       { "x-org-id": OTHER_ORG }
     );
     if (otherStatus === 403 || otherStatus === 401) {
-      // eslint-disable-next-line no-console
+
       console.warn(
         `iso: ${OTHER_ORG} blocked from /api/work-orders (${otherStatus}) — stricter isolation, OK`
       );
@@ -77,7 +77,7 @@ describe("Cross-org isolation — list endpoints respect x-org-id", () => {
       { "x-org-id": OTHER_ORG }
     );
     if (otherStatus === 403 || otherStatus === 401) {
-      // eslint-disable-next-line no-console
+
       console.warn(
         `iso: ${OTHER_ORG} blocked from /api/suppliers (${otherStatus}) — stricter isolation, OK`
       );

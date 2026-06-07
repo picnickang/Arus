@@ -6,10 +6,10 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { safetyBulletinService } from "../service";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
-import { SAFETY_BULLETIN_SEVERITIES } from "@shared/schema";
+import { SAFETY_BULLETIN_SEVERITIES } from "@shared/schema-runtime";
 
 // Posting a safety notice is an admin-portal action. Mirrors
 // `getPortalForRole` in
@@ -60,7 +60,7 @@ export function registerSafetyBulletinRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("list safety bulletins", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId, includeInactive } = z
         .object({
           vesselId: z.string().optional(),
@@ -86,12 +86,12 @@ export function registerSafetyBulletinRoutes(
     requireSafetyBulletinWriteRole,
     writeLimit,
     withErrorHandling("create safety bulletin", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = createBulletinSchema.parse(req.body);
       const bulletin = await safetyBulletinService.createBulletin({
         ...data,
         orgId,
-        createdBy: (req as AuthenticatedRequest).user?.id,
+        createdBy: authenticatedRequest(req).user?.id,
       });
       return res.status(201).json(bulletin);
     }),

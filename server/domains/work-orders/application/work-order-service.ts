@@ -8,8 +8,8 @@ import type {
 } from "../domain";
 import { workOrderRepository } from "../repository";
 import { db } from "../../../db.js";
-import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema";
-import { crew } from "@shared/schema";
+import type { InsertWorkOrderCompletion, WorkOrderCompletion } from "@shared/schema-runtime";
+import { crew } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
 import { fireInventoryMovementProjections } from "../../../db/inventory/index.js";
 import { broadcastChange } from "../../../db/workorders/types.js";
@@ -89,7 +89,7 @@ export class WorkOrderApplicationService {
       );
       return created;
     });
-    if (postCommit) (postCommit as () => void)();
+    if (postCommit) {(postCommit as () => void)();}
     // LR-3.5 / TX-1: WS "create" broadcast is now owned by the
     // application service rather than `DbWorkOrderCore.createWorkOrder`,
     // because the db-layer broadcast would fire pre-commit when called

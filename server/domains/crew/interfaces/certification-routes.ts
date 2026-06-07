@@ -4,13 +4,13 @@
  */
 
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { insertCrewCertificationSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const certListQuerySchema = z.object({ crewId: z.string().optional() });
 const certIdParamSchema = z.object({ id: z.string().min(1) });
@@ -18,7 +18,7 @@ const expiringCertsQuerySchema = z.object({
   daysAhead: z.coerce.number().int().optional(),
   includeAcknowledged: z.enum(["true", "false"]).optional(),
 });
-const rawCertBodySchema = z.record(z.unknown());
+const rawCertBodySchema = jsonRecordSchema;
 
 function coerceDates(body: Record<string, unknown>): Record<string, unknown> {
   const result = { ...body };
@@ -88,7 +88,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch expiring certifications", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = req.orgId;
       const q = expiringCertsQuerySchema.parse(req.query);
       const daysAhead = q.daysAhead ?? 90;
       const includeAcknowledged = q.includeAcknowledged === "true";
@@ -150,7 +150,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("scan for expiring certifications", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = req.orgId;
       const result = await crewService.scanAndFlagExpiringCertifications(orgId);
       res.json(result);
     })

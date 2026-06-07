@@ -47,7 +47,7 @@ export class FeedbackService {
       })
       .returning();
 
-    if (!feedback) throw new Error("Failed to record feedback");
+    if (!feedback) {throw new Error("Failed to record feedback");}
     logger.info(`[FeedbackService] Recorded ${input.feedbackType} feedback for org ${input.orgId}`);
     return feedback;
   }

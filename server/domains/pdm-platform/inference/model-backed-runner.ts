@@ -29,9 +29,9 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../../../db";
-import { mlModels } from "@shared/schema";
+import { mlModels } from "@shared/schema-runtime";
 import { createLogger } from "../../../lib/structured-logger";
 import { OnnxInferenceAdapter } from "../../../ml-prediction/onnx-adapter";
 import { serveWithShadowOrCanary } from "../../../ml-prediction/shadow-canary";
@@ -85,7 +85,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   ): Promise<ResolvedArtifact | null> {
     const cacheKey = `${orgId}::${modelVersionId}`;
     const cached = this.resolveCache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
     const lookup = (async (): Promise<ResolvedArtifact | null> => {
       try {
         const [row] = await db
@@ -103,9 +103,9 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
             )
           )
           .limit(1);
-        if (!row) return null;
+        if (!row) {return null;}
         const metrics = (row.metrics ?? {}) as { artifactPath?: string };
-        if (!metrics.artifactPath) return null;
+        if (!metrics.artifactPath) {return null;}
         // metrics.artifactPath may be a legacy local path or a new
         // `arus-artifact://<backend>/<key>` URI. The read adapter is
         // chosen from the URI itself so flipping the admin write
@@ -138,7 +138,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   /** Resolves the operator-pinned env artifact (one-time existence check). */
   private envArtifactReady?: Promise<ResolvedArtifact | null>;
   private async resolveFromEnv(): Promise<ResolvedArtifact | null> {
-    if (!this.envOverride) return null;
+    if (!this.envOverride) {return null;}
     if (!this.envArtifactReady) {
       const p = this.envOverride;
       this.envArtifactReady = fs
@@ -160,7 +160,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
         context.orgId,
         context.modelVersionId
       );
-      if (fromRegistry) return fromRegistry;
+      if (fromRegistry) {return fromRegistry;}
     }
     return this.resolveFromEnv();
   }

@@ -171,7 +171,7 @@ export default function OperatingParametersPage({ embedded }: OperatingParameter
       if (!acc[param.category]) {
         acc[param.category] = [];
       }
-      acc[param.category]!.push(param);
+      acc[param.category].push(param);
       return acc;
     },
     {} as Record<string, OperatingParameter[]>

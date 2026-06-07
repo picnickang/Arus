@@ -114,7 +114,7 @@ describe("Safety Bulletins — routes mounted", () => {
 
 describe("GET /api/safety-bulletins — read filters", () => {
   it("defaults to active-only and scopes to the caller's org", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/safety-bulletins")
       .set("x-test-user", "reader:viewer");
@@ -125,7 +125,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
   });
 
   it("includeInactive=true disables the active-only filter", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/safety-bulletins?includeInactive=true")
       .set("x-test-user", "reader:viewer");
@@ -134,7 +134,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
   });
 
   it("includeInactive=false keeps the active-only filter (not coerced truthy)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/safety-bulletins?includeInactive=false")
       .set("x-test-user", "reader:viewer");
@@ -143,7 +143,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
   });
 
   it("rejects a non-boolean includeInactive value with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/safety-bulletins?includeInactive=yes")
       .set("x-test-user", "reader:viewer");
@@ -151,7 +151,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
   });
 
   it("passes vesselId through to the service (vessel + fleet-wide scope)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/safety-bulletins?vesselId=vessel-42")
       .set("x-test-user", "reader:viewer");
@@ -160,7 +160,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
   });
 
   it("returns the service rows verbatim", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     listBulletins.mockResolvedValueOnce([
       { id: "a", title: "Drill" },
       { id: "b", title: "Advisory" },
@@ -176,7 +176,7 @@ describe("GET /api/safety-bulletins — read filters", () => {
 
 describe("POST /api/safety-bulletins — admin gate", () => {
   it("rejects deck_officer with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "user-deck:deck_officer")
@@ -187,7 +187,7 @@ describe("POST /api/safety-bulletins — admin gate", () => {
   });
 
   it("rejects viewer with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "user-viewer:viewer")
@@ -197,7 +197,7 @@ describe("POST /api/safety-bulletins — admin gate", () => {
   });
 
   it("rejects unauthenticated with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .send({ title: "Nope" });
@@ -218,7 +218,7 @@ describe("POST /api/safety-bulletins — admin gate", () => {
     "admin",
   ]) {
     it(`allows ${role} to post a valid notice`, async () => {
-      if (mountError) throw new Error(mountError);
+      if (mountError) {throw new Error(mountError);}
       const res = await request(app)
         .post("/api/safety-bulletins")
         .set("x-test-user", `ok-${role}:${role}`)
@@ -235,7 +235,7 @@ describe("POST /api/safety-bulletins — admin gate", () => {
 
 describe("POST /api/safety-bulletins — body validation", () => {
   it("rejects a missing title with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "admin-1:chief_engineer")
@@ -245,7 +245,7 @@ describe("POST /api/safety-bulletins — body validation", () => {
   });
 
   it("rejects an empty title with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "admin-1:chief_engineer")
@@ -255,7 +255,7 @@ describe("POST /api/safety-bulletins — body validation", () => {
   });
 
   it("rejects an invalid severity with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "admin-1:chief_engineer")
@@ -265,7 +265,7 @@ describe("POST /api/safety-bulletins — body validation", () => {
   });
 
   it("accepts an optional vesselId (vessel-scoped notice)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/safety-bulletins")
       .set("x-test-user", "admin-1:chief_engineer")

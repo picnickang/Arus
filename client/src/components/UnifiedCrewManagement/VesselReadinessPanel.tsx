@@ -72,7 +72,7 @@ export function VesselReadinessPanel({ d }: { d: UnifiedCrewData }) {
 
     return [
       {
-        crew: crew as CrewListItem,
+        crew,
         reason,
         severity: ACCESS_BLOCKER_STATUSES.has(status) ? "blocker" : "warning",
       },

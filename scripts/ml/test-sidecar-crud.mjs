@@ -226,7 +226,9 @@ print("trained_ok")
     await trainerEndToEnd(pool);
   } finally {
     if (existsSync(absArtifact)) {
-      try { unlinkSync(absArtifact); } catch {}
+      try { unlinkSync(absArtifact); } catch {
+        // Cleanup best-effort only; failing here would hide the test result.
+      }
     }
     await pool.end();
   }
@@ -367,19 +369,29 @@ async function trainerEndToEnd(pool) {
   } finally {
     // Cleanup: ml_models row + artifacts + outcomes + features + equipment.
     if (trainedModelId) {
-      try { await pool.query(`DELETE FROM ml_models WHERE id=$1`, [trainedModelId]); } catch {}
+      try { await pool.query(`DELETE FROM ml_models WHERE id=$1`, [trainedModelId]); } catch {
+        // Cleanup best-effort only; failing here would hide the test result.
+      }
     }
     // Remove any new files in models/ that weren't there before this phase.
     if (existsSync(MODELS_DIR)) {
       for (const fn of readdirSync(MODELS_DIR)) {
         if (!before.has(fn)) {
-          try { unlinkSync(path.join(MODELS_DIR, fn)); } catch {}
+          try { unlinkSync(path.join(MODELS_DIR, fn)); } catch {
+            // Cleanup best-effort only; failing here would hide the test result.
+          }
         }
       }
     }
-    try { await pool.query(`DELETE FROM prediction_outcomes WHERE equipment_id=$1`, [eqId]); } catch {}
-    try { await pool.query(`DELETE FROM equipment_features WHERE equipment_id=$1`, [eqId]); } catch {}
-    try { await pool.query(`DELETE FROM equipment WHERE id=$1`, [eqId]); } catch {}
+    try { await pool.query(`DELETE FROM prediction_outcomes WHERE equipment_id=$1`, [eqId]); } catch {
+      // Cleanup best-effort only; failing here would hide the test result.
+    }
+    try { await pool.query(`DELETE FROM equipment_features WHERE equipment_id=$1`, [eqId]); } catch {
+      // Cleanup best-effort only; failing here would hide the test result.
+    }
+    try { await pool.query(`DELETE FROM equipment WHERE id=$1`, [eqId]); } catch {
+      // Cleanup best-effort only; failing here would hide the test result.
+    }
   }
 }
 

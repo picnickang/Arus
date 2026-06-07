@@ -53,7 +53,7 @@ prRouter.post("/purchase-requests", async (req: Request, res: Response) => {
     return res.status(201).json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error creating PR:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -81,7 +81,7 @@ prRouter.get("/purchase-requests", async (req: Request, res: Response) => {
     return res.json(prs);
   } catch (error) {
     logger.error("[Purchasing] Error listing PRs:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -97,7 +97,7 @@ prRouter.get("/purchase-requests/:id", async (req: Request, res: Response) => {
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error getting PR:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -149,7 +149,7 @@ prRouter.patch("/purchase-requests/:id", async (req: Request, res: Response) => 
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -185,7 +185,7 @@ prRouter.post("/purchase-requests/:id/auto-save", async (req: Request, res: Resp
     return res.json({ success: true, lastSavedAt: pr?.lastDraftSaveAt });
   } catch (error) {
     logger.error("[Purchasing] Error auto-saving PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -211,7 +211,7 @@ prRouter.post("/purchase-requests/:id/items", async (req: Request, res: Response
     return res.status(201).json(result);
   } catch (error) {
     logger.error("[Purchasing] Error adding item to PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -229,7 +229,7 @@ prRouter.delete("/purchase-requests/:id/items/:itemId", async (req: Request, res
     return res.json({ success: true });
   } catch (error) {
     logger.error("[Purchasing] Error removing item from PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -243,7 +243,7 @@ prRouter.post("/purchase-requests/:id/send", async (req: Request, res: Response)
     return res.json(result);
   } catch (error) {
     logger.error("[Purchasing] Error sending PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -257,7 +257,7 @@ prRouter.post("/purchase-requests/:id/cancel", async (req: Request, res: Respons
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error cancelling PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -271,7 +271,7 @@ prRouter.post("/purchase-requests/:id/close", async (req: Request, res: Response
     return res.json(pr);
   } catch (error) {
     logger.error("[Purchasing] Error closing PR:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -334,7 +334,7 @@ prRouter.delete("/purchase-requests/:id", async (req: Request, res: Response) =>
     return res.json({ success: true });
   } catch (error) {
     logger.error("[Purchasing] Error deleting PR:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -357,7 +357,7 @@ prRouter.patch("/purchase-requests/:id/status", async (req: Request, res: Respon
     return res.json(result.pr);
   } catch (error) {
     logger.error("[Purchasing] Error updating PR status:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -386,7 +386,7 @@ prRouter.post(
       return res.json(result);
     } catch (error) {
       logger.error("[Purchasing] Error fulfilling item:", undefined, error);
-      return res.status(400).json({ error: (error as Error).message });
+      return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
     }
   }
 );
@@ -403,7 +403,7 @@ prRouter.delete(
       return res.json(result);
     } catch (error) {
       logger.error("[Purchasing] Error bulk deleting PRs:", undefined, error);
-      return res.status(500).json({ error: (error as Error).message });
+      return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
     }
   }
 );

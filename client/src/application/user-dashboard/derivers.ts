@@ -197,9 +197,9 @@ export function deriveShiftStatus(
 
 /** Parse "HH:MM" (or "H:MM", "HHMM") into minutes-into-day, or null. */
 function parseClockToMinutes(raw: string | null | undefined): number | null {
-  if (!raw) return null;
+  if (!raw) {return null;}
   const match = raw.match(/(\d{1,2})\s*:?\s*(\d{2})/);
-  if (!match) return null;
+  if (!match) {return null;}
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
   if (
@@ -300,8 +300,8 @@ export function deriveAssignedSummary(rows: RawWorkOrder[]): AssignedSummary {
   let cancelled = 0;
   for (const r of rows) {
     const s = (r.status ?? "").trim().toLowerCase();
-    if (COMPLETED_STATUSES.has(s)) completed += 1;
-    else if (CANCELLED_STATUSES.has(s)) cancelled += 1;
+    if (COMPLETED_STATUSES.has(s)) {completed += 1;}
+    else if (CANCELLED_STATUSES.has(s)) {cancelled += 1;}
   }
   const active = Math.max(0, rows.length - completed - cancelled);
   const total = active + completed;
@@ -341,17 +341,17 @@ function dayPillFor(
   startOfToday: number,
   oneDay: number,
 ): TaskDayPill {
-  if (!dueDate) return null;
+  if (!dueDate) {return null;}
   const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return null;
+  if (Number.isNaN(due.getTime())) {return null;}
   const startOfDue = new Date(
     due.getFullYear(),
     due.getMonth(),
     due.getDate(),
   ).getTime();
   const diffDays = Math.round((startOfDue - startOfToday) / oneDay);
-  if (diffDays < 0) return "overdue";
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "tomorrow";
+  if (diffDays < 0) {return "overdue";}
+  if (diffDays === 0) {return "today";}
+  if (diffDays === 1) {return "tomorrow";}
   return null;
 }

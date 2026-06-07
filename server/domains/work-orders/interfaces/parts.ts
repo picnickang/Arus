@@ -8,7 +8,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { workOrderAppService as workOrderService } from "../application";
-import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { requirePartsManagementRole } from "../../../middleware/role-auth";
 import { requirePermission } from "../../permissions/middleware";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils";
@@ -29,8 +29,7 @@ const partBodySchema = z
     quantity: z.number().positive(),
     usedBy: z.string().min(1),
     notes: z.string().optional(),
-  })
-  .passthrough();
+  });
 
 const bulkPartsBodySchema = z.object({
   parts: z
@@ -39,7 +38,7 @@ const bulkPartsBodySchema = z.object({
         partId: z.string().min(1),
         quantity: z.number().positive(),
         usedBy: z.string().min(1),
-      }).passthrough()
+      })
     )
     .min(1),
 });
@@ -56,7 +55,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     "/api/work-orders/:id/parts",
     requireOrgId,
     withErrorHandling("fetch work order parts", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const parts = await workOrderService.getWorkOrderParts(id, orgId);
       return res.json(parts);
@@ -70,7 +69,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     requirePermission("work_orders", "create"),
     writeOperationRateLimit,
     withErrorHandling("add part to work order", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const body = partBodySchema.parse(req.body);
       const partData = {
@@ -94,7 +93,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     requirePartsManagementRole(),
     writeOperationRateLimit,
     withErrorHandling("add bulk parts to work order", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const parsed = bulkPartsBodySchema.safeParse(req.body);
       if (!parsed.success) {
@@ -148,7 +147,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     requirePartsManagementRole(),
     writeOperationRateLimit,
     withErrorHandling("remove work order part", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const orgId = authReq.orgId;
       const performedBy = authReq.user?.name || authReq.user?.email || "System";
       const { partId } = woPartParamSchema.parse(req.params);
@@ -174,7 +173,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     withErrorHandling(
       "fetch part stock status with lead time",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { partId } = partOnlyParamSchema.parse(req.params);
         const stockStatus = await dbInventoryStorage.getPartStockWithSupplierLeadTime(
           partId,
@@ -196,7 +195,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
     withErrorHandling(
       "extend work order completion date for pending parts",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const parsed = extendCompletionBodySchema.safeParse(req.body);
         if (!parsed.success) {
@@ -225,7 +224,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
           eventType: "completion_date_extended",
           description:
             reason || `Completion date extended by ${additionalDays} days for pending parts`,
-          performedBy: (req as AuthenticatedRequest).user?.name || "System",
+          performedBy: authenticatedRequest(req).user?.name || "System",
           previousValue: JSON.stringify({ plannedEndDate: workOrder.plannedEndDate }),
           newValue: JSON.stringify({ plannedEndDate: newEndDate.toISOString() }),
         } as Parameters<typeof dbInventoryStorage.addWorkOrderHistoryEntry>[0]);

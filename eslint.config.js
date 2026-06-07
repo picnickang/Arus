@@ -26,6 +26,7 @@ export default [
       '**/build/**',
       '**/.replit/**',
       '**/.local/**',
+      '**/.agents/**',
       '**/attached_assets/**',
       'reports/**',
       'tools/**',
@@ -169,6 +170,7 @@ export default [
       // TypeScript rules
       'no-unused-vars': 'off', // Use TypeScript's version
       'no-undef': 'off', // TypeScript handles this
+      'no-redeclare': 'off', // TypeScript overload signatures intentionally redeclare names.
       '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
@@ -273,6 +275,41 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module'
     }
+  },
+  {
+    files: ['scripts/**/*.mjs', 'scripts/**/*.ts'],
+    languageOptions: {
+      globals: {
+        AbortController: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        clearTimeout: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['tests/load/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['tests/load/**/*.js'],
+    languageOptions: {
+      globals: {
+        __ENV: 'readonly',
+        __VU: 'readonly',
+        console: 'readonly',
+      },
+    },
   },
   // Stage 3 & 4: Backend/server paths - allow console.log for operational logging
   {

@@ -1,13 +1,13 @@
 import type { Express, Request, Response } from "express";
 import path from "path";
 import fs from "fs";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { getReportArtifact } from "../../tools/enhanced-report-tools";
 
 export function registerReportsRoutes(app: Express) {
   app.get("/api/agent/reports/:reportId/download", async (req: Request, res: Response) => {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       if (!orgId) {
         return res.status(401).json({ error: "Authentication required" });
       }

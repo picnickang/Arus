@@ -1,7 +1,7 @@
 import type { Express, RequestHandler } from "express";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { analyticsInsightsAdapter } from "../../repositories.js";
 import { dbAnalyticsStorage } from "../../db/analytics/index.js";
 
@@ -33,7 +33,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     "/api/insights/snapshots/latest",
     generalApiRateLimit,
     withErrorHandling("fetch latest insight snapshot", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, scope = "fleet" } = req.query;
       const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(
         orgId as string,
         scope as string
@@ -51,7 +51,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     "/api/insights/generate",
     reportGenerationRateLimit,
     withErrorHandling("trigger insights generation", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.body;
+      const { orgId = authenticatedRequest(req).orgId, scope = "fleet" } = req.body;
 
       const { triggerInsightsGeneration } = await import("../../insights-scheduler");
       void scope;
@@ -95,7 +95,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     generalApiRateLimit,
     withErrorHandling("generate technician insight", async (req, res) => {
       const id = req.params['id'] ?? '';
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { generateTechnicianInsight } = await import("../../insights-engine");
       const insight = await generateTechnicianInsight(id, orgId);
@@ -130,7 +130,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
         (await import("../../ml-prometheus-metrics")) as object as FleetMetrics;
 
       const { vesselId } = req.query;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const requestContext = createRequestContext(req, { orgId });
 
       if (!orgId) {

@@ -1,12 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { jsonRecordSchema } from "@shared/validation/json";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import type { SchedulerService } from "../../application/scheduler-service";
 import type { RateLimitMiddleware, RoleMiddleware } from "./_shared";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
-const scheduleBodySchema = z.record(z.unknown());
+const scheduleBodySchema = jsonRecordSchema;
 
 export interface SchedulesRouteDeps {
   globalScheduler: SchedulerService;
@@ -23,7 +24,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const schedules = await agentRepo.schedules.list(orgId);
         return res.json(schedules);
       } catch (error: unknown) {
@@ -38,7 +39,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const body = scheduleBodySchema.parse(req.body ?? {});
         const schedule = await agentRepo.schedules.create({
           ...body,
@@ -60,7 +61,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const existing = await agentRepo.schedules.get(id, orgId);
         if (!existing) {
@@ -89,7 +90,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const existing = await agentRepo.schedules.get(id, orgId);
         if (!existing) {
@@ -110,7 +111,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const existing = await agentRepo.schedules.get(id, orgId);
         if (!existing) {
@@ -130,7 +131,7 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const schedule = await agentRepo.schedules.get(id, orgId);
         if (!schedule) {

@@ -189,15 +189,15 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
 
     it("BottomNav.tsx renders nothing for user-portal roles (#218 render gate)", async () => {
       const src = await readFile(BOTTOM_NAV, "utf8");
-      // Pin the policy import + the early-return on `portal === "user"`.
+      // Pin the policy import + the early-return when hub-admin access is absent.
       // The hooks above the return must still execute so the #194
       // override self-heal keeps running for users who never see the
       // bar — assert the return sits AFTER the useEffect block.
-      expect(src).toContain("getPortalForRole");
-      expect(src).toMatch(/if\s*\(\s*portal\s*===\s*"user"\s*\)\s*\{\s*return\s+null\s*;\s*\}/);
+      expect(src).toContain("isAdminPortalAccess");
+      expect(src).toMatch(/if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null\s*;\s*\}/);
       const useEffectIdx = src.indexOf("useEffect(");
       const userReturnIdx = src.search(
-        /if\s*\(\s*portal\s*===\s*"user"\s*\)\s*\{\s*return\s+null/,
+        /if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null/,
       );
       expect(useEffectIdx).toBeGreaterThan(-1);
       expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
@@ -217,7 +217,8 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       // The mobile clearance for the bar is portal-scoped — no
       // orphan `pb-14` strip on user-portal pages.
       expect(src).toContain("isAdminPortal");
-      expect(src).toMatch(/getPortalForRole\(readCurrentRole\(\)\)\s*===\s*"admin"/);
+      expect(src).toContain("isAdminPortalAccess");
+      expect(src).toContain("permissions.hubAdmin");
       expect(src).toMatch(/isAdminPortal\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/);
       // Must not reintroduce the legacy unconditional clearance.
       expect(src).not.toMatch(/className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/);

@@ -161,7 +161,7 @@ No explanation, just the JSON array.`,
 
     for (let i = 0; i < Math.min(count, templates.length); i++) {
       const template = templates[i];
-      if (!template) continue;
+      if (!template) {continue;}
       const topic = topics[i % topics.length] || "marine equipment";
       suggestions.push({
         question: template.template.replace("{topic}", topic),

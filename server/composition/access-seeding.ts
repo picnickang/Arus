@@ -15,8 +15,8 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { roles } from "../../shared/schema/permissions";
-import { crew } from "../../shared/schema/crew";
+import { roles } from "@shared/schema-runtime";
+import { crew } from "@shared/schema-runtime";
 import { provisionTemplatesForOrg } from "../domains/permissions/repository";
 import {
   SUPER_ADMIN_ROLE_KEYS,
@@ -90,7 +90,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
   // 3. Backfill crew.roleId from rank for rows that have no RBAC role yet.
   //    Map rank → access level → the org role row with that name.
   const roleIdByName = new Map<string, string>();
-  for (const role of orgRoles) roleIdByName.set(role.name.trim().toLowerCase(), role.id);
+  for (const role of orgRoles) {roleIdByName.set(role.name.trim().toLowerCase(), role.id);}
 
   const unlinked = await db
     .select({ id: crew.id, rank: crew.rank })
@@ -104,7 +104,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
     // access level row.
     const rankKey = normalizeRankKey(member.rank);
     const targetRoleId = roleIdByName.get(rankKey) ?? roleIdByName.get(accessLevel);
-    if (!targetRoleId) continue;
+    if (!targetRoleId) {continue;}
     await db
       .update(crew)
       .set({ roleId: targetRoleId })

@@ -4,7 +4,7 @@
  *
  * Spawns the dev server, waits for "Domain routers registered (N modules)",
  * and asserts:
- *   1. The expected module count is reached (default: 99).
+ *   1. The expected module count is reached (default: 111).
  *   2. Zero "Failed to register" lines appear in startup output.
  *   3. The "ARUS application is now live" line is emitted.
  *
@@ -15,12 +15,12 @@
  * regressions only surface as 404s in production.
  *
  * Wire into CI as: `node scripts/check-boot-health.mjs`
- * Configure expected count via env: BOOT_EXPECTED_MODULES=99
+ * Configure expected count via env: BOOT_EXPECTED_MODULES=111
  */
 
 import { spawn } from "node:child_process";
 
-const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 99);
+const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 111);
 const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 60_000);
 
 const child = spawn("npm", ["run", "dev"], {

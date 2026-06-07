@@ -11,7 +11,7 @@ import {
   type PartsUsedEntry,
   type WorkOrderCompletion,
   type InsertWorkOrderCompletion,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { logger } from "../../utils/logger";
 
 /**
@@ -25,7 +25,7 @@ import { logger } from "../../utils/logger";
  * closeout wizard's Zod validation already (#22).
  */
 function narrowPartsUsed(value: unknown): PartsUsedEntry[] | null {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined) {return null;}
   const parsed = partsUsedSchema.safeParse(value);
   if (!parsed.success) {
     logger.warn(

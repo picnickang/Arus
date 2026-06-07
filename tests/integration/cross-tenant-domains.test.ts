@@ -142,12 +142,12 @@ async function pinnedTx<T>(
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) return;
+  if (!databaseUrl) {return;}
   pool = new Pool({ connectionString: databaseUrl, max: 4 });
   const probe = await pool.connect();
   try {
-    if (!(await tableExists(probe, "equipment"))) return;
-    if (!(await tableHasRls(probe, "equipment"))) return;
+    if (!(await tableExists(probe, "equipment"))) {return;}
+    if (!(await tableHasRls(probe, "equipment"))) {return;}
     rlsReady = true;
 
     for (const spec of DOMAINS) {
@@ -159,10 +159,10 @@ beforeAll(async () => {
     probe.release();
   }
 
-  if (!rlsReady || !pool) return;
+  if (!rlsReady || !pool) {return;}
 
   for (const spec of DOMAINS) {
-    if (!availableDomains.has(spec.domain)) continue;
+    if (!availableDomains.has(spec.domain)) {continue;}
 
     for (const org of [ORG_A, ORG_B]) {
       const id = `${TAG}-${spec.domain}-${org}`;
@@ -201,7 +201,7 @@ beforeAll(async () => {
         // If a domain's schema diverges from these fixtures (added a NOT
         // NULL column, etc.), don't fail the whole suite — drop the
         // domain from coverage and let the next CI refresh catch it.
-        // eslint-disable-next-line no-console
+
         console.warn(`[lr1b-cross-tenant] skipping ${spec.domain}: ${(err as Error).message}`);
         availableDomains.delete(spec.domain);
       }
@@ -210,10 +210,10 @@ beforeAll(async () => {
 }, 90000);
 
 afterAll(async () => {
-  if (!pool) return;
+  if (!pool) {return;}
   if (rlsReady) {
     for (const spec of DOMAINS) {
-      if (!availableDomains.has(spec.domain)) continue;
+      if (!availableDomains.has(spec.domain)) {continue;}
       for (const org of [ORG_A, ORG_B]) {
         try {
           await pinnedTx(pool, org, async (c) => {
@@ -234,12 +234,12 @@ describe("LR-1B — cross-tenant non-leakage across every tenant-scoped domain",
   for (const spec of DOMAINS) {
     it(`${spec.domain}: pinned tenant A only sees A's rows; B only sees B's`, async () => {
       if (!databaseUrl || !rlsReady || !pool) {
-        // eslint-disable-next-line no-console
+
         console.warn(`[lr1b-cross-tenant] skipping ${spec.domain} — DB / RLS not ready`);
         return;
       }
       if (!availableDomains.has(spec.domain)) {
-        // eslint-disable-next-line no-console
+
         console.warn(`[lr1b-cross-tenant] skipping ${spec.domain} — table/RLS missing`);
         return;
       }

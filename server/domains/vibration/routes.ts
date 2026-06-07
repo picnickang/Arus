@@ -1,7 +1,7 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
+import { jsonValueSchema } from "@shared/validation/json";
 import { withErrorHandling } from "../../lib/route-utils";
-import { dbSensorsStorage } from "../../db/sensors/index.js";
 
 const analyzeBodySchema = z.object({
   equipmentId: z.string().optional(),
@@ -43,7 +43,7 @@ const bearingFreqBodySchema = z.object({
 const featuresBodySchema = z.object({ data: z.array(z.number()) });
 const acousticBodySchema = z.object({
   equipmentId: z.string().optional(),
-  audioData: z.unknown().optional(),
+  audioData: jsonValueSchema.optional(),
   sampleRate: z.number().optional(),
 });
 const acousticHistoryQuerySchema = z.object({

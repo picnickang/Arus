@@ -9,7 +9,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import {
   dbEquipmentStorage,
   dbTelemetryStorage,
@@ -31,7 +31,7 @@ export function registerFleetSummaryRoutes(
     withErrorHandling("generate fleet summary", async (req, res) => {
       const { lookbackHours = 168 } = req.body;
 
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const [equipmentHealth, telemetryData, workOrders, pdmScores] = await Promise.all([
         dbEquipmentStorage.getEquipmentHealth(orgId),
         dbTelemetryStorage.getTelemetryTrends(orgId, lookbackHours),

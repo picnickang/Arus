@@ -192,7 +192,7 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
   });
 
   const currentVessel = useMemo<CurrentVesselSlot | undefined>(() => {
-    if (!Array.isArray(vessels) || vessels.length === 0) return undefined;
+    if (!Array.isArray(vessels) || vessels.length === 0) {return undefined;}
     const first = vessels[0];
     return { id: first.id, name: first.name, imo: first.imo ?? undefined };
   }, [vessels]);
@@ -223,7 +223,7 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
   );
 
   const upcomingMaintenance = useMemo<UpcomingMaintenanceSlot[]>(() => {
-    if (!Array.isArray(maintenance)) return [];
+    if (!Array.isArray(maintenance)) {return [];}
     return maintenance.slice(0, 4).map((m) => ({
       id: m.id,
       title: m.title,

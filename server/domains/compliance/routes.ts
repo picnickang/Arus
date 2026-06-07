@@ -1,10 +1,11 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbComplianceStorage as complianceRepo } from "../../db/compliance/db-compliance.js";
 import type { RateLimit } from "../../lib/rate-limit-factory";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 
 interface RateLimiters {
   writeOperationRateLimit: RateLimit;
@@ -43,9 +44,9 @@ const rulesFiltersSchema = z.object({
 const idParamSchema = z.object({ id: z.string().min(1) });
 const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
 
-const createFindingSchema = z.record(z.unknown());
-const createRuleSchema = z.record(z.unknown());
-const updateRuleSchema = z.record(z.unknown());
+const createFindingSchema = jsonRecordSchema;
+const createRuleSchema = jsonRecordSchema;
+const updateRuleSchema = jsonRecordSchema;
 
 const acknowledgeBodySchema = z.object({
   acknowledgedByUserId: z.string().min(1),
@@ -192,7 +193,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       // LR-3.5 / AUD-1 (Task #208): soft-archive. Pass the
       // authenticated user as `archivedBy` so the audit view shows
       // who removed the finding.
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const archivedBy = authReq.user?.id ?? (req.headers["x-user-id"] as string | undefined);
       await complianceRepo.deleteComplianceFinding(id, orgId!, archivedBy);
       res.status(204).send();

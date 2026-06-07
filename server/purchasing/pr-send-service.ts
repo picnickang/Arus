@@ -129,7 +129,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
           notes: `Generated from PR ${pr.requestNumber}`,
         })
         .returning();
-      if (!po) throw new Error("sendPR: purchaseOrders insert returned no row");
+      if (!po) {throw new Error("sendPR: purchaseOrders insert returned no row");}
 
       for (const { item, unitCost } of itemsWithCosts) {
         await tx.insert(purchaseOrderItems).values({

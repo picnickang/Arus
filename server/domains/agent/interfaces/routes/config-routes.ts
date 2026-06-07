@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import { getRegisteredToolNames } from "../../tools";
 import { auditAction } from "../../../../utils/audit-helpers";
@@ -37,7 +37,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const config = await agentRepo.config.get(orgId);
         return res.json(
           config || {
@@ -67,7 +67,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const parsed = configUpdateSchema.safeParse(req.body);
         if (!parsed.success) {
           return res
@@ -103,7 +103,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
             action: "config_updated",
             fields: Object.keys(parsed.data),
           },
-          { orgId, userId: (req as AuthenticatedRequest).user?.id }
+          { orgId, userId: authenticatedRequest(req).user?.id }
         );
 
         return res.json(config);
@@ -119,7 +119,7 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const defaults = {
           orgId,
           defaultModel: "gpt-4o-mini",

@@ -647,7 +647,7 @@ class WorkOrderService {
           updatedAt: now,
         })
         .returning();
-      if (!clonedOrder) throw new Error("cloneWorkOrder: insert returned no row");
+      if (!clonedOrder) {throw new Error("cloneWorkOrder: insert returned no row");}
       if (options?.includeTasks !== false) {
         const originalTasks = await tx
           .select()
@@ -748,7 +748,7 @@ class WorkOrderService {
         throw new Error(`Work order ${workOrderId} not found`);
       }
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
-      if (!completion) throw new Error("Failed to insert work order completion");
+      if (!completion) {throw new Error("Failed to insert work order completion");}
       const woParts = await tx
         .select()
         .from(workOrderParts)

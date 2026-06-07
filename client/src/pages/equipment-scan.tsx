@@ -25,7 +25,7 @@ function normalize(value: unknown): string {
 
 function matchesCode(item: EquipmentLike, code: string): boolean {
   const target = normalize(code);
-  if (!target) return false;
+  if (!target) {return false;}
   return [item.id, item.name, item.tagNumber, item.assetTag, item.serialNumber]
     .map(normalize)
     .some((candidate) => candidate === target || candidate.includes(target));
@@ -50,13 +50,13 @@ export default function EquipmentScanPage() {
     : "";
 
   const copyQrPayload = async () => {
-    if (!selectedQrPayload) return;
+    if (!selectedQrPayload) {return;}
     await navigator.clipboard?.writeText(selectedQrPayload);
     setScanMessage("QR payload copied for label printing.");
   };
 
   const printLabel = () => {
-    if (!selectedEquipment) return;
+    if (!selectedEquipment) {return;}
     const labelWindow = window.open("", "_blank", "width=420,height=520");
     if (!labelWindow) {
       setScanMessage("Popup blocked. Allow popups to print labels.");

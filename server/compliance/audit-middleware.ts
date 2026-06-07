@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("Compliance:AuditMiddleware");
 import { Request, Response, NextFunction } from "express";
@@ -219,9 +219,9 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
     const { entityType, entityId } = parseEntityFromPath(path);
 
     // Extract user information
-    const userId = (req.headers["x-user-id"] as string) || (req as AuthenticatedRequest).user?.id || "anonymous";
+    const userId = (req.headers["x-user-id"] as string) || authenticatedRequest(req).user?.id || "anonymous";
     const userName =
-      (req.headers["x-user-name"] as string) || (req as AuthenticatedRequest).user?.name || "Anonymous User";
+      (req.headers["x-user-name"] as string) || authenticatedRequest(req).user?.name || "Anonymous User";
 
     // Get request metadata
     const requestId =

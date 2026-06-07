@@ -222,7 +222,7 @@ export function useEngineLogbookData() {
         vesselId: selectedVesselId,
         logDate: selectedDate,
         overwriteManual: false,
-      })) as AutoFillResult;
+      }));
     },
     onSuccess: (result) => {
       const { mainEngine, generators } = result;

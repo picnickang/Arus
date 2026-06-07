@@ -16,7 +16,7 @@ export class FileOperatorExperienceEventStore implements OperatorExperienceEvent
       orgId,
       occurredAt: event.occurredAt ?? new Date().toISOString(),
     };
-    await appendFile(EVENTS_FILE, JSON.stringify(record) + "\n", "utf8");
+    await appendFile(EVENTS_FILE, `${JSON.stringify(record)  }\n`, "utf8");
     return record;
   }
 

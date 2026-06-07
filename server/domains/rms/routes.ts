@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
 
 const MODULE = "rms";
@@ -25,7 +26,7 @@ const alertsQuerySchema = z.object({
 const acknowledgeBodySchema = z.object({ acknowledgedBy: z.string().optional() });
 const alertConfigPatchBodySchema = z.object({
   name: z.string().optional(),
-  config: z.record(z.unknown()).optional(),
+  config: jsonRecordSchema.optional(),
   enabled: z.boolean().optional(),
   notifyEmail: z.boolean().optional(),
   notifyInApp: z.boolean().optional(),
@@ -33,12 +34,12 @@ const alertConfigPatchBodySchema = z.object({
 });
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId as string;
+  return authenticatedRequest(req).orgId as string;
 }
 
 type Row = Record<string, unknown>;
 function getRows(result: unknown): Row[] {
-  if (Array.isArray(result)) return result as Row[];
+  if (Array.isArray(result)) {return result as Row[];}
   if (result && typeof result === "object" && Array.isArray((result as { rows?: unknown }).rows)) {
     return (result as { rows: Row[] }).rows;
   }

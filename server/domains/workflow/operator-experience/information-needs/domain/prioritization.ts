@@ -21,16 +21,16 @@ const STATUS_RANK: Record<InformationNeedStatus, number> = {
 };
 
 function priorityFromRank(rank: number): InformationNeedPriority {
-  if (rank >= 3) return "critical";
-  if (rank >= 2) return "urgent";
-  if (rank >= 1) return "important";
+  if (rank >= 3) {return "critical";}
+  if (rank >= 2) {return "urgent";}
+  if (rank >= 1) {return "important";}
   return "routine";
 }
 
 function statusFromRank(rank: number): InformationNeedStatus {
-  if (rank >= 3) return "critical";
-  if (rank >= 2) return "needs_attention";
-  if (rank >= 1) return "watch";
+  if (rank >= 3) {return "critical";}
+  if (rank >= 2) {return "needs_attention";}
+  if (rank >= 1) {return "watch";}
   return "healthy";
 }
 
@@ -45,16 +45,16 @@ function sourceHealthPenalty(signals: OperatorExperienceSignalSnapshot): number 
 
 function signalSeverity(signals: OperatorExperienceSignalSnapshot, key: string): number {
   const value = metric(signals, key);
-  if (key === "criticalItems" && value > 0) return 3;
-  if (key === "conflicts" && value > 0) return 3;
-  if (key === "blockedItems" && value > 0) return 2;
-  if (key === "waitingOnParts" && value > 0) return 2;
-  if (key === "dataQualityWarnings" && value > 0) return 2;
-  if (key === "pdmRisks" && value > 0) return 2;
-  if (key === "readyForCloseout" && value > 0) return 1;
-  if (key === "handoverNotes" && value > 0) return 1;
-  if (key === "offlinePending" && value > 0) return 1;
-  if (key === "attentionItems" && value > 0) return 1;
+  if (key === "criticalItems" && value > 0) {return 3;}
+  if (key === "conflicts" && value > 0) {return 3;}
+  if (key === "blockedItems" && value > 0) {return 2;}
+  if (key === "waitingOnParts" && value > 0) {return 2;}
+  if (key === "dataQualityWarnings" && value > 0) {return 2;}
+  if (key === "pdmRisks" && value > 0) {return 2;}
+  if (key === "readyForCloseout" && value > 0) {return 1;}
+  if (key === "handoverNotes" && value > 0) {return 1;}
+  if (key === "offlinePending" && value > 0) {return 1;}
+  if (key === "attentionItems" && value > 0) {return 1;}
   return 0;
 }
 
@@ -71,9 +71,9 @@ function buildReason(definition: RoleInformationNeedDefinition, signals: Operato
 }
 
 function cta(definition: RoleInformationNeedDefinition, status: InformationNeedStatus): string {
-  if (status === "critical") return `Act now: ${definition.primaryAction}`;
-  if (status === "needs_attention") return `Review today: ${definition.primaryAction}`;
-  if (status === "watch") return `Keep visible: ${definition.primaryAction}`;
+  if (status === "critical") {return `Act now: ${definition.primaryAction}`;}
+  if (status === "needs_attention") {return `Review today: ${definition.primaryAction}`;}
+  if (status === "watch") {return `Keep visible: ${definition.primaryAction}`;}
   return definition.primaryAction;
 }
 
@@ -104,9 +104,9 @@ export function prioritizeInformationNeed(
 export function sortInformationNeeds(needs: RoleInformationNeed[]): RoleInformationNeed[] {
   return [...needs].sort((a, b) => {
     const priorityDelta = PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority];
-    if (priorityDelta !== 0) return priorityDelta;
+    if (priorityDelta !== 0) {return priorityDelta;}
     const statusDelta = STATUS_RANK[b.status] - STATUS_RANK[a.status];
-    if (statusDelta !== 0) return statusDelta;
+    if (statusDelta !== 0) {return statusDelta;}
     return a.title.localeCompare(b.title);
   });
 }

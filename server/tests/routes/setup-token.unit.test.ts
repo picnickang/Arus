@@ -16,8 +16,8 @@ describe("verifySetupToken — constant-time digest compare (P2 #2)", () => {
   });
 
   afterEach(() => {
-    if (ORIGINAL === undefined) delete process.env['SETUP_TOKEN'];
-    else process.env['SETUP_TOKEN'] = ORIGINAL;
+    if (ORIGINAL === undefined) {delete process.env['SETUP_TOKEN'];}
+    else {process.env['SETUP_TOKEN'] = ORIGINAL;}
   });
 
   it("returns true when token matches exactly", () => {
@@ -36,7 +36,7 @@ describe("verifySetupToken — constant-time digest compare (P2 #2)", () => {
   });
 
   it("returns false when token is longer than configured (no throw)", () => {
-    const longer = VALID + "EXTRA-SUFFIX-PADDING";
+    const longer = `${VALID  }EXTRA-SUFFIX-PADDING`;
     expect(() => verifySetupToken(VALID, longer)).not.toThrow();
     expect(verifySetupToken(VALID, longer)).toBe(false);
   });

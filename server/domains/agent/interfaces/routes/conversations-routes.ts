@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import type { RateLimitMiddleware } from "./_shared";
 
@@ -15,8 +15,8 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const conversations = await agentRepo.conversations.list(orgId, userId);
         return res.json(conversations);
       } catch (error: unknown) {
@@ -30,7 +30,7 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
@@ -47,7 +47,7 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });
@@ -66,7 +66,7 @@ export function registerConversationsRoutes(app: Express, deps: ConversationsRou
     rateLimit.writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const conversation = await agentRepo.conversations.get((req.params['id'] ?? ''), orgId);
         if (!conversation) {
           return res.status(404).json({ error: "Conversation not found" });

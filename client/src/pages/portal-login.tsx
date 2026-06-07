@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
 import { isSuperAdminRole } from "@shared/role-dashboard";
+import {
+  clearNavOverride,
+  clearUserRole,
+  writeUserRole,
+} from "@/infrastructure/navigation/nav-storage";
 import {
   Shield,
   User,
@@ -65,15 +69,8 @@ const PORTALS: PortalChoice[] = [
 ];
 
 function rememberRoleHint(roleHint: string) {
-  try {
-    localStorage.setItem(ROLE_STORAGE_KEY, roleHint);
-    // Clear any prior bottom-nav override so the new role's policy
-    // takes effect on next render.
-    localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
-  } catch {
-    // localStorage may be unavailable (private mode). The policy will
-    // fall back to its default branch.
-  }
+  writeUserRole(roleHint);
+  clearNavOverride();
 }
 
 export default function PortalLoginPage() {
@@ -179,11 +176,7 @@ export default function PortalLoginPage() {
       // an authenticated route would immediately 401, so clear local auth
       // state and send the user back to a fresh sign-in.
       setApiSessionToken(null);
-      try {
-        localStorage.removeItem(ROLE_STORAGE_KEY);
-      } catch {
-        /* storage unavailable — nothing to clear */
-      }
+      clearUserRole();
       queryClient.clear();
       setStage("login");
       setPassword("");
@@ -435,7 +428,7 @@ export default function PortalLoginPage() {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (passwordsMismatch) return;
+                if (passwordsMismatch) {return;}
                 changePassword.mutate();
               }}
             >

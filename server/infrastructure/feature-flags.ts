@@ -166,7 +166,7 @@ export class FeatureFlagManager {
    * falls through to env defaults.
    */
   public async refresh(db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> }): Promise<void> {
-    if (this.refreshPromise) return this.refreshPromise;
+    if (this.refreshPromise) {return this.refreshPromise;}
     this.refreshPromise = (async () => {
       try {
         const { sql } = await import("drizzle-orm");

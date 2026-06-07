@@ -154,7 +154,7 @@ async function seedBulletin(opts: {
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) return;
+  if (!databaseUrl) {return;}
   try {
     if (
       !(await tableExists("safety_bulletins")) ||
@@ -316,13 +316,13 @@ const skip = () => {
 
 describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   it("returns 401 when unauthenticated", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!).get("/api/safety-bulletins").send();
     expect(res.status).toBe(401);
   });
 
   it("active-only by default: hides inactive, future-dated, and expired", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -339,7 +339,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("includeInactive=true surfaces inactive bulletins", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=true")
       .set("x-test-token", "org-a-token")
@@ -350,7 +350,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("includeInactive=false is NOT coerced to truthy (inactive stays hidden)", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=false")
       .set("x-test-token", "org-a-token")
@@ -361,7 +361,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("vessel scope returns vessel-specific + fleet-wide (null), not other vessels", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get(`/api/safety-bulletins?vesselId=${VESSEL_A}`)
       .set("x-test-token", "org-a-token")
@@ -375,7 +375,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("org scoping: tenant A never sees tenant B bulletins", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=true")
       .set("x-test-token", "org-a-token")
@@ -386,7 +386,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("tenant B sees only its own bulletins", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .get("/api/safety-bulletins")
       .set("x-test-token", "org-b-token")
@@ -401,7 +401,7 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
 
 describe("Task #230 — POST /api/safety-bulletins validation", () => {
   it("rejects a missing title with 400", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -411,7 +411,7 @@ describe("Task #230 — POST /api/safety-bulletins validation", () => {
   });
 
   it("rejects an out-of-enum severity with 400", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -421,7 +421,7 @@ describe("Task #230 — POST /api/safety-bulletins validation", () => {
   });
 
   it("creates a valid bulletin and scopes it to the caller's org", async () => {
-    if (skip()) return;
+    if (skip()) {return;}
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")

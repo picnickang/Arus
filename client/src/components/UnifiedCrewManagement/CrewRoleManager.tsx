@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DOCUMENT_TYPES, type CrewRole } from "@/features/crew";
+import { DOCUMENT_TYPES, type CrewManagementRole } from "@/features/crew";
 
 const ROLES_KEY = ["/api/crew-roles"] as const;
 const PERMISSION_ROLES_KEY = ["/api/permissions/roles"] as const;
@@ -60,7 +60,7 @@ const EMPTY_DEFAULTS: RoleDefaults = {
   requiredDocuments: [],
 };
 
-function defaultsFromRole(role: CrewRole): RoleDefaults {
+function defaultsFromRole(role: CrewManagementRole): RoleDefaults {
   return {
     department: role.defaultDepartment ?? "",
     minRest: role.defaultMinRestHours != null ? String(role.defaultMinRestHours) : "",
@@ -231,7 +231,7 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
   const [editCategory, setEditCategory] = useState("");
   const [editDefaults, setEditDefaults] = useState<RoleDefaults>(EMPTY_DEFAULTS);
 
-  const { data: roles = [], isLoading } = useQuery<CrewRole[]>({
+  const { data: roles = [], isLoading } = useQuery<CrewManagementRole[]>({
     queryKey: ROLES_KEY,
     enabled: open,
   });
@@ -302,11 +302,11 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
     }
     const ordered = roles.map((r) => r.id);
     const [moved] = ordered.splice(index, 1);
-    ordered.splice(target, 0, moved!);
+    ordered.splice(target, 0, moved);
     reorderMutation.mutate(ordered);
   };
 
-  const startEdit = (role: CrewRole) => {
+  const startEdit = (role: CrewManagementRole) => {
     setEditingId(role.id);
     setEditName(role.name);
     setEditCategory(role.category);

@@ -20,7 +20,7 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Purchasing] Error getting part suppliers:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -46,7 +46,7 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
     return res.status(201).json(link);
   } catch (error) {
     logger.error("[Purchasing] Error linking supplier to part:", undefined, error);
-    return res.status(400).json({ error: (error as Error).message });
+    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -69,7 +69,7 @@ supplierLinkRouter.delete(
       return res.json({ success: true });
     } catch (error) {
       logger.error("[Purchasing] Error unlinking supplier from part:", undefined, error);
-      return res.status(400).json({ error: (error as Error).message });
+      return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
     }
   }
 );

@@ -47,6 +47,10 @@ export interface AuthenticatedRequest extends Request {
   adminId?: string;
 }
 
+export function authenticatedRequest(req: Request): AuthenticatedRequest {
+  return req as AuthenticatedRequest;
+}
+
 function resolveOrgId(authReq: AuthenticatedRequest): { orgId?: string; error?: string } {
   const claim = authReq.user?.orgId;
   if (requireTenantAuth()) {
@@ -63,7 +67,7 @@ export async function requireOrgId(req: Request, res: Response, next: NextFuncti
     return next();
   }
 
-  const authReq = req as AuthenticatedRequest;
+  const authReq = authenticatedRequest(req);
 
   if (!authReq.user) {
     res.status(401).json({
@@ -95,7 +99,7 @@ export async function requireOrgIdAndValidateBody(
     return next();
   }
 
-  const authReq = req as AuthenticatedRequest;
+  const authReq = authenticatedRequest(req);
 
   if (!authReq.user) {
     res.status(401).json({
@@ -136,7 +140,7 @@ export async function optionalOrgId(
   if (req.method === "OPTIONS") {
     return next();
   }
-  const authReq = req as AuthenticatedRequest;
+  const authReq = authenticatedRequest(req);
   const { orgId } = resolveOrgId(authReq);
   if (orgId) {
     authReq.orgId = orgId;

@@ -1,5 +1,5 @@
 import { and, asc, eq, lte, sql } from "drizzle-orm";
-import { eventOutbox } from "../../../shared/schema/sync.js";
+import { eventOutbox } from "@shared/schema-runtime";
 import { db } from "../../db.js";
 import type { EnqueueOutboxInput } from "./types.js";
 import { backoffMs, MAX_ATTEMPTS } from "./backoff.js";
@@ -213,6 +213,6 @@ export async function countByStatus(): Promise<Record<string, number>> {
     .groupBy(eventOutbox.status)
     .orderBy(asc(eventOutbox.status));
   const out: Record<string, number> = {};
-  for (const r of rows) out[r.status] = Number(r.count);
+  for (const r of rows) {out[r.status] = Number(r.count);}
   return out;
 }

@@ -18,10 +18,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const REPO_ROOT = resolve(__dirname, "..", "..");
+const REPO_ROOT = process.cwd();
 const PAGES = {
   maintenance: resolve(REPO_ROOT, "client/src/pages/maintenance-hub.tsx"),
-  crew: resolve(REPO_ROOT, "client/src/pages/crew-hub.tsx"),
+  crew: resolve(REPO_ROOT, "client/src/pages/crew-management.tsx"),
   logistics: resolve(REPO_ROOT, "client/src/pages/logistics-hub.tsx"),
   system: resolve(REPO_ROOT, "client/src/pages/system-hub.tsx"),
   analytics: resolve(REPO_ROOT, "client/src/pages/analytics-hub.tsx"),
@@ -82,28 +82,21 @@ describe("UI Align Phase 6 — Maintenance hub (panel 5, Figma 1:1418)", () => {
 });
 
 describe("UI Align Phase 6 — Crew hub (panel 6)", () => {
-  it("binds to the crew + expiring-certifications endpoints", async () => {
+  it("mounts the consolidated crew management experience", async () => {
     const src = await loadPage("crew");
-    expect(src).toContain('"/api/crew"');
-    expect(src).toContain('"/api/crew-certifications/expiring"');
+    expect(src).toContain("UnifiedCrewManagement");
   });
 
-  it("renders the four counters + two lists", async () => {
+  it("keeps the consolidated crew page free of fake polling", async () => {
     const src = await loadPage("crew");
-    expect(src).toContain('"counter-total-crew"');
-    expect(src).toContain('"counter-onboard"');
-    expect(src).toContain('"counter-on-leave"');
-    expect(src).toContain('"counter-certs-due"');
-    expect(src).toContain('data-testid="list-expiring-certifications"');
-    expect(src).toContain('data-testid="list-crew-on-leave"');
+    expect(src).not.toMatch(/setInterval\(/);
   });
 
   it("links to existing deep-link routes (no in-hub RBAC)", async () => {
     const src = await loadPage("crew");
-    expect(src).toContain('href="/crew-management"');
-    expect(src).toContain('href="/schedule-planner"');
-    expect(src).toContain('href="/hours-of-rest"');
-    expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
+    expect(src).toContain('resource="crew_members"');
+    expect(src).toContain('action="view"');
+    expect(src).not.toMatch(/RoleGate|requireRole/);
   });
 });
 
@@ -125,9 +118,9 @@ describe("UI Align Phase 6 — Logistics hub (panel 4 / row 10)", () => {
 
   it("links to existing deep-link routes (no in-hub RBAC)", async () => {
     const src = await loadPage("logistics");
-    expect(src).toContain('href="/inventory-management"');
-    expect(src).toContain('href="/service-orders"');
-    expect(src).toContain('href="/vendors"');
+    expect(src).toContain('href="/logistics?tab=inventory"');
+    expect(src).toContain('href="/logistics?tab=service-orders"');
+    expect(src).toContain('href="/logistics?tab=vendors"');
     expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
   });
 });
@@ -246,7 +239,7 @@ describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gat
   it("each hub category's hubRoute points to a real registered route", async () => {
     const expected: Record<(typeof HUB_IDS)[number], { file: string; path: string }> = {
       maintenance: { file: "client/src/routes/maintenance.ts", path: "/maint" },
-      crew: { file: "client/src/routes/crew.ts", path: "/crew" },
+      crew: { file: "client/src/routes/crew.ts", path: "/crew-management" },
       logistics: { file: "client/src/routes/logistics.ts", path: "/logistics" },
       analytics: { file: "client/src/routes/analytics.ts", path: "/analytics" },
       system: { file: "client/src/routes/system.ts", path: "/system" },

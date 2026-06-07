@@ -17,7 +17,7 @@ import * as Sentry from "@sentry/react";
 
 export function initSentry(): void {
   const dsn = import.meta.env['VITE_SENTRY_DSN'] as string | undefined;
-  if (!dsn) return;
+  if (!dsn) {return;}
 
   Sentry.init({
     dsn,
@@ -25,7 +25,7 @@ export function initSentry(): void {
     release: import.meta.env['VITE_SENTRY_RELEASE'] as string | undefined,
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: Number(import.meta.env['VITE_SENTRY_TRACES_SAMPLE_RATE'] ?? 0.1),
-    // Don't capture console.log noise — only actual errors and warns.
+    // Don't capture browser console noise — only actual errors and warns.
     // The structured logger on the server side is the canonical log
     // surface; the client only needs to report what blew up.
     beforeBreadcrumb(breadcrumb) {

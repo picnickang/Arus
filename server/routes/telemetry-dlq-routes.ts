@@ -100,13 +100,13 @@ telemetryDlqRouter.post(
     if (result.success) {
       logger.info("TelemetryDLQRoutes", "Entry replayed successfully", { entryId: (req.params['id'] ?? '') });
       return res.json(result);
-    } else {
+    }
       logger.warn("TelemetryDLQRoutes", "Entry replay failed", {
         entryId: (req.params['id'] ?? ''),
         error: result.error,
       });
       return res.status(400).json(result);
-    }
+
   })
 );
 

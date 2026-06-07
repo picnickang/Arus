@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-export interface InferenceResult {
+export interface PdmInferenceResult {
   inferenceRun?: {
     status?: string;
     latencyMs?: number;
@@ -16,7 +16,7 @@ export interface InferenceResult {
   };
 }
 
-export interface PredictionExplanation {
+export interface PdmPredictionExplanation {
   id: string | number;
   featureName: string;
   importance: number;
@@ -34,7 +34,7 @@ export function useRunInference() {
       equipmentId: string;
       modelVersionId?: string;
     }) => {
-      return apiRequest<InferenceResult>("POST", "/api/pdm/infer", { equipmentId, modelVersionId });
+      return apiRequest<PdmInferenceResult>("POST", "/api/pdm/infer", { equipmentId, modelVersionId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm"] });
@@ -47,7 +47,7 @@ export function usePredictionExplanations(predictionId: number | null) {
   return useQuery({
     queryKey: ["/api/pdm/infer/predictions", predictionId, "explanations"],
     queryFn: async () =>
-      apiRequest<PredictionExplanation[]>(
+      apiRequest<PdmPredictionExplanation[]>(
         "GET",
         `/api/pdm/infer/predictions/${predictionId}/explanations`,
       ),

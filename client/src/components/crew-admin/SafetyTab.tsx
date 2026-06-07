@@ -799,7 +799,7 @@ function ActiveAlarmsSection() {
             </Button>
             <Button
               onClick={() => {
-                if (!clearTarget) return;
+                if (!clearTarget) {return;}
                 clear.mutate({
                   id: clearTarget.id,
                   resolutionNote: clearNote.trim() || undefined,
@@ -840,22 +840,22 @@ function AlertLogSection() {
 
   const visibleAlarms = alarms.filter((alarm) => {
     const triggeredAt = alarm.triggeredAt ? new Date(alarm.triggeredAt) : null;
-    if (filters.from && triggeredAt && triggeredAt < new Date(filters.from)) return false;
-    if (filters.to && triggeredAt && triggeredAt > new Date(`${filters.to}T23:59:59`)) return false;
+    if (filters.from && triggeredAt && triggeredAt < new Date(filters.from)) {return false;}
+    if (filters.to && triggeredAt && triggeredAt > new Date(`${filters.to}T23:59:59`)) {return false;}
     if (filters.vesselId !== "all") {
-      if (filters.vesselId === "__fleet__" && alarm.vesselId !== null) return false;
-      if (filters.vesselId !== "__fleet__" && alarm.vesselId !== filters.vesselId) return false;
+      if (filters.vesselId === "__fleet__" && alarm.vesselId !== null) {return false;}
+      if (filters.vesselId !== "__fleet__" && alarm.vesselId !== filters.vesselId) {return false;}
     }
-    if (filters.severity !== "all" && alarm.severity !== filters.severity) return false;
-    if (filters.mode !== "all" && alarm.mode !== filters.mode) return false;
-    if (filters.status !== "all" && alarm.status !== filters.status) return false;
+    if (filters.severity !== "all" && alarm.severity !== filters.severity) {return false;}
+    if (filters.mode !== "all" && alarm.mode !== filters.mode) {return false;}
+    if (filters.status !== "all" && alarm.status !== filters.status) {return false;}
     if (filters.triggeredBy.trim()) {
       const triggeredBy = (alarm.triggeredByName ?? "").toLowerCase();
-      if (!triggeredBy.includes(filters.triggeredBy.trim().toLowerCase())) return false;
+      if (!triggeredBy.includes(filters.triggeredBy.trim().toLowerCase())) {return false;}
     }
     if (filters.clearedBy.trim()) {
       const clearedBy = (alarm.clearedByName ?? "").toLowerCase();
-      if (!clearedBy.includes(filters.clearedBy.trim().toLowerCase())) return false;
+      if (!clearedBy.includes(filters.clearedBy.trim().toLowerCase())) {return false;}
     }
     return true;
   });

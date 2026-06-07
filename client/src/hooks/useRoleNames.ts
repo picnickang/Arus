@@ -23,7 +23,7 @@ export function useRoleNames(): RoleNamesResult {
     const roleNames = Array.isArray(roles)
       ? roles
           .map((r) => {
-            if (typeof r === "string") return r;
+            if (typeof r === "string") {return r;}
             if (r && typeof r === "object" && "name" in r) {
               return String((r as { name: unknown }).name);
             }

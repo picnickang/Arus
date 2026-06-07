@@ -8,7 +8,7 @@ import {
   costSavings,
   updateValidationStatusSchema,
 } from "@shared/schema-runtime";
-import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import {
@@ -31,7 +31,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     "/api/cost-savings/summary",
     requireOrgId,
     withErrorHandling("fetch cost savings summary", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const validatedQuery = costSavingsSummaryQuerySchema.parse(req.query);
 
       const endDate = validatedQuery.dateTo ? new Date(validatedQuery.dateTo) : new Date();
@@ -53,7 +53,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     "/api/cost-savings/trend",
     requireOrgId,
     withErrorHandling("fetch cost savings trend", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const validatedQuery = costSavingsTrendQuerySchema.parse(req.query);
 
       const trend = await getMonthlySavingsTrend(orgId, validatedQuery.months);
@@ -67,7 +67,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("calculate cost savings", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { workOrderId = '' } = req.params;
       // Parse-and-discard: the public schema does not currently expose the
       // emergency multipliers calculateWorkOrderSavings accepts. Validating
@@ -92,7 +92,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("process cost savings", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { workOrderId = '' } = req.params;
 
       const result = await processWorkOrderCompletion(workOrderId, orgId);
@@ -105,7 +105,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     "/api/cost-savings",
     requireOrgId,
     withErrorHandling("fetch cost savings", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const validatedQuery = costSavingsListQuerySchema.parse(req.query);
 
       const { eq, and, sql } = await import("drizzle-orm");
@@ -129,7 +129,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     "/api/cost-savings/equipment-financials",
     requireOrgId,
     withErrorHandling("fetch equipment financial summary", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { equipmentService } = await import("../equipment/service");
       const financials = await equipmentService.getEquipmentFinancialSummary(orgId);
@@ -159,8 +159,8 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("update savings validation status", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const userId = (req as AuthenticatedRequest).user?.id ?? "unknown";
+      const orgId = authenticatedRequest(req).orgId;
+      const userId = authenticatedRequest(req).user?.id ?? "unknown";
       const { id = '' } = req.params;
       const body = updateValidationStatusSchema.parse(req.body);
 

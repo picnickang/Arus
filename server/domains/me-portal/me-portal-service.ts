@@ -10,9 +10,9 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "../../db";
-import { users, adminSessions } from "@shared/schema";
-import { userDashboardPreferences } from "@shared/schema/role-dashboards";
-import { userDashboardPrefsSchema, type UserDashboardPrefs } from "@shared/schema/role-dashboards";
+import { users, adminSessions } from "@shared/schema-runtime";
+import { userDashboardPreferences } from "@shared/schema-runtime";
+import { userDashboardPrefsSchema, type UserDashboardPrefs } from "@shared/schema-runtime";
 import { and, eq, sql } from "drizzle-orm";
 import {
   dbAlertStorage,
@@ -21,10 +21,10 @@ import {
   vesselService,
   workOrderService,
 } from "../../repositories";
-import { crewAdminService } from "../crew-admin/service";
-import { safetyAlarmService, AlarmValidationError } from "../safety-alarms/service";
-import { crewTaskService } from "../crew-tasks/service";
-import { crew } from "@shared/schema";
+import { crewAdminService } from "../../services/crew-admin-facade";
+import { safetyAlarmService, AlarmValidationError } from "../../services/safety-alarm-facade";
+import { crewTaskService } from "../../services/crew-task-facade";
+import { crew } from "@shared/schema-runtime";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -38,8 +38,8 @@ import {
 import type {
   SafetyAlarmWithAcks,
   UserAlarmScope,
-} from "../safety-alarms/domain/types";
-import type { VesselAssignmentEntity } from "../crew-admin/domain/types";
+} from "../../services/safety-alarm-facade";
+import type { VesselAssignmentEntity } from "../../services/crew-admin-facade";
 
 const BCRYPT_COST = 12;
 const MIN_PASSWORD_LENGTH = 8;
@@ -113,8 +113,8 @@ function asString(value: unknown): string | null {
 
 /** Normalize a priority field that may arrive as a string or a numeric rank. */
 function asPriority(value: unknown): string | null {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
+  if (typeof value === "string") {return value;}
+  if (typeof value === "number") {return String(value);}
   return null;
 }
 
@@ -239,7 +239,7 @@ export class MePortalService {
         ),
       )
       .limit(1);
-    if (!row) return null;
+    if (!row) {return null;}
     const parsed = userDashboardPrefsSchema.safeParse(row.prefsJson);
     return parsed.success ? parsed.data : null;
   }
@@ -282,14 +282,14 @@ export class MePortalService {
         user.orgId,
       )) as unknown[];
       for (const raw of workOrders) {
-        if (typeof raw !== "object" || raw === null) continue;
+        if (typeof raw !== "object" || raw === null) {continue;}
         const wo = raw as Record<string, unknown>;
         const vesselId = asString(wo['vesselId']);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
         const id = asString(wo['id']);
-        if (!id) continue;
+        if (!id) {continue;}
         items.push({
           id,
           source: "work_orders",
@@ -312,14 +312,14 @@ export class MePortalService {
         user.orgId,
       )) as unknown[];
       for (const raw of schedules) {
-        if (typeof raw !== "object" || raw === null) continue;
+        if (typeof raw !== "object" || raw === null) {continue;}
         const row = raw as Record<string, unknown>;
         const vesselId = asString(row['vesselId']);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
         const id = asString(row['id']);
-        if (!id) continue;
+        if (!id) {continue;}
         items.push({
           id,
           source: "maintenance_schedules",
@@ -343,14 +343,14 @@ export class MePortalService {
         user.orgId,
       )) as unknown[];
       for (const raw of alerts) {
-        if (typeof raw !== "object" || raw === null) continue;
+        if (typeof raw !== "object" || raw === null) {continue;}
         const row = raw as Record<string, unknown>;
         const vesselId = asString(row['vesselId']);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
         const id = asString(row['id']);
-        if (!id) continue;
+        if (!id) {continue;}
         items.push({
           id,
           source: "alerts",

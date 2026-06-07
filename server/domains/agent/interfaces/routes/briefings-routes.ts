@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import type { BriefingGeneratorService } from "../../application/briefing-generator-service";
 import type { RateLimitMiddleware, RoleMiddleware } from "./_shared";
 
@@ -18,7 +18,7 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const briefing = await (await getBriefingService()).getLatestForToday(orgId);
         if (!briefing) {
           return res.json(null);
@@ -36,7 +36,7 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const dateStr = req.query['date'] as string | undefined;
         const limit = parseInt(req.query['limit'] as string) || 30;
 
@@ -63,7 +63,7 @@ export function registerBriefingsRoutes(app: Express, deps: BriefingsRouteDeps) 
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const briefing = await (await getBriefingService()).generate(orgId);
         return res.json(briefing);
       } catch (error: unknown) {

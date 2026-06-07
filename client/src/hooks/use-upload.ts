@@ -30,7 +30,7 @@ interface UseUploadOptions {
  * function FileUploader() {
  *   const { uploadFile, isUploading, error } = useUpload({
  *     onSuccess: (response) => {
- *       console.log("Uploaded to:", response.objectPath);
+ *       reportUpload(response.objectPath);
  *     },
  *   });
  *
@@ -196,4 +196,3 @@ export function useUpload(options: UseUploadOptions = {}) {
     progress,
   };
 }
-

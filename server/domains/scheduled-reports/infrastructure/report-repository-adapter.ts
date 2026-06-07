@@ -4,6 +4,8 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { db } from "../../../db.js";
 import { sql } from "drizzle-orm";
 import type { IReportScheduleRepository, IGeneratedReportRepository } from "../domain/ports.js";
@@ -11,11 +13,35 @@ import type {
   ReportScheduleConfig,
   ReportScheduleInput,
   GeneratedReport,
-  ReportType,
-  ReportFrequency,
-  ReportFormat,
-  ReportStatus,
 } from "../domain/types.js";
+
+const reportTypeSchema = z.enum([
+  "fleet_health",
+  "maintenance_due",
+  "inventory_status",
+  "crew_compliance",
+  "cost_summary",
+]);
+const reportFrequencySchema = z.enum(["daily", "weekly", "monthly", "custom"]);
+const reportFormatSchema = z.enum(["pdf", "csv", "json"]);
+const reportStatusSchema = z.enum(["pending", "generating", "completed", "failed", "delivered"]);
+const stringArraySchema = z.array(z.string());
+const metadataSchema = jsonRecordSchema;
+
+function rowRecord(row: unknown): Record<string, unknown> {
+  return typeof row === "object" && row !== null ? Object.fromEntries(Object.entries(row)) : {};
+}
+
+function parseJsonArray(val: unknown): string[] | null {
+  if (val == null) {
+    return null;
+  }
+  return stringArraySchema.parse(typeof val === "string" ? JSON.parse(val) : val);
+}
+
+function parseMetadata(val: unknown): Record<string, unknown> {
+  return metadataSchema.parse(typeof val === "string" ? JSON.parse(val) : (val ?? {}));
+}
 
 export class ReportScheduleRepositoryAdapter implements IReportScheduleRepository {
   async create(
@@ -164,33 +190,24 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
   }
 
   private mapRowToConfig(row: unknown): ReportScheduleConfig {
-    const r = row as Record<string, unknown>;
-    const parseJsonArray = (val: unknown): string[] | null => {
-      if (val == null) {
-        return null;
-      }
-      if (typeof val === "string") {
-        return JSON.parse(val) as string[];
-      }
-      return val as string[];
-    };
+    const r = rowRecord(row);
     return {
       id: String(r['id']),
       orgId: String(r['org_id']),
       name: String(r['name']),
-      reportType: r['report_type'] as ReportType,
-      frequency: r['frequency'] as ReportFrequency,
+      reportType: reportTypeSchema.parse(r['report_type']),
+      frequency: reportFrequencySchema.parse(r['frequency']),
       cronExpression: String(r['cron_expression']),
       timezone: String(r['timezone']),
-      format: r['format'] as ReportFormat,
-      recipients: (parseJsonArray(r['recipients']) ?? []) as string[],
+      format: reportFormatSchema.parse(r['format']),
+      recipients: parseJsonArray(r['recipients']) ?? [],
       vesselIds: parseJsonArray(r['vessel_ids']),
       enabled: Boolean(r['enabled']),
-      lastRunAt: r['last_run_at'] ? new Date(r['last_run_at'] as string | number | Date) : null,
-      nextRunAt: r['next_run_at'] ? new Date(r['next_run_at'] as string | number | Date) : null,
+      lastRunAt: r['last_run_at'] ? new Date(String(r['last_run_at'])) : null,
+      nextRunAt: r['next_run_at'] ? new Date(String(r['next_run_at'])) : null,
       createdBy: String(r['created_by']),
-      createdAt: new Date(r['created_at'] as string | number | Date),
-      updatedAt: new Date(r['updated_at'] as string | number | Date),
+      createdAt: new Date(String(r['created_at'])),
+      updatedAt: new Date(String(r['updated_at'])),
     };
   }
 
@@ -303,29 +320,26 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       DELETE FROM generated_reports WHERE expires_at < ${now}
     `);
 
-    return (result as { rowCount?: number }).rowCount || 0;
+    return Number(rowRecord(result)['rowCount'] ?? 0);
   }
 
   private mapRowToReport(row: unknown): GeneratedReport {
-    const r = row as Record<string, unknown>;
+    const r = rowRecord(row);
     return {
       id: String(r['id']),
       scheduleId: String(r['schedule_id']),
       orgId: String(r['org_id']),
-      reportType: r['report_type'] as ReportType,
-      format: r['format'] as ReportFormat,
+      reportType: reportTypeSchema.parse(r['report_type']),
+      format: reportFormatSchema.parse(r['format']),
       filename: String(r['filename']),
       filePath: String(r['file_path']),
       fileSize: Number(r['file_size']),
-      status: r['status'] as ReportStatus,
-      generatedAt: new Date(r['generated_at'] as string | number | Date),
-      deliveredAt: r['delivered_at'] ? new Date(r['delivered_at'] as string | number | Date) : null,
-      expiresAt: new Date(r['expires_at'] as string | number | Date),
-      metadata:
-        typeof r['metadata'] === "string"
-          ? (JSON.parse(r['metadata']) as Record<string, unknown>)
-          : ((r['metadata'] ?? {}) as Record<string, unknown>),
-      errorMessage: (r['error_message'] as string | null) ?? null,
+      status: reportStatusSchema.parse(r['status']),
+      generatedAt: new Date(String(r['generated_at'])),
+      deliveredAt: r['delivered_at'] ? new Date(String(r['delivered_at'])) : null,
+      expiresAt: new Date(String(r['expires_at'])),
+      metadata: parseMetadata(r['metadata']),
+      errorMessage: r['error_message'] == null ? null : String(r['error_message']),
     };
   }
 }

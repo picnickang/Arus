@@ -19,7 +19,7 @@
 import type { Express, Request, RequestHandler, Response } from "express";
 import { db as defaultDb } from "../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, requireOrgIdAndValidateBody, type AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
@@ -27,7 +27,7 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { generateSoNumber } from "../service-orders/repository";
 
 function getOrgId(req: Request): string {
-  const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+  const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
   if (!orgId) {
     throw new Error("Missing orgId");
   }
@@ -84,7 +84,7 @@ export async function createServiceOrderFromWorkOrder(
   // an inline `SELECT MAX(...)+1` with no lock, which raced under concurrent
   // WO→SO conversions for the same org and could produce duplicate so_number
   // values. See server/service-orders/repository.ts:generateSoNumber.
-  const newSo = await defaultDb.transaction(async (tx) => {
+  return await defaultDb.transaction(async (tx) => {
     const soNumber = await generateSoNumber(orgId, tx as object as { execute: typeof db.execute });
 
     const [inserted] = await tx
@@ -160,8 +160,6 @@ export async function createServiceOrderFromWorkOrder(
     };
     return created;
   });
-
-  return newSo;
 }
 
 export function registerWoSoBridgeRoutes(

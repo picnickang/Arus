@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { telemetryDeadLetter } from "@shared/schema/telemetry";
+import { telemetryDeadLetter } from "@shared/schema-runtime";
 import type { DeadLetterEntry, DeadLetterQueueMetrics } from "./types";
 import { logger } from "../../utils/logger";
 
@@ -34,7 +34,7 @@ function persistAdd(
   queueName: string,
   entry: DeadLetterEntry,
 ): void {
-  if (PERSISTENCE_DISABLED) return;
+  if (PERSISTENCE_DISABLED) {return;}
   void db
     .insert(telemetryDeadLetter)
     .values({
@@ -58,7 +58,7 @@ function persistAdd(
 }
 
 function persistRemove(queueName: string, id: string): void {
-  if (PERSISTENCE_DISABLED) return;
+  if (PERSISTENCE_DISABLED) {return;}
   void db
     .delete(telemetryDeadLetter)
     .where(
@@ -74,7 +74,7 @@ function persistRemove(queueName: string, id: string): void {
 }
 
 function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
-  if (PERSISTENCE_DISABLED) return;
+  if (PERSISTENCE_DISABLED) {return;}
   void db
     .update(telemetryDeadLetter)
     .set({ retryCount: entry.retryCount, lastRetryAt: entry.lastRetryAt })
@@ -94,7 +94,7 @@ function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
 }
 
 function persistClearOlder(queueName: string, cutoff: Date): void {
-  if (PERSISTENCE_DISABLED) return;
+  if (PERSISTENCE_DISABLED) {return;}
   void db
     .delete(telemetryDeadLetter)
     .where(
@@ -112,7 +112,7 @@ function persistClearOlder(queueName: string, cutoff: Date): void {
 }
 
 function persistClearQueue(queueName: string): void {
-  if (PERSISTENCE_DISABLED) return;
+  if (PERSISTENCE_DISABLED) {return;}
   void db
     .delete(telemetryDeadLetter)
     .where(eq(telemetryDeadLetter.queueName, queueName))
@@ -131,7 +131,7 @@ function persistClearQueue(queueName: string): void {
  * number of entries reloaded (0 on DB error so callers can log).
  */
 export async function hydrateFromDatabase(queueName: string): Promise<number> {
-  if (PERSISTENCE_DISABLED) return 0;
+  if (PERSISTENCE_DISABLED) {return 0;}
   try {
     const rows = await db
       .select()

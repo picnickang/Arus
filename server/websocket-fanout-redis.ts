@@ -52,10 +52,10 @@ interface ParsedChannel {
 }
 
 function parsePubSubChannel(raw: string): ParsedChannel | null {
-  if (!raw.startsWith(PUBSUB_PREFIX)) return null;
+  if (!raw.startsWith(PUBSUB_PREFIX)) {return null;}
   const tail = raw.slice(PUBSUB_PREFIX.length);
   const idx = tail.indexOf(":");
-  if (idx <= 0) return null;
+  if (idx <= 0) {return null;}
   return { orgId: tail.slice(0, idx), channel: tail.slice(idx + 1) };
 }
 
@@ -78,7 +78,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
       return { publisher: this.publisher, subscriber: this.subscriber };
     }
     const shared = await getSharedRedisClient();
-    if (!shared) return null;
+    if (!shared) {return null;}
 
     this.publisher = shared;
 
@@ -128,11 +128,11 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
    *  per-connection, and we never grow the local refcount here. */
   private async resubscribeAll(): Promise<void> {
     const sub = this.subscriber;
-    if (!sub) return;
+    if (!sub) {return;}
     const channels = Array.from(this.subscribedChannels.entries())
       .filter(([, count]) => count > 0)
       .map(([wireChannel]) => wireChannel);
-    if (channels.length === 0) return;
+    if (channels.length === 0) {return;}
     try {
       await sub.subscribe(...channels);
     } catch (err) {
@@ -145,7 +145,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
 
   private onPeerMessage(rawChannel: string, raw: string): void {
     const parsed = parsePubSubChannel(rawChannel);
-    if (!parsed) return;
+    if (!parsed) {return;}
     let event: FanoutEvent;
     try {
       event = JSON.parse(raw) as FanoutEvent;
@@ -210,7 +210,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
         "p",
         JSON.stringify(baseEvent),
       );
-      if (!result) throw new Error("xadd returned null");
+      if (!result) {throw new Error("xadd returned null");}
       streamId = result;
     } catch (err) {
       // Stream write failed — we must not let publish silently lose
@@ -271,7 +271,7 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
     if (count === 1) {
       this.ensureClients()
         .then((clients) => {
-          if (!clients) return;
+          if (!clients) {return;}
           clients.subscriber.subscribe(wireChannel).catch((err) => {
             logger.warn("redis subscribe failed", { err: String(err), wireChannel });
           });
@@ -313,12 +313,12 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
       const events: FanoutEvent[] = [];
       for (const [id, fields] of raw) {
         const idx = fields.indexOf("p");
-        if (idx === -1) continue;
+        if (idx === -1) {continue;}
         const serialised = fields[idx + 1];
-        if (!serialised) continue;
+        if (!serialised) {continue;}
         try {
           const event = JSON.parse(serialised) as FanoutEvent;
-          if (event.timestampMs < cutoff) continue;
+          if (event.timestampMs < cutoff) {continue;}
           // Defensive: id from the stream wins over the embedded one.
           event.eventId = id;
           events.push(event);
@@ -329,9 +329,9 @@ export class RedisFanoutBus extends InProcessFanoutBus implements FanoutBus {
       // In-process ring may have events the stream missed if a publish
       // failed mid-flight; merge and de-dupe by eventId.
       const local = await super.replaySince(channel, orgId, lastEventId);
-      if (local.length === 0) return events;
+      if (local.length === 0) {return events;}
       const seen = new Set(events.map((e) => e.eventId));
-      for (const e of local) if (!seen.has(e.eventId)) events.push(e);
+      for (const e of local) {if (!seen.has(e.eventId)) {events.push(e);}}
       events.sort((a, b) => compareEventIds(a.eventId, b.eventId));
       return events;
     } catch (err) {

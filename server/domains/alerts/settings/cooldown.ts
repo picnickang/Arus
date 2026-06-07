@@ -67,7 +67,7 @@ export async function recordAlertSent(
       })
       .where(eq(alertCooldown.id, existing.id))
       .returning();
-    if (!updated) throw new Error("Failed to update alert cooldown");
+    if (!updated) {throw new Error("Failed to update alert cooldown");}
     return updated;
   }
   const [created] = await db
@@ -82,7 +82,7 @@ export async function recordAlertSent(
       alertCount: 1,
     })
     .returning();
-  if (!created) throw new Error("Failed to create alert cooldown");
+  if (!created) {throw new Error("Failed to create alert cooldown");}
   return created;
 }
 
@@ -216,7 +216,7 @@ async function atomicClaimAlertSlotSQLite(
       .limit(1);
     if (existing.length > 0) {
       const row = existing[0];
-      if (!row) throw new Error("atomicClaimAlertSlotSQLite: row missing despite length>0");
+      if (!row) {throw new Error("atomicClaimAlertSlotSQLite: row missing despite length>0");}
       if (row.lastEmailAt && new Date(row.lastEmailAt) >= cooldownThreshold) {
         return { claimed: false, reason: "Cooldown active" };
       }
@@ -250,7 +250,7 @@ async function atomicClaimAlertSlotSQLite(
         alertCount: 1,
       })
       .returning({ id: alertCooldown.id });
-    if (!newRow) throw new Error("claimCooldown: no row returned");
+    if (!newRow) {throw new Error("claimCooldown: no row returned");}
     return {
       claimed: true,
       cooldownId: newRow.id,

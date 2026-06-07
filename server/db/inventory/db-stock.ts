@@ -5,7 +5,6 @@ import type { WidenPartial } from "../../lib/widen-partial";
 
 import { randomUUID } from "node:crypto";
 import { eq, and, or, inArray, sql, type SQL } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import {
@@ -163,7 +162,7 @@ export class DbStockStorage {
       .insert(suppliers)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create supplier");
+    if (!n) {throw new Error("Failed to create supplier");}
     return n;
   }
 
@@ -207,7 +206,7 @@ export class DbStockStorage {
     }
     if (filters?.vesselId) {
       const col = tableColumns(stock)['vesselId'];
-      if (col) conditions.push(eq(col, filters.vesselId));
+      if (col) {conditions.push(eq(col, filters.vesselId));}
     }
     if (filters?.location) {
       conditions.push(eq(stock.location, filters.location));
@@ -226,7 +225,7 @@ export class DbStockStorage {
       .insert(stock)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create stock");
+    if (!n) {throw new Error("Failed to create stock");}
     return n;
   }
 
@@ -258,9 +257,9 @@ export class DbStockStorage {
     const origCol = cols['originalPartId'];
     const subCol = cols['substitutePartId'];
     const subFilters: SQL[] = [];
-    if (origCol) subFilters.push(eq(origCol, partId));
-    if (subCol) subFilters.push(eq(subCol, partId));
-    if (subFilters.length === 0) return [];
+    if (origCol) {subFilters.push(eq(origCol, partId));}
+    if (subCol) {subFilters.push(eq(subCol, partId));}
+    if (subFilters.length === 0) {return [];}
     return db
       .select()
       .from(partSubstitutions)
@@ -272,7 +271,7 @@ export class DbStockStorage {
       .insert(partSubstitutions)
       .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
-    if (!n) throw new Error("Failed to create part substitution");
+    if (!n) {throw new Error("Failed to create part substitution");}
     return n;
   }
 

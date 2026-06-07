@@ -7,7 +7,7 @@ import type { AgentTaskRepositoryPort, AgentTaskFilter } from "../domain/task-ty
 export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
   async create(data: InsertAgentTask): Promise<AgentTask> {
     const [task] = await db.insert(agentTasks).values(data).returning();
-    if (!task) throw new Error("Failed to create agent task");
+    if (!task) {throw new Error("Failed to create agent task");}
     return task;
   }
 
@@ -55,7 +55,7 @@ export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentTasks.id, id))
       .returning();
-    if (!task) throw new Error(`Failed to update agent task ${id}`);
+    if (!task) {throw new Error(`Failed to update agent task ${id}`);}
     return task;
   }
 

@@ -1,3 +1,4 @@
+import { jsonRecordSchema } from "../validation/json";
 /**
  * Schema: Role Dashboards & User Vessel Assignments
  *
@@ -133,7 +134,7 @@ export type InsertUserDashboardPreferenceRow = z.infer<typeof insertUserDashboar
 export const userDashboardPrefsSchema = z.object({
   hiddenWidgets: z.array(z.string()).optional(),
   widgetOrder: z.array(z.string()).optional(),
-  widgetSettings: z.record(z.record(z.unknown())).optional(),
+  widgetSettings: z.record(jsonRecordSchema).optional(),
   landingRoute: z.string().optional(),
 });
 export type UserDashboardPrefs = z.infer<typeof userDashboardPrefsSchema>;

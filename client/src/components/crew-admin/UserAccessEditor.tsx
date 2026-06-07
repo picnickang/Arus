@@ -47,8 +47,8 @@ function hubLabel(id: string): string {
 }
 
 function sameHubAccess(a: string[] | null, b: string[] | null): boolean {
-  if (a === null || b === null) return a === b;
-  if (a.length !== b.length) return false;
+  if (a === null || b === null) {return a === b;}
+  if (a.length !== b.length) {return false;}
   const setB = new Set(b);
   return a.every((id) => setB.has(id));
 }
@@ -81,7 +81,7 @@ export interface CrewUser {
   hubAccess: string[] | null;
 }
 
-export interface RoleSummary {
+export interface CrewAdminRoleSummary {
   id: string;
   name: string;
   displayName: string;
@@ -101,7 +101,7 @@ export interface VesselLite {
 
 interface UserAccessEditorProps {
   user: CrewUser;
-  roles: RoleSummary[];
+  roles: CrewAdminRoleSummary[];
   vessels: VesselLite[];
   /** Other users available as supervisors (the editor filters out `user`). */
   allUsers: CrewUser[];
@@ -111,7 +111,7 @@ interface UserAccessEditorProps {
 
 export function previewLine(
   u: CrewUser,
-  roles: RoleSummary[],
+  roles: CrewAdminRoleSummary[],
   vessels: VesselLite[],
 ): string {
   const roleLabel = roles.find((r) => r.name === u.role)?.displayName ?? u.role;

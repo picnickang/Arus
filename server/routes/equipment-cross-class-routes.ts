@@ -21,9 +21,9 @@
 import { Router, type Response } from "express";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "../db";
-import { equipment } from "@shared/schema/equipment";
-import { vessels } from "@shared/schema/vessels";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { equipment } from "@shared/schema-runtime";
+import { vessels } from "@shared/schema-runtime";
+import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
 import {
   crossClassPatterns,
@@ -39,7 +39,7 @@ const router = Router();
 router.get(
   "/equipment/:id/cross-class-patterns",
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { id } = req.params;
 
     try {
@@ -139,7 +139,7 @@ router.get(
 router.get(
   "/equipment/:id/cross-class-patterns/:failureMode/parts",
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { id, failureMode } = req.params;
 
     try {

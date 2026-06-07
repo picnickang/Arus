@@ -432,9 +432,9 @@ export class AnomalyCorrelator {
     for (let i = 1; i < sorted.length; i++) {
       const current = sorted[i];
       const lastCluster = clusters[clusters.length - 1];
-      if (!current || !lastCluster) continue;
+      if (!current || !lastCluster) {continue;}
       const lastInCluster = lastCluster[lastCluster.length - 1];
-      if (!lastInCluster) continue;
+      if (!lastInCluster) {continue;}
 
       const timeDiff =
         current.detectionTimestamp.getTime() - lastInCluster.detectionTimestamp.getTime();

@@ -55,11 +55,11 @@ const sessionCache = new Map<string, Promise<OrtSession>>();
 
 async function getSession(modelVersionId: string): Promise<OrtSession> {
   const existing = sessionCache.get(modelVersionId);
-  if (existing) return existing;
+  if (existing) {return existing;}
   const fresh = (async () => {
     const ort = await loadOrt();
     const res = await fetch(`/api/v1/ml/models/${encodeURIComponent(modelVersionId)}/artifact`);
-    if (!res.ok) throw new Error(`artifact fetch failed: ${res.status}`);
+    if (!res.ok) {throw new Error(`artifact fetch failed: ${res.status}`);}
     const bytes = new Uint8Array(await res.arrayBuffer());
     return ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
   })();
@@ -73,9 +73,9 @@ async function getSession(modelVersionId: string): Promise<OrtSession> {
 }
 
 function riskLevel(p: number): WebOnnxScore["riskLevel"] {
-  if (p >= 0.7) return "critical";
-  if (p >= 0.4) return "high";
-  if (p >= 0.2) return "medium";
+  if (p >= 0.7) {return "critical";}
+  if (p >= 0.4) {return "high";}
+  if (p >= 0.2) {return "medium";}
   return "low";
 }
 
@@ -86,22 +86,22 @@ function extractProbability(data: Float32Array | BigInt64Array): number {
   }
   if (data.length === 1) {
     const v = data[0];
-    if (v === undefined) return 0;
+    if (v === undefined) {return 0;}
     return v >= 0 && v <= 1 ? v : 1 / (1 + Math.exp(-v));
   }
   const last = data[data.length - 1];
-  if (last === undefined) return 0;
+  if (last === undefined) {return 0;}
   let positive: number = last;
   if (!(positive >= 0 && positive <= 1)) {
     let max = -Infinity;
     for (let i = 0; i < data.length; i++) {
       const di = data[i];
-      if (di !== undefined && di > max) max = di;
+      if (di !== undefined && di > max) {max = di;}
     }
     let sum = 0;
     for (let i = 0; i < data.length; i++) {
       const di = data[i];
-      if (di !== undefined) sum += Math.exp(di - max);
+      if (di !== undefined) {sum += Math.exp(di - max);}
     }
     positive = Math.exp(last - max) / sum;
   }
@@ -117,20 +117,20 @@ export async function scoreInBrowser(
   const arr = new Float32Array(FEATURE_ORDER.length);
   for (let i = 0; i < FEATURE_ORDER.length; i++) {
     const key = FEATURE_ORDER[i];
-    if (key === undefined) continue;
+    if (key === undefined) {continue;}
     const v = features[key];
     arr[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
   }
   const tensor = new ort.Tensor("float32", arr, [1, FEATURE_ORDER.length]);
   const inputName = session.inputNames[0];
-  if (inputName === undefined) throw new Error("ONNX session has no input names");
+  if (inputName === undefined) {throw new Error("ONNX session has no input names");}
   const feeds: Record<string, typeof tensor> = { [inputName]: tensor };
   const out = await session.run(feeds);
   const probName =
     session.outputNames.find((n: string) => /prob|score|fail/i.test(n)) ?? session.outputNames[0];
-  if (probName === undefined) throw new Error("ONNX session has no output names");
+  if (probName === undefined) {throw new Error("ONNX session has no output names");}
   const outTensor = out[probName];
-  if (outTensor === undefined) throw new Error(`ONNX output '${probName}' missing`);
+  if (outTensor === undefined) {throw new Error(`ONNX output '${probName}' missing`);}
   const data = outTensor.data as Float32Array | BigInt64Array;
   const failureProbability = extractProbability(data);
   return {

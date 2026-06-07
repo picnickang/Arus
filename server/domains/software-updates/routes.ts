@@ -9,7 +9,7 @@ import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, handleApiError } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface SoftwareUpdatesDependencies {
@@ -57,9 +57,9 @@ export function registerSoftwareUpdatesRoutes(
         });
 
         return res.json({ available: true, manifest, patchId: patch.id });
-      } else {
-        return res.json({ available: false });
       }
+        return res.json({ available: false });
+
     })
   );
 
@@ -143,14 +143,14 @@ export function registerSoftwareUpdatesRoutes(
           timestamp: startTimestamp,
           metadata: {
             patchId: id,
-            initiatedBy: (req as AuthenticatedRequest).user?.id,
+            initiatedBy: authenticatedRequest(req).user?.id,
           },
         });
 
         const result = await patchApplicator.applyPatch(
           id,
           patchPath,
-          (req as AuthenticatedRequest).user?.id
+          authenticatedRequest(req).user?.id
         );
 
         if (result.success) {
@@ -161,7 +161,7 @@ export function registerSoftwareUpdatesRoutes(
             severity: "info",
             metadata: {
               patchId: id,
-              appliedBy: (req as AuthenticatedRequest).user?.id,
+              appliedBy: authenticatedRequest(req).user?.id,
               requiresRestart: true,
             },
           });
@@ -217,7 +217,7 @@ export function registerSoftwareUpdatesRoutes(
           severity: "warning",
           metadata: {
             backupId,
-            rolledBackBy: (req as AuthenticatedRequest).user?.id,
+            rolledBackBy: authenticatedRequest(req).user?.id,
           },
         });
 

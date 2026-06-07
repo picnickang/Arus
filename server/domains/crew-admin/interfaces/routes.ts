@@ -7,7 +7,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { crewAdminService, CrewAdminError } from "../service";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
@@ -166,7 +166,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("list crew roles", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.listRoles(orgId));
     }),
   );
@@ -177,14 +177,14 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("create crew role", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = createRoleSchema.parse(req.body);
       try {
         const role = await crewAdminService.createRole({ ...data, orgId: authReq.orgId });
         await audit(authReq, "create", "role", role.id, { name: role.name });
         return res.status(201).json(role);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -196,14 +196,14 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("update crew role", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = updateRoleSchema.parse(req.body);
       try {
         const role = await crewAdminService.updateRole(authReq.orgId, req.params['id'], data);
         await audit(authReq, "update", "role", role.id, { changed: Object.keys(data) });
         return res.json(role);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -215,13 +215,13 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("delete crew role", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         await crewAdminService.deleteRole(authReq.orgId, req.params['id']);
         await audit(authReq, "delete", "role", req.params['id']);
         return res.status(204).send();
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -233,7 +233,7 @@ export function registerCrewAdminRoutes(
     requireSuperAdminRole,
     writeLimit,
     withErrorHandling("set crew role hub access", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
       try {
         const { role, previousHubState } = await crewAdminService.setRoleHubAccess(
@@ -258,7 +258,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json(role);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -272,7 +272,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("list role dashboards", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.listDashboardConfigs(orgId));
     }),
   );
@@ -283,11 +283,11 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("get role dashboard", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         return res.json(await crewAdminService.getDashboardConfig(authReq.orgId, req.params['roleId']));
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -299,7 +299,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("save role dashboard", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         const config = await crewAdminService.saveDashboardConfig(
           authReq.orgId,
@@ -310,7 +310,7 @@ export function registerCrewAdminRoutes(
         await audit(authReq, "config_updated", "role_dashboard", req.params['roleId']);
         return res.json(config);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -322,7 +322,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("reset role dashboard", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         const config = await crewAdminService.resetDashboardConfig(
           authReq.orgId,
@@ -333,7 +333,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json(config);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -347,7 +347,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("list crew users", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.listUsers(orgId));
     }),
   );
@@ -358,7 +358,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("list crew access readiness", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.listCrewAccessReadiness(orgId));
     }),
   );
@@ -369,7 +369,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("list former crew access risks", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.listFormerCrewAccessRisks(orgId));
     }),
   );
@@ -380,7 +380,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("get crew user assignments", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       return res.json(await crewAdminService.getAssignments(orgId, req.params['id']));
     }),
   );
@@ -391,7 +391,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("set crew user assignments", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { assignments } = assignmentsSchema.parse(req.body);
       try {
         const result = await crewAdminService.setAssignments(
@@ -405,7 +405,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json(result);
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -417,7 +417,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("change crew user role", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { role } = roleChangeSchema.parse(req.body);
       try {
         await crewAdminService.changeRole(authReq.orgId, req.params['id'], role);
@@ -433,7 +433,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -445,11 +445,11 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("get crew user roles", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       try {
         return res.json(await crewAdminService.getRoleAssignments(orgId, req.params['id']));
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -461,7 +461,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("set crew user roles", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { roleIds } = roleAssignmentsSchema.parse(req.body);
       try {
         await crewAdminService.setRoleAssignments(
@@ -482,7 +482,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -494,14 +494,14 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("set crew user supervisor", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { supervisorUserId } = supervisorSchema.parse(req.body);
       try {
         await crewAdminService.setSupervisor(authReq.orgId, req.params['id'], supervisorUserId);
         await audit(authReq, "update", "user", req.params['id'], { supervisorUserId });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -513,7 +513,7 @@ export function registerCrewAdminRoutes(
     requireSuperAdminRole,
     writeLimit,
     withErrorHandling("set crew user hub access", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
       try {
         await crewAdminService.setHubAccess(
@@ -534,7 +534,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -548,7 +548,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("toggle crew user login", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { enabled } = loginEnabledSchema.parse(req.body);
       try {
         await crewAdminService.setLoginEnabled(authReq.orgId, req.params['id'], enabled);
@@ -564,7 +564,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -576,7 +576,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("set crew user credentials", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = credentialsSchema.parse(req.body);
       try {
         await crewAdminService.setCredentials({
@@ -596,7 +596,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -608,7 +608,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("reset crew user password", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { password } = resetPasswordSchema.parse(req.body);
       try {
         await crewAdminService.resetPassword(authReq.orgId, req.params['id'], password);
@@ -624,7 +624,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -638,7 +638,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     generalApiRateLimit,
     withErrorHandling("get crew member account", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         const account = await crewAdminService.getCrewAccount(
           authReq.orgId,
@@ -646,7 +646,7 @@ export function registerCrewAdminRoutes(
         );
         return res.json({ account });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -658,7 +658,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("create crew member account", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const data = createCrewAccountSchema.parse(req.body);
       try {
         const account = await crewAdminService.createAndLinkAccount({
@@ -674,7 +674,7 @@ export function registerCrewAdminRoutes(
         });
         return res.status(201).json({ account });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -686,7 +686,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("link crew member account", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const { userId } = linkAccountSchema.parse(req.body);
       try {
         await crewAdminService.linkExistingAccount(
@@ -700,7 +700,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),
@@ -712,7 +712,7 @@ export function registerCrewAdminRoutes(
     requireCrewAdminRole,
     writeLimit,
     withErrorHandling("unlink crew member account", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       try {
         await crewAdminService.unlinkAccount(authReq.orgId, req.params['crewId']);
         await audit(authReq, "config_updated", "crew_account", req.params['crewId'], {
@@ -720,7 +720,7 @@ export function registerCrewAdminRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleCrewError(error, res)) return undefined;
+        if (handleCrewError(error, res)) {return undefined;}
         throw error;
       }
     }),

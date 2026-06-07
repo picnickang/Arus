@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { apiRequest } from "@/lib/queryClient";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { exportToCSV } from "@/lib/exportUtils";
 import {
   useInventoryParts,
@@ -69,7 +70,7 @@ export function useInventoryManagementData() {
   const [location, setLocation] = useLocation();
   const searchParams = useSearch();
   const { toast } = useToast();
-  const orgId = "default-org-id";
+  const { currentOrgId } = useOrganization();
 
   const [filters, setFilters] = useState<InventoryFilters>(() => parseFiltersFromUrl(searchParams));
   const [sortField, setSortField] = useState<string>("partName");
@@ -152,7 +153,7 @@ export function useInventoryManagementData() {
         supplierName: "TBD",
         description: data.description || "",
         location: data.location || "MAIN",
-        orgId,
+        ...(currentOrgId ? { orgId: currentOrgId } : {}),
       });
       const created = result as { id?: string } | null | undefined;
       if (created?.id) {

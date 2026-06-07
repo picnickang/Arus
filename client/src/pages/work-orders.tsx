@@ -298,7 +298,7 @@ export default function WorkOrders() {
         workOrderId={pendingDeleteOrder?.id ?? null}
         workOrderLabel={pendingDeleteOrder?.woNumber || pendingDeleteOrder?.id || ""}
         open={!!pendingDeleteOrder}
-        onOpenChange={(o) => { if (!o) setPendingDeleteOrder(null); }}
+        onOpenChange={(o) => { if (!o) {setPendingDeleteOrder(null);} }}
         onConfirm={confirmDeleteOrder}
         isDeleting={deleteMutation.isPending}
       />

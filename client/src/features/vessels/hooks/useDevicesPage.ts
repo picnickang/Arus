@@ -97,7 +97,7 @@ export function useDevicesPage() {
         return;
       }
       const toTrimmed = (v: unknown): string | null => {
-        if (v === undefined || v === null) return null;
+        if (v === undefined || v === null) {return null;}
         const s = typeof v === "string" ? v : JSON.stringify(v);
         const trimmed = s.trim();
         return trimmed.length > 0 ? trimmed : null;

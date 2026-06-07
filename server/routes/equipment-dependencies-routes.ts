@@ -31,11 +31,10 @@ import {
   equipment,
   insertEquipmentDependencySchema,
   users,
-  type EquipmentDependency,
   type EquipmentDependencyLayoutPositions,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { requireRole } from "../middleware/role-auth";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
 import { projectDependency, retractDependency } from "../graph";
 
@@ -74,7 +73,7 @@ async function validateEquipmentBelongsToVessel(
   vesselId: string,
   equipmentIds: string[]
 ): Promise<{ ok: true } | { ok: false; missingIds: string[] }> {
-  if (equipmentIds.length === 0) return { ok: true };
+  if (equipmentIds.length === 0) {return { ok: true };}
   const rows = await db
     .select({ id: equipment.id })
     .from(equipment)
@@ -94,7 +93,7 @@ async function validateEquipmentBelongsToVessel(
 router.get(
   "/vessels/:vesselId/equipment-dependencies",
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { vesselId } = req.params;
     try {
       const rows = await db
@@ -130,7 +129,7 @@ router.post(
   "/equipment-dependencies",
   requireRole("admin", "chief_engineer"),
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const parsed = createBodySchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
@@ -201,7 +200,7 @@ router.patch(
   "/equipment-dependencies/:id",
   requireRole("admin", "chief_engineer"),
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { id } = req.params;
     const parsed = patchBodySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -260,7 +259,7 @@ router.delete(
   "/equipment-dependencies/:id",
   requireRole("admin", "chief_engineer"),
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { id } = req.params;
     try {
       const [removed] = await db
@@ -299,7 +298,7 @@ router.post(
   "/vessels/:vesselId/equipment-dependencies/import-csv",
   requireRole("admin", "chief_engineer"),
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const { vesselId } = req.params;
 
     const parsed = csvBodySchema.safeParse(req.body);
@@ -384,7 +383,7 @@ router.post(
 router.get(
   "/vessels/:vesselId/equipment-dependency-layout",
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const userId = authReq.user?.id;
     if (!userId) {
       res.status(401).json({ error: "Authentication required" });
@@ -423,7 +422,7 @@ router.put(
   "/vessels/:vesselId/equipment-dependency-layout",
   requireRole("admin", "chief_engineer"),
   async (req, res: Response) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const userId = authReq.user?.id;
     if (!userId) {
       res.status(401).json({ error: "Authentication required" });

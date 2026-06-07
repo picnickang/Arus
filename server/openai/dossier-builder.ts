@@ -68,7 +68,7 @@ const asAlert = (v: unknown): DossierAlert =>
 const asPdm = (v: unknown): DossierPdmScore => {
   if (typeof v === "object" && v !== null && "score" in v) {
     const s = (v as { score: unknown }).score;
-    if (typeof s === "number") return { score: s };
+    if (typeof s === "number") {return { score: s };}
   }
   return { score: 0 };
 };

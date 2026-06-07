@@ -10,8 +10,8 @@ export function getCoreTablesSql(): SQL[] {
     sql`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'viewer', is_active INTEGER DEFAULT 1, last_login_at INTEGER, created_at INTEGER, updated_at INTEGER)`,
     sql`CREATE TABLE IF NOT EXISTS sync_journal (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, operation TEXT NOT NULL, payload TEXT, user_id TEXT, sync_status TEXT DEFAULT 'pending', created_at INTEGER)`,
     sql`CREATE TABLE IF NOT EXISTS sync_outbox (id TEXT PRIMARY KEY, event_type TEXT NOT NULL, payload TEXT, processed INTEGER DEFAULT 0, processing_attempts INTEGER DEFAULT 0, created_at INTEGER, processed_at INTEGER)`,
-    sql`CREATE TABLE IF NOT EXISTS db_schema_version (id INTEGER PRIMARY KEY, version INTEGER NOT NULL, applied_at INTEGER NOT NULL)`,
-    sql`CREATE TABLE IF NOT EXISTS request_idempotency (id TEXT PRIMARY KEY, request_hash TEXT NOT NULL UNIQUE, response_status INTEGER NOT NULL, response_body TEXT, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)`,
+    sql`CREATE TABLE IF NOT EXISTS db_schema_version (id INTEGER PRIMARY KEY, name TEXT, applied_at INTEGER NOT NULL)`,
+    sql`CREATE TABLE IF NOT EXISTS request_idempotency (key TEXT PRIMARY KEY, org_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, request_hash TEXT UNIQUE, response_status INTEGER, response_body TEXT, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)`,
     sql`CREATE TABLE IF NOT EXISTS idempotency_log (id TEXT PRIMARY KEY, request_id TEXT NOT NULL, action TEXT NOT NULL, entity_type TEXT, entity_id TEXT, created_at INTEGER NOT NULL)`,
   ];
 }

@@ -19,7 +19,7 @@ export class NoopProducer implements EventSpineProducer {
   }
 
   async publishBatch(messages: EventSpineMessage[]): Promise<void> {
-    for (const m of messages) await this.publish(m);
+    for (const m of messages) {await this.publish(m);}
   }
 
   async close(): Promise<void> {}
@@ -53,7 +53,7 @@ export class InMemoryFanoutProducer implements EventSpineFanout {
   }
 
   async publishBatch(messages: EventSpineMessage[]): Promise<void> {
-    for (const m of messages) await this.publish(m);
+    for (const m of messages) {await this.publish(m);}
   }
 
   async close(): Promise<void> {

@@ -7,7 +7,7 @@ import type { BriefingRepositoryPort } from "../domain/briefing-types";
 export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
   async create(data: InsertAgentBriefing): Promise<AgentBriefing> {
     const [briefing] = await db.insert(agentBriefings).values(data).returning();
-    if (!briefing) throw new Error("Failed to create agent briefing");
+    if (!briefing) {throw new Error("Failed to create agent briefing");}
     return briefing;
   }
 
@@ -75,7 +75,7 @@ export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
       .set(data)
       .where(eq(agentBriefings.id, id))
       .returning();
-    if (!briefing) throw new Error(`Agent briefing ${id} not found`);
+    if (!briefing) {throw new Error(`Agent briefing ${id} not found`);}
     return briefing;
   }
 }

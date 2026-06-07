@@ -11,8 +11,8 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { crewTaskService } from "../service";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import {
   withErrorHandling,
   sendCreated,
@@ -23,7 +23,7 @@ import {
   CREW_TASK_STATUSES,
   CREW_TASK_PRIORITIES,
   CREW_TASK_LINKED_SOURCE_TYPES,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import type { CrewTaskActor } from "../domain/types";
 
 const statusEnum = z.enum(
@@ -76,7 +76,7 @@ const addCommentSchema = z.object({
 });
 
 function actorFrom(req: Request): CrewTaskActor {
-  const user = (req as AuthenticatedRequest).user;
+  const user = authenticatedRequest(req).user;
   return {
     id: user?.id,
     name: user?.name,
@@ -100,7 +100,7 @@ export function registerCrewTaskRoutes(
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("list crew tasks", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId, assignedCrewId, status, includeDone } = z
         .object({
           vesselId: z.string().optional(),
@@ -129,7 +129,7 @@ export function registerCrewTaskRoutes(
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("get crew task", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const task = await crewTaskService.getTask(orgId, req.params["id"]);
       if (!task) {
         return sendNotFound(res, "Crew task");
@@ -144,13 +144,13 @@ export function registerCrewTaskRoutes(
     requirePermission("crew_members", "create"),
     writeLimit,
     withErrorHandling("create crew task", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = createTaskSchema.parse(req.body);
       const task = await crewTaskService.createTask(
         {
           ...data,
           orgId,
-          createdBy: (req as AuthenticatedRequest).user?.id,
+          createdBy: authenticatedRequest(req).user?.id,
         },
         actorFrom(req),
       );
@@ -164,7 +164,7 @@ export function registerCrewTaskRoutes(
     requirePermission("crew_members", "edit"),
     writeLimit,
     withErrorHandling("update crew task", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const patch = updateTaskSchema.parse(req.body);
       const task = await crewTaskService.updateTask(
         orgId,
@@ -185,7 +185,7 @@ export function registerCrewTaskRoutes(
     requirePermission("crew_members", "delete"),
     writeLimit,
     withErrorHandling("delete crew task", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const deleted = await crewTaskService.deleteTask(
         orgId,
         req.params["id"],
@@ -206,7 +206,7 @@ export function registerCrewTaskRoutes(
     withErrorHandling(
       "list crew task events",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const task = await crewTaskService.getTask(orgId, req.params["id"]);
         if (!task) {
           return sendNotFound(res, "Crew task");
@@ -228,7 +228,7 @@ export function registerCrewTaskRoutes(
     withErrorHandling(
       "add crew task comment",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { message } = addCommentSchema.parse(req.body);
         const event = await crewTaskService.addComment(
           orgId,

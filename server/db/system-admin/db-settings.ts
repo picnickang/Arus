@@ -82,7 +82,7 @@ export class DbSettingsStorage {
       .insert(adminSystemSettings)
       .values({ ...setting, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create admin system setting");
+    if (!n) {throw new Error("Failed to create admin system setting");}
     return n;
   }
   async updateAdminSystemSetting(
@@ -143,7 +143,7 @@ export class DbSettingsStorage {
       .insert(integrationConfigs)
       .values({ ...config, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create integration config");
+    if (!n) {throw new Error("Failed to create integration config");}
     return n;
   }
   async updateIntegrationConfig(
@@ -221,7 +221,7 @@ export class DbSettingsStorage {
       .insert(maintenanceWindows)
       .values({ ...window, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create maintenance window");
+    if (!n) {throw new Error("Failed to create maintenance window");}
     return n;
   }
   async updateMaintenanceWindow(
@@ -291,7 +291,7 @@ export class DbSettingsStorage {
       .insert(systemHealthChecks)
       .values({ ...check, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) throw new Error("Failed to create system health check");
+    if (!n) {throw new Error("Failed to create system health check");}
     return n;
   }
   async updateSystemHealthCheck(

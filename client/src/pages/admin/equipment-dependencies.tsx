@@ -92,10 +92,10 @@ function parseCsv(text: string): { rows: CsvRow[]; errors: string[] } {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const raw = (lines[i] ?? "").trim();
-    if (!raw || raw.startsWith("#")) continue;
+    if (!raw || raw.startsWith("#")) {continue;}
     const parts = raw.split(",").map((p) => p.trim());
     // Skip header row.
-    if (i === 0 && /upstream/i.test(parts[0] ?? "")) continue;
+    if (i === 0 && /upstream/i.test(parts[0] ?? "")) {continue;}
     if (parts.length < 2) {
       errors.push(`Line ${i + 1}: need at least 2 columns`);
       continue;
@@ -152,7 +152,7 @@ export default function EquipmentDependenciesPage() {
   const vesselsQuery = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
   const vessels = vesselsQuery.data ?? [];
 
-  const vesselsErr = vesselsQuery.error as Error | null;
+  const vesselsErr = vesselsQuery.error;
   const isForbidden =
     !!vesselsErr &&
     (/^403:/.test(vesselsErr.message) || /forbidden/i.test(vesselsErr.message));
@@ -164,7 +164,7 @@ export default function EquipmentDependenciesPage() {
         `/api/equipment?vesselId=${encodeURIComponent(selectedVesselId)}`,
         { credentials: "include" }
       );
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
       return res.json();
     },
     enabled: !!selectedVesselId,
@@ -178,7 +178,7 @@ export default function EquipmentDependenciesPage() {
 
   const equipmentById = useMemo(() => {
     const m = new Map<string, Equipment>();
-    for (const e of equipmentList) m.set(e.id, e);
+    for (const e of equipmentList) {m.set(e.id, e);}
     return m;
   }, [equipmentList]);
 
@@ -194,7 +194,7 @@ export default function EquipmentDependenciesPage() {
         `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`,
         { credentials: "include" }
       );
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
       return res.json();
     },
     enabled: !!selectedVesselId,
@@ -283,7 +283,7 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _input, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
       toast({
         title: "Couldn't add edge",
         description: err.message,
@@ -311,7 +311,7 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _input, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
       toast({
         title: "Couldn't save notes",
         description: err.message,
@@ -333,7 +333,7 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _id, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(depsQueryKey, ctx.prev);
+      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
       toast({
         title: "Couldn't remove edge",
         description: err.message,
@@ -393,7 +393,7 @@ export default function EquipmentDependenciesPage() {
         `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`,
         { credentials: "include" }
       );
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
       return res.json();
     },
     enabled: !!selectedVesselId,
@@ -428,7 +428,7 @@ export default function EquipmentDependenciesPage() {
       setNodePositions({});
       return;
     }
-    if (layoutQuery.isLoading) return;
+    if (layoutQuery.isLoading) {return;}
     const saved = layoutQuery.data?.positions ?? {};
     const ids = equipmentList.map((e) => e.id);
     const fallback = circularLayout(ids);
@@ -486,10 +486,10 @@ export default function EquipmentDependenciesPage() {
 
   const scheduleLayoutSave = useCallback(
     (positions: NodePositions) => {
-      if (!selectedVesselId) return;
+      if (!selectedVesselId) {return;}
       const serialized = JSON.stringify(positions);
-      if (serialized === lastSavedRef.current) return;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (serialized === lastSavedRef.current) {return;}
+      if (saveTimerRef.current) {clearTimeout(saveTimerRef.current);}
       saveTimerRef.current = setTimeout(() => {
         saveLayoutMutation.mutate({ vesselId: selectedVesselId, positions });
       }, 500);
@@ -555,8 +555,8 @@ export default function EquipmentDependenciesPage() {
             data: {},
           })) as Node[]
         );
-        for (const n of updated) next[n.id] = n.position;
-        if (positional) scheduleLayoutSave(next);
+        for (const n of updated) {next[n.id] = n.position;}
+        if (positional) {scheduleLayoutSave(next);}
         return next;
       });
     },
@@ -576,7 +576,7 @@ export default function EquipmentDependenciesPage() {
 
   const onConnect = useCallback(
     (conn: Connection) => {
-      if (!conn.source || !conn.target) return;
+      if (!conn.source || !conn.target) {return;}
       if (conn.source === conn.target) {
         toast({
           title: "Self-loop not allowed",
@@ -606,9 +606,9 @@ export default function EquipmentDependenciesPage() {
 
   const onEdgeClick = useCallback(
     (_evt: React.MouseEvent, edge: Edge) => {
-      if (edge.id.startsWith("optimistic-")) return;
+      if (edge.id.startsWith("optimistic-")) {return;}
       const dep = dependencies.find((d) => d.id === edge.id);
-      if (!dep) return;
+      if (!dep) {return;}
       setNotesDialog({
         mode: "edit",
         dependencyId: dep.id,
@@ -1008,7 +1008,7 @@ export default function EquipmentDependenciesPage() {
       <Dialog
         open={notesDialog !== null}
         onOpenChange={(open) => {
-          if (!open) setNotesDialog(null);
+          if (!open) {setNotesDialog(null);}
         }}
       >
         <DialogContent data-testid="dialog-edge-notes">
@@ -1040,11 +1040,11 @@ export default function EquipmentDependenciesPage() {
               data-testid="textarea-edge-notes"
             />
             {(() => {
-              if (notesDialog?.mode !== "edit") return null;
+              if (notesDialog?.mode !== "edit") {return null;}
               const dep = dependencies.find(
                 (d) => d.id === notesDialog.dependencyId
               );
-              if (!dep?.notesUpdatedAt) return null;
+              if (!dep?.notesUpdatedAt) {return null;}
               const editor = dep.notesUpdatedByName ?? "unknown user";
               const when = new Date(dep.notesUpdatedAt).toLocaleString();
               return (
@@ -1069,7 +1069,7 @@ export default function EquipmentDependenciesPage() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (!notesDialog) return;
+                  if (!notesDialog) {return;}
                   graphCreateMutation.mutate({
                     upstreamEquipmentId: notesDialog.upstreamId,
                     downstreamEquipmentId: notesDialog.downstreamId,
@@ -1083,7 +1083,7 @@ export default function EquipmentDependenciesPage() {
             )}
             <Button
               onClick={() => {
-                if (!notesDialog) return;
+                if (!notesDialog) {return;}
                 const trimmed = notesDialog.notes.trim();
                 const notesValue = trimmed.length === 0 ? null : trimmed;
                 if (notesDialog.mode === "edit") {

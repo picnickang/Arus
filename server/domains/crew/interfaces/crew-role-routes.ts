@@ -13,10 +13,10 @@
  */
 
 import { z } from "zod";
-import { CREW_DOCUMENT_TYPE_VALUES } from "@shared/schema";
+import { CREW_DOCUMENT_TYPE_VALUES } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 

@@ -170,7 +170,7 @@ const fakeRepository = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) return obj[prop];
+      if (prop in obj) {return obj[prop];}
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
@@ -195,6 +195,9 @@ beforeAll(async () => {
       compiledAt: new Date(),
     }),
     permissionService: {
+      authorize: async () => ({ allowed: true }),
+      hasAnyPermission: async () => true,
+      hasAllPermissions: async () => true,
       invalidateOrgPermissionCache: () => {},
       invalidateUserPermissionCache: () => {},
     },
@@ -206,6 +209,11 @@ beforeAll(async () => {
         from: () => ({ where: () => ({ limit: async () => [] }) }),
       }),
     },
+    pool: {
+      query: jest.fn(async () => ({ rows: [] })),
+      end: jest.fn(async () => {}),
+    },
+    libsqlClient: null,
   }));
 
   // Capture immutable-audit events without pulling in the db-heavy real service.
@@ -257,7 +265,7 @@ describe("Permission-grant lockout guard — mounted", () => {
 
 describe("Org-wide lockout", () => {
   it("rejects revoking manage from the org's last manage-capable role (400)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const onlyRole = seedRole({ name: "access_admin" });
     seedManageGrant(onlyRole.id, true);
 
@@ -277,7 +285,7 @@ describe("Org-wide lockout", () => {
 
 describe("Acting-admin self lockout", () => {
   it("rejects an admin revoking manage from their own only manage role (400)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     // Two roles can manage; org-wide check passes, but the actor only holds roleA.
     const roleA = seedRole({ name: "access_admin" });
     const roleB = seedRole({ name: "ops_admin" });
@@ -298,7 +306,7 @@ describe("Acting-admin self lockout", () => {
 
 describe("Allowed revoke", () => {
   it("allows revoking manage from one role when the actor keeps it via another (200)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const roleA = seedRole({ name: "access_admin" });
     const roleB = seedRole({ name: "ops_admin" });
     seedManageGrant(roleA.id, true);
@@ -327,7 +335,7 @@ describe("Allowed revoke", () => {
   });
 
   it("does not engage the guard for non-manage grant changes (200)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "engineer" });
 
     const res = await request(app)

@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "./auth";
+import { authenticatedRequest } from "./auth";
 import { logger } from "../utils/logger";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 const LOG_CTX = "Idempotency";
 
@@ -63,7 +62,16 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
       return next();
     }
 
-    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+    const orgId = authenticatedRequest(req).orgId;
+    if (!orgId) {
+      res.status(401).json({
+        error: {
+          code: "ORG_CONTEXT_REQUIRED",
+          message: "Organization context is required for idempotent mutations",
+        },
+      });
+      return;
+    }
     const fullKey = `${orgId}:${req.method}:${req.path}:${idempotencyKey}`;
 
     const existing = processedKeys.get(fullKey);

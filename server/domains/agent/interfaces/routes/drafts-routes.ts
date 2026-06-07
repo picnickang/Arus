@@ -2,7 +2,7 @@ import { createLogger } from "../../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Interfaces:Routes:DraftsRoutes");
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 
 const draftListQuerySchema = z.object({ status: z.string().optional() });
 const draftIdParamSchema = z.object({ id: z.string().min(1) });
@@ -25,7 +25,7 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { status } = draftListQuerySchema.parse(req.query);
         const drafts = await agentRepo.drafts.list(orgId, status);
         return res.json(drafts);
@@ -41,8 +41,8 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const { id: draftIdParam } = draftIdParamSchema.parse(req.params);
         const { note: reviewNote } = draftReviewBodySchema.parse(req.body ?? {});
         const draft = await agentRepo.drafts.get(draftIdParam, orgId);
@@ -120,8 +120,8 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const { id: draftIdParam } = draftIdParamSchema.parse(req.params);
         const { note: reviewNote } = draftReviewBodySchema.parse(req.body ?? {});
         const draft = await agentRepo.drafts.get(draftIdParam, orgId);

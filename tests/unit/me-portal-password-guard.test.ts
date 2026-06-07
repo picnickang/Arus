@@ -59,10 +59,16 @@ beforeAll(async () => {
     get db() {
       return fakeDb;
     },
+    pool: null,
+    libsqlClient: null,
+    isLocalMode: true,
+    deploymentMode: "VESSEL (Offline-First)",
   }));
   jest.unstable_mockModule("../../server/repositories", () => ({
     __esModule: true,
     dbSystemAdminStorage: { createAdminSession: jest.fn(async () => undefined) },
+    dbAlertStorage: { getAlertNotifications: jest.fn(async () => []) },
+    dbMaintenanceStorage: { getMaintenanceSchedules: jest.fn(async () => []) },
     vesselService: { getVessels: jest.fn(async () => []) },
     workOrderService: { getWorkOrdersWithDetails: jest.fn(async () => []) },
   }));

@@ -35,7 +35,7 @@
  */
 
 import { db } from "../db";
-import { organizations } from "../../shared/schema/core";
+import { organizations } from "@shared/schema-runtime";
 import {
   backfillPdmTemplateGrantsForOrg,
   type PdmBackfillRoleResult,

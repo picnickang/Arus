@@ -57,7 +57,7 @@ async function main(): Promise<void> {
   const reports: OrgReport[] = [];
   for (const row of rows) {
     const orgId = row.org_id;
-    if (!orgId) continue;
+    if (!orgId) {continue;}
     const result = await verifyAuditChain(orgId);
     reports.push({
       orgId,

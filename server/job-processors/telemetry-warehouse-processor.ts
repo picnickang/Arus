@@ -30,9 +30,8 @@ export async function processTelemetryWarehouseExport(
     date: data.date ?? "(yesterday)",
     orgIdsOverride: data.orgIds?.length ?? null,
   });
-  const summary = await runTelemetryWarehouseExport({
+  return await runTelemetryWarehouseExport({
     date: data.date,
     orgIds: data.orgIds,
   });
-  return summary;
 }

@@ -8,7 +8,7 @@
 import { Express, Request, Response } from "express";
 import { withErrorHandling, sendNotFound, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { requireAuthentication } from "../../security/authentication";
 
 interface StorageConfigDependencies {}
@@ -142,7 +142,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
             "Please configure PUBLIC_OBJECT_SEARCH_PATHS and PRIVATE_OBJECT_DIR environment variables",
         });
       }
-      const authed = req as AuthenticatedRequest;
+      const authed = authenticatedRequest(req);
       const uploadURL = await objectStorageService.getObjectEntityUploadURL(authed.orgId);
       return res.json({ uploadURL });
     })
@@ -168,7 +168,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       const objectStorageService = new ObjectStorageService();
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-        const authed = req as AuthenticatedRequest;
+        const authed = authenticatedRequest(req);
         const ownership = objectStorageService.assertObjectOwnedByOrg(
           objectFile,
           authed.orgId,

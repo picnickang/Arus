@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import type { AgentFindingService } from "../../application/finding-service";
 import {
   FINDING_TYPES,
@@ -58,7 +58,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const q = listQuerySchema.parse(req.query);
         const filter: AgentFindingFilter = {};
         if (q.findingType && (FINDING_TYPES as readonly string[]).includes(q.findingType)) {
@@ -70,8 +70,8 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         if (q.status && (FINDING_STATUSES as readonly string[]).includes(q.status)) {
           filter.status = q.status as AgentFindingFilter["status"];
         }
-        if (q.taskId) filter.taskId = q.taskId;
-        if (q.equipmentId) filter.equipmentId = q.equipmentId;
+        if (q.taskId) {filter.taskId = q.taskId;}
+        if (q.equipmentId) {filter.equipmentId = q.equipmentId;}
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const findings = await findingService.list(orgId, filter);
@@ -88,7 +88,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const parsed = findingCreateSchema.safeParse(req.body);
         if (!parsed.success) {
           return res
@@ -109,7 +109,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const finding = await findingService.getById(id, orgId);
         if (!finding) {
@@ -128,7 +128,7 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const { status, severity, recommendedAction } = updateSchema.parse(req.body);
         const updateData: Record<string, unknown> = {};

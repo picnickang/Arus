@@ -63,7 +63,7 @@ const sessionCache = new Map<string, Promise<OrtSessionLike>>();
 async function getSession(modelPath: string): Promise<OrtSessionLike> {
   const abs = path.resolve(modelPath);
   const existing = sessionCache.get(abs);
-  if (existing) return existing;
+  if (existing) {return existing;}
   const fresh = (async () => {
     await fs.access(abs);
     const ort = await loadOrt();
@@ -106,7 +106,7 @@ function buildFeatureTensor(
 
 function extractProbability(out: { data: Float32Array | BigInt64Array }): number {
   const data = out.data;
-  if (!data || data.length === 0) return 0;
+  if (!data || data.length === 0) {return 0;}
   if (data instanceof BigInt64Array) {
     return Number(data[0]) > 0 ? 0.8 : 0.1;
   }
@@ -119,19 +119,19 @@ function extractProbability(out: { data: Float32Array | BigInt64Array }): number
     let max = -Infinity;
     for (let i = 0; i < data.length; i++) {
       const di = data[i] ?? 0;
-      if (di > max) max = di;
+      if (di > max) {max = di;}
     }
     let sum = 0;
-    for (let i = 0; i < data.length; i++) sum += Math.exp((data[i] ?? 0) - max);
+    for (let i = 0; i < data.length; i++) {sum += Math.exp((data[i] ?? 0) - max);}
     positive = Math.exp((data[data.length - 1] ?? 0) - max) / sum;
   }
   return Math.min(Math.max(positive, 0), 1);
 }
 
 function riskLevel(p: number): PredictionScore["riskLevel"] {
-  if (p >= 0.7) return "critical";
-  if (p >= 0.4) return "high";
-  if (p >= 0.2) return "medium";
+  if (p >= 0.7) {return "critical";}
+  if (p >= 0.4) {return "high";}
+  if (p >= 0.2) {return "medium";}
   return "low";
 }
 

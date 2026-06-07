@@ -4,7 +4,7 @@
  */
 
 import type { Express, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { insertCrewLeaveSchema } from "@shared/schema";
 import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
@@ -15,7 +15,7 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
     "/api/crew/leave",
     withErrorHandling("fetch crew leave", async (req: Request, res: Response) => {
       const { crew_id, start_date, end_date } = req.query;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       let leaves = await dbCrewStorage.getCrewLeave(crew_id as string | undefined, orgId);
       if (start_date) {
         const startMs = new Date(start_date as string).getTime();
@@ -47,7 +47,7 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
   app.put(
     "/api/crew/leave/:id",
     withErrorHandling("update crew leave", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const leaveData = insertCrewLeaveSchema.partial().parse(req.body);
       const leave = await dbCrewStorage.updateCrewLeave(req.params['id'] ?? '', leaveData, orgId);
       res.json(leave);
@@ -57,7 +57,7 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
   app.delete(
     "/api/crew/leave/:id",
     withErrorHandling("delete crew leave", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       await dbCrewStorage.deleteCrewLeave(req.params['id'] ?? '', orgId);
       res.json({ success: true });
     })

@@ -50,7 +50,7 @@ export interface OperationalContext {
   partsAvailability: string;
   maintenanceWindow: string | null;
 }
-export interface ActiveAnomaly {
+export interface EquipmentHubActiveAnomaly {
   id: number;
   anomalyType: string | null;
   sensorType: string;
@@ -60,7 +60,7 @@ export interface ActiveAnomaly {
   acknowledgedBy: string | null;
   acknowledgedAt: string | null;
 }
-export interface CrewMember {
+export interface EquipmentHubCrewMember {
   id: string;
   name: string;
   rank: string | null;
@@ -87,7 +87,7 @@ export interface EquipmentHubData {
   recommendedAction: string;
   operationalContext: OperationalContext;
   needsAction: NeedsActionItem[];
-  activeAnomaly: ActiveAnomaly | null;
+  activeAnomaly: EquipmentHubActiveAnomaly | null;
   workOrders: WorkOrderSummary[];
   serviceOrders: ServiceOrderSummary[];
   diagnosticRuns: DiagnosticRunSummary[];
@@ -119,7 +119,7 @@ export function useEquipmentHub(equipmentId: string) {
 
   const acknowledgeMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest<ActiveAnomaly>(
+      return apiRequest<EquipmentHubActiveAnomaly>(
         "POST",
         `/api/equipment-intelligence/anomalies/${equipmentId}/acknowledge`
       );
@@ -137,7 +137,7 @@ export function useEquipmentHub(equipmentId: string) {
     },
   });
 
-  const crewQuery = useQuery<CrewMember[]>({
+  const crewQuery = useQuery<EquipmentHubCrewMember[]>({
     queryKey: ["/api/crew"],
     enabled: !!equipmentId,
   });

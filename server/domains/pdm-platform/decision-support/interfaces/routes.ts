@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import type { PdmHealthStatus, StandardizedPdmDecision, SyntheticTelemetryResult } from "../domain/types";
 import { EquipmentNotFoundError, PdmResponseValidationError } from "../domain/errors";
 
@@ -223,7 +223,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getOrgId(req: Request): string | null {
-  const orgId = (req as AuthenticatedRequest).orgId;
+  const orgId = authenticatedRequest(req).orgId;
   return typeof orgId === "string" && orgId.trim() !== "" ? orgId : null;
 }
 
@@ -325,7 +325,7 @@ let lazyInner: Router | null = null;
 let lazyInnerPromise: Promise<Router> | null = null;
 
 async function getLazyInner(): Promise<Router> {
-  if (lazyInner) return lazyInner;
+  if (lazyInner) {return lazyInner;}
   if (!lazyInnerPromise) {
     lazyInnerPromise = buildDefaultService().then((service) => {
       lazyInner = createPdmDecisionSupportRouter(service);

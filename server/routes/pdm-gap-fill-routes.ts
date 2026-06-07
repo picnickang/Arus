@@ -7,7 +7,7 @@
 import { Express, Request, RequestHandler, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { requireAdminAuth } from "../security/authorization";
 import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repositories";
 import { PredictionCalibrator } from "../services/ml/prediction-calibration";
@@ -42,7 +42,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/calibration/fit",
     writeOperationRateLimit,
     withErrorHandling("fit calibration model", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { modelId, method } = req.body;
 
       const calibrator = new PredictionCalibrator(db);
@@ -78,7 +78,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/calibration/report",
     generalApiRateLimit,
     withErrorHandling("get calibration report", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const modelId = req.query['modelId'] as string | undefined;
 
       const calibrator = new PredictionCalibrator(db);
@@ -99,7 +99,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/outcomes/evaluate",
     writeOperationRateLimit,
     withErrorHandling("evaluate prediction outcomes", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const tracker = new PredictionOutcomeTracker(db, {
         getWorkOrders: (equipmentId, orgId) =>
@@ -118,7 +118,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/analytics/anomaly-groups",
     generalApiRateLimit,
     withErrorHandling("get correlated anomaly groups", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const equipmentId = req.query['equipmentId'] as string | undefined;
       const includeAcknowledged = req.query['includeAcknowledged'] === "true";
 
@@ -137,7 +137,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/telemetry/aggregation/run",
     writeOperationRateLimit,
     withErrorHandling("run telemetry aggregation", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { lookbackHours = 2 } = req.body;
 
       const aggregator = new TelemetryAggregator(db);
@@ -155,7 +155,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/telemetry/aggregated/:equipmentId/:sensorType",
     generalApiRateLimit,
     withErrorHandling("query aggregated telemetry", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const equipmentId = req.params['equipmentId'] ?? '';
       const sensorType = req.params['sensorType'] ?? '';
       const startDate = new Date(
@@ -189,7 +189,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/evaluate-model",
     writeOperationRateLimit,
     withErrorHandling("evaluate model for deployment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { modelId, testData, thresholds } = req.body;
 
       if (!modelId) {
@@ -220,7 +220,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/train/async",
     writeOperationRateLimit,
     withErrorHandling("enqueue ML training job", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { modelType = "all", equipmentType, config = {} } = req.body;
 
       if (!["lstm", "random_forest", "xgboost", "all"].includes(modelType)) {
@@ -243,7 +243,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           modelType,
           equipmentType,
           config,
-          initiatedBy: (req as AuthenticatedRequest).user?.id,
+          initiatedBy: authenticatedRequest(req).user?.id,
         });
 
         return res.status(202).json({
@@ -268,7 +268,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/train/status/:jobId",
     generalApiRateLimit,
     withErrorHandling("get training job status", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const jobId = req.params['jobId'] ?? '';
 
       try {
@@ -299,7 +299,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     "/api/ml/train/jobs",
     generalApiRateLimit,
     withErrorHandling("list training jobs", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       try {
         const boss = jobQueueService.getBoss();

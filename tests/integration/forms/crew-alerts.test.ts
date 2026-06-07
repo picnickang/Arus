@@ -36,7 +36,7 @@ describe("Crew custom alerts — CRUD + propagation", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (alertId) await pool.query("DELETE FROM crew_alerts WHERE id=$1", [alertId]).catch(() => {});
+    if (alertId) {await pool.query("DELETE FROM crew_alerts WHERE id=$1", [alertId]).catch(() => {});}
     if (memberId) {
       await pool.query("DELETE FROM crew_alerts WHERE crew_id=$1", [memberId]).catch(() => {});
       await pool.query("DELETE FROM crew WHERE id=$1", [memberId]).catch(() => {});

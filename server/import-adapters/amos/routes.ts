@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../middleware/auth";
 import { z } from "zod";
 import { amosImportService } from "./import-service";
 import { createLogger } from "../../lib/structured-logger";
-import { requireOrgId } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import {
   EQUIPMENT_FIELD_MAP,
   WORK_ORDER_FIELD_MAP,
@@ -25,7 +24,7 @@ const importSchema = z.object({
 
 router.post("/api/import/amos", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId as string;
+    const orgId = authenticatedRequest(req).orgId as string;
 
     const parsed = importSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -64,7 +63,7 @@ router.post("/api/import/amos", requireOrgId, async (req: Request, res: Response
 
 router.post("/api/import/amos/preview", requireOrgId, async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId as string;
+    const orgId = authenticatedRequest(req).orgId as string;
 
     const parsed = importSchema.safeParse(req.body);
     if (!parsed.success) {

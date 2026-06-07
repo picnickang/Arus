@@ -81,7 +81,7 @@ export function EmergencyAlarmBanner() {
     select: (rows) =>
       [...rows].sort((a, b) => {
         const rank = severityRank(b.severity) - severityRank(a.severity);
-        if (rank !== 0) return rank;
+        if (rank !== 0) {return rank;}
         return (b.triggeredAt ?? "").localeCompare(a.triggeredAt ?? "");
       }),
   });
@@ -89,8 +89,8 @@ export function EmergencyAlarmBanner() {
   // A fetch failure must never block the dashboard — surface a non-blocking
   // warning instead. A subsequent successful refresh clears it.
   useEffect(() => {
-    if (isError) setRefreshFailed(true);
-    else if (isSuccess) setRefreshFailed(false);
+    if (isError) {setRefreshFailed(true);}
+    else if (isSuccess) {setRefreshFailed(false);}
   }, [isError, isSuccess]);
 
   const acknowledge = useMutation({

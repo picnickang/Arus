@@ -256,6 +256,14 @@ describe("offline-sync gap-closure", () => {
     it("classifies routes correctly", () => {
       expect(offlineSync.classifyOfflineEntity("/api/work-orders/123/parts")).toBe("parts");
       expect(offlineSync.classifyOfflineEntity("/api/work-orders")).toBe("work_order");
+      expect(offlineSync.classifyOfflineEntity("/api/work-orders/wo-1/complete-with-feedback")).toBe("work_order");
+      expect(offlineSync.classifyOfflineEntity("/api/parts-inventory")).toBe("inventory_item");
+      expect(offlineSync.classifyOfflineEntity("/api/parts-inventory/part-1/stock")).toBe("inventory_stock");
+      expect(offlineSync.classifyOfflineEntity("/api/offshore-ops/op-1/complete")).toBe("logistics_task");
+      expect(offlineSync.classifyOfflineEntity("/api/service-requests/sr-1")).toBe("logistics_task");
+      expect(offlineSync.classifyOfflineEntity("/api/service-orders/so-1/complete")).toBe("logistics_task");
+      expect(offlineSync.classifyOfflineEntity("/api/rms/alerts/alarm-1/acknowledge")).toBe("safety_acknowledgement");
+      expect(offlineSync.classifyOfflineEntity("/api/me/safety-alarms/alarm-1/acknowledge")).toBe("safety_acknowledgement");
       expect(offlineSync.classifyOfflineEntity("/api/attention/handover")).toBe("handover");
       expect(offlineSync.classifyOfflineEntity("/api/logbook/deck")).toBe("logbook");
       expect(offlineSync.classifyOfflineEntity("/api/maintenance-checklist")).toBe("checklist");
@@ -265,12 +273,68 @@ describe("offline-sync gap-closure", () => {
 
     it("queues POST/PATCH/PUT/DELETE on supported routes only", () => {
       expect(offlineSync.isQueueableMutation("POST", "/api/work-orders")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/work-orders/wo-1/parts")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/work-orders/wo-1/complete-with-feedback")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/parts-inventory")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/parts-inventory/part-1/stock")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/offshore-ops")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/offshore-ops/op-1/complete")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/service-requests")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/service-orders/so-1/complete")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/rms/alerts/alarm-1/acknowledge")).toBe(true);
+      expect(offlineSync.isQueueableMutation("POST", "/api/me/safety-alarms/alarm-1/acknowledge")).toBe(true);
       expect(offlineSync.isQueueableMutation("PATCH", "/api/attention/handover")).toBe(true);
       expect(offlineSync.isQueueableMutation("DELETE", "/api/work-orders/123")).toBe(true);
       expect(offlineSync.isQueueableMutation("GET", "/api/work-orders")).toBe(false);
       expect(offlineSync.isQueueableMutation("POST", "/api/some-other-route")).toBe(false);
       // Defensive: bulk-clear endpoints are not queued
       expect(offlineSync.isQueueableMutation("DELETE", "/api/work-orders/clear")).toBe(false);
+    });
+
+    it("preserves request envelopes for core maritime offline workflows", async () => {
+      const cases = [
+        {
+          url: "/api/parts-inventory/part-1/stock",
+          method: "PATCH",
+          entityType: "inventory_stock",
+          payload: { quantityOnHand: 12, movementType: "receive" },
+        },
+        {
+          url: "/api/work-orders/wo-1/parts",
+          method: "POST",
+          entityType: "parts",
+          payload: { partId: "part-1", quantity: 2, movementType: "reserve" },
+        },
+        {
+          url: "/api/work-orders/wo-1/complete-with-feedback",
+          method: "POST",
+          entityType: "work_order",
+          payload: { completionNotes: "Consumed reserved parts", movementType: "consume" },
+        },
+        {
+          url: "/api/offshore-ops/op-1/complete",
+          method: "PATCH",
+          entityType: "logistics_task",
+          payload: { endTime: new Date().toISOString(), notes: "Cargo completed" },
+        },
+        {
+          url: "/api/me/safety-alarms/alarm-1/acknowledge",
+          method: "POST",
+          entityType: "safety_acknowledgement",
+          payload: { comment: "Acknowledged onboard" },
+        },
+      ] as const;
+
+      for (const item of cases) {
+        const op = await offlineSync.queueApiOperation(item.method, item.url, item.payload);
+        expect(op.entityType).toBe(item.entityType);
+        expect(op.request).toEqual({
+          method: item.method,
+          url: item.url,
+          contentType: "application/json",
+        });
+        expect(op.payload.__queuedApiRequest).toBe(true);
+      }
     });
   });
 });

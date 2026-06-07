@@ -6,7 +6,8 @@
 
 import { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { jsonValueSchema } from "@shared/validation/json";
+import { authenticatedRequest } from "../../../middleware/auth";
 import Papa from "papaparse";
 import { insertCrewRestSheetSchema } from "@shared/schema";
 import { withErrorHandling } from "../../../lib/route-utils";
@@ -63,7 +64,6 @@ const importBodySchema = z.object({
       crewName: z.string().optional(),
       crew_name: z.string().optional(),
     })
-    .passthrough()
     .optional(),
 });
 
@@ -84,7 +84,7 @@ const stcwImportBodySchema = z.object({
   crewId: z.string().min(1),
   year: z.union([z.string(), z.number()]),
   month: z.union([z.string(), z.number()]),
-  data: z.union([z.string(), z.array(z.unknown())]),
+  data: z.union([z.string(), z.array(jsonValueSchema)]),
 });
 
 export function registerImportRoutes(app: Express, deps: StcwRestDependencies): void {
@@ -127,7 +127,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const crewId = body.sheet?.crewId || body.sheet?.crew_id;
       const crewName = body.sheet?.crewName || body.sheet?.crew_name || "Unknown";
       const sheetData = insertCrewRestSheetSchema.parse({
@@ -264,7 +264,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       let rows: RestDay[] = typeof data === "string" ? JSON.parse(data) : (data as RestDay[]);
       rows = normalizeRestDays(rows);
 
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const crewMember = await dbCrewStorage.getCrewMember(crewId);
       const crewName = crewMember?.name || "Unknown";
       const sheet = await dbStcwStorage.createCrewRestSheet({

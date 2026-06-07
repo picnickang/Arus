@@ -23,7 +23,7 @@ export const syncConflictsSqlite = sqliteTable("sync_conflicts", {
 });
 
 export const requestIdempotencySqlite = sqliteTable("request_idempotency", {
-  id: text("id").primaryKey(),
+  key: text("key").primaryKey(),
   orgId: text("org_id").notNull(),
   idempotencyKey: text("idempotency_key").notNull(),
   requestHash: text("request_hash"),
@@ -47,36 +47,38 @@ export const idempotencyLogSqlite = sqliteTable("idempotency_log", {
 
 export const dbSchemaVersionSqlite = sqliteTable("db_schema_version", {
   id: text("id").primaryKey(),
-  version: integer("version").notNull(),
+  name: text("name"),
   appliedAt: integer("applied_at", { mode: "timestamp" }),
   description: text("description"),
 });
 
 export const sheetLockSqlite = sqliteTable(
-  "sheet_locks",
+  "sheet_lock",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
     sheetType: text("sheet_type").notNull(),
-    sheetId: text("sheet_id").notNull(),
-    lockedBy: text("locked_by"),
-    lockedAt: integer("locked_at", { mode: "timestamp" }),
+    sheetKey: text("sheet_key"),
+    token: text("token"),
+    holder: text("holder"),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
     reason: text("reason"),
   },
   (table) => ({
-    sheetIdx: index("idx_sl_sheet").on(table.sheetType, table.sheetId),
+    sheetIdx: index("idx_sl_sheet").on(table.sheetType, table.sheetKey),
   })
 );
 
 export const sheetVersionSqlite = sqliteTable(
-  "sheet_versions",
+  "sheet_version",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
     sheetType: text("sheet_type").notNull(),
-    sheetId: text("sheet_id").notNull(),
+    sheetKey: text("sheet_key"),
     version: integer("version").notNull(),
+    lastModified: integer("last_modified", { mode: "timestamp" }),
+    lastModifiedBy: text("last_modified_by"),
     data: text("data"),
     changedBy: text("changed_by"),
     createdAt: integer("created_at", { mode: "timestamp" }),
@@ -84,7 +86,7 @@ export const sheetVersionSqlite = sqliteTable(
   (table) => ({
     sheetVersionIdx: index("idx_sv_sheet_version").on(
       table.sheetType,
-      table.sheetId,
+      table.sheetKey,
       table.version
     ),
   })

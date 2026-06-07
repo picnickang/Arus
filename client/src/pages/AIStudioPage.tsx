@@ -17,6 +17,67 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Brain, Activity, TrendingUp, AlertTriangle, Plus, List, Sparkles } from "lucide-react";
 
+const DATA_WINDOW_DAYS: Record<TrainingConfig["dataWindow"], number> = {
+  bronze: 90,
+  silver: 180,
+  gold: 365,
+  platinum: 730,
+};
+
+const MODEL_ALGORITHMS: Record<TrainingConfig["modelType"], string> = {
+  lstm: "lstm",
+  "random-forest": "rf",
+  xgboost: "xgboost",
+};
+
+function buildIdempotencyKey(prefix: string): string {
+  const random =
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${random}`;
+}
+
+function toMlTrainPayload(config: TrainingConfig) {
+  const runtimeModelType =
+    config.modelType === "lstm" ? "lstm" : config.modelType === "random-forest" ? "rf" : undefined;
+  return {
+    ...(runtimeModelType ? { modelType: runtimeModelType } : {}),
+    algorithm: MODEL_ALGORITHMS[config.modelType],
+    equipmentType: config.equipmentScope,
+    dataWindowDays: DATA_WINDOW_DAYS[config.dataWindow],
+    epochs: config.epochs,
+    batchSize: config.batchSize,
+    learningRate: config.learningRate,
+    targetColumn: config.objective,
+    windowSize: config.sequenceLength,
+    hyperparameters: {
+      objective: config.objective,
+      sequenceLength: config.sequenceLength,
+      numTrees: config.numTrees,
+      maxDepth: config.maxDepth,
+      lstmUnits: config.lstmUnits,
+      dropoutRate: config.dropoutRate,
+    },
+  };
+}
+
+function toRetrainConfig(model: Model): TrainingConfig {
+  return {
+    modelType: model.modelType,
+    objective: model.objective,
+    equipmentScope: model.scope || "all",
+    dataWindow: "gold",
+    epochs: 100,
+    sequenceLength: 10,
+    learningRate: 0.001,
+    numTrees: 100,
+    maxDepth: 6,
+    lstmUnits: 64,
+    dropoutRate: 0.2,
+    batchSize: 32,
+  };
+}
+
 export default function AIStudioPage() {
   const { toast } = useToast();
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
@@ -41,9 +102,10 @@ export default function AIStudioPage() {
   // Train model mutation
   const trainModelMutation = useMutation({
     mutationFn: async (config: TrainingConfig) => {
-      return apiRequest("/api/ml/train", {
-        method: "POST",
-        body: JSON.stringify(config),
+      return apiRequest("POST", "/api/ml/train", toMlTrainPayload(config), {
+        headers: {
+          "Idempotency-Key": buildIdempotencyKey("ml-train"),
+        },
       });
     },
     onSuccess: () => {
@@ -65,8 +127,10 @@ export default function AIStudioPage() {
   // Deploy model mutation
   const deployModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
-      return apiRequest(`/api/ml/models/${modelId}/deploy`, {
-        method: "POST",
+      return apiRequest("POST", `/api/ml/models/${modelId}/deploy`, undefined, {
+        headers: {
+          "Idempotency-Key": buildIdempotencyKey(`ml-deploy-${modelId}`),
+        },
       });
     },
     onSuccess: () => {
@@ -88,8 +152,10 @@ export default function AIStudioPage() {
   // Archive model mutation
   const archiveModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
-      return apiRequest(`/api/ml/models/${modelId}/archive`, {
-        method: "POST",
+      return apiRequest("POST", `/api/ml/models/${modelId}/archive`, undefined, {
+        headers: {
+          "Idempotency-Key": buildIdempotencyKey(`ml-archive-${modelId}`),
+        },
       });
     },
     onSuccess: () => {
@@ -141,11 +207,17 @@ export default function AIStudioPage() {
     archiveModelMutation.mutate(modelId);
   };
 
-  const handleRetrain = (_modelId: string) => {
-    toast({
-      title: "Retraining",
-      description: "Model retraining feature coming soon.",
-    });
+  const handleRetrain = (modelId: string) => {
+    const model = models.find((m) => m.id === modelId);
+    if (!model) {
+      toast({
+        variant: "destructive",
+        title: "Retraining Failed",
+        description: "Could not find the selected model.",
+      });
+      return;
+    }
+    trainModelMutation.mutate(toRetrainConfig(model));
   };
 
   // Calculate KPIs

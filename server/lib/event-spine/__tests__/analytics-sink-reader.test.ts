@@ -74,7 +74,7 @@ describe("analytics sink reader", () => {
     expect(analyticsReadMode()).toBe("sink");
     process.env.EVENT_SPINE_ANALYTICS_READ = "";
     expect(analyticsReadMode()).toBe("oltp");
-    if (prev === undefined) delete process.env.EVENT_SPINE_ANALYTICS_READ;
-    else process.env.EVENT_SPINE_ANALYTICS_READ = prev;
+    if (prev === undefined) {delete process.env.EVENT_SPINE_ANALYTICS_READ;}
+    else {process.env.EVENT_SPINE_ANALYTICS_READ = prev;}
   });
 });

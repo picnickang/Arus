@@ -9,7 +9,7 @@ import { insertFailurePredictionSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import type { MlAnalyticsConfig } from "./types.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { domainEventBus, createDomainEvent } from "../../../lib/domain-event-bus/index.js";
 import { dbMlAnalyticsStorage, dbEquipmentStorage } from "../../../repositories.js";
 
@@ -19,7 +19,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
   app.get(
     "/api/analytics/failure-predictions",
     withErrorHandling("fetch failure predictions", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, riskLevel } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, equipmentId, riskLevel } = req.query;
       const predictions = await dbMlAnalyticsStorage.getFailurePredictions(
         orgId as string,
         equipmentId as string,
@@ -33,7 +33,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
   app.get(
     "/api/analytics/failure-predictions/:id",
     withErrorHandling("fetch failure prediction", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
+      const { orgId = authenticatedRequest(req).orgId } = req.query;
       const prediction = await dbMlAnalyticsStorage.getFailurePrediction(
         Number.parseInt(req.params['id'] ?? ''),
         orgId as string
@@ -50,7 +50,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
     "/api/analytics/failure-predictions",
     writeOperationRateLimit,
     withErrorHandling("create failure prediction", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, ...predictionData } = req.body;
+      const { orgId = authenticatedRequest(req).orgId, ...predictionData } = req.body;
       const validatedData = insertFailurePredictionSchema.parse(predictionData);
       const prediction = await dbMlAnalyticsStorage.createFailurePrediction(validatedData, orgId);
 

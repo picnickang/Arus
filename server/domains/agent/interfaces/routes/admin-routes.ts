@@ -1,7 +1,7 @@
 import { createLogger } from "../../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Interfaces:Routes:AdminRoutes");
 import type { Express, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import { buildSystemPrompt } from "../../domain/system-prompt";
 import { auditAction } from "../../../../utils/audit-helpers";
@@ -21,7 +21,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const limit = parseInt(req.query['limit'] as string) || 100;
         const conversations = await agentRepo.conversations.list(orgId, undefined, limit);
         res.json(conversations);
@@ -37,7 +37,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const config = await agentRepo.config.get(orgId);
         const systemContent = buildSystemPrompt(config?.customSystemPrompt);
 
@@ -120,7 +120,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const conversations = await agentRepo.conversations.list(orgId, undefined, 1000);
         let purged = 0;
         for (const conv of conversations) {
@@ -136,7 +136,7 @@ export function registerAdminRoutes(app: Express, deps: AdminRouteDeps) {
             action: "bulk_purge",
             count: purged,
           },
-          { orgId, userId: (req as AuthenticatedRequest).user?.id }
+          { orgId, userId: authenticatedRequest(req).user?.id }
         );
 
         res.json({ purged });

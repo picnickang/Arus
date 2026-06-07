@@ -12,11 +12,11 @@ const stages = [
 
 function activeIndex(status?: string): number {
   const normalized = status?.toLowerCase().replace(/[_-]/g, " ") ?? "";
-  if (normalized.includes("closed") || normalized.includes("complete")) return 5;
-  if (normalized.includes("verify") || normalized.includes("review") || normalized.includes("ready")) return 4;
-  if (normalized.includes("progress")) return 3;
-  if (normalized.includes("part")) return 2;
-  if (normalized.includes("plan") || normalized.includes("schedule")) return 1;
+  if (normalized.includes("closed") || normalized.includes("complete")) {return 5;}
+  if (normalized.includes("verify") || normalized.includes("review") || normalized.includes("ready")) {return 4;}
+  if (normalized.includes("progress")) {return 3;}
+  if (normalized.includes("part")) {return 2;}
+  if (normalized.includes("plan") || normalized.includes("schedule")) {return 1;}
   return 0;
 }
 

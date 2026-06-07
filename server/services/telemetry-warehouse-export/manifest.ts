@@ -93,8 +93,8 @@ export function pruneEntries(
   const kept: WarehouseExportEntry[] = [];
   const removed: WarehouseExportEntry[] = [];
   for (const e of manifest.exports) {
-    if (e.date < cutoffDate) removed.push(e);
-    else kept.push(e);
+    if (e.date < cutoffDate) {removed.push(e);}
+    else {kept.push(e);}
   }
   return {
     manifest: {

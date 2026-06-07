@@ -41,8 +41,8 @@ export function RoleInformationNeedsMatrix({ role }: { role: OperatorRole }) {
   const [, navigate] = useLocation();
   const { data: summary, isLoading } = useRoleInformationNeeds(role);
 
-  if (isLoading) return <LoadingMatrix />;
-  if (!summary) return null;
+  if (isLoading) {return <LoadingMatrix />;}
+  if (!summary) {return null;}
 
   return (
     <Card data-testid="card-role-information-needs">

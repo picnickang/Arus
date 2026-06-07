@@ -154,8 +154,7 @@ describe("Equipment forms — CRUD + propagation", () => {
   it("downstream surfaces stay healthy after equipment writes (eventual)", async () => {
     const result = await retry(
       async () => {
-        const r = await api<unknown>("GET", `/api/vessels/${vesselId}/equipment`);
-        return r;
+        return await api<unknown>("GET", `/api/vessels/${vesselId}/equipment`);
       },
       (r) => r.status === 200 || r.status === 404,
       { timeoutMs: 1500 }
@@ -170,7 +169,7 @@ describe("Equipment forms — CRUD + propagation", () => {
     // hard-delete path can throw on FK cascade — it's flagged as a server
     // resilience gap (follow-up #61), not a propagation bug.
     if (status === 500) {
-      // eslint-disable-next-line no-console
+
       console.warn(
         "SKIP: DELETE /api/equipment returned 500 (likely FK cascade) — see follow-up #61. body:",
         JSON.stringify(data).slice(0, 200)
@@ -198,7 +197,7 @@ describe("Equipment forms — CRUD + propagation", () => {
           `SELECT is_active FROM equipment WHERE id=$1`,
           [createdEquipmentId]
         );
-        if (rows.length) expect(rows[0].is_active).toBe(false);
+        if (rows.length) {expect(rows[0].is_active).toBe(false);}
       }
     }
   });

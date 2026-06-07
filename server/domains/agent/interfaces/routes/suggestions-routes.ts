@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { jsonRecordSchema, jsonValueSchema } from "@shared/validation/json";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import { agentRepo } from "../../infrastructure/repository";
 import type { SuggestionEngine } from "../../application/suggestion-engine";
 import type { OutcomeTrackingService } from "../../application/outcome-service";
@@ -23,18 +24,18 @@ const createSuggestionBodySchema = z.object({
   severity: z.enum(["info", "warning", "critical"]).optional(),
   entityType: z.string().nullable().optional(),
   entityId: z.string().nullable().optional(),
-  context: z.record(z.unknown()).nullable().optional(),
+  context: jsonRecordSchema.nullable().optional(),
 });
 const listSuggestionsQuerySchema = z.object({
   status: z.string().optional(),
   triggerType: z.string().optional(),
 });
 const generateBodySchema = z
-  .object({ preferences: z.record(z.unknown()).optional() })
+  .object({ preferences: jsonRecordSchema.optional() })
   .partial();
 const updateSuggestionBodySchema = z.object({
   status: z.string().optional(),
-  actedOn: z.unknown().optional(),
+  actedOn: jsonValueSchema.optional(),
 });
 const outcomeBodySchema = z
   .object({
@@ -64,7 +65,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const parsed = createSuggestionBodySchema.safeParse(req.body);
         if (!parsed.success) {
           return res.status(400).json({ error: "triggerType, title, and summary are required" });
@@ -95,7 +96,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { status, triggerType } = listSuggestionsQuerySchema.parse(req.query);
         let suggestions = await agentRepo.suggestions.list(orgId, status);
         if (triggerType) {
@@ -113,7 +114,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const pending = await agentRepo.suggestions.list(orgId, "pending");
         return res.json({ count: pending.length });
       } catch (error: unknown) {
@@ -128,7 +129,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireAdminRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { preferences } = generateBodySchema.parse(req.body ?? {});
         const newSuggestions = await suggestionEngine.generateProactiveSuggestions(
           orgId,
@@ -161,7 +162,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { id } = idParamSchema.parse(req.params);
         const body = updateSuggestionBodySchema.parse(req.body);
         const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
@@ -195,8 +196,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
         if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
@@ -230,8 +231,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
         if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
@@ -265,8 +266,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     requireMaintenanceRole,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
         if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
@@ -299,7 +300,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const { days } = effectivenessQuerySchema.parse(req.query);
         const summary = await outcomeService.getEffectiveness(orgId, Math.min(days ?? 30, 365));
         return res.json(summary);
@@ -314,7 +315,7 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const all = await agentRepo.suggestions.list(orgId, undefined, 200);
         const history = all.filter((s) => s.status !== "pending");
         return res.json(history);
@@ -329,8 +330,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const prefs = await agentRepo.suggestions.getPreferences(orgId, userId);
         return res.json(
           prefs || {
@@ -353,8 +354,8 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
     rateLimit.writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const parsed = preferencesBodySchema.parse(req.body);
         const cleaned = Object.fromEntries(
           Object.entries(parsed).filter(([, v]) => v !== undefined)

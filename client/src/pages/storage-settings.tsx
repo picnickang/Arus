@@ -61,7 +61,7 @@ export default function StorageSettings() {
 
   const [pendingBackend, setPendingBackend] = useState<ArtifactBackend | "">("");
   useEffect(() => {
-    if (mlStorageQuery.data?.backend) setPendingBackend(mlStorageQuery.data.backend);
+    if (mlStorageQuery.data?.backend) {setPendingBackend(mlStorageQuery.data.backend);}
   }, [mlStorageQuery.data?.backend]);
 
   const updateMlBackend = useMutation({
@@ -277,7 +277,7 @@ export default function StorageSettings() {
                         updateMlBackend.isPending
                       }
                       onClick={() =>
-                        pendingBackend && updateMlBackend.mutate(pendingBackend as ArtifactBackend)
+                        pendingBackend && updateMlBackend.mutate(pendingBackend)
                       }
                     >
                       {updateMlBackend.isPending ? "Saving…" : "Save backend"}

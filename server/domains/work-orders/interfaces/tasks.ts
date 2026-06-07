@@ -6,7 +6,7 @@
 
 import type { Express, Request, Response } from "express";
 import { workOrderAppService as workOrderService } from "../application";
-import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { createTaskSchema, updateTaskSchema } from "./schemas";
 import {
   withErrorHandling,
@@ -24,7 +24,7 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     "/api/work-orders/:id/tasks",
     requireOrgId,
     withErrorHandling("fetch work order tasks", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const tasks = await workOrderService.getWorkOrderTasks(req.params['id'] ?? '', orgId);
       res.json(tasks);
     })
@@ -35,7 +35,7 @@ export function registerTasksRoutes(app: Express, rateLimit: RateLimitMiddleware
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("create work order task", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const workOrderId = req.params['id'] ?? '';
 
       const validation = validateBody(req, createTaskSchema);

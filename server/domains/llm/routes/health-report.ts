@@ -9,7 +9,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import {
   dbEquipmentStorage,
   dbTelemetryStorage,
@@ -55,7 +55,7 @@ export function registerHealthReportRoutes(
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const equipmentHealth = await dbEquipmentStorage.getEquipmentHealth(orgId);
       const filteredEquipmentHealth = vesselId
         ? equipmentHealth.filter((eq) => eq.vesselId === vesselId)

@@ -28,8 +28,8 @@ describe("Logbook forms — deck + engine daily CRUD + propagation", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (deckId) await pool.query("DELETE FROM deck_log_daily WHERE id=$1", [deckId]).catch(() => {});
-    if (engineId) await pool.query("DELETE FROM engine_log_daily WHERE id=$1", [engineId]).catch(() => {});
+    if (deckId) {await pool.query("DELETE FROM deck_log_daily WHERE id=$1", [deckId]).catch(() => {});}
+    if (engineId) {await pool.query("DELETE FROM engine_log_daily WHERE id=$1", [engineId]).catch(() => {});}
     await cleanupByRunId(RUN_ID, ["deck_log_daily", "engine_log_daily"]);
   });
 
@@ -64,7 +64,7 @@ describe("Logbook forms — deck + engine daily CRUD + propagation", () => {
   });
 
   it("PATCH deck-log entry updates remarks", async () => {
-    if (!deckId) return;
+    if (!deckId) {return;}
     const { status } = await api("PATCH", `/api/logbook/deck/daily/${deckId}`, {
       remarks: `updated ${RUN_ID}`,
     });
@@ -101,7 +101,7 @@ describe("Logbook forms — deck + engine daily CRUD + propagation", () => {
   });
 
   it("DELETE engine-log entry removes the row", async () => {
-    if (!engineId) return;
+    if (!engineId) {return;}
     const { status } = await api("DELETE", `/api/logbook/engine/daily/${engineId}`);
     expect([200, 204, 403, 409]).toContain(status);
     if (status === 200 || status === 204) {

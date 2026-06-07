@@ -38,7 +38,7 @@ const TRACKED_FIELDS: Array<keyof CrewTaskEntity> = [
 ];
 
 function valuesEqual(a: unknown, b: unknown): boolean {
-  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+  if (a instanceof Date && b instanceof Date) {return a.getTime() === b.getTime();}
   return a === b;
 }
 
@@ -76,10 +76,10 @@ export class CrewTaskApplicationService {
     actor?: CrewTaskActor,
   ): Promise<CrewTaskEntity | null> {
     const before = await this.repo.findById(orgId, id);
-    if (!before) return null;
+    if (!before) {return null;}
 
     const after = await this.repo.update(orgId, id, patch);
-    if (!after) return null;
+    if (!after) {return null;}
 
     const changedFields = TRACKED_FIELDS.filter(
       (field) => !valuesEqual(before[field], after[field]),
@@ -97,7 +97,7 @@ export class CrewTaskApplicationService {
     actor?: CrewTaskActor,
   ): Promise<boolean> {
     const before = await this.repo.findById(orgId, id);
-    if (!before) return false;
+    if (!before) {return false;}
 
     const deleted = await this.repo.delete(orgId, id);
     if (deleted) {
@@ -111,9 +111,9 @@ export class CrewTaskApplicationService {
     orgId: string,
     taskId: string,
   ): Promise<CrewTaskEventEntity[]> {
-    if (!this.eventRepo) return [];
+    if (!this.eventRepo) {return [];}
     const task = await this.repo.findById(orgId, taskId);
-    if (!task) return [];
+    if (!task) {return [];}
     return this.eventRepo.listByTask(orgId, taskId);
   }
 
@@ -124,9 +124,9 @@ export class CrewTaskApplicationService {
     message: string,
     actor?: CrewTaskActor,
   ): Promise<CrewTaskEventEntity | null> {
-    if (!this.eventRepo) return null;
+    if (!this.eventRepo) {return null;}
     const task = await this.repo.findById(orgId, taskId);
-    if (!task) return null;
+    if (!task) {return null;}
 
     const event = await this.eventRepo.add({
       orgId,

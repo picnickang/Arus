@@ -16,8 +16,8 @@ describe("Journey — Supplier → Part with FK propagation", () => {
   let partId: string;
 
   afterAll(async () => {
-    if (partId) await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});
-    if (supplierId) await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});
+    if (partId) {await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});}
+    if (supplierId) {await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});}
     await cleanupByRunId(RUN_ID, ["parts_inventory", "suppliers"]);
   });
 
@@ -63,7 +63,7 @@ describe("Journey — Supplier → Part with FK propagation", () => {
     );
     // Accept either a direct GET-by-id, or fallback to list membership.
     if (get.status === 200 && get.data?.id === partId) {
-      if (get.data.orgId) expect(get.data.orgId).toBe("default-org-id");
+      if (get.data.orgId) {expect(get.data.orgId).toBe("default-org-id");}
     } else {
       await expectInList<{ id: string }>(
         "/api/parts-inventory",

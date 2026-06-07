@@ -327,7 +327,7 @@ export function VirtualizedInventoryTable({
         >
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
-            if (!item) return null;
+            if (!item) {return null;}
             const status = getStockStatus(item);
             const available = item.stock
               ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved)

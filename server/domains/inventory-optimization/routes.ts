@@ -11,7 +11,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { sendBadRequest } from "../../lib/api-helpers";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { workOrderService } from "../../repositories.js";
 import type { InventoryStorage } from "../../inventory/storage";
@@ -55,7 +55,7 @@ export function registerInventoryOptimizationRoutes(
     generalApiRateLimit,
     withErrorHandling("plan maintenance costs", async (req, res) => {
       const { workOrderIds } = req.body;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const allOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId);
       const workOrderIdSet = new Set(workOrderIds as string[]);
@@ -76,12 +76,12 @@ export function registerInventoryOptimizationRoutes(
       return cacheMiddleware({
         ttl: 900,
         keyGenerator: (r: Request) =>
-          `substitutions:${r.params['partNo']}:${(r as AuthenticatedRequest).orgId}`,
+          `substitutions:${r.params['partNo']}:${authenticatedRequest(r).orgId}`,
       })(req, res, next);
     },
     withErrorHandling("find part substitutions", async (req, res) => {
       const { partNo = '' } = req.params;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");
       const substitutions = await findPartSubstitutions(partNo, inventoryStorage, orgId);
@@ -95,7 +95,7 @@ export function registerInventoryOptimizationRoutes(
     generalApiRateLimit,
     withErrorHandling("optimize inventory levels", async (req, res) => {
       const { partNumbers, usageHistory, costs, currentStock, options } = req.body;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       if (!partNumbers || !usageHistory || !costs) {
         return sendBadRequest(res, "Missing required fields: partNumbers, usageHistory, costs");
@@ -140,7 +140,7 @@ export function registerInventoryOptimizationRoutes(
     generalApiRateLimit,
     withErrorHandling("auto-optimize inventory", async (req, res) => {
       const { partNumbers, daysHistory } = req.body;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       if (!partNumbers || !Array.isArray(partNumbers)) {
         return sendBadRequest(
@@ -190,7 +190,7 @@ export function registerInventoryOptimizationRoutes(
     generalApiRateLimit,
     withErrorHandling("analyze supplier performance", async (req, res) => {
       const { supplierIds, dateRange } = req.body;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { analyzeSupplierPerformance } = await import("../../inventory/supplier-analytics");
       const performance = await analyzeSupplierPerformance(

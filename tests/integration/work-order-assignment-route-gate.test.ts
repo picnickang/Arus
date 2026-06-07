@@ -98,7 +98,7 @@ describe("work-order assignment routes mounted", () => {
 
 describe("POST /api/work-orders/:id/assignment-response", () => {
   it("rejects a decline without a reason with 400 and never calls the service", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -109,7 +109,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects a decline whose reason is only whitespace with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -120,7 +120,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("returns 200 with the updated work order on a successful accept", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({
       status: "ok",
       workOrder: { id: "wo1", assignmentStatus: "accepted", status: "in_progress" },
@@ -143,7 +143,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("passes the trimmed reason to the service on a valid decline", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({
       status: "ok",
       workOrder: { id: "wo1", assignmentStatus: "declined", status: "open" },
@@ -165,7 +165,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'forbidden' service result (assigned to someone else) to 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({ status: "forbidden" });
 
     const res = await request(app)
@@ -177,7 +177,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'not_crew' service result to 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({ status: "not_crew" });
 
     const res = await request(app)
@@ -189,7 +189,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'not_found' service result to 404", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({ status: "not_found" });
 
     const res = await request(app)
@@ -201,7 +201,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'no_assignment' service result to 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     respondToAssignment.mockResolvedValue({ status: "no_assignment" });
 
     const res = await request(app)
@@ -213,7 +213,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .send({ response: "accept" });
@@ -223,7 +223,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects an invalid response value with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -236,7 +236,7 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
 
 describe("GET /api/work-orders/my-assignments", () => {
   it("returns the caller's assignments from the service", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     getAssignmentsForUser.mockResolvedValue([
       { id: "wo-open", status: "open" },
       { id: "wo-progress", status: "in_progress" },
@@ -252,7 +252,7 @@ describe("GET /api/work-orders/my-assignments", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app).get("/api/work-orders/my-assignments");
 
     expect(res.status).toBe(401);

@@ -7,7 +7,7 @@
 import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { StcwRestDependencies } from "./types";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { dbStcwStorage } from "../../../db/stcw/index.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 import { vesselService } from "../../../repositories.js";
@@ -95,7 +95,7 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
   app.get(
     "/api/hor/fatigue/fleet",
     withErrorHandling("calculate fleet fatigue overview", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { days = "14" } = req.query;
       const lookbackDays = Number.parseInt(days as string) || 14;
 

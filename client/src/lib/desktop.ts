@@ -96,7 +96,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
           return null;
         }
 
-        const update = (await (updater['check'] as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null;
+        const update = (await (updater['check'] as () => Promise<TauriUpdate | null>)());
         if (!update) {
           _updateCache = null;
           return null;
@@ -124,7 +124,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
 
         const update =
           _updateCache?.raw ??
-          ((await (updater['check'] as () => Promise<TauriUpdate | null>)()) as TauriUpdate | null);
+          ((await (updater['check'] as () => Promise<TauriUpdate | null>)()));
         _updateCache = null;
 
         if (update) {

@@ -478,12 +478,12 @@ export class CrewAdminApplicationService {
           isAdminGrantEligibleRole(user.role) ||
           user.assignedRoleNames.some((roleName) => isAdminGrantEligibleRole(roleName));
         const reasons: string[] = [];
-        if (user.isActive && user.loginEnabled) reasons.push("Linked login is still enabled.");
-        if (activeAssignments.length > 0) reasons.push("Vessel or fleet scope remains assigned.");
-        if (user.hubAdmin) reasons.push("Admin-hub access remains granted.");
-        if (user.assignedRoleNames.length > 0) reasons.push("Additional roles remain assigned.");
-        if (hasHighRiskRole) reasons.push("High-risk role remains assigned.");
-        if (reasons.length === 0) reasons.push("No active access risk detected.");
+        if (user.isActive && user.loginEnabled) {reasons.push("Linked login is still enabled.");}
+        if (activeAssignments.length > 0) {reasons.push("Vessel or fleet scope remains assigned.");}
+        if (user.hubAdmin) {reasons.push("Admin-hub access remains granted.");}
+        if (user.assignedRoleNames.length > 0) {reasons.push("Additional roles remain assigned.");}
+        if (hasHighRiskRole) {reasons.push("High-risk role remains assigned.");}
+        if (reasons.length === 0) {reasons.push("No active access risk detected.");}
 
         return {
           crewId: member.id,
@@ -750,7 +750,7 @@ export class CrewAdminApplicationService {
     if (!member) {
       throw new CrewAdminError("Crew member not found", "NOT_FOUND");
     }
-    if (!member.userId) return null;
+    if (!member.userId) {return null;}
     const account = await this.repo.findUser(orgId, member.userId);
     return account ?? null;
   }
@@ -994,9 +994,9 @@ export class CrewAdminApplicationService {
     if (!name) {
       throw new CrewAdminError("A role is required", "INVALID_ROLE");
     }
-    if (isBuiltinRoleName(name)) return;
+    if (isBuiltinRoleName(name)) {return;}
     const custom = await this.repo.findRoleByName(orgId, name);
-    if (custom && custom.isActive) return;
+    if (custom && custom.isActive) {return;}
     throw new CrewAdminError("That role is not assignable", "INVALID_ROLE");
   }
 

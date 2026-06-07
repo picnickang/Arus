@@ -352,7 +352,7 @@ async function showStatus(pool: pg.Pool) {
     logger.info(
       `Root migrations (arus_migrations): applied=${applied.size} pending=${pending.length} last=${last}`
     );
-    for (const f of pending) logger.info(`  - pending: ${f}`);
+    for (const f of pending) {logger.info(`  - pending: ${f}`);}
   } catch (error) {
     logger.error("Root migrations: error reading ledger", undefined, error);
   }

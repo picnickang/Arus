@@ -43,7 +43,7 @@ import {
   UserAccessEditor,
   previewLine,
   type CrewUser,
-  type RoleSummary,
+  type CrewAdminRoleSummary,
   type VesselLite,
 } from "./UserAccessEditor";
 
@@ -89,13 +89,13 @@ function displayNameForUser(user: CrewUser): string {
 }
 
 function formatLastLogin(value: string | null): string {
-  if (!value) return "Never";
+  if (!value) {return "Never";}
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
+  if (Number.isNaN(date.getTime())) {return "Unknown";}
   return date.toLocaleString();
 }
 
-function roleLabel(roleName: string, rolesByName: Map<string, RoleSummary>): string {
+function roleLabel(roleName: string, rolesByName: Map<string, CrewAdminRoleSummary>): string {
   return rolesByName.get(roleName)?.displayName ?? humanize(roleName);
 }
 
@@ -113,7 +113,7 @@ function activeAssignments(user: CrewUser) {
 
 function vesselScope(user: CrewUser, vessels: VesselLite[]): string {
   const assignments = activeAssignments(user);
-  if (assignments.length === 0) return "No vessel access";
+  if (assignments.length === 0) {return "No vessel access";}
   if (assignments.some((assignment) => assignment.vesselId === null)) {
     return "Fleet-wide";
   }
@@ -127,11 +127,11 @@ function vesselScope(user: CrewUser, vessels: VesselLite[]): string {
     .join(", ");
 }
 
-function departmentsForUser(user: CrewUser, role: RoleSummary | undefined): string {
+function departmentsForUser(user: CrewUser, role: CrewAdminRoleSummary | undefined): string {
   const departments = activeAssignments(user)
     .map((assignment) => assignment.department)
     .filter((department): department is string => Boolean(department));
-  if (departments.length > 0) return [...new Set(departments)].join(", ");
+  if (departments.length > 0) {return [...new Set(departments)].join(", ");}
   return role?.department ?? "Unassigned";
 }
 
@@ -140,8 +140,8 @@ function dashboardStatus(
   configsByRole: Map<string, RoleDashboardConfigView>,
 ): { label: string; variant: "default" | "secondary" | "outline" | "destructive" } {
   const config = configsByRole.get(roleName);
-  if (!config) return { label: "Missing config", variant: "destructive" };
-  if (config.config.widgets.length === 0) return { label: "No widgets", variant: "destructive" };
+  if (!config) {return { label: "Missing config", variant: "destructive" };}
+  if (config.config.widgets.length === 0) {return { label: "No widgets", variant: "destructive" };}
   return {
     label: `${config.isCustomized ? "Custom" : "Default"} (${config.config.widgets.length})`,
     variant: config.isCustomized ? "default" : "secondary",
@@ -151,10 +151,10 @@ function dashboardStatus(
 function userMatchesSearch(
   user: CrewUser,
   term: string,
-  rolesByName: Map<string, RoleSummary>,
+  rolesByName: Map<string, CrewAdminRoleSummary>,
   vessels: VesselLite[],
 ): boolean {
-  if (!term) return true;
+  if (!term) {return true;}
   const values = [
     user.name,
     user.email,
@@ -172,16 +172,16 @@ function userMatchesSearch(
 
 function attentionWarnings(
   user: CrewUser,
-  primaryRole: RoleSummary | undefined,
+  primaryRole: CrewAdminRoleSummary | undefined,
   configsByRole: Map<string, RoleDashboardConfigView>,
 ): string[] {
   const warnings: string[] = [];
-  if (!primaryRole) warnings.push("No assignable role record");
-  if (activeAssignments(user).length === 0) warnings.push("No vessel scope");
-  if (!user.loginEnabled) warnings.push("Login disabled");
-  if (user.loginEnabled && !user.hasPassword) warnings.push("No password");
+  if (!primaryRole) {warnings.push("No assignable role record");}
+  if (activeAssignments(user).length === 0) {warnings.push("No vessel scope");}
+  if (!user.loginEnabled) {warnings.push("Login disabled");}
+  if (user.loginEnabled && !user.hasPassword) {warnings.push("No password");}
   const dashboard = dashboardStatus(user.role, configsByRole);
-  if (dashboard.variant === "destructive") warnings.push(dashboard.label);
+  if (dashboard.variant === "destructive") {warnings.push(dashboard.label);}
   return warnings;
 }
 
@@ -204,7 +204,7 @@ export function UserAssignmentTab() {
   const { data: users = [] } = useQuery<CrewUser[]>({
     queryKey: ["/api/admin/crew/users"],
   });
-  const { data: roles = [] } = useQuery<RoleSummary[]>({
+  const { data: roles = [] } = useQuery<CrewAdminRoleSummary[]>({
     queryKey: ["/api/admin/crew/roles"],
   });
   const { data: dashboardConfigs = [] } = useQuery<RoleDashboardConfigView[]>({
@@ -224,7 +224,7 @@ export function UserAssignmentTab() {
     const unknownRoleNames = [
       ...new Set(users.map((user) => user.role).filter((roleName) => !rolesByName.has(roleName))),
     ];
-    const unknownRoles: RoleSummary[] = unknownRoleNames.map((name) => ({
+    const unknownRoles: CrewAdminRoleSummary[] = unknownRoleNames.map((name) => ({
       id: `unknown-${name}`,
       name,
       displayName: humanize(name),
@@ -278,7 +278,7 @@ export function UserAssignmentTab() {
 
   const link = useMutation({
     mutationFn: async () => {
-      if (!linkUserId || !linkCrewId) return;
+      if (!linkUserId || !linkCrewId) {return;}
       await apiRequest("POST", `/api/admin/crew/members/${linkCrewId}/link`, {
         userId: linkUserId,
       });

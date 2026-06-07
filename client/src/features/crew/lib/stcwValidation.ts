@@ -114,7 +114,7 @@ export function getSevenDayRestTotal(dayIndex: number, rows: DayRow[]): number {
   const startIdx = Math.max(0, dayIndex - 6);
   for (let i = startIdx; i <= dayIndex; i++) {
     const row = rows[i];
-    if (row) total += sum24(row);
+    if (row) {total += sum24(row);}
   }
   return total;
 }

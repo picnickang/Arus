@@ -239,7 +239,7 @@ export class DbConditionMonitoringStorage {
         changeDate: record.changeDate ? new Date(record.changeDate) : new Date(),
       })
       .returning();
-    if (!n) throw new Error("Failed to create oil change record");
+    if (!n) {throw new Error("Failed to create oil change record");}
     return n;
   }
 

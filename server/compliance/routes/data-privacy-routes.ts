@@ -3,19 +3,16 @@ import { z } from "zod";
 import { auditService } from "../immutable-audit.service";
 import { requireAdminAuth, auditAdminAction } from "../../security";
 import { DataExportImportService } from "../../services/data-export-import";
-import { DataAnonymizationService, type AnonymizationLevel } from "../data-anonymization.service";
+import { DataAnonymizationService } from "../data-anonymization.service";
 import { dbGdprStorage } from "../../db/gdpr";
 import { requireComplianceAccess } from "./audit-routes";
 import { createLogger } from "../../lib/structured-logger";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { authenticatedRequest } from "../../middleware/auth";
 const logger = createLogger("Compliance:Routes:DataPrivacyRoutes");
-
-interface AdminRequest extends Request {
-  adminId?: string;
-}
 
 const router = Router();
 const exportService = new DataExportImportService("./data-exports");
+const anonymizationLevelSchema = z.enum(["none", "partial", "full"]);
 
 const anonymizedExportSchema = z.object({
   anonymize: z.enum(["none", "partial", "full"]).default("none"),
@@ -46,6 +43,15 @@ const dsarFilterSchema = z.object({
   toDate: z.string().datetime().optional(),
 });
 
+function requestOrgId(req: Request): string | undefined {
+  return authenticatedRequest(req).orgId;
+}
+
+function requestActorId(req: Request): string {
+  const authReq = authenticatedRequest(req);
+  return authReq.adminId || authReq.user?.id || "admin";
+}
+
 router.post(
   "/export/anonymized",
   requireAdminAuth,
@@ -53,12 +59,12 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
       const options = anonymizedExportSchema.parse(req.body);
-      const exportedBy = (req as AdminRequest).adminId || "admin";
+      const exportedBy = requestActorId(req);
       logger.info(`[Compliance] Starting anonymized export for org: ${orgId}, level: ${options.anonymize}`);
       await auditService.logEvent({
         orgId,
@@ -82,7 +88,7 @@ router.post(
           telemetryDays: options.telemetryDays,
           includeKnowledgeBase: options.includeKnowledgeBase,
           includeAuditLogs: options.includeAuditLogs,
-          anonymize: options.anonymize as AnonymizationLevel,
+          anonymize: options.anonymize,
           anonymizationConfig: {
             preserveIds: options.preserveIds,
             preserveTimestamps: options.preserveTimestamps,
@@ -113,9 +119,9 @@ router.post(
             manifest: result.manifest,
           },
         });
-      } else {
-        return res.status(500).json({ success: false, error: result.error, exportId: result.exportId });
       }
+        return res.status(500).json({ success: false, error: result.error, exportId: result.exportId });
+
     } catch (error) {
       logger.error("[Compliance] Anonymized export error:", undefined, error);
       return res
@@ -135,9 +141,9 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { exportId } = req.params;
-      if (!exportId) return res.status(400).json({ error: "Missing exportId" });
+      if (!exportId) {return res.status(400).json({ error: "Missing exportId" });}
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -152,7 +158,7 @@ router.get(
         eventType: "data_export_downloaded",
         entityType: "data_export",
         entityId: exportId,
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         retentionRequired: true,
       });
@@ -170,7 +176,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const level = (req.query['level'] as AnonymizationLevel) || "full";
+      const level = anonymizationLevelSchema.default("full").parse(req.query['level']);
       const sampleRecord = {
         id: "sample-123",
         name: "John Doe",
@@ -186,11 +192,10 @@ router.get(
         createdAt: new Date().toISOString(),
       };
       const anonymizationService = new DataAnonymizationService();
-      const { record: anonymized, result } = (anonymizationService.anonymizeRecord as object as (r: Record<string, unknown>, t: string, l: unknown, o: Record<string, unknown>) => { record: unknown; result: unknown })(
+      const { record: anonymized, result } = anonymizationService.anonymizeRecord(
         sampleRecord,
         "crew_member",
-        level,
-        { preserveIds: true, preserveTimestamps: true, preserveTechnicalData: false }
+        { level, preserveIds: true, preserveTimestamps: true, preserveTechnicalData: false }
       );
       return res.json({
         success: true,
@@ -210,7 +215,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -228,7 +233,7 @@ router.get(
         eventType: "dsar_list_viewed",
         entityType: "dsar",
         entityId: "list",
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         metadata: { filters, count: requests.length },
       });
@@ -247,9 +252,9 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -272,7 +277,7 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -282,7 +287,7 @@ router.post(
         orgId,
         ...data,
         dueDate,
-      } as never);
+      });
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
@@ -290,7 +295,7 @@ router.post(
         entityType: "dsar",
         entityId: request.id,
         newState: request,
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         retentionRequired: true,
       });
@@ -315,9 +320,9 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -335,7 +340,7 @@ router.post(
       }
       const request = await dbGdprStorage.acknowledgeDataSubjectRequest(
         id,
-        (req as AdminRequest).adminId || "admin",
+        requestActorId(req),
         orgId
       );
       await auditService.logEvent({
@@ -345,7 +350,7 @@ router.post(
         entityType: "dsar",
         entityId: id,
         newState: { status: "in_progress", acknowledgedAt: request.acknowledgedAt },
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         retentionRequired: true,
       });
@@ -368,9 +373,9 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       const { identifierType } = req.body as { identifierType: "email" | "userId" | "crewId" };
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -401,7 +406,7 @@ router.post(
         eventType: "dsar_data_collected",
         entityType: "dsar",
         entityId: id,
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         metadata: {
           identifier,
@@ -440,9 +445,9 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       const { confirmErasure, reason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -467,7 +472,7 @@ router.post(
             message: "This endpoint is only for erasure requests",
           });
       }
-      const erasedBy = (req as AdminRequest).adminId || "admin";
+      const erasedBy = requestActorId(req);
       const result = await dbGdprStorage.executeDataErasure(id, orgId, erasedBy, reason);
       await auditService.logEvent({
         orgId,
@@ -495,16 +500,16 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       const { notes } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
       const request = await dbGdprStorage.completeDataSubjectRequest(
         id,
-        (req as AdminRequest).adminId || "admin",
+        requestActorId(req),
         notes,
         orgId
       );
@@ -515,7 +520,7 @@ router.post(
         entityType: "dsar",
         entityId: id,
         newState: { status: "completed", completedAt: request.completedAt },
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         retentionRequired: true,
       });
@@ -534,16 +539,16 @@ router.post(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) return res.status(400).json({ error: "Missing id" });
+      if (!id) {return res.status(400).json({ error: "Missing id" });}
       const { reason, rejectionReason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
       const request = await dbGdprStorage.rejectDataSubjectRequest(
         id,
-        (req as AdminRequest).adminId || "admin",
+        requestActorId(req),
         rejectionReason || reason,
         orgId
       );
@@ -554,7 +559,7 @@ router.post(
         entityType: "dsar",
         entityId: id,
         newState: { status: "rejected", rejectionReason: rejectionReason || reason },
-        performedBy: (req as AdminRequest).adminId || "admin",
+        performedBy: requestActorId(req),
         performedByType: "user",
         retentionRequired: true,
       });
@@ -572,15 +577,17 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const orgId = DEFAULT_ORG_ID;
+      const orgId = requestOrgId(req);
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
       const allRequests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, {});
+      const byStatus: Record<string, number> = Object.create(null);
+      const byType: Record<string, number> = Object.create(null);
       const stats = {
         total: allRequests.length,
-        byStatus: {} as Record<string, number>,
-        byType: {} as Record<string, number>,
+        byStatus,
+        byType,
         avgCompletionDays: 0,
         overdueCount: 0,
       };

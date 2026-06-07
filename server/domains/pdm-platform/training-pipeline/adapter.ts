@@ -21,7 +21,7 @@ import type {
 export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
   async create(data: InsertTrainingDataset): Promise<TrainingDataset> {
     const [result] = await db.insert(trainingDatasets).values(data).returning();
-    if (!result) throw new Error("Failed to create training dataset");
+    if (!result) {throw new Error("Failed to create training dataset");}
     return result;
   }
 
@@ -58,7 +58,7 @@ export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
 export class TrainingRunAdapter implements ITrainingRunStorage {
   async create(data: InsertTrainingRun): Promise<TrainingRun> {
     const [result] = await db.insert(trainingRuns).values(data).returning();
-    if (!result) throw new Error("Failed to create training run");
+    if (!result) {throw new Error("Failed to create training run");}
     return result;
   }
 
@@ -101,7 +101,7 @@ export class TrainingRunAdapter implements ITrainingRunStorage {
 export class ModelArtifactAdapter implements IModelArtifactStorage {
   async create(data: InsertModelArtifact): Promise<ModelArtifact> {
     const [result] = await db.insert(modelArtifacts).values(data).returning();
-    if (!result) throw new Error("Failed to create model artifact");
+    if (!result) {throw new Error("Failed to create model artifact");}
     return result;
   }
 

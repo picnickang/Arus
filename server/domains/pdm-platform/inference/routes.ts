@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { resolveInferenceRunner } from "./model-backed-runner";
 import { PredictionEngineService } from "./prediction-engine.service";
 import { createLogger } from "../../../lib/structured-logger";
@@ -37,7 +37,7 @@ function sendError(res: Response, status: number, error: unknown): void {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId;
+    const orgId = authenticatedRequest(req).orgId;
     const parsed = inferSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
@@ -52,7 +52,7 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/predictions/:predictionId/explanations", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId;
+    const orgId = authenticatedRequest(req).orgId;
     const predictionId = parseInt(req.params['predictionId'] ?? '');
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });
@@ -66,7 +66,7 @@ router.get("/predictions/:predictionId/explanations", async (req: Request, res: 
 
 router.get("/predictions/:predictionId/lineage", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId;
+    const orgId = authenticatedRequest(req).orgId;
     const predictionId = parseInt(req.params['predictionId'] ?? '');
     if (isNaN(predictionId)) {
       return res.status(400).json({ error: "Invalid predictionId" });

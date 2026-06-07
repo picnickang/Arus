@@ -9,7 +9,7 @@ import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 
 interface MqttIngestionService {
   registerMqttDevice: (deviceData: unknown) => Promise<unknown>;
@@ -99,7 +99,7 @@ export function registerIotProcessingRoutes(app: Express, deps: IotProcessingDep
     writeOperationRateLimit,
     withErrorHandling("detect anomalies", async (req: Request, res: Response) => {
       const {
-        orgId = (req as AuthenticatedRequest).orgId,
+        orgId = authenticatedRequest(req).orgId,
         equipmentId,
         sensorType,
         value,

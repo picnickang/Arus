@@ -35,14 +35,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
   }
   return (
     <div className="grid grid-cols-1 gap-6">
-      {o.rulQueries.map((query: { data?: {
-        riskLevel: string;
-        remainingDays: number;
-        healthIndex: number;
-        failureProbability: number;
-        componentStatus?: ComponentStatus[] | undefined;
-        recommendations?: string[] | undefined;
-      } | undefined }, index: number) => {
+      {o.rulQueries.map((query, index: number) => {
         const eq = o.equipment?.[index];
         const rulData = query.data;
         if (!eq || !rulData) {

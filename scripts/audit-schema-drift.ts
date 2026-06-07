@@ -76,7 +76,7 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
   const result = new Map<string, DrizzleTable>();
   for (const exportName of Object.keys(schema)) {
     const value = (schema as Record<string, unknown>)[exportName];
-    if (!value || typeof value !== "object") continue;
+    if (!value || typeof value !== "object") {continue;}
     // Heuristic: Drizzle table proxies have a Symbol(drizzle:Name) / IsDrizzleTable marker
     let tableName: string;
     try {
@@ -84,7 +84,7 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
     } catch {
       continue;
     }
-    if (!tableName || typeof tableName !== "string") continue;
+    if (!tableName || typeof tableName !== "string") {continue;}
     let cols: Record<string, unknown>;
     try {
       cols = getTableColumns(value as PgTable);
@@ -110,7 +110,7 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
     if (result.has(tableName)) {
       // Same table declared twice — record both
       const existing = result.get(tableName)!;
-      for (const [k, v] of colMap) if (!existing.columns.has(k)) existing.columns.set(k, v);
+      for (const [k, v] of colMap) {if (!existing.columns.has(k)) {existing.columns.set(k, v);}}
     } else {
       result.set(tableName, { name: tableName, columns: colMap });
     }
@@ -164,7 +164,7 @@ function typesCompatible(dbType: string, drizzleType: string): boolean {
   }
   const a = normalizeDbType(dbType);
   const b = normalizeDrizzleType(drizzleType);
-  if (a === b) return true;
+  if (a === b) {return true;}
   // Common equivalences
   const pairs: Array<[string, string]> = [
     ["timestamp", "timestamp"],
@@ -226,12 +226,12 @@ async function main() {
   const tablesOnlyInDrizzle: string[] = [];
   const tableDrifts: TableDrift[] = [];
 
-  for (const name of db.keys()) if (!dz.has(name)) tablesOnlyInDb.push(name);
-  for (const name of dz.keys()) if (!db.has(name)) tablesOnlyInDrizzle.push(name);
+  for (const name of db.keys()) {if (!dz.has(name)) {tablesOnlyInDb.push(name);}}
+  for (const name of dz.keys()) {if (!db.has(name)) {tablesOnlyInDrizzle.push(name);}}
 
   for (const [name, dbTable] of db) {
     const dzTable = dz.get(name);
-    if (!dzTable) continue;
+    if (!dzTable) {continue;}
     const drift: TableDrift = {
       table: name,
       missingInDb: [],
@@ -312,7 +312,7 @@ async function main() {
     lines.push("");
     lines.push("Any code that does `db.select().from(<table>)` against these will fail at runtime.");
     lines.push("");
-    for (const n of tablesOnlyInDrizzle) lines.push(`- \`${n}\``);
+    for (const n of tablesOnlyInDrizzle) {lines.push(`- \`${n}\``);}
     lines.push("");
   }
 
@@ -321,7 +321,7 @@ async function main() {
     lines.push("");
     lines.push("These are accessible only via raw SQL.");
     lines.push("");
-    for (const n of tablesOnlyInDb) lines.push(`- \`${n}\``);
+    for (const n of tablesOnlyInDb) {lines.push(`- \`${n}\``);}
     lines.push("");
   }
 
@@ -367,9 +367,9 @@ async function main() {
     lines.push("");
     for (const d of mild) {
       const summary: string[] = [];
-      if (d.missingInDrizzle.length) summary.push(`${d.missingInDrizzle.length} cols missing in schema`);
+      if (d.missingInDrizzle.length) {summary.push(`${d.missingInDrizzle.length} cols missing in schema`);}
       const benignNull = d.nullabilityMismatches.filter((m) => !(m.drizzleNotNull && m.dbNullable));
-      if (benignNull.length) summary.push(`${benignNull.length} benign null mismatches`);
+      if (benignNull.length) {summary.push(`${benignNull.length} benign null mismatches`);}
       lines.push(`### \`${d.table}\` — ${summary.join(", ")}`);
       if (d.missingInDrizzle.length) {
         for (const c of d.missingInDrizzle.slice(0, 50)) {

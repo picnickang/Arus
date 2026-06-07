@@ -214,7 +214,7 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   });
   const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery<LeaveData[]>({
     queryKey: ["/api/crew/leave"],
-    queryFn: () => apiRequest("GET", "/api/crew/leave") as Promise<LeaveData[]>,
+    queryFn: () => apiRequest("GET", "/api/crew/leave"),
     staleTime: 120000,
     refetchInterval: 120000,
   });
@@ -246,7 +246,7 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
 
   const planScheduleMutation = useCustomMutation<SchedulePlanPayload, SchedulePlanResponse>({
     mutationFn: async (data: SchedulePlanPayload) =>
-      apiRequest("POST", "/api/crew/schedule/plan", data) as Promise<SchedulePlanResponse>,
+      apiRequest("POST", "/api/crew/schedule/plan", data),
     invalidateKeys: ["/api/crew/assignments"],
     onSuccess: (data: SchedulePlanResponse) => {
       setScheduleResult(data);
@@ -274,7 +274,7 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
 
   const enhancedScheduleMutation = useCustomMutation<EnhancedSchedulePayload, EnhancedSchedulePlanResponse>({
     mutationFn: async (data: EnhancedSchedulePayload) =>
-      apiRequest("POST", "/api/crew/schedule/plan-enhanced", data) as Promise<EnhancedSchedulePlanResponse>,
+      apiRequest("POST", "/api/crew/schedule/plan-enhanced", data),
     invalidateKeys: ["/api/crew/assignments"],
     onSuccess: (data: EnhancedSchedulePlanResponse) => {
       try {

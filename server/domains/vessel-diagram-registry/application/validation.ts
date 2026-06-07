@@ -3,10 +3,9 @@ import { z } from "zod";
 import type {
   CreateSectionInput,
   DiagramUploadInput,
-  NormalizedPoint,
   SectionMapRecord,
   ThumbnailUploadInput,
-  ValidationIssue,
+  VesselDiagramValidationIssue,
   ValidationSummary,
   VesselDiagramType,
 } from "../domain/types";
@@ -96,7 +95,7 @@ function validateBinarySignature(
   mimeType: string,
   content: Buffer,
   path: string
-): ValidationIssue[] {
+): VesselDiagramValidationIssue[] {
   if (content.byteLength === 0) {
     return [];
   }
@@ -126,9 +125,9 @@ function validateBinarySignature(
 
 export function sanitizeSvgContent(svg: string): {
   sanitizedSvg: string;
-  issues: ValidationIssue[];
+  issues: VesselDiagramValidationIssue[];
 } {
-  const issues: ValidationIssue[] = [];
+  const issues: VesselDiagramValidationIssue[] = [];
   for (const rule of SVG_BLOCK_PATTERNS) {
     if (rule.pattern.test(svg)) {
       issues.push({
@@ -166,9 +165,9 @@ export function validateDiagramUpload(
   contentSha256: string;
   sanitizedSvg?: string;
   validationSummary: ValidationSummary;
-  issues: ValidationIssue[];
+  issues: VesselDiagramValidationIssue[];
 } {
-  const issues: ValidationIssue[] = [];
+  const issues: VesselDiagramValidationIssue[] = [];
   if (!DIAGRAM_MIME_TYPES.has(input.mimeType)) {
     issues.push({
       severity: "blocker",
@@ -221,9 +220,9 @@ export function validateThumbnailUpload(
   objectKey: string;
   contentSha256: string;
   sanitizedSvg?: string;
-  issues: ValidationIssue[];
+  issues: VesselDiagramValidationIssue[];
 } {
-  const issues: ValidationIssue[] = [];
+  const issues: VesselDiagramValidationIssue[] = [];
   if (!THUMBNAIL_MIME_TYPES.has(input.mimeType)) {
     issues.push({
       severity: "blocker",
@@ -270,8 +269,8 @@ export function validateThumbnailUpload(
   };
 }
 
-export function validateSectionInput(section: CreateSectionInput): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+export function validateSectionInput(section: CreateSectionInput): VesselDiagramValidationIssue[] {
+  const issues: VesselDiagramValidationIssue[] = [];
   if (!/^#[0-9a-f]{6}$/i.test(section.color)) {
     issues.push({
       severity: "warning",
@@ -307,9 +306,9 @@ export function validateSectionInput(section: CreateSectionInput): ValidationIss
 
 export function validateSectionMapDraft(map: SectionMapRecord): {
   summary: ValidationSummary;
-  issues: ValidationIssue[];
+  issues: VesselDiagramValidationIssue[];
 } {
-  const issues: ValidationIssue[] = [];
+  const issues: VesselDiagramValidationIssue[] = [];
   if (map.coordinateMode !== "normalized_percent") {
     issues.push({
       severity: "blocker",
@@ -380,7 +379,7 @@ export function validateSectionMapDraft(map: SectionMapRecord): {
   return { summary: summarizeIssues(issues), issues };
 }
 
-export function summarizeIssues(issues: ValidationIssue[]): ValidationSummary {
+export function summarizeIssues(issues: VesselDiagramValidationIssue[]): ValidationSummary {
   return {
     blockers: issues.filter((issue) => issue.severity === "blocker").length,
     warnings: issues.filter((issue) => issue.severity === "warning").length,
@@ -390,18 +389,18 @@ export function summarizeIssues(issues: ValidationIssue[]): ValidationSummary {
 
 export function validationError(
   message: string,
-  issues: ValidationIssue[]
+  issues: VesselDiagramValidationIssue[]
 ): Error & {
   statusCode: number;
-  issues: ValidationIssue[];
+  issues: VesselDiagramValidationIssue[];
 } {
-  const error = new Error(message) as Error & { statusCode: number; issues: ValidationIssue[] };
+  const error = new Error(message) as Error & { statusCode: number; issues: VesselDiagramValidationIssue[] };
   error.statusCode = 400;
   error.issues = issues;
   return error;
 }
 
-export function assertNoBlockers(message: string, issues: ValidationIssue[]): void {
+export function assertNoBlockers(message: string, issues: VesselDiagramValidationIssue[]): void {
   if (issues.some((issue) => issue.severity === "blocker")) {
     throw validationError(message, issues);
   }

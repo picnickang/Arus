@@ -2,17 +2,17 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 
 const MODULE = "vetting";
 const router = Router();
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId as string;
+  return authenticatedRequest(req).orgId as string;
 }
 
 function getRows(result: unknown): Record<string, unknown>[] {
-  if (Array.isArray(result)) return result as Record<string, unknown>[];
+  if (Array.isArray(result)) {return result as Record<string, unknown>[];}
   const r = result as { rows?: Record<string, unknown>[] } | null | undefined;
   return r?.rows ?? [];
 }

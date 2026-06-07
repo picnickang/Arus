@@ -13,9 +13,10 @@ import {
 
 function getOrgIdFromReq(req: Request): string {
   const fromReq = (req as Request & { orgId?: string }).orgId;
-  if (fromReq) return fromReq;
-  const fromHeader = req.header("x-org-id");
-  return fromHeader ?? "default-org-id";
+  if (!fromReq) {
+    throw new Error("Organization context required");
+  }
+  return fromReq;
 }
 
 export function registerTelemetryRoutes(app: Express, config: SensorManagementConfig) {

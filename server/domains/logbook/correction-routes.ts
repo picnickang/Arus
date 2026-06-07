@@ -2,17 +2,17 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
 
 const router = Router();
 
 function getOrgId(req: Request): string {
-  return (req as AuthenticatedRequest).orgId as string;
+  return authenticatedRequest(req).orgId as string;
 }
 
 function getUser(req: Request): { id: string; name?: string; rank?: string } {
-  const user = (req as AuthenticatedRequest).user as
+  const user = authenticatedRequest(req).user as
     | { id?: string; name?: string; displayName?: string; rank?: string; role?: string }
     | undefined;
   return {

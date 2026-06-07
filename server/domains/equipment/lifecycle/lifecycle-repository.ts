@@ -124,7 +124,7 @@ export class EquipmentLifecycleRepository {
     data: InsertDecommissionEvent
   ): Promise<EquipmentDecommissionEvent> {
     const results = await db.insert(equipmentDecommissionEvents).values(data).returning();
-    if (!results[0]) throw new Error("Failed to create decommission event");
+    if (!results[0]) {throw new Error("Failed to create decommission event");}
     return results[0];
   }
 

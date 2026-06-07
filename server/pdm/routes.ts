@@ -26,9 +26,9 @@ import { DatabaseTelemetryStorage } from "../db/telemetry/db-telemetry";
 import { db } from "../db";
 import { equipment, vessels, workOrders } from "@shared/schema-runtime";
 import { IS_POSTGRES } from "@shared/schema-runtime";
-import { failureHistory as failureHistoryPg } from "@shared/schema/ml-analytics-core";
+import { failureHistory as failureHistoryPg } from "@shared/schema-runtime";
 import { and, desc, eq, ne, inArray } from "drizzle-orm";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -324,13 +324,13 @@ router.get("/export/schedule", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.csv");
       return res.send(csv);
-    } else if (format === "json") {
+    } if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.json");
       return res.json(allTasks);
-    } else {
-      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
     }
+      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
+
   } catch (error) {
     logger.error("Error exporting schedule:", error);
     return res.status(500).json({ error: "Failed to export schedule" });
@@ -394,13 +394,13 @@ router.get("/export/risk-queue", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.csv");
       return res.send(csv);
-    } else if (format === "json") {
+    } if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.json");
       return res.json(allItems);
-    } else {
-      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
     }
+      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
+
   } catch (error) {
     logger.error("Error exporting risk queue:", error);
     return res.status(500).json({ error: "Failed to export risk queue" });
@@ -449,11 +449,11 @@ router.get("/export/kpis", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=kpis-export.csv");
       return res.send(csv);
-    } else {
+    }
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=kpis-export.json");
       return res.json(kpis);
-    }
+
   } catch (error) {
     logger.error("Error exporting KPIs:", error);
     return res.status(500).json({ error: "Failed to export KPIs" });
@@ -495,7 +495,7 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
     const limit = Math.min(Math.max(parseInt(req.query['limit'] as string) || 10, 1), 50);
     const offset = Math.max(parseInt(req.query['offset'] as string) || 0, 0);
 
-    const orgId = (req as AuthenticatedRequest).orgId;
+    const orgId = authenticatedRequest(req).orgId;
     if (!orgId) {
       return res.status(401).json({
         error: "Authenticated organization context is required",
@@ -700,7 +700,7 @@ router.get("/health", async (_req, res) => {
 
 router.get("/alerts", async (req, res) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const riskQueue = await getRiskQueueUseCase.execute({ orgId, status: "active" });
     const alerts = riskQueue.map((item) => ({
       id: item.id,

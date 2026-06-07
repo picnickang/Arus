@@ -3,8 +3,8 @@ import { crewLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { mqttReliableSync } from "../../../mqtt-reliable-sync";
 import { logger } from "../../../utils/logger.js";
-import { crewAdminService } from "../../crew-admin/service";
-import type { OffboardingAccessRevocationResult } from "../../crew-admin/domain/types";
+import { crewAdminService } from "../../../services/crew-admin-facade";
+import type { OffboardingAccessRevocationResult } from "../../../services/crew-admin-facade";
 import type {
   RetireCrewInput,
   CancelCrewContractInput,

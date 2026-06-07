@@ -27,7 +27,7 @@ describe("Cost-savings & expenses forms — CRUD + propagation", () => {
       await pool.query("DELETE FROM cost_savings WHERE work_order_id=$1", [woId]).catch(() => {});
       await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
     }
-    if (expenseId) await pool.query("DELETE FROM expenses WHERE id=$1", [expenseId]).catch(() => {});
+    if (expenseId) {await pool.query("DELETE FROM expenses WHERE id=$1", [expenseId]).catch(() => {});}
     await cleanupByRunId(RUN_ID, ["expenses", "cost_savings"]);
   });
 
@@ -52,7 +52,7 @@ describe("Cost-savings & expenses forms — CRUD + propagation", () => {
   });
 
   it("expense persists to DB with org scoping", async () => {
-    if (!expenseId) return;
+    if (!expenseId) {return;}
     const { rows } = await pool.query(
       "SELECT description, org_id FROM expenses WHERE id=$1",
       [expenseId]

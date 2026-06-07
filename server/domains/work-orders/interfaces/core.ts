@@ -6,14 +6,12 @@
 
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { insertWorkOrderSchema, updateWorkOrderSchema } from "@shared/schema-runtime";
 import { workOrderAppService as workOrderService } from "../application";
 import { safeDbOperation } from "../../../error-handling";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -58,7 +56,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     "/api/work-orders",
     requireOrgId,
     withErrorHandling("fetch work orders", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const query = listQuerySchema.parse(req.query);
       const equipmentId = query.equipmentId ?? "";
       const { startDate, endDate } = parseDateRange(query);
@@ -110,7 +108,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     "/api/work-orders/summary",
     requireOrgId,
     withErrorHandling("fetch work order summary", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const workOrders = await workOrderService.listWorkOrders(undefined, orgId);
       const now = new Date();
 
@@ -153,7 +151,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     "/api/work-orders/my-assignments",
     requireOrgId,
     withErrorHandling("fetch my work order assignments", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const userId = authReq.user?.id;
       if (!userId) {
         return sendUnauthorized(res);
@@ -170,7 +168,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("respond to work order assignment", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       const userId = authReq.user?.id;
       if (!userId) {
         return sendUnauthorized(res);
@@ -209,7 +207,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     "/api/work-orders/:id",
     requireOrgId,
     withErrorHandling("fetch work order", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const workOrder = await workOrderService.getWorkOrderById(id, orgId);
 
@@ -226,7 +224,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create work order", async (req: Request, res: Response) => {
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
       const toDate = (v: unknown) =>
         v == null ? undefined : new Date(v as string | number | Date);
       const processedBody = {
@@ -240,7 +238,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       const orderData = insertWorkOrderSchema.parse(processedBody);
 
       const workOrder = await safeDbOperation(
-        () => workOrderService.createWorkOrder(orderData, (req as AuthenticatedRequest).user?.id),
+        () => workOrderService.createWorkOrder(orderData, authenticatedRequest(req).user?.id),
         "createWorkOrder"
       );
 
@@ -253,7 +251,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("create work order with suggestions", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const orderData = insertWorkOrderSchema.parse(req.body);
 
       const result = await safeDbOperation(
@@ -261,7 +259,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
           workOrderService.createWorkOrderWithSuggestions(
             orderData,
             orgId,
-            (req as AuthenticatedRequest).user?.id
+            authenticatedRequest(req).user?.id
           ),
         "createWorkOrderWithSuggestions"
       );
@@ -289,13 +287,13 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
           orderData[f] = new Date(v as string | number | Date);
         }
       }
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       const workOrder = await workOrderService.updateWorkOrder(
         id,
         orderData,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
 
       res.json(workOrder);
@@ -307,12 +305,12 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete work order", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
       await workOrderService.deleteWorkOrder(
         id,
         orgId,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       sendDeleted(res);
     })

@@ -36,7 +36,7 @@ export function analyzeFailurePatterns(
     if (orders.length >= 2) {
       const firstOrder = orders[0];
       const lastOrder = orders[orders.length - 1];
-      if (!firstOrder || !lastOrder) return;
+      if (!firstOrder || !lastOrder) {return;}
       const eq = equipment.find((e) => e.id === equipmentId);
       const avgDaysBetween = calculateAverageDaysBetween(orders);
 

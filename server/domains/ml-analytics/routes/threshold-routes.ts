@@ -8,7 +8,7 @@ import type { Express } from "express";
 import { insertThresholdOptimizationSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { dbMlAnalyticsStorage } from "../../../repositories.js";
 
 export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig) {
@@ -17,7 +17,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
   app.get(
     "/api/analytics/threshold-optimizations",
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, equipmentId, status } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, equipmentId, status } = req.query;
       const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
         orgId as string,
         equipmentId as string,
@@ -33,7 +33,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
   app.get(
     "/api/analytics/threshold-optimizations/:id",
     withErrorHandling("fetch threshold optimization", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
+      const { orgId = authenticatedRequest(req).orgId } = req.query;
       const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
         Number.parseInt(req.params['id'] ?? ''),
         orgId as string
@@ -52,7 +52,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations",
     writeOperationRateLimit,
     withErrorHandling("create threshold optimization", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, ...optimizationData } = req.body;
+      const { orgId = authenticatedRequest(req).orgId, ...optimizationData } = req.body;
       const validatedData = insertThresholdOptimizationSchema.parse(optimizationData);
       const optimization = await dbMlAnalyticsStorage.createThresholdOptimization(
         validatedData,
@@ -69,7 +69,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     "/api/analytics/threshold-optimizations/:id/apply",
     writeOperationRateLimit,
     withErrorHandling("apply threshold optimization", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId } = req.body;
+      const { orgId = authenticatedRequest(req).orgId } = req.body;
       const optimization = await dbMlAnalyticsStorage.applyThresholdOptimization(
         Number.parseInt(req.params['id'] ?? ''),
         orgId

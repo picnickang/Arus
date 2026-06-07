@@ -3,7 +3,7 @@
  * Maps telemetry sensor types to engine log fields
  */
 
-import type { InsertEngineLogHourly, InsertEngineLogGenerator } from "./types.js";
+import type { InsertEngineLogHourly } from "./types.js";
 
 export const DEFAULT_TELEMETRY_MAPPING: Record<string, keyof InsertEngineLogHourly> = {
   me_rpm: "meRpm",

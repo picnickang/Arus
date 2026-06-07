@@ -17,9 +17,9 @@ import {
 } from "@/lib/offline-sync";
 
 function formatDate(value?: string | Date | null) {
-  if (!value) return "Never";
+  if (!value) {return "Never";}
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
+  if (Number.isNaN(date.getTime())) {return "Unknown";}
   return date.toLocaleString();
 }
 

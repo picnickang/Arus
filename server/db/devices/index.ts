@@ -47,7 +47,7 @@ export class DatabaseDevicesStorage {
   }
   async createDevice(data: InsertDevice): Promise<Device> {
     const r = await db.insert(devices).values(data).returning();
-    if (!r[0]) throw new Error("Failed to create device");
+    if (!r[0]) {throw new Error("Failed to create device");}
     return r[0];
   }
   async updateDevice(
@@ -74,7 +74,7 @@ export class DatabaseDevicesStorage {
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
     const r = await db.insert(edgeHeartbeatsTable).values(data as never).returning();
-    if (!r[0]) throw new Error("Failed to create heartbeat");
+    if (!r[0]) {throw new Error("Failed to create heartbeat");}
     return r[0];
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
@@ -92,7 +92,7 @@ export class DatabaseDevicesStorage {
   }
   async createPdmScore(data: InsertPdmScore): Promise<PdmScoreLog> {
     const r = await db.insert(pdmScoreLogsTable).values(data).returning();
-    if (!r[0]) throw new Error("Failed to create PDM score");
+    if (!r[0]) {throw new Error("Failed to create PDM score");}
     return r[0];
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
@@ -122,7 +122,7 @@ export class DatabaseDevicesStorage {
         set: { ...heartbeat, ts: new Date() } as never,
       })
       .returning();
-    if (!r[0]) throw new Error("Failed to upsert edge heartbeat");
+    if (!r[0]) {throw new Error("Failed to upsert edge heartbeat");}
     return r[0];
   }
   async getDevicesWithStatus(

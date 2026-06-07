@@ -21,7 +21,7 @@ type ShipmateModuleType =
   | "cms_crew_certs"
   | "cms_rest_hours";
 import { getShipmateMapping } from "./field-mapping";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { RateLimiters } from "../../lib/rate-limit-factory";
 import { createLogger } from "../../lib/structured-logger";
 
@@ -60,7 +60,7 @@ const importSchema = z.object({
 
 router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId as string;
+    const orgId = authenticatedRequest(req).orgId as string;
     const parsed = importSchema.safeParse(req.body);
 
     if (!parsed.success) {
@@ -104,7 +104,7 @@ router.post("/", requireOrgId, importLimit, async (req: Request, res: Response) 
 
 router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId as string;
+    const orgId = authenticatedRequest(req).orgId as string;
     const parsed = importSchema.safeParse(req.body);
 
     if (!parsed.success) {

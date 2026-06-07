@@ -431,7 +431,7 @@ export function validateTelemetryBatch(points: TelemetryPoint[]): {
 
   for (let i = 0; i < sortedPoints.length; i++) {
     const current = sortedPoints[i];
-    if (current === undefined) continue;
+    if (current === undefined) {continue;}
     const previousPoint = i > 0 ? sortedPoints[i - 1] : undefined;
     const result = validateTelemetryQuality(current, previousPoint);
 

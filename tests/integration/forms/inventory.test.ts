@@ -21,8 +21,8 @@ describe("Inventory forms — parts + suppliers CRUD + propagation", () => {
   let supplierId: string;
 
   afterAll(async () => {
-    if (partId) await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});
-    if (supplierId) await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});
+    if (partId) {await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});}
+    if (supplierId) {await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});}
     await cleanupByRunId(RUN_ID, ["parts_inventory", "suppliers"]);
   });
 

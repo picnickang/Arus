@@ -131,27 +131,27 @@ export function RolePermissionsDialog({
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {return;}
     setHubAdminDraft(isSuperAdmin || roleHubAdmin);
     setHubDraft(new Set(currentHubSet));
     setSaveError(null);
   }, [open, roleId, roleHubAdmin, isSuperAdmin, currentHubSet]);
 
   const hubsChanged = useMemo(() => {
-    if (isSuperAdmin) return false;
-    if (hubAdminDraft !== roleHubAdmin) return true;
-    if (!hubAdminDraft) return false;
+    if (isSuperAdmin) {return false;}
+    if (hubAdminDraft !== roleHubAdmin) {return true;}
+    if (!hubAdminDraft) {return false;}
     const current = new Set(currentHubSet);
-    if (current.size !== hubDraft.size) return true;
-    for (const h of hubDraft) if (!current.has(h)) return true;
+    if (current.size !== hubDraft.size) {return true;}
+    for (const h of hubDraft) {if (!current.has(h)) {return true;}}
     return false;
   }, [isSuperAdmin, hubAdminDraft, roleHubAdmin, hubDraft, currentHubSet]);
 
   const toggleHub = (id: string) => {
     setHubDraft((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {next.delete(id);}
+      else {next.add(id);}
       return next;
     });
   };
@@ -184,7 +184,7 @@ export function RolePermissionsDialog({
 
   const actionLabels = useMemo(() => {
     const map: Record<string, ActionDef> = {};
-    for (const a of registry?.actions ?? []) map[a.code] = a;
+    for (const a of registry?.actions ?? []) {map[a.code] = a;}
     return map;
   }, [registry]);
 
@@ -194,7 +194,7 @@ export function RolePermissionsDialog({
   const grantChangeCount = useMemo(() => {
     let n = 0;
     for (const key of Object.keys(draft)) {
-      if (draft[key] !== original.has(key)) n += 1;
+      if (draft[key] !== original.has(key)) {n += 1;}
     }
     return n;
   }, [draft, original]);
@@ -203,7 +203,7 @@ export function RolePermissionsDialog({
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!roleId) return;
+      if (!roleId) {return;}
       // 1) Permission grants (only the diff).
       const changes = Object.keys(draft)
         .filter((key) => draft[key] !== original.has(key))
@@ -338,7 +338,7 @@ export function RolePermissionsDialog({
               const catResources = resources
                 .filter((r) => r.category === cat.code)
                 .sort((a, b) => a.sortOrder - b.sortOrder);
-              if (catResources.length === 0) return null;
+              if (catResources.length === 0) {return null;}
               return (
                 <div key={cat.code} data-testid={`perm-category-${cat.code}`}>
                   <h4 className="text-sm font-semibold mb-2">{cat.name}</h4>

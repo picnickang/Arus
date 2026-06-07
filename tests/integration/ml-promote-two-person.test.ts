@@ -58,7 +58,7 @@ jest.unstable_mockModule("../../server/repositories", () => ({
   dbMlAnalyticsStorage: {
     getMlModel: async (id: string, orgId: string) => {
       const r = store.get(id);
-      if (!r || r.orgId !== orgId) return null;
+      if (!r || r.orgId !== orgId) {return null;}
       return { ...r };
     },
     getMlModels: async (orgId: string) =>
@@ -69,7 +69,7 @@ jest.unstable_mockModule("../../server/repositories", () => ({
       orgId: string,
     ) => {
       const r = store.get(id);
-      if (!r || r.orgId !== orgId) return null;
+      if (!r || r.orgId !== orgId) {return null;}
       const next = { ...r, ...patch };
       store.set(id, next);
       return { ...next };

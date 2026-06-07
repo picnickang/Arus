@@ -333,7 +333,7 @@ export class PredictionOutcomeTracker {
       // Check work orders (most reliable signal)
       const workOrders = await this.deps.getWorkOrders(prediction.equipmentId, orgId);
       const relevantWOs = (workOrders || []).filter((wo: TrackerWorkOrder) => {
-        if (!wo.createdAt) return false;
+        if (!wo.createdAt) {return false;}
         const woDate = new Date(wo.createdAt);
         return (
           woDate >= windowStart &&
@@ -354,7 +354,7 @@ export class PredictionOutcomeTracker {
         // Check alerts
         const alerts = await this.deps.getAlertNotifications(false, orgId);
         const relevantAlerts = (alerts || []).filter((alert: TrackerAlert) => {
-          if (!alert.createdAt) return false;
+          if (!alert.createdAt) {return false;}
           const alertDate = new Date(alert.createdAt);
           // alert_notifications has no `severity` column; alertType is the
           // severity discriminator. Treat critical/high alertTypes as failure

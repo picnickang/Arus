@@ -89,12 +89,12 @@ export class TenantDeleteService {
   constructor(private readonly opts: TenantDeleteOptions) {
     for (const t of opts.tables) {
       assertSafeIdentifier(t.table, "table");
-      if (t.tenantColumn) assertSafeIdentifier(t.tenantColumn, "column");
+      if (t.tenantColumn) {assertSafeIdentifier(t.tenantColumn, "column");}
     }
     for (const r of opts.retain ?? []) {
       assertSafeIdentifier(r.table, "table");
-      if (r.tenantColumn) assertSafeIdentifier(r.tenantColumn, "column");
-      for (const c of r.piiColumns) assertSafeIdentifier(c, "column");
+      if (r.tenantColumn) {assertSafeIdentifier(r.tenantColumn, "column");}
+      for (const c of r.piiColumns) {assertSafeIdentifier(c, "column");}
     }
   }
 
@@ -182,11 +182,11 @@ function escapeLiteral(s: string): string {
 }
 
 function extractRowCount(result: unknown): number {
-  if (!result) return 0;
-  if (Array.isArray(result)) return result.length;
+  if (!result) {return 0;}
+  if (Array.isArray(result)) {return result.length;}
   const r = result as { rowCount?: unknown; count?: unknown; rows?: unknown };
-  if (typeof r.rowCount === "number") return r.rowCount;
-  if (typeof r.count === "number") return r.count;
-  if (Array.isArray(r.rows)) return r.rows.length;
+  if (typeof r.rowCount === "number") {return r.rowCount;}
+  if (typeof r.count === "number") {return r.count;}
+  if (Array.isArray(r.rows)) {return r.rows.length;}
   return 0;
 }

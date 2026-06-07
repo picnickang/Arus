@@ -333,7 +333,7 @@ type DbType = ReturnType<typeof drizzlePgWs<typeof schema>>;
  */
 function resolveActiveDb(): unknown {
   const ctx = tenantContextStore.getStore();
-  if (ctx?.tx) return ctx.tx;
+  if (ctx?.tx) {return ctx.tx;}
   return dbInstance;
 }
 
@@ -400,7 +400,7 @@ export const supportsPinnedConnection: boolean =
   connectionMode === "standard" || connectionMode === "websocket";
 
 if (!isLocalMode && requireTenantAuthFromEnv() && !supportsPinnedConnection) {
-  // eslint-disable-next-line no-console
+
   console.error(
     `[DB Config] REQUIRE_TENANT_AUTH=true requires a pooled Postgres driver ` +
       `that supports session state across statements (standard | websocket). ` +

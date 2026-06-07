@@ -1,5 +1,6 @@
 import type { Express, RequestHandler } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { dbNotificationsStorage } from "../../repositories";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
@@ -34,7 +35,7 @@ const testEmailSchema = z.object({
   message: z.string().optional(),
 });
 
-const settingsBodySchema = z.record(z.unknown());
+const settingsBodySchema = jsonRecordSchema;
 
 export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimiters): void {
   const passThrough: RequestHandler = (_req, _res, next) => next();

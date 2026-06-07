@@ -7,7 +7,7 @@ const logger = createLogger("AdaptiveTrainingWindow:DataRange");
 import { workOrderService } from "../services/domains/work-order-service.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
 import { db } from "../db";
-import { equipmentTelemetry } from "@shared/schema";
+import { equipmentTelemetry } from "@shared/schema-runtime";
 import { sql, eq, inArray, and } from "drizzle-orm";
 import type { EquipmentDataRange } from "./types";
 

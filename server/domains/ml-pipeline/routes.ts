@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
@@ -21,12 +22,12 @@ const acousticFeaturesSchema = z.object({
 const trainBodySchema = z.object({
   orgId: z.string().optional(),
   equipmentType: z.string(),
-  lstmConfig: z.record(z.unknown()).optional(),
-  rfConfig: z.record(z.unknown()).optional(),
-  xgboostConfig: z.record(z.unknown()).optional(),
-}).passthrough();
+  lstmConfig: jsonRecordSchema.optional(),
+  rfConfig: jsonRecordSchema.optional(),
+  xgboostConfig: jsonRecordSchema.optional(),
+});
 
-const orgOnlyBodySchema = z.object({ orgId: z.string().optional() }).passthrough();
+const orgOnlyBodySchema = z.object({ orgId: z.string().optional() });
 
 const predictFailureBodySchema = z.object({
   equipmentId: z.string().optional(),

@@ -111,7 +111,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
-    if (!result) throw new Error("computeAndStore: equipmentFeatures insert returned no row");
+    if (!result) {throw new Error("computeAndStore: equipmentFeatures insert returned no row");}
     logger.info("[FeatureStore] Stored features", {
       orgId,
       equipmentId,

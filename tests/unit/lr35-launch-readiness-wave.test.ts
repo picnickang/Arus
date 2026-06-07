@@ -53,14 +53,14 @@ describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () 
   it("/ml/models/:id/archive carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
     expect(src).toMatch(
-      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
+      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
     );
   });
 
   it("DELETE /ml/models/:id carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
     expect(src).toMatch(
-      /router\.delete\(\s*"\/ml\/models\/:id",\s*requireRole\("admin",\s*"chief_engineer"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
+      /router\.delete\(\s*"\/ml\/models\/:id",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
     );
   });
 
@@ -193,9 +193,10 @@ describe("LR-3.5 wave — already-shipped items still in place (regression guard
 
   it("SEC-2: admin auth-routes uses constant-time setup-token compare", async () => {
     const src = await loadSource("server/domains/system-admin/routes/auth-routes.ts");
+    const helper = await loadSource("server/lib/constant-time-compare.ts");
     expect(src).toContain("LR-3.5 / SEC-2");
     expect(src).toContain("constantTimeEqualString");
-    expect(src).toContain("crypto.timingSafeEqual");
+    expect(helper).toContain("crypto.timingSafeEqual");
     // The previous bug was `provided === configuredToken` directly in
     // hasValidSetupToken. Make sure that exact pattern doesn't return.
     expect(src).not.toMatch(/provided\s*===\s*configuredToken/);
@@ -261,8 +262,8 @@ describe("LR-3.5 wave — already-shipped items still in place (regression guard
       "server/domains/scheduled-reports/generators/crew-compliance-generator.ts",
     );
     expect(src).toContain("LR-3.5");
-    // The fix replaces a per-crew loop with a single org-scoped call.
-    expect(src).toMatch(/getCrewCertifications\(\s*undefined,\s*orgId\s*\)/);
+    // The fix replaces a per-crew loop with a single org-scoped projection query.
+    expect(src).toMatch(/getCrewComplianceRows\(\s*orgId,/);
     // And the legacy "for (const crew of ...)" loop that wrapped the
     // per-member fetch should be gone.
     expect(src).not.toMatch(

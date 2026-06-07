@@ -132,9 +132,9 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .then((r: unknown): { next_num?: number } | undefined => {
         if (r && typeof r === "object" && "rows" in r) {
           const rows = (r as { rows?: unknown }).rows;
-          if (Array.isArray(rows)) return rows[0] as { next_num?: number } | undefined;
+          if (Array.isArray(rows)) {return rows[0] as { next_num?: number } | undefined;}
         }
-        if (Array.isArray(r)) return r[0] as { next_num?: number } | undefined;
+        if (Array.isArray(r)) {return r[0] as { next_num?: number } | undefined;}
         return undefined;
       });
 

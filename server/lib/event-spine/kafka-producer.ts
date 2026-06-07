@@ -55,8 +55,8 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
   }
 
   private async connect(): Promise<void> {
-    if (this.connected) return;
-    if (this.connecting) return this.connecting;
+    if (this.connected) {return;}
+    if (this.connecting) {return this.connecting;}
     this.connecting = (async () => {
       const kafkajs = (await import("kafkajs")) as typeof import("kafkajs");
       const kafka = new kafkajs.Kafka({
@@ -97,7 +97,7 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
   }
 
   async publishBatch(messages: EventSpineMessage[]): Promise<void> {
-    if (messages.length === 0) return;
+    if (messages.length === 0) {return;}
     await this.connect();
     const producer = this.producer as {
       sendBatch: (args: {
@@ -132,7 +132,7 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
   }
 
   async close(): Promise<void> {
-    if (!this.connected || !this.producer) return;
+    if (!this.connected || !this.producer) {return;}
     try {
       await (this.producer as { disconnect: () => Promise<void> }).disconnect();
     } catch (err) {

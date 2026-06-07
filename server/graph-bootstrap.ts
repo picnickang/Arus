@@ -95,9 +95,9 @@ export function tenantGraphName(orgId: string): string {
  * common path is a Set lookup.
  */
 export async function ensureTenantGraph(orgId: string): Promise<boolean> {
-  if (!graphAvailable) return false;
+  if (!graphAvailable) {return false;}
   const name = tenantGraphName(orgId);
-  if (ensuredTenantGraphs.has(name)) return true;
+  if (ensuredTenantGraphs.has(name)) {return true;}
   // LOAD / SET search_path are session-scoped — must run on the SAME
   // physical connection as the create_graph call. Without this, a
   // different pool connection could execute `create_graph` without
@@ -143,7 +143,7 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
  * boot logs without waiting for the first real query.
  */
 async function logGraphSmoke(): Promise<void> {
-  if (!graphAvailable) return;
+  if (!graphAvailable) {return;}
   // Use a scratch tenant ('__smoke__') so we exercise the real
   // create_graph + cypher() round-trip — reviewer's eighth-pass
   // comment: a SELECT 1 doesn't validate the graph-query latency

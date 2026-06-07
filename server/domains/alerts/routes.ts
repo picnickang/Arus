@@ -258,9 +258,9 @@ export function registerAlertsRoutes(
 
         const parsedEscalation = escalationSchema.parse(req.body);
         const escalationData: { reason?: string; priority?: number; description?: string } = {};
-        if (parsedEscalation.reason !== undefined) escalationData.reason = parsedEscalation.reason;
-        if (parsedEscalation.priority !== undefined) escalationData.priority = parsedEscalation.priority;
-        if (parsedEscalation.description !== undefined) escalationData.description = parsedEscalation.description;
+        if (parsedEscalation.reason !== undefined) {escalationData.reason = parsedEscalation.reason;}
+        if (parsedEscalation.priority !== undefined) {escalationData.priority = parsedEscalation.priority;}
+        if (parsedEscalation.description !== undefined) {escalationData.description = parsedEscalation.description;}
 
         const { workOrderService } = await import("../../repositories");
 

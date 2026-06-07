@@ -27,8 +27,7 @@ const POOL_KEY = "__ARUS_INTEGRATION_PG_POOL__" as const;
 type PoolHolder = { [POOL_KEY]?: Pool };
 const _holder = process as unknown as PoolHolder;
 export const pool: Pool =
-  _holder[POOL_KEY] ??
-  (_holder[POOL_KEY] = new Pool({ connectionString: process.env.DATABASE_URL }));
+  (_holder[POOL_KEY] ??= new Pool({ connectionString: process.env.DATABASE_URL }));
 
 /**
  * Build a fresh RUN_ID for the calling suite. Each test file should create
@@ -89,7 +88,7 @@ export async function retry<T>(
   let last: T;
   do {
     last = await fn();
-    if (predicate(last)) return last;
+    if (predicate(last)) {return last;}
     await new Promise((r) => setTimeout(r, intervalMs));
   } while (Date.now() < deadline);
   return last;
@@ -160,7 +159,7 @@ export async function cleanupByRunId(runId: string, tables: string[]): Promise<v
   // the dynamic DELETE FROM target.
   const SAFE_TABLE = /^[a-z_][a-z0-9_]{0,63}$/;
   for (const table of tables) {
-    if (!SAFE_TABLE.test(table)) continue;
+    if (!SAFE_TABLE.test(table)) {continue;}
     try {
       // We pick a defensive WHERE clause that joins all known string columns
       // for the few tables we actually touch. The DELETE uses ::text casting so
@@ -173,12 +172,12 @@ export async function cleanupByRunId(runId: string, tables: string[]): Promise<v
            AND data_type IN ('text','character varying','jsonb','json')`,
         [table]
       );
-      if (!rows.length) continue;
+      if (!rows.length) {continue;}
       const cols = rows
         .map((r: { column_name: string }) => r.column_name)
         .filter((c: string) => SAFE_TABLE.test(c))
         .map((c: string) => `coalesce(${c}::text,'')`);
-      if (!cols.length) continue;
+      if (!cols.length) {continue;}
       const where = cols.map((c: string) => `${c} LIKE $1`).join(" OR ");
 
       // If the table has an org_id column, scope cleanup to TEST_ORG_ID so we

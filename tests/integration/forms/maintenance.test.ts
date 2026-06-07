@@ -118,7 +118,7 @@ describe("Maintenance forms — templates + schedules", () => {
   });
 
   it("FK to equipment is asserted via SQL join (when create succeeded)", async () => {
-    if (!scheduleId) return;
+    if (!scheduleId) {return;}
     const { rows } = await pool.query(
       `SELECT m.id, m.equipment_id, e.id AS e_id
          FROM maintenance_schedules m

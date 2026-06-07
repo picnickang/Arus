@@ -45,7 +45,7 @@ export interface StartEventSpineOptions {
 let handle: EventSpineHandle | null = null as EventSpineHandle | null;
 
 function attachCdc(bridge: PgNotifyCdcBridge | PgWalCdcBridge): void {
-  if (handle) handle.cdc = bridge;
+  if (handle) {handle.cdc = bridge;}
 }
 
 /**
@@ -66,7 +66,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     logger.info("Event spine disabled by EVENT_SPINE_DISABLED=1");
     return null;
   }
-  if (handle) return handle;
+  if (handle) {return handle;}
 
   const provided = opts.producer;
   const brokers = process.env['EVENT_SPINE_BROKERS'];
@@ -107,7 +107,7 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     opts.analyticsSinkEnabled ?? process.env['EVENT_SPINE_ANALYTICS'] !== "0";
   const bridgeEnabled = opts.bridgeEnabled ?? true;
 
-  if (bridgeEnabled) initEventSpineOutboxBridge();
+  if (bridgeEnabled) {initEventSpineOutboxBridge();}
 
   let analyticsSink: TelemetryAnalyticsSink | null = null;
   if (analyticsEnabled && fanout) {
@@ -215,9 +215,9 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     analyticsSink,
     cdc,
     async stop() {
-      if (cdc) await cdc.stop().catch(() => {});
-      if (worker) await worker.stop();
-      else await producer.close().catch(() => {});
+      if (cdc) {await cdc.stop().catch(() => {});}
+      if (worker) {await worker.stop();}
+      else {await producer.close().catch(() => {});}
       handle = null;
     },
   };
@@ -245,7 +245,7 @@ export function getEventSpine(): EventSpineHandle | null {
 
 /** Test-only: tear down the singleton between tests. */
 export async function __resetEventSpineForTests(): Promise<void> {
-  if (handle) await handle.stop();
+  if (handle) {await handle.stop();}
   handle = null;
 }
 

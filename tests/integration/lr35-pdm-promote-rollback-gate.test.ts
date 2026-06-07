@@ -105,7 +105,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("training promote rejects viewer with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/training/runs/run-1/promote")
       .set("x-test-user", "wrong-viewer:viewer")
@@ -115,7 +115,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("training promote rejects second_officer with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/training/runs/run-1/promote")
       .set("x-test-user", "wrong-so:second_officer")
@@ -125,7 +125,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("training promote rejects unauthenticated with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/training/runs/run-1/promote")
       .send({ modelId: "m1", version: "0.0.1" });
@@ -134,7 +134,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("deployment rollback rejects able_seaman with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/models/deployments/42/rollback")
       .set("x-test-user", "wrong-ab:able_seaman")
@@ -144,7 +144,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("deployment rollback rejects cook with 403", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/models/deployments/42/rollback")
       .set("x-test-user", "wrong-cook:cook")
@@ -154,7 +154,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("deployment rollback rejects unauthenticated with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/models/deployments/42/rollback")
       .send({});
@@ -163,7 +163,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("chief_engineer is NOT rejected by the training-promote gate (positive control)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/training/runs/run-1/promote")
       .set("x-test-user", "chief-1:chief_engineer")
@@ -175,7 +175,7 @@ describe("LR-3.5 V1 — PDM promote/rollback role gate", () => {
   });
 
   it("admin is NOT rejected by the rollback gate (positive control)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/pdm/models/deployments/42/rollback")
       .set("x-test-user", "admin-1:admin")

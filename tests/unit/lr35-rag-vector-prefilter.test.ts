@@ -85,7 +85,7 @@ const SEED_ROWS: SeedRow[] = [
 
 function extractOrgIdFromSql(sqlObj: unknown): string | null {
   const obj = sqlObj as { queryChunks?: unknown[] } | null;
-  if (!obj || !Array.isArray(obj.queryChunks)) return null;
+  if (!obj || !Array.isArray(obj.queryChunks)) {return null;}
   for (const chunk of obj.queryChunks) {
     // Param values may appear directly as strings/numbers, or wrapped
     // in a `{ value: ... }` object depending on drizzle's chunk class.
@@ -94,7 +94,7 @@ function extractOrgIdFromSql(sqlObj: unknown): string | null {
     }
     if (chunk && typeof chunk === "object" && "value" in chunk) {
       const v = (chunk as { value?: unknown }).value;
-      if (typeof v === "string" && (v === ORG_A || v === ORG_B)) return v;
+      if (typeof v === "string" && (v === ORG_A || v === ORG_B)) {return v;}
     }
   }
   return null;
@@ -111,7 +111,7 @@ jest.unstable_mockModule("../../server/db", () => ({
     execute: async (sqlObj: unknown) => {
       const orgIdParam = extractOrgIdFromSql(sqlObj);
       executeCalls.push({ orgIdParam });
-      if (!orgIdParam) return { rows: [] };
+      if (!orgIdParam) {return { rows: [] };}
       const rows = SEED_ROWS
         .filter((r) => r.org_id === orgIdParam)
         .sort((a, b) => a.distance - b.distance)
@@ -157,7 +157,7 @@ function invokeSemanticLookup(
   const fn = (instance as Record<string, unknown>)["semanticLookup"] as
     | ((this: object, o: string, q: string) => Promise<{ response: string; queryText: string } | null>)
     | undefined;
-  if (typeof fn !== "function") throw new Error("semanticLookup not found on instance");
+  if (typeof fn !== "function") {throw new Error("semanticLookup not found on instance");}
   return fn.call(instance, orgId, query);
 }
 

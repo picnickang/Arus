@@ -225,7 +225,7 @@ export function generateTelemetryAnalysis(
   });
 
   const periodAlerts = alerts.filter((alert) => {
-    if (!alert.createdAt) return false;
+    if (!alert.createdAt) {return false;}
     return (
       alert.createdAt >= period.startDate &&
       alert.createdAt <= period.endDate &&

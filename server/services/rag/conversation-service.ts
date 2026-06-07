@@ -46,7 +46,7 @@ export class ConversationService {
       })
       .returning();
 
-    if (!conversation) throw new Error("createConversation: insert returned no row");
+    if (!conversation) {throw new Error("createConversation: insert returned no row");}
     logger.info(`[ConversationService] Created conversation ${conversation.id}`);
     return conversation;
   }
@@ -197,7 +197,7 @@ export class ConversationService {
 
     for (let i = messages.length - 1; i >= 0 && estimatedTokens < this.maxContextTokens; i--) {
       const msg = messages[i];
-      if (!msg) continue;
+      if (!msg) {continue;}
       const msgTokens = Math.ceil(msg.content.length / 4);
 
       if (estimatedTokens + msgTokens <= this.maxContextTokens) {

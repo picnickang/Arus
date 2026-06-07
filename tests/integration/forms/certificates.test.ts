@@ -68,7 +68,7 @@ describe("Vessel-certificate forms — CRUD + propagation", () => {
   });
 
   it("certificate appears in GET /api/certificates list", async () => {
-    if (!certId) return;
+    if (!certId) {return;}
     await expectInList<{ id: string }>(
       "/api/certificates",
       (c) => c.id === certId,
@@ -77,7 +77,7 @@ describe("Vessel-certificate forms — CRUD + propagation", () => {
   });
 
   it("PATCH updates the certificate", async () => {
-    if (!certId) return;
+    if (!certId) {return;}
     const { status } = await api("PATCH", `/api/certificates/${certId}`, {
       notes: `updated forms test ${RUN_ID}`,
     });
@@ -85,7 +85,7 @@ describe("Vessel-certificate forms — CRUD + propagation", () => {
   });
 
   it("DELETE removes the certificate", async () => {
-    if (!certId) return;
+    if (!certId) {return;}
     const { status } = await api("DELETE", `/api/certificates/${certId}`);
     expect([200, 204, 403, 404, 409]).toContain(status);
     if (status === 200 || status === 204) {

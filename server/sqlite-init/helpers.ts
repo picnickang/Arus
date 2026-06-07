@@ -3,18 +3,24 @@
  * Utility functions for querying and validating the domain manifest
  */
 
-import type { SqliteDomainMap, SqliteDomainDefinition } from "./types.js";
+import type { SqliteDomainMap } from "./types.js";
 import { SqliteDomains, type SqliteDomainName } from "./manifest.js";
 
+const domains: SqliteDomainMap = SqliteDomains;
+
+function isSqliteDomainName(name: string): name is SqliteDomainName {
+  return name in SqliteDomains;
+}
+
 export function getTableCount(): number {
-  return Object.values(SqliteDomains as SqliteDomainMap).reduce(
+  return Object.values(domains).reduce(
     (sum, domain) => sum + domain.tables.length,
     0
   );
 }
 
 export function getIndexCount(): number {
-  return Object.values(SqliteDomains as SqliteDomainMap).reduce(
+  return Object.values(domains).reduce(
     (sum, domain) => sum + domain.indexes.length,
     0
   );
@@ -25,29 +31,29 @@ export function getTablesByDomain(domain: SqliteDomainName): readonly string[] {
 }
 
 export function findTableDomain(tableName: string): SqliteDomainName | null {
-  for (const [domainName, domain] of Object.entries(SqliteDomains)) {
-    if ((domain as SqliteDomainDefinition).tables.includes(tableName)) {
-      return domainName as SqliteDomainName;
+  for (const [domainName, domain] of Object.entries(domains)) {
+    if (isSqliteDomainName(domainName) && domain.tables.includes(tableName)) {
+      return domainName;
     }
   }
   return null;
 }
 
 export function getAllTables(): string[] {
-  return Object.values(SqliteDomains as SqliteDomainMap).flatMap((domain) => [...domain.tables]);
+  return Object.values(domains).flatMap((domain) => [...domain.tables]);
 }
 
 export function getAllIndexes(): string[] {
-  return Object.values(SqliteDomains as SqliteDomainMap).flatMap((domain) => [...domain.indexes]);
+  return Object.values(domains).flatMap((domain) => [...domain.indexes]);
 }
 
 export function getDomainSummary(): Record<SqliteDomainName, { tables: number; indexes: number }> {
   return Object.fromEntries(
-    Object.entries(SqliteDomains).map(([name, domain]) => [
+    Object.entries(domains).map(([name, domain]) => [
       name,
       {
-        tables: (domain as SqliteDomainDefinition).tables.length,
-        indexes: (domain as SqliteDomainDefinition).indexes.length,
+        tables: domain.tables.length,
+        indexes: domain.indexes.length,
       },
     ])
   ) as Record<SqliteDomainName, { tables: number; indexes: number }>;

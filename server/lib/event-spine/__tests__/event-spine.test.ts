@@ -1,6 +1,7 @@
 import { tmpdir } from "node:os";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { jest } from "@jest/globals";
 
 import {
   InMemoryFanoutProducer,
@@ -12,7 +13,7 @@ import type { EventSpineMessage } from "../types";
 
 function makeMessage(over: Partial<EventSpineMessage> = {}): EventSpineMessage {
   return {
-    eventId: "evt-" + Math.random().toString(36).slice(2),
+    eventId: `evt-${  Math.random().toString(36).slice(2)}`,
     eventType: "telemetry.batch_ingested",
     orgId: "org-A",
     aggregateId: "equipment-1",
@@ -177,7 +178,7 @@ describe("EventSpineWorker (mocked repository)", () => {
   it("publishes claimed rows through the producer and marks them published", async () => {
     const claimed: Array<{ id: string; status: string; attempts: number }> = [];
     const claimMock = jest.fn().mockImplementation(async (limit: number) => {
-      if (claimed.length > 0) return [];
+      if (claimed.length > 0) {return [];}
       const rows = [
         {
           id: "r1",
@@ -196,13 +197,13 @@ describe("EventSpineWorker (mocked repository)", () => {
           createdAt: new Date(),
         },
       ];
-      for (const r of rows) claimed.push({ id: r.id, status: r.status, attempts: r.attempts });
+      for (const r of rows) {claimed.push({ id: r.id, status: r.status, attempts: r.attempts });}
       return rows;
     });
     const markPublishedMock = jest.fn().mockResolvedValue(undefined);
     const markFailedMock = jest.fn().mockResolvedValue(undefined);
 
-    jest.doMock("../outbox-repository", () => ({
+    await jest.unstable_mockModule("../outbox-repository", () => ({
       claimPendingBatch: claimMock,
       markPublished: markPublishedMock,
       markFailed: markFailedMock,
@@ -227,7 +228,6 @@ describe("EventSpineWorker (mocked repository)", () => {
     expect(markPublishedMock).toHaveBeenCalledWith("r1");
     expect(markFailedMock).not.toHaveBeenCalled();
     await worker.stop();
-    jest.dontMock("../outbox-repository");
   });
 
   it("marks the row failed (and triggers backoff) when the producer throws", async () => {
@@ -253,7 +253,7 @@ describe("EventSpineWorker (mocked repository)", () => {
     const markPublishedMock = jest.fn().mockResolvedValue(undefined);
     const markFailedMock = jest.fn().mockResolvedValue(undefined);
 
-    jest.doMock("../outbox-repository", () => ({
+    await jest.unstable_mockModule("../outbox-repository", () => ({
       claimPendingBatch: claimMock,
       markPublished: markPublishedMock,
       markFailed: markFailedMock,

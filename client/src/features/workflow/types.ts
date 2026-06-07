@@ -136,7 +136,7 @@ export interface IssueReportRecord {
   authorId?: string;
 }
 
-export interface WorkOrderRecord {
+export interface WorkflowWorkOrderRecord {
   id: string | number;
   title?: string | undefined;
   status?: string | undefined;

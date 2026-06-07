@@ -9,7 +9,7 @@
 
 import type { Express, Request, Response } from "express";
 import { workOrderAppService as workOrderService } from "../application";
-import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
 import type { RateLimitMiddleware } from "./types";
 
@@ -19,7 +19,7 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
     requireOrgId,
     withErrorHandling("fetch work order completions", async (req: Request, res: Response) => {
       const { equipmentId, vesselId, startDate, endDate } = req.query;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const filters = {
         ...(typeof equipmentId === "string" && { equipmentId }),
@@ -41,7 +41,7 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
       "fetch work order completion analytics",
       async (req: Request, res: Response) => {
         const { equipmentId, vesselId, startDate, endDate } = req.query;
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
 
         const filters = {
           ...(typeof equipmentId === "string" && { equipmentId }),

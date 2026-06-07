@@ -18,7 +18,7 @@ import {
   configureArtifactBackendSettingPort,
   type ArtifactBackend,
   type ArtifactBackendSettingPort,
-} from "../../pdm-platform/infrastructure/artifact-storage/index.js";
+} from "../../../services/ml-artifact-storage-settings";
 
 // Inverted dependency (see ArtifactBackendSettingPort docstring): the
 // pdm-platform factory used to import `dbSystemAdminStorage` directly,

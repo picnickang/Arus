@@ -6,6 +6,7 @@
 
 import type { Express } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { deckLogStorage } from "../../../repositories";
 import {
   withErrorHandling,
@@ -18,8 +19,8 @@ import type { RateLimiters, EventFilters } from "./types";
 const idParamSchema = z.object({ id: z.string().min(1) });
 const dailyLogIdParamSchema = z.object({ dailyLogId: z.string().min(1) });
 const dayIdParamSchema = z.object({ dayId: z.string().min(1) });
-const bodyRecordSchema = z.record(z.unknown());
-const bulkEntriesBodySchema = z.object({ entries: z.array(z.record(z.unknown())) });
+const bodyRecordSchema = jsonRecordSchema;
+const bulkEntriesBodySchema = z.object({ entries: z.array(jsonRecordSchema) });
 const eventsQuerySchema = z.object({
   eventType: z.string().optional(),
   source: z.string().optional(),
@@ -28,7 +29,7 @@ const eventsQuerySchema = z.object({
 });
 const eventCreateBodySchema = z
   .object({ dayId: z.string().min(1) })
-  .and(z.record(z.unknown()));
+  .and(jsonRecordSchema);
 
 type DeckLogHourlyInput = Parameters<typeof deckLogStorage.upsertDeckLogHourly>[0];
 type DeckLogHourlyBulkInput = Parameters<typeof deckLogStorage.bulkUpsertDeckLogHourly>[0];

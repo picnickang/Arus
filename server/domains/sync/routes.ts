@@ -1,6 +1,6 @@
 import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbInventoryStorage } from "../../db/inventory/index.js";
@@ -114,7 +114,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("get sync status", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { getReconciliationSummary } = await import("../../sync-jobs.js");
       const summary = await getReconciliationSummary(orgId);
@@ -139,7 +139,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("comprehensive reconciliation", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { reconcileAll } = await import("../../sync-jobs.js");
       const reconciliationResult = await reconcileAll(orgId);
@@ -161,7 +161,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("check conflicts", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { table, recordId, data, version, timestamp, user, device } = req.body ?? {};
 
       if (typeof table !== "string" || typeof recordId !== "string" || data === undefined || version === undefined) {
@@ -256,7 +256,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("get pending conflicts", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const { getPendingConflicts } = await import("../../conflict-resolution-service.js");
       const conflicts = await getPendingConflicts(orgId);
@@ -270,7 +270,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("resolve conflict", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { conflictId, resolvedValue, resolvedBy, resolutionNotes } = req.body ?? {};
 
       if (typeof conflictId !== "string" || resolvedValue === undefined || typeof resolvedBy !== "string") {
@@ -307,7 +307,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("auto-resolve conflicts", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { conflictIds, resolvedBy } = req.body ?? {};
 
       if (!Array.isArray(conflictIds) || conflictIds.length === 0 || typeof resolvedBy !== "string") {

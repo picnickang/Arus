@@ -64,7 +64,7 @@ export async function createFullBackup(): Promise<BackupResult> {
     }
 
     metadata.size = backupSize;
-    if (checksum !== undefined) metadata.checksum = checksum;
+    if (checksum !== undefined) {metadata.checksum = checksum;}
     metadata.status = "completed";
 
     await storeBackupMetadata(metadata);
@@ -157,7 +157,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
     }
 
     metadata.size = backupSize;
-    if (checksum !== undefined) metadata.checksum = checksum;
+    if (checksum !== undefined) {metadata.checksum = checksum;}
     metadata.status = "completed";
 
     await storeBackupMetadata(metadata);

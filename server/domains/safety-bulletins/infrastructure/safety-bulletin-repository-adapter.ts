@@ -14,7 +14,7 @@ import {
   safetyBulletins,
   type SafetyBulletin,
   type InsertSafetyBulletin,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { and, desc, eq, gt, isNull, lte, or, type SQL } from "drizzle-orm";
 
 export class SafetyBulletinRepositoryAdapter implements ISafetyBulletinRepository {

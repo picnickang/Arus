@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 
 const BASE_URL = "http://localhost:5000";
 const VESSEL_ID = "56aee8c0-184c-4d23-9187-f5db91cf8d61";

@@ -5,9 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import type { ExperiencePillarScore } from "../types";
 
 function variant(severity: ExperiencePillarScore["severity"]): "default" | "secondary" | "destructive" | "outline" {
-  if (severity === "critical") return "destructive";
-  if (severity === "risk") return "secondary";
-  if (severity === "watch") return "outline";
+  if (severity === "critical") {return "destructive";}
+  if (severity === "risk") {return "secondary";}
+  if (severity === "watch") {return "outline";}
   return "default";
 }
 

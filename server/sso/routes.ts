@@ -73,7 +73,7 @@ function readPkceCookie(req: Request): {
   orgId: string;
 } | null {
   const raw = (req as Request & { cookies?: Record<string, string> }).cookies?.[PKCE_COOKIE];
-  if (!raw) return null;
+  if (!raw) {return null;}
   try {
     const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as Record<
       string,
@@ -85,7 +85,7 @@ function readPkceCookie(req: Request): {
       typeof parsed['nonce'] !== "string" ||
       typeof parsed['orgId'] !== "string"
     )
-      return null;
+      {return null;}
     return {
       state: parsed['state'],
       codeVerifier: parsed['codeVerifier'],
@@ -122,7 +122,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
   // SAML — kick off (IdP-initiated flows also supported via direct POST to /acs)
   router.get("/:orgId/saml/login", async (req, res) => {
     const cfg = await opts.configLookup(req.params.orgId, "saml");
-    if (!cfg || !cfg.enabled) return res.status(404).json({ error: "sso_not_configured" });
+    if (!cfg || !cfg.enabled) {return res.status(404).json({ error: "sso_not_configured" });}
     const saml = cfg.config as SsoSamlConfig;
     // RelayState carries our intended post-login target.
     const relayState = typeof req.query['next'] === "string" ? req.query['next'] : "/";
@@ -135,9 +135,9 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
   router.post("/:orgId/saml/acs", async (req, res) => {
     try {
       const cfg = await opts.configLookup(req.params.orgId, "saml");
-      if (!cfg || !cfg.enabled) return res.status(404).json({ error: "sso_not_configured" });
+      if (!cfg || !cfg.enabled) {return res.status(404).json({ error: "sso_not_configured" });}
       const body = req.body as { SAMLResponse?: string; RelayState?: string };
-      if (!body?.SAMLResponse) return res.status(400).json({ error: "missing_saml_response" });
+      if (!body?.SAMLResponse) {return res.status(400).json({ error: "missing_saml_response" });}
 
       const profile = await validateSamlAssertion(cfg.config as SsoSamlConfig, body.SAMLResponse);
       const issued = await opts.sessionIssuer.issue({
@@ -149,7 +149,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
         attributes: profile.attributes,
         req,
       });
-      if (!issued) return res.status(403).json({ error: "user_not_provisioned" });
+      if (!issued) {return res.status(403).json({ error: "user_not_provisioned" });}
 
       res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions());
       const target = sanitizeRedirect(body.RelayState || issued.redirectTo);
@@ -166,7 +166,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
   router.get("/:orgId/oidc/login", async (req, res) => {
     try {
       const cfg = await opts.configLookup(req.params.orgId, "oidc");
-      if (!cfg || !cfg.enabled) return res.status(404).json({ error: "sso_not_configured" });
+      if (!cfg || !cfg.enabled) {return res.status(404).json({ error: "sso_not_configured" });}
       const oidc = cfg.config as SsoOidcConfig;
       const begin = await beginOidcAuthorization(oidc, opts.secretResolver);
       setPkceCookie(res, {
@@ -192,7 +192,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
         return res.status(400).json({ error: "pkce_state_missing" });
       }
       const cfg = await opts.configLookup(req.params.orgId, "oidc");
-      if (!cfg || !cfg.enabled) return res.status(404).json({ error: "sso_not_configured" });
+      if (!cfg || !cfg.enabled) {return res.status(404).json({ error: "sso_not_configured" });}
 
       // openid-client expects the FULL callback URL including query string.
       const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol;

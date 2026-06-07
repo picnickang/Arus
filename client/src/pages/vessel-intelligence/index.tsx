@@ -25,19 +25,20 @@ import {
   ReportsPanel,
   WorkOrdersPanel,
 } from "./panels";
+import { RegistryRouteScreen, isRegistryRoute } from "./registry-screens";
 import {
   belongsToVessel,
   statusText,
   toArray,
   vesselIdFor,
   vesselNameFor,
-  type AlertRecord,
+  type VesselIntelligenceAlertRecord,
   type EquipmentRecord,
   type PdmDashboardRecord,
   type RegistrySectionMapRecord,
   type RegistrySummaryRecord,
   type VesselRecord,
-  type WorkOrderRecord,
+  type VesselIntelligenceWorkOrderRecord,
 } from "./data";
 
 type HubMode =
@@ -76,6 +77,13 @@ const HUB_TABS: HubTab[] = [
 ];
 
 function modeFromPath(path: string): HubMode {
+  const target = new URLSearchParams(path.split("?")[1] ?? "").get("target");
+  if (target === "sections" || target === "performance" || target === "alerts") {
+    return target;
+  }
+  if (target === "overview") {
+    return "overview";
+  }
   if (path.includes("/sections") || path.includes("/equipment/")) {
     return "sections";
   }
@@ -141,6 +149,8 @@ function sectionMapFromRegistry(
 export default function VesselIntelligencePage({
   vesselId: routeVesselId,
   sectionId,
+  diagramId,
+  mapId,
 }: VesselIntelligencePageProps) {
   const [location, setLocation] = useLocation();
   const { hasAnyPermission } = usePermissions();
@@ -182,8 +192,8 @@ export default function VesselIntelligencePage({
 
   const vessels = toArray<VesselRecord>(vesselsQuery.data);
   const equipment = toArray<EquipmentRecord>(equipmentQuery.data);
-  const workOrders = toArray<WorkOrderRecord>(workOrdersQuery.data);
-  const alerts = toArray<AlertRecord>(alertsQuery.data);
+  const workOrders = toArray<VesselIntelligenceWorkOrderRecord>(workOrdersQuery.data);
+  const alerts = toArray<VesselIntelligenceAlertRecord>(alertsQuery.data);
 
   const selectedVessel =
     vessels.find((vessel) => vesselIdFor(vessel) === routeVesselId) ?? vessels[0];
@@ -238,6 +248,20 @@ export default function VesselIntelligencePage({
     pdmStatusLabel = "Loading";
   } else if (pdmQuery.isError) {
     pdmStatusLabel = "Unavailable";
+  }
+
+  if (selectedVesselId && isRegistryRoute(location)) {
+    return (
+      <RegistryRouteScreen
+        vesselId={selectedVesselId}
+        diagramId={diagramId}
+        mapId={mapId}
+        vessels={vessels}
+        selectedVessel={selectedVessel}
+        equipment={vesselEquipment}
+        onSelectVessel={(nextVesselId) => setLocation(`/vessel-intelligence/${nextVesselId}/diagrams`)}
+      />
+    );
   }
 
   return (

@@ -155,7 +155,7 @@ export function getAdminPrimaryCategories(): NavigationCategory[] {
   const out: NavigationCategory[] = [];
   for (const id of ADMIN_PRIMARY_CATEGORY_IDS) {
     const cat = getCategoryById(id);
-    if (!cat) continue;
+    if (!cat) {continue;}
     const label = ADMIN_LABEL_OVERRIDES[id];
     out.push(label ? { ...cat, name: label } : cat);
   }

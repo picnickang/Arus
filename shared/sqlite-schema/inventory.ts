@@ -240,7 +240,6 @@ export const partFailureHistorySqlite = sqliteTable(
     rootCause: text("root_cause"),
     operatingHours: integer("operating_hours"),
     impactLevel: text("impact_level"),
-    correctiveAction: text("corrective_action"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
   },

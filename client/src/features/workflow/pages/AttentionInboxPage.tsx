@@ -24,33 +24,33 @@ function parseParams(search: string): URLSearchParams {
 function tabFromParams(params: URLSearchParams): "attention" | "blockers" | "handover" {
   const view = params.get("view");
   const queue = params.get("queue");
-  if (view === "handover") return "handover";
-  if (queue === "blocked" || queue === "waiting_parts") return "blockers";
+  if (view === "handover") {return "handover";}
+  if (queue === "blocked" || queue === "waiting_parts") {return "blockers";}
   return "attention";
 }
 
 function queueLabel(queue: string | null, items: { id: string; label: string }[]): string {
-  if (!queue) return "All attention";
+  if (!queue) {return "All attention";}
   return items.find((item) => item.id === queue)?.label ?? queue.replace(/_/g, " ");
 }
 
 function itemMatchesQueue(item: AttentionItem, queue: string | null): boolean {
-  if (!queue || queue === "all") return true;
-  if (queue === "open_work") return item.type === "work_order";
+  if (!queue || queue === "all") {return true;}
+  if (queue === "open_work") {return item.type === "work_order";}
   return item.queue === queue;
 }
 
 function itemMatchesFilter(item: AttentionItem, filter: string | null): boolean {
-  if (!filter || filter === "all") return true;
-  if (filter === "equipment") return item.type === "equipment" || item.source.toLowerCase().includes("equipment");
-  if (filter === "inventory") return item.type === "inventory" || item.source.toLowerCase().includes("inventory");
-  if (filter === "work_order") return item.type === "work_order";
+  if (!filter || filter === "all") {return true;}
+  if (filter === "equipment") {return item.type === "equipment" || item.source.toLowerCase().includes("equipment");}
+  if (filter === "inventory") {return item.type === "inventory" || item.source.toLowerCase().includes("inventory");}
+  if (filter === "work_order") {return item.type === "work_order";}
   return [item.type, item.source, item.status].some((value) => String(value ?? "").toLowerCase().includes(filter.toLowerCase()));
 }
 
 function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
   const term = search.trim().toLowerCase();
-  if (!term) return items;
+  if (!term) {return items;}
   return items.filter((item) =>
     [item.title, item.source, item.whyItMatters, item.recommendedAction, item.owner, item.queue, item.status]
       .join(" ")

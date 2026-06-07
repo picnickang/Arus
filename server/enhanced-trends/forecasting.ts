@@ -75,7 +75,7 @@ export function exponentialSmoothing(
   for (let i = 1; i < values.length; i++) {
     const v = values[i];
     const prev = smoothed[i - 1];
-    if (v === undefined || prev === undefined) continue;
+    if (v === undefined || prev === undefined) {continue;}
     smoothed[i] = alpha * v + (1 - alpha) * prev;
   }
 

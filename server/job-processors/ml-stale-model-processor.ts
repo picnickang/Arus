@@ -21,7 +21,7 @@
 
 import { and, eq, lt } from "drizzle-orm";
 import { db } from "../db";
-import { mlModels } from "@shared/schema";
+import { mlModels } from "@shared/schema-runtime";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("MlStaleModelProcessor");
@@ -32,7 +32,7 @@ const logger = createLogger("MlStaleModelProcessor");
  *  NaN — the lt(deployedOn, NaN-date) query would match no rows. */
 function resolveThresholdDays(): number {
   const raw = process.env['PDM_STALE_MODEL_DAYS'];
-  if (raw === undefined || raw === "") return 14;
+  if (raw === undefined || raw === "") {return 14;}
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) {
     logger.warn("PDM_STALE_MODEL_DAYS invalid — falling back to 14", { raw });

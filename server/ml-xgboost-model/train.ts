@@ -44,7 +44,7 @@ export async function trainXGBoostModel(
       for (let i = 0; i < sampleSize; i++) {
         const randomIndex = cryptoRandomInt(indices.length);
         const picked = indices[randomIndex];
-        if (picked === undefined) continue;
+        if (picked === undefined) {continue;}
         sampledIndices.push(picked);
         indices.splice(randomIndex, 1);
       }
@@ -64,7 +64,7 @@ export async function trainXGBoostModel(
       for (let i = 0; i < X.length; i++) {
         const xi = X[i];
         const predRow = predictions[i];
-        if (!xi || !predRow) continue;
+        if (!xi || !predRow) {continue;}
         const treeOutput = predictTree(root, xi);
         predRow[classIdx] = (predRow[classIdx] ?? 0) + config.learningRate * treeOutput;
       }
@@ -76,7 +76,7 @@ export async function trainXGBoostModel(
       let correct = 0;
       for (let i = 0; i < X.length; i++) {
         const predRow = predictions[i];
-        if (!predRow) continue;
+        if (!predRow) {continue;}
         const predClass = predRow.indexOf(Math.max(...predRow));
         if (predClass === y[i]) {
           correct++;

@@ -26,7 +26,7 @@ import {
   type VesselSafetyAlarmAcknowledgement,
   type InsertSafetyAlarmType,
   type InsertVesselSafetyAlarm,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { PROTECTED_ALARM_TYPES } from "@shared/role-dashboard";
 import { and, desc, eq, inArray, isNull, or, type SQL } from "drizzle-orm";
 
@@ -104,14 +104,14 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
     patch: UpdateAlarmTypeCommand,
   ): Promise<SafetyAlarmTypeEntity | undefined> {
     const updateValues: Partial<InsertSafetyAlarmType> = {};
-    if (patch.displayName !== undefined) updateValues.displayName = patch.displayName;
-    if (patch.description !== undefined) updateValues.description = patch.description;
-    if (patch.defaultSeverity !== undefined) updateValues.defaultSeverity = patch.defaultSeverity;
-    if (patch.icon !== undefined) updateValues.icon = patch.icon;
-    if (patch.color !== undefined) updateValues.color = patch.color;
+    if (patch.displayName !== undefined) {updateValues.displayName = patch.displayName;}
+    if (patch.description !== undefined) {updateValues.description = patch.description;}
+    if (patch.defaultSeverity !== undefined) {updateValues.defaultSeverity = patch.defaultSeverity;}
+    if (patch.icon !== undefined) {updateValues.icon = patch.icon;}
+    if (patch.color !== undefined) {updateValues.color = patch.color;}
     if (patch.requiresAcknowledgement !== undefined)
-      updateValues.requiresAcknowledgement = patch.requiresAcknowledgement;
-    if (patch.isActive !== undefined) updateValues.isActive = patch.isActive;
+      {updateValues.requiresAcknowledgement = patch.requiresAcknowledgement;}
+    if (patch.isActive !== undefined) {updateValues.isActive = patch.isActive;}
 
     const [updated] = await db
       .update(safetyAlarmTypes)

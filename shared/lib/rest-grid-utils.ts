@@ -135,12 +135,12 @@ export function parseCSV(text: string): DayRow[] {
     return [];
   }
   const firstLine = lines[0];
-  if (firstLine === undefined) return [];
+  if (firstLine === undefined) {return [];}
   const header = firstLine.split(",").map((s) => s.trim());
   const out: DayRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    if (line === undefined) continue;
+    if (line === undefined) {continue;}
     const col = line.split(",");
     const row = {} as Record<string, string | number>;
     header.forEach((h, j) => {

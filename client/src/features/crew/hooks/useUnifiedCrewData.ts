@@ -35,7 +35,7 @@ import {
   getVesselNameById,
   buildRoleLookup,
   MARITIME_RANKS,
-  type CrewRole,
+  type CrewManagementRole,
 } from "../lib/crewManagementUtils";
 
 interface UseUnifiedCrewDataOptions {
@@ -83,7 +83,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const { data: vessels = [], isLoading: vesselsLoading } = useQuery<VesselListItem[]>({
     queryKey: ["/api/vessels"],
   });
-  const { data: crewRoles = [], isLoading: crewRolesLoading } = useQuery<CrewRole[]>({
+  const { data: crewRoles = [], isLoading: crewRolesLoading } = useQuery<CrewManagementRole[]>({
     queryKey: ["/api/crew-roles"],
   });
   // RBAC permission roles — used to populate the per-crew-role "suggested app
@@ -175,7 +175,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const toggleDutyMutation = useCustomMutation<string, { message?: string }>({
     mutationFn: async (crewId: string) => {
       const { apiRequest } = await import("@/lib/queryClient");
-      return apiRequest("POST", `/api/crew/${crewId}/toggle-duty`) as Promise<{ message?: string }>;
+      return apiRequest("POST", `/api/crew/${crewId}/toggle-duty`);
     },
     invalidateKeys: ["/api/crew"],
     onSuccess: (response) => {
@@ -443,7 +443,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     if (includeFormerAccessRiskFilter && selectedFormerAccessRisk !== "all") {
       filtered = filtered.filter((member) => {
         const risk = formerAccessRiskByCrewId.get(member.id);
-        if (!risk) return false;
+        if (!risk) {return false;}
         switch (selectedFormerAccessRisk) {
           case "linked_login":
             return risk.hasLinkedLogin;

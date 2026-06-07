@@ -366,8 +366,7 @@ export const partsUsedEntrySchema = z
     quantity: z.number().nonnegative(),
     unitCost: z.number().nonnegative().optional(),
     description: z.string().optional(),
-  })
-  .passthrough();
+  });
 export const partsUsedSchema = z.array(partsUsedEntrySchema);
 export type PartsUsedEntry = z.infer<typeof partsUsedEntrySchema>;
 

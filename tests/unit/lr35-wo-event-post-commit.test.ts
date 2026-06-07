@@ -74,11 +74,11 @@ function makePublisher(bus: EventEmitter, enqueue: (envelope: unknown, tx?: unkn
     const deferred: Array<() => void> = [];
     for (const e of events) {
       const thunk = await publish(e, tx);
-      if (thunk) deferred.push(thunk);
+      if (thunk) {deferred.push(thunk);}
     }
-    if (deferred.length === 0) return null;
+    if (deferred.length === 0) {return null;}
     return () => {
-      for (const fn of deferred) fn();
+      for (const fn of deferred) {fn();}
     };
   }
 

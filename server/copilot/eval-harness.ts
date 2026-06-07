@@ -71,17 +71,17 @@ export interface EvalReport {
 }
 
 function percentile(sortedAsc: number[], p: number): number {
-  if (sortedAsc.length === 0) return 0;
+  if (sortedAsc.length === 0) {return 0;}
   const idx = Math.min(sortedAsc.length - 1, Math.max(0, Math.floor((p / 100) * sortedAsc.length)));
   return sortedAsc[idx]!;
 }
 
 function orderedPrefixAccuracy(expected: string[], actual: string[]): number {
-  if (expected.length === 0) return actual.length === 0 ? 1 : 0;
+  if (expected.length === 0) {return actual.length === 0 ? 1 : 0;}
   let hits = 0;
   for (let i = 0; i < expected.length; i++) {
-    if (actual[i] && actual[i] === expected[i]) hits++;
-    else break;
+    if (actual[i] && actual[i] === expected[i]) {hits++;}
+    else {break;}
   }
   return hits / expected.length;
 }

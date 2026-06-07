@@ -6,11 +6,17 @@ import type {
   DiagramRecord,
   DiagramVersionRecord,
   EquipmentAssignmentRecord,
+  NormalizedPoint,
   RegistryContext,
   SectionMapRecord,
   SectionRecord,
   ThumbnailRecord,
-  ValidationIssue,
+  UpdateAssignmentInput,
+  UpdateDiagramInput,
+  UpdateSectionInput,
+  UpdateSectionMapInput,
+  VesselDiagramValidationIssue,
+  VesselDiagramVersionStatus,
   VesselDiagramRegistryStore,
 } from "../domain/types";
 
@@ -49,7 +55,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
   private readonly maps = new Map<string, SectionMapRecord>();
   private readonly thumbnails = new Map<string, ThumbnailRecord>();
   private readonly validationResults: Array<
-    ValidationIssue & { vesselId: string; mapId?: string }
+    VesselDiagramValidationIssue & { vesselId: string; mapId?: string }
   > = [];
 
   async listDiagrams(ctx: RegistryContext): Promise<DiagramRecord[]> {
@@ -76,6 +82,28 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
   async getDiagram(ctx: RegistryContext, diagramId: string): Promise<DiagramRecord | null> {
     const diagram = this.diagrams.get(diagramId);
     return diagram?.vesselId === ctx.vesselId ? diagram : null;
+  }
+
+  async updateDiagram(
+    ctx: RegistryContext,
+    diagramId: string,
+    input: UpdateDiagramInput
+  ): Promise<DiagramRecord> {
+    const diagram = await this.getDiagram(ctx, diagramId);
+    if (!diagram) {
+      throw notFound("Diagram not found");
+    }
+    if (input.title !== undefined) {diagram.title = input.title;}
+    if (input.description !== undefined) {diagram.description = input.description;}
+    if (input.status !== undefined) {diagram.status = input.status;}
+    if (input.activeVersionId !== undefined) {diagram.activeVersionId = input.activeVersionId;}
+    if (input.currentSectionMapId !== undefined) {diagram.currentSectionMapId = input.currentSectionMapId;}
+    diagram.updatedAt = now();
+    return diagram;
+  }
+
+  async deleteDiagram(ctx: RegistryContext, diagramId: string): Promise<void> {
+    await this.updateDiagram(ctx, diagramId, { status: "archived" });
   }
 
   async listVersions(ctx: RegistryContext, diagramId: string): Promise<DiagramVersionRecord[]> {
@@ -132,6 +160,31 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     diagram.activeVersionId = versionId;
     diagram.updatedAt = now();
     version.status = "active";
+    version.publishedBy = ctx.userId ?? null;
+    version.publishedAt = now();
+    return version;
+  }
+
+  async updateVersionStatus(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string,
+    status: VesselDiagramVersionStatus
+  ): Promise<DiagramVersionRecord> {
+    if (status === "active") {
+      return this.setActiveVersion(ctx, diagramId, versionId);
+    }
+    const diagram = await this.getDiagram(ctx, diagramId);
+    const version = await this.getVersion(ctx, diagramId, versionId);
+    if (!diagram || !version) {
+      throw notFound("Diagram version not found");
+    }
+    version.status = status;
+    if (status === "archived" && diagram.activeVersionId === versionId) {
+      diagram.activeVersionId = null;
+      diagram.status = "draft";
+      diagram.updatedAt = now();
+    }
     return version;
   }
 
@@ -148,7 +201,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
       vesselId: ctx.vesselId,
       diagramId: input.diagramId ?? null,
       diagramVersionId: input.diagramVersionId ?? null,
-      sourceMapId: null,
+      sourceMapId: input.sourceMapId ?? null,
       name: input.name,
       coordinateMode: "normalized_percent",
       diagramWidth: input.diagramWidth ?? 895,
@@ -162,6 +215,13 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
       updatedAt: now(),
     };
     this.maps.set(map.id, map);
+    if (map.diagramId) {
+      const diagram = await this.getDiagram(ctx, map.diagramId);
+      if (diagram) {
+        diagram.currentSectionMapId = map.id;
+        diagram.updatedAt = now();
+      }
+    }
     return map;
   }
 
@@ -170,10 +230,44 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     return map?.vesselId === ctx.vesselId ? map : null;
   }
 
+  async getSectionMapForVessel(
+    _ctx: RegistryContext,
+    vesselId: string,
+    mapId: string
+  ): Promise<SectionMapRecord | null> {
+    const map = this.maps.get(mapId);
+    return map?.vesselId === vesselId ? map : null;
+  }
+
+  async updateSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    input: UpdateSectionMapInput
+  ): Promise<SectionMapRecord> {
+    const map = await this.getSectionMap(ctx, mapId);
+    if (!map) {
+      throw notFound("Section map not found");
+    }
+    if (input.name !== undefined) {map.name = input.name;}
+    if (input.diagramId !== undefined) {map.diagramId = input.diagramId;}
+    if (input.diagramVersionId !== undefined) {map.diagramVersionId = input.diagramVersionId;}
+    if (input.sourceMapId !== undefined) {map.sourceMapId = input.sourceMapId;}
+    if (input.diagramWidth !== undefined) {map.diagramWidth = input.diagramWidth;}
+    if (input.diagramHeight !== undefined) {map.diagramHeight = input.diagramHeight;}
+    if (input.diagramKind !== undefined) {map.diagramKind = input.diagramKind;}
+    if (input.status !== undefined) {map.status = input.status;}
+    map.updatedAt = now();
+    return map;
+  }
+
+  async deleteSectionMap(ctx: RegistryContext, mapId: string): Promise<void> {
+    await this.updateSectionMap(ctx, mapId, { status: "archived" });
+  }
+
   async cloneSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    input: { name: string }
+    input: { name: string; diagramId?: string; diagramVersionId?: string }
   ): Promise<SectionMapRecord> {
     const source = await this.getSectionMap(ctx, mapId);
     if (!source) {
@@ -181,8 +275,9 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     }
     return this.createSectionMap(ctx, {
       name: input.name,
-      diagramId: source.diagramId ?? undefined,
-      diagramVersionId: source.diagramVersionId ?? undefined,
+      diagramId: input.diagramId ?? source.diagramId ?? undefined,
+      diagramVersionId: input.diagramVersionId ?? source.diagramVersionId ?? undefined,
+      sourceMapId: source.id,
       diagramWidth: source.diagramWidth,
       diagramHeight: source.diagramHeight,
       diagramKind: source.diagramKind,
@@ -204,10 +299,73 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     });
   }
 
+  async addSection(
+    ctx: RegistryContext,
+    mapId: string,
+    input: CreateSectionInput
+  ): Promise<SectionRecord> {
+    const map = await this.getSectionMap(ctx, mapId);
+    if (!map) {
+      throw notFound("Section map not found");
+    }
+    const section = buildSection(input, map.sections.length);
+    map.sections.push(section);
+    map.updatedAt = now();
+    return section;
+  }
+
+  async updateSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: UpdateSectionInput
+  ): Promise<SectionRecord> {
+    const section = await this.findSection(ctx, mapId, sectionId);
+    if (input.sectionKey !== undefined) {section.section.sectionKey = input.sectionKey;}
+    if (input.sectionNo !== undefined) {section.section.sectionNo = input.sectionNo;}
+    if (input.name !== undefined) {section.section.name = input.name;}
+    if (input.color !== undefined) {section.section.color = input.color;}
+    if (input.thumbnailFallback !== undefined) {section.section.thumbnailFallback = input.thumbnailFallback;}
+    if (input.labelNormalized !== undefined) {section.section.labelNormalized = input.labelNormalized;}
+    if (input.polygonNormalized !== undefined) {section.section.polygonNormalized = input.polygonNormalized;}
+    section.map.updatedAt = now();
+    return section.section;
+  }
+
+  async deleteSection(ctx: RegistryContext, mapId: string, sectionId: string): Promise<void> {
+    const map = await this.getSectionMap(ctx, mapId);
+    if (!map) {
+      throw notFound("Section map not found");
+    }
+    const nextSections = map.sections.filter((section) => section.id !== sectionId);
+    if (nextSections.length === map.sections.length) {
+      throw notFound("Section not found");
+    }
+    map.sections = nextSections.map((section, index) => ({ ...section, sortOrder: index }));
+    map.updatedAt = now();
+  }
+
+  async updateSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
+  ): Promise<SectionRecord> {
+    return this.updateSection(ctx, mapId, sectionId, input);
+  }
+
+  async deleteSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRecord> {
+    return this.updateSection(ctx, mapId, sectionId, { polygonNormalized: [] });
+  }
+
   async publishSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    validation: { summary: SectionMapRecord["validationSummary"]; issues: ValidationIssue[] }
+    validation: { summary: SectionMapRecord["validationSummary"]; issues: VesselDiagramValidationIssue[] }
   ): Promise<SectionMapRecord> {
     const map = await this.getSectionMap(ctx, mapId);
     if (!map) {
@@ -254,10 +412,57 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     return assignment;
   }
 
+  async listEquipmentAssignments(
+    ctx: RegistryContext,
+    mapId: string
+  ): Promise<EquipmentAssignmentRecord[]> {
+    const map = await this.getSectionMap(ctx, mapId);
+    if (!map) {
+      throw notFound("Section map not found");
+    }
+    return map.sections.flatMap((section) => section.equipment);
+  }
+
+  async updateEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string,
+    input: UpdateAssignmentInput
+  ): Promise<EquipmentAssignmentRecord> {
+    const { section } = await this.findSection(ctx, mapId, sectionId);
+    const assignment = section.equipment.find((item) => item.id === assignmentId);
+    if (!assignment) {
+      throw notFound("Equipment assignment not found");
+    }
+    if (input.equipmentId !== undefined) {assignment.equipmentId = input.equipmentId;}
+    if (input.equipmentName !== undefined) {assignment.equipmentName = input.equipmentName;}
+    if (input.assetCode !== undefined) {assignment.assetCode = input.assetCode;}
+    if (input.system !== undefined) {assignment.system = input.system;}
+    return assignment;
+  }
+
+  async deleteEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string
+  ): Promise<void> {
+    const { section } = await this.findSection(ctx, mapId, sectionId);
+    const nextAssignments = section.equipment.filter((item) => item.id !== assignmentId);
+    if (nextAssignments.length === section.equipment.length) {
+      throw notFound("Equipment assignment not found");
+    }
+    section.equipment = nextAssignments.map((assignment, index) => ({
+      ...assignment,
+      sortOrder: index,
+    }));
+  }
+
   async saveValidationResults(
     ctx: RegistryContext,
     refs: { mapId?: string },
-    issues: ValidationIssue[]
+    issues: VesselDiagramValidationIssue[]
   ): Promise<void> {
     this.validationResults.push(
       ...issues.map((issue) => ({
@@ -271,7 +476,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
   async listValidationResults(
     ctx: RegistryContext,
     refs?: { mapId?: string }
-  ): Promise<ValidationIssue[]> {
+  ): Promise<VesselDiagramValidationIssue[]> {
     return this.validationResults.filter(
       (issue) => issue.vesselId === ctx.vesselId && (!refs?.mapId || issue.mapId === refs.mapId)
     );
@@ -311,6 +516,19 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     if (thumbnail) {
       thumbnail.deletedAt = now();
     }
+  }
+
+  private async findSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<{ map: SectionMapRecord; section: SectionRecord }> {
+    const map = await this.getSectionMap(ctx, mapId);
+    const section = map?.sections.find((item) => item.id === sectionId);
+    if (!map || !section) {
+      throw notFound("Section not found");
+    }
+    return { map, section };
   }
 }
 

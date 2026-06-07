@@ -11,9 +11,9 @@ function clamp(value: number, min = 0, max = 100): number {
 }
 
 function severity(score: number): ExperienceSeverity {
-  if (score < 45) return "critical";
-  if (score < 65) return "risk";
-  if (score < 82) return "watch";
+  if (score < 45) {return "critical";}
+  if (score < 65) {return "risk";}
+  if (score < 82) {return "watch";}
   return "good";
 }
 

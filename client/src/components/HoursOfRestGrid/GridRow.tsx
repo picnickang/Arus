@@ -34,9 +34,9 @@ export const GridRow = React.memo(function GridRow({
 
   const violationReasons = (): string[] => {
     const reasons: string[] = [];
-    if (c.restTotal < 10) reasons.push(`Rest ${c.restTotal}h < 10h minimum`);
-    if (c.minRest24 < 10) reasons.push(`24h window: ${c.minRest24.toFixed(1)}h < 10h`);
-    if (!c.splitOK) reasons.push("Rest blocks: split rule violated");
+    if (c.restTotal < 10) {reasons.push(`Rest ${c.restTotal}h < 10h minimum`);}
+    if (c.minRest24 < 10) {reasons.push(`24h window: ${c.minRest24.toFixed(1)}h < 10h`);}
+    if (!c.splitOK) {reasons.push("Rest blocks: split rule violated");}
     return reasons;
   };
   const barTitle = dayOK ? "Compliant" : (violationReasons().join(" · ") || "Violation");
@@ -45,9 +45,9 @@ export const GridRow = React.memo(function GridRow({
       ? `⚠ ${
           (() => {
             const reasons: string[] = [];
-            if (c.restTotal < 10) reasons.push(`Only ${c.restTotal}h rest`);
-            if (c.minRest24 < 10) reasons.push(`24h window: ${c.minRest24.toFixed(1)}h`);
-            if (!c.splitOK) reasons.push("Block split violated");
+            if (c.restTotal < 10) {reasons.push(`Only ${c.restTotal}h rest`);}
+            if (c.minRest24 < 10) {reasons.push(`24h window: ${c.minRest24.toFixed(1)}h`);}
+            if (!c.splitOK) {reasons.push("Block split violated");}
             return reasons.join(" · ") || "Violation";
           })()
         }`

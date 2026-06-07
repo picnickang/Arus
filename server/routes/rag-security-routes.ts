@@ -6,7 +6,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import { withErrorHandling } from "../lib/route-utils.js";
@@ -81,7 +81,7 @@ const ragSecurityConfigUpdateSchema = z
  * the same `RBAC_DEV_NO_AUTH=1` escape hatch used by `requireRole`.
  */
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
-  const session = (req as AuthenticatedRequest).session;
+  const session = authenticatedRequest(req).session;
 
   // LR-3.5 / SEC-3: both `RBAC_DEV_NO_AUTH=1` AND `NODE_ENV !== "production"`
   // must hold for the dev bypass to fire. A stray env in prod can't reopen
@@ -188,7 +188,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       const updates = parseResult.data as Partial<RagSecurityConfig>;
       const newConfig = updateRagSecurityConfig(updates);
 
-      const session = (req as AuthenticatedRequest).session;
+      const session = authenticatedRequest(req).session;
       logger.info("RagSecurityRoutes", "security_config_update", {
         userId: session?.userId || "unknown",
         orgId: DEFAULT_ORG_ID,
@@ -222,7 +222,7 @@ export function registerRagSecurityRoutes(app: Express): void {
       const { tokenService, config } = getRagSecurityServices();
 
       // Get org context from session or header
-      const session = (req as AuthenticatedRequest).session;
+      const session = authenticatedRequest(req).session;
       const userId = session?.userId || req.body?.userId || "anonymous";
       const orgId = DEFAULT_ORG_ID;
 
@@ -286,7 +286,7 @@ export function registerRagSecurityRoutes(app: Express): void {
     withErrorHandling("get rate limit status", async (req: Request, res: Response) => {
       const { rateLimiter, config } = getRagSecurityServices();
 
-      const session = (req as AuthenticatedRequest).session;
+      const session = authenticatedRequest(req).session;
       const userId = session?.userId || "anonymous";
       const orgId = DEFAULT_ORG_ID;
 

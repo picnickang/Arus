@@ -28,7 +28,7 @@ import { Unlink } from "lucide-react";
 import {
   UserAccessEditor,
   type CrewUser,
-  type RoleSummary,
+  type CrewAdminRoleSummary,
   type VesselLite,
 } from "./UserAccessEditor";
 
@@ -64,7 +64,7 @@ export function CrewAccessTab({
       return json.account;
     },
   });
-  const { data: roles = [] } = useQuery<RoleSummary[]>({
+  const { data: roles = [] } = useQuery<CrewAdminRoleSummary[]>({
     queryKey: ["/api/admin/crew/roles"],
   });
   const { data: vessels = [] } = useQuery<VesselLite[]>({ queryKey: ["/api/vessels"] });
@@ -103,7 +103,7 @@ export function CrewAccessTab({
         role,
         loginEnabled,
       };
-      if (email.trim()) payload['email'] = email.trim();
+      if (email.trim()) {payload['email'] = email.trim();}
       if (vesselScope === "__fleet__") {
         payload['vesselId'] = null;
       } else if (vesselScope === "__none__") {

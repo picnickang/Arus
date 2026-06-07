@@ -19,9 +19,9 @@
 import { z } from "zod";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import { equipment } from "@shared/schema";
-import { failureHistory } from "../../../../shared/schema/ml-analytics-core";
-import { inventoryMovements, parts } from "../../../../shared/schema/inventory";
+import { equipment } from "@shared/schema-runtime";
+import { failureHistory } from "@shared/schema-runtime";
+import { inventoryMovements, parts } from "@shared/schema-runtime";
 import { registerTool } from "./registry";
 import type { ToolContext } from "../domain/types";
 import {
@@ -63,14 +63,14 @@ registerTool({
       .from(equipment)
       .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, ctx.orgId)))
       .limit(1);
-    if (!src?.type) return { source: "relational", results: [] };
+    if (!src?.type) {return { source: "relational", results: [] };}
     const peerIds = (
       await db
         .select({ id: equipment.id })
         .from(equipment)
         .where(and(eq(equipment.type, src.type), eq(equipment.orgId, ctx.orgId)))
     ).map((r) => r.id);
-    if (peerIds.length === 0) return { source: "relational", results: [] };
+    if (peerIds.length === 0) {return { source: "relational", results: [] };}
     const rows = await db
       .select({
         failureMode: failureHistory.failureMode,
@@ -145,7 +145,7 @@ registerTool({
     )
       .map((r) => r.id)
       .filter((id): id is string => !!id);
-    if (woIds.length === 0) return { source: "relational", results: [] };
+    if (woIds.length === 0) {return { source: "relational", results: [] };}
     const rows = await db
       .select({
         partId: inventoryMovements.partId,

@@ -125,7 +125,7 @@ export class BudgetGuard {
    */
   preflight(orgId: string, projectedTokens: number): void {
     const limits = this.limitsFor(orgId);
-    if (!limits.dailyTokens && !limits.monthlyTokens) return;
+    if (!limits.dailyTokens && !limits.monthlyTokens) {return;}
     const u = this.getOrInit(orgId);
 
     if (limits.dailyTokens && u.daily.tokens + projectedTokens > limits.dailyTokens) {
@@ -157,11 +157,11 @@ export class BudgetGuard {
    * per call, to avoid log spam).
    */
   record(orgId: string, model: string, tokens: number): void {
-    if (tokens <= 0) return;
+    if (tokens <= 0) {return;}
     llmTokensConsumed.inc({ org_id: orgId, model }, tokens);
 
     const limits = this.limitsFor(orgId);
-    if (!limits.dailyTokens && !limits.monthlyTokens) return;
+    if (!limits.dailyTokens && !limits.monthlyTokens) {return;}
     const u = this.getOrInit(orgId);
     u.daily.tokens += tokens;
     u.monthly.tokens += tokens;
@@ -204,7 +204,7 @@ export class BudgetGuard {
 
 function parseEnvInt(key: string): number | undefined {
   const raw = process.env[key];
-  if (!raw) return undefined;
+  if (!raw) {return undefined;}
   const n = parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }

@@ -114,9 +114,9 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) continue;
+        if (value === undefined || value === null) {continue;}
         const column = this.columns()[key];
-        if (!column) continue;
+        if (!column) {continue;}
         if (typeof value === "string" && key.toLowerCase().includes("search")) {
           conditions.push(ilike(column, `%${value}%`));
         } else {
@@ -147,9 +147,9 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) continue;
+        if (value === undefined || value === null) {continue;}
         const column = this.columns()[key];
-        if (!column) continue;
+        if (!column) {continue;}
         if (typeof value === "string" && key.toLowerCase().includes("search")) {
           conditions.push(ilike(column, `%${value}%`));
         } else {
@@ -272,9 +272,9 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) continue;
+        if (value === undefined || value === null) {continue;}
         const column = this.columns()[key];
-        if (!column) continue;
+        if (!column) {continue;}
         conditions.push(eq(column, value));
       }
     }

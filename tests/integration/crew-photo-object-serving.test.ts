@@ -163,7 +163,7 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 401 when unauthenticated", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app).get(OBJECT_PATH);
     expect(res.status).toBe(401);
     // requireAuthentication is the gate that must be present.
@@ -172,7 +172,7 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 401 for a malformed authorization header", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get(OBJECT_PATH)
       .set("Authorization", "Token abc");
@@ -181,7 +181,7 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 200 with image bytes for an authenticated same-org request", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     authAsOrg(ORG);
 
     const res = await request(app)
@@ -202,7 +202,7 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 403 for an authenticated cross-org request", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     authAsOrg(ORG);
     // The object belongs to a different org.
     assertObjectOwnedByOrg.mockReturnValue({
@@ -220,7 +220,7 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 404 when the object does not exist", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     authAsOrg(ORG);
     getObjectEntityFile.mockRejectedValue(new ObjectNotFoundError());
 

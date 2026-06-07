@@ -1,21 +1,24 @@
-export const vesselDiagramTypeValues = [
-  "side_elevation",
-  "deck_plan",
-  "machinery_arrangement",
-  "electrical_single_line",
-  "fire_safety_plan",
-  "system_schematic",
-  "custom",
-] as const;
+import {
+  vesselDiagramTypeValues,
+  type NormalizedPoint,
+  type VesselDiagramStatus,
+  type VesselDiagramType,
+  type VesselDiagramVersionStatus,
+  type VesselSectionMapStatus,
+  type VesselValidationSeverity,
+  type ValidationSummary,
+} from "@shared/schema-runtime";
 
-export type VesselDiagramType = (typeof vesselDiagramTypeValues)[number];
-export type VesselSectionMapStatus = "draft" | "published" | "archived";
-export type VesselValidationSeverity = "blocker" | "warning";
-
-export interface NormalizedPoint {
-  x: number;
-  y: number;
-}
+export { vesselDiagramTypeValues };
+export type {
+  NormalizedPoint,
+  VesselDiagramStatus,
+  VesselDiagramType,
+  VesselDiagramVersionStatus,
+  VesselSectionMapStatus,
+  VesselValidationSeverity,
+  ValidationSummary,
+};
 
 export interface RegistryActor {
   userId?: string;
@@ -26,17 +29,11 @@ export interface RegistryContext extends RegistryActor {
   vesselId: string;
 }
 
-export interface ValidationIssue {
+export interface VesselDiagramValidationIssue {
   severity: VesselValidationSeverity;
   code: string;
   message: string;
   path?: string;
-}
-
-export interface ValidationSummary {
-  blockers: number;
-  warnings: number;
-  checkedAt: string;
 }
 
 export interface DiagramRecord {
@@ -45,7 +42,7 @@ export interface DiagramRecord {
   diagramType: VesselDiagramType;
   title: string;
   description?: string | null;
-  status: "draft" | "active" | "archived";
+  status: VesselDiagramStatus;
   activeVersionId?: string | null;
   currentSectionMapId?: string | null;
   createdAt?: Date | null;
@@ -57,7 +54,7 @@ export interface DiagramVersionRecord {
   vesselId: string;
   diagramId: string;
   versionNumber: number;
-  status: "uploaded" | "active" | "superseded" | "rejected";
+  status: VesselDiagramVersionStatus;
   originalFileName: string;
   mimeType: string;
   fileSizeBytes: number;
@@ -65,6 +62,9 @@ export interface DiagramVersionRecord {
   objectKey: string;
   sanitizedSvg?: string | null;
   validationSummary?: ValidationSummary | null;
+  uploadedBy?: string | null;
+  publishedBy?: string | null;
+  publishedAt?: Date | null;
   uploadedAt?: Date | null;
 }
 
@@ -176,10 +176,47 @@ export interface CreateSectionMapInput {
   name: string;
   diagramId?: string;
   diagramVersionId?: string;
+  sourceMapId?: string;
   diagramWidth?: number;
   diagramHeight?: number;
   diagramKind?: VesselDiagramType;
   sections?: CreateSectionInput[];
+}
+
+export interface UpdateDiagramInput {
+  title?: string;
+  description?: string | null;
+  status?: VesselDiagramStatus;
+  activeVersionId?: string | null;
+  currentSectionMapId?: string | null;
+}
+
+export interface UpdateSectionMapInput {
+  name?: string;
+  diagramId?: string | null;
+  diagramVersionId?: string | null;
+  sourceMapId?: string | null;
+  diagramWidth?: number;
+  diagramHeight?: number;
+  diagramKind?: VesselDiagramType;
+  status?: VesselSectionMapStatus;
+}
+
+export interface UpdateSectionInput {
+  sectionKey?: string;
+  sectionNo?: number;
+  name?: string;
+  color?: string;
+  thumbnailFallback?: string | null;
+  labelNormalized?: NormalizedPoint;
+  polygonNormalized?: NormalizedPoint[];
+}
+
+export interface UpdateAssignmentInput {
+  equipmentId?: string | null;
+  equipmentName?: string;
+  assetCode?: string | null;
+  system?: string | null;
 }
 
 export interface ThumbnailUploadInput {
@@ -196,13 +233,30 @@ export interface RegistrySummary {
   activeDiagram?: DiagramRecord | null;
   sectionMaps: SectionMapRecord[];
   activeSectionMap?: SectionMapRecord | null;
-  validationIssues: ValidationIssue[];
+  validationIssues: VesselDiagramValidationIssue[];
+}
+
+export interface SectionMapTemplateRecord {
+  id: string;
+  name: string;
+  vesselType: string;
+  description: string;
+  diagramKind: VesselDiagramType;
+  diagramWidth: number;
+  diagramHeight: number;
+  sections: CreateSectionInput[];
 }
 
 export interface VesselDiagramRegistryStore {
   listDiagrams(ctx: RegistryContext): Promise<DiagramRecord[]>;
   createDiagram(ctx: RegistryContext, input: CreateDiagramInput): Promise<DiagramRecord>;
   getDiagram(ctx: RegistryContext, diagramId: string): Promise<DiagramRecord | null>;
+  updateDiagram(
+    ctx: RegistryContext,
+    diagramId: string,
+    input: UpdateDiagramInput
+  ): Promise<DiagramRecord>;
+  deleteDiagram(ctx: RegistryContext, diagramId: string): Promise<void>;
   listVersions(ctx: RegistryContext, diagramId: string): Promise<DiagramVersionRecord[]>;
   getVersion(
     ctx: RegistryContext,
@@ -219,18 +273,50 @@ export interface VesselDiagramRegistryStore {
     diagramId: string,
     versionId: string
   ): Promise<DiagramVersionRecord>;
+  updateVersionStatus(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string,
+    status: VesselDiagramVersionStatus
+  ): Promise<DiagramVersionRecord>;
   listSectionMaps(ctx: RegistryContext): Promise<SectionMapRecord[]>;
   createSectionMap(ctx: RegistryContext, input: CreateSectionMapInput): Promise<SectionMapRecord>;
   getSectionMap(ctx: RegistryContext, mapId: string): Promise<SectionMapRecord | null>;
+  getSectionMapForVessel(
+    ctx: RegistryContext,
+    vesselId: string,
+    mapId: string
+  ): Promise<SectionMapRecord | null>;
+  updateSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    input: UpdateSectionMapInput
+  ): Promise<SectionMapRecord>;
+  deleteSectionMap(ctx: RegistryContext, mapId: string): Promise<void>;
   cloneSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    input: { name: string }
+    input: { name: string; diagramId?: string; diagramVersionId?: string }
   ): Promise<SectionMapRecord>;
+  addSection(ctx: RegistryContext, mapId: string, input: CreateSectionInput): Promise<SectionRecord>;
+  updateSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: UpdateSectionInput
+  ): Promise<SectionRecord>;
+  deleteSection(ctx: RegistryContext, mapId: string, sectionId: string): Promise<void>;
+  updateSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
+  ): Promise<SectionRecord>;
+  deleteSectionPolygon(ctx: RegistryContext, mapId: string, sectionId: string): Promise<SectionRecord>;
   publishSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    validation: { summary: ValidationSummary; issues: ValidationIssue[] }
+    validation: { summary: ValidationSummary; issues: VesselDiagramValidationIssue[] }
   ): Promise<SectionMapRecord>;
   assignEquipment(
     ctx: RegistryContext,
@@ -243,15 +329,32 @@ export interface VesselDiagramRegistryStore {
       system?: string;
     }
   ): Promise<EquipmentAssignmentRecord>;
+  listEquipmentAssignments(
+    ctx: RegistryContext,
+    mapId: string
+  ): Promise<EquipmentAssignmentRecord[]>;
+  updateEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string,
+    input: UpdateAssignmentInput
+  ): Promise<EquipmentAssignmentRecord>;
+  deleteEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string
+  ): Promise<void>;
   saveValidationResults(
     ctx: RegistryContext,
     refs: { mapId?: string; diagramId?: string; diagramVersionId?: string },
-    issues: ValidationIssue[]
+    issues: VesselDiagramValidationIssue[]
   ): Promise<void>;
   listValidationResults(
     ctx: RegistryContext,
     refs?: { mapId?: string }
-  ): Promise<ValidationIssue[]>;
+  ): Promise<VesselDiagramValidationIssue[]>;
   upsertThumbnail(
     ctx: RegistryContext,
     input: Omit<ThumbnailRecord, "id" | "vesselId">

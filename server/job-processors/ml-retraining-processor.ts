@@ -27,12 +27,18 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "../db";
-import { predictionOutcomes, equipment, mlModels } from "@shared/schema";
+import { predictionOutcomes, equipment, mlModels } from "@shared/schema-runtime";
 import { createLogger } from "../lib/structured-logger";
 import {
   getWriteAdapter,
   ARTIFACT_URI_SCHEME,
 } from "../domains/pdm-platform/infrastructure/artifact-storage";
+import {
+  evaluatePromotionGate,
+  parseTrainerMetrics,
+  type TrainerMetrics,
+} from "./ml-retraining-gate";
+export { evaluatePromotionGate, parseTrainerMetrics } from "./ml-retraining-gate";
 
 const logger = createLogger("MlRetrainingProcessor");
 
@@ -67,49 +73,6 @@ export interface ModelRetrainJobResult {
   orgsScanned: number;
   attempts: RetrainAttempt[];
   candidatesPromoted: number;
-}
-
-export interface TrainerMetrics {
-  mae?: number;
-  productionMae?: number;
-  psi?: number;
-  artifactPath?: string;
-  modelId?: string;
-}
-
-export interface PromotionGateDecision {
-  promote: boolean;
-  improvementPct?: number | undefined;
-  skipped?: string | undefined;
-}
-
-/** Push A1 — pure gate predicate, exported so the unit test can drive
- *  it against the same code the weekly job runs (no logic drift). */
-export function evaluatePromotionGate(metrics: TrainerMetrics): PromotionGateDecision {
-  const improvementPct =
-    metrics.mae != null && metrics.productionMae != null && metrics.productionMae > 0
-      ? ((metrics.productionMae - metrics.mae) / metrics.productionMae) * 100
-      : undefined;
-  if (!metrics.modelId) {
-    return { promote: false, improvementPct, skipped: "trainer did not register a candidate model" };
-  }
-  const maeOk = improvementPct != null && improvementPct >= MIN_MAE_IMPROVEMENT_PCT;
-  if (!maeOk) {
-    return {
-      promote: false,
-      improvementPct,
-      skipped: `MAE improvement ${improvementPct?.toFixed(2)}% < ${MIN_MAE_IMPROVEMENT_PCT}%`,
-    };
-  }
-  const psiOk = metrics.psi == null || metrics.psi < MAX_PSI_FOR_PROMOTION;
-  if (!psiOk) {
-    return {
-      promote: false,
-      improvementPct,
-      skipped: `PSI ${metrics.psi?.toFixed(3)} >= ${MAX_PSI_FOR_PROMOTION}`,
-    };
-  }
-  return { promote: true, improvementPct };
 }
 
 async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promise<number> {
@@ -160,27 +123,6 @@ async function listEquipmentTypes(orgId: string): Promise<string[]> {
   } catch {
     return [];
   }
-}
-
-export function parseTrainerMetrics(stdout: string): TrainerMetrics {
-  const metrics: TrainerMetrics = {};
-  for (const line of stdout.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("{")) continue;
-    try {
-      const json = JSON.parse(trimmed);
-      if (json.stage === "metrics" || json.stage === "complete") {
-        if (typeof json.mae === "number") metrics.mae = json.mae;
-        if (typeof json.productionMae === "number") metrics.productionMae = json.productionMae;
-        if (typeof json.psi === "number") metrics.psi = json.psi;
-        if (typeof json.artifactPath === "string") metrics.artifactPath = json.artifactPath;
-        if (typeof json.modelId === "string") metrics.modelId = json.modelId;
-      }
-    } catch {
-      // ignore non-JSON lines
-    }
-  }
-  return metrics;
 }
 
 function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: string; code: number }> {
@@ -239,13 +181,13 @@ async function uploadCandidateArtifacts(
       .from(mlModels)
       .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)))
       .limit(1);
-    if (!row) return;
+    if (!row) {return;}
     const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
     const artifactPath = metrics['artifactPath'] as string | undefined;
     const nativeArtifactPath = metrics['nativeArtifactPath'] as string | undefined;
     // Already migrated (idempotent — covers re-runs).
-    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) return;
-    if (!artifactPath) return;
+    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) {return;}
+    if (!artifactPath) {return;}
 
     const adapter = await getWriteAdapter();
     if (adapter.backend === "local") {
@@ -256,7 +198,7 @@ async function uploadCandidateArtifacts(
 
     const uploads: Array<[string, "artifactPath" | "nativeArtifactPath"]> = [];
     uploads.push([artifactPath, "artifactPath"]);
-    if (nativeArtifactPath) uploads.push([nativeArtifactPath, "nativeArtifactPath"]);
+    if (nativeArtifactPath) {uploads.push([nativeArtifactPath, "nativeArtifactPath"]);}
 
     for (const [localPath, field] of uploads) {
       try {
@@ -402,8 +344,8 @@ export async function processModelRetrain(
         // flips to 'deployed'. No-op when the backend is 'local'.
         await uploadCandidateArtifacts(orgId, metrics.modelId);
         promoted = await attemptPromote(orgId, metrics.modelId, metrics, !!data.dryRun);
-        if (promoted) candidatesPromoted += 1;
-        else if (data.dryRun) skipped = "dryRun";
+        if (promoted) {candidatesPromoted += 1;}
+        else if (data.dryRun) {skipped = "dryRun";}
       } else if (!gate.promote && metrics.modelId) {
         // #110: Surface failed-gate decisions as structured alerts so
         // operators see WHICH gate blocked promotion (MAE regression

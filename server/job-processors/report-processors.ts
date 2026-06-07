@@ -19,19 +19,19 @@ interface ReportWorkOrder {
   dueDate?: string | Date;
 }
 
-export interface ReportData {
+export interface ReportProcessorData {
   equipmentHealth?: ReportEquipment[];
   workOrders?: ReportWorkOrder[];
 }
 
-export interface ReportOptions {
+export interface ReportProcessorOptions {
   type?: string;
   title?: string;
 }
 
 export async function processPDFGeneration(data: {
-  reportData: ReportData;
-  options: ReportOptions;
+  reportData: ReportProcessorData;
+  options: ReportProcessorOptions;
 }): Promise<{ buffer: Buffer; filename: string }> {
   const PDFDocument = await import("pdfkit");
   const { reportData, options } = data;
@@ -84,8 +84,8 @@ export async function processPDFGeneration(data: {
 }
 
 export async function processCSVGeneration(data: {
-  reportData: ReportData;
-  options: ReportOptions;
+  reportData: ReportProcessorData;
+  options: ReportProcessorOptions;
 }): Promise<{ csv: string; filename: string }> {
   const { reportData, options } = data;
 
@@ -139,8 +139,8 @@ export async function processCSVGeneration(data: {
 }
 
 export async function processHTMLGeneration(data: {
-  reportData: ReportData;
-  options: ReportOptions;
+  reportData: ReportProcessorData;
+  options: ReportProcessorOptions;
 }): Promise<{ html: string; filename: string }> {
   const { reportData, options } = data;
 

@@ -2,11 +2,8 @@ import type { Express } from "express";
 import { insertDeviceSchema } from "@shared/schema-runtime";
 import { deviceService } from "./service";
 import { safeDbOperation } from "../../error-handling";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../middleware/auth";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 
 /**
@@ -29,7 +26,7 @@ export function registerDeviceRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch devices", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const devices = await safeDbOperation(
         () => deviceService.getDevicesWithStatus(orgId),
@@ -47,7 +44,7 @@ export function registerDeviceRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch device", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const device = await deviceService.getDeviceById(req.params['id'] ?? '', orgId);
 
       if (!device) {
@@ -77,7 +74,7 @@ export function registerDeviceRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("update device", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const deviceData = insertDeviceSchema.partial().parse(req.body);
       const device = await deviceService.updateDevice(
         req.params['id'] ?? '',
@@ -96,7 +93,7 @@ export function registerDeviceRoutes(
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete device", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       await deviceService.deleteDevice(req.params['id'] ?? '', orgId, req.user?.id);
 
       sendDeleted(res);

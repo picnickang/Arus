@@ -16,7 +16,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "./auth";
+import { authenticatedRequest } from "./auth";
 import { quotaService, type QuotaMetric } from "../tenancy/quota-service";
 import { createLogger } from "../lib/structured-logger";
 
@@ -29,7 +29,7 @@ export function enforceQuota(metric: QuotaMetric) {
     next: NextFunction
   ): Promise<void> {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId as string | undefined;
+      const orgId = authenticatedRequest(req).orgId;
       if (!orgId) {
         // No tenant context (public endpoint or pre-auth) — skip.
         return next();

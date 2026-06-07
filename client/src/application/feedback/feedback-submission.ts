@@ -42,83 +42,12 @@ export const FEEDBACK_LOCATION_OPTIONS: Array<{
   { value: "other", label: "Other" },
 ];
 
-/**
- * Per-attachment metadata captured locally for the pilot photo
- * placeholder. We deliberately do NOT transmit the bytes anywhere —
- * the preview thumbnail is rendered from the same data URL we keep in
- * session storage, and that's the extent of the integration until a
- * real backend endpoint exists. See `submitFeedback` doc-comment.
- */
-export interface FeedbackPhotoMeta {
-  name: string;
-  sizeBytes: number;
-  mimeType: string;
-  /** Object URL or data URL — used for thumbnail rendering only. */
-  previewUrl: string;
-}
-
-/**
- * Application-layer policy for a freshly-picked photo file. Lives
- * here (not in the React component) so the rule set is in one place
- * with the rest of feedback validation. The component is responsible
- * only for invoking the file picker and rendering the result.
- */
-export const FEEDBACK_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
-
-export type FeedbackPhotoValidationResult =
-  | { ok: true; photo: FeedbackPhotoMeta }
-  | { ok: false; message: string };
-
-export interface FeedbackPhotoInput {
-  name: string;
-  sizeBytes: number;
-  mimeType: string;
-  previewUrl: string;
-}
-
-/**
- * Validate a freshly-picked photo file against the pilot policy:
- *   - must be an image/* MIME type
- *   - must be ≤ FEEDBACK_PHOTO_MAX_BYTES
- *   - previewUrl must look like a usable URL (data: or blob:)
- *
- * Returns a `FeedbackPhotoMeta` ready to drop into a draft, or a
- * single human-readable error string. The page surfaces that string
- * verbatim — it does not re-format or re-decide.
- */
-export function validatePhotoForFeedback(
-  input: FeedbackPhotoInput,
-): FeedbackPhotoValidationResult {
-  if (!input.mimeType.startsWith("image/")) {
-    return { ok: false, message: "Photo must be an image file." };
-  }
-  if (input.sizeBytes > FEEDBACK_PHOTO_MAX_BYTES) {
-    return { ok: false, message: "Photo must be 5 MB or smaller." };
-  }
-  if (
-    !input.previewUrl ||
-    !(input.previewUrl.startsWith("data:") || input.previewUrl.startsWith("blob:"))
-  ) {
-    return { ok: false, message: "Could not read photo from device." };
-  }
-  return {
-    ok: true,
-    photo: {
-      name: input.name,
-      sizeBytes: input.sizeBytes,
-      mimeType: input.mimeType,
-      previewUrl: input.previewUrl,
-    },
-  };
-}
-
 export interface FeedbackDraft {
   category: FeedbackCategory;
   severity: FeedbackSeverity;
   location: FeedbackLocation;
   subject: string;
   description: string;
-  photo?: FeedbackPhotoMeta | null;
 }
 
 export interface FeedbackValidationError {
@@ -215,9 +144,14 @@ function normaliseOutboxEntry(value: unknown): FeedbackOutboxEntry | null {
       ? candidateLocation
       : "other";
   return {
-    ...raw,
+    trackingId: raw.trackingId,
+    createdAt: raw.createdAt,
+    category: raw.category,
+    severity: raw.severity,
+    subject: raw.subject,
+    description: raw.description,
     location,
-  } as FeedbackOutboxEntry;
+  };
 }
 
 /**
@@ -292,23 +226,8 @@ export async function submitFeedback(
           .map((row) => normaliseOutboxEntry(row))
           .filter((row): row is FeedbackOutboxEntry => row !== null)
       : [];
-    // Deliberately strip the photo's previewUrl from the persisted
-    // queue — sessionStorage is bounded (~5 MB) and a single data-URL
-    // can easily exhaust it. We keep a lightweight {name, size, mime}
-    // record so the history list can say "photo attached" without
-    // re-rendering the full image after a tab switch.
-    const persistedPhoto: Omit<FeedbackPhotoMeta, "previewUrl"> | null = draft.photo
-      ? {
-          name: draft.photo.name,
-          sizeBytes: draft.photo.sizeBytes,
-          mimeType: draft.photo.mimeType,
-        }
-      : null;
     queue.push({
       ...draft,
-      photo: persistedPhoto
-        ? { ...persistedPhoto, previewUrl: "" }
-        : null,
       trackingId,
       createdAt: new Date().toISOString(),
     });

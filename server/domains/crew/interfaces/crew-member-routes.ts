@@ -7,12 +7,9 @@ import multer from "multer";
 import { insertCrewSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
 import { permissionRepository } from "../../permissions/repository.js";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import {
   withErrorHandling,
   sendCreated,
@@ -79,7 +76,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch crew", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId } = req.query;
       const crew = await crewService.listCrew(orgId, vesselId as string | undefined);
       res.json(crew);
@@ -119,7 +116,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch available ranks", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       // Get or provision roles from templates - ensures all roles are in the roles table
       const allRoles = await permissionRepository.getOrProvisionRolesForOrg(orgId);
@@ -147,7 +144,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
     withErrorHandling("fetch crew member", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const crew = await crewService.getCrewById(req.params['id'] ?? '', orgId);
 
       if (!crew) {
@@ -178,7 +175,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
       // photoPath is managed exclusively by the dedicated photo routes,
       // so the generic CRUD path cannot set or clear it.
       const crewData = insertCrewSchema.omit({ photoPath: true }).partial().parse(body);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const crew = await crewService.updateCrew(req.params['id'] ?? '', crewData, req.user?.id, orgId);
       res.json(crew);
     })
@@ -190,7 +187,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "delete"),
     criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       await crewService.deleteCrew(req.params['id'] ?? '', req.user?.id, orgId);
       sendDeleted(res);
     })
@@ -208,7 +205,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     enforceQuota("storage_bytes"),
     photoUpload.single("photo"),
     withErrorHandling("upload crew photo", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const userId = req.user?.id;
       const file = req.file;
       if (!file) {
@@ -273,7 +270,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "edit"),
     writeOperationRateLimit,
     withErrorHandling("delete crew photo", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const userId = req.user?.id;
       const id = req.params['id'] ?? '';
       const existing = await crewService.getCrewById(id, orgId);

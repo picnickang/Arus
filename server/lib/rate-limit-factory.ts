@@ -7,7 +7,7 @@
  */
 
 import rateLimit, { type Options as RateLimitOptions } from "express-rate-limit";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { ipKeyGenerator } from "express-rate-limit";
 import type { Request } from "express";
 
@@ -58,7 +58,7 @@ export const RATE_LIMIT_ERROR_CODES = {
  */
 export function createKeyGenerator(includeUserAgent = true): (req: Request) => string {
   return (req: Request): string => {
-    const orgId = (req as AuthenticatedRequest).orgId as string | undefined;
+    const orgId = authenticatedRequest(req).orgId as string | undefined;
     const ip = ipKeyGenerator(req.ip ?? "");
     const tenantOrIp = orgId ? `org:${orgId}` : `ip:${ip}`;
 

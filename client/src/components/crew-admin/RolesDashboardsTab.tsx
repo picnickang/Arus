@@ -226,7 +226,7 @@ export function RolesDashboardsTab() {
   }
 
   function toggleWidget(widget: WidgetKey) {
-    if (!draftConfig) return;
+    if (!draftConfig) {return;}
     const has = draftConfig.widgets.includes(widget);
     setDraftConfig({
       ...draftConfig,
@@ -237,7 +237,7 @@ export function RolesDashboardsTab() {
   }
 
   function toggleSource(source: TaskSourceKey) {
-    if (!draftConfig) return;
+    if (!draftConfig) {return;}
     const has = draftConfig.taskSources.includes(source);
     setDraftConfig({
       ...draftConfig,

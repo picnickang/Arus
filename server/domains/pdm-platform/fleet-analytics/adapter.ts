@@ -124,7 +124,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
           },
         })
         .returning();
-      if (!result) throw new Error("computeBaselines: insert returned no row");
+      if (!result) {throw new Error("computeBaselines: insert returned no row");}
       results.push(result);
     }
 

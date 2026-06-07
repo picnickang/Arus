@@ -8,7 +8,7 @@ import { z } from "zod";
 import { insertSensorStateSchema } from "@shared/schema-runtime";
 import type { SensorManagementConfig } from "./types.js";
 import { withErrorHandling, sendNotFound, sendCreated } from "../../../lib/route-utils.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { dbSensorsStorage } from "../../../db/sensors/index.js";
 
 export function registerSensorStatusRoutes(app: Express, config: SensorManagementConfig) {
@@ -19,7 +19,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     requireOrgId,
     withErrorHandling("fetch sensor status", async (req, res) => {
       const { equipmentId } = z.object({ equipmentId: z.string().optional() }).parse(req.query);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const sensorConfigs = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
       const DEFAULT_THRESHOLD_MS = 5 * 60 * 1000;
       const now = new Date();
@@ -79,7 +79,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     requireOrgId,
     withErrorHandling("fetch sensor state", async (req, res) => {
       const { equipmentId = '', sensorType = '' } = req.params;
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const state = await dbSensorsStorage.getSensorState(equipmentId, sensorType, orgId);
       if (!state) {
         return sendNotFound(res, "Sensor state");
@@ -93,7 +93,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     requireOrgId,
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId });
       sendCreated(res, sensorState);
     })

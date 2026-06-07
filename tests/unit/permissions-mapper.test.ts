@@ -145,6 +145,8 @@ describe("Permissions Mapper", () => {
       const parsed = permissionsMeResponseSchema.safeParse({
         ...mapped,
         isDevMode: false,
+        hubAdmin: false,
+        hubAccess: null,
       });
       expect(parsed.success).toBe(true);
     });

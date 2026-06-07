@@ -19,14 +19,14 @@ import { randomUUID } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin, type Vessel3dModel } from "@shared/schema";
+import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin, type Vessel3dModel } from "@shared/schema-runtime";
 import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
 import { failurePropagation } from "../graph/adapter";
 import { requireRole } from "../middleware/role-auth";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 
 const logger = createLogger("Routes:Vessel3D");
 
@@ -41,7 +41,7 @@ const logger = createLogger("Routes:Vessel3D");
  */
 const equipmentPinsReadSchema = z.array(equipmentPinSchema);
 function narrowEquipmentPins(value: unknown): EquipmentPin[] {
-  if (value === null || value === undefined) return [];
+  if (value === null || value === undefined) {return [];}
   const parsed = equipmentPinsReadSchema.safeParse(value);
   if (!parsed.success) {
     logger.warn("Discarding malformed vessel_3d_models.equipment_pins JSONB", {
@@ -141,7 +141,7 @@ const router = Router();
 // responses instead of falling through to the global 500 handler.
 function uploadSingleModel(req: Request, res: Response, next: (err?: unknown) => void) {
   upload.single("model")(req, res, (err: unknown) => {
-    if (!err) return next();
+    if (!err) {return next();}
     if (err instanceof multer.MulterError) {
       const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
       return res.status(status).json({ error: err.message, code: err.code });
@@ -165,10 +165,10 @@ router.post(
   async (req: Request, res: Response) => {
     let writtenPath: string | null = null;
     try {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { vesselId = "" } = req.params;
       const file = req.file;
-      if (!file) return res.status(400).json({ error: "No file uploaded" });
+      if (!file) {return res.status(400).json({ error: "No file uploaded" });}
       if (!file.buffer || file.buffer.length === 0) {
         return res.status(400).json({ error: "Uploaded file is empty" });
       }
@@ -274,7 +274,7 @@ router.post(
 // ---------- Latest model metadata for a vessel ----------
 router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { vesselId = "" } = req.params;
     const [row] = await db
       .select()
@@ -282,7 +282,7 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
       .where(and(eq(vessel3dModels.orgId, orgId), eq(vessel3dModels.vesselId, vesselId)))
       .orderBy(desc(vessel3dModels.createdAt))
       .limit(1);
-    if (!row) return res.status(404).json({ error: "No 3D model attached" });
+    if (!row) {return res.status(404).json({ error: "No 3D model attached" });}
     // Do not leak storedPath.
     const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
@@ -295,13 +295,13 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
 // ---------- Stream binary (auth-checked) ----------
 router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { modelId = "" } = req.params;
     const [row] = await db
       .select()
       .from(vessel3dModels)
       .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)));
-    if (!row) return res.status(404).json({ error: "Model not found" });
+    if (!row) {return res.status(404).json({ error: "Model not found" });}
 
     // Path-traversal guard: stored file must live under the org's directory.
     const expectedDir = orgDir(orgId);
@@ -330,7 +330,7 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
 // ---------- Replace equipment pins (admin only) ----------
 router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
   try {
-    const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { modelId = "" } = req.params;
     const parsed = pinsSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -341,7 +341,7 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
       .set({ equipmentPins: parsed.data.pins, updatedAt: new Date() })
       .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)))
       .returning();
-    if (!row) return res.status(404).json({ error: "Model not found" });
+    if (!row) {return res.status(404).json({ error: "Model not found" });}
     const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
   } catch (error) {
@@ -357,7 +357,7 @@ router.get(
   "/vessels/:vesselId/3d-model/history",
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { vesselId = "" } = req.params;
       const rows = await db
         .select()
@@ -387,7 +387,7 @@ router.post(
   requireRole("admin", "chief_engineer"),
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { modelId = "" } = req.params;
       const now = new Date();
       const [row] = await db
@@ -397,7 +397,7 @@ router.post(
           and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
         )
         .returning();
-      if (!row) return res.status(404).json({ error: "Model not found" });
+      if (!row) {return res.status(404).json({ error: "Model not found" });}
       const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
       return res.json(safe);
     } catch (error) {
@@ -416,7 +416,7 @@ router.delete(
   requireRole("admin", "chief_engineer"),
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { modelId = "" } = req.params;
       const [row] = await db
         .select()
@@ -424,7 +424,7 @@ router.delete(
         .where(
           and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
         );
-      if (!row) return res.status(404).json({ error: "Model not found" });
+      if (!row) {return res.status(404).json({ error: "Model not found" });}
 
       // Path-traversal guard (same as binary serve): only unlink files
       // that resolve inside the org's storage directory.
@@ -474,7 +474,7 @@ router.get(
   "/vessels/equipment/:equipmentId/dependencies",
   async (req: Request, res: Response) => {
     try {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { equipmentId = "" } = req.params;
       const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
         .safeParse(req.query['maxHops'] ?? 3);

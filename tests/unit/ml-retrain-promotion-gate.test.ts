@@ -1,16 +1,16 @@
 /**
  * Push A1 — Promotion-gate unit test for the weekly retrain job.
  *
- * Imports the SAME parseTrainerMetrics + evaluatePromotionGate
- * functions the processor calls at runtime, so the test can never
- * drift away from production logic.
+ * Imports the SAME pure parseTrainerMetrics + evaluatePromotionGate
+ * module the processor calls at runtime, without booting the DB-bearing
+ * retrain orchestrator in a unit harness.
  */
 
 import { describe, it, expect } from "@jest/globals";
 import {
   evaluatePromotionGate,
   parseTrainerMetrics,
-} from "../../server/job-processors/ml-retraining-processor";
+} from "../../server/job-processors/ml-retraining-gate";
 
 describe("ml-retrain promotion gate", () => {
   it("promotes a candidate that beats production MAE by >=5% with low PSI", () => {

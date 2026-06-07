@@ -79,7 +79,7 @@ async function insertAsSuperuser(
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) return;
+  if (!databaseUrl) {return;}
   pool = new Pool({ connectionString: databaseUrl, max: 4 });
   const probe = await pool.connect();
   try {
@@ -87,8 +87,8 @@ beforeAll(async () => {
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables
          WHERE table_schema = current_schema() AND table_name = 'equipment') AS exists`,
     );
-    if (!r.rows[0]?.exists) return;
-    if (!(await tableHasRls(probe, "equipment"))) return;
+    if (!r.rows[0]?.exists) {return;}
+    if (!(await tableHasRls(probe, "equipment"))) {return;}
     rlsReady = true;
     await insertAsSuperuser(probe, ORG_A, "T104 A pump");
     await insertAsSuperuser(probe, ORG_B, "T104 B pump");
@@ -96,7 +96,7 @@ beforeAll(async () => {
     probe.release();
   }
 
-  if (!rlsReady) return;
+  if (!rlsReady) {return;}
 
   // Build the minimal Express app that exercises the production path
   // we actually care about: requireOrgId → withDatabaseContext (which
@@ -155,7 +155,7 @@ beforeAll(async () => {
 }, 60000);
 
 afterAll(async () => {
-  if (!pool) return;
+  if (!pool) {return;}
   if (rlsReady) {
     const cleanup = await pool.connect();
     try {
@@ -186,7 +186,7 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
   });
 
   it("tenant A only sees tenant A's equipment", async () => {
-    if (!databaseUrl || !rlsReady || !app) return;
+    if (!databaseUrl || !rlsReady || !app) {return;}
 
     const res = await request(app)
       .get("/api/equipment")
@@ -204,7 +204,7 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
   });
 
   it("tenant B only sees tenant B's equipment", async () => {
-    if (!databaseUrl || !rlsReady || !app) return;
+    if (!databaseUrl || !rlsReady || !app) {return;}
 
     const res = await request(app)
       .get("/api/equipment")
@@ -225,7 +225,7 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
     // Fires both tenants in parallel so AsyncLocalStorage actually has
     // to keep their contexts separated across the await boundaries
     // inside `withDatabaseContext` + the equipment service.
-    if (!databaseUrl || !rlsReady || !app) return;
+    if (!databaseUrl || !rlsReady || !app) {return;}
 
     const [aRes, bRes] = await Promise.all([
       request(app).get("/api/equipment").set("x-test-token", "tenant-a-token").send(),

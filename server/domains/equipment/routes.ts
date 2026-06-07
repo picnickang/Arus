@@ -1,14 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
 import { insertEquipmentSchema } from "@shared/schema-runtime";
 import { db } from "../../db";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import {
   equipmentLifecycleService,
@@ -100,7 +98,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch equipment registry", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const query = listEquipmentQuerySchema.parse(req.query);
 
       const paginatedParam = query.paginated === "true";
@@ -135,7 +133,7 @@ export function registerEquipmentRoutes(
           manufacturer,
         });
         return res.json(result);
-      } else {
+      }
         const cacheKey = `equipment:list:${orgId}`;
         const cached = getCached(cacheKey);
         if (cached) {
@@ -144,7 +142,7 @@ export function registerEquipmentRoutes(
         const equipment = await equipmentService.listEquipment(orgId);
         setCache(cacheKey, equipment);
         return res.json(equipment);
-      }
+
     })
   );
 
@@ -154,7 +152,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch equipment health", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const query = equipmentHealthQuerySchema.parse(req.query);
       let vesselId = query.vesselId;
       let equipmentId = query.equipmentId;
@@ -193,10 +191,10 @@ export function registerEquipmentRoutes(
         };
         setCache(cacheKey, response);
         return res.json(response);
-      } else {
+      }
         setCache(cacheKey, health);
         return res.json(health);
-      }
+
     })
   );
 
@@ -206,7 +204,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch equipment with sensor issues", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const equipment = await equipmentService.getEquipmentWithSensorIssues(orgId);
       return res.json(equipment);
     })
@@ -218,7 +216,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("calculate RUL prediction", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
 
       const { RulEngine } = await import("../../rul-engine.js");
@@ -244,7 +242,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("calculate batch RUL predictions", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentIds } = batchRulBodySchema.parse(req.body);
 
       const { RulEngine } = await import("../../rul-engine.js");
@@ -263,7 +261,7 @@ export function registerEquipmentRoutes(
     requireOrgIdAndValidateBody,
     writeOperationRateLimit,
     withErrorHandling("record degradation", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
       const body = degradationBodySchema.parse(req.body);
 
@@ -296,7 +294,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
       const equipment = await equipmentService.getEquipmentById(id, orgId);
@@ -317,9 +315,9 @@ export function registerEquipmentRoutes(
     writeOperationRateLimit,
     enforceQuota("equipment_count"),
     withErrorHandling("create equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
       const validationResult = insertEquipmentSchema.safeParse({
         ...rawBody,
         orgId,
@@ -344,10 +342,10 @@ export function registerEquipmentRoutes(
     requirePermission("equipment", "edit"),
     writeOperationRateLimit,
     withErrorHandling("update equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      const rawBody = z.record(z.unknown()).parse(req.body);
+      const rawBody = jsonRecordSchema.parse(req.body);
       const {
         orgId: _,
         id: __,
@@ -390,7 +388,7 @@ export function registerEquipmentRoutes(
     requirePermission("equipment", "edit"),
     writeOperationRateLimit,
     withErrorHandling("disassociate equipment from vessel", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
       try {
@@ -413,7 +411,7 @@ export function registerEquipmentRoutes(
     requirePermission("equipment", "delete"),
     criticalOperationRateLimit,
     withErrorHandling("delete equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
       try {
@@ -437,9 +435,9 @@ export function registerEquipmentRoutes(
     requirePermission("equipment", "manage_config"),
     criticalOperationRateLimit,
     withErrorHandling("decommission equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
-      const userId = (req as AuthenticatedRequest).userId;
+      const userId = authenticatedRequest(req).userId;
 
       const validationResult = decommissionEquipmentSchema.safeParse(req.body);
 
@@ -478,9 +476,9 @@ export function registerEquipmentRoutes(
     requirePermission("equipment", "manage_config"),
     criticalOperationRateLimit,
     withErrorHandling("reinstate equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
-      const userId = (req as AuthenticatedRequest).userId;
+      const userId = authenticatedRequest(req).userId;
 
       const validationResult = reinstateEquipmentSchema.safeParse(req.body);
 
@@ -518,7 +516,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch equipment history", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id: equipmentId } = idParamSchema.parse(req.params);
 
       try {
@@ -540,7 +538,7 @@ export function registerEquipmentRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch decommissioned equipment", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { withHistory: withHistoryParam } = decommissionedListQuerySchema.parse(req.query);
       const withHistory = withHistoryParam === "true";
 
@@ -548,10 +546,10 @@ export function registerEquipmentRoutes(
         const decommissioned =
           await equipmentLifecycleService.getDecommissionedEquipmentWithHistory(orgId);
         return res.json(decommissioned);
-      } else {
+      }
         const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
         return res.json(decommissioned);
-      }
+
     })
   );
 
@@ -562,7 +560,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("analyze equipment sensor coverage", async (req: Request, res: Response) => {
       const { id: equipmentId } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const coverage = await equipmentService.getSensorCoverage(equipmentId, orgId);
       return res.json(coverage);
@@ -578,7 +576,7 @@ export function registerEquipmentRoutes(
       "setup missing sensor configurations",
       async (req: Request, res: Response) => {
         const { id: equipmentId } = idParamSchema.parse(req.params);
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
 
         const result = await equipmentService.setupSensors(equipmentId, orgId);
         return res.json(result);
@@ -593,7 +591,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch compatible parts", async (req: Request, res: Response) => {
       const { equipmentId } = equipmentIdParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const parts = await equipmentService.getCompatibleParts(equipmentId, orgId);
       return res.json(parts);
@@ -607,7 +605,7 @@ export function registerEquipmentRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch suggested parts", async (req: Request, res: Response) => {
       const { equipmentId } = equipmentIdParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const parts = await equipmentService.getSuggestedParts(equipmentId, orgId);
       return res.json(parts);

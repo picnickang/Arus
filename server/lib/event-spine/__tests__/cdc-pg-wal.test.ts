@@ -1,19 +1,20 @@
 import { jest } from "@jest/globals";
+import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 
 describe("WorkOrder publisher: post-commit emit semantics", () => {
   // Guards against the prior regression where domainEventBus.emit ran
   // inside the tx, exposing uncommitted events to in-process subscribers.
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
-    jest.doMock("../../../db", () => ({ db: {}, pool: {} }));
-    jest.doMock("../outbox-repository", () => ({
+    await jest.unstable_mockModule("../../../db", () => ({ db: {}, pool: {} }));
+    await jest.unstable_mockModule("../outbox-repository", () => ({
       __esModule: true,
       enqueueOutboxFromEnvelope: jest.fn(async () => undefined),
       enqueueOutbox: jest.fn(async () => undefined),
     }));
-    const onceBus = new (require("node:events").EventEmitter)();
-    jest.doMock("../../domain-event-bus/index", () => ({
+    const onceBus = new EventEmitter();
+    await jest.unstable_mockModule("../../domain-event-bus/index", () => ({
       __esModule: true,
       domainEventBus: onceBus,
       createDomainEvent: (name: string, orgId: string, payload: unknown, meta: unknown) => ({
@@ -99,11 +100,16 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
 });
 
 describe("PgWalCdcBridge.handle (committed change → outbox event)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     // Stub server/db so importing the bridge does not trigger the
     // top-level-await chain in production db-config.
-    jest.doMock("../../../db", () => ({ db: {}, pool: {} }));
+    await jest.unstable_mockModule("../../../db", () => ({ db: {}, pool: {} }));
+    await jest.unstable_mockModule("../outbox-repository", () => ({
+      __esModule: true,
+      enqueueOutbox: jest.fn(async () => undefined),
+      enqueueOutboxFromEnvelope: jest.fn(async () => undefined),
+    }));
   });
 
   async function load() {

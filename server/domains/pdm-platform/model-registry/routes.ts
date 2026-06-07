@@ -2,7 +2,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { ModelRegistryAdapter } from "./adapter";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware";
+import { requirePermission } from "../../../lib/permissions/middleware";
 
 const router = Router();
 const registry = new ModelRegistryAdapter();

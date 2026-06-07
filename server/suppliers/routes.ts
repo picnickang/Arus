@@ -34,7 +34,7 @@ router.post("/suppliers", async (req: Request, res: Response) => {
     return res.status(201).json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error creating supplier:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -72,7 +72,7 @@ router.get("/suppliers", async (req: Request, res: Response) => {
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error listing suppliers:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -84,7 +84,7 @@ router.get("/suppliers/stats", async (req: Request, res: Response) => {
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error getting supplier stats:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -96,7 +96,7 @@ router.get("/suppliers/preferred", async (req: Request, res: Response) => {
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Suppliers] Error getting preferred suppliers:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -112,7 +112,7 @@ router.get("/suppliers/:id", async (req: Request, res: Response) => {
     return res.json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error getting supplier:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -141,7 +141,7 @@ router.patch("/suppliers/:id", async (req: Request, res: Response) => {
     return res.json(supplier);
   } catch (error) {
     logger.error("[Suppliers] Error updating supplier:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 
@@ -157,7 +157,7 @@ router.delete("/suppliers/:id", async (req: Request, res: Response) => {
     return res.json({ success: true });
   } catch (error) {
     logger.error("[Suppliers] Error deleting supplier:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });
 

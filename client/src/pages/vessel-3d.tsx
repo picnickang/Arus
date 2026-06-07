@@ -37,7 +37,7 @@ interface DependencyResponse {
 type PinList = EquipmentPin[];
 
 function parsePins(raw: unknown): PinList {
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {return [];}
   return raw.filter((p): p is EquipmentPin => {
     return (
       !!p &&
@@ -52,7 +52,7 @@ function parsePins(raw: unknown): PinList {
 
 export default function Vessel3DPage() {
   const params = useParams<{ id: string }>();
-  const vesselId = params.id!;
+  const vesselId = params.id;
   const [, navigate] = useLocation();
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [scrubHoursAgo, setScrubHoursAgo] = useState(0); // 0 = live, up to 6h back
@@ -122,9 +122,9 @@ export default function Vessel3DPage() {
     const targetMs = Date.now() - scrubHoursAgo * 3600 * 1000;
     const map: Record<string, number> = {};
     for (const q of historyQueries) {
-      if (!q.data) continue;
+      if (!q.data) {continue;}
       const { equipmentId, history } = q.data;
-      if (history.length === 0) continue;
+      if (history.length === 0) {continue;}
       let best: AssetTwinState | undefined;
       let bestDelta = Infinity;
       for (const snap of history) {

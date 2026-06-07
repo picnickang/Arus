@@ -93,7 +93,7 @@ const trainBody = {
 
 function unwrap(body: unknown): { modelId: string; jobId: string } {
   const b = body as { data?: { modelId: string; jobId: string }; modelId?: string; jobId?: string };
-  if (b.data && typeof b.data.modelId === "string") return b.data;
+  if (b.data && typeof b.data.modelId === "string") {return b.data;}
   return { modelId: b.modelId as string, jobId: b.jobId as string };
 }
 

@@ -2,19 +2,17 @@
  * Feedback / Flags — pilot form (UI Align Phase 5).
  *
  * Re-skinned per preview-panel 3 (desktop) and the mobile row-9 sub-
- * flow (Report Issue → Take Photo → Submit Report).
+ * flow (Report Issue → Submit Report).
  *
  * Component owns rendering only. ALL validation rules + the
  * sessionStorage write live in
  * `client/src/application/feedback/feedback-submission.ts`. If a new
  * rule is needed it goes there, never inline. There is no real
- * backend yet — the photo is a local-only placeholder that captures
- * a file, shows a thumbnail, and is persisted as lightweight
- * metadata by the submission module. Nothing pretends a network
- * request succeeded.
+ * server-backed media endpoint for this workflow yet, so the page
+ * intentionally does not expose photo capture.
  */
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Flag,
   Loader2,
@@ -22,9 +20,6 @@ import {
   AlertTriangle,
   ArrowRight,
   Inbox,
-  Camera,
-  ImagePlus,
-  X,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -38,12 +33,10 @@ import {
   FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
   submitFeedback,
-  validatePhotoForFeedback,
   type FeedbackCategory,
   type FeedbackDraft,
   type FeedbackLocation,
   type FeedbackOutboxEntry,
-  type FeedbackPhotoMeta,
   type FeedbackSeverity,
   type FeedbackValidationError,
 } from "@/application/feedback/feedback-submission";
@@ -54,7 +47,6 @@ const EMPTY_DRAFT: FeedbackDraft = {
   location: "engine_room",
   subject: "",
   description: "",
-  photo: null,
 };
 
 type SubmitState =
@@ -98,22 +90,6 @@ function errorFor(
   return errors.find((e) => e.field === field)?.message;
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("File read failed."));
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        resolve(result);
-      } else {
-        reject(new Error("File read returned non-string result."));
-      }
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
   if (entries.length === 0) {
     return (
@@ -151,7 +127,6 @@ function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
             <div className="mt-1 text-sm font-medium truncate">{entry.subject}</div>
             <div className="mt-0.5 text-xs text-muted-foreground capitalize">
               {entry.category} · {entry.severity} severity
-              {entry.photo ? " · photo attached" : ""}
             </div>
           </li>
         ))}
@@ -198,118 +173,6 @@ function SeverityPills({ value, onChange, disabled }: SeverityPillsProps) {
           </button>
         );
       })}
-    </div>
-  );
-}
-
-interface PhotoFieldProps {
-  photo: FeedbackPhotoMeta | null | undefined;
-  onChange: (next: FeedbackPhotoMeta | null) => void;
-  disabled?: boolean;
-  onError: (message: string) => void;
-}
-
-function PhotoField({ photo, onChange, disabled, onError }: PhotoFieldProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  async function handleFiles(files: FileList | null) {
-    const file = files?.[0];
-    if (!file) {
-      return;
-    }
-    // The component is intentionally thin here — it grabs bytes off
-    // disk and hands the metadata to the application-layer policy.
-    // Size/MIME/preview-URL rules live in
-    // `validatePhotoForFeedback`, not here.
-    let previewUrl = "";
-    try {
-      previewUrl = await readFileAsDataUrl(file);
-    } catch {
-      // Pass through to the validator so the user-facing copy comes
-      // from one place.
-    }
-    const result = validatePhotoForFeedback({
-      name: file.name,
-      sizeBytes: file.size,
-      mimeType: file.type,
-      previewUrl,
-    });
-    if (!result.ok) {
-      onError(result.message);
-      return;
-    }
-    onChange(result.photo);
-  }
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="fb-photo">Photo (optional)</Label>
-      <input
-        ref={inputRef}
-        id="fb-photo"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        disabled={disabled}
-        onChange={(e) => {
-          void handleFiles(e.target.files);
-          // Reset so picking the same file twice re-fires onChange.
-          e.target.value = "";
-        }}
-        data-testid="input-feedback-photo"
-      />
-      {photo ? (
-        <div
-          className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3"
-          data-testid="preview-feedback-photo"
-        >
-          <img
-            src={photo.previewUrl}
-            alt={photo.name}
-            className="h-16 w-16 rounded-md object-cover ring-1 ring-border"
-            data-testid="img-feedback-photo-thumb"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium" data-testid="text-feedback-photo-name">
-              {photo.name}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {(photo.sizeBytes / 1024).toFixed(0)} KB
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={disabled}
-            onClick={() => onChange(null)}
-            data-testid="button-feedback-photo-remove"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-          className={cn(
-            "flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/20 text-muted-foreground transition-colors",
-            "hover:bg-muted/40 hover:text-foreground",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-          )}
-          data-testid="button-feedback-photo-pick"
-        >
-          <ImagePlus className="h-5 w-5" />
-          <span className="text-xs font-medium">Add Photo</span>
-          <span className="text-[10px]">JPEG / PNG · up to 5 MB</span>
-        </button>
-      )}
-      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-        <Camera className="h-3 w-3" />
-        Stored on this device for the pilot — not uploaded to a server yet.
-      </p>
     </div>
   );
 }
@@ -530,23 +393,6 @@ export default function FeedbackPage() {
                 </p>
               )}
             </div>
-
-            <PhotoField
-              photo={draft.photo}
-              onChange={(next) => update("photo", next)}
-              disabled={isSubmitting}
-              onError={(message) =>
-                setFieldErrors((prev) => [
-                  ...prev.filter((e) => e.field !== "photo"),
-                  { field: "photo", message },
-                ])
-              }
-            />
-            {errorFor(fieldErrors, "photo") && (
-              <p className="text-xs text-destructive" data-testid="error-feedback-photo">
-                {errorFor(fieldErrors, "photo")}
-              </p>
-            )}
 
             <Button
               type="submit"

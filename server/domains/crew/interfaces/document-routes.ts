@@ -5,14 +5,12 @@
 
 import multer from "multer";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { insertCrewDocumentSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 import {
   withErrorHandling,
   sendCreated,
@@ -96,7 +94,7 @@ const expiringDocsQuerySchema = z.object({
   daysAhead: z.coerce.number().int().optional(),
   includeAcknowledged: z.enum(["true", "false"]).optional(),
 });
-const rawBodySchema = z.record(z.unknown());
+const rawBodySchema = jsonRecordSchema;
 
 export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
@@ -151,7 +149,7 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
     enforceQuota("storage_bytes"),
     docFileUpload.single("file"),
     withErrorHandling("upload crew document file", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const userId = req.user?.id;
       const file = req.file;
       if (!file) {

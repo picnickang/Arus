@@ -226,7 +226,7 @@ export function useTrainingData() {
       },
     };
     const exp = exports[type];
-    if (!exp) return;
+    if (!exp) {return;}
     globalThis.open(exp.url, "_blank");
     toast({ title: exp.title, description: exp.desc });
   };

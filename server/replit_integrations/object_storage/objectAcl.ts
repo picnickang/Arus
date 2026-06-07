@@ -82,6 +82,12 @@ abstract class BaseObjectAccessGroup implements ObjectAccessGroup {
   public abstract hasMember(userId: string): Promise<boolean>;
 }
 
+class DenyAllObjectAccessGroup extends BaseObjectAccessGroup {
+  public async hasMember(): Promise<boolean> {
+    return false;
+  }
+}
+
 function createObjectAccessGroup(
   group: ObjectAccessGroup,
 ): BaseObjectAccessGroup {
@@ -98,7 +104,7 @@ function createObjectAccessGroup(
     // case "SUBSCRIBER":
     //   return new SubscriberAccessGroup(group.id);
     default:
-      throw new Error(`Unknown access group type: ${group.type}`);
+      return new DenyAllObjectAccessGroup(group.type, group.id);
   }
 }
 
@@ -178,4 +184,3 @@ export async function canAccessObject({
 
   return false;
 }
-

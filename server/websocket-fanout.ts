@@ -123,7 +123,7 @@ export function makeEventId(timestampMs: number, seq: number): string {
 export function compareEventIds(a: string, b: string): number {
   const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
   const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
-  if (aMs !== bMs) return aMs - bMs;
+  if (aMs !== bMs) {return aMs - bMs;}
   return aSeq - bSeq;
 }
 
@@ -232,7 +232,7 @@ class ReplayRing {
   since(orgId: string, channel: string, lastEventId: string | null): FanoutEvent[] {
     const key = this.key(orgId, channel);
     const bucket = this.buckets.get(key);
-    if (!bucket) return [];
+    if (!bucket) {return [];}
 
     this.trimExpired(bucket);
     if (bucket.events.length === 0) {
@@ -240,7 +240,7 @@ class ReplayRing {
       return [];
     }
 
-    if (!lastEventId) return bucket.events.slice();
+    if (!lastEventId) {return bucket.events.slice();}
     return bucket.events.filter((e) => compareEventIds(e.eventId, lastEventId) > 0);
   }
 
@@ -257,7 +257,7 @@ class ReplayRing {
   trimAll(): void {
     for (const [key, bucket] of this.buckets) {
       this.trimExpired(bucket);
-      if (bucket.events.length === 0) this.buckets.delete(key);
+      if (bucket.events.length === 0) {this.buckets.delete(key);}
     }
   }
 
@@ -303,7 +303,7 @@ export class InProcessFanoutBus implements FanoutBus {
     // Trim the buckets periodically so memory tracks the window even
     // when readers never query (e.g. orphaned channels).
     this.trimTimer = setInterval(() => this.ring.trimAll(), Math.min(windowMs, 60_000));
-    if (typeof this.trimTimer.unref === "function") this.trimTimer.unref();
+    if (typeof this.trimTimer.unref === "function") {this.trimTimer.unref();}
   }
 
   protected handlerKey(orgId: string, channel: string): string {
@@ -344,7 +344,7 @@ export class InProcessFanoutBus implements FanoutBus {
    *  through the same local handler set as locally-published events. */
   protected dispatch(event: FanoutEvent): void {
     const handlers = this.handlers.get(this.handlerKey(event.orgId, event.channel));
-    if (!handlers) return;
+    if (!handlers) {return;}
     for (const handler of handlers) {
       try {
         handler(event);
@@ -364,9 +364,9 @@ export class InProcessFanoutBus implements FanoutBus {
     set.add(handler);
     return () => {
       const s = this.handlers.get(key);
-      if (!s) return;
+      if (!s) {return;}
       s.delete(handler);
-      if (s.size === 0) this.handlers.delete(key);
+      if (s.size === 0) {this.handlers.delete(key);}
     };
   }
 

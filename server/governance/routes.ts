@@ -5,24 +5,14 @@
  * SINGLE-TENANT SYSTEM: Uses default-org-id for all queries
  */
 
-import { Router, Request } from "express";
+import { Router } from "express";
 import { z } from "zod";
 import { getLineageRecords, getModelLineage, compareModels, recordPromotion } from "./lineage.js";
 import { getProvenanceEvents, verifyChain } from "./provenance.js";
 import type { DeploymentStage, ModelFamily } from "./types.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { requireRole } from "../middleware/role-auth";
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    isActive: boolean;
-    name?: string;
-    orgId?: string;
-  } & Record<string, unknown>;
-}
+import { authenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -150,7 +140,7 @@ router.get("/model/compare", async (req, res, next) => {
 // CrewRole set ("admin", "chief_engineer").
 router.post("/model/promote", requireRole("admin", "chief_engineer"), async (req, res, next) => {
   try {
-    const user = (req as AuthenticatedRequest).user;
+    const user = authenticatedRequest(req).user;
     if (!user || !["Manager", "Admin", "admin", "chief_engineer"].includes(user.role)) {
       return res.status(403).json({
         success: false,

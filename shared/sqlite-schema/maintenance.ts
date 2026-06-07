@@ -71,7 +71,6 @@ export const maintenanceCostsSqlite = sqliteTable(
     amount: real("amount").notNull(),
     currency: text("currency").notNull().default("USD"),
     description: text("description"),
-    incurredAt: integer("incurred_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
@@ -175,16 +174,16 @@ export const maintenanceWindowsSqlite = sqliteTable(
 );
 
 export const portCallSqlite = sqliteTable(
-  "port_calls",
+  "port_call",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
     vesselId: text("vessel_id").notNull(),
-    portName: text("port_name").notNull(),
-    portCode: text("port_code"),
+    port: text("port"),
+    start: integer("start", { mode: "timestamp" }),
+    end: integer("end", { mode: "timestamp" }),
     arrivalTime: integer("arrival_time", { mode: "timestamp" }),
     departureTime: integer("departure_time", { mode: "timestamp" }),
-    purpose: text("purpose"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
   },
@@ -195,16 +194,16 @@ export const portCallSqlite = sqliteTable(
 );
 
 export const drydockWindowSqlite = sqliteTable(
-  "drydock_windows",
+  "drydock_window",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
     vesselId: text("vessel_id").notNull(),
-    yardName: text("yard_name"),
-    startDate: integer("start_date", { mode: "timestamp" }).notNull(),
-    endDate: integer("end_date", { mode: "timestamp" }),
+    yard: text("yard"),
+    start: integer("start", { mode: "timestamp" }),
+    end: integer("end", { mode: "timestamp" }),
+    workType: text("work_type"),
     status: text("status").notNull().default("planned"),
-    estimatedCost: real("estimated_cost"),
     actualCost: real("actual_cost"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),

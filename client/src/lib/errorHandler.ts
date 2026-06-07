@@ -118,7 +118,7 @@ export function initializeGlobalErrorHandlers() {
 
       return response;
     } catch (error) {
-      const errMsg = (error as Error).message || "";
+      const errMsg = ((error instanceof Error ? error.message : String(error))) || "";
       if (errMsg === "Load failed" || errMsg === "Failed to fetch") {
         throw error;
       }
@@ -127,7 +127,7 @@ export function initializeGlobalErrorHandlers() {
         "error",
         "api",
         `Network Error: ${errMsg}`,
-        (error as Error).stack,
+        ((error instanceof Error ? error.stack : undefined)),
         {
           url,
           method: typeof args[1] === "object" ? args[1]?.method : "GET",

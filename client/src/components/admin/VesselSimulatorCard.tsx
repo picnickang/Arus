@@ -79,7 +79,7 @@ export function VesselSimulatorCard() {
     } catch (error) {
       toast({
         title: "Failed to load vessel types",
-        description: (error as Error).message,
+        description: ((error instanceof Error ? error.message : String(error))),
         variant: "destructive",
       });
     } finally {
@@ -149,11 +149,11 @@ export function VesselSimulatorCard() {
     } catch (error) {
       setLastResult({
         success: false,
-        message: (error as Error).message || "Simulation failed",
+        message: ((error instanceof Error ? error.message : String(error))) || "Simulation failed",
       });
       toast({
         title: "Simulation Failed",
-        description: (error as Error).message,
+        description: ((error instanceof Error ? error.message : String(error))),
         variant: "destructive",
       });
     } finally {

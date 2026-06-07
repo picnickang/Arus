@@ -23,8 +23,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "./db.js";
 import { workOrders, syncConflicts } from "@shared/schema-runtime";
-import { insertWorkOrderSchema } from "@shared/schema";
-import { z } from "zod";
+import { insertWorkOrderSchema } from "@shared/schema-runtime";
 
 // ── Errors the route layer translates into HTTP 400 ──────────────────────
 

@@ -5,7 +5,6 @@ import type { WidenPartial } from "../../lib/widen-partial";
 
 import { randomUUID } from "node:crypto";
 import { eq, and, sql, lte, or } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { tableColumns } from "../_helpers/table-columns";
 import { db } from "../../db-config";
 import { createLogger } from "../../lib/structured-logger";
@@ -104,7 +103,7 @@ export class DatabaseEquipmentStorage {
     // Failures are logged at warn level (with orgId/equipmentId) so
     // graph drift is observable, not silent.
     try {
-      if (!newEquipment.orgId) throw new Error("missing orgId");
+      if (!newEquipment.orgId) {throw new Error("missing orgId");}
       await projectEquipment(newEquipment.orgId, {
         id: newEquipment.id,
         name: newEquipment.name,
@@ -248,8 +247,7 @@ export class DatabaseEquipmentStorage {
       // The cascade-delete path needs a real fix; until then, only run the
       // delete if a column with that name exists at runtime.
       {
-        const col = tableColumns(rawTelemetry)
-          ['equipmentId'];
+        const col = tableColumns(rawTelemetry)['equipmentId'];
         if (col) {
           await tx.delete(rawTelemetry).where(eq(col, id));
         }
@@ -262,8 +260,7 @@ export class DatabaseEquipmentStorage {
       // SCHEMA GAP: twinSimulations has no equipmentId column (only digitalTwinId).
       // Cascade-delete path needs a real fix.
       {
-        const col = tableColumns(twinSimulations)
-          ['equipmentId'];
+        const col = tableColumns(twinSimulations)['equipmentId'];
         if (col) {
           await tx.delete(twinSimulations).where(eq(col, id));
         }
@@ -276,13 +273,11 @@ export class DatabaseEquipmentStorage {
       // (org-scoped, not equipment-scoped). Cascade behavior needs a real fix —
       // probably this delete shouldn't exist at all. Guard at runtime.
       {
-        const r = tableColumns(insightReports)
-          ['equipmentId'];
+        const r = tableColumns(insightReports)['equipmentId'];
         if (r) {
           await tx.delete(insightReports).where(eq(r, id));
         }
-        const s = tableColumns(insightSnapshots)
-          ['equipmentId'];
+        const s = tableColumns(insightSnapshots)['equipmentId'];
         if (s) {
           await tx.delete(insightSnapshots).where(eq(s, id));
         }
@@ -348,7 +343,7 @@ export class DatabaseEquipmentStorage {
       .set({ vesselId, vesselName: vessel.name, updatedAt: new Date() })
       .where(eq(equipment.id, equipmentId))
       .returning();
-    if (!updated) throw new Error(`Equipment ${equipmentId} update returned no row`);
+    if (!updated) {throw new Error(`Equipment ${equipmentId} update returned no row`);}
     // Task #81 — keep graph INSTALLED_ON edge in lockstep. Retract
     // the old edge first (projectEquipment only ADDs), then re-project.
     // Best-effort; never blocks the relational write.
@@ -460,9 +455,8 @@ export class DatabaseEquipmentStorage {
   async getReplacementRecommendations(): Promise<EquipmentLifecycle[]> {
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    const col = tableColumns(equipmentLifecycle)
-      ['estimatedEndOfLife'];
-    if (!col) return [];
+    const col = tableColumns(equipmentLifecycle)['estimatedEndOfLife'];
+    if (!col) {return [];}
     return db.select().from(equipmentLifecycle).where(lte(col, sixMonthsFromNow));
   }
 
@@ -511,9 +505,8 @@ export class DatabaseEquipmentStorage {
   }
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");
-    const compatibleParts = tableColumns(equipment)
-      ['compatibleParts'];
-    if (!compatibleParts) return [];
+    const compatibleParts = tableColumns(equipment)['compatibleParts'];
+    if (!compatibleParts) {return [];}
     return db
       .select()
       .from(equipment)

@@ -11,9 +11,9 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 const logger = createLogger("ServiceOrders:Routes");
 import { Router, Request, Response } from "express";
+import { authenticatedRequest } from "../middleware/auth";
 
 /**
  * Derive orgId from the authenticated request (set by `requireOrgId` middleware,
@@ -23,7 +23,11 @@ import { Router, Request, Response } from "express";
  * the system becomes multi-tenant, only this helper changes.
  */
 function getOrgId(req: Request): string {
-  return (req as Request & { orgId?: string }).orgId || DEFAULT_ORG_ID;
+  const orgId = authenticatedRequest(req).orgId;
+  if (!orgId) {
+    throw new Error("Organization ID required");
+  }
+  return orgId;
 }
 
 /**
@@ -41,7 +45,7 @@ function pathParam(req: Request, name: string): string {
 }
 import { insertServiceOrderSchema, emailQueue, suppliers } from "@shared/schema";
 import * as repo from "./repository";
-import { SERVICE_ORDER_STATUS_TRANSITIONS, ServiceOrderStatus } from "./types";
+import { SERVICE_ORDER_STATUS_TRANSITIONS, type ServiceOrderStatus } from "./types";
 import { generateSOEmailHtmlWithTemplate } from "./email-templates";
 import { syncWorkOrderFromServiceOrders } from "../routes/wo-so-bridge-routes";
 import { db } from "../db";
@@ -52,6 +56,26 @@ import { z } from "zod";
 const router = Router();
 
 const FINALIZED_SO_STATUSES = ["completed", "invoiced"];
+const serviceOrderStatusSchema = z.enum([
+  "draft",
+  "sent",
+  "confirmed",
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
+
+function queryString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function headerString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function serviceOrderStatus(value: unknown): ServiceOrderStatus {
+  return serviceOrderStatusSchema.parse(value);
+}
 
 async function triggerProcurementAggregation(
   workOrderId: string | null | undefined,
@@ -94,11 +118,11 @@ router.get("/", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
 
   const filters = {
-    status: req.query['status'] as ServiceOrderStatus | undefined,
-    serviceProviderId: req.query['serviceProviderId'] as string | undefined,
-    workOrderId: req.query['workOrderId'] as string | undefined,
-    dateFrom: req.query['dateFrom'] ? new Date(req.query['dateFrom'] as string) : undefined,
-    dateTo: req.query['dateTo'] ? new Date(req.query['dateTo'] as string) : undefined,
+    status: req.query['status'] === undefined ? undefined : serviceOrderStatusSchema.parse(req.query['status']),
+    serviceProviderId: queryString(req.query['serviceProviderId']),
+    workOrderId: queryString(req.query['workOrderId']),
+    dateFrom: req.query['dateFrom'] ? new Date(String(req.query['dateFrom'])) : undefined,
+    dateTo: req.query['dateTo'] ? new Date(String(req.query['dateTo'])) : undefined,
   };
 
   const orders = await repo.listServiceOrders(orgId, filters);
@@ -149,7 +173,7 @@ router.post("/", async (req: Request, res: Response) => {
 // ── PATCH /:id ─────────────────────────────────────────────────────────────────
 router.patch("/:id", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  const userId = req.headers["x-user-id"] as string | undefined;
+  const userId = headerString(req.headers["x-user-id"]);
 
   const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {
@@ -174,7 +198,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
     ((data['actualAmount'] !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
       (data['status'] !== undefined && data['status'] !== existing.status))
   ) {
-    await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status as string, newStatus as string);
+    await triggerProcurementAggregation(existing.workOrderId, orgId, String(existing.status), String(newStatus));
   }
 
   return res.json(updated);
@@ -188,7 +212,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
  */
 router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  const userId = req.headers["x-user-id"] as string | undefined;
+  const userId = headerString(req.headers["x-user-id"]);
 
   const schema = z.object({
     revisedAmount: z.number().min(0, "Revised amount must be non-negative"),
@@ -206,7 +230,8 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
   }
 
   const allowedStatuses: ServiceOrderStatus[] = ["sent", "confirmed", "in_progress"];
-  if (!allowedStatuses.includes(existing.status as ServiceOrderStatus)) {
+  const currentStatus = serviceOrderStatus(existing.status);
+  if (!allowedStatuses.includes(currentStatus)) {
     return res.status(400).json({
       error: `Cannot revise cost on a ${existing.status} service order. Allowed: ${allowedStatuses.join(", ")}`,
     });
@@ -222,7 +247,7 @@ router.patch("/:id/revise-cost", async (req: Request, res: Response) => {
   await repo.updateServiceOrderStatus(
     pathParam(req, 'id'),
     orgId,
-    existing.status as ServiceOrderStatus,
+    currentStatus,
     userId,
     {
       eventOverride: "cost_revised",
@@ -244,7 +269,7 @@ router.post("/:id/send", async (req: Request, res: Response) => {
     return res.status(404).json({ error: "Service order not found" });
   }
 
-  if (!SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("sent")) {
+  if (!SERVICE_ORDER_STATUS_TRANSITIONS[serviceOrderStatus(existing.status)].includes("sent")) {
     return res.status(400).json({ error: `Cannot send order in ${existing.status} status` });
   }
 
@@ -305,7 +330,7 @@ router.post("/:id/confirm", async (req: Request, res: Response) => {
   }
 
   if (
-    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("confirmed")
+    !SERVICE_ORDER_STATUS_TRANSITIONS[serviceOrderStatus(existing.status)].includes("confirmed")
   ) {
     return res.status(400).json({ error: `Cannot confirm order in ${existing.status} status` });
   }
@@ -329,7 +354,7 @@ router.post("/:id/start", async (req: Request, res: Response) => {
   }
 
   if (
-    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("in_progress")
+    !SERVICE_ORDER_STATUS_TRANSITIONS[serviceOrderStatus(existing.status)].includes("in_progress")
   ) {
     return res.status(400).json({ error: `Cannot start order in ${existing.status} status` });
   }
@@ -353,7 +378,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
   }
 
   if (
-    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("completed")
+    !SERVICE_ORDER_STATUS_TRANSITIONS[serviceOrderStatus(existing.status)].includes("completed")
   ) {
     return res.status(400).json({ error: `Cannot complete order in ${existing.status} status` });
   }
@@ -393,7 +418,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
   }
 
   if (
-    !SERVICE_ORDER_STATUS_TRANSITIONS[existing.status as ServiceOrderStatus].includes("cancelled")
+    !SERVICE_ORDER_STATUS_TRANSITIONS[serviceOrderStatus(existing.status)].includes("cancelled")
   ) {
     return res.status(400).json({ error: `Cannot cancel order in ${existing.status} status` });
   }
@@ -420,7 +445,7 @@ router.get("/:id/events", async (req: Request, res: Response) => {
 // ── DELETE /:id ────────────────────────────────────────────────────────────────
 router.delete("/:id", async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  const userId = req.headers["x-user-id"] as string | undefined;
+  const userId = headerString(req.headers["x-user-id"]);
 
   const existing = await repo.getServiceOrderById(pathParam(req, 'id'), orgId);
   if (!existing) {

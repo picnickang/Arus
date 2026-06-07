@@ -158,7 +158,7 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
           data: [],
         };
       }
-      grouped[reading.sensorType]!.data.push({
+      grouped[reading.sensorType].data.push({
         timestamp: new Date(reading.timestamp),
         value: reading.value,
       });

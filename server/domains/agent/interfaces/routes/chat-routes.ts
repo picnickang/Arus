@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import type { Multer } from "multer";
-import type { AuthenticatedRequest } from "../../../../middleware/auth";
+import { authenticatedRequest } from "../../../../middleware/auth";
 import type { AgentOrchestrator } from "../../application/orchestrator";
 import { agentRepo } from "../../infrastructure/repository";
 import { registerFile, listConversationFiles } from "../../infrastructure/file-registry";
@@ -30,9 +30,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     rateLimit.writeOperationRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
-        const userRole = (req as AuthenticatedRequest).user?.role;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
+        const userRole = authenticatedRequest(req).user?.role;
         const { message, conversationId } = req.body;
 
         if (!message || typeof message !== "string") {
@@ -75,9 +75,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       const files = (req.files as Express.Multer.File[]) || [];
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
-        const userRole = (req as AuthenticatedRequest).user?.role;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
+        const userRole = authenticatedRequest(req).user?.role;
         const { message, conversationId } = req.body;
 
         if (!message || typeof message !== "string") {
@@ -140,8 +140,8 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       const files = (req.files as Express.Multer.File[]) || [];
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
         const conversationId = req.params['id'] ?? '';
 
         const existing = await agentRepo.conversations.get(conversationId, orgId);
@@ -214,7 +214,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const conversationId = req.params['id'] ?? '';
         const files = await listConversationFiles(conversationId, orgId);
         return res.json({
@@ -238,9 +238,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     rateLimit.generalApiRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const orgId = (req as AuthenticatedRequest).orgId;
-        const userId = (req as AuthenticatedRequest).user?.id;
-        const userRole = (req as AuthenticatedRequest).user?.role;
+        const orgId = authenticatedRequest(req).orgId;
+        const userId = authenticatedRequest(req).user?.id;
+        const userRole = authenticatedRequest(req).user?.role;
         const message = req.query['message'] as string;
         const conversationId = req.query['conversationId'] as string | undefined;
 
@@ -273,12 +273,12 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
           return res
             .status(500)
             .json({ error: error instanceof Error ? error.message : "Agent stream error" });
-        } else {
+        }
           res.write(
             `data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`
           );
           return res.end();
-        }
+
       }
     }
   );

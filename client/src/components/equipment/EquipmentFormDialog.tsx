@@ -71,9 +71,9 @@ export function EquipmentFormDialog({
     mutationFn: (data: InsertEquipment) =>
       apiRequest<Equipment>("POST", "/api/equipment", data),
     onSuccess: async (created) => {
-      if (created && (created as Equipment).id) {
+      if (created && (created).id) {
         queryClient.setQueryData<Equipment[]>(equipmentKeys.list(), (old) =>
-          old ? [...old, created as Equipment] : [created as Equipment],
+          old ? [...old, created] : [created],
         );
       }
       await queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });

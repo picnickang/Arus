@@ -17,7 +17,7 @@ import type {
   CrewTaskEventEntity,
 } from "../domain/types";
 import { db } from "../../../db";
-import { crew, notificationQueue } from "@shared/schema";
+import { crew, notificationQueue } from "@shared/schema-runtime";
 import { and, eq } from "drizzle-orm";
 import { auditService, type AuditEventType } from "../../../compliance/immutable-audit";
 import { getWebSocketServer } from "../../../websocket-server";
@@ -162,7 +162,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     orgId: string,
     crewId: string | null,
   ): Promise<string | null> {
-    if (!crewId) return null;
+    if (!crewId) {return null;}
     try {
       const [member] = await db
         .select({ name: crew.name })
@@ -249,7 +249,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     kind: AssignmentNoticeKind,
   ): Promise<void> {
     try {
-      if (!task.assignedCrewId) return;
+      if (!task.assignedCrewId) {return;}
 
       const [member] = await db
         .select({ name: crew.name, email: crew.email })

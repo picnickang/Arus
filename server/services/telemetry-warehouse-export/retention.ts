@@ -26,7 +26,7 @@ const logger = createLogger("TelemetryWarehouseExport:Retention");
 
 export function resolveRetentionDays(): number {
   const raw = process.env['TELEMETRY_WAREHOUSE_RETENTION_DAYS'];
-  if (raw === undefined || raw === "") return 0;
+  if (raw === undefined || raw === "") {return 0;}
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) {
     logger.warn("TELEMETRY_WAREHOUSE_RETENTION_DAYS invalid — disabling retention", {
@@ -97,11 +97,11 @@ export async function pruneOldExports(now: Date = new Date()): Promise<Retention
 
   for (const f of files) {
     const name = f.name;
-    if (name.endsWith("_manifest.json")) continue;
+    if (name.endsWith("_manifest.json")) {continue;}
     const date = extractPartitionDate(name);
     const orgId = extractOrgId(name);
-    if (!date || !orgId) continue;
-    if (date >= cutoffDate) continue;
+    if (!date || !orgId) {continue;}
+    if (date >= cutoffDate) {continue;}
     try {
       await f.delete();
       objectsDeleted += 1;

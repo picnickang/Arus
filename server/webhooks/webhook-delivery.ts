@@ -81,7 +81,7 @@ export function verifySignature(secret: string, body: string, timestamp: string,
   const expected = signPayload(secret, body, timestamp);
   const a = Buffer.from(expected);
   const b = Buffer.from(signature);
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {return false;}
   return crypto.timingSafeEqual(a, b);
 }
 
@@ -192,7 +192,7 @@ export class WebhookDeliveryService {
           latencyMs: result.latencyMs,
         }
       );
-      if (result.ok) return { attempts, succeeded: true };
+      if (result.ok) {return { attempts, succeeded: true };}
       if (attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, backoffFor(attempt)));
       }

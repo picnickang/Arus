@@ -101,9 +101,9 @@ const newNoticeSchema = z.object({
 type NewNoticeForm = z.infer<typeof newNoticeSchema>;
 
 function formatDate(value: string | null): string {
-  if (!value) return "";
+  if (!value) {return "";}
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) {return "";}
   return d.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -112,7 +112,7 @@ function formatDate(value: string | null): string {
 }
 
 function currentRole(): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") {return null;}
   try {
     return window.localStorage.getItem(ROLE_STORAGE_KEY);
   } catch {
@@ -148,11 +148,11 @@ function NewNoticeDialog() {
       title: values.title,
       severity: values.severity,
     };
-    if (values.body && values.body.length > 0) payload["body"] = values.body;
+    if (values.body && values.body.length > 0) {payload["body"] = values.body;}
     if (values.reference && values.reference.length > 0)
-      payload["reference"] = values.reference;
+      {payload["reference"] = values.reference;}
     if (values.vesselId && values.vesselId !== FLEET_WIDE_VALUE)
-      payload["vesselId"] = values.vesselId;
+      {payload["vesselId"] = values.vesselId;}
 
     try {
       await apiRequest("POST", "/api/safety-bulletins", payload);

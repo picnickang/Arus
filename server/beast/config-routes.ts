@@ -126,14 +126,14 @@ router.post("/config/:feature/toggle", async (req, res) => {
         orgId,
         message: `Feature ${feature} ${enabled ? "enabled" : "disabled"} successfully`,
       });
-    } else {
+    }
       return res
         .status(500)
         .json({
           success: false,
           error: `Failed to ${enabled ? "enable" : "disable"} feature ${feature}`,
         });
-    }
+
   } catch (error) {
     logger.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, undefined, error);
     return res

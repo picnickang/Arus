@@ -11,6 +11,8 @@
  */
 
 import { z } from "zod";
+import { jsonRecordSchema } from "./validation/json";
+import type { JsonValue } from "./validation/json";
 
 /* ------------------------------------------------------------------ *
  * Dashboard widgets
@@ -27,6 +29,11 @@ export const DASHBOARD_WIDGETS = [
 ] as const;
 
 export type WidgetKey = (typeof DASHBOARD_WIDGETS)[number];
+const WIDGET_KEY_SET: ReadonlySet<string> = new Set(DASHBOARD_WIDGETS);
+
+export function isWidgetKey(value: string): value is WidgetKey {
+  return WIDGET_KEY_SET.has(value);
+}
 
 export const WIDGET_LABELS: Record<WidgetKey, string> = {
   current_vessel: "Current Vessel",
@@ -167,7 +174,7 @@ export const roleDashboardConfigSchema = z.object({
     .transform((sources) => sanitizeTaskSources(sources)),
   visibilityScope: z.enum(VISIBILITY_SCOPES).default("vessel"),
   quickActions: z.array(z.string()).default([]),
-  filters: z.record(z.unknown()).default({}),
+  filters: jsonRecordSchema.default({}),
   highImpactQuestions: z.record(z.string()).default({}),
   // --- Additive, back-compatible extensions (all optional so already-stored
   // string-array configs keep parsing) ---
@@ -179,7 +186,7 @@ export const roleDashboardConfigSchema = z.object({
   pinnedWidgets: z.array(z.enum(DASHBOARD_WIDGETS)).optional(),
   // Per-widget small settings (e.g. time window, severity filter) keyed by
   // widget id, with an optional personal override layered on top per account.
-  widgetSettings: z.record(z.record(z.unknown())).optional(),
+  widgetSettings: z.record(jsonRecordSchema).optional(),
 });
 
 export type RoleDashboardConfig = z.infer<typeof roleDashboardConfigSchema>;
@@ -305,7 +312,7 @@ export const ACCESS_LEVEL_KEYS = ACCESS_LEVELS.map((a) => a.key);
 export const LEAST_PRIVILEGED_ACCESS_LEVEL = "viewer";
 
 export function isAccessLevelKey(value: string | null | undefined): boolean {
-  if (value == null) return false;
+  if (value == null) {return false;}
   return ACCESS_LEVEL_KEYS.includes(value.trim().toLowerCase());
 }
 
@@ -337,7 +344,7 @@ export const DEFAULT_RANK_TO_ACCESS_LEVEL: Record<string, string> = {
 
 /** Normalise an arbitrary rank/role label into a snake_case lookup key. */
 export function normalizeRankKey(rank: string | null | undefined): string {
-  if (rank == null) return "";
+  if (rank == null) {return "";}
   return rank.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
@@ -350,7 +357,7 @@ export function defaultAccessLevelForRank(
   overrides?: Record<string, string>,
 ): string {
   const key = normalizeRankKey(rank);
-  if (!key) return LEAST_PRIVILEGED_ACCESS_LEVEL;
+  if (!key) {return LEAST_PRIVILEGED_ACCESS_LEVEL;}
   const mapped = overrides?.[key] ?? DEFAULT_RANK_TO_ACCESS_LEVEL[key];
   return mapped ?? "crew_member";
 }
@@ -393,15 +400,22 @@ export const ADMIN_GRANT_ELIGIBLE_ROLE_KEYS = [
   "manager",
 ] as const;
 
+const HUB_ID_SET: ReadonlySet<string> = new Set(HUB_IDS);
+const SUPER_ADMIN_ROLE_KEY_SET: ReadonlySet<string> = new Set(SUPER_ADMIN_ROLE_KEYS);
+const ADMIN_CAPABLE_ROLE_KEY_SET: ReadonlySet<string> = new Set(ADMIN_CAPABLE_ROLE_KEYS);
+const ADMIN_GRANT_ELIGIBLE_ROLE_KEY_SET: ReadonlySet<string> = new Set(
+  ADMIN_GRANT_ELIGIBLE_ROLE_KEYS
+);
+
 export function isHubId(value: string): value is HubId {
-  return (HUB_IDS as readonly string[]).includes(value);
+  return HUB_ID_SET.has(value);
 }
 
 /** A super-admin role is always a full-hub admin and cannot be edited/revoked. */
 export function isSuperAdminRole(role: string | null | undefined): boolean {
-  if (role == null) return false;
+  if (role == null) {return false;}
   const key = role.trim().toLowerCase();
-  return (SUPER_ADMIN_ROLE_KEYS as readonly string[]).includes(key);
+  return SUPER_ADMIN_ROLE_KEY_SET.has(key);
 }
 
 /**
@@ -415,16 +429,16 @@ export function isPermissionEditorRole(role: string | null | undefined): boolean
 
 /** Whether a role is in the lockout-protected admin-capable set (super OR admin). */
 export function isAdminCapableRole(role: string | null | undefined): boolean {
-  if (role == null) return false;
+  if (role == null) {return false;}
   const key = role.trim().toLowerCase();
-  return (ADMIN_CAPABLE_ROLE_KEYS as readonly string[]).includes(key);
+  return ADMIN_CAPABLE_ROLE_KEY_SET.has(key);
 }
 
 /** Whether a role is eligible to be granted hub-admin access. */
 export function isAdminGrantEligibleRole(role: string | null | undefined): boolean {
-  if (role == null) return false;
+  if (role == null) {return false;}
   const key = role.trim().toLowerCase();
-  return (ADMIN_GRANT_ELIGIBLE_ROLE_KEYS as readonly string[]).includes(key);
+  return ADMIN_GRANT_ELIGIBLE_ROLE_KEY_SET.has(key);
 }
 
 /**
@@ -435,9 +449,9 @@ export function isAdminGrantEligibleRole(role: string | null | undefined): boole
 export function normalizeHubAccess(
   hubAccess: readonly string[] | null | undefined,
 ): string[] | null {
-  if (!hubAccess) return null;
+  if (!hubAccess) {return null;}
   const valid = [...new Set(hubAccess.filter(isHubId))];
-  if (valid.length === 0 || valid.length === HUB_IDS.length) return null;
+  if (valid.length === 0 || valid.length === HUB_IDS.length) {return null;}
   return valid;
 }
 
@@ -449,8 +463,8 @@ export function resolveHubAdmin(
   roleNames: readonly string[],
   storedHubAdmin: boolean,
 ): boolean {
-  if (roleNames.some((r) => isSuperAdminRole(r))) return true;
-  if (!storedHubAdmin) return false;
+  if (roleNames.some((r) => isSuperAdminRole(r))) {return true;}
+  if (!storedHubAdmin) {return false;}
   // Re-check eligibility at resolution time so a user demoted below the
   // grant-eligible tier (manager or above) loses effective hub-admin even if
   // the stored grant flag was never explicitly revoked on demotion.
@@ -465,7 +479,7 @@ export function resolveHubAccess(
   roleNames: readonly string[],
   storedHubAccess: readonly string[] | null,
 ): string[] | null {
-  if (roleNames.some((r) => isSuperAdminRole(r))) return null;
+  if (roleNames.some((r) => isSuperAdminRole(r))) {return null;}
   return normalizeHubAccess(storedHubAccess);
 }
 
@@ -498,8 +512,8 @@ export function normalizeRoleHubAccess(
   hubAdmin: boolean,
   hubAccess: readonly string[] | null | undefined,
 ): { hubAdmin: boolean; hubAccess: string[] | null } {
-  if (!hubAdmin) return { hubAdmin: false, hubAccess: null };
-  if (hubAccess == null) return { hubAdmin: true, hubAccess: null };
+  if (!hubAdmin) {return { hubAdmin: false, hubAccess: null };}
+  if (hubAccess == null) {return { hubAdmin: true, hubAccess: null };}
   const valid = [...new Set(hubAccess.filter(isHubId))];
   if (valid.length === HUB_IDS.length) {
     return { hubAdmin: true, hubAccess: null };
@@ -518,9 +532,9 @@ export function resolveEffectiveHubAdmin(
   roles: readonly RoleHubFields[],
   userStoredHubAdmin: boolean,
 ): boolean {
-  if (roles.some((r) => isSuperAdminRole(r.name))) return true;
-  if (roles.some((r) => r.hubAdmin && isAdminGrantEligibleRole(r.name))) return true;
-  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) return true;
+  if (roles.some((r) => isSuperAdminRole(r.name))) {return true;}
+  if (roles.some((r) => r.hubAdmin && isAdminGrantEligibleRole(r.name))) {return true;}
+  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) {return true;}
   return false;
 }
 
@@ -538,18 +552,18 @@ export function resolveEffectiveHubAccess(
   userStoredHubAdmin: boolean,
   userStoredHubAccess: readonly string[] | null,
 ): string[] | null {
-  if (roles.some((r) => isSuperAdminRole(r.name))) return null;
-  if (!resolveEffectiveHubAdmin(roles, userStoredHubAdmin)) return null;
+  if (roles.some((r) => isSuperAdminRole(r.name))) {return null;}
+  if (!resolveEffectiveHubAdmin(roles, userStoredHubAdmin)) {return null;}
 
   const granted = new Set<string>();
   let anyFull = false;
 
   for (const r of roles) {
-    if (!r.hubAdmin || !isAdminGrantEligibleRole(r.name)) continue;
+    if (!r.hubAdmin || !isAdminGrantEligibleRole(r.name)) {continue;}
     if (r.hubAccess == null) {
       anyFull = true;
     } else {
-      for (const h of r.hubAccess) if (isHubId(h)) granted.add(h);
+      for (const h of r.hubAccess) {if (isHubId(h)) {granted.add(h);}}
     }
   }
 
@@ -557,13 +571,13 @@ export function resolveEffectiveHubAccess(
     if (userStoredHubAccess == null) {
       anyFull = true;
     } else {
-      for (const h of userStoredHubAccess) if (isHubId(h)) granted.add(h);
+      for (const h of userStoredHubAccess) {if (isHubId(h)) {granted.add(h);}}
     }
   }
 
-  if (anyFull) return null;
+  if (anyFull) {return null;}
   const valid = [...granted].filter(isHubId);
-  if (valid.length === HUB_IDS.length) return null;
+  if (valid.length === HUB_IDS.length) {return null;}
   return valid;
 }
 
@@ -736,7 +750,7 @@ export const ALARM_CAPABILITY_WIDGETS: readonly WidgetKey[] = [
 
 /** Most-permissive scope among the given scopes, or null when the list is empty. */
 export function maxScope(scopes: VisibilityScope[]): VisibilityScope | null {
-  if (scopes.length === 0) return null;
+  if (scopes.length === 0) {return null;}
   let rank = -1;
   for (const scope of scopes) {
     rank = Math.max(rank, VISIBILITY_SCOPE_RANK[scope]);
@@ -785,28 +799,28 @@ export function scopeForAlarms(configs: RoleDashboardConfig[]): VisibilityScope 
  * list collapses to the safe-minimal config.
  */
 export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashboardConfig {
-  if (configs.length === 0) return safeMinimalDashboardConfig();
-  if (configs.length === 1) return configs[0] ?? safeMinimalDashboardConfig();
+  if (configs.length === 0) {return safeMinimalDashboardConfig();}
+  if (configs.length === 1) {return configs[0] ?? safeMinimalDashboardConfig();}
 
   const widgetSet = new Set<WidgetKey>();
   const taskSet = new Set<TaskSourceKey>();
   const quickActions = new Set<string>();
   const pinnedSet = new Set<WidgetKey>();
-  let filters: Record<string, unknown> = {};
+  let filters: Record<string, JsonValue> = {};
   let highImpactQuestions: Record<string, string> = {};
-  let widgetSettings: Record<string, Record<string, unknown>> = {};
+  let widgetSettings: Record<string, Record<string, JsonValue>> = {};
   let landingRoute: string | undefined;
   let scopeRank = VISIBILITY_SCOPE_RANK.self;
 
   for (const config of configs) {
-    for (const widget of config.widgets) widgetSet.add(widget);
-    for (const source of config.taskSources) taskSet.add(source);
-    for (const action of config.quickActions) quickActions.add(action);
-    for (const widget of config.pinnedWidgets ?? []) pinnedSet.add(widget);
+    for (const widget of config.widgets) {widgetSet.add(widget);}
+    for (const source of config.taskSources) {taskSet.add(source);}
+    for (const action of config.quickActions) {quickActions.add(action);}
+    for (const widget of config.pinnedWidgets ?? []) {pinnedSet.add(widget);}
     filters = { ...filters, ...config.filters };
     highImpactQuestions = { ...highImpactQuestions, ...config.highImpactQuestions };
     widgetSettings = { ...widgetSettings, ...(config.widgetSettings ?? {}) };
-    if (landingRoute === undefined && config.landingRoute) landingRoute = config.landingRoute;
+    if (landingRoute === undefined && config.landingRoute) {landingRoute = config.landingRoute;}
     scopeRank = Math.max(scopeRank, VISIBILITY_SCOPE_RANK[config.visibilityScope]);
   }
 
@@ -847,7 +861,7 @@ export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashb
 export interface UserDashboardPrefsInput {
   hiddenWidgets?: string[];
   widgetOrder?: string[];
-  widgetSettings?: Record<string, Record<string, unknown>>;
+  widgetSettings?: Record<string, Record<string, JsonValue>>;
   landingRoute?: string;
 }
 
@@ -856,7 +870,7 @@ export function applyUserDashboardPrefs(
   prefs: UserDashboardPrefsInput | null | undefined,
   allowedLandingRoutes?: readonly string[],
 ): RoleDashboardConfig {
-  if (!prefs) return config;
+  if (!prefs) {return config;}
 
   const pinned = new Set<WidgetKey>(config.pinnedWidgets ?? []);
   const granted = new Set<WidgetKey>(config.widgets);
@@ -872,13 +886,14 @@ export function applyUserDashboardPrefs(
     const ordered: WidgetKey[] = [];
     const seen = new Set<WidgetKey>();
     for (const id of prefs.widgetOrder) {
-      if (granted.has(id as WidgetKey) && visibleSet.has(id as WidgetKey) && !seen.has(id as WidgetKey)) {
-        ordered.push(id as WidgetKey);
-        seen.add(id as WidgetKey);
+      if (!isWidgetKey(id)) {continue;}
+      if (granted.has(id) && visibleSet.has(id) && !seen.has(id)) {
+        ordered.push(id);
+        seen.add(id);
       }
     }
     for (const w of visible) {
-      if (!seen.has(w)) ordered.push(w);
+      if (!seen.has(w)) {ordered.push(w);}
     }
     visible = ordered;
   }
@@ -887,9 +902,9 @@ export function applyUserDashboardPrefs(
   let widgetSettings = config.widgetSettings;
   if (prefs.widgetSettings) {
     const survivors = new Set<WidgetKey>(visible);
-    const merged: Record<string, Record<string, unknown>> = { ...(config.widgetSettings ?? {}) };
+    const merged: Record<string, Record<string, JsonValue>> = { ...(config.widgetSettings ?? {}) };
     for (const [widgetId, settings] of Object.entries(prefs.widgetSettings)) {
-      if (!survivors.has(widgetId as WidgetKey)) continue;
+      if (!isWidgetKey(widgetId) || !survivors.has(widgetId)) {continue;}
       merged[widgetId] = { ...(merged[widgetId] ?? {}), ...settings };
     }
     widgetSettings = merged;

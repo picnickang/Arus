@@ -21,7 +21,7 @@ function initializeConstraintMap(
 
   for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
     const crew = constraints.crewAvailability[crewIdx];
-    if (!crew) continue;
+    if (!crew) {continue;}
     for (let day = 0; day < constraints.timeHorizonDays; day++) {
       constraintMap.set(`crew_capacity_c${crewIdx}_d${day}`, { max: crew.maxHoursPerDay });
     }
@@ -160,7 +160,7 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
 
   for (let jobIdx = 0; jobIdx < jobs.length; jobIdx++) {
     const job = jobs[jobIdx];
-    if (!job) continue;
+    if (!job) {continue;}
 
     for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
       const crew = constraints.crewAvailability[crewIdx];

@@ -1,8 +1,14 @@
 import { Express, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
-import { insertOilAnalysisSchema, insertWearParticleAnalysisSchema } from "@shared/schema-runtime";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
+import {
+  insertConditionMonitoringSchema,
+  insertOilAnalysisSchema,
+  insertOilChangeRecordSchema,
+  insertWearParticleAnalysisSchema,
+} from "@shared/schema-runtime";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbConditionMonitoringStorage } from "../../db/condition-monitoring/index.js";
@@ -25,9 +31,9 @@ export function registerConditionMonitoringRoutes(
     wearAnalysisId: z.string().optional(),
     vibrationScore: z.number().optional(),
   });
-  const assessmentBodySchema = z.record(z.unknown());
-  const oilChangeBodySchema = z.record(z.unknown());
-  const updateBodySchema = z.record(z.unknown());
+  const assessmentBodySchema = insertConditionMonitoringSchema;
+  const oilChangeBodySchema = insertOilChangeRecordSchema;
+  const updateBodySchema = jsonRecordSchema;
 
   // ===== OIL ANALYSIS ROUTES =====
 
@@ -36,7 +42,7 @@ export function registerConditionMonitoringRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch oil analyses", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
       const analyses = await dbConditionMonitoringStorage.getOilAnalyses(
         orgId,
@@ -52,7 +58,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch oil analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const analysis = await dbConditionMonitoringStorage.getOilAnalysis(id, orgId);
       if (!analysis) {
         return sendNotFound(res, "Oil analysis");
@@ -84,7 +90,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("update oil analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const body = updateBodySchema.parse(req.body);
       const analysis = await dbConditionMonitoringStorage.updateOilAnalysis(
         id,
@@ -101,7 +107,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("delete oil analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       await dbConditionMonitoringStorage.deleteOilAnalysis(id, orgId);
       sendDeleted(res);
     })
@@ -114,7 +120,7 @@ export function registerConditionMonitoringRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch wear particle analyses", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
       const analyses = await dbConditionMonitoringStorage.getWearParticleAnalyses(
         orgId,
@@ -130,7 +136,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch wear particle analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const analysis = await dbConditionMonitoringStorage.getWearParticleAnalysis(id, orgId);
       if (!analysis) {
         return sendNotFound(res, "Wear particle analysis");
@@ -162,7 +168,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("update wear particle analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const body = updateBodySchema.parse(req.body);
       const analysis = await dbConditionMonitoringStorage.updateWearParticleAnalysis(
         id,
@@ -179,7 +185,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("delete wear particle analysis", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       await dbConditionMonitoringStorage.deleteWearParticleAnalysis(id, orgId);
       sendDeleted(res);
     })
@@ -192,7 +198,7 @@ export function registerConditionMonitoringRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch condition monitoring assessments", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
       const assessments = await dbConditionMonitoringStorage.getConditionMonitoringRecords(
         orgId,
@@ -208,7 +214,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch condition monitoring assessment", async (req, res) => {
       const { id } = idParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const assessment = await dbConditionMonitoringStorage.getConditionMonitoringRecord(id, orgId);
       if (!assessment) {
         return sendNotFound(res, "Condition monitoring assessment");
@@ -223,9 +229,8 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("create condition monitoring assessment", async (req, res) => {
       const body = assessmentBodySchema.parse(req.body);
-      const assessment = await dbConditionMonitoringStorage.createConditionMonitoringRecord(
-        body as Parameters<typeof dbConditionMonitoringStorage.createConditionMonitoringRecord>[0]
-      );
+      const assessment =
+        await dbConditionMonitoringStorage.createConditionMonitoringRecord(body);
       sendCreated(res, assessment);
     })
   );
@@ -237,7 +242,7 @@ export function registerConditionMonitoringRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch oil change records", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { equipmentId } = equipmentIdQuerySchema.parse(req.query);
       const records = await dbConditionMonitoringStorage.getOilChangeRecords(
         orgId,
@@ -253,9 +258,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("create oil change record", async (req, res) => {
       const body = oilChangeBodySchema.parse(req.body);
-      const record = await dbConditionMonitoringStorage.createOilChangeRecord(
-        body as Parameters<typeof dbConditionMonitoringStorage.createOilChangeRecord>[0]
-      );
+      const record = await dbConditionMonitoringStorage.createOilChangeRecord(body);
       sendCreated(res, record);
     })
   );
@@ -299,7 +302,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch latest condition data", async (req, res) => {
       const { equipmentId } = equipmentIdParamSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
 
       const [latestOil, latestWear, conditionRecords, lastOilChange] = await Promise.all([
         dbConditionMonitoringStorage.getLatestOilAnalysis(equipmentId, orgId),

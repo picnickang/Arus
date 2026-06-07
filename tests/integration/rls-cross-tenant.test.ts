@@ -59,7 +59,7 @@ async function insertAsSuperuser(
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) return;
+  if (!databaseUrl) {return;}
   pool = new Pool({ connectionString: databaseUrl, max: 4 });
   const probe = await pool.connect();
   try {
@@ -67,8 +67,8 @@ beforeAll(async () => {
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables
          WHERE table_schema = current_schema() AND table_name = 'equipment') AS exists`,
     );
-    if (!r.rows[0]?.exists) return;
-    if (!(await tableHasRls(probe, "equipment"))) return;
+    if (!r.rows[0]?.exists) {return;}
+    if (!(await tableHasRls(probe, "equipment"))) {return;}
     rlsReady = true;
     await insertAsSuperuser(probe, ORG_A, "T88 A pump");
     await insertAsSuperuser(probe, ORG_B, "T88 B pump");
@@ -78,7 +78,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (!pool) return;
+  if (!pool) {return;}
   if (rlsReady) {
     const cleanup = await pool.connect();
     try {
@@ -137,7 +137,7 @@ describe("Task #88 — RLS cross-tenant isolation (real Postgres)", () => {
   });
 
   it("flips visibility when the pinned org switches", async () => {
-    if (!databaseUrl || !pool || !rlsReady) return;
+    if (!databaseUrl || !pool || !rlsReady) {return;}
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -157,7 +157,7 @@ describe("Task #88 — RLS cross-tenant isolation (real Postgres)", () => {
   });
 
   it("returns zero rows when no tenant context is set (fail-closed)", async () => {
-    if (!databaseUrl || !pool || !rlsReady) return;
+    if (!databaseUrl || !pool || !rlsReady) {return;}
     const client = await pool.connect();
     try {
       // Use a savepoint-less transaction with NO set_config call —

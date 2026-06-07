@@ -245,10 +245,10 @@ function AssignmentInsights({ d }: { d: UnifiedCrewData }) {
   const hasOn = onDays != null;
   const hasOff = offDays != null;
   if (hasOn && hasOff) {
-    if ((onDays as number) + (offDays as number) > 365) {
+    if ((onDays) + (offDays) > 365) {
       conflicts.push("Rotation on + off days exceed a full year.");
     }
-    if ((onDays as number) > 0 && offDays === 0) {
+    if ((onDays) > 0 && offDays === 0) {
       conflicts.push("Days-on is set but days-off is zero — check the rotation.");
     }
   } else if (hasOn !== hasOff) {

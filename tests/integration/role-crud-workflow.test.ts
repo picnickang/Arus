@@ -155,14 +155,14 @@ const fakeRepository = new Proxy(
       data: WidenPartial<InsertRole>
     ): Promise<Role | undefined> {
       const role = rolesStore.get(id);
-      if (!role || role.orgId !== orgId) return undefined;
+      if (!role || role.orgId !== orgId) {return undefined;}
       const updated: Role = { ...role, ...data, updatedAt: new Date() } as Role;
       rolesStore.set(id, updated);
       return updated;
     },
     async deleteRole(id: string, orgId: string): Promise<boolean> {
       const role = rolesStore.get(id);
-      if (!role || role.orgId !== orgId) return false;
+      if (!role || role.orgId !== orgId) {return false;}
       rolesStore.set(id, { ...role, isActive: false, updatedAt: new Date() });
       return true;
     },
@@ -242,7 +242,7 @@ const fakeRepository = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) return obj[prop];
+      if (prop in obj) {return obj[prop];}
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
@@ -271,6 +271,9 @@ beforeAll(async () => {
       compiledAt: new Date(),
     }),
     permissionService: {
+      authorize: async () => ({ allowed: true }),
+      hasAnyPermission: async () => true,
+      hasAllPermissions: async () => true,
       invalidateOrgPermissionCache: (orgId: string) => {
         invalidations.org.push(orgId);
       },
@@ -288,6 +291,20 @@ beforeAll(async () => {
       select: () => ({
         from: () => ({ where: () => ({ limit: async () => [] }) }),
       }),
+    },
+    pool: {
+      query: jest.fn(async () => ({ rows: [] })),
+      end: jest.fn(async () => {}),
+    },
+    libsqlClient: null,
+  }));
+
+  // Grant updates emit immutable audit records in production. Stub the audit
+  // writer so this route-level suite stays DB-free while still exercising the
+  // route's audit call path.
+  jest.unstable_mockModule("../../server/compliance/immutable-audit.service", () => ({
+    auditService: {
+      logEvent: jest.fn(async (input: Record<string, unknown>) => input),
     },
   }));
 
@@ -332,7 +349,7 @@ describe("Role CRUD routes — mounted", () => {
 
 describe("Role CRUD — create + read", () => {
   it("creates a role with a valid name (201) and echoes the persisted row", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/permissions/roles")
       .set("x-test-user", ADMIN)
@@ -351,7 +368,7 @@ describe("Role CRUD — create + read", () => {
   });
 
   it("rejects an invalid role name (uppercase / spaces) with 400", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/permissions/roles")
       .set("x-test-user", ADMIN)
@@ -364,7 +381,7 @@ describe("Role CRUD — create + read", () => {
   });
 
   it("lists roles and fetches a single role by id with the expected shape", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const created = await request(app)
       .post("/api/permissions/roles")
       .set("x-test-user", ADMIN)
@@ -385,7 +402,7 @@ describe("Role CRUD — create + read", () => {
   });
 
   it("returns 404 for an unknown role id", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .get("/api/permissions/roles/does-not-exist")
       .set("x-test-user", ADMIN);
@@ -395,7 +412,7 @@ describe("Role CRUD — create + read", () => {
 
 describe("Role CRUD — update + system-role protection", () => {
   it("renames a role and updates its display name (PUT, 200)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "old_name", displayName: "Old Name" });
 
     const res = await request(app)
@@ -410,7 +427,7 @@ describe("Role CRUD — update + system-role protection", () => {
   });
 
   it("blocks modifying a system role (PATCH, 400)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const sysRole = seedRole({ name: "system_admin", displayName: "System Admin", isSystemRole: true });
 
     const res = await request(app)
@@ -431,7 +448,7 @@ describe("Role CRUD — update + system-role protection", () => {
   // The fix belongs in the route handler, tracked as separate follow-up work.
 
   it("returns 404 when updating an unknown role", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .put("/api/permissions/roles/missing")
       .set("x-test-user", ADMIN)
@@ -442,7 +459,7 @@ describe("Role CRUD — update + system-role protection", () => {
 
 describe("Role CRUD — permission grants", () => {
   it("sets permission grants and reads them back", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "engineer", displayName: "Engineer" });
 
     const put = await request(app)
@@ -471,7 +488,7 @@ describe("Role CRUD — permission grants", () => {
   });
 
   it("updates an existing grant in place rather than duplicating it", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "steward", displayName: "Steward" });
 
     await request(app)
@@ -494,7 +511,7 @@ describe("Role CRUD — permission grants", () => {
   });
 
   it("returns 404 when setting grants for an unknown role", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .put("/api/permissions/roles/missing/grants")
       .set("x-test-user", ADMIN)
@@ -505,7 +522,7 @@ describe("Role CRUD — permission grants", () => {
 
 describe("Role CRUD — assignment", () => {
   it("assigns the role to a user (201) and reflects it in the user's assignments", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "fleet_manager", displayName: "Fleet Manager" });
     const userId = "user-42";
 
@@ -525,7 +542,7 @@ describe("Role CRUD — assignment", () => {
   });
 
   it("removes a role assignment from a user via the unassign route", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "deckhand", displayName: "Deckhand" });
     const userId = "user-77";
 
@@ -550,7 +567,7 @@ describe("Role CRUD — assignment", () => {
 
 describe("Role CRUD — delete (soft) with guardrails", () => {
   it("blocks deleting a system role (400)", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const sysRole = seedRole({ name: "company_admin", displayName: "Company Admin", isSystemRole: true });
 
     const res = await request(app)
@@ -566,7 +583,7 @@ describe("Role CRUD — delete (soft) with guardrails", () => {
   // block is driven by real crew-assignment state (crewStore), not a synthetic
   // count, so this catches drift in the guard's data source.
   it("blocks delete while crew are assigned, then succeeds after reassignment", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "bosun", displayName: "Bosun" });
     seedCrewMember(role.id);
     seedCrewMember(role.id);
@@ -595,7 +612,7 @@ describe("Role CRUD — delete (soft) with guardrails", () => {
   });
 
   it("does not count another tenant's crew against the role's delete guard", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const role = seedRole({ name: "cadet", displayName: "Cadet" });
     // Crew carrying the same roleId but under a different org must NOT block.
     seedCrewMember(role.id, "other-org");
@@ -608,7 +625,7 @@ describe("Role CRUD — delete (soft) with guardrails", () => {
   });
 
   it("returns 404 when deleting an unknown role", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .delete("/api/permissions/roles/missing")
       .set("x-test-user", ADMIN);
@@ -618,7 +635,7 @@ describe("Role CRUD — delete (soft) with guardrails", () => {
 
 describe("Role CRUD — auth gate", () => {
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) throw new Error(mountError);
+    if (mountError) {throw new Error(mountError);}
     const res = await request(app)
       .post("/api/permissions/roles")
       .send({ name: "ghost", displayName: "Ghost" });

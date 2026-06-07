@@ -11,7 +11,7 @@
  *   - Providers can be swapped freely (fake provider proves the port is honoured).
  */
 
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 import { DefaultLLMGateway } from "../../server/lib/llm-gateway/gateway";
 import { estimateCostUsd } from "../../server/lib/llm-gateway/cost-meter";
 import type {
@@ -45,7 +45,7 @@ class FakeProvider implements LLMProviderPort {
     return this.nextResponse;
   }
   async *chatStream(_params: LLMChatParams): AsyncIterable<LLMStreamChunk> {
-    for (const c of this.stream) yield c;
+    for (const c of this.stream) {yield c;}
   }
 }
 
@@ -97,8 +97,8 @@ describe("DefaultLLMGateway", () => {
       name: "broken",
       isAvailable: async () => true,
       chat: async () => { throw new Error("nope"); },
-      // eslint-disable-next-line @typescript-eslint/require-yield
-      chatStream: async function* () { throw new Error("nope"); },
+      // eslint-disable-next-line require-yield
+      async *chatStream () { throw new Error("nope"); },
     };
     const meter = new RecordingMeter();
     const gateway = new DefaultLLMGateway({ provider, meter });
@@ -145,7 +145,7 @@ describe("DefaultLLMGateway", () => {
     const gateway = new DefaultLLMGateway({ provider, meter });
 
     const got: string[] = [];
-    for await (const c of gateway.chatStream(baseParams)) got.push(c.contentDelta);
+    for await (const c of gateway.chatStream(baseParams)) {got.push(c.contentDelta);}
 
     expect(got.join("")).toBe("hello");
     expect(meter.events).toHaveLength(1);

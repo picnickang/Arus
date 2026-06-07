@@ -53,9 +53,23 @@ const planBodySchema = z.object({
   mode: z.enum(["dry_run", "auto", "execute", "simulate"]).optional(),
 });
 const runsQuerySchema = z.object({ limit: z.string().optional() });
+const scheduleAssignmentPreviewSchema = z.object({
+  id: z.string().min(1),
+  runId: z.string().min(1),
+  orgId: z.string().min(1),
+  crewId: z.string().min(1),
+  shiftId: z.string().min(1),
+  date: z.string().min(1),
+  vesselId: z.string().nullable().optional().default(null),
+  start: z.coerce.date(),
+  end: z.coerce.date(),
+  role: z.string().nullable().optional().default(null),
+  executed: z.boolean().nullable().optional().default(null),
+  createdAt: z.coerce.date().nullable().optional().default(null),
+});
 const previewComplianceBodySchema = z.object({
   scheduleRunId: z.string().optional(),
-  assignments: z.array(z.unknown()).optional(),
+  assignments: z.array(scheduleAssignmentPreviewSchema).optional(),
 });
 const simulateBodySchema = z.object({
   from: z.string(),
@@ -195,7 +209,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         }
         assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(scheduleRunId);
       } else if (draftAssignments && Array.isArray(draftAssignments)) {
-        assignments = draftAssignments as typeof assignments;
+        assignments = draftAssignments;
       } else {
         return sendBadRequest(res, "Either scheduleRunId or assignments array is required");
       }
@@ -233,9 +247,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             success: true,
             message: `Generated ${result.sheetsCreated} rest sheets with ${result.daysCreated} days`,
           });
-        } else {
-          return res.status(400).json({ ...result, success: false, errors: result.errors });
         }
+          return res.status(400).json({ ...result, success: false, errors: result.errors });
+
       }
     )
   );

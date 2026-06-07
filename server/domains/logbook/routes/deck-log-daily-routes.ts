@@ -6,6 +6,7 @@
 
 import type { Express } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { deckLogStorage } from "../../../repositories";
 import {
   withErrorHandling,
@@ -36,8 +37,8 @@ const createBodySchema = z
     vesselId: z.string().min(1),
     logDate: z.string().min(1),
   })
-  .and(z.record(z.unknown()));
-const updateBodySchema = z.record(z.unknown());
+  .and(jsonRecordSchema);
+const updateBodySchema = jsonRecordSchema;
 const signBodySchema = z.object({
   signedByCrewId: z.string().min(1),
   signedByName: z.string().min(1),

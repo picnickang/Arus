@@ -6,7 +6,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { certificateService } from "../service";
-import { requireOrgId, type AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { CERTIFICATE_TYPES, CERTIFICATE_STATUSES, ISSUING_AUTHORITY_TYPES } from "@shared/schema";
 
@@ -108,7 +108,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch certificate summary", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId } = z.object({ vesselId: z.string().optional() }).parse(req.query);
       const summary = await certificateService.getSummary(orgId, vesselId);
       return res.json(summary);
@@ -120,7 +120,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch expiring certificates", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { days: daysRaw } = z.object({ days: z.coerce.number().optional() }).parse(req.query);
       const days = Math.min(Math.max(daysRaw || 90, 1), 365);
       const certs = await certificateService.getExpiring(orgId, days);
@@ -133,7 +133,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("list certificates", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { vesselId, type, status } = z
         .object({
           vesselId: z.string().optional(),
@@ -155,7 +155,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch certificate", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       const cert = await certificateService.getCertificateById(id, orgId);
       if (!cert) {
@@ -170,11 +170,11 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("create certificate", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = createCertificateSchema.parse(req.body);
       const cert = await certificateService.createCertificate(
         { ...data, orgId },
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       return res.status(201).json(cert);
     })
@@ -185,14 +185,14 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("update certificate", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = updateCertificateSchema.parse(req.body);
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       const updated = await certificateService.updateCertificate(
         id,
         orgId,
         data,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
@@ -206,14 +206,14 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("add condition of class", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = conditionSchema.parse(req.body);
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       const result = await certificateService.addCondition(
         id,
         orgId,
         data,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       if (!result) {
         return res.status(404).json({ error: "Certificate not found" });
@@ -227,7 +227,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("update condition status", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const { id, conditionId } = z
         .object({ id: z.string().min(1), conditionId: z.string().min(1) })
         .parse(req.params);
@@ -237,7 +237,7 @@ export function registerCertificateRoutes(
         orgId,
         conditionId,
         status,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
@@ -251,13 +251,13 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("add endorsement", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const data = endorsementSchema.parse(req.body);
       const updated = await certificateService.addEndorsement(
         req.params['id'] ?? '',
         orgId,
         data,
-        (req as AuthenticatedRequest).user?.id
+        authenticatedRequest(req).user?.id
       );
       if (!updated) {
         return res.status(404).json({ error: "Certificate not found" });
@@ -271,7 +271,7 @@ export function registerCertificateRoutes(
     requireOrgId,
     writeLimit,
     withErrorHandling("delete certificate", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const deleted = await certificateService.deleteCertificate(req.params['id'] ?? '', orgId);
       if (!deleted) {
         return res.status(404).json({ error: "Certificate not found" });

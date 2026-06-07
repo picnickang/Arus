@@ -26,7 +26,7 @@ import {
   suppliers,
   parts,
 } from "@shared/schema";
-import { requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest, requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
 import { idempotencyMiddleware } from "../middleware/idempotency";
 import { RateLimiters } from "../lib/rate-limit-factory";
 import { fulfillItem } from "./fulfillment-service";
@@ -434,7 +434,7 @@ router.patch("/:id/items/:itemId", requireOrgId, idempotencyMiddleware(), writeL
       orgId,
       poId: id,
       eventType: "price_updated",
-      userId: (req as AuthenticatedRequest).user?.id,
+      userId: authenticatedRequest(req).user?.id,
       details: { itemId, oldUnitPrice: existing.unitPrice, newUnitPrice: parsed.data.unitPrice },
     });
 
@@ -468,7 +468,7 @@ router.post("/:id/fulfill-pr", requireOrgId, idempotencyMiddleware(), writeLimit
     if (!id) {
       return res.status(400).json({ error: "Missing required path parameter: id" });
     }
-    const userId = (req as AuthenticatedRequest).user?.id;
+    const userId = authenticatedRequest(req).user?.id;
 
     const [po] = await db
       .select()

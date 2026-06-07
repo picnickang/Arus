@@ -8,12 +8,11 @@
 import type { Request, Response, NextFunction } from "express";
 import { permissionService } from "./service";
 import type { ActionCode } from "../../config/permission-registry";
-
-type AuthenticatedRequest = Request;
+import { authenticatedRequest } from "../../middleware/auth";
 
 export function requirePermission(resource: string, action: ActionCode) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const userId = authReq.user?.id;
     const orgId = authReq.orgId;
 
@@ -54,7 +53,7 @@ export function requirePermission(resource: string, action: ActionCode) {
 
 export function requireAnyPermission(resource: string, actions: ActionCode[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const userId = authReq.user?.id;
     const orgId = authReq.orgId;
 
@@ -86,7 +85,7 @@ export function requireAnyPermission(resource: string, actions: ActionCode[]) {
 
 export function requireAllPermissions(checks: Array<{ resource: string; action: ActionCode }>) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = authenticatedRequest(req);
     const userId = authReq.user?.id;
     const orgId = authReq.orgId;
 
@@ -120,7 +119,7 @@ export async function attachUserPermissions(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const authReq = req as AuthenticatedRequest & {
+  const authReq = authenticatedRequest(req) as Request & {
     permissions?: Record<string, Record<string, boolean>>;
   };
   const userId = authReq.user?.id;

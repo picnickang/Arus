@@ -21,17 +21,11 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { RequestHandler } from "express";
 import { db } from "../../../db-config";
-import { TenantDeleteService } from "../../gdpr/tenant-delete-service";
+import { TenantDeleteService } from "../../../services/tenant-delete-facade";
 import { TENANT_TABLE_NAMES } from "../../../tenancy/tenant-tables";
 import { createLogger } from "../../../lib/structured-logger";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import type { Express, SystemAdminDependencies } from "./types.js";
-
-// SystemAdminDependencies declares admin middleware with `unknown` req/res to
-// avoid pulling express types into the dependency surface. Cast them back to
-// RequestHandler at the registration boundary so the Express router accepts
-// them without leaking `any`.
-type AdminHandler = RequestHandler;
 
 interface PgExecResult {
   rows?: unknown[];
@@ -79,12 +73,15 @@ export function registerTenantRoutes(
 ): void {
   const { requireAdminAuth, auditAdminAction, criticalOperationRateLimit } =
     deps;
+  const adminAuth: RequestHandler = (req, res, next) => requireAdminAuth(req, res, next);
+  const auditAdmin = (action: string): RequestHandler =>
+    (req, res, next) => auditAdminAction(action)(req, res, next);
 
   // List tenants ------------------------------------------------------------
   app.get(
     "/api/admin/tenants",
     criticalOperationRateLimit,
-    requireAdminAuth as AdminHandler,
+    adminAuth,
     async (_req, res) => {
       try {
         const result = (await db.execute(
@@ -112,8 +109,8 @@ export function registerTenantRoutes(
   app.post(
     "/api/admin/tenants",
     criticalOperationRateLimit,
-    requireAdminAuth as AdminHandler,
-    auditAdminAction("tenant_provision") as AdminHandler,
+    adminAuth,
+    auditAdmin("tenant_provision"),
     async (req, res) => {
       const parsed = provisionSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -161,8 +158,8 @@ export function registerTenantRoutes(
   app.patch(
     "/api/admin/tenants/:orgId/suspend",
     criticalOperationRateLimit,
-    requireAdminAuth as AdminHandler,
-    auditAdminAction("tenant_suspend") as AdminHandler,
+    adminAuth,
+    auditAdmin("tenant_suspend"),
     async (req, res) => {
       const parsed = suspendSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -189,8 +186,8 @@ export function registerTenantRoutes(
   app.patch(
     "/api/admin/tenants/:orgId/unsuspend",
     criticalOperationRateLimit,
-    requireAdminAuth as AdminHandler,
-    auditAdminAction("tenant_unsuspend") as AdminHandler,
+    adminAuth,
+    auditAdmin("tenant_unsuspend"),
     async (req, res) => {
       try {
         await db.execute(
@@ -213,8 +210,8 @@ export function registerTenantRoutes(
   app.delete(
     "/api/admin/tenants/:orgId",
     criticalOperationRateLimit,
-    requireAdminAuth as AdminHandler,
-    auditAdminAction("tenant_delete") as AdminHandler,
+    adminAuth,
+    auditAdmin("tenant_delete"),
     async (req, res) => {
       const parsed = deleteSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -225,7 +222,7 @@ export function registerTenantRoutes(
         });
       }
       try {
-        const adminId = (req as AuthenticatedRequest).user?.id ?? "admin";
+        const adminId = authenticatedRequest(req).user?.id ?? "admin";
         // Fail-closed: in production we refuse to mint a deletion
         // certificate without an explicit signing secret — the dev
         // fallback would silently produce non-verifiable certs.

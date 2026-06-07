@@ -47,11 +47,11 @@ export async function validateSamlAssertion(
   const { profile } = await saml.validatePostResponseAsync({
     SAMLResponse: samlResponseBase64,
   });
-  if (!profile) throw new Error("SAML assertion returned no profile");
+  if (!profile) {throw new Error("SAML assertion returned no profile");}
 
   const p = profile as Record<string, unknown>;
   const nameId = String(p['nameID'] || p["nameID"] || "");
-  if (!nameId) throw new Error("SAML profile missing nameID");
+  if (!nameId) {throw new Error("SAML profile missing nameID");}
 
   const email = typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined);
   const displayName =

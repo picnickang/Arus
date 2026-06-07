@@ -50,8 +50,8 @@ interface ModelMetadata {
 }
 
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024) {return `${n} B`;}
+  if (n < 1024 * 1024) {return `${(n / 1024).toFixed(1)} KB`;}
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
@@ -64,9 +64,25 @@ export default function Admin3DModelsPage() {
   // Page-level admin gate. The backend role check sits on the mutating
   // routes, but if a non-admin opens this page we want a clear "Admin
   // only" empty state rather than letting them poke around an empty UI.
-  const vesselsErr = vesselsQuery.error as Error | null;
+  const vesselsErr = vesselsQuery.error;
   const isForbidden =
     !!vesselsErr && (/^403:/.test(vesselsErr.message) || /forbidden/i.test(vesselsErr.message));
+
+  const modelQueries = useQueries({
+    queries: vessels.map((v) => ({
+      queryKey: ["/api/v1/vessels", v.id, "3d-model"] as const,
+      enabled: !isForbidden,
+      queryFn: async () => {
+        const res = await fetch(
+          resolveUrl(`/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`),
+          { credentials: "include", headers: createHeaders() }
+        );
+        if (res.status === 404) {return null;}
+        if (!res.ok) {throw new Error(`${res.status}: ${await res.text().catch(() => res.statusText)}`);}
+        return (await res.json()) as ModelMetadata;
+      },
+    })),
+  });
 
   if (isForbidden) {
     return (
@@ -83,21 +99,6 @@ export default function Admin3DModelsPage() {
       </div>
     );
   }
-
-  const modelQueries = useQueries({
-    queries: vessels.map((v) => ({
-      queryKey: ["/api/v1/vessels", v.id, "3d-model"] as const,
-      queryFn: async () => {
-        const res = await fetch(
-          resolveUrl(`/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`),
-          { credentials: "include", headers: createHeaders() }
-        );
-        if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`${res.status}: ${await res.text().catch(() => res.statusText)}`);
-        return (await res.json()) as ModelMetadata;
-      },
-    })),
-  });
 
   return (
     <div className="p-6 space-y-6" data-testid="page-admin-3d-models">
@@ -130,7 +131,7 @@ export default function Admin3DModelsPage() {
                 vessel={vessel}
                 model={mq?.data ?? null}
                 loading={mq?.isLoading ?? false}
-                error={mq?.error as Error | null}
+                error={mq?.error}
                 onChanged={() => {
                   queryClient.invalidateQueries({
                     queryKey: ["/api/v1/vessels", vessel.id, "3d-model"],
@@ -206,7 +207,7 @@ function VesselModelCard({
       });
     } finally {
       setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
+      if (fileInput.current) {fileInput.current.value = "";}
     }
   };
 
@@ -280,7 +281,7 @@ function VesselModelCard({
               disabled={uploading}
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void handleUpload(f);
+                if (f) {void handleUpload(f);}
               }}
             />
           </div>
@@ -446,7 +447,7 @@ function HistoryPanel({
               className="text-sm text-destructive"
               data-testid={`text-history-error-${vesselId}`}
             >
-              Failed to load history: {(historyQuery.error as Error).message}
+              Failed to load history: {(historyQuery.error).message}
             </div>
           )}
           {historyQuery.isSuccess && items.length === 0 && (
@@ -522,7 +523,7 @@ function HistoryPanel({
                                   ? `Delete the CURRENT model "${row.filename}"? The next-newest upload will become current. This cannot be undone.`
                                   : `Delete archived model "${row.filename}"? This cannot be undone.`
                               );
-                              if (ok) remove.mutate(row.id);
+                              if (ok) {remove.mutate(row.id);}
                             }}
                             data-testid={`button-history-delete-${vesselId}-${row.id}`}
                             aria-label="Delete this upload"
@@ -582,7 +583,7 @@ function PinEditor({
   const equipmentList = equipmentQuery.data ?? [];
   const equipmentById = useMemo(() => {
     const map = new Map<string, Equipment>();
-    for (const e of equipmentList) map.set(e.id, e);
+    for (const e of equipmentList) {map.set(e.id, e);}
     return map;
   }, [equipmentList]);
 
@@ -642,9 +643,9 @@ function PinEditor({
     // row was the target, shift its index down so we still point at the
     // right pin after the splice.
     setPlacement((arm) => {
-      if (arm?.mode !== "move") return arm;
-      if (arm.targetIdx === i) return null;
-      if (arm.targetIdx > i) return { mode: "move", targetIdx: arm.targetIdx - 1 };
+      if (arm?.mode !== "move") {return arm;}
+      if (arm.targetIdx === i) {return null;}
+      if (arm.targetIdx > i) {return { mode: "move", targetIdx: arm.targetIdx - 1 };}
       return arm;
     });
   };
@@ -664,7 +665,7 @@ function PinEditor({
 
   /** Fires when the admin clicks a point on the model in placement mode. */
   const handlePlaceAt = (point: { x: number; y: number; z: number }) => {
-    if (!placement) return;
+    if (!placement) {return;}
     // Round to 0.001 — pin precision below mm-of-mesh is noise and
     // makes the table easier to read.
     const round = (n: number) => Math.round(n * 1000) / 1000;

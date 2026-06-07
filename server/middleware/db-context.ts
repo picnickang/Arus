@@ -140,7 +140,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
 
     let released = false;
     const release = () => {
-      if (released) return;
+      if (released) {return;}
       released = true;
       try {
         client.release();
@@ -183,7 +183,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
 
     let finalized = false;
     const finalize = async () => {
-      if (finalized) return;
+      if (finalized) {return;}
       finalized = true;
       try {
         // 5xx and aborted-mid-flight requests roll back so partial

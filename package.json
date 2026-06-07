@@ -84,7 +84,8 @@
     "test:operator-experience": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-experience-service.test.ts tests/unit/operator-information-needs-service.test.ts tests/integration/operator-experience-routes.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
     "test:operator-information-needs": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit/operator-information-needs-service.test.ts tests/integration/operator-information-needs-routes.test.ts --runInBand",
     "check:operator-experience-architecture": "node scripts/check-operator-experience-architecture.mjs",
-    "check:deploy-image": "node scripts/check-deploy-image-guard.mjs"
+    "check:deploy-image": "node scripts/check-deploy-image-guard.mjs",
+    "report:route-permission-matrix": "node scripts/generate-route-permission-matrix.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",

@@ -79,7 +79,7 @@ describe("Service-order forms — CRUD + propagation", () => {
   });
 
   it("SO appears in GET /api/service-orders list", async () => {
-    if (!soId) return; // create above is a hard requirement, but keep test crash-safe
+    if (!soId) {return;} // create above is a hard requirement, but keep test crash-safe
     const { status, data } = await api<unknown>("GET", "/api/service-orders");
     expect(status).toBe(200);
     const items = Array.isArray(data)
@@ -89,7 +89,7 @@ describe("Service-order forms — CRUD + propagation", () => {
   });
 
   it("bridge route /api/service-orders/:id/work-order resolves to the linked WO", async () => {
-    if (!soId) return;
+    if (!soId) {return;}
     const { status, data } = await api<{ id: string }>(
       "GET",
       `/api/service-orders/${soId}/work-order`
@@ -97,7 +97,7 @@ describe("Service-order forms — CRUD + propagation", () => {
     // 404 is acceptable only if the bridge route isn't mounted in this build —
     // skip with reason; otherwise must be 200 and must point at our WO.
     if (status === 404 || status === 500) {
-      // eslint-disable-next-line no-console
+
       console.warn(
         `SKIP: SO->WO bridge route returned ${status} (route gap, not a propagation bug) — see follow-up #62`
       );

@@ -13,11 +13,11 @@ import type { AttentionItem, BlockerResolutionRecord } from "../types";
 
 function blockerType(reason: string | null | undefined): string {
   const normalized = reason?.toLowerCase() ?? "";
-  if (normalized.includes("part") || normalized.includes("stock") || normalized.includes("inventory")) return "Parts / inventory";
-  if (normalized.includes("vendor") || normalized.includes("supplier")) return "Vendor / supplier";
-  if (normalized.includes("approval") || normalized.includes("sign")) return "Approval";
-  if (normalized.includes("weather")) return "Weather";
-  if (normalized.includes("crew") || normalized.includes("technician")) return "Crew availability";
+  if (normalized.includes("part") || normalized.includes("stock") || normalized.includes("inventory")) {return "Parts / inventory";}
+  if (normalized.includes("vendor") || normalized.includes("supplier")) {return "Vendor / supplier";}
+  if (normalized.includes("approval") || normalized.includes("sign")) {return "Approval";}
+  if (normalized.includes("weather")) {return "Weather";}
+  if (normalized.includes("crew") || normalized.includes("technician")) {return "Crew availability";}
   return "Information needed";
 }
 

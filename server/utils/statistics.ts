@@ -216,7 +216,7 @@ export function absEnvelope(x: Series, windowSize: number = 5): number[] {
     for (let j = i - windowSize; j <= i + windowSize; j++) {
       if (j >= 0 && j < rectified.length) {
         const r = rectified[j];
-        if (r === undefined) continue;
+        if (r === undefined) {continue;}
         sum += r;
         count++;
       }
@@ -243,7 +243,7 @@ export function bandRMS(
 
     for (let i = 0; i < freq.length; i++) {
       const f = freq[i];
-      if (f === undefined) continue;
+      if (f === undefined) {continue;}
       if (f >= band.lo && f < band.hi) {
         const magnitude = mag[i] ?? 0;
         energySum += magnitude * magnitude;
@@ -283,7 +283,7 @@ export function linearRegression(x: number[], y: number[]) {
   const ssTotal = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
   const ssResidual = y.reduce((sum, yi, i) => {
     const xi = x[i];
-    if (xi === undefined) return sum;
+    if (xi === undefined) {return sum;}
     const predicted = slope * xi + intercept;
     return sum + Math.pow(yi - predicted, 2);
   }, 0);
@@ -314,12 +314,12 @@ export function exponentialMovingAverage(values: number[], alpha: number = 0.3):
   }
 
   const first = values[0];
-  if (first === undefined) return [];
+  if (first === undefined) {return [];}
   const result: number[] = [first];
   for (let i = 1; i < values.length; i++) {
     const v = values[i];
     const prev = result[i - 1];
-    if (v === undefined || prev === undefined) continue;
+    if (v === undefined || prev === undefined) {continue;}
     result.push(alpha * v + (1 - alpha) * prev);
   }
   return result;
@@ -342,13 +342,13 @@ export function calculateAutocorrelation(values: number[], lag: number): number 
   for (let i = 0; i < n - lag; i++) {
     const vi = values[i];
     const vil = values[i + lag];
-    if (vi === undefined || vil === undefined) continue;
+    if (vi === undefined || vil === undefined) {continue;}
     numerator += (vi - meanVal) * (vil - meanVal);
   }
 
   for (let i = 0; i < n; i++) {
     const vi = values[i];
-    if (vi === undefined) continue;
+    if (vi === undefined) {continue;}
     denominator += Math.pow(vi - meanVal, 2);
   }
 
@@ -378,7 +378,7 @@ export function calculatePearsonCorrelation(x: number[], y: number[]): number {
   for (let i = 0; i < n; i++) {
     const xi = x[i];
     const yi = y[i];
-    if (xi === undefined || yi === undefined) continue;
+    if (xi === undefined || yi === undefined) {continue;}
     const dx = xi - meanX;
     const dy = yi - meanY;
     numerator += dx * dy;
@@ -497,7 +497,7 @@ export function calculateMAE(actual: number[], predicted: number[]): number {
   for (let i = 0; i < n; i++) {
     const a = actual[i];
     const p = predicted[i];
-    if (a === undefined || p === undefined) continue;
+    if (a === undefined || p === undefined) {continue;}
     sum += Math.abs(a - p);
   }
 
@@ -517,7 +517,7 @@ export function calculateRMSE(actual: number[], predicted: number[]): number {
   for (let i = 0; i < n; i++) {
     const a = actual[i];
     const p = predicted[i];
-    if (a === undefined || p === undefined) continue;
+    if (a === undefined || p === undefined) {continue;}
     sum += Math.pow(a - p, 2);
   }
 
@@ -539,7 +539,7 @@ export function calculateMAPE(actual: number[], predicted: number[]): number {
   for (let i = 0; i < n; i++) {
     const a = actual[i];
     const p = predicted[i];
-    if (a === undefined || p === undefined) continue;
+    if (a === undefined || p === undefined) {continue;}
     if (a !== 0) {
       sum += Math.abs((a - p) / a);
       count++;

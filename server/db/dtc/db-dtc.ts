@@ -192,14 +192,14 @@ export class DatabaseDtcStorage {
         .set({ active: fault.active, lastSeen: new Date(), oc: fault.oc, lamp: fault.lamp })
         .where(eq(dtcFaults.id, e.id))
         .returning();
-      if (!result) throw new Error("Failed to update DTC fault");
+      if (!result) {throw new Error("Failed to update DTC fault");}
       return result;
     }
     const [result] = await db
       .insert(dtcFaults)
       .values({ ...fault, firstSeen: new Date(), lastSeen: new Date() })
       .returning();
-    if (!result) throw new Error("Failed to insert DTC fault");
+    if (!result) {throw new Error("Failed to insert DTC fault");}
     return result;
   }
   async clearDtcFault(

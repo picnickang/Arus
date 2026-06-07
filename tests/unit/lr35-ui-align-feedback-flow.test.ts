@@ -7,9 +7,10 @@
  *   - Successful submissions write through the same module
  *     (sessionStorage path), with a `pendingBackend` flag — no
  *     pretend network success.
- *   - The Phase 5 field set (location, severity pills, photo
- *     placeholder) is wired in the React page WITHOUT moving
- *     validation into the component.
+ *   - The Phase 5 field set (location, severity pills) is wired in
+ *     the React page WITHOUT moving validation into the component.
+ *   - Local-only photo capture is not exposed as a production control
+ *     until a server-backed media endpoint exists.
  *   - The stable `empty-feedback-history` empty-state id is
  *     preserved (cross-surface contract).
  *
@@ -21,17 +22,17 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import {
   FEEDBACK_LOCATION_OPTIONS,
-  FEEDBACK_PHOTO_MAX_BYTES,
   listSessionFeedback,
   submitFeedback,
   validateFeedback,
-  validatePhotoForFeedback,
   type FeedbackDraft,
 } from "../../client/src/application/feedback/feedback-submission";
 
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..", "..");
 const PAGE_PATH = resolve(REPO_ROOT, "client/src/pages/feedback.tsx");
 
@@ -41,7 +42,6 @@ const VALID_DRAFT: FeedbackDraft = {
   location: "engine_room",
   subject: "Bilge pump 2 noise",
   description: "Bilge pump 2 is making unusual noise and temperature is above normal.",
-  photo: null,
 };
 
 class MemoryStorage {
@@ -145,29 +145,6 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
       expect(sessionStorage.getItem("arus-pilot-feedback-outbox")).toBeNull();
     });
 
-    it("persists photo metadata but strips the previewUrl (sessionStorage budget)", async () => {
-      const photoDraft: FeedbackDraft = {
-        ...VALID_DRAFT,
-        photo: {
-          name: "engine.jpg",
-          sizeBytes: 12345,
-          mimeType: "image/jpeg",
-          previewUrl: "data:image/jpeg;base64,AAAA",
-        },
-      };
-      const result = await submitFeedback(photoDraft);
-      expect(result.ok).toBe(true);
-      const stored = JSON.parse(
-        sessionStorage.getItem("arus-pilot-feedback-outbox")!,
-      );
-      expect(stored[0].photo).toMatchObject({
-        name: "engine.jpg",
-        sizeBytes: 12345,
-        mimeType: "image/jpeg",
-      });
-      expect(stored[0].photo.previewUrl).toBe("");
-    });
-
     it("listSessionFeedback returns newest-first", async () => {
       await submitFeedback({ ...VALID_DRAFT, subject: "first entry" });
       await submitFeedback({ ...VALID_DRAFT, subject: "second entry" });
@@ -175,53 +152,6 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
       expect(list).toHaveLength(2);
       expect(list[0].subject).toBe("second entry");
       expect(list[1].subject).toBe("first entry");
-    });
-  });
-
-  describe("validatePhotoForFeedback (application-layer policy)", () => {
-    it("rejects non-image MIME types", () => {
-      const result = validatePhotoForFeedback({
-        name: "doc.pdf",
-        sizeBytes: 100,
-        mimeType: "application/pdf",
-        previewUrl: "data:application/pdf;base64,AAAA",
-      });
-      expect(result.ok).toBe(false);
-    });
-
-    it("rejects files over the 5 MB cap", () => {
-      const result = validatePhotoForFeedback({
-        name: "big.jpg",
-        sizeBytes: FEEDBACK_PHOTO_MAX_BYTES + 1,
-        mimeType: "image/jpeg",
-        previewUrl: "data:image/jpeg;base64,AAAA",
-      });
-      expect(result.ok).toBe(false);
-    });
-
-    it("rejects an unusable preview URL", () => {
-      const result = validatePhotoForFeedback({
-        name: "ok.jpg",
-        sizeBytes: 1024,
-        mimeType: "image/jpeg",
-        previewUrl: "",
-      });
-      expect(result.ok).toBe(false);
-    });
-
-    it("accepts a valid image under the cap with a data: preview", () => {
-      const result = validatePhotoForFeedback({
-        name: "ok.jpg",
-        sizeBytes: 1024,
-        mimeType: "image/jpeg",
-        previewUrl: "data:image/jpeg;base64,AAAA",
-      });
-      expect(result.ok).toBe(true);
-      if (!result.ok) {
-        return;
-      }
-      expect(result.photo.name).toBe("ok.jpg");
-      expect(result.photo.mimeType).toBe("image/jpeg");
     });
   });
 
@@ -276,6 +206,31 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
       expect(list).toHaveLength(1);
       expect(list[0].subject).toBe("s");
     });
+
+    it("strips legacy local-only photo metadata from session rows", () => {
+      const legacyWithPhoto = [{
+        trackingId: "FB-PHOTO",
+        createdAt: new Date().toISOString(),
+        category: "bug",
+        severity: "medium",
+        subject: "photo row",
+        description: "description long enough to pass the guard",
+        location: "engine_room",
+        photo: {
+          name: "engine.jpg",
+          sizeBytes: 12345,
+          mimeType: "image/jpeg",
+          previewUrl: "data:image/jpeg;base64,AAAA",
+        },
+      }];
+      sessionStorage.setItem(
+        "arus-pilot-feedback-outbox",
+        JSON.stringify(legacyWithPhoto),
+      );
+      const list = listSessionFeedback();
+      expect(list).toHaveLength(1);
+      expect(list[0]).not.toHaveProperty("photo");
+    });
   });
 });
 
@@ -302,7 +257,7 @@ describe("UI Align Phase 5 — feedback page wiring (source-scan)", () => {
     expect(src).not.toMatch(/sessionStorage\.setItem/);
   });
 
-  it("renders the Phase 5 field set: severity pills, location select, photo placeholder", async () => {
+  it("renders the Phase 5 field set: severity pills and location select", async () => {
     const src = await readFile(PAGE_PATH, "utf8");
     expect(src).toContain('data-testid="group-feedback-severity"');
     // Pill testids are constructed via template literal
@@ -312,8 +267,8 @@ describe("UI Align Phase 5 — feedback page wiring (source-scan)", () => {
     expect(src).toMatch(/value:\s*"medium"/);
     expect(src).toMatch(/value:\s*"high"/);
     expect(src).toContain('data-testid="select-feedback-location"');
-    expect(src).toContain('data-testid="input-feedback-photo"');
-    expect(src).toContain('data-testid="button-feedback-photo-pick"');
+    expect(src).not.toContain('data-testid="input-feedback-photo"');
+    expect(src).not.toContain('data-testid="button-feedback-photo-pick"');
     // Submit button uses the panel-3 copy
     expect(src).toMatch(/Submit Report/);
     // Title matches panel 3 ("Report an Issue")
@@ -327,12 +282,12 @@ describe("UI Align Phase 5 — feedback page wiring (source-scan)", () => {
     expect(src).toContain('data-testid="empty-feedback-history"');
   });
 
-  it("does NOT pretend a photo upload network request succeeded", async () => {
+  it("does NOT expose local-only photo capture as a production control", async () => {
     const src = await readFile(PAGE_PATH, "utf8");
-    // No fetch / apiRequest / axios call for the photo placeholder.
+    expect(src).not.toContain("PhotoField");
+    expect(src).not.toMatch(/capture="environment"/);
     expect(src).not.toMatch(/fetch\(/);
     expect(src).not.toMatch(/apiRequest\(/);
-    // No fake progress bar driven by a setInterval.
     expect(src).not.toMatch(/setInterval\(/);
   });
 

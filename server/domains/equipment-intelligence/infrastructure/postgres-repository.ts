@@ -326,7 +326,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
           | { actualEndDate?: Date | string | null }
           | undefined;
         const v = last?.actualEndDate;
-        if (!v) return null;
+        if (!v) {return null;}
         return v instanceof Date ? v.toISOString() : v;
       })(),
       nextDue:

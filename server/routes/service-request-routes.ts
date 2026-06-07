@@ -1,8 +1,7 @@
 import type { Express, Request, RequestHandler, Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
-import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
+import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
@@ -11,7 +10,7 @@ import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 function getOrgId(req: Request): string {
-  const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+  const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
   if (!orgId) {
     throw new Error("Missing orgId");
   }
@@ -19,7 +18,7 @@ function getOrgId(req: Request): string {
 }
 
 function getUserId(req: Request): string {
-  return (req as AuthenticatedRequest).user?.id || (req.headers["x-user-id"] as string) || "system";
+  return authenticatedRequest(req).user?.id || (req.headers["x-user-id"] as string) || "system";
 }
 
 interface ServiceRequestRow {
@@ -57,7 +56,7 @@ interface WorkOrderRow {
 }
 
 function unwrapRows<T = Record<string, unknown>>(r: unknown): T[] {
-  if (Array.isArray(r)) return r as T[];
+  if (Array.isArray(r)) {return r as T[];}
   if (r && typeof r === "object" && "rows" in r) {
     return ((r as { rows: T[] }).rows) ?? [];
   }

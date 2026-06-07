@@ -13,7 +13,7 @@ import {
 } from "../ml-early-stopping.js";
 const prepareClassWeightsForTF = (labels: number[]): Record<number, number> => {
   const counts: Record<number, number> = {};
-  for (const l of labels) counts[l] = (counts[l] ?? 0) + 1;
+  for (const l of labels) {counts[l] = (counts[l] ?? 0) + 1;}
   const total = labels.length;
   const weights: Record<number, number> = {};
   for (const k of Object.keys(counts)) {
@@ -132,7 +132,7 @@ function calculatePrecisionRecallF1(
   for (let i = 0; i < valPredData.length; i++) {
     const predRow = valPredData[i];
     const labelRow = valLabelsData[i];
-    if (!predRow || !labelRow) continue;
+    if (!predRow || !labelRow) {continue;}
     const pred = (predRow[0] ?? 0) >= 0.5 ? 1 : 0;
     const actual = labelRow[0] ?? 0;
     if (pred === 1 && actual === 1) {

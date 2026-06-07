@@ -110,7 +110,7 @@ export async function initializeDatabase(): Promise<void> {
         await migrateWorkOrderServiceOrderBridge(db);
         logger.info("✓ WO ↔ SO bridge migration applied");
       } catch (err) {
-        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", { details: (err as Error).message });
+        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", { details: ((err instanceof Error ? err.message : String(err))) });
       }
 
       // Wave 0.6 — Feature flag overrides table + cache priming.
@@ -122,7 +122,7 @@ export async function initializeDatabase(): Promise<void> {
         featureFlags.startAutoRefresh(db, 60_000);
         logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
       } catch (err) {
-        logger.warn("[FeatureFlags] Override table setup skipped:", { details: (err as Error).message });
+        logger.warn("[FeatureFlags] Override table setup skipped:", { details: ((err instanceof Error ? err.message : String(err))) });
       }
 
       return;
@@ -321,7 +321,7 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
  * deployments without it.
  */
 export async function applyGraphBootstrap(): Promise<void> {
-  if (!process.env['DATABASE_URL']) return;
+  if (!process.env['DATABASE_URL']) {return;}
   try {
     const { runGraphBootstrap } = await import("../graph-bootstrap");
     await runGraphBootstrap();

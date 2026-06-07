@@ -22,7 +22,6 @@
 //   node scripts/dr/restore-smoke.mjs --db-url=$EPHEMERAL_DB_URL --check-object-storage
 
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 

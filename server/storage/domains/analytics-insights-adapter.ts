@@ -285,14 +285,12 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
 
   async getInsightSnapshots(orgId?: string, scope?: string): Promise<InsightSnapshot[]> {
     const conditions = [];
-    if (orgId) conditions.push(eq(insightSnapshots.orgId, orgId));
-    if (scope) conditions.push(eq(insightSnapshots.scope, scope));
+    if (orgId) {conditions.push(eq(insightSnapshots.orgId, orgId));}
+    if (scope) {conditions.push(eq(insightSnapshots.scope, scope));}
     const query = db.select().from(insightSnapshots);
-    const results =
-      conditions.length > 0
+    return conditions.length > 0
         ? await query.where(and(...conditions)).orderBy(desc(insightSnapshots.createdAt))
         : await query.orderBy(desc(insightSnapshots.createdAt));
-    return results;
   }
 
   async getLatestInsightSnapshot(
@@ -316,20 +314,18 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
       .insert(insightSnapshots)
       .values({ ...snapshot, orgId })
       .returning();
-    if (!created) throw new Error("Failed to create insight snapshot");
+    if (!created) {throw new Error("Failed to create insight snapshot");}
     return created;
   }
 
   async getInsightReports(orgId?: string, scope?: string): Promise<InsightReport[]> {
     const conditions = [];
-    if (orgId) conditions.push(eq(insightReports.orgId, orgId));
-    if (scope) conditions.push(eq(insightReports.scope, scope));
+    if (orgId) {conditions.push(eq(insightReports.orgId, orgId));}
+    if (scope) {conditions.push(eq(insightReports.scope, scope));}
     const query = db.select().from(insightReports);
-    const results =
-      conditions.length > 0
+    return conditions.length > 0
         ? await query.where(and(...conditions)).orderBy(desc(insightReports.createdAt))
         : await query.orderBy(desc(insightReports.createdAt));
-    return results;
   }
 
   async createInsightReport(
@@ -340,7 +336,7 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
       .insert(insightReports)
       .values({ ...report, orgId })
       .returning();
-    if (!created) throw new Error("Failed to create insight report");
+    if (!created) {throw new Error("Failed to create insight report");}
     return created;
   }
 }

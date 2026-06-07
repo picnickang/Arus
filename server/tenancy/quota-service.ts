@@ -74,19 +74,19 @@ function todayWindowDate(): string {
 }
 
 function extractRows<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result as T[];
+  if (Array.isArray(result)) {return result as T[];}
   if (result && typeof result === "object" && "rows" in result) {
     const rows = (result as { rows?: unknown }).rows;
-    if (Array.isArray(rows)) return rows as T[];
+    if (Array.isArray(rows)) {return rows as T[];}
   }
   return [];
 }
 
 function errorMessage(err: unknown): string | undefined {
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) {return err.message;}
   if (err && typeof err === "object" && "message" in err) {
     const m = (err as { message?: unknown }).message;
-    if (typeof m === "string") return m;
+    if (typeof m === "string") {return m;}
   }
   return undefined;
 }
@@ -125,8 +125,8 @@ export class QuotaService {
       );
       const rows = extractRows<{ limit_value?: string | number | null }>(result);
       const v = rows[0]?.limit_value;
-      if (typeof v === "string") return Number(v);
-      if (typeof v === "number") return v;
+      if (typeof v === "string") {return Number(v);}
+      if (typeof v === "number") {return v;}
     } catch (err: unknown) {
       // If the table doesn't exist yet (migration not applied), use the
       // built-in defaults rather than crashing the request path.
@@ -154,8 +154,8 @@ export class QuotaService {
       );
       const rows = extractRows<{ value?: string | number | null }>(result);
       const v = rows[0]?.value;
-      if (typeof v === "string") return Number(v);
-      if (typeof v === "number") return v;
+      if (typeof v === "string") {return Number(v);}
+      if (typeof v === "number") {return v;}
     } catch (err: unknown) {
       logger.warn("tenant_usage lookup failed; assuming 0", {
         orgId,
@@ -171,7 +171,7 @@ export class QuotaService {
     metric: QuotaMetric,
     delta: number
   ): Promise<void> {
-    if (!Number.isFinite(delta) || delta === 0) return;
+    if (!Number.isFinite(delta) || delta === 0) {return;}
     const safeOrg = orgId.replace(/'/g, "''");
     const windowDate =
       metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";

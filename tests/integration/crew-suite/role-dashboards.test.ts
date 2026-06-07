@@ -32,7 +32,7 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
-  if (roleId) await deleteRoleHard(roleId);
+  if (roleId) {await deleteRoleHard(roleId);}
 });
 
 describe("Role dashboards (§M)", () => {

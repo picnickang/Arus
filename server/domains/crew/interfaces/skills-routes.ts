@@ -5,11 +5,8 @@
 
 import { insertSkillSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
-import {
-  requireOrgId,
-  requireOrgIdAndValidateBody,
-  AuthenticatedRequest,
-} from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId,
+  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 
@@ -21,7 +18,7 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch skills", async (req, res) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const skills = await crewService.listSkills(orgId);
       res.json(skills);
     })
@@ -43,7 +40,7 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
     requireOrgId,
     criticalOperationRateLimit,
     withErrorHandling("delete skill", async (req, res) => {
-      const authReq = req as AuthenticatedRequest;
+      const authReq = authenticatedRequest(req);
       await crewService.deleteSkill(authReq.params['id'] ?? '', authReq.orgId);
       sendDeleted(res);
     })

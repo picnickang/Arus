@@ -112,7 +112,7 @@ export default function InventoryManagement() {
   const handleTabChange = (value: string) => {
     const next = value as TabValue;
     setActiveTab(next);
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("tab", "inventory");

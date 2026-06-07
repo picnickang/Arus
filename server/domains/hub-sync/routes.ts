@@ -1,12 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { hubSyncService } from "./service";
 import {
   insertReplayIncomingSchema,
   insertSheetVersionSchema,
   insertOptimizerConfigurationSchema,
 } from "@shared/schema-runtime";
-import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -33,9 +34,9 @@ export function registerHubSyncRoutes(
   const sheetKeyParamSchema = z.object({ sheetKey: z.string().min(1) });
   const incrementVersionBodySchema = z.object({ modifiedBy: z.string().min(1) });
   const idParamSchema = z.object({ id: z.string().min(1) });
-  const optimizerConfigBodySchema = z.record(z.unknown());
+  const optimizerConfigBodySchema = jsonRecordSchema;
   const orgIdQuerySchema = z.object({ orgId: z.string().optional() });
-  const shiftTemplateBodySchema = z.record(z.unknown());
+  const shiftTemplateBodySchema = jsonRecordSchema;
 
   // ===== REPLAY HELPER ENDPOINTS =====
   app.post(
@@ -161,7 +162,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch optimizer configurations", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const configs = await hubSyncService.getOptimizerConfigurations(orgId);
       return res.json(configs);
     })
@@ -173,7 +174,7 @@ export function registerHubSyncRoutes(
     writeOperationRateLimit,
     withErrorHandling("create optimizer configuration", async (req: Request, res: Response) => {
       const rawBody = optimizerConfigBodySchema.parse(req.body);
-      const orgId = (req as AuthenticatedRequest).orgId || (rawBody['orgId'] as string | undefined);
+      const orgId = authenticatedRequest(req).orgId || (rawBody['orgId'] as string | undefined);
       const configData = {
         ...rawBody,
         orgId,
@@ -212,7 +213,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("fetch optimization results", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const results = await hubSyncService.getOptimizationResults(orgId);
       return res.json(results);
     })
@@ -231,7 +232,7 @@ export function registerHubSyncRoutes(
       const validatedData = runOptimizationSchema.parse(req.body);
       const { configId, equipmentScope, timeHorizon } = validatedData;
 
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const result = await hubSyncService.runOptimization(
         configId,
         equipmentScope,
@@ -319,7 +320,7 @@ export function registerHubSyncRoutes(
     requireOrgId,
     writeOperationRateLimit,
     withErrorHandling("delete all optimization results", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const deletedCount = await hubSyncService.deleteAllOptimizationResults(orgId);
       return res.json({
         message: "All optimization results deleted successfully",

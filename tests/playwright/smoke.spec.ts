@@ -21,15 +21,15 @@ test.describe("SPA shell smoke", () => {
     const pageErrors: string[] = [];
 
     const onConsole = (msg: ConsoleMessage) => {
-      if (msg.type() !== "error") return;
+      if (msg.type() !== "error") {return;}
       const text = msg.text();
       // Narrowly-scoped allowlist of known benign dev-only noise.
       // Every entry must name a specific message — never a prefix
       // match on a whole subsystem (per architect review: blanket
       // `[vite]` would hide real bundle / HMR failures).
-      if (text.includes("Failed to load resource") && text.includes("favicon")) return;
-      if (text.includes("[vite] connecting...")) return;
-      if (text.includes("[vite] connected.")) return;
+      if (text.includes("Failed to load resource") && text.includes("favicon")) {return;}
+      if (text.includes("[vite] connecting...")) {return;}
+      if (text.includes("[vite] connected.")) {return;}
       consoleErrors.push(text);
     };
 

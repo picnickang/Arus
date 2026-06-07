@@ -17,12 +17,18 @@ import type {
   DiagramRecord,
   DiagramVersionRecord,
   EquipmentAssignmentRecord,
+  NormalizedPoint,
   RegistryContext,
   SectionMapRecord,
   SectionRecord,
   ThumbnailRecord,
-  ValidationIssue,
+  UpdateAssignmentInput,
+  UpdateDiagramInput,
+  UpdateSectionInput,
+  UpdateSectionMapInput,
+  VesselDiagramValidationIssue,
   ValidationSummary,
+  VesselDiagramVersionStatus,
   VesselDiagramRegistryStore,
 } from "../domain/types";
 
@@ -58,6 +64,9 @@ function mapVersion(row: typeof vesselDiagramVersions.$inferSelect): DiagramVers
     objectKey: row.objectKey,
     sanitizedSvg: row.sanitizedSvg,
     validationSummary: normalizeSummary(row.validationSummary),
+    uploadedBy: row.uploadedBy,
+    publishedBy: null,
+    publishedAt: null,
     uploadedAt: row.uploadedAt,
   };
 }
@@ -89,7 +98,7 @@ function mapAssignment(
   };
 }
 
-function mapIssue(row: typeof vesselDiagramValidationResults.$inferSelect): ValidationIssue {
+function mapIssue(row: typeof vesselDiagramValidationResults.$inferSelect): VesselDiagramValidationIssue {
   return {
     severity: row.severity,
     code: row.code,
@@ -121,7 +130,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!row) throw new Error("Failed to create vessel diagram");
+    if (!row) {throw new Error("Failed to create vessel diagram");}
     return mapDiagram(row);
   }
 
@@ -138,6 +147,40 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       )
       .limit(1);
     return row ? mapDiagram(row) : null;
+  }
+
+  async updateDiagram(
+    ctx: RegistryContext,
+    diagramId: string,
+    input: UpdateDiagramInput
+  ): Promise<DiagramRecord> {
+    const updates: Partial<typeof vesselDiagrams.$inferInsert> = {
+      updatedBy: ctx.userId,
+      updatedAt: new Date(),
+    };
+    if (input.title !== undefined) {updates.title = input.title;}
+    if (input.description !== undefined) {updates.description = input.description;}
+    if (input.status !== undefined) {updates.status = input.status;}
+    if (input.activeVersionId !== undefined) {updates.activeVersionId = input.activeVersionId;}
+    if (input.currentSectionMapId !== undefined) {updates.currentSectionMapId = input.currentSectionMapId;}
+
+    const [row] = await db
+      .update(vesselDiagrams)
+      .set(updates)
+      .where(
+        and(
+          eq(vesselDiagrams.orgId, ctx.orgId),
+          eq(vesselDiagrams.vesselId, ctx.vesselId),
+          eq(vesselDiagrams.id, diagramId)
+        )
+      )
+      .returning();
+    if (!row) {throw notFound("Diagram not found");}
+    return mapDiagram(row);
+  }
+
+  async deleteDiagram(ctx: RegistryContext, diagramId: string): Promise<void> {
+    await this.updateDiagram(ctx, diagramId, { status: "archived" });
   }
 
   async listVersions(ctx: RegistryContext, diagramId: string): Promise<DiagramVersionRecord[]> {
@@ -211,7 +254,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         uploadedAt: input.uploadedAt,
       })
       .returning();
-    if (!row) throw new Error("Failed to create vessel diagram version");
+    if (!row) {throw new Error("Failed to create vessel diagram version");}
     return mapVersion(row);
   }
 
@@ -265,8 +308,40 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
           eq(vesselDiagrams.id, diagramId)
         )
       );
-    if (!active) throw new Error("Failed to activate vessel diagram version");
+    if (!active) {throw new Error("Failed to activate vessel diagram version");}
     return mapVersion(active);
+  }
+
+  async updateVersionStatus(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string,
+    status: VesselDiagramVersionStatus
+  ): Promise<DiagramVersionRecord> {
+    if (status === "active") {
+      return this.setActiveVersion(ctx, diagramId, versionId);
+    }
+    const [row] = await db
+      .update(vesselDiagramVersions)
+      .set({ status })
+      .where(
+        and(
+          eq(vesselDiagramVersions.orgId, ctx.orgId),
+          eq(vesselDiagramVersions.vesselId, ctx.vesselId),
+          eq(vesselDiagramVersions.diagramId, diagramId),
+          eq(vesselDiagramVersions.id, versionId)
+        )
+      )
+      .returning();
+    if (!row) {throw notFound("Diagram version not found");}
+
+    if (status === "archived") {
+      const diagram = await this.getDiagram(ctx, diagramId);
+      if (diagram?.activeVersionId === versionId) {
+        await this.updateDiagram(ctx, diagramId, { activeVersionId: null, status: "draft" });
+      }
+    }
+    return mapVersion(row);
   }
 
   async listSectionMaps(ctx: RegistryContext): Promise<SectionMapRecord[]> {
@@ -291,6 +366,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         vesselId: ctx.vesselId,
         diagramId: input.diagramId,
         diagramVersionId: input.diagramVersionId,
+        sourceMapId: input.sourceMapId,
         name: input.name,
         coordinateMode: "normalized_percent",
         diagramWidth: input.diagramWidth ?? 895,
@@ -301,10 +377,13 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!map) throw new Error("Failed to create section map");
+    if (!map) {throw new Error("Failed to create section map");}
 
     for (const [index, section] of (input.sections ?? []).entries()) {
       await this.insertSection(ctx, map.id, section, index);
+    }
+    if (input.diagramId) {
+      await this.updateDiagram(ctx, input.diagramId, { currentSectionMapId: map.id });
     }
     return this.hydrateMap(ctx, map);
   }
@@ -324,17 +403,74 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return row ? this.hydrateMap(ctx, row) : null;
   }
 
+  async getSectionMapForVessel(
+    ctx: RegistryContext,
+    vesselId: string,
+    mapId: string
+  ): Promise<SectionMapRecord | null> {
+    const [row] = await db
+      .select()
+      .from(vesselSectionMaps)
+      .where(
+        and(
+          eq(vesselSectionMaps.orgId, ctx.orgId),
+          eq(vesselSectionMaps.vesselId, vesselId),
+          eq(vesselSectionMaps.id, mapId)
+        )
+      )
+      .limit(1);
+    return row ? this.hydrateMap({ ...ctx, vesselId }, row) : null;
+  }
+
+  async updateSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    input: UpdateSectionMapInput
+  ): Promise<SectionMapRecord> {
+    const updates: Partial<typeof vesselSectionMaps.$inferInsert> = {
+      updatedAt: new Date(),
+      updatedBy: ctx.userId,
+    };
+    if (input.name !== undefined) {updates.name = input.name;}
+    if (input.diagramId !== undefined) {updates.diagramId = input.diagramId;}
+    if (input.diagramVersionId !== undefined) {updates.diagramVersionId = input.diagramVersionId;}
+    if (input.sourceMapId !== undefined) {updates.sourceMapId = input.sourceMapId;}
+    if (input.diagramWidth !== undefined) {updates.diagramWidth = input.diagramWidth;}
+    if (input.diagramHeight !== undefined) {updates.diagramHeight = input.diagramHeight;}
+    if (input.diagramKind !== undefined) {updates.diagramKind = input.diagramKind;}
+    if (input.status !== undefined) {updates.status = input.status;}
+
+    const [row] = await db
+      .update(vesselSectionMaps)
+      .set(updates)
+      .where(
+        and(
+          eq(vesselSectionMaps.orgId, ctx.orgId),
+          eq(vesselSectionMaps.vesselId, ctx.vesselId),
+          eq(vesselSectionMaps.id, mapId)
+        )
+      )
+      .returning();
+    if (!row) {throw notFound("Section map not found");}
+    return this.hydrateMap(ctx, row);
+  }
+
+  async deleteSectionMap(ctx: RegistryContext, mapId: string): Promise<void> {
+    await this.updateSectionMap(ctx, mapId, { status: "archived" });
+  }
+
   async cloneSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    input: { name: string }
+    input: { name: string; diagramId?: string; diagramVersionId?: string }
   ): Promise<SectionMapRecord> {
     const source = await this.getSectionMap(ctx, mapId);
-    if (!source) throw notFound("Section map not found");
-    const cloned = await this.createSectionMap(ctx, {
+    if (!source) {throw notFound("Section map not found");}
+    return await this.createSectionMap(ctx, {
       name: input.name,
-      diagramId: source.diagramId ?? undefined,
-      diagramVersionId: source.diagramVersionId ?? undefined,
+      diagramId: input.diagramId ?? source.diagramId ?? undefined,
+      diagramVersionId: input.diagramVersionId ?? source.diagramVersionId ?? undefined,
+      sourceMapId: source.id,
       diagramWidth: source.diagramWidth,
       diagramHeight: source.diagramHeight,
       diagramKind: source.diagramKind,
@@ -354,17 +490,108 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         })),
       })),
     });
+  }
+
+  async addSection(
+    ctx: RegistryContext,
+    mapId: string,
+    input: CreateSectionInput
+  ): Promise<SectionRecord> {
+    const map = await this.getSectionMap(ctx, mapId);
+    if (!map) {throw notFound("Section map not found");}
+    const section = await this.insertSection(ctx, mapId, input, map.sections.length);
+    await this.touchSectionMap(ctx, mapId);
+    return section;
+  }
+
+  async updateSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: UpdateSectionInput
+  ): Promise<SectionRecord> {
+    await this.requireSection(ctx, mapId, sectionId);
+    const sectionUpdates: Partial<typeof vesselSections.$inferInsert> = { updatedAt: new Date() };
+    if (input.sectionKey !== undefined) {sectionUpdates.sectionKey = input.sectionKey;}
+    if (input.sectionNo !== undefined) {sectionUpdates.sectionNo = input.sectionNo;}
+    if (input.name !== undefined) {sectionUpdates.name = input.name;}
+    if (input.color !== undefined) {sectionUpdates.color = input.color;}
+    if (input.thumbnailFallback !== undefined) {sectionUpdates.thumbnailFallback = input.thumbnailFallback;}
+    if (Object.keys(sectionUpdates).length > 1) {
+      await db
+        .update(vesselSections)
+        .set(sectionUpdates)
+        .where(
+          and(
+            eq(vesselSections.orgId, ctx.orgId),
+            eq(vesselSections.vesselId, ctx.vesselId),
+            eq(vesselSections.mapId, mapId),
+            eq(vesselSections.id, sectionId)
+          )
+        );
+    }
+    if (input.polygonNormalized !== undefined || input.labelNormalized !== undefined) {
+      const current = await this.getSection(ctx, mapId, sectionId);
+      await this.replaceSectionPolygon(ctx, mapId, sectionId, {
+        polygonNormalized: input.polygonNormalized ?? current.polygonNormalized,
+        labelNormalized: input.labelNormalized ?? current.labelNormalized,
+      });
+    }
+    await this.touchSectionMap(ctx, mapId);
+    return this.getSection(ctx, mapId, sectionId);
+  }
+
+  async deleteSection(ctx: RegistryContext, mapId: string, sectionId: string): Promise<void> {
+    await this.requireSection(ctx, mapId, sectionId);
     await db
-      .update(vesselSectionMaps)
-      .set({ sourceMapId: mapId })
-      .where(eq(vesselSectionMaps.id, cloned.id));
-    return { ...cloned, sourceMapId: mapId };
+      .delete(vesselSections)
+      .where(
+        and(
+          eq(vesselSections.orgId, ctx.orgId),
+          eq(vesselSections.vesselId, ctx.vesselId),
+          eq(vesselSections.mapId, mapId),
+          eq(vesselSections.id, sectionId)
+        )
+      );
+    await this.touchSectionMap(ctx, mapId);
+  }
+
+  async updateSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
+  ): Promise<SectionRecord> {
+    await this.requireSection(ctx, mapId, sectionId);
+    await this.replaceSectionPolygon(ctx, mapId, sectionId, input);
+    await this.touchSectionMap(ctx, mapId);
+    return this.getSection(ctx, mapId, sectionId);
+  }
+
+  async deleteSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRecord> {
+    await this.requireSection(ctx, mapId, sectionId);
+    await db
+      .delete(vesselSectionPolygons)
+      .where(
+        and(
+          eq(vesselSectionPolygons.orgId, ctx.orgId),
+          eq(vesselSectionPolygons.vesselId, ctx.vesselId),
+          eq(vesselSectionPolygons.mapId, mapId),
+          eq(vesselSectionPolygons.sectionId, sectionId)
+        )
+      );
+    await this.touchSectionMap(ctx, mapId);
+    return this.getSection(ctx, mapId, sectionId);
   }
 
   async publishSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    validation: { summary: SectionMapRecord["validationSummary"]; issues: ValidationIssue[] }
+    validation: { summary: SectionMapRecord["validationSummary"]; issues: VesselDiagramValidationIssue[] }
   ): Promise<SectionMapRecord> {
     await db
       .update(vesselSectionMaps)
@@ -394,7 +621,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) throw notFound("Section map not found");
+    if (!row) {throw notFound("Section map not found");}
     return this.hydrateMap(ctx, row);
   }
 
@@ -421,7 +648,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .limit(1);
-    if (!section) throw notFound("Section not found");
+    if (!section) {throw notFound("Section not found");}
 
     const [row] = await db
       .insert(vesselSectionEquipmentAssignments)
@@ -437,16 +664,84 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         createdBy: ctx.userId,
       })
       .returning();
-    if (!row) throw new Error("Failed to assign equipment");
+    if (!row) {throw new Error("Failed to assign equipment");}
     return mapAssignment(row);
+  }
+
+  async listEquipmentAssignments(
+    ctx: RegistryContext,
+    mapId: string
+  ): Promise<EquipmentAssignmentRecord[]> {
+    const rows = await db
+      .select()
+      .from(vesselSectionEquipmentAssignments)
+      .where(
+        and(
+          eq(vesselSectionEquipmentAssignments.orgId, ctx.orgId),
+          eq(vesselSectionEquipmentAssignments.vesselId, ctx.vesselId),
+          eq(vesselSectionEquipmentAssignments.mapId, mapId)
+        )
+      )
+      .orderBy(vesselSectionEquipmentAssignments.sortOrder);
+    return rows.map(mapAssignment);
+  }
+
+  async updateEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string,
+    input: UpdateAssignmentInput
+  ): Promise<EquipmentAssignmentRecord> {
+    const updates: Partial<typeof vesselSectionEquipmentAssignments.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+    if (input.equipmentId !== undefined) {updates.equipmentId = input.equipmentId;}
+    if (input.equipmentName !== undefined) {updates.equipmentName = input.equipmentName;}
+    if (input.assetCode !== undefined) {updates.assetCode = input.assetCode;}
+    if (input.system !== undefined) {updates.system = input.system;}
+    const [row] = await db
+      .update(vesselSectionEquipmentAssignments)
+      .set(updates)
+      .where(
+        and(
+          eq(vesselSectionEquipmentAssignments.orgId, ctx.orgId),
+          eq(vesselSectionEquipmentAssignments.vesselId, ctx.vesselId),
+          eq(vesselSectionEquipmentAssignments.mapId, mapId),
+          eq(vesselSectionEquipmentAssignments.sectionId, sectionId),
+          eq(vesselSectionEquipmentAssignments.id, assignmentId)
+        )
+      )
+      .returning();
+    if (!row) {throw notFound("Equipment assignment not found");}
+    return mapAssignment(row);
+  }
+
+  async deleteEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string
+  ): Promise<void> {
+    await db
+      .delete(vesselSectionEquipmentAssignments)
+      .where(
+        and(
+          eq(vesselSectionEquipmentAssignments.orgId, ctx.orgId),
+          eq(vesselSectionEquipmentAssignments.vesselId, ctx.vesselId),
+          eq(vesselSectionEquipmentAssignments.mapId, mapId),
+          eq(vesselSectionEquipmentAssignments.sectionId, sectionId),
+          eq(vesselSectionEquipmentAssignments.id, assignmentId)
+        )
+      );
   }
 
   async saveValidationResults(
     ctx: RegistryContext,
     refs: { mapId?: string; diagramId?: string; diagramVersionId?: string },
-    issues: ValidationIssue[]
+    issues: VesselDiagramValidationIssue[]
   ): Promise<void> {
-    if (!issues.length) return;
+    if (!issues.length) {return;}
     await db.insert(vesselDiagramValidationResults).values(
       issues.map((issue) => ({
         orgId: ctx.orgId,
@@ -465,7 +760,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
   async listValidationResults(
     ctx: RegistryContext,
     refs?: { mapId?: string }
-  ): Promise<ValidationIssue[]> {
+  ): Promise<VesselDiagramValidationIssue[]> {
     const where = refs?.mapId
       ? and(
           eq(vesselDiagramValidationResults.orgId, ctx.orgId),
@@ -517,7 +812,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!row) throw new Error("Failed to create thumbnail override");
+    if (!row) {throw new Error("Failed to create thumbnail override");}
     return {
       id: row.id,
       vesselId: row.vesselId,
@@ -642,7 +937,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     mapId: string,
     section: CreateSectionInput,
     index: number
-  ): Promise<void> {
+  ): Promise<SectionRecord> {
     const [sectionRow] = await db
       .insert(vesselSections)
       .values({
@@ -661,7 +956,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       throw new Error("Failed to create section map section");
     }
 
-    await db.insert(vesselSectionPolygons).values({
+    const [polygonRow] = await db.insert(vesselSectionPolygons).values({
       orgId: ctx.orgId,
       vesselId: ctx.vesselId,
       mapId,
@@ -669,10 +964,11 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       pointsNormalized: section.polygonNormalized,
       labelNormalized: section.labelNormalized,
       isDraft: true,
-    });
+    }).returning();
 
+    let assignmentRows: Array<typeof vesselSectionEquipmentAssignments.$inferSelect> = [];
     if (section.equipment?.length) {
-      await db.insert(vesselSectionEquipmentAssignments).values(
+      assignmentRows = await db.insert(vesselSectionEquipmentAssignments).values(
         section.equipment.map((equipment, equipmentIndex) => ({
           orgId: ctx.orgId,
           vesselId: ctx.vesselId,
@@ -685,8 +981,104 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
           sortOrder: equipmentIndex,
           createdBy: ctx.userId,
         }))
-      );
+      ).returning();
     }
+    return hydrateSection(sectionRow, polygonRow ? [polygonRow] : [], assignmentRows);
+  }
+
+  private async requireSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRow> {
+    const [section] = await db
+      .select()
+      .from(vesselSections)
+      .where(
+        and(
+          eq(vesselSections.orgId, ctx.orgId),
+          eq(vesselSections.vesselId, ctx.vesselId),
+          eq(vesselSections.mapId, mapId),
+          eq(vesselSections.id, sectionId)
+        )
+      )
+      .limit(1);
+    if (!section) {throw notFound("Section not found");}
+    return section;
+  }
+
+  private async getSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRecord> {
+    const [sectionRow, polygonRows, assignmentRows] = await Promise.all([
+      this.requireSection(ctx, mapId, sectionId),
+      db
+        .select()
+        .from(vesselSectionPolygons)
+        .where(
+          and(
+            eq(vesselSectionPolygons.orgId, ctx.orgId),
+            eq(vesselSectionPolygons.vesselId, ctx.vesselId),
+            eq(vesselSectionPolygons.mapId, mapId),
+            eq(vesselSectionPolygons.sectionId, sectionId)
+          )
+        ),
+      db
+        .select()
+        .from(vesselSectionEquipmentAssignments)
+        .where(
+          and(
+            eq(vesselSectionEquipmentAssignments.orgId, ctx.orgId),
+            eq(vesselSectionEquipmentAssignments.vesselId, ctx.vesselId),
+            eq(vesselSectionEquipmentAssignments.mapId, mapId),
+            eq(vesselSectionEquipmentAssignments.sectionId, sectionId)
+          )
+        )
+        .orderBy(vesselSectionEquipmentAssignments.sortOrder),
+    ]);
+    return hydrateSection(sectionRow, polygonRows, assignmentRows);
+  }
+
+  private async replaceSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
+  ): Promise<void> {
+    await db
+      .delete(vesselSectionPolygons)
+      .where(
+        and(
+          eq(vesselSectionPolygons.orgId, ctx.orgId),
+          eq(vesselSectionPolygons.vesselId, ctx.vesselId),
+          eq(vesselSectionPolygons.mapId, mapId),
+          eq(vesselSectionPolygons.sectionId, sectionId)
+        )
+      );
+    await db.insert(vesselSectionPolygons).values({
+      orgId: ctx.orgId,
+      vesselId: ctx.vesselId,
+      mapId,
+      sectionId,
+      pointsNormalized: input.polygonNormalized,
+      labelNormalized: input.labelNormalized,
+      isDraft: true,
+    });
+  }
+
+  private async touchSectionMap(ctx: RegistryContext, mapId: string): Promise<void> {
+    await db
+      .update(vesselSectionMaps)
+      .set({ updatedAt: new Date(), updatedBy: ctx.userId })
+      .where(
+        and(
+          eq(vesselSectionMaps.orgId, ctx.orgId),
+          eq(vesselSectionMaps.vesselId, ctx.vesselId),
+          eq(vesselSectionMaps.id, mapId)
+        )
+      );
   }
 }
 

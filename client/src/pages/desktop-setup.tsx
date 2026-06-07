@@ -460,7 +460,7 @@ function SignInStep({
               value={username}
               onChange={(e) => {
                 setUsername(e.target.value);
-                if (error) setError(null);
+                if (error) {setError(null);}
               }}
               autoComplete="username"
               autoFocus
@@ -475,7 +475,7 @@ function SignInStep({
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                if (error) setError(null);
+                if (error) {setError(null);}
               }}
               autoComplete="current-password"
             />

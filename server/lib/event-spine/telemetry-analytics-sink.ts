@@ -54,7 +54,7 @@ export class TelemetryAnalyticsSink {
   /** Subscribe to a fanout-capable producer (in-process default). */
   subscribe(fanout: EventSpineSubscriber): void {
     fanout.onMessage(async (msg) => {
-      if (!this.matches(msg.eventType)) return;
+      if (!this.matches(msg.eventType)) {return;}
       await this.write(msg);
     });
     logger.info("Telemetry analytics sink subscribed", {
@@ -69,7 +69,7 @@ export class TelemetryAnalyticsSink {
       await mkdir(dir, { recursive: true });
       const file = path.join(dir, `${dayStamp(msg.occurredAt)}.ndjson`);
       const line =
-        JSON.stringify({
+        `${JSON.stringify({
           eventId: msg.eventId,
           eventType: msg.eventType,
           orgId: msg.orgId,
@@ -77,7 +77,7 @@ export class TelemetryAnalyticsSink {
           aggregateType: msg.aggregateType,
           occurredAt: msg.occurredAt.toISOString(),
           payload: msg.payload,
-        }) + "\n";
+        })  }\n`;
       await appendFile(file, line, "utf8");
       this.writes += 1;
     } catch (err) {

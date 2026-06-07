@@ -7,9 +7,9 @@ import {
   workOrderParts,
   workOrderChecklists,
   workOrderWorklogs,
-} from "@shared/schema";
-import { purchaseRequests, serviceRequests, serviceOrders } from "@shared/schema/purchasing";
-import { requireOrgId, AuthenticatedRequest } from "../../../middleware/auth";
+} from "@shared/schema-runtime";
+import { purchaseRequests, serviceRequests, serviceOrders } from "@shared/schema-runtime";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
 
 type CountRow = { count: number };
@@ -32,7 +32,7 @@ export function registerDependentsRoutes(app: Express) {
     withErrorHandling(
       "fetch work order dependents",
       async (req: Request, res: Response) => {
-        const orgId = (req as AuthenticatedRequest).orgId;
+        const orgId = authenticatedRequest(req).orgId;
         const id = req.params['id'] ?? '';
 
         const [wo] = await db

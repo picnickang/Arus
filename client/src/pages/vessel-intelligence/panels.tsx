@@ -24,10 +24,10 @@ import {
   equipmentNameFor,
   statusText,
   workOrderTitleFor,
-  type AlertRecord,
+  type VesselIntelligenceAlertRecord,
   type EquipmentRecord,
   type RegistryDiagramRecord,
-  type WorkOrderRecord,
+  type VesselIntelligenceWorkOrderRecord,
 } from "./data";
 
 type BuildPath = (mode: string) => string;
@@ -219,7 +219,7 @@ export function WorkOrdersPanel({
   buildPath,
 }: {
   selectedVesselId: string;
-  vesselWorkOrders: WorkOrderRecord[];
+  vesselWorkOrders: VesselIntelligenceWorkOrderRecord[];
   buildPath: BuildPath;
 }) {
   return (
@@ -258,7 +258,7 @@ export function AlertsPanel({
   vesselAlerts,
   buildPath,
 }: {
-  vesselAlerts: AlertRecord[];
+  vesselAlerts: VesselIntelligenceAlertRecord[];
   buildPath: BuildPath;
 }) {
   return (

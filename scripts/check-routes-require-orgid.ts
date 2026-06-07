@@ -54,8 +54,8 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const ent of readdirSync(dir)) {
     const p = join(dir, ent);
     const s = statSync(p);
-    if (s.isDirectory()) walk(p, out);
-    else if (s.isFile() && /routes?\.ts$/.test(ent) && ent !== "routes.ts") out.push(p);
+    if (s.isDirectory()) {walk(p, out);}
+    else if (s.isFile() && /routes?\.ts$/.test(ent) && ent !== "routes.ts") {out.push(p);}
   }
   return out;
 }
@@ -82,11 +82,11 @@ const files = walk(SERVER);
 
 for (const file of files) {
   const rel = relative(ROOT, file).replace(/\\/g, "/");
-  if (EXEMPT_FILES.has(rel)) continue;
+  if (EXEMPT_FILES.has(rel)) {continue;}
 
   const content = readFileSync(file, "utf8");
   const routeMatches = content.match(ROUTE_METHOD_RE);
-  if (!routeMatches || routeMatches.length === 0) continue;
+  if (!routeMatches || routeMatches.length === 0) {continue;}
 
   // The global gate covers everything mounted via the standard
   // `/api` mount in `routes.ts`. Per-file violations are limited to
@@ -117,7 +117,7 @@ if (violations.length === 0) {
 }
 
 console.error(`[check-routes-require-orgid] FAIL — ${violations.length} violation(s):`);
-for (const v of violations) console.error(`  - ${v}`);
+for (const v of violations) {console.error(`  - ${v}`);}
 console.error(
   `\nFix by either: (a) mounting via the central /api router in server/routes.ts (inherits requireOrgId), ` +
     `(b) adding requireOrgId locally, or (c) annotating with '// ${ALLOW_COMMENT}: <reason>' if the route is intentionally public.`,

@@ -1,5 +1,5 @@
 import type { Express, Request, RequestHandler, Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth";
+import { authenticatedRequest } from "../middleware/auth";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
@@ -27,7 +27,7 @@ export function registerKbAskRoute(
     "/api/kb/ask",
     generalApiRateLimit,
     withErrorHandling("kb ask", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId || DEFAULT_ORG_ID;
+      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
 
       const { query, context, equipmentId, vesselId } = req.body;
 

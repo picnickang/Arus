@@ -193,7 +193,7 @@ export function WorkOrderTasksTab({ workOrderId, isReadOnly = false }: WorkOrder
                   description={task.description}
                   isCompleted={task.isCompleted}
                   completedByName={task.completedByName ?? undefined}
-                  completedAt={task.completedAt ? new Date(task.completedAt as string | Date).toISOString() : undefined}
+                  completedAt={task.completedAt ? new Date(task.completedAt).toISOString() : undefined}
                   isReadOnly={isReadOnly}
                   isPending={toggleTaskCompletion.isPending || deleteTaskMutation.isPending}
                   onToggle={(completed) =>

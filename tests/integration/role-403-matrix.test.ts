@@ -111,7 +111,7 @@ describe("LR-1C — wrong-role → 403 matrix", () => {
   for (const r of ROUTES) {
     it(`${r.label} (${r.method.toUpperCase()} ${r.path}) rejects role=${r.wrongRole} with 403`, async () => {
       if (!mountedOk) {
-        // eslint-disable-next-line no-console
+
         console.warn("[lr1c-role-403] router import shape changed — skipping");
         return;
       }
@@ -128,7 +128,7 @@ describe("LR-1C — wrong-role → 403 matrix", () => {
   }
 
   it("a correct-role caller is NOT 403 (positive control)", async () => {
-    if (!mountedOk) return;
+    if (!mountedOk) {return;}
     const res = await request(app)
       .post("/api/equipment-dependencies")
       .set("x-test-user", "admin-ok:admin")

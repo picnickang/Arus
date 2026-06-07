@@ -4,13 +4,12 @@
  */
 
 import type { Express, Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { z } from "zod";
 import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
-import { requireOrgId } from "../../../middleware/auth";
-import { requirePermission } from "../../permissions/middleware.js";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
+import { requirePermission } from "../../../lib/permissions/middleware.js";
 
 const crewIdSchema = z.object({ id: z.string().uuid("Invalid crew ID format") });
 
@@ -23,7 +22,7 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
     requirePermission("crew_members", "edit"),
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");
@@ -40,7 +39,7 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
     crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const orgId = (req as AuthenticatedRequest).orgId;
+      const orgId = authenticatedRequest(req).orgId;
       const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");

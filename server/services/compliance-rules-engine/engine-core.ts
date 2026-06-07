@@ -13,7 +13,7 @@ import {
   type ComplianceFinding,
   type ComplianceRule,
   type InsertComplianceFinding,
-} from "@shared/schema/compliance";
+} from "@shared/schema-runtime";
 import { emailNotificationService } from "../email-notification-service";
 import type { RuleContext, RuleEvaluator } from "./types.js";
 import { DEFAULT_DECK_RULES, DEFAULT_ENGINE_RULES } from "./default-rules.js";

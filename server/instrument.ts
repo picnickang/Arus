@@ -29,7 +29,7 @@ if (dsn) {
   // (unusual, but defensive) still boot. We can't use a dynamic
   // import here because that defers init past the point where
   // auto-instrumentation needs to attach.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const Sentry = require("@sentry/node");
 
   Sentry.init({

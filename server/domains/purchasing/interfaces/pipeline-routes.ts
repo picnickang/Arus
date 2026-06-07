@@ -23,6 +23,6 @@ pipelineRouter.get("/purchase-requests/:id/pipeline", async (req: Request, res: 
     return res.json(pipeline);
   } catch (error) {
     logger.error("[Purchasing Pipeline] Error:", undefined, error);
-    return res.status(500).json({ error: (error as Error).message });
+    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
   }
 });

@@ -31,7 +31,7 @@ const RATES_PER_1K_USD: Record<string, { input: number; output: number }> = {
 
 export function estimateCostUsd(model: string, promptTokens: number, completionTokens: number): number {
   const rate = RATES_PER_1K_USD[model];
-  if (!rate) return 0;
+  if (!rate) {return 0;}
   return (promptTokens / 1000) * rate.input + (completionTokens / 1000) * rate.output;
 }
 

@@ -290,7 +290,7 @@ export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
 
     const firstSpan = context.spans[0];
     const lastSpan = context.spans[context.spans.length - 1];
-    if (!firstSpan || !lastSpan) continue;
+    if (!firstSpan || !lastSpan) {continue;}
     const totalDuration = (lastSpan.endTime || Date.now()) - firstSpan.startTime;
 
     if (totalDuration > thresholdMs) {

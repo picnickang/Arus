@@ -60,7 +60,7 @@ export class PgNotifyCdcBridge {
   private readonly tableConfig = new Map<string, PgNotifyCdcTableConfig>();
 
   constructor(private readonly opts: PgNotifyCdcOptions) {
-    for (const t of opts.tables) this.tableConfig.set(t.table, t);
+    for (const t of opts.tables) {this.tableConfig.set(t.table, t);}
   }
 
   async start(): Promise<void> {
@@ -69,7 +69,7 @@ export class PgNotifyCdcBridge {
     }
     this.client = await this.opts.pool.connect();
     this.client.on("notification", (msg) => {
-      if (msg.channel !== NOTIFY_CHANNEL || !msg.payload) return;
+      if (msg.channel !== NOTIFY_CHANNEL || !msg.payload) {return;}
       void this.handleNotify(msg.payload);
     });
     this.client.on("error", (err) => {
@@ -95,7 +95,7 @@ export class PgNotifyCdcBridge {
   }
 
   private async handleNotify(raw: string): Promise<void> {
-    if (this.stopped) return;
+    if (this.stopped) {return;}
     let parsed: CdcNotifyPayload;
     try {
       parsed = JSON.parse(raw);
@@ -104,7 +104,7 @@ export class PgNotifyCdcBridge {
       return;
     }
     const cfg = this.tableConfig.get(parsed.table);
-    if (!cfg) return;
+    if (!cfg) {return;}
     if (!parsed.orgId) {
       // CDC events without orgId would violate the partition contract.
       logger.warn("CDC event without orgId — dropping", {

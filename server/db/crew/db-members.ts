@@ -61,7 +61,7 @@ export class DbCrewMembers {
         updatedAt: new Date(),
       })
       .returning();
-    if (!newCrew) throw new Error("Failed to create crew member");
+    if (!newCrew) {throw new Error("Failed to create crew member");}
     return newCrew;
   }
   async updateCrewMember(id: string, updates: WidenPartial<InsertCrew>, orgId?: string): Promise<Crew> {
@@ -103,7 +103,7 @@ export class DbCrewMembers {
       .insert(shiftTemplate)
       .values({ id: randomUUID(), ...data, createdAt: new Date() })
       .returning();
-    if (!result) throw new Error("Failed to create shift template");
+    if (!result) {throw new Error("Failed to create shift template");}
     return result;
   }
   async updateShiftTemplate(

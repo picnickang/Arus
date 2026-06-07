@@ -13,7 +13,7 @@ export interface DiagramTypeDefinition {
   defaultFor: string;
 }
 
-export interface NormalizedPoint {
+export interface VesselMapNormalizedPoint {
   x: number;
   y: number;
 }
@@ -23,8 +23,8 @@ export interface VesselSectionDefinition {
   sectionKey: string;
   name: string;
   color: string;
-  polygonNormalized: NormalizedPoint[];
-  labelNormalized: NormalizedPoint;
+  polygonNormalized: VesselMapNormalizedPoint[];
+  labelNormalized: VesselMapNormalizedPoint;
   equipment: string[];
   thumbnailFallback: string;
 }

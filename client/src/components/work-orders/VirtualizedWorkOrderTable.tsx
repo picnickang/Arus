@@ -110,7 +110,7 @@ export function VirtualizedWorkOrderTable({
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const order = workOrders[virtualRow.index];
-                  if (!order) return null;
+                  if (!order) {return null;}
                   return (
                     <WorkOrderRow
                       key={order.id}

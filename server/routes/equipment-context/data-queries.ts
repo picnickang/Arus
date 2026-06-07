@@ -204,7 +204,7 @@ export async function runParallelQueries(
 
   const pick = <T>(key: string, fallback: T): T => {
     const idx = queryMap[key];
-    if (idx === undefined) return fallback;
+    if (idx === undefined) {return fallback;}
     return (results[idx] as T) ?? fallback;
   };
 

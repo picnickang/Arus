@@ -238,7 +238,7 @@ export function buildCompactedMessages(
       let j = i + 1;
       while (j < mappedMessages.length) {
         const next = mappedMessages[j];
-        if (!next || next.role !== "tool") break;
+        if (!next || next.role !== "tool") {break;}
         group.push(next);
         const toolContent =
           typeof next.content === "string"
@@ -262,14 +262,14 @@ export function buildCompactedMessages(
   let startIdx = 0;
   while (startIdx < groups.length && trimFromFront > 0) {
     const g = groups[startIdx];
-    if (!g) break;
+    if (!g) {break;}
     trimFromFront -= g.tokens;
     startIdx++;
   }
 
   for (let k = startIdx; k < groups.length; k++) {
     const g = groups[k];
-    if (!g) continue;
+    if (!g) {continue;}
     result.push(...g.messages);
   }
 

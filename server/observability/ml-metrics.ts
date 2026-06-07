@@ -134,7 +134,7 @@ export const mlModelAccuracyDecayRatio = new client.Gauge({
  * floored to 1e-4 to avoid log(0).
  */
 export function computePsi(expected: number[], actual: number[]): number {
-  if (expected.length !== actual.length || expected.length === 0) return 0;
+  if (expected.length !== actual.length || expected.length === 0) {return 0;}
   const eSum = expected.reduce((s, v) => s + v, 0) || 1;
   const aSum = actual.reduce((s, v) => s + v, 0) || 1;
   let psi = 0;

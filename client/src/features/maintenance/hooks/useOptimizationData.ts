@@ -20,6 +20,27 @@ import {
 } from "@/features/maintenance";
 import { formatCurrency as formatCurrencyUtil } from "@/lib/formatters";
 
+interface OptimizationEquipment {
+  id: string;
+  name?: string;
+  type?: string;
+  location?: string;
+}
+
+interface RulPrediction {
+  riskLevel: string;
+  remainingDays: number;
+  healthIndex: number;
+  failureProbability: number;
+  componentStatus?: Array<{
+    componentType: string;
+    healthScore?: number | undefined;
+    degradationMetric?: number | undefined;
+    predictedFailureDays: number;
+  }> | undefined;
+  recommendations?: string[] | undefined;
+}
+
 export function useOptimizationData() {
   const { toast } = useToast();
   const _queryClient = useQueryClient();
@@ -44,11 +65,7 @@ export function useOptimizationData() {
   } = useQuery({
     queryKey: ["/api/optimization/configurations"],
     queryFn: async () => {
-      const r = await fetch("/api/optimization/configurations");
-      if (!r.ok) {
-        throw new Error("Failed to fetch configurations");
-      }
-      return (await r.json()) as OptimizerConfiguration[];
+      return apiRequest<OptimizerConfiguration[]>("GET", "/api/optimization/configurations");
     },
   });
 
@@ -59,11 +76,7 @@ export function useOptimizationData() {
   } = useQuery({
     queryKey: ["/api/optimization/results"],
     queryFn: async () => {
-      const r = await fetch("/api/optimization/results");
-      if (!r.ok) {
-        throw new Error("Failed to fetch results");
-      }
-      return (await r.json()) as OptimizationResult[];
+      return apiRequest<OptimizationResult[]>("GET", "/api/optimization/results");
     },
     staleTime: 10000,
     refetchInterval: 15000,
@@ -72,44 +85,28 @@ export function useOptimizationData() {
   const { data: trendAnalyses, isLoading: trendsLoading } = useQuery({
     queryKey: ["/api/optimization/trend-insights"],
     queryFn: async () => {
-      const r = await fetch("/api/optimization/trend-insights");
-      if (!r.ok) {
-        throw new Error("Failed to fetch trend insights");
-      }
-      return (await r.json()) as TrendAnalysis[];
+      return apiRequest<TrendAnalysis[]>("GET", "/api/optimization/trend-insights");
     },
   });
 
   const { data: equipment, isLoading: equipmentLoading } = useQuery({
     queryKey: ["/api/equipment"],
     queryFn: async () => {
-      const r = await fetch("/api/equipment", { headers: { "x-org-id": "default-org-id" } });
-      if (!r.ok) {
-        throw new Error("Failed to fetch equipment");
-      }
-      return r.json();
+      return apiRequest<OptimizationEquipment[]>("GET", "/api/equipment");
     },
   });
 
   const { data: vessels } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/vessels"],
     queryFn: async () => {
-      const r = await fetch("/api/vessels", { headers: { "x-org-id": "default-org-id" } });
-      if (!r.ok) {
-        throw new Error("Failed to fetch vessels");
-      }
-      return r.json();
+      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/vessels");
     },
   });
 
   const { data: crew } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/crew"],
     queryFn: async () => {
-      const r = await fetch("/api/crew", { headers: { "x-org-id": "default-org-id" } });
-      if (!r.ok) {
-        throw new Error("Failed to fetch crew");
-      }
-      return r.json();
+      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/crew");
     },
   });
 
@@ -120,19 +117,16 @@ export function useOptimizationData() {
     totalCrew: crew?.length ?? 0,
   };
 
-  const equipmentIds =
-    (equipment as Array<{ id: string }> | undefined)?.slice(0, 3).map((e) => e.id) ?? [];
+  const equipmentIds = equipment?.slice(0, 3).map((e) => e.id) ?? [];
   const rulQueries = useQueries({
     queries: equipmentIds.map((equipmentId: string) => ({
       queryKey: ["/api/equipment", equipmentId, "rul"],
       queryFn: async () => {
-        const r = await fetch(`/api/equipment/${equipmentId}/rul`, {
-          headers: { "x-org-id": "default-org-id" },
-        });
-        if (!r.ok) {
+        try {
+          return await apiRequest<RulPrediction>("GET", `/api/equipment/${equipmentId}/rul`);
+        } catch {
           return null;
         }
-        return r.json();
       },
       enabled: !!equipmentId,
     })),
@@ -185,7 +179,7 @@ export function useOptimizationData() {
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: "Optimization applied to production successfully",
-    errorMessage: (error: unknown) => (error as Error).message,
+    errorMessage: (error: unknown) => ((error instanceof Error ? error.message : String(error))),
   });
 
   const downloadOptimizationMutation = useCustomMutation({
@@ -216,7 +210,7 @@ export function useOptimizationData() {
 
   const clearAllOptimizationsMutation = useCustomMutation({
     mutationFn: async () =>
-      apiRequest("DELETE", "/api/optimization/results?orgId=default-org-id"),
+      apiRequest("DELETE", "/api/optimization/results"),
     invalidateKeys: ["/api/optimization/results"],
     successMessage: (data: unknown) =>
       `Successfully cleared ${(data as { deletedCount: number }).deletedCount} optimization result(s)`,

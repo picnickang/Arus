@@ -44,7 +44,7 @@ import {
   stock,
   parts as partsTable,
 } from "@shared/schema-runtime";
-import { failureHistory } from "../../../shared/schema/ml-analytics-core";
+import { failureHistory } from "@shared/schema-runtime";
 import type {
   WorkOrderParts,
   WorkOrderHistory,
@@ -56,7 +56,7 @@ import type {
   InsertStock,
   InsertSupplier,
   InsertPartSubstitution,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { DbPartsStorage } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
 
@@ -99,7 +99,7 @@ async function fireProjectionsAfterCommit(
   orgId: string,
   pending: PendingMovementProjection[]
 ): Promise<void> {
-  if (pending.length === 0) return;
+  if (pending.length === 0) {return;}
   try {
     const partIds = Array.from(new Set(pending.map((p) => p.partId)));
     // Statically imported `partsTable` (was dynamic import + escape-hatch cast
@@ -153,7 +153,7 @@ async function fireProjectionsAfterCommit(
           )
         );
       for (const r of fhRows as Array<{ workOrderId: string | null; failureMode: string | null }>) {
-        if (r.workOrderId && r.failureMode) failureModeByWo.set(r.workOrderId, r.failureMode);
+        if (r.workOrderId && r.failureMode) {failureModeByWo.set(r.workOrderId, r.failureMode);}
       }
     }
     await Promise.all(
@@ -543,7 +543,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     }
     const stockRows = rows.map((r) => r.stock).filter((s): s is Stock => s !== null);
     const first = rows[0];
-    if (!first) return undefined;
+    if (!first) {return undefined;}
     return partAndStockToPartsInventory(first.parts, stockRows);
   }
 
@@ -711,7 +711,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 updatedAt: new Date(),
               } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
-            if (!updated) throw new Error("addBulkParts: update returned no row");
+            if (!updated) {throw new Error("addBulkParts: update returned no row");}
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -730,7 +730,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 createdAt: new Date(),
                 updatedAt: new Date(),
               } as never)              .returning();
-            if (!newPart) throw new Error("addBulkParts: insert returned no row");
+            if (!newPart) {throw new Error("addBulkParts: insert returned no row");}
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -841,7 +841,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 updatedAt: new Date(),
               } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
-            if (!updated) throw new Error("addBulkPartsAndReserveInventory: update returned no row");
+            if (!updated) {throw new Error("addBulkPartsAndReserveInventory: update returned no row");}
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -860,7 +860,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 createdAt: new Date(),
                 updatedAt: new Date(),
               } as never)              .returning();
-            if (!newPart) throw new Error("addBulkPartsAndReserveInventory: insert returned no row");
+            if (!newPart) {throw new Error("addBulkPartsAndReserveInventory: insert returned no row");}
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -976,7 +976,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .insert(workOrderHistory)
       .values({ id: randomUUID(), ...entry, createdAt: new Date() })
       .returning();
-    if (!newEntry) throw new Error("Failed to add work order history entry");
+    if (!newEntry) {throw new Error("Failed to add work order history entry");}
     return newEntry;
   }
 

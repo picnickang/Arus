@@ -58,6 +58,14 @@ function cloudOnly<P extends Table>(pgTable: P): P {
 import * as pgSchema from "./schema";
 import * as sqliteVessel from "./schema-sqlite-vessel";
 import * as sqliteSync from "./schema-sqlite-sync";
+export {
+  notificationSettingsSchema,
+  ruleThresholdsSchema,
+  ruleEnforcementSettingsSchema,
+  aiWeightsSchema,
+  publishBehaviorSchema,
+  rotationTemplateSchema,
+} from "./schema/scheduling-settings";
 
 /**
  * Re-export ONLY types (no runtime values)
@@ -67,6 +75,50 @@ import * as sqliteSync from "./schema-sqlite-sync";
  * Consumers needing SQLite-specific types should import from "@shared/sqlite-schema".
  */
 export type * from "./schema";
+export type {
+  ComplianceFinding,
+  ComplianceRule,
+  CrewTask,
+  CrewTaskEvent,
+  EquipmentDependency,
+  EquipmentDependencyLayoutPositions,
+  EquipmentFeature,
+  EquipmentPin,
+  InsertComplianceFinding,
+  InsertCrewTask,
+  InsertCrewTaskEvent,
+  InsertPartSubstitution,
+  InsertSafetyAlarmType,
+  InsertSafetyBulletin,
+  InsertStock,
+  InsertSupplier,
+  InsertVesselSafetyAlarm,
+  InsertVesselSafetyAlarmAcknowledgement,
+  InsertWorkOrderCompletion,
+  InsertWorkOrderHistory,
+  InventoryMovement,
+  NormalizedPoint,
+  Part,
+  PartsInventory,
+  PartsUsedEntry,
+  Role,
+  SafetyAlarmType,
+  SafetyBulletin,
+  Stock,
+  UserDashboardPrefs,
+  Vessel3dModel,
+  VesselDiagramStatus,
+  VesselDiagramType,
+  VesselDiagramVersionStatus,
+  VesselSafetyAlarm,
+  VesselSafetyAlarmAcknowledgement,
+  VesselSectionMapStatus,
+  VesselValidationSeverity,
+  ValidationSummary,
+  WorkOrderCompletion,
+  WorkOrderHistory,
+  WorkOrderParts,
+} from "./schema";
 
 // ============================================================================
 // MODE-AWARE TABLE EXPORTS (All 173 tables)
@@ -127,6 +179,8 @@ export const serviceOrders = cloudOnly(pgSchema.serviceOrders);
 export const purchaseOrders = pickSchema(isLocalMode, sqliteVessel.purchaseOrdersSqlite, pgSchema.purchaseOrders);
 export const purchaseOrderItems = pickSchema(isLocalMode, sqliteVessel.purchaseOrderItemsSqlite, pgSchema.purchaseOrderItems);
 export const purchaseRequests = cloudOnly(pgSchema.purchaseRequests);
+export const purchaseRequestItems = cloudOnly(pgSchema.purchaseRequestItems);
+export const serviceRequests = cloudOnly(pgSchema.serviceRequests);
 export const partSubstitutions = pickSchema(isLocalMode, sqliteVessel.partSubstitutionsSqlite, pgSchema.partSubstitutions);
 export const partFailureHistory = pickSchema(isLocalMode, sqliteVessel.partFailureHistorySqlite, pgSchema.partFailureHistory);
 export const reservations = pickSchema(isLocalMode, sqliteVessel.reservationsSqlite, pgSchema.reservations);
@@ -145,6 +199,10 @@ export const crewRestDay = pickSchema(isLocalMode, sqliteVessel.crewRestDaySqlit
 export const crewNotificationSettings = pgSchema.crewNotificationSettings;
 export const crewAlerts = pgSchema.crewAlerts;
 export const crewRoles = pgSchema.crewRoles;
+export const crewTasks = cloudOnly(pgSchema.crewTasks);
+export const crewTaskEvents = cloudOnly(pgSchema.crewTaskEvents);
+export const roles = cloudOnly(pgSchema.roles);
+export const userRoleAssignments = cloudOnly(pgSchema.userRoleAssignments);
 
 // Sensors & Monitoring
 export const sensorConfigurations = pickSchema(isLocalMode, sqliteVessel.sensorConfigurationsSqlite, pgSchema.sensorConfigurations);
@@ -166,6 +224,10 @@ export const operatingConditionAlerts = pickSchema(isLocalMode, sqliteVessel.ope
 export const pdmAlerts = pickSchema(isLocalMode, sqliteVessel.pdmAlertsSqlite, pgSchema.pdmAlerts);
 export const pdmScoreLogs = cloudOnly(pgSchema.pdmScoreLogs);
 export const pdmBaseline = cloudOnly(pgSchema.pdmBaseline);
+export const safetyBulletins = cloudOnly(pgSchema.safetyBulletins);
+export const safetyAlarmTypes = cloudOnly(pgSchema.safetyAlarmTypes);
+export const vesselSafetyAlarms = cloudOnly(pgSchema.vesselSafetyAlarms);
+export const vesselSafetyAlarmAcknowledgements = cloudOnly(pgSchema.vesselSafetyAlarmAcknowledgements);
 
 export const diagnosticRuns = cloudOnly(pgSchema.diagnosticRuns);
 
@@ -248,10 +310,16 @@ export const drydockWindow = pickSchema(isLocalMode, sqliteVessel.drydockWindowS
 export const digitalTwins = cloudOnly(pgSchema.digitalTwins);
 export const twinSimulations = cloudOnly(pgSchema.twinSimulations);
 export const visualizationAssets = pickSchema(isLocalMode, sqliteVessel.visualizationAssetsSqlite, pgSchema.visualizationAssets);
+export const vessel3dModels = cloudOnly(pgSchema.vessel3dModels);
+export const equipmentDependencies = cloudOnly(pgSchema.equipmentDependencies);
+export const equipmentDependencyLayouts = cloudOnly(pgSchema.equipmentDependencyLayouts);
 
 // Admin & Security
 export const adminAuditEvents = pickSchema(isLocalMode, sqliteVessel.adminAuditEventsSqlite, pgSchema.adminAuditEvents);
 export const adminSystemSettings = pickSchema(isLocalMode, sqliteVessel.adminSystemSettingsSqlite, pgSchema.adminSystemSettings);
+export const roleDashboardConfigs = cloudOnly(pgSchema.roleDashboardConfigs);
+export const userVesselAssignments = cloudOnly(pgSchema.userVesselAssignments);
+export const userDashboardPreferences = cloudOnly(pgSchema.userDashboardPreferences);
 
 // Compliance & Security Infrastructure (Phase 1 Compliance Hardening)
 export const immutableAuditTrail = pickSchema(isLocalMode, sqliteVessel.immutableAuditTrailSqlite, pgSchema.immutableAuditTrail);
@@ -267,6 +335,7 @@ export const syncProtocolVersion = pickSchema(isLocalMode, sqliteVessel.syncProt
 export const errorLogs = pickSchema(isLocalMode, sqliteVessel.errorLogsSqlite, pgSchema.errorLogs);
 export const idempotencyLog = pickSchema(isLocalMode, sqliteVessel.idempotencyLogSqlite, pgSchema.idempotencyLog);
 export const requestIdempotency = pickSchema(isLocalMode, sqliteVessel.requestIdempotencySqlite, pgSchema.requestIdempotency);
+export const eventOutbox = cloudOnly(pgSchema.eventOutbox);
 
 // AR & Advanced Features
 export const arMaintenanceProcedures = pickSchema(isLocalMode, sqliteVessel.arMaintenanceProceduresSqlite, pgSchema.arMaintenanceProcedures);
@@ -320,9 +389,12 @@ export const schedulerRuns = (IS_POSTGRES ? pgSchema.schedulerRuns : sqliteVesse
 export const scheduleAssignments = (IS_POSTGRES ? pgSchema.scheduleAssignments : sqliteVessel.scheduleAssignmentsSqlite) as typeof pgSchema.scheduleAssignments;
 export const scheduleUnfilled = (IS_POSTGRES ? pgSchema.scheduleUnfilled : sqliteVessel.scheduleUnfilledSqlite) as typeof pgSchema.scheduleUnfilled;
 export const mlModelsLegacy = cloudOnly(pgSchema.mlModelsLegacy);
+export const modelVersions = cloudOnly(pgSchema.modelVersions);
 export const calibrationCurves = cloudOnly(pgSchema.calibrationCurves);
 export const realTimePredictions = cloudOnly(pgSchema.realTimePredictions);
+export const equipmentFeatures = cloudOnly(pgSchema.equipmentFeatures);
 export const featureImportances = cloudOnly(pgSchema.featureImportances);
+export const predictionExplanations = cloudOnly(pgSchema.predictionExplanations);
 export const sensorFusionSnapshots = cloudOnly(pgSchema.sensorFusionSnapshots);
 export const acousticEvents = cloudOnly(pgSchema.acousticEvents);
 
@@ -346,6 +418,9 @@ export const complianceRules = cloudOnly(pgSchema.complianceRules);
 // Notification System
 export const notificationSettings = cloudOnly(pgSchema.notificationSettings);
 export const notificationQueue = cloudOnly(pgSchema.notificationQueue);
+export const emailQueue = cloudOnly(pgSchema.emailQueue);
+export const telemetryDeadLetter = cloudOnly(pgSchema.telemetryDeadLetter);
+export const predictionOutcomes = cloudOnly(pgSchema.predictionOutcomes);
 
 // StormGeo Integration
 export const stormgeoSettings = cloudOnly(pgSchema.stormgeoSettings);
@@ -533,6 +608,22 @@ export {
   insertDeckLogEventsSchema,
   DECK_LOG_EVENT_TYPES,
   DECK_LOG_EVENT_SOURCES,
+  CREW_DOCUMENT_TYPE_VALUES,
+  CREW_TASK_STATUSES,
+  CREW_TASK_PRIORITIES,
+  CREW_TASK_LINKED_SOURCE_TYPES,
+  SAFETY_BULLETIN_SEVERITIES,
+  vesselDiagramTypeValues,
+  vesselDiagramStatusValues,
+  vesselDiagramVersionStatusValues,
+  vesselSectionMapStatusValues,
+  vesselThumbnailOwnerTypeValues,
+  vesselValidationSeverityValues,
+  equipmentPinSchema,
+  insertEquipmentDependencySchema,
+  equipmentDependencyLayoutPositionsSchema,
+  partsUsedSchema,
+  userDashboardPrefsSchema,
   updateValidationStatusSchema,
   validationStatusEnum,
 } from "./schema";

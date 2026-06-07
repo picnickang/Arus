@@ -8,7 +8,7 @@ import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
 import { MAINTENANCE_ROLES } from "../domain/types";
 import { db } from "../../../db";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { createLogger } from "../../../lib/structured-logger";
 const logger = createLogger("Domains:Agent:Interfaces:Routes");
 
@@ -48,7 +48,7 @@ import { registerFindingRecordsRoutes } from "./routes/finding-records-routes";
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, _file, cb) => {
-      const orgId = (req as AuthenticatedRequest).orgId || "default-org-id";
+      const orgId = authenticatedRequest(req).orgId || "default-org-id";
       cb(null, getOrgUploadDir(orgId));
     },
     filename: (_req, file, cb) => {
@@ -112,7 +112,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   })();
 
   const requireAdminRole: RoleMiddleware = (req, res, next) => {
-    const user = (req as AuthenticatedRequest).user;
+    const user = authenticatedRequest(req).user;
     const role = user?.role?.toLowerCase();
     if (!role || role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
@@ -122,7 +122,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   };
 
   const requireMaintenanceRole: RoleMiddleware = (req, res, next) => {
-    const user = (req as AuthenticatedRequest).user;
+    const user = authenticatedRequest(req).user;
     const role = user?.role?.toLowerCase();
     if (!role || !MAINTENANCE_ROLES.includes(role as (typeof MAINTENANCE_ROLES)[number])) {
       return res.status(403).json({ error: "Maintenance role required" });

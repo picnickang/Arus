@@ -1,5 +1,6 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
+import { jsonRecordSchema } from "@shared/validation/json";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbStormGeoStorage } from "../../db/stormgeo/index.js";
@@ -46,7 +47,7 @@ const autoFillHourlySchema = z.object({
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 const routeIdParamSchema = z.object({ routeId: z.string().min(1) });
-const settingsBodySchema = z.record(z.unknown());
+const settingsBodySchema = jsonRecordSchema;
 
 export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   const { writeOperationRateLimit } = config;

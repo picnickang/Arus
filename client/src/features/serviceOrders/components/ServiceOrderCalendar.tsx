@@ -156,7 +156,7 @@ export function ServiceOrderCalendar({
 
   // Map SO to its color config
   function getSoColor(so: ServiceOrderSummary) {
-    return STATUS_COLORS[so.status] ?? STATUS_COLORS['draft']!;
+    return STATUS_COLORS[so.status] ?? STATUS_COLORS['draft'];
   }
 
   // Get SOs that span a given day

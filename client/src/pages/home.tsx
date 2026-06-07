@@ -55,6 +55,7 @@ import { RoleSelector } from "./home/role-selector";
 import { useAttentionItems } from "./home/use-attention-items";
 import { AlertNoticeRow, AssignedTaskRow, OverviewTile } from "./home/portal-rows";
 import { greetingForNow, relativeTime } from "./home/time";
+import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -635,6 +636,8 @@ export default function HomePage() {
         </header>
 
         <PendingApprovalsBanner />
+
+        <WorkflowCommandCenter roleId={effectiveRole ?? role} />
 
         {accessibleCount === 0 && (
           <div

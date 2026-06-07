@@ -162,12 +162,12 @@ export function outputLog(entry: LogEntry): void {
   // object — which are authoritative — cannot be spoofed by a caller who
   // accidentally (or maliciously) passes e.g. `correlationId` in `context`.
   const meta: Record<string, unknown> = {};
-  if (context) Object.assign(meta, context);
-  if (correlationId) meta['correlationId'] = correlationId;
-  if (requestId) meta['requestId'] = requestId;
-  if (orgId) meta['orgId'] = orgId;
-  if (userId) meta['userId'] = userId;
-  if (error) meta['error'] = error;
+  if (context) {Object.assign(meta, context);}
+  if (correlationId) {meta['correlationId'] = correlationId;}
+  if (requestId) {meta['requestId'] = requestId;}
+  if (orgId) {meta['orgId'] = orgId;}
+  if (userId) {meta['userId'] = userId;}
+  if (error) {meta['error'] = error;}
 
   if (Object.keys(meta).length > 0) {
     logFn(`${prefix} ${message}`, meta);

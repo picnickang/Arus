@@ -5,24 +5,13 @@
 
 import type { Request } from "express";
 import { recordAndPublish } from "../sync-events";
-import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { authenticatedRequest } from "../middleware/auth";
 
 export interface AuditContext {
   userId?: string | undefined;
   orgId?: string | undefined;
   ipAddress?: string | undefined;
   userAgent?: string | undefined;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-    role: string;
-    isActive: boolean;
-    orgId?: string;
-  };
 }
 
 /**
@@ -43,10 +32,10 @@ export async function auditAction(
  * Extract audit context from Express request
  */
 export function getAuditContext(req: Request): AuditContext {
-  const authReq = req as AuthenticatedRequest;
+  const authReq = authenticatedRequest(req);
   return {
     userId: authReq.user?.id,
-    orgId: DEFAULT_ORG_ID,
+    orgId: authReq.orgId,
     ipAddress: req.ip || req.socket?.remoteAddress,
     userAgent: req.get("user-agent"),
   };

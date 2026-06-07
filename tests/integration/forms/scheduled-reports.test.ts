@@ -24,7 +24,7 @@ describe("Scheduled-reports forms — CRUD + propagation", () => {
     const { status } = await api("GET", `${BASE}/schedules`);
     if (status === 403) {
       cloudEnabled = false;
-      // eslint-disable-next-line no-console
+
       console.warn(
         "SKIP scheduled-reports suite: domain disabled (FEATURE_DISABLED) in this install"
       );
@@ -38,7 +38,7 @@ describe("Scheduled-reports forms — CRUD + propagation", () => {
   });
 
   it("creates a schedule", async () => {
-    if (!cloudEnabled) return;
+    if (!cloudEnabled) {return;}
     const { status, data } = await api<{ data?: { id: string }; id?: string }>(
       "POST",
       `${BASE}/schedules`,
@@ -58,7 +58,7 @@ describe("Scheduled-reports forms — CRUD + propagation", () => {
   });
 
   it("schedule appears in /schedules list", async () => {
-    if (!cloudEnabled || !scheduleId) return;
+    if (!cloudEnabled || !scheduleId) {return;}
     const { status, data } = await api<{ data?: Array<{ id: string }> }>(
       "GET",
       `${BASE}/schedules`
@@ -70,7 +70,7 @@ describe("Scheduled-reports forms — CRUD + propagation", () => {
   });
 
   it("PATCH disables the schedule", async () => {
-    if (!cloudEnabled || !scheduleId) return;
+    if (!cloudEnabled || !scheduleId) {return;}
     const { status } = await api("PATCH", `${BASE}/schedules/${scheduleId}`, { enabled: false });
     expect([200, 204]).toContain(status);
 
@@ -79,11 +79,11 @@ describe("Scheduled-reports forms — CRUD + propagation", () => {
       `${BASE}/schedules/${scheduleId}`
     );
     const enabled = (data?.data?.enabled ?? data?.enabled) as boolean | undefined;
-    if (typeof enabled === "boolean") expect(enabled).toBe(false);
+    if (typeof enabled === "boolean") {expect(enabled).toBe(false);}
   });
 
   it("DELETE removes the schedule", async () => {
-    if (!cloudEnabled || !scheduleId) return;
+    if (!cloudEnabled || !scheduleId) {return;}
     const { status } = await api("DELETE", `${BASE}/schedules/${scheduleId}`);
     expect([200, 204]).toContain(status);
     scheduleId = undefined;

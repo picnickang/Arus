@@ -63,7 +63,7 @@ async function tableExists(client: PoolClient, name: string): Promise<boolean> {
 }
 
 async function seedUsage(metric: string, value: number, windowDate: string): Promise<void> {
-  if (!pool) return;
+  if (!pool) {return;}
   await pool.query(
     `INSERT INTO tenant_usage (org_id, metric, window_start, value)
        VALUES ($1, $2, $3::date, $4)
@@ -78,13 +78,13 @@ function todayWindowDate(): string {
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) return;
+  if (!databaseUrl) {return;}
   try {
     pool = new Pool({ connectionString: databaseUrl, max: 2 });
     const client = await pool.connect();
     try {
-      if (!(await tableExists(client, "tenant_quotas"))) return;
-      if (!(await tableExists(client, "tenant_usage"))) return;
+      if (!(await tableExists(client, "tenant_quotas"))) {return;}
+      if (!(await tableExists(client, "tenant_usage"))) {return;}
       usageWindows[1].windowStart = todayWindowDate();
 
       // Snapshot pre-existing quota row (if any) so we restore it.
@@ -195,8 +195,8 @@ async function probeServerUp(): Promise<boolean> {
 
 describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", () => {
   it("soft-throttles at >=80% with warning headers and lets request through the gate", async () => {
-    if (!ready) return; // env not provisioned
-    if (!(await probeServerUp())) return;
+    if (!ready) {return;} // env not provisioned
+    if (!(await probeServerUp())) {return;}
 
     await seedUsage("storage_bytes", Math.floor(STORAGE_LIMIT * 0.85), "1970-01-01");
 
@@ -221,8 +221,8 @@ describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", (
   }, 20_000);
 
   it("hard-throttles at >=100% with 429 + Retry-After + TENANT_QUOTA_EXCEEDED", async () => {
-    if (!ready) return;
-    if (!(await probeServerUp())) return;
+    if (!ready) {return;}
+    if (!(await probeServerUp())) {return;}
 
     await seedUsage("storage_bytes", STORAGE_LIMIT, "1970-01-01");
 
@@ -248,8 +248,8 @@ describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", (
 
 describe("Task #89 — enforceQuota wiring (telemetry_rows_today on /api/telemetry/readings)", () => {
   it("soft-throttles at >=80% with warning headers", async () => {
-    if (!ready) return;
-    if (!(await probeServerUp())) return;
+    if (!ready) {return;}
+    if (!(await probeServerUp())) {return;}
 
     await seedUsage(
       "telemetry_rows_today",
@@ -278,8 +278,8 @@ describe("Task #89 — enforceQuota wiring (telemetry_rows_today on /api/telemet
   }, 20_000);
 
   it("hard-throttles at >=100% with 429 + Retry-After pointing past now (per-day window)", async () => {
-    if (!ready) return;
-    if (!(await probeServerUp())) return;
+    if (!ready) {return;}
+    if (!(await probeServerUp())) {return;}
 
     await seedUsage("telemetry_rows_today", TELEMETRY_LIMIT + 5, todayWindowDate());
 
@@ -328,7 +328,7 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
   const bridgeEquipmentId = `t89-bridge-eq-${Date.now()}`;
 
   beforeAll(async () => {
-    if (!pool || !ready) return;
+    if (!pool || !ready) {return;}
     await pool.query(
       `INSERT INTO equipment (id, org_id, name, type) VALUES ($1, $2, $3, $4)
        ON CONFLICT (id) DO NOTHING`,
@@ -337,7 +337,7 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
   }, 30_000);
 
   afterAll(async () => {
-    if (!pool || !ready) return;
+    if (!pool || !ready) {return;}
     try {
       if (cleanupEquipmentIds.length > 0) {
         await pool.query(
@@ -381,12 +381,12 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
       },
     ).toString("utf8");
     const match = out.match(/<<<T89_RESULT_BEGIN>>>([\s\S]*?)<<<T89_RESULT_END>>>/);
-    if (!match) throw new Error(`subprocess produced no result payload; stdout=${out.slice(-500)}`);
+    if (!match) {throw new Error(`subprocess produced no result payload; stdout=${out.slice(-500)}`);}
     return JSON.parse(match[1]);
   };
 
   it("drops readings for an org already at telemetry_rows_today limit and never writes them", async () => {
-    if (!ready || !pool) return;
+    if (!ready || !pool) {return;}
 
     // Seed the daily counter exactly at the limit so the next write
     // attempt is blocked.
@@ -408,7 +408,7 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
   }, 90_000);
 
   it("allows readings for an org under limit and writes them through", async () => {
-    if (!ready || !pool) return;
+    if (!ready || !pool) {return;}
 
     // Well below the daily limit — should pass through.
     await seedUsage("telemetry_rows_today", 1, todayWindowDate());

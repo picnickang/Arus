@@ -135,7 +135,7 @@ export function parseEnhancedScheduleResponse(
       totalShifts: Number(data.summary.totalShifts) || 0,
       scheduledAssignments: Number(data.summary.scheduledAssignments) || 0,
       unfilledPositions: Number(data.summary.unfilledPositions) || 0,
-      ...(data.summary.coverage !== undefined && { coverage: data.summary.coverage as number }),
+      ...(data.summary.coverage !== undefined && { coverage: data.summary.coverage }),
     },
   };
 }

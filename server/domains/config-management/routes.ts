@@ -10,7 +10,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { sql } from "drizzle-orm";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest } from "../../middleware/auth";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 interface ConfigManagementDependencies {
@@ -48,8 +48,8 @@ export function registerConfigManagementRoutes(
 
       const result = await configManager.reloadConfig({
         orgId,
-        changedBy: (req as AuthenticatedRequest).user?.id,
-        changedByName: (req as AuthenticatedRequest).user?.name || "Admin",
+        changedBy: authenticatedRequest(req).user?.id,
+        changedByName: authenticatedRequest(req).user?.name || "Admin",
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
         autoReload: false,
@@ -138,8 +138,8 @@ export function registerConfigManagementRoutes(
 
       const result = await configManager.set(key, String(value), {
         orgId,
-        changedBy: (req as AuthenticatedRequest).user?.id,
-        changedByName: (req as AuthenticatedRequest).user?.name || "Admin",
+        changedBy: authenticatedRequest(req).user?.id,
+        changedByName: authenticatedRequest(req).user?.name || "Admin",
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });
@@ -170,8 +170,8 @@ export function registerConfigManagementRoutes(
 
       const result = await configManager.delete(key, {
         orgId,
-        changedBy: (req as AuthenticatedRequest).user?.id,
-        changedByName: (req as AuthenticatedRequest).user?.name || "Admin",
+        changedBy: authenticatedRequest(req).user?.id,
+        changedByName: authenticatedRequest(req).user?.name || "Admin",
         ipAddress: req.ip,
         userAgent: req.get("user-agent"),
       });

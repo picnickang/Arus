@@ -7,14 +7,14 @@
 import type { Express } from "express";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
-import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { authenticatedRequest } from "../../../middleware/auth";
 import { dbDigitalTwinStorage } from "../../../db/digital-twin/index.js";
 
 export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
   app.get(
     "/api/analytics/digital-twins",
     withErrorHandling("fetch digital twins", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId, vesselId, twinType } = req.query;
+      const { orgId = authenticatedRequest(req).orgId, vesselId, twinType } = req.query;
       const twins = await dbDigitalTwinStorage.getDigitalTwins(
         orgId as string,
         vesselId as string | undefined,
@@ -28,7 +28,7 @@ export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
   app.get(
     "/api/analytics/digital-twins/:id",
     withErrorHandling("fetch digital twin", async (req, res) => {
-      const { orgId = (req as AuthenticatedRequest).orgId } = req.query;
+      const { orgId = authenticatedRequest(req).orgId } = req.query;
       const twin = await dbDigitalTwinStorage.getDigitalTwin(req.params['id'] ?? '', orgId as string);
       if (!twin) {
         return sendNotFound(res, "Digital twin");

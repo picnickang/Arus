@@ -68,7 +68,7 @@ export async function decommissionEquipment(
       documentationRefs: data.documentationRefs,
     })
     .returning();
-  if (!decommissionEvent) throw new Error("decommissionEquipment: event insert returned no row");
+  if (!decommissionEvent) {throw new Error("decommissionEquipment: event insert returned no row");}
 
   const [updatedEquipment] = await db
     .update(equipment)
@@ -81,7 +81,7 @@ export async function decommissionEquipment(
     })
     .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
     .returning();
-  if (!updatedEquipment) throw new Error(`decommissionEquipment: equipment ${equipmentId} update returned no row`);
+  if (!updatedEquipment) {throw new Error(`decommissionEquipment: equipment ${equipmentId} update returned no row`);}
 
   logger.info("EquipmentDecommission", `Equipment ${equipmentId} decommissioned: ${data.reason}`);
 

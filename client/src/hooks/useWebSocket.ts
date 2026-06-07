@@ -7,7 +7,7 @@ import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionTok
 function compareEventIds(a: string, b: string): number {
   const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
   const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
-  if (aMs !== bMs) return aMs - bMs;
+  if (aMs !== bMs) {return aMs - bMs;}
   return aSeq - bSeq;
 }
 
@@ -183,7 +183,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           lastEventIdRef.current.forEach((id, key) => {
             if (key.endsWith(suffix)) {
               const orgId = key.slice(0, key.length - suffix.length);
-              if (orgId) lastEventIds[orgId] = id;
+              if (orgId) {lastEventIds[orgId] = id;}
             }
           });
           ws.send(
@@ -316,12 +316,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   // current socket is bound to the old tenant (or anonymous). Tear it down and
   // reconnect so the upgrade carries the new token and resolves the right org.
   useEffect(() => {
-    const unsubscribe = subscribeToApiSessionToken(() => {
-      if (!autoConnect) return;
+    return subscribeToApiSessionToken(() => {
+      if (!autoConnect) {return;}
       disconnect();
       connect();
     });
-    return unsubscribe;
   }, [autoConnect, connect, disconnect]);
 
   // Cleanup on unmount

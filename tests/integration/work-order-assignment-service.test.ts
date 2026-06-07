@@ -186,7 +186,7 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     const res = await service.respondToAssignment("wo1", "user-alice", ORG, "accept");
 
     expect(res.status).toBe("ok");
-    if (res.status !== "ok") throw new Error("expected ok result");
+    if (res.status !== "ok") {throw new Error("expected ok result");}
     expect(res.workOrder.assignmentStatus).toBe("accepted");
     expect(res.workOrder.status).toBe("in_progress");
     expect(res.workOrder.assignmentResponseReason).toBeNull();
@@ -212,7 +212,7 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     );
 
     expect(res.status).toBe("ok");
-    if (res.status !== "ok") throw new Error("expected ok result");
+    if (res.status !== "ok") {throw new Error("expected ok result");}
     expect(res.workOrder.assignmentStatus).toBe("declined");
     expect(res.workOrder.status).toBe("open");
     expect(res.workOrder.assignmentResponseReason).toBe("Already on another job");

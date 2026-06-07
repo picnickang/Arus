@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 
 /**
  * Register object storage routes for file uploads.
@@ -34,7 +34,7 @@ export function registerObjectStorageRoutes(app: Express): void {
           });
         }
 
-        const authed = req as AuthenticatedRequest;
+        const authed = authenticatedRequest(req);
         const uploadURL = await objectStorageService.getObjectEntityUploadURL(authed.orgId);
         const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
@@ -56,7 +56,7 @@ export function registerObjectStorageRoutes(app: Express): void {
     async (req, res) => {
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-        const authed = req as AuthenticatedRequest;
+        const authed = authenticatedRequest(req);
         await objectStorageService.downloadObject(objectFile, res, 3600, {
           orgId: authed.orgId,
           userId: authed.user?.id,

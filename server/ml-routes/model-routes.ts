@@ -54,7 +54,7 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
 router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!model) return sendNotFound(res, "ML model");
+    if (!model) {return sendNotFound(res, "ML model");}
     if (model.status !== "deployed") {
       return sendBadRequest(res, "Only deployed models expose artifacts");
     }
@@ -342,7 +342,7 @@ const promotionApprovals = new Map<string, PromotionApproval>();
 
 function pruneExpiredApprovals(now: number): void {
   for (const [k, v] of promotionApprovals) {
-    if (v.expiresAt <= now) promotionApprovals.delete(k);
+    if (v.expiresAt <= now) {promotionApprovals.delete(k);}
   }
 }
 
@@ -356,14 +356,14 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const proposerId = req.user?.id;
-      if (!proposerId) return sendBadRequest(res, "Proposer identity required");
+      if (!proposerId) {return sendBadRequest(res, "Proposer identity required");}
 
       const modelId = req.params['id'] ?? '';
       const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
-      if (!candidate) return sendNotFound(res, "ML model");
-      if (candidate.status === "training") return sendBadRequest(res, "Cannot request promotion of a training model");
-      if (candidate.status === "failed") return sendBadRequest(res, "Cannot request promotion of a failed model");
-      if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+      if (!candidate) {return sendNotFound(res, "ML model");}
+      if (candidate.status === "training") {return sendBadRequest(res, "Cannot request promotion of a training model");}
+      if (candidate.status === "failed") {return sendBadRequest(res, "Cannot request promotion of a failed model");}
+      if (!candidate.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
 
       pruneExpiredApprovals(Date.now());
       const token = randomBytes(24).toString("base64url");
@@ -413,7 +413,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const approverId = req.user?.id;
-      if (!approverId) return sendBadRequest(res, "Approver identity required");
+      if (!approverId) {return sendBadRequest(res, "Approver identity required");}
 
       const parsed = promoteBodySchema.safeParse(req.body);
       if (!parsed.success) {
@@ -440,10 +440,10 @@ router.post(
       }
 
       const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
-      if (!candidate) return sendNotFound(res, "ML model");
-      if (candidate.status === "training") return sendBadRequest(res, "Cannot promote a training model");
-      if (candidate.status === "failed") return sendBadRequest(res, "Cannot promote a failed model");
-      if (!candidate.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+      if (!candidate) {return sendNotFound(res, "ML model");}
+      if (candidate.status === "training") {return sendBadRequest(res, "Cannot promote a training model");}
+      if (candidate.status === "failed") {return sendBadRequest(res, "Cannot promote a failed model");}
+      if (!candidate.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
 
       const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
       const currentlyDeployed = all.filter(
@@ -496,9 +496,9 @@ router.post(
 router.post("/ml/models/:id/rollback", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!current) return sendNotFound(res, "ML model");
-    if (current.status !== "deployed") return sendBadRequest(res, "Only deployed models can be rolled back");
-    if (!current.equipmentType) return sendBadRequest(res, "Model is missing equipmentType");
+    if (!current) {return sendNotFound(res, "ML model");}
+    if (current.status !== "deployed") {return sendBadRequest(res, "Only deployed models can be rolled back");}
+    if (!current.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
 
     const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
     const previous = all

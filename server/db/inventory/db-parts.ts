@@ -104,7 +104,7 @@ export class DbPartsStorage {
       .insert(parts)
       .values({ id: randomUUID(), ...partData, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!newPart) throw new Error("Failed to create part");
+    if (!newPart) {throw new Error("Failed to create part");}
     return newPart;
   }
   async updatePart(id: string, updates: Partial<InsertPart>, orgId?: string): Promise<Part> {
@@ -219,7 +219,7 @@ export class DbPartsStorage {
       })
       .returning();
 
-    if (!newPart) throw new Error("Failed to create part for inventory");
+    if (!newPart) {throw new Error("Failed to create part for inventory");}
     const [newStock] = await db
       .insert(stock)
       .values({
@@ -233,7 +233,7 @@ export class DbPartsStorage {
       })
       .returning();
 
-    if (!newStock) throw new Error("Failed to create stock");
+    if (!newStock) {throw new Error("Failed to create stock");}
     return partAndStockToPartsInventory(newPart, newStock);
   }
 

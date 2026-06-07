@@ -64,7 +64,7 @@ export class DefaultLLMGateway implements LLMGateway {
     let finalUsage: LLMUsage | undefined;
 
     for await (const chunk of this.provider.chatStream(params)) {
-      if (chunk.usage) finalUsage = chunk.usage;
+      if (chunk.usage) {finalUsage = chunk.usage;}
       yield chunk;
     }
 

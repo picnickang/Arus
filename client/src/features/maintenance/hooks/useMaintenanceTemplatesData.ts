@@ -267,5 +267,5 @@ export function getPriorityBadgeConfig(priority: number | string | null | undefi
       : typeof priority === "string"
         ? Number.parseInt(priority, 10)
         : 3;
-  return priorityMap[numPriority] ?? priorityMap[3]!;
+  return priorityMap[numPriority] ?? priorityMap[3];
 }

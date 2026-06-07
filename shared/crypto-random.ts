@@ -62,7 +62,7 @@ export function cryptoShuffle<T>(array: T[]): T[] {
     const j = cryptoRandomInt(i + 1);
     const a = result[i];
     const b = result[j];
-    if (a === undefined || b === undefined) continue;
+    if (a === undefined || b === undefined) {continue;}
     result[i] = b;
     result[j] = a;
   }

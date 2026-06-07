@@ -14,8 +14,8 @@
  *   scripts/type-debt/explicit-any-inventory.json   (machine-readable)
  *   docs/type-debt/explicit-any-inventory.md        (human-readable report)
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { resolve, relative, dirname, join } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { resolve, relative, dirname } from "node:path";
 
 const ROOT = process.cwd();
 const RULE = "@typescript-eslint/no-explicit-any";
@@ -327,12 +327,12 @@ function renderMarkdown(inventory) {
   lines.push("");
   lines.push("| Bucket | Occurrences | % | Files |");
   lines.push("|---|---:|---:|---:|");
-  for (const [key, b] of Object.entries(inventory.buckets)) {
+  for (const [, b] of Object.entries(inventory.buckets)) {
     lines.push(`| ${b.label} | ${b.count} | ${fmtPct(b.percent)} | ${b.files} |`);
   }
   lines.push("");
 
-  for (const [key, b] of Object.entries(inventory.buckets)) {
+  for (const [, b] of Object.entries(inventory.buckets)) {
     lines.push(`## ${b.label}`);
     lines.push("");
     lines.push(`**Definition.** ${b.definition}`);
