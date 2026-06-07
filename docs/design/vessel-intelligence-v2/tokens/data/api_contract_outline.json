@@ -1,0 +1,20 @@
+{
+  "diagramRegistryEndpoints": [
+    "GET /api/vessel-intelligence/:vesselId/diagrams",
+    "POST /api/vessel-intelligence/:vesselId/diagrams",
+    "POST /api/vessel-intelligence/:vesselId/diagrams/:diagramId/versions/upload",
+    "POST /api/vessel-intelligence/:vesselId/diagrams/:diagramId/versions/:versionId/set-active"
+  ],
+  "sectionMapEndpoints": [
+    "GET /api/vessel-intelligence/:vesselId/section-maps",
+    "POST /api/vessel-intelligence/:vesselId/section-maps",
+    "POST /api/vessel-intelligence/:vesselId/section-maps/:mapId/clone",
+    "POST /api/vessel-intelligence/:vesselId/section-maps/:mapId/publish"
+  ],
+  "thumbnailEndpoints": [
+    "POST /api/vessel-intelligence/:vesselId/sections/:sectionId/thumbnail/upload",
+    "DELETE /api/vessel-intelligence/:vesselId/sections/:sectionId/thumbnail",
+    "POST /api/vessel-intelligence/:vesselId/equipment/:equipmentId/thumbnail/upload",
+    "DELETE /api/vessel-intelligence/:vesselId/equipment/:equipmentId/thumbnail"
+  ]
+}

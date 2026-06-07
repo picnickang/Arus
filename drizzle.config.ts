@@ -37,6 +37,7 @@ export default defineConfig({
     "./shared/schema/purchasing.ts",
     "./shared/schema/stormgeo.ts",
     "./shared/schema/pdm-feature-store.ts",
+    "./shared/schema/vessel-diagram-registry.ts",
   ],
   dialect: "postgresql",
   dbCredentials: {

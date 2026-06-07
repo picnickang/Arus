@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#061a30"/><stop offset="1" stop-color="#020914"/></linearGradient>
+  <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d2945"/><stop offset="1" stop-color="#071827"/></linearGradient>
+  <linearGradient id="blueglow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#113b62" stop-opacity=".96"/><stop offset="1" stop-color="#071827" stop-opacity=".96"/></linearGradient>
+</defs>
+<rect width="600" height="420" fill="url(#bg)"/><rect x="60" y="80" width="480" height="250" rx="16" fill="#071d32" fill-opacity="1" stroke="#315b7a" stroke-width="1"/><text x="300" y="175" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="800" fill="#e9f2ff" fill-opacity="1" text-anchor="middle">Upload / Replace Diagram</text><text x="300" y="210" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="600" fill="#9cb2c9" fill-opacity="1" text-anchor="middle">SVG · PNG · JPG · WebP</text><text x="300" y="245" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600" fill="#f0c537" fill-opacity="1" text-anchor="middle">Sanitize · generate preview · create version</text><rect x="215" y="280" width="170" height="38" rx="19.0" fill="#1684ff" fill-opacity="0.13" stroke="#1684ff" stroke-width="1"/><text x="300.0" y="304.0" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#1684ff" fill-opacity="1" text-anchor="middle">Choose File</text>
+</svg>

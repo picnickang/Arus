@@ -30,54 +30,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("react-dom") || id.includes("react/")) {
-              return "vendor-react";
-            }
-            if (id.includes("@radix-ui") || id.includes("lucide-react") || id.includes("cmdk")) {
-              return "vendor-ui";
-            }
-            if (id.includes("recharts") || id.includes("d3-")) {
-              return "vendor-charts";
-            }
-            if (id.includes("@tanstack")) {
-              return "vendor-tanstack";
-            }
-            if (id.includes("jspdf") || id.includes("xlsx") || id.includes("html2canvas") || id.includes("pdf-lib")) {
-              return "vendor-export";
-            }
-            if (id.includes("zod") || id.includes("drizzle") || id.includes("date-fns")) {
-              return "vendor-utils";
-            }
-          }
-          if (id.includes("/features/scheduling/") || id.includes("/components/scheduling/")) {
-            return "features-scheduling";
-          }
-          if (id.includes("/features/crew/") || id.includes("/components/crew/")) {
-            return "features-crew";
-          }
-          if (id.includes("/features/compliance/") || id.includes("/pages/logs-")) {
-            return "features-logs";
-          }
-          if (id.includes("/features/analytics/") || id.includes("/pages/analytics")) {
-            return "features-analytics";
-          }
-          if (id.includes("/features/ml-ai/") || id.includes("/pages/ai-")) {
-            return "features-ml-ai";
-          }
-          if (id.includes("/features/admin/") || id.includes("/pages/admin")) {
-            return "features-admin";
-          }
-          if (id.includes("/features/maintenance/") || id.includes("/pages/maint")) {
-            return "features-maintenance";
-          }
-          return undefined;
-        },
-      },
-    },
   },
   optimizeDeps: {
     include: [

@@ -1,0 +1,34 @@
+{
+  "diagramTypes": [
+    {
+      "key": "side_elevation",
+      "label": "Side Elevation",
+      "defaultFor": "section overview"
+    },
+    {
+      "key": "deck_plan",
+      "label": "Deck Plan",
+      "defaultFor": "deck equipment and cargo work areas"
+    },
+    {
+      "key": "machinery_arrangement",
+      "label": "Engine Room / Machinery Arrangement",
+      "defaultFor": "machinery drilldown"
+    },
+    {
+      "key": "electrical_single_line",
+      "label": "Electrical Single-Line",
+      "defaultFor": "generators, switchboards, power distribution"
+    },
+    {
+      "key": "fire_safety_plan",
+      "label": "Fire & Safety Plan",
+      "defaultFor": "fire zones, extinguishers, muster/safety equipment"
+    },
+    {
+      "key": "system_schematic",
+      "label": "System Schematic / P&ID",
+      "defaultFor": "fuel/lube/cooling/hydraulic systems"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "sectionThumbnailFallback": [
+    "manual uploaded section thumbnail",
+    "crop from active vessel diagram section polygon",
+    "generated section-colour placeholder",
+    "generic section icon"
+  ],
+  "equipmentThumbnailFallback": [
+    "manual uploaded equipment thumbnail",
+    "existing equipment/asset photo",
+    "parent section thumbnail",
+    "generic equipment icon based on category"
+  ]
+}
