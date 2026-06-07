@@ -15,9 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DIAGRAM_TYPES,
-  EQUIPMENT_MAPPING,
   REPLACEMENT_MAPPING_OPTIONS,
   THUMBNAIL_FALLBACK_RULES,
+  type VesselSectionMapDefinition,
 } from "./registry";
 import {
   alertTitleFor,
@@ -26,6 +26,7 @@ import {
   workOrderTitleFor,
   type AlertRecord,
   type EquipmentRecord,
+  type RegistryDiagramRecord,
   type WorkOrderRecord,
 } from "./data";
 
@@ -100,9 +101,13 @@ export function RowLink({
 export function DiagramRegistryPanel({
   selectedVesselId,
   buildPath,
+  diagrams,
+  canManageDiagrams,
 }: {
   selectedVesselId: string;
   buildPath: BuildPath;
+  diagrams: RegistryDiagramRecord[];
+  canManageDiagrams: boolean;
 }) {
   const thumbnailPath = selectedVesselId
     ? `/vessel-intelligence/${selectedVesselId}/thumbnails`
@@ -120,27 +125,34 @@ export function DiagramRegistryPanel({
         <ImagePlus className="h-5 w-5 text-primary" />
       </div>
       <div className="mt-4 space-y-2">
-        {DIAGRAM_TYPES.map((diagramType) => (
-          <div key={diagramType.key} className="rounded-md border px-3 py-2 text-sm">
-            <div className="font-medium">{diagramType.label}</div>
-            <div className="text-xs text-muted-foreground">{diagramType.defaultFor}</div>
+        {(diagrams.length ? diagrams : DIAGRAM_TYPES).map((diagram) => (
+          <div
+            key={"id" in diagram ? diagram.id : diagram.key}
+            className="rounded-md border px-3 py-2 text-sm"
+          >
+            <div className="font-medium">{"title" in diagram ? diagram.title : diagram.label}</div>
+            <div className="text-xs text-muted-foreground">
+              {"status" in diagram ? statusText(diagram.status) : diagram.defaultFor}
+            </div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={buildPath("diagrams")}>
-            <History className="mr-2 h-4 w-4" />
-            Versions
-          </Link>
-        </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={thumbnailPath}>
-            <Settings className="mr-2 h-4 w-4" />
-            Thumbnails
-          </Link>
-        </Button>
-      </div>
+      {canManageDiagrams && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild data-testid="button-diagram-versions">
+            <Link href={buildPath("diagrams")}>
+              <History className="mr-2 h-4 w-4" />
+              Versions
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild data-testid="button-thumbnail-manager">
+            <Link href={thumbnailPath}>
+              <Settings className="mr-2 h-4 w-4" />
+              Thumbnails
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -148,26 +160,37 @@ export function DiagramRegistryPanel({
 export function EquipmentMappingPanel({
   selectedVesselId,
   vesselEquipment,
+  sectionMap,
   buildPath,
 }: {
   selectedVesselId: string;
   vesselEquipment: EquipmentRecord[];
+  sectionMap: VesselSectionMapDefinition;
   buildPath: BuildPath;
 }) {
+  const mappedEquipment = sectionMap.sections.flatMap((section) =>
+    section.equipment.map((equipmentName) => ({
+      equipmentName,
+      sectionKey: section.sectionKey,
+      sectionName: section.name,
+    }))
+  );
+
   return (
     <div className="rounded-md border p-4" data-testid="equipment-mapping-panel">
       <h2 className="text-base font-semibold">Equipment Assignments</h2>
       <p className="text-sm text-muted-foreground">
-        Registry labels are matched against live equipment by name or asset code.
+        Registry assignments are loaded from the active section map and matched against live
+        equipment by name or asset code.
       </p>
       <div className="mt-3 space-y-2">
-        {EQUIPMENT_MAPPING.map((seed) => {
+        {mappedEquipment.map((seed) => {
           const linked = vesselEquipment.find((item) => {
             const liveName = equipmentNameFor(item).toLowerCase();
             return (
-              liveName === seed.name.toLowerCase() ||
-              item.assetCode === seed.assetCode ||
-              item.tagNumber === seed.assetCode
+              liveName === seed.equipmentName.toLowerCase() ||
+              item.assetCode === seed.equipmentName ||
+              item.tagNumber === seed.equipmentName
             );
           });
           const href =
@@ -176,12 +199,12 @@ export function EquipmentMappingPanel({
               : buildPath("sections");
           return (
             <RowLink
-              key={seed.equipmentId}
+              key={`${seed.sectionKey}-${seed.equipmentName}`}
               href={href}
-              title={seed.name}
-              meta={`${seed.assetCode} - ${seed.system}`}
+              title={seed.equipmentName}
+              meta={seed.sectionName}
               badge={linked ? "Live" : "Registry"}
-              testId={`equipment-map-${seed.equipmentId}`}
+              testId={`equipment-map-${seed.sectionKey}`}
             />
           );
         })}
@@ -267,9 +290,11 @@ export function AlertsPanel({
 export function ReportsPanel({
   pdmUnavailable,
   buildPath,
+  canManageRegistry,
 }: {
   pdmUnavailable: boolean;
   buildPath: BuildPath;
+  canManageRegistry: boolean;
 }) {
   return (
     <div className="rounded-md border p-4" data-testid="reports-and-performance-panel">
@@ -292,13 +317,15 @@ export function ReportsPanel({
           badge="Reports"
           testId="reports-link"
         />
-        <RowLink
-          href={buildPath("settings")}
-          title="Registry settings"
-          meta="Diagram and thumbnail administration"
-          badge="Admin"
-          testId="settings-link"
-        />
+        {canManageRegistry && (
+          <RowLink
+            href={buildPath("settings")}
+            title="Registry settings"
+            meta="Diagram and thumbnail administration"
+            badge="Admin"
+            testId="settings-link"
+          />
+        )}
       </div>
     </div>
   );

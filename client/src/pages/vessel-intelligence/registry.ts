@@ -29,6 +29,14 @@ export interface VesselSectionDefinition {
   thumbnailFallback: string;
 }
 
+export interface VesselSectionMapDefinition {
+  coordinateMode: "normalized_percent";
+  diagramWidth: number;
+  diagramHeight: number;
+  diagramKind: DiagramTypeKey;
+  sections: VesselSectionDefinition[];
+}
+
 export interface EquipmentRegistrySeed {
   equipmentId: string;
   name: string;
@@ -100,7 +108,7 @@ export const DIAGRAM_TYPES: DiagramTypeDefinition[] = [
   },
 ];
 
-export const SECTION_MAP = {
+export const SECTION_MAP: VesselSectionMapDefinition = {
   coordinateMode: "normalized_percent",
   diagramWidth: 895,
   diagramHeight: 420,

@@ -43,6 +43,7 @@ export * from "./role-dashboards";
 export * from "./safety-alarms";
 export * from "./diagnostic-runs";
 export * from "./import-manifest";
+export * from "./vessel-diagram-registry";
 
 import * as core from "./core";
 import * as purchasing from "./purchasing";
@@ -72,6 +73,7 @@ import * as agent from "./agent";
 import * as certificates from "./certificates";
 import * as safetyBulletins from "./safety-bulletins";
 import * as crewTasks from "./crew-tasks";
+import * as vesselDiagramRegistry from "./vessel-diagram-registry";
 
 export const CoreSchema = { ...core };
 export const SyncSchema = { ...sync };
@@ -101,6 +103,7 @@ export const AgentSchema = { ...agent };
 export const CertificatesSchema = { ...certificates };
 export const SafetyBulletinsSchema = { ...safetyBulletins };
 export const CrewTasksSchema = { ...crewTasks };
+export const VesselDiagramRegistrySchema = { ...vesselDiagramRegistry };
 
 export const MLSchema = {
   ...mlCore,
@@ -151,7 +154,8 @@ export type DomainName =
   | "purchasing"
   | "digital-twin"
   | "agent"
-  | "certificates";
+  | "certificates"
+  | "vessel-diagram-registry";
 
 export const SchemaDomains: Record<DomainName, object> = {
   core: CoreSchema,
@@ -179,4 +183,5 @@ export const SchemaDomains: Record<DomainName, object> = {
   "digital-twin": DigitalTwinSchema,
   agent: AgentSchema,
   certificates: CertificatesSchema,
+  "vessel-diagram-registry": VesselDiagramRegistrySchema,
 };

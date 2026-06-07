@@ -89,6 +89,14 @@ export const performanceMetrics = pickSchema(isLocalMode, sqliteVessel.performan
 export const rawTelemetry = pickSchema(isLocalMode, sqliteVessel.rawTelemetrySqlite, pgSchema.rawTelemetry);
 export const deviceRegistry = cloudOnly(pgSchema.deviceRegistry);
 export const equipmentDecommissionEvents = cloudOnly(pgSchema.equipmentDecommissionEvents); // Cloud-only table
+export const vesselDiagrams = cloudOnly(pgSchema.vesselDiagrams);
+export const vesselDiagramVersions = cloudOnly(pgSchema.vesselDiagramVersions);
+export const vesselSectionMaps = cloudOnly(pgSchema.vesselSectionMaps);
+export const vesselSections = cloudOnly(pgSchema.vesselSections);
+export const vesselSectionPolygons = cloudOnly(pgSchema.vesselSectionPolygons);
+export const vesselSectionEquipmentAssignments = cloudOnly(pgSchema.vesselSectionEquipmentAssignments);
+export const vesselThumbnailOverrides = cloudOnly(pgSchema.vesselThumbnailOverrides);
+export const vesselDiagramValidationResults = cloudOnly(pgSchema.vesselDiagramValidationResults);
 
 // Work Orders & Maintenance
 export const workOrders = pickSchema(isLocalMode, sqliteVessel.workOrdersSqlite, pgSchema.workOrders);

@@ -457,6 +457,14 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }),
   },
 
+  // Vessel Intelligence Diagram Registry
+  {
+    name: "VesselDiagramRegistry",
+    importPath: "../domains/vessel-diagram-registry/index.js",
+    functionName: "registerVesselDiagramRegistryRoutes",
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }),
+  },
+
   // Permissions
   {
     name: "Permissions",
@@ -1023,7 +1031,9 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
       const target = mod[config.functionName];
 
       if (!target) {
-        logger.error(`[Domain Registry] ${config.name}: ${config.functionName} not found in ${config.importPath}`);
+        logger.error(
+          `[Domain Registry] ${config.name}: ${config.functionName} not found in ${config.importPath}`
+        );
         continue;
       }
 
@@ -1036,7 +1046,9 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
         app.use(config.mountPath, ...middleware, target as import("express").RequestHandler);
       } else {
         if (typeof target !== "function") {
-          logger.error(`[Domain Registry] ${config.name}: ${config.functionName} is not a function`);
+          logger.error(
+            `[Domain Registry] ${config.name}: ${config.functionName} is not a function`
+          );
           continue;
         }
         await target(app, deps);

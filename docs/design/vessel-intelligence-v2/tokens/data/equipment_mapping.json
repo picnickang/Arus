@@ -1,0 +1,70 @@
+{
+  "equipment": [
+    {
+      "equipmentId": "ME-01",
+      "name": "Main Engine 1",
+      "assetCode": "ME-01",
+      "sectionKey": "main_engine_room",
+      "system": "Propulsion",
+      "status": "Healthy",
+      "thumbnailFallback": "manual -> equipment_photo -> parent_section -> icon"
+    },
+    {
+      "equipmentId": "ME-02",
+      "name": "Main Engine 2",
+      "assetCode": "ME-02",
+      "sectionKey": "main_engine_room",
+      "system": "Propulsion",
+      "status": "Healthy",
+      "thumbnailFallback": "manual -> equipment_photo -> parent_section -> icon"
+    },
+    {
+      "equipmentId": "GBX-01",
+      "name": "Reduction Gearbox",
+      "assetCode": "GBX-01",
+      "sectionKey": "main_engine_room",
+      "system": "Propulsion",
+      "status": "Watch"
+    },
+    {
+      "equipmentId": "DG-01",
+      "name": "Aux Generator 1",
+      "assetCode": "DG-01",
+      "sectionKey": "generator_electrical",
+      "system": "Electrical",
+      "status": "Healthy"
+    },
+    {
+      "equipmentId": "DG-02",
+      "name": "Aux Generator 2",
+      "assetCode": "DG-02",
+      "sectionKey": "generator_electrical",
+      "system": "Electrical",
+      "status": "Caution"
+    },
+    {
+      "equipmentId": "SWP-01",
+      "name": "Sea Water Pump 1",
+      "assetCode": "SWP-01",
+      "sectionKey": "main_engine_room",
+      "system": "Cooling",
+      "status": "Healthy"
+    },
+    {
+      "equipmentId": "CR-01",
+      "name": "Deck Crane",
+      "assetCode": "CR-01",
+      "sectionKey": "deck_machinery_crane_base",
+      "system": "Deck Machinery",
+      "status": "Healthy"
+    },
+    {
+      "equipmentId": "BT-01",
+      "name": "Bow Thruster",
+      "assetCode": "BT-01",
+      "sectionKey": "forward_utility_bow",
+      "system": "Maneuvering",
+      "status": "Watch"
+    }
+  ]
+}

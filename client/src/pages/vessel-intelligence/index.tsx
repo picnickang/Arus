@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { SectionedVesselMap } from "./SectionedVesselMap";
-import { SECTION_MAP } from "./registry";
+import { SECTION_MAP, type DiagramTypeKey, type VesselSectionMapDefinition } from "./registry";
 import {
   AlertsPanel,
   DiagramRegistryPanel,
@@ -33,6 +34,8 @@ import {
   type AlertRecord,
   type EquipmentRecord,
   type PdmDashboardRecord,
+  type RegistrySectionMapRecord,
+  type RegistrySummaryRecord,
   type VesselRecord,
   type WorkOrderRecord,
 } from "./data";
@@ -109,12 +112,52 @@ function pathForMode(vesselId: string, mode: HubMode): string {
   return `${root}/${mode}`;
 }
 
+function sectionMapFromRegistry(
+  map: RegistrySectionMapRecord | null | undefined
+): VesselSectionMapDefinition | null {
+  if (!map || map.coordinateMode !== "normalized_percent" || map.sections.length === 0) {
+    return null;
+  }
+  return {
+    coordinateMode: "normalized_percent",
+    diagramWidth: map.diagramWidth,
+    diagramHeight: map.diagramHeight,
+    diagramKind: (map.diagramKind || "side_elevation") as DiagramTypeKey,
+    sections: map.sections.map((section) => ({
+      sectionNo: section.sectionNo,
+      sectionKey: section.sectionKey,
+      name: section.name,
+      color: section.color,
+      polygonNormalized: section.polygonNormalized,
+      labelNormalized: section.labelNormalized,
+      equipment: section.equipment.map((assignment) => assignment.equipmentName),
+      thumbnailFallback:
+        section.thumbnailFallback ??
+        "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
+    })),
+  };
+}
+
 export default function VesselIntelligencePage({
   vesselId: routeVesselId,
   sectionId,
 }: VesselIntelligencePageProps) {
   const [location, setLocation] = useLocation();
+  const { hasAnyPermission } = usePermissions();
   const mode = modeFromPath(location);
+  const canManageDiagrams = hasAnyPermission("vessel-intelligence", [
+    "configure",
+    "upload-diagram",
+    "rollback-diagram",
+    "replace-section-thumbnail",
+    "replace-equipment-thumbnail",
+  ]);
+  const canManageRegistry = hasAnyPermission("vessel-intelligence", [
+    "configure",
+    "edit-section-map",
+    "publish-map",
+    "assign-equipment",
+  ]);
 
   const vesselsQuery = useQuery({
     queryKey: ["/api/vessels"],
@@ -145,7 +188,27 @@ export default function VesselIntelligencePage({
   const selectedVessel =
     vessels.find((vessel) => vesselIdFor(vessel) === routeVesselId) ?? vessels[0];
   const selectedVesselId = routeVesselId ?? vesselIdFor(selectedVessel);
-  const selectedSectionKey = sectionId ?? SECTION_MAP.sections[0]?.sectionKey ?? "";
+
+  const registryQuery = useQuery({
+    queryKey: ["/api/vessel-intelligence", selectedVesselId, "summary"],
+    queryFn: () =>
+      apiRequest<RegistrySummaryRecord>(
+        "GET",
+        `/api/vessel-intelligence/${selectedVesselId}/summary`
+      ),
+    enabled: Boolean(selectedVesselId),
+  });
+
+  const activeSectionMap =
+    sectionMapFromRegistry(registryQuery.data?.activeSectionMap) ??
+    sectionMapFromRegistry(registryQuery.data?.sectionMaps[0]) ??
+    SECTION_MAP;
+  const activeDiagram = registryQuery.data?.activeDiagram;
+  const activeDiagramBaseUrl =
+    selectedVesselId && activeDiagram?.id && activeDiagram.activeVersionId
+      ? `/api/vessel-intelligence/${selectedVesselId}/diagrams/${activeDiagram.id}/versions/${activeDiagram.activeVersionId}/media`
+      : undefined;
+  const selectedSectionKey = sectionId ?? activeSectionMap.sections[0]?.sectionKey ?? "";
   const vesselEquipment = equipment.filter((item) => belongsToVessel(item, selectedVesselId));
   const vesselWorkOrders = workOrders.filter((item) => belongsToVessel(item, selectedVesselId));
   const vesselAlerts = alerts.filter((item) => belongsToVessel(item, selectedVesselId));
@@ -154,7 +217,8 @@ export default function VesselIntelligencePage({
     equipmentQuery.isError ||
     workOrdersQuery.isError ||
     alertsQuery.isError ||
-    pdmQuery.isError;
+    pdmQuery.isError ||
+    registryQuery.isError;
 
   const handleSelectVessel = (nextVesselId: string) => {
     setLocation(`/vessel-intelligence/${nextVesselId}/overview`);
@@ -299,6 +363,14 @@ export default function VesselIntelligencePage({
                 <span className="text-muted-foreground">PdM</span>
                 <span>{pdmStatusLabel}</span>
               </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Registry</span>
+                <span>
+                  {registryQuery.isLoading
+                    ? "Loading"
+                    : `${registryQuery.data?.sectionMaps.length ?? 0} maps`}
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -309,9 +381,13 @@ export default function VesselIntelligencePage({
         >
           <MetricPanel
             label="Registry sections"
-            value={SECTION_MAP.sections.length}
+            value={activeSectionMap.sections.length}
             icon={Layers}
-            note="From normalized section_mapping.json"
+            note={
+              registryQuery.data?.activeSectionMap
+                ? "From published section map API"
+                : "Design package fallback until a map is published"
+            }
             testId="metric-section-count"
           />
           <MetricPanel
@@ -346,19 +422,27 @@ export default function VesselIntelligencePage({
                   Editable normalized polygons from the supplied Full Hub v2 package.
                 </p>
               </div>
-              <Badge variant="outline">{statusText(SECTION_MAP.diagramKind)}</Badge>
+              <Badge variant="outline">{statusText(activeSectionMap.diagramKind)}</Badge>
             </div>
             <SectionedVesselMap
+              sectionMap={activeSectionMap}
               selectedSectionKey={selectedSectionKey}
+              baseImageUrl={activeDiagramBaseUrl}
               onSelectSection={handleSelectSection}
             />
           </div>
 
           <div className="space-y-4">
-            <DiagramRegistryPanel selectedVesselId={selectedVesselId} buildPath={buildPath} />
+            <DiagramRegistryPanel
+              selectedVesselId={selectedVesselId}
+              diagrams={registryQuery.data?.diagrams ?? []}
+              buildPath={buildPath}
+              canManageDiagrams={canManageDiagrams}
+            />
             <EquipmentMappingPanel
               selectedVesselId={selectedVesselId}
               vesselEquipment={vesselEquipment}
+              sectionMap={activeSectionMap}
               buildPath={buildPath}
             />
           </div>
@@ -371,10 +455,14 @@ export default function VesselIntelligencePage({
             buildPath={buildPath}
           />
           <AlertsPanel vesselAlerts={vesselAlerts} buildPath={buildPath} />
-          <ReportsPanel pdmUnavailable={pdmQuery.isError} buildPath={buildPath} />
+          <ReportsPanel
+            pdmUnavailable={pdmQuery.isError}
+            buildPath={buildPath}
+            canManageRegistry={canManageRegistry}
+          />
         </section>
 
-        <RegistryAdministrationPanels />
+        {canManageRegistry && <RegistryAdministrationPanels />}
       </div>
     </div>
   );

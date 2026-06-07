@@ -1,38 +1,48 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SECTION_MAP, type VesselSectionDefinition } from "./registry";
+import type { VesselSectionDefinition, VesselSectionMapDefinition } from "./registry";
 
-function pointsFor(section: VesselSectionDefinition): string {
+function pointsFor(
+  section: VesselSectionDefinition,
+  sectionMap: VesselSectionMapDefinition
+): string {
   return section.polygonNormalized
-    .map((point) => `${point.x * SECTION_MAP.diagramWidth},${point.y * SECTION_MAP.diagramHeight}`)
+    .map((point) => `${point.x * sectionMap.diagramWidth},${point.y * sectionMap.diagramHeight}`)
     .join(" ");
 }
 
-function sectionLabel(section: VesselSectionDefinition): { x: number; y: number } {
+function sectionLabel(
+  section: VesselSectionDefinition,
+  sectionMap: VesselSectionMapDefinition
+): { x: number; y: number } {
   return {
-    x: section.labelNormalized.x * SECTION_MAP.diagramWidth,
-    y: section.labelNormalized.y * SECTION_MAP.diagramHeight,
+    x: section.labelNormalized.x * sectionMap.diagramWidth,
+    y: section.labelNormalized.y * sectionMap.diagramHeight,
   };
 }
 
 interface SectionedVesselMapProps {
+  sectionMap: VesselSectionMapDefinition;
   selectedSectionKey: string;
+  baseImageUrl?: string;
   onSelectSection: (sectionKey: string) => void;
 }
 
 export function SectionedVesselMap({
+  sectionMap,
   selectedSectionKey,
+  baseImageUrl,
   onSelectSection,
 }: SectionedVesselMapProps) {
   const selectedSection =
-    SECTION_MAP.sections.find((section) => section.sectionKey === selectedSectionKey) ??
-    SECTION_MAP.sections[0];
+    sectionMap.sections.find((section) => section.sectionKey === selectedSectionKey) ??
+    sectionMap.sections[0];
 
   return (
     <div className="space-y-4" data-testid="vessel-intelligence-section-map">
       <div className="rounded-md border bg-slate-950 p-3">
         <svg
-          viewBox={`0 0 ${SECTION_MAP.diagramWidth} ${SECTION_MAP.diagramHeight}`}
+          viewBox={`0 0 ${sectionMap.diagramWidth} ${sectionMap.diagramHeight}`}
           role="img"
           aria-label="Normalized vessel section map"
           className="h-auto w-full"
@@ -44,31 +54,45 @@ export function SectionedVesselMap({
               <stop offset="100%" stopColor="#12344d" />
             </linearGradient>
           </defs>
-          <path
-            d="M10 270 L65 220 L560 215 L650 120 L770 120 L830 215 L885 230 L850 360 L70 360 Z"
-            fill="url(#vi-hull-gradient)"
-            stroke="#71b7e8"
-            strokeWidth="2"
-            opacity="0.95"
-          />
-          <path
-            d="M410 216 L520 138 L654 138 L654 216 Z"
-            fill="#103f63"
-            stroke="#71b7e8"
-            strokeWidth="1.5"
-            opacity="0.8"
-          />
-          {SECTION_MAP.sections.map((section) => {
+          {baseImageUrl ? (
+            <image
+              href={baseImageUrl}
+              width={sectionMap.diagramWidth}
+              height={sectionMap.diagramHeight}
+              preserveAspectRatio="xMidYMid meet"
+              opacity="0.74"
+              data-testid="uploaded-schematic-base-layer"
+            />
+          ) : (
+            <>
+              <path
+                d="M10 270 L65 220 L560 215 L650 120 L770 120 L830 215 L885 230 L850 360 L70 360 Z"
+                fill="url(#vi-hull-gradient)"
+                stroke="#71b7e8"
+                strokeWidth="2"
+                opacity="0.95"
+              />
+              <path
+                d="M410 216 L520 138 L654 138 L654 216 Z"
+                fill="#103f63"
+                stroke="#71b7e8"
+                strokeWidth="1.5"
+                opacity="0.8"
+              />
+            </>
+          )}
+          {sectionMap.sections.map((section) => {
             const isSelected = section.sectionKey === selectedSection?.sectionKey;
-            const label = sectionLabel(section);
+            const label = sectionLabel(section, sectionMap);
             return (
               <g key={section.sectionKey}>
                 <polygon
-                  points={pointsFor(section)}
+                  points={pointsFor(section, sectionMap)}
                   fill={section.color}
                   fillOpacity={isSelected ? 0.62 : 0.38}
                   stroke={isSelected ? "#ffffff" : section.color}
                   strokeWidth={isSelected ? 4 : 2}
+                  data-testid={`section-polygon-${section.sectionKey}`}
                 />
                 <circle cx={label.x} cy={label.y} r={isSelected ? 15 : 11} fill="#04111f" />
                 <text
@@ -86,7 +110,7 @@ export function SectionedVesselMap({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5" data-testid="section-selector-grid">
-        {SECTION_MAP.sections.map((section) => {
+        {sectionMap.sections.map((section) => {
           const selected = section.sectionKey === selectedSection?.sectionKey;
           return (
             <Button

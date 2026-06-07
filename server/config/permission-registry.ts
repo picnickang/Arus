@@ -48,7 +48,17 @@ export type ActionCode =
   | "clear"
   | "acknowledge"
   | "sign_off"
-  | "override";
+  | "override"
+  | "configure"
+  | "upload-diagram"
+  | "publish-map"
+  | "rollback-diagram"
+  | "edit-section-map"
+  | "replace-section-thumbnail"
+  | "replace-equipment-thumbnail"
+  | "assign-equipment"
+  | "create-work-order"
+  | "create-expert-case";
 
 export const ACTIONS: Record<ActionCode, ActionDefinition> = {
   view: {
@@ -163,6 +173,76 @@ export const ACTIONS: Record<ActionCode, ActionDefinition> = {
     riskLevel: "critical",
     sortOrder: 16,
   },
+  configure: {
+    code: "configure",
+    name: "Configure",
+    description: "Configure feature settings and registry behavior",
+    riskLevel: "high",
+    sortOrder: 17,
+  },
+  "upload-diagram": {
+    code: "upload-diagram",
+    name: "Upload Diagram",
+    description: "Upload or replace vessel diagram media",
+    riskLevel: "high",
+    sortOrder: 18,
+  },
+  "publish-map": {
+    code: "publish-map",
+    name: "Publish Map",
+    description: "Publish a validated vessel section map",
+    riskLevel: "critical",
+    sortOrder: 19,
+  },
+  "rollback-diagram": {
+    code: "rollback-diagram",
+    name: "Rollback Diagram",
+    description: "Roll back active diagram versions",
+    riskLevel: "critical",
+    sortOrder: 20,
+  },
+  "edit-section-map": {
+    code: "edit-section-map",
+    name: "Edit Section Map",
+    description: "Edit section map geometry and labels",
+    riskLevel: "high",
+    sortOrder: 21,
+  },
+  "replace-section-thumbnail": {
+    code: "replace-section-thumbnail",
+    name: "Replace Section Thumbnail",
+    description: "Replace section thumbnail media",
+    riskLevel: "medium",
+    sortOrder: 22,
+  },
+  "replace-equipment-thumbnail": {
+    code: "replace-equipment-thumbnail",
+    name: "Replace Equipment Thumbnail",
+    description: "Replace equipment thumbnail media",
+    riskLevel: "medium",
+    sortOrder: 23,
+  },
+  "assign-equipment": {
+    code: "assign-equipment",
+    name: "Assign Equipment",
+    description: "Assign equipment to vessel sections",
+    riskLevel: "medium",
+    sortOrder: 24,
+  },
+  "create-work-order": {
+    code: "create-work-order",
+    name: "Create Work Order",
+    description: "Create work orders from Vessel Intelligence",
+    riskLevel: "medium",
+    sortOrder: 25,
+  },
+  "create-expert-case": {
+    code: "create-expert-case",
+    name: "Create Expert Case",
+    description: "Create expert cases from Vessel Intelligence",
+    riskLevel: "medium",
+    sortOrder: 26,
+  },
 };
 
 export const RESOURCES: ResourceDefinition[] = [
@@ -202,6 +282,38 @@ export const RESOURCES: ResourceDefinition[] = [
     icon: "Activity",
     actions: ["view", "create", "edit", "delete", "manage_config"],
     sortOrder: 4,
+  },
+  {
+    code: "hub:vessel-intelligence",
+    name: "Vessel Intelligence Hub",
+    description: "Access to the Vessel Intelligence navigation hub",
+    category: "operations",
+    icon: "Ship",
+    actions: ["view"],
+    sortOrder: 5,
+  },
+  {
+    code: "vessel-intelligence",
+    name: "Vessel Intelligence",
+    description: "Versioned vessel diagram registry, section maps, and thumbnail administration",
+    category: "operations",
+    icon: "Layers",
+    actions: [
+      "view",
+      "configure",
+      "upload-diagram",
+      "publish-map",
+      "rollback-diagram",
+      "edit-section-map",
+      "replace-section-thumbnail",
+      "replace-equipment-thumbnail",
+      "assign-equipment",
+      "create-work-order",
+      "create-expert-case",
+      "acknowledge",
+      "export",
+    ],
+    sortOrder: 6,
   },
 
   // Maintenance

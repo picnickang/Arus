@@ -1,0 +1,367 @@
+{
+  "coordinateMode": "normalized_percent",
+  "diagramWidth": 895,
+  "diagramHeight": 420,
+  "diagramKind": "side_elevation",
+  "sections": [
+    {
+      "sectionNo": 1,
+      "sectionKey": "aft_propulsion",
+      "name": "Aft Propulsion",
+      "color": "#d94c89",
+      "polygonNormalized": [
+        {
+          "x": 0.0469,
+          "y": 0.6429
+        },
+        {
+          "x": 0.2235,
+          "y": 0.6429
+        },
+        {
+          "x": 0.2235,
+          "y": 0.8571
+        },
+        {
+          "x": 0.067,
+          "y": 0.8571
+        },
+        {
+          "x": 0.0559,
+          "y": 0.7857
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.1508,
+        "y": 0.7619
+      },
+      "equipment": [
+        "Stern Thruster",
+        "Propeller Shaft",
+        "Rudder Gear"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 2,
+      "sectionKey": "aft_utility_steering",
+      "name": "Aft Utility / Steering",
+      "color": "#2876dd",
+      "polygonNormalized": [
+        {
+          "x": 0.2235,
+          "y": 0.6429
+        },
+        {
+          "x": 0.3352,
+          "y": 0.6429
+        },
+        {
+          "x": 0.3352,
+          "y": 0.8571
+        },
+        {
+          "x": 0.2235,
+          "y": 0.8571
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.2793,
+        "y": 0.7619
+      },
+      "equipment": [
+        "Steering Gear",
+        "Hydraulic Pack",
+        "Aft Bilge Pump"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 3,
+      "sectionKey": "main_engine_room",
+      "name": "Main Engine Room",
+      "color": "#45a858",
+      "polygonNormalized": [
+        {
+          "x": 0.3352,
+          "y": 0.6429
+        },
+        {
+          "x": 0.581,
+          "y": 0.6429
+        },
+        {
+          "x": 0.581,
+          "y": 0.8571
+        },
+        {
+          "x": 0.3352,
+          "y": 0.8571
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.4581,
+        "y": 0.7619
+      },
+      "equipment": [
+        "Main Engine 1",
+        "Main Engine 2",
+        "Reduction Gearbox",
+        "Shaft Line",
+        "Jacket Water Pumps",
+        "Sea Water Pumps",
+        "Bilge Pumps",
+        "Engine Room Ventilation"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 4,
+      "sectionKey": "generator_electrical",
+      "name": "Generator & Electrical",
+      "color": "#d3b23e",
+      "polygonNormalized": [
+        {
+          "x": 0.581,
+          "y": 0.6429
+        },
+        {
+          "x": 0.6983,
+          "y": 0.6429
+        },
+        {
+          "x": 0.6983,
+          "y": 0.8571
+        },
+        {
+          "x": 0.581,
+          "y": 0.8571
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.6391,
+        "y": 0.7619
+      },
+      "equipment": [
+        "Aux Generator 1",
+        "Aux Generator 2",
+        "Main Switchboard",
+        "Battery Charger"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 5,
+      "sectionKey": "fuel_lube_cooling",
+      "name": "Fuel / Lube / Cooling Systems",
+      "color": "#37c2bd",
+      "polygonNormalized": [
+        {
+          "x": 0.6983,
+          "y": 0.6429
+        },
+        {
+          "x": 0.8827,
+          "y": 0.6429
+        },
+        {
+          "x": 0.8827,
+          "y": 0.8571
+        },
+        {
+          "x": 0.6983,
+          "y": 0.8571
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.7877,
+        "y": 0.7619
+      },
+      "equipment": [
+        "Fuel Transfer Pumps",
+        "Fuel Tanks",
+        "Lube Oil Pumps",
+        "Coolers",
+        "Separators"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 6,
+      "sectionKey": "deck_machinery_crane_base",
+      "name": "Deck Machinery & Crane Base",
+      "color": "#9b5cf6",
+      "polygonNormalized": [
+        {
+          "x": 0.5251,
+          "y": 0.4762
+        },
+        {
+          "x": 0.7263,
+          "y": 0.4762
+        },
+        {
+          "x": 0.7263,
+          "y": 0.6429
+        },
+        {
+          "x": 0.5251,
+          "y": 0.6429
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.6257,
+        "y": 0.5619
+      },
+      "equipment": [
+        "Deck Crane",
+        "Hydraulic Winch",
+        "Capstan",
+        "Crane HPU"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 7,
+      "sectionKey": "work_deck_cargo_area",
+      "name": "Work Deck / Cargo Area",
+      "color": "#3b82f6",
+      "polygonNormalized": [
+        {
+          "x": 0.0112,
+          "y": 0.4286
+        },
+        {
+          "x": 0.5866,
+          "y": 0.4286
+        },
+        {
+          "x": 0.5866,
+          "y": 0.6429
+        },
+        {
+          "x": 0.0112,
+          "y": 0.6429
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.2905,
+        "y": 0.5357
+      },
+      "equipment": [
+        "Cargo Deck",
+        "Deck Sockets",
+        "Tie-down Points",
+        "Cargo Rails"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 8,
+      "sectionKey": "accommodation_bridge",
+      "name": "Accommodation & Bridge",
+      "color": "#e17937",
+      "polygonNormalized": [
+        {
+          "x": 0.7263,
+          "y": 0.2143
+        },
+        {
+          "x": 0.8827,
+          "y": 0.2143
+        },
+        {
+          "x": 0.9106,
+          "y": 0.6429
+        },
+        {
+          "x": 0.7263,
+          "y": 0.6429
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.8101,
+        "y": 0.4286
+      },
+      "equipment": [
+        "Bridge",
+        "Accommodation",
+        "Galley",
+        "HVAC",
+        "Control Room"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 9,
+      "sectionKey": "navigation_comms",
+      "name": "Navigation & Communications",
+      "color": "#34c6be",
+      "polygonNormalized": [
+        {
+          "x": 0.7821,
+          "y": 0.0
+        },
+        {
+          "x": 0.8492,
+          "y": 0.0
+        },
+        {
+          "x": 0.8603,
+          "y": 0.2143
+        },
+        {
+          "x": 0.7709,
+          "y": 0.2143
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.8156,
+        "y": 0.119
+      },
+      "equipment": [
+        "Radar Mast",
+        "AIS",
+        "GPS",
+        "VHF",
+        "Satellite Comms"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    },
+    {
+      "sectionNo": 10,
+      "sectionKey": "forward_utility_bow",
+      "name": "Forward Utility / Safety / Bow Systems",
+      "color": "#d7bc3d",
+      "polygonNormalized": [
+        {
+          "x": 0.8827,
+          "y": 0.3571
+        },
+        {
+          "x": 0.9832,
+          "y": 0.3571
+        },
+        {
+          "x": 0.9832,
+          "y": 0.8571
+        },
+        {
+          "x": 0.8827,
+          "y": 0.8571
+        }
+      ],
+      "labelNormalized": {
+        "x": 0.9363,
+        "y": 0.619
+      },
+      "equipment": [
+        "Bow Thruster",
+        "Anchor Windlass",
+        "Forward Bilge",
+        "Fire Pump"
+      ],
+      "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
+    }
+  ]
+}

@@ -45,6 +45,53 @@ export interface AlertRecord {
 
 export type PdmDashboardRecord = Record<string, unknown>;
 
+export interface RegistryDiagramRecord {
+  id: string;
+  diagramType: string;
+  title: string;
+  status: string;
+  activeVersionId?: string | null;
+}
+
+export interface RegistrySectionAssignmentRecord {
+  id?: string;
+  equipmentId?: string | null;
+  equipmentName: string;
+  assetCode?: string | null;
+  system?: string | null;
+}
+
+export interface RegistrySectionRecord {
+  id: string;
+  sectionKey: string;
+  sectionNo: number;
+  name: string;
+  color: string;
+  polygonNormalized: Array<{ x: number; y: number }>;
+  labelNormalized: { x: number; y: number };
+  equipment: RegistrySectionAssignmentRecord[];
+  thumbnailFallback?: string | null;
+}
+
+export interface RegistrySectionMapRecord {
+  id: string;
+  name: string;
+  status: string;
+  coordinateMode: "normalized_percent";
+  diagramWidth: number;
+  diagramHeight: number;
+  diagramKind: string;
+  sections: RegistrySectionRecord[];
+}
+
+export interface RegistrySummaryRecord {
+  diagrams: RegistryDiagramRecord[];
+  activeDiagram?: RegistryDiagramRecord | null;
+  sectionMaps: RegistrySectionMapRecord[];
+  activeSectionMap?: RegistrySectionMapRecord | null;
+  validationIssues: Array<{ severity: string; code: string; message: string }>;
+}
+
 export function toArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) {
     return value as T[];

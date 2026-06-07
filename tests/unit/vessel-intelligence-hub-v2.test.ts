@@ -12,6 +12,7 @@ const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/r
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
+const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 
 const EXPECTED_ROUTES = [
   "/vessel-intelligence",
@@ -114,6 +115,8 @@ describe("Vessel Intelligence Hub v2 live-data binding", () => {
     expect(page).toContain('"/api/work-orders"');
     expect(page).toContain('"/api/alerts"');
     expect(page).toContain('"/api/pdm/dashboard"');
+    expect(page).toContain('"/api/vessel-intelligence"');
+    expect(page).toContain("activeSectionMap");
     expect(page).toContain('data-testid="vessel-intelligence-data-error"');
     expect(page).not.toMatch(/mockVessel|mockEquipment|fakeTelemetry|setInterval/);
   });
@@ -126,5 +129,15 @@ describe("Vessel Intelligence Hub v2 live-data binding", () => {
     expect(data).toContain("return vessel?.id ??");
     expect(page).toContain("vessels[0]");
     expect(page).toContain("vesselIdFor(selectedVessel)");
+  });
+});
+
+describe("Vessel Intelligence Hub v2 backend registry", () => {
+  it("mounts the dedicated diagram registry domain", async () => {
+    const registry = await load(DOMAIN_REGISTRY_PATH);
+
+    expect(registry).toContain('name: "VesselDiagramRegistry"');
+    expect(registry).toContain("../domains/vessel-diagram-registry/index.js");
+    expect(registry).toContain("registerVesselDiagramRegistryRoutes");
   });
 });
