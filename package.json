@@ -17,6 +17,7 @@
     "tauri:build": "npm run build:sidecar && tauri build",
     "tauri:build:vessel": "npm run build:sidecar && tauri build --config src-tauri/tauri.vessel.conf.json",
     "tauri:build:cloud": "npm run build:sidecar && tauri build --config src-tauri/tauri.cloud.conf.json",
+    "tauri:stage-wix": "node scripts/stage-local-wix.js",
     "build:sidecar": "node scripts/build-sidecar.mjs",
     "build:sidecar:all": "node scripts/build-sidecar.mjs --all",
     "build:sidecar:notest": "node scripts/build-sidecar.mjs --skip-test",
