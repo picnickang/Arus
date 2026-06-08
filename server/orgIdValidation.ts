@@ -12,7 +12,7 @@ const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 function suppliedOrgId(req: Request): string | undefined {
   const header = req.headers["x-org-id"];
   const headerValue = Array.isArray(header) ? header[0] : header;
-  const queryValue = typeof req.query['orgId'] === "string" ? req.query['orgId'] : undefined;
+  const queryValue = typeof req.query["orgId"] === "string" ? req.query["orgId"] : undefined;
   return headerValue ?? queryValue;
 }
 
@@ -20,7 +20,7 @@ function applyDefaultOrgContext(req: Request): void {
   authenticatedRequest(req).orgId = DEFAULT_ORG_ID;
   req.headers["x-org-id"] = DEFAULT_ORG_ID;
   if (req.query) {
-    req.query['orgId'] = DEFAULT_ORG_ID;
+    req.query["orgId"] = DEFAULT_ORG_ID;
   }
 }
 
@@ -35,6 +35,23 @@ export function validateOrgId(orgId: string): boolean {
 
 export function getOrgIdFromRequest(req: Request): string {
   return DEFAULT_ORG_ID;
+}
+
+export function getIntegrationTestOrgIdFromRequest(req: Request): string {
+  if (process.env["NODE_ENV"] !== "test") {
+    return DEFAULT_ORG_ID;
+  }
+
+  const requestedOrgId = suppliedOrgId(req)?.trim();
+  if (!requestedOrgId) {
+    return DEFAULT_ORG_ID;
+  }
+
+  if (!ORG_ID_PATTERN.test(requestedOrgId)) {
+    throw new Error("Invalid integration test organization context");
+  }
+
+  return requestedOrgId;
 }
 
 export function validateOrgIdHeader(req: Request, res: Response, next: NextFunction): void {

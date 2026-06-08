@@ -7,7 +7,7 @@ const nonceStore = new Map<string, number>();
 const WINDOW_MS = 5 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 1000;
 
-setInterval(() => {
+function cleanupExpiredNonces(): number {
   const now = Date.now();
   let cleaned = 0;
   for (const [nonce, expiry] of nonceStore) {
@@ -19,7 +19,14 @@ setInterval(() => {
   if (cleaned > 0) {
     logger.debug?.(LOG_CTX, `Cleaned ${cleaned} expired nonces, ${nonceStore.size} remaining`);
   }
-}, CLEANUP_INTERVAL_MS);
+  return cleaned;
+}
+
+let cleanupInterval: NodeJS.Timeout | undefined;
+if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+  cleanupInterval = setInterval(cleanupExpiredNonces, CLEANUP_INTERVAL_MS);
+  cleanupInterval.unref?.();
+}
 
 export function replayProtection(options?: { windowMs?: number; required?: boolean }) {
   const windowMs = options?.windowMs ?? WINDOW_MS;
@@ -91,3 +98,13 @@ export function replayProtection(options?: { windowMs?: number; required?: boole
 }
 
 export default replayProtection;
+
+export const _internals = {
+  cleanupExpiredNonces,
+  stopCleanupInterval() {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = undefined;
+    }
+  },
+};

@@ -173,7 +173,7 @@ export function registerTelemetryHealthRoutes(app: Express): void {
 
   app.get("/api/telemetry/health/vessel/:vesselId", (req: Request, res: Response) => {
     try {
-      const { vesselId = '' } = req.params;
+      const { vesselId = "" } = req.params;
       const health = telemetryHealthController.getVesselHealth(vesselId);
       res.json({
         timestamp: new Date().toISOString(),
@@ -186,7 +186,13 @@ export function registerTelemetryHealthRoutes(app: Express): void {
     }
   });
 
-  setInterval(() => telemetryHealthController.cleanup(), 60000);
+  if (
+    process.env["DISABLE_OBSERVABILITY_TIMERS"] !== "true" &&
+    process.env["NODE_ENV"] !== "test"
+  ) {
+    const cleanupInterval = setInterval(() => telemetryHealthController.cleanup(), 60000);
+    cleanupInterval.unref?.();
+  }
 
   logger.info("TelemetryHealthController", "Registered health routes");
 }

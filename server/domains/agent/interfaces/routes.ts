@@ -75,7 +75,9 @@ const upload = multer({
     if (mimeOk && extOk) {
       cb(null, true);
     } else {
-      logger.warn(`[Agent] Rejected upload: "${file.originalname}" (MIME: ${file.mimetype}, ext match: ${extOk}, mime match: ${mimeOk})`);
+      logger.warn(
+        `[Agent] Rejected upload: "${file.originalname}" (MIME: ${file.mimetype}, ext match: ${extOk}, mime match: ${mimeOk})`
+      );
       cb(
         new Error(
           `Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV, TXT, MD, DOCX, XLSX.`
@@ -96,20 +98,22 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     await orchestrator.processSignal(signal);
   });
 
-  (async () => {
-    try {
-      const { organizations } = await import("@shared/schema/core");
-      const orgs = await db.select({ id: organizations.id }).from(organizations);
-      for (const org of orgs) {
-        suggestionEngine.startBackgroundEvaluation(org.id);
-      }
-      if (orgs.length === 0) {
+  if (process.env["DISABLE_AGENT_SCHEDULER"] !== "true" && process.env["NODE_ENV"] !== "test") {
+    (async () => {
+      try {
+        const { organizations } = await import("@shared/schema/core");
+        const orgs = await db.select({ id: organizations.id }).from(organizations);
+        for (const org of orgs) {
+          suggestionEngine.startBackgroundEvaluation(org.id);
+        }
+        if (orgs.length === 0) {
+          suggestionEngine.startBackgroundEvaluation("default-org-id");
+        }
+      } catch {
         suggestionEngine.startBackgroundEvaluation("default-org-id");
       }
-    } catch {
-      suggestionEngine.startBackgroundEvaluation("default-org-id");
-    }
-  })();
+    })();
+  }
 
   const requireAdminRole: RoleMiddleware = (req, res, next) => {
     const user = authenticatedRequest(req).user;
@@ -184,7 +188,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
           orgId,
           name: "Daily Operations Briefing",
           prompt: "__briefing__",
-          cronExpression: process.env['BRIEFING_CRON'] || "0 6 * * *",
+          cronExpression: process.env["BRIEFING_CRON"] || "0 6 * * *",
           allowedTools: [],
           outputDestination: "notification",
           allowWriteTools: false,
@@ -195,7 +199,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         logger.info(`[BriefingSeed] Created Daily Operations Briefing schedule for org ${orgId}`);
       }
     } catch (err) {
-      logger.warn(`[BriefingSeed] Failed to seed briefing schedule: ${err instanceof Error ? err.message : "unknown"}`);
+      logger.warn(
+        `[BriefingSeed] Failed to seed briefing schedule: ${err instanceof Error ? err.message : "unknown"}`
+      );
     }
   }
 
@@ -204,23 +210,25 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     return { briefingId: result.id };
   });
 
-  (async () => {
-    try {
-      const { organizations } = await import("@shared/schema/core");
-      const orgs = await db.select({ id: organizations.id }).from(organizations);
-      for (const org of orgs) {
-        await seedBriefingSchedule(org.id);
-        await globalScheduler.initialize(org.id);
-      }
-      if (orgs.length === 0) {
+  if (process.env["DISABLE_AGENT_SCHEDULER"] !== "true" && process.env["NODE_ENV"] !== "test") {
+    (async () => {
+      try {
+        const { organizations } = await import("@shared/schema/core");
+        const orgs = await db.select({ id: organizations.id }).from(organizations);
+        for (const org of orgs) {
+          await seedBriefingSchedule(org.id);
+          await globalScheduler.initialize(org.id);
+        }
+        if (orgs.length === 0) {
+          await seedBriefingSchedule("default-org-id");
+          await globalScheduler.initialize("default-org-id");
+        }
+      } catch {
         await seedBriefingSchedule("default-org-id");
         await globalScheduler.initialize("default-org-id");
       }
-    } catch {
-      await seedBriefingSchedule("default-org-id");
-      await globalScheduler.initialize("default-org-id");
-    }
-  })();
+    })();
+  }
 
   const activityAdapter = new ActivityRepositoryAdapter();
   const activityService = new AgentActivityService(activityAdapter);
@@ -234,7 +242,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   registerTasksRoutes(app, { taskService, rateLimit, requireMaintenanceRole });
   registerFindingRecordsRoutes(app, { findingService, rateLimit, requireMaintenanceRole });
 
-  logger.info("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity, tasks, agent-findings)");
+  logger.info(
+    "[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity, tasks, agent-findings)"
+  );
 }
 
 // Re-export Request/Response so any external consumers of this module

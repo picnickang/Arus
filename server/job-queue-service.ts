@@ -1,5 +1,4 @@
 import PgBoss from "pg-boss";
-import { log } from "./vite";
 import {
   incrementJobEnqueued,
   incrementJobCompleted,
@@ -7,6 +6,13 @@ import {
   recordJobDuration,
 } from "./observability";
 import { withLoggingContext, generateCorrelationId } from "./logging";
+import { createLogger } from "./lib/structured-logger";
+
+const logger = createLogger("JobQueueService");
+
+function log(source: string, message: string): void {
+  logger.info(`[${source}] ${message}`);
+}
 
 export interface DocumentIngestionJob {
   documentId: string;

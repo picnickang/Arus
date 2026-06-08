@@ -10,6 +10,7 @@ import {
   maintenanceWindows,
   systemHealthChecks,
   systemPerformanceMetrics,
+  systemSettings,
 } from "@shared/schema-runtime";
 import type {
   AdminSystemSetting,
@@ -26,7 +27,6 @@ import type { SystemHealthResult } from "./types.js";
 
 export class DbSettingsStorage {
   async getSettings() {
-    const { systemSettings } = await import("@shared/schema/core");
     const [settings] = await db
       .select()
       .from(systemSettings)
@@ -39,7 +39,6 @@ export class DbSettingsStorage {
   }
 
   async updateSettings(updates: Record<string, unknown>) {
-    const { systemSettings } = await import("@shared/schema/core");
     await this.getSettings();
     const [updated] = await db
       .update(systemSettings)
@@ -82,7 +81,9 @@ export class DbSettingsStorage {
       .insert(adminSystemSettings)
       .values({ ...setting, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create admin system setting");}
+    if (!n) {
+      throw new Error("Failed to create admin system setting");
+    }
     return n;
   }
   async updateAdminSystemSetting(
@@ -143,7 +144,9 @@ export class DbSettingsStorage {
       .insert(integrationConfigs)
       .values({ ...config, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create integration config");}
+    if (!n) {
+      throw new Error("Failed to create integration config");
+    }
     return n;
   }
   async updateIntegrationConfig(
@@ -180,7 +183,7 @@ export class DbSettingsStorage {
       updatedAt: new Date(),
     };
     if (errorMessage !== undefined) {
-      updates['errorMessage'] = errorMessage;
+      updates["errorMessage"] = errorMessage;
     }
     const [updated] = await db
       .update(integrationConfigs)
@@ -221,7 +224,9 @@ export class DbSettingsStorage {
       .insert(maintenanceWindows)
       .values({ ...window, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create maintenance window");}
+    if (!n) {
+      throw new Error("Failed to create maintenance window");
+    }
     return n;
   }
   async updateMaintenanceWindow(
@@ -291,7 +296,9 @@ export class DbSettingsStorage {
       .insert(systemHealthChecks)
       .values({ ...check, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create system health check");}
+    if (!n) {
+      throw new Error("Failed to create system health check");
+    }
     return n;
   }
   async updateSystemHealthCheck(
@@ -331,10 +338,10 @@ export class DbSettingsStorage {
       updatedAt: new Date(),
     };
     if (message !== undefined) {
-      updates['message'] = message;
+      updates["message"] = message;
     }
     if (responseTime !== undefined) {
-      updates['responseTime'] = responseTime;
+      updates["responseTime"] = responseTime;
     }
     const [updated] = await db
       .update(systemHealthChecks)

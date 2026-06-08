@@ -53,9 +53,14 @@ export class RagAuditLogger {
   constructor(config: RagSecurityConfig["audit"]) {
     this.config = config;
 
-    if (config.enabled) {
+    if (
+      config.enabled &&
+      process.env["DISABLE_SECURITY_TIMERS"] !== "true" &&
+      process.env["NODE_ENV"] !== "test"
+    ) {
       // Flush events periodically
       this.flushInterval = setInterval(() => this.flushEvents(), 10000);
+      this.flushInterval.unref?.();
     }
   }
 
@@ -430,8 +435,14 @@ export class RagAuditLogger {
   updateConfig(config: RagSecurityConfig["audit"]): void {
     this.config = config;
 
-    if (config.enabled && !this.flushInterval) {
+    if (
+      config.enabled &&
+      !this.flushInterval &&
+      process.env["DISABLE_SECURITY_TIMERS"] !== "true" &&
+      process.env["NODE_ENV"] !== "test"
+    ) {
       this.flushInterval = setInterval(() => this.flushEvents(), 10000);
+      this.flushInterval.unref?.();
     } else if (!config.enabled && this.flushInterval) {
       clearInterval(this.flushInterval);
       this.flushInterval = null;

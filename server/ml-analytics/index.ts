@@ -35,10 +35,18 @@ import {
 export class MLAnalyticsService extends EventEmitter {
   private models: Map<string, unknown> = new Map();
   private enabled: boolean = true;
-  private aiEnhancementEnabled: boolean = Boolean(process.env['OPENAI_API_KEY']);
+  private aiEnhancementEnabled: boolean = Boolean(process.env["OPENAI_API_KEY"]);
 
   constructor() {
     super();
+    if (
+      process.env["DISABLE_ML_SERVICE_STARTUP"] === "true" ||
+      process.env["NODE_ENV"] === "test"
+    ) {
+      this.enabled = false;
+      logger.info("[ML Analytics] Background startup disabled");
+      return;
+    }
     this.loadActiveModels();
   }
 

@@ -72,8 +72,8 @@ export class ActivityRepositoryAdapter implements ActivityPort {
       const runs7d = await db
         .select({
           total: count(),
-          completed: sql<number>`COUNT(*) FILTER (WHERE ${agentScheduleRuns.status} = 'completed')::int`,
-          failed: sql<number>`COUNT(*) FILTER (WHERE ${agentScheduleRuns.status} = 'failed')::int`,
+          completed: sql<number>`COALESCE(SUM(CASE WHEN ${agentScheduleRuns.status} = 'completed' THEN 1 ELSE 0 END), 0)`,
+          failed: sql<number>`COALESCE(SUM(CASE WHEN ${agentScheduleRuns.status} = 'failed' THEN 1 ELSE 0 END), 0)`,
         })
         .from(agentScheduleRuns)
         .where(
@@ -88,9 +88,9 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
       const tokens30d = await db
         .select({
-          totalTokens: sql<number>`COALESCE(SUM(${agentScheduleRuns.tokenUsage}), 0)::int`,
+          totalTokens: sql<number>`COALESCE(SUM(${agentScheduleRuns.tokenUsage}), 0)`,
           cnt: count(),
-          tokenRunCount: sql<number>`COUNT(*) FILTER (WHERE ${agentScheduleRuns.tokenUsage} IS NOT NULL AND ${agentScheduleRuns.tokenUsage} > 0)::int`,
+          tokenRunCount: sql<number>`COALESCE(SUM(CASE WHEN ${agentScheduleRuns.tokenUsage} IS NOT NULL AND ${agentScheduleRuns.tokenUsage} > 0 THEN 1 ELSE 0 END), 0)`,
         })
         .from(agentScheduleRuns)
         .where(
@@ -115,8 +115,8 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     const conv7d = await db
       .select({
         cnt: count(),
-        completed: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.status} NOT IN ('error', 'active'))::int`,
-        failed: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.status} = 'error')::int`,
+        completed: sql<number>`COALESCE(SUM(CASE WHEN ${agentConversations.status} NOT IN ('error', 'active') THEN 1 ELSE 0 END), 0)`,
+        failed: sql<number>`COALESCE(SUM(CASE WHEN ${agentConversations.status} = 'error' THEN 1 ELSE 0 END), 0)`,
       })
       .from(agentConversations)
       .where(
@@ -128,9 +128,9 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
     const convTokens30d = await db
       .select({
-        totalTokens: sql<number>`COALESCE(SUM(${agentConversations.totalTokensUsed}), 0)::int`,
+        totalTokens: sql<number>`COALESCE(SUM(${agentConversations.totalTokensUsed}), 0)`,
         cnt: count(),
-        tokenRunCount: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.totalTokensUsed} IS NOT NULL AND ${agentConversations.totalTokensUsed} > 0)::int`,
+        tokenRunCount: sql<number>`COALESCE(SUM(CASE WHEN ${agentConversations.totalTokensUsed} IS NOT NULL AND ${agentConversations.totalTokensUsed} > 0 THEN 1 ELSE 0 END), 0)`,
       })
       .from(agentConversations)
       .where(
@@ -190,30 +190,32 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
     return runs.map((r) => {
       const output = r.output as Record<string, unknown> | null;
-      const toolCallCount = typeof output?.['toolCallCount'] === "number" ? output['toolCallCount'] : 0;
+      const toolCallCount =
+        typeof output?.["toolCallCount"] === "number" ? output["toolCallCount"] : 0;
       const response =
-        typeof output?.['finalResponse'] === "string"
-          ? output['finalResponse']
-          : typeof output?.['response'] === "string"
-            ? output['response']
+        typeof output?.["finalResponse"] === "string"
+          ? output["finalResponse"]
+          : typeof output?.["response"] === "string"
+            ? output["response"]
             : null;
 
       const linkedConversationId =
-        typeof output?.['conversationId'] === "string" ? output['conversationId'] : null;
+        typeof output?.["conversationId"] === "string" ? output["conversationId"] : null;
 
-      const rawToolCalls = Array.isArray(output?.['toolCalls']) ? output['toolCalls'] : [];
+      const rawToolCalls = Array.isArray(output?.["toolCalls"]) ? output["toolCalls"] : [];
       const toolEntries: ToolCallEntry[] = rawToolCalls.map((tc: Record<string, unknown>) => {
         let inputSummary: string | null = null;
-        if (tc['input']) {
-          const inputStr = typeof tc['input'] === "string" ? tc['input'] : JSON.stringify(tc['input']);
+        if (tc["input"]) {
+          const inputStr =
+            typeof tc["input"] === "string" ? tc["input"] : JSON.stringify(tc["input"]);
           inputSummary = inputStr.length > 120 ? `${inputStr.slice(0, 117)}...` : inputStr;
         }
         return {
-          toolName: typeof tc['toolName'] === "string" ? tc['toolName'] : "unknown",
+          toolName: typeof tc["toolName"] === "string" ? tc["toolName"] : "unknown",
           inputSummary,
-          durationMs: typeof tc['durationMs'] === "number" ? tc['durationMs'] : null,
-          status: typeof tc['status'] === "string" ? tc['status'] : "unknown",
-          error: typeof tc['error'] === "string" ? tc['error'] : null,
+          durationMs: typeof tc["durationMs"] === "number" ? tc["durationMs"] : null,
+          status: typeof tc["status"] === "string" ? tc["status"] : "unknown",
+          error: typeof tc["error"] === "string" ? tc["error"] : null,
         };
       });
 

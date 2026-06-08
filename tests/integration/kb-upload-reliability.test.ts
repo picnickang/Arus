@@ -23,12 +23,27 @@
  * silent green; jest surfaces the skip in the report.
  */
 
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { describe, it, expect, beforeAll, jest } from "@jest/globals";
 import request from "supertest";
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const NOT_A_PDF = Buffer.from("This is plain text, not a PDF document.\n");
+
+jest.unstable_mockModule("../../server/job-queue-service", () => ({
+  __esModule: true,
+  jobQueueService: {
+    enqueueDocumentIngestion: async () => "kb-upload-test-job",
+    getJobStatus: async () => null,
+  },
+}));
+
+jest.unstable_mockModule("../../server/vite", () => ({
+  __esModule: true,
+  log: () => {},
+  setupVite: async () => {},
+  serveStatic: () => {},
+}));
 
 describe("KB upload reliability", () => {
   let app: Express | null = null;
@@ -36,8 +51,28 @@ describe("KB upload reliability", () => {
 
   beforeAll(async () => {
     try {
-      const { createTestApp } = await import("../../server/app.js");
-      app = await createTestApp();
+      const express = (await import("express")).default;
+      const { registerKnowledgeBaseRoutes } = await import("../../server/routes/kb-routes.js");
+      const passThrough = (_req: Request, _res: Response, next: NextFunction) => next();
+      app = express();
+      app.use(express.json());
+      app.use((req: Request, _res: Response, next: NextFunction) => {
+        const headerOrgId = Array.isArray(req.headers["x-org-id"])
+          ? req.headers["x-org-id"][0]
+          : req.headers["x-org-id"];
+        req.user = {
+          id: "kb-upload-test-user",
+          email: "kb-upload-test-user@integration.test",
+          role: "admin",
+          isActive: true,
+          orgId: headerOrgId ?? "kb-test-org",
+        };
+        next();
+      });
+      await registerKnowledgeBaseRoutes(app, {
+        generalApiRateLimit: passThrough,
+        writeOperationRateLimit: passThrough,
+      });
     } catch (err) {
       bootError = err;
     }
@@ -48,7 +83,7 @@ describe("KB upload reliability", () => {
       throw new Error(
         `Test app unavailable (cannot exercise HTTP boundary): ${
           bootError instanceof Error ? bootError.message : String(bootError)
-        }`,
+        }`
       );
     }
     return app;
@@ -108,19 +143,9 @@ describe("KB upload reliability", () => {
     // future change flips the default to `true` without wiring a real
     // scanner, this test fails and the reviewer has to make a
     // conscious decision.
-    const mod = await import("../../server/services/rag/security/types.js");
-    const cfgKeys = Object.keys(mod).filter((k) => /config|default/i.test(k));
-    // The module exports a default config object — find any export
-    // that carries the `enableMalwareScan` boolean.
-    let found = false;
-    for (const key of cfgKeys) {
-      const value = (mod as Record<string, unknown>)[key];
-      if (value && typeof value === "object" && "enableMalwareScan" in value) {
-        const enabled = (value as { enableMalwareScan: unknown }).enableMalwareScan;
-        expect(enabled).toBe(false);
-        found = true;
-      }
-    }
-    expect(found).toBe(true);
+    const { DEFAULT_RAG_SECURITY_CONFIG } = await import(
+      "../../server/services/rag/security/types.js"
+    );
+    expect(DEFAULT_RAG_SECURITY_CONFIG.ingestion.enableMalwareScan).toBe(false);
   });
 });

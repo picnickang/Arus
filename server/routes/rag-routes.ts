@@ -66,6 +66,29 @@ const conversationUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+function toExportDate(value: unknown): Date {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? new Date(0) : value;
+  }
+
+  if (typeof value === "number") {
+    const date = new Date(value < 10_000_000_000 ? value * 1000 : value);
+    return Number.isNaN(date.getTime()) ? new Date(0) : date;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const numeric = Number(trimmed);
+    const date =
+      trimmed !== "" && Number.isFinite(numeric)
+        ? new Date(numeric < 10_000_000_000 ? numeric * 1000 : numeric)
+        : new Date(value);
+    return Number.isNaN(date.getTime()) ? new Date(0) : date;
+  }
+
+  return new Date(0);
+}
+
 export function registerRagRoutes(
   app: Express,
   rateLimiters: {
@@ -82,8 +105,7 @@ export function registerRagRoutes(
   const getOrgContext = (req: Request) => {
     const securedReq = req as RagSecuredRequest;
     return {
-      orgId:
-        securedReq.ragContext?.orgId || DEFAULT_ORG_ID,
+      orgId: securedReq.ragContext?.orgId || DEFAULT_ORG_ID,
       userId: securedReq.ragContext?.userId || (req.headers["x-user-id"] as string) || undefined,
       userRoles: req.headers["x-user-roles"]
         ? (req.headers["x-user-roles"] as string).split(",")
@@ -192,7 +214,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("list RAG conversations", async (req, res) => {
       const { orgId, userId } = getConversationIdentity(req);
-      const limit = parseInt(req.query['limit'] as string) || 20;
+      const limit = parseInt(req.query["limit"] as string) || 20;
 
       const conversationService = getConversationService();
       const conversations = await conversationService.listConversations({
@@ -210,7 +232,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("get RAG conversation", async (req, res) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
@@ -229,8 +251,8 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id/messages",
     generalApiRateLimit,
     withErrorHandling("get conversation messages", async (req, res) => {
-      const { id = '' } = req.params;
-      const limit = parseInt(req.query['limit'] as string) || 100;
+      const { id = "" } = req.params;
+      const limit = parseInt(req.query["limit"] as string) || 100;
       const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
@@ -250,7 +272,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("update RAG conversation", async (req, res) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const parsed = conversationUpdateSchema.parse(req.body);
       const { orgId, userId } = getConversationIdentity(req);
 
@@ -275,7 +297,7 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id",
     generalApiRateLimit,
     withErrorHandling("delete RAG conversation", async (req, res) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
@@ -373,7 +395,7 @@ export function registerRagRoutes(
     "/api/rag/ask-stream",
     (req, res, next) => ragRateLimitMiddleware(req, res, next),
     async (req: Request, res: Response) => {
-      const { auditLogger, sanitizer, tokenService, config } = getRagSecurityServices();
+      const { auditLogger, sanitizer, config } = getRagSecurityServices();
 
       // Track client disconnect
       let isClientConnected = true;
@@ -387,10 +409,10 @@ export function registerRagRoutes(
         let orgId: string;
         let userId: string | undefined;
 
-        const streamingToken = req.query['token'] as string;
+        const streamingToken = req.query["token"] as string;
+        const securedReq = req as RagSecuredRequest;
         if (streamingToken) {
-          const tokenPayload = tokenService.validateToken(streamingToken);
-          if (!tokenPayload) {
+          if (!securedReq.ragContext?.authenticated) {
             auditLogger.logAuthFailure({
               ipAddress: req.ip,
               userAgent: req.get("user-agent"),
@@ -398,25 +420,22 @@ export function registerRagRoutes(
             });
             return res.status(401).json({ error: "Invalid or expired streaming token" });
           }
-          orgId = tokenPayload.orgId;
-          userId = tokenPayload.userId;
-        } else if (config.auth.allowHeaderOrgId && process.env['NODE_ENV'] === "development") {
-          orgId =
-            DEFAULT_ORG_ID;
+          orgId = securedReq.ragContext.orgId;
+          userId = securedReq.ragContext.userId;
+        } else if (config.auth.allowHeaderOrgId && process.env["NODE_ENV"] === "development") {
+          orgId = DEFAULT_ORG_ID;
           userId =
-            (req.query['userId'] as string) || (req.headers["x-user-id"] as string) || undefined;
+            (req.query["userId"] as string) || (req.headers["x-user-id"] as string) || undefined;
           logger.warn("[RAG Stream] Using dev-mode auth fallback — NOT for production");
         } else {
-          return res
-            .status(401)
-            .json({
-              error:
-                "Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.",
-            });
+          return res.status(401).json({
+            error:
+              "Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.",
+          });
         }
 
-        let query = req.query['query'] as string;
-        const conversationId = req.query['conversationId'] as string | undefined;
+        let query = req.query["query"] as string;
+        const conversationId = req.query["conversationId"] as string | undefined;
 
         // Verify the authenticated caller owns the conversation BEFORE doing
         // any expensive work (sanitize, OpenAI, vector search) or loading its
@@ -426,10 +445,10 @@ export function registerRagRoutes(
         let conversationHistory: Array<{ role: string; content: string }> | undefined;
         if (conversationId) {
           const conversationService = getConversationService();
-          const ownedConversation = await conversationService.getOwnedConversation(
-            conversationId,
-            { orgId, userId }
-          );
+          const ownedConversation = await conversationService.getOwnedConversation(conversationId, {
+            orgId,
+            userId,
+          });
           if (!ownedConversation) {
             return res.status(404).json({ error: "Conversation not found" });
           }
@@ -468,7 +487,16 @@ export function registerRagRoutes(
 
         // Use orchestrator for proper tenant-scoped search
         const orchestrator = getRagOrchestrator();
-        const searchResults = await (searchKnowledgeBase as object as (query: string, orgId: string, limit: number, threshold: number) => Promise<Array<{ content: string; documentId: string; documentTitle: string; score: number }>>)(query, orgId, 5, 0.5);
+        const searchResults = await (
+          searchKnowledgeBase as object as (
+            query: string,
+            orgId: string,
+            limit: number,
+            threshold: number
+          ) => Promise<
+            Array<{ content: string; documentId: string; documentTitle: string; score: number }>
+          >
+        )(query, orgId, 5, 0.5);
 
         const relevantChunks = searchResults.map((r) => ({
           content: r.content,
@@ -507,7 +535,10 @@ export function registerRagRoutes(
               try {
                 const conversationService = getConversationService();
                 // Add user's query first
-                const addMessage = conversationService.addMessage as object as (id: string, msg: { role: string; content: string }) => Promise<unknown>;
+                const addMessage = conversationService.addMessage as object as (
+                  id: string,
+                  msg: { role: string; content: string }
+                ) => Promise<unknown>;
                 await addMessage(conversationId, {
                   role: "user",
                   content: query,
@@ -521,7 +552,9 @@ export function registerRagRoutes(
                   `[RAG Stream] Persisted ${fullResponse.length} chars to conversation ${conversationId}`
                 );
               } catch (persistError) {
-                logger.warn("[RAG Stream] Failed to persist message:", undefined, { details: persistError });
+                logger.warn("[RAG Stream] Failed to persist message:", undefined, {
+                  details: persistError,
+                });
               }
             }
           }
@@ -532,10 +565,9 @@ export function registerRagRoutes(
         if (!res.headersSent) {
           return res.status(500).json({ error: message });
         }
-          // Send error event through SSE
-          res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
-          return res.end();
-
+        // Send error event through SSE
+        res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
+        return res.end();
       }
     }
   );
@@ -546,7 +578,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get RAG suggestions", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const conversationId = req.query['conversationId'] as string | undefined;
+      const conversationId = req.query["conversationId"] as string | undefined;
 
       const apiKey = await getOpenAIApiKey();
       if (apiKey && !suggestionEngine.isInitialized()) {
@@ -569,10 +601,10 @@ export function registerRagRoutes(
     "/api/rag/conversations/:id/export",
     generalApiRateLimit,
     withErrorHandling("export conversation", async (req, res) => {
-      const { id = '' } = req.params;
-      const format = (req.query['format'] as "pdf" | "markdown") || "markdown";
-      const includeCitations = req.query['includeCitations'] !== "false";
-      const includeTimestamps = req.query['includeTimestamps'] !== "false";
+      const { id = "" } = req.params;
+      const format = (req.query["format"] as "pdf" | "markdown") || "markdown";
+      const includeCitations = req.query["includeCitations"] !== "false";
+      const includeTimestamps = req.query["includeTimestamps"] !== "false";
       const { orgId, userId } = getConversationIdentity(req);
 
       const conversationService = getConversationService();
@@ -584,8 +616,15 @@ export function registerRagRoutes(
 
       const messages = await conversationService.getMessages(id, 1000);
 
-      const convAny = conversation as { conversation?: Record<string, unknown> } & Record<string, unknown>;
-      const convObj = (convAny.conversation ?? convAny) as { id: string; title?: string; createdAt: string | number | Date };
+      const convAny = conversation as { conversation?: Record<string, unknown> } & Record<
+        string,
+        unknown
+      >;
+      const convObj = (convAny.conversation ?? convAny) as {
+        id: string;
+        title?: string;
+        createdAt: string | number | Date;
+      };
 
       // P2 #10 — DoS / memory cap. PDF and Markdown export build the
       // whole document in memory; an adversary (or just a runaway
@@ -597,8 +636,10 @@ export function registerRagRoutes(
       const rawMessages = messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
-        timestamp: new Date(m.createdAt),
-        citations: (m as { citations?: Array<{ documentId: string; documentTitle: string; excerpt: string }> }).citations,
+        timestamp: toExportDate(m.createdAt),
+        citations: (
+          m as { citations?: Array<{ documentId: string; documentTitle: string; excerpt: string }> }
+        ).citations,
       }));
       const trimmed: typeof rawMessages = [];
       let runningBytes = 0;
@@ -613,7 +654,7 @@ export function registerRagRoutes(
           Buffer.byteLength(m.content, "utf-8") +
           (m.citations?.reduce(
             (a, c) => a + Buffer.byteLength(c.documentTitle + c.excerpt, "utf-8"),
-            0,
+            0
           ) ?? 0);
         if (runningBytes + size > MAX_EXPORT_CONTENT_BYTES) {
           // Preserve newest-message context even when a single message
@@ -623,7 +664,10 @@ export function registerRagRoutes(
           // exceeded budget.
           if (trimmed.length === 0) {
             const remaining = Math.max(0, MAX_EXPORT_CONTENT_BYTES - runningBytes);
-            const sliceBytes = Math.max(0, remaining - Buffer.byteLength(TRUNCATION_NOTICE, "utf-8"));
+            const sliceBytes = Math.max(
+              0,
+              remaining - Buffer.byteLength(TRUNCATION_NOTICE, "utf-8")
+            );
             const head = Buffer.from(m.content, "utf-8").subarray(0, sliceBytes).toString("utf-8");
             trimmed.unshift({
               role: m.role,
@@ -641,7 +685,7 @@ export function registerRagRoutes(
       const exportData = {
         id: convObj.id,
         title: convObj.title || "Untitled Conversation",
-        createdAt: new Date(convObj.createdAt),
+        createdAt: toExportDate(convObj.createdAt),
         messages: trimmed,
       };
 
@@ -714,7 +758,7 @@ export function registerRagRoutes(
     generalApiRateLimit,
     withErrorHandling("get confidence alerts", async (req, res) => {
       const orgId = DEFAULT_ORG_ID;
-      const includeAcknowledged = req.query['includeAcknowledged'] === "true";
+      const includeAcknowledged = req.query["includeAcknowledged"] === "true";
 
       const alerts = confidenceDetector.getAlerts(orgId, includeAcknowledged);
 
@@ -726,7 +770,7 @@ export function registerRagRoutes(
     "/api/rag/alerts/:alertId/acknowledge",
     generalApiRateLimit,
     withErrorHandling("acknowledge alert", async (req, res) => {
-      const { alertId = '' } = req.params;
+      const { alertId = "" } = req.params;
 
       const acknowledged = confidenceDetector.acknowledgeAlert(alertId);
 

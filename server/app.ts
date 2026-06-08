@@ -16,6 +16,7 @@ import {
 export interface AppOptions {
   skipDatabase?: boolean;
   skipAuth?: boolean;
+  testAuth?: boolean;
 }
 
 export async function createApp(options: AppOptions = {}): Promise<Express> {
@@ -28,6 +29,38 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
   }
 
   configureMiddleware(app);
+
+  if (options.testAuth) {
+    const { getIntegrationTestOrgIdFromRequest } = await import("./orgIdValidation.js");
+
+    app.use("/api", (req, _res, next) => {
+      let orgId: string;
+      try {
+        orgId = getIntegrationTestOrgIdFromRequest(req);
+      } catch (error) {
+        next(error);
+        return;
+      }
+      const role =
+        (Array.isArray(req.headers["x-user-role"])
+          ? req.headers["x-user-role"][0]
+          : req.headers["x-user-role"]) ?? "admin";
+      const userId =
+        (Array.isArray(req.headers["x-user-id"])
+          ? req.headers["x-user-id"][0]
+          : req.headers["x-user-id"]) ?? "integration-test-user";
+
+      req.user = {
+        id: userId,
+        email: `${userId}@integration.test`,
+        role,
+        name: "Integration Test User",
+        isActive: true,
+        orgId,
+      };
+      next();
+    });
+  }
 
   if (!options.skipAuth) {
     await configureAuthMiddleware(app);
@@ -43,5 +76,6 @@ export async function createTestApp(): Promise<Express> {
   return createApp({
     skipDatabase: false,
     skipAuth: true,
+    testAuth: true,
   });
 }

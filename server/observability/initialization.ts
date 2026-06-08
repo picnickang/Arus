@@ -15,13 +15,26 @@ import {
 import { initializeServiceMetrics } from "./service-metrics";
 
 export function initializeMetrics() {
+  if (
+    process.env["DISABLE_OBSERVABILITY_TIMERS"] === "true" ||
+    process.env["NODE_ENV"] === "test"
+  ) {
+    structuredLog("info", "Observability timers disabled", {
+      operation: "startup",
+      metadata: { reason: "test-mode" },
+    });
+    return;
+  }
+
   client.collectDefaultMetrics({
     prefix: "arus_",
     gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5],
   });
 
   initializeServiceMetrics().catch((err) => {
-    structuredLog("warn", "Service metrics initialization error", { error: { message: String(err) } });
+    structuredLog("warn", "Service metrics initialization error", {
+      error: { message: String(err) },
+    });
   });
 
   try {

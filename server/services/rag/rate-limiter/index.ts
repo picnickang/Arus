@@ -38,10 +38,14 @@ const DEFAULT_CONFIG: RateLimitConfig = {
 class InMemoryRateLimiter {
   private entries: Map<string, RateLimitEntry> = new Map();
   private config: RateLimitConfig;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(config: RateLimitConfig = DEFAULT_CONFIG) {
     this.config = config;
-    setInterval(() => this.cleanup(), 60000);
+    if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+      this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+      this.cleanupInterval.unref?.();
+    }
   }
 
   private cleanup(): void {
@@ -98,6 +102,13 @@ class InMemoryRateLimiter {
     this.entries.set(key, entry);
   }
 
+  stopCleanupInterval(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
   async checkTokenLimit(userId: string, estimatedTokens: number): Promise<RateLimitResult> {
     const key = `${this.config.keyPrefix}tokens:${userId}`;
     const now = Date.now();
@@ -145,7 +156,11 @@ export function createRateLimitMiddleware(
   const limiter = config ? new InMemoryRateLimiter({ ...DEFAULT_CONFIG, ...config }) : rateLimiter;
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const userId = authenticatedRequest(req).user?.id || authenticatedRequest(req).session?.userId || req.ip || "anonymous";
+    const userId =
+      authenticatedRequest(req).user?.id ||
+      authenticatedRequest(req).session?.userId ||
+      req.ip ||
+      "anonymous";
 
     try {
       const result = await limiter.checkLimit(userId);

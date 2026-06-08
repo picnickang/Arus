@@ -15,9 +15,13 @@ import * as fs from "node:fs";
 import { logExpectedLimitation } from "./utils/logger.js";
 import { createLogger } from "./lib/structured-logger";
 import { tenantContextStore } from "./db/tenant-context.js";
+import { isLocalMode as runtimeIsLocalMode } from "./config/runtimeEnv.js";
+import { applySqlitePerformanceOptimizations } from "./sqlite/optimizations.js";
 const logger = createLogger("DbConfig");
 
-function buildDrizzleRuntimeSchema<TSchema extends Record<string, unknown>>(runtimeSchema: TSchema): TSchema {
+function buildDrizzleRuntimeSchema<TSchema extends Record<string, unknown>>(
+  runtimeSchema: TSchema
+): TSchema {
   return Object.fromEntries(
     Object.entries(runtimeSchema).filter(([, value]) => isTable(value))
   ) as TSchema;
@@ -39,7 +43,7 @@ function detectDatabaseType(url: string): "neon" | "standard" {
 }
 
 // Detect Replit environment
-const isReplitEnvironment = !!process.env['REPL_ID'] || !!process.env['REPL_SLUG'];
+const isReplitEnvironment = !!process.env["REPL_ID"] || !!process.env["REPL_SLUG"];
 
 /**
  * Database Configuration for Dual-Mode Deployment
@@ -78,17 +82,19 @@ neonConfig.wsProxy = (host) => `${host}`; // Use direct connection
  * If EMBEDDED_MODE=true and no DATABASE_URL, automatically switch to local mode
  * This must run BEFORE importing runtimeEnv to ensure proper initialization order
  */
-const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
-if (isEmbedded && !process.env['DATABASE_URL'] && process.env['LOCAL_MODE'] !== "true") {
-  logger.warn("⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode");
-  process.env['LOCAL_MODE'] = "true";
+const isEmbedded = process.env["EMBEDDED_MODE"] === "true";
+if (isEmbedded && !process.env["DATABASE_URL"] && process.env["LOCAL_MODE"] !== "true") {
+  logger.warn(
+    "⚠️ [DB Config] Embedded mode: DATABASE_URL missing, auto-switching to local SQLite mode"
+  );
+  process.env["LOCAL_MODE"] = "true";
 }
 
 /**
- * SINGLE SOURCE OF TRUTH: Import from runtimeEnv.ts after auto-fallback
- * Import dynamically to ensure side effects run first
+ * SINGLE SOURCE OF TRUTH: runtimeEnv is pure and reads EMBEDDED_MODE directly,
+ * so a static import preserves mode detection while avoiding top-level await
+ * in Jest's SWC transform.
  */
-const { isLocalMode: runtimeIsLocalMode } = await import("./config/runtimeEnv.js");
 export const isLocalMode = runtimeIsLocalMode;
 export const deploymentMode = isLocalMode ? "VESSEL (Offline-First)" : "CLOUD (Online)";
 
@@ -106,28 +112,27 @@ export let connectionMode: "http" | "websocket" | "standard" | "sqlite" = "sqlit
 
 if (!isLocalMode) {
   // Validate DATABASE_URL exists for cloud mode
-  if (!process.env['DATABASE_URL']) {
+  if (!process.env["DATABASE_URL"]) {
     logger.error("ERROR: DATABASE_URL environment variable is required for cloud mode");
     logger.error("Hint: Set EMBEDDED_MODE=true to use local SQLite instead");
     process.exit(1);
   }
 
-  const dbType = detectDatabaseType(process.env['DATABASE_URL']);
+  const dbType = detectDatabaseType(process.env["DATABASE_URL"]);
 
   if (dbType === "standard") {
     // Use standard node-postgres for non-Neon databases (Replit, AWS RDS, etc.)
     logger.info("ℹ️ Standard PostgreSQL detected: Using node-postgres driver");
 
     pgPool = new PgPool({
-      connectionString: process.env['DATABASE_URL'],
+      connectionString: process.env["DATABASE_URL"],
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
       // Prod-hardening: cap any single query at 30s and any open
       // transaction at 10s of idle time. Prevents a stuck query
       // from tying up a pool slot until idleTimeoutMillis expires.
-      options:
-        "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
+      options: "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
     });
 
     // Handle pool errors gracefully
@@ -144,7 +149,7 @@ if (!isLocalMode) {
     // Use HTTP driver in Replit for Neon - WebSocket connections are killed by Replit's proxy after ~20s
     logger.info("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
 
-    const sql = neon(process.env['DATABASE_URL']);
+    const sql = neon(process.env["DATABASE_URL"]);
     cloudDatabase = drizzlePgHttp(sql, { schema: drizzleRuntimeSchema });
     connectionMode = "http";
 
@@ -153,7 +158,7 @@ if (!isLocalMode) {
     // Use WebSocket driver for Neon in production/desktop - supports transactions
     logger.info("ℹ️ Neon detected: Using Neon WebSocket driver (full transaction support)");
 
-    const connectionUrl = new URL(process.env['DATABASE_URL']);
+    const connectionUrl = new URL(process.env["DATABASE_URL"]);
     if (!connectionUrl.searchParams.has("connect_timeout")) {
       connectionUrl.searchParams.set("connect_timeout", "15");
     }
@@ -166,17 +171,19 @@ if (!isLocalMode) {
       // Prod-hardening: cap any single query at 30s and any open
       // transaction at 10s of idle time. Neon's pool exposes the
       // same `options` knob as node-postgres for libpq settings.
-      options:
-        "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
+      options: "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=10000",
     });
 
-    (pgPool as { on: (event: string, cb: (err: Error & { message?: string }) => void) => void }).on("error", (err) => {
-      if (err.message?.includes("WebSocket")) {
-        logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
-      } else {
-        logger.error("[DB Pool] Unexpected error:", undefined, err.message);
+    (pgPool as { on: (event: string, cb: (err: Error & { message?: string }) => void) => void }).on(
+      "error",
+      (err) => {
+        if (err.message?.includes("WebSocket")) {
+          logger.warn("⚠️ Neon WebSocket connection error (transient, retrying...)");
+        } else {
+          logger.error("[DB Pool] Unexpected error:", undefined, err.message);
+        }
       }
-    });
+    );
 
     cloudDatabase = drizzlePgWs(pgPool as object as import("@neondatabase/serverless").Pool, {
       schema: drizzleRuntimeSchema,
@@ -198,6 +205,11 @@ async function initializeLocalDatabase() {
     return;
   }
 
+  if (localClient && localDatabase && dbInstance === localDatabase) {
+    logger.info("✓ Local SQLite: already initialized");
+    return;
+  }
+
   // Create data directory if it doesn't exist
   const dataDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) {
@@ -208,8 +220,8 @@ async function initializeLocalDatabase() {
   const localDbPath = path.join(dataDir, "vessel-local.db");
 
   // Validate Turso configuration for sync
-  const hasSyncUrl = !!process.env['TURSO_SYNC_URL'];
-  const hasAuthToken = !!process.env['TURSO_AUTH_TOKEN'];
+  const hasSyncUrl = !!process.env["TURSO_SYNC_URL"];
+  const hasAuthToken = !!process.env["TURSO_AUTH_TOKEN"];
 
   if (hasSyncUrl && hasAuthToken) {
     logger.info("✓ Turso Sync: Enabled (Managed by Sync Manager)");
@@ -218,10 +230,16 @@ async function initializeLocalDatabase() {
     // IMPORTANT: syncInterval set to 0 - Sync Manager controls all sync operations
     localClient = createClient({
       url: `file:${localDbPath}`,
-      ...(process.env['TURSO_SYNC_URL'] !== undefined && { syncUrl: process.env['TURSO_SYNC_URL'] }),
-      ...(process.env['TURSO_AUTH_TOKEN'] !== undefined && { authToken: process.env['TURSO_AUTH_TOKEN'] }),
+      ...(process.env["TURSO_SYNC_URL"] !== undefined && {
+        syncUrl: process.env["TURSO_SYNC_URL"],
+      }),
+      ...(process.env["TURSO_AUTH_TOKEN"] !== undefined && {
+        authToken: process.env["TURSO_AUTH_TOKEN"],
+      }),
       syncInterval: 0, // Disable auto-sync - Sync Manager controls sync timing
-      ...(process.env['LOCAL_DB_KEY'] !== undefined && { encryptionKey: process.env['LOCAL_DB_KEY'] }),
+      ...(process.env["LOCAL_DB_KEY"] !== undefined && {
+        encryptionKey: process.env["LOCAL_DB_KEY"],
+      }),
     });
     libsqlClient = localClient;
   } else {
@@ -237,38 +255,7 @@ async function initializeLocalDatabase() {
     libsqlClient = localClient;
   }
 
-  // Apply SQLite performance optimizations
-  logger.info("→ Applying SQLite performance optimizations...");
-  try {
-    // Enable Write-Ahead Logging for better concurrency
-    await localClient.execute("PRAGMA journal_mode=WAL");
-
-    // Optimize synchronous mode for performance (NORMAL is safe with WAL)
-    await localClient.execute("PRAGMA synchronous=NORMAL");
-
-    // Set cache size to 64MB for better query performance
-    await localClient.execute("PRAGMA cache_size=-64000");
-
-    // Use memory for temporary storage
-    await localClient.execute("PRAGMA temp_store=MEMORY");
-
-    // Optimize page size (4KB is good for most workloads)
-    await localClient.execute("PRAGMA page_size=4096");
-
-    // Enable foreign key constraints
-    await localClient.execute("PRAGMA foreign_keys=ON");
-
-    // Set busy timeout to 5 seconds to handle concurrent writes
-    await localClient.execute("PRAGMA busy_timeout=5000");
-
-    logger.info("✓ SQLite performance optimizations applied");
-    logger.info("  • WAL mode enabled (better concurrency)");
-    logger.info("  • Cache: 64MB");
-    logger.info("  • Sync: NORMAL (safe with WAL)");
-    logger.info("  • Foreign keys: ON");
-  } catch (error) {
-    logger.warn("⚠ Failed to apply some SQLite optimizations:", { details: error instanceof Error ? error.message : "Unknown error" });
-  }
+  await applySqlitePerformanceOptimizations(localClient, logger);
 
   // Configure drizzle for SQLite with SQLite-compatible schemas
   // Combine sync tables + vessel operation tables for vessel mode
@@ -303,7 +290,9 @@ async function initializeLocalDatabase() {
       await localClient.sync();
       logger.info("✓ Initial sync completed");
     } catch (error) {
-      logger.warn("⚠ Initial sync failed (will retry):", { details: error instanceof Error ? error.message : "Unknown error" });
+      logger.warn("⚠ Initial sync failed (will retry):", {
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
       logger.warn("  Application will continue with local data");
     }
   }
@@ -344,7 +333,9 @@ type DbType = ReturnType<typeof drizzlePgWs<typeof drizzleRuntimeSchema>>;
  */
 function resolveActiveDb(): unknown {
   const ctx = tenantContextStore.getStore();
-  if (ctx?.tx) {return ctx.tx;}
+  if (ctx?.tx) {
+    return ctx.tx;
+  }
   return dbInstance;
 }
 
@@ -411,19 +402,18 @@ export const supportsPinnedConnection: boolean =
   connectionMode === "standard" || connectionMode === "websocket";
 
 if (!isLocalMode && requireTenantAuthFromEnv() && !supportsPinnedConnection) {
-
   console.error(
     `[DB Config] REQUIRE_TENANT_AUTH=true requires a pooled Postgres driver ` +
       `that supports session state across statements (standard | websocket). ` +
       `Current driver mode: "${connectionMode}". Refusing to boot — the ` +
       `pinned-RLS context (SET LOCAL app.current_org_id) would silently ` +
-      `evaporate on every neon-http call, leaving RLS matching zero rows.`,
+      `evaporate on every neon-http call, leaving RLS matching zero rows.`
   );
   process.exit(1);
 }
 
 function requireTenantAuthFromEnv(): boolean {
-  return process.env['REQUIRE_TENANT_AUTH'] === "true";
+  return process.env["REQUIRE_TENANT_AUTH"] === "true";
 }
 
 // Mode-aware table exports for storage layer

@@ -20,8 +20,18 @@ export {
 } from "./helpers.js";
 
 import type { Client as LibsqlClient } from "@libsql/client";
-import { getAllTablesSql, getAllIndexesSql } from "../sqlite/index.js";
 import { createLogger } from "../lib/structured-logger";
+import {
+  backfillFromLegacy,
+  ensureDeclaredTablesAndIndexes,
+  getTableColumns,
+  runAdminSettingsCompatibilityMigration,
+  runEquipmentCompatibilityMigration,
+  runPermissionCompatibilityMigration,
+  runSystemSettingsCompatibilityMigration,
+  safeAddColumn,
+  safeRenameColumn,
+} from "./compatibility-migrations.js";
 const logger = createLogger("SqliteInit:Index");
 
 let _initialized = false;
@@ -51,15 +61,12 @@ export async function initializeSqliteDatabase(): Promise<void> {
     throw new Error("SQLite client not initialized");
   }
 
-  const runner = db as object as { run: (s: unknown) => Promise<unknown> };
-  for (const stmt of getAllTablesSql()) {
-    await runner.run(stmt);
-  }
-  for (const stmt of getAllIndexesSql()) {
-    await runner.run(stmt);
-  }
+  await ensureDeclaredTablesAndIndexes();
 
+  await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runEquipmentCompatibilityMigration(libsqlClient);
+  await runPermissionCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 
@@ -67,126 +74,18 @@ export async function initializeSqliteDatabase(): Promise<void> {
   logger.info("✓ SQLite database initialized with all tables and indexes");
 }
 
-async function getTableColumns(client: LibsqlClient, tableName: string): Promise<string[]> {
-  const result = await client.execute(`PRAGMA table_info(${tableName})`);
-  return result.rows.map((r) => String(r['name']));
-}
-
-async function safeRenameColumn(
-  client: LibsqlClient,
-  table: string,
-  oldCol: string,
-  newCol: string
-): Promise<void> {
-  await client.execute(`ALTER TABLE ${table} RENAME COLUMN ${oldCol} TO ${newCol}`);
-  logger.info(`  ✓ Renamed ${table}.${oldCol} → ${newCol}`);
-}
-
-async function backfillFromLegacy(
-  client: LibsqlClient,
-  table: string,
-  oldCol: string,
-  newCol: string
-): Promise<void> {
-  const result = await client.execute(
-    `UPDATE ${table} SET ${newCol} = ${oldCol} WHERE ${newCol} IS NULL OR ${newCol} = '' OR ${newCol} = 0`
-  );
-  const count = result.rowsAffected;
-  if (count > 0) {
-    logger.info(`  ✓ Backfilled ${count} rows: ${table}.${oldCol} → ${newCol}`);
-  }
-}
-
-async function safeAddColumn(
-  client: LibsqlClient,
-  table: string,
-  col: string,
-  definition: string
-): Promise<void> {
-  try {
-    await client.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
-    logger.info(`  ✓ Added ${table}.${col}`);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("duplicate column")) {
-      return;
-    }
-    throw error;
-  }
-}
-
 export async function applyInventoryMigrations(): Promise<void> {
   const { libsqlClient } = await import("../db-config.js");
   if (!libsqlClient) {
     throw new Error("SQLite client not initialized");
   }
+  await ensureDeclaredTablesAndIndexes();
+  await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runEquipmentCompatibilityMigration(libsqlClient);
+  await runPermissionCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
-}
-
-async function runAdminSettingsCompatibilityMigration(client: LibsqlClient): Promise<void> {
-  const cols = await getTableColumns(client, "admin_system_settings");
-  if (!cols.length) {
-    return;
-  }
-
-  if (!cols.includes("org_id")) {
-    await safeAddColumn(client, "admin_system_settings", "org_id", "TEXT NOT NULL DEFAULT 'default-org-id'");
-  }
-  if (!cols.includes("category")) {
-    await safeAddColumn(client, "admin_system_settings", "category", "TEXT NOT NULL DEFAULT 'general'");
-  }
-  if (!cols.includes("key")) {
-    await safeAddColumn(client, "admin_system_settings", "\"key\"", "TEXT NOT NULL DEFAULT ''");
-  }
-  if (!cols.includes("value")) {
-    await safeAddColumn(client, "admin_system_settings", "value", "TEXT");
-  }
-  if (!cols.includes("data_type")) {
-    await safeAddColumn(client, "admin_system_settings", "data_type", "TEXT NOT NULL DEFAULT 'string'");
-  }
-  if (!cols.includes("is_secret")) {
-    await safeAddColumn(client, "admin_system_settings", "is_secret", "INTEGER DEFAULT 0");
-  }
-  if (!cols.includes("is_readonly")) {
-    await safeAddColumn(client, "admin_system_settings", "is_readonly", "INTEGER DEFAULT 0");
-  }
-  if (!cols.includes("validation_rule")) {
-    await safeAddColumn(client, "admin_system_settings", "validation_rule", "TEXT");
-  }
-  if (!cols.includes("default_value")) {
-    await safeAddColumn(client, "admin_system_settings", "default_value", "TEXT");
-  }
-  if (!cols.includes("updated_by")) {
-    await safeAddColumn(client, "admin_system_settings", "updated_by", "TEXT");
-  }
-
-  const refreshedCols = await getTableColumns(client, "admin_system_settings");
-  if (refreshedCols.includes("setting_key") && refreshedCols.includes("key")) {
-    await client.execute(
-      `UPDATE admin_system_settings SET "key" = setting_key WHERE ("key" IS NULL OR "key" = '') AND setting_key IS NOT NULL`
-    );
-  }
-  if (refreshedCols.includes("setting_value") && refreshedCols.includes("value")) {
-    await client.execute(
-      `UPDATE admin_system_settings SET value = setting_value WHERE value IS NULL AND setting_value IS NOT NULL`
-    );
-  }
-  if (refreshedCols.includes("setting_type") && refreshedCols.includes("data_type")) {
-    await client.execute(
-      `UPDATE admin_system_settings SET data_type = setting_type WHERE (data_type IS NULL OR data_type = 'string') AND setting_type IS NOT NULL`
-    );
-  }
-  if (refreshedCols.includes("is_sensitive") && refreshedCols.includes("is_secret")) {
-    await client.execute(
-      `UPDATE admin_system_settings SET is_secret = is_sensitive WHERE is_sensitive IS NOT NULL`
-    );
-  }
-
-  await client.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_ass_org_category_key_unique ON admin_system_settings(org_id, category, "key")`
-  );
-  logger.info("✓ Admin system settings compatibility migration completed");
 }
 
 async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
@@ -324,7 +223,9 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
             `UPDATE purchase_order_items SET org_id = (SELECT po.org_id FROM purchase_orders po WHERE po.id = purchase_order_items.${poIdCol}) WHERE org_id = ''`
           );
           if (backfilled.rowsAffected > 0) {
-            logger.info(`  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`);
+            logger.info(
+              `  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`
+            );
           }
         }
       }
@@ -393,9 +294,11 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     const orphaned = await client.execute(
       "SELECT COUNT(*) as cnt FROM purchase_order_items WHERE org_id = '' OR org_id IS NULL"
     );
-    const count = Number(orphaned.rows[0]?.['cnt'] ?? 0);
+    const count = Number(orphaned.rows[0]?.["cnt"] ?? 0);
     if (count > 0) {
-      logger.warn(`⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`);
+      logger.warn(
+        `⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`
+      );
     }
   }
 
@@ -407,9 +310,12 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
   );
 
   if (stalepi.length > 0 || staleStock.length > 0) {
-    logger.warn(`⚠ Legacy columns still present (will not be used by Drizzle):`, { details: [...stalepi.map((c) => `parts_inventory.${c}`), ...staleStock.map((c) => `stock.${c}`)].join(
-        ", "
-      ) });
+    logger.warn(`⚠ Legacy columns still present (will not be used by Drizzle):`, {
+      details: [
+        ...stalepi.map((c) => `parts_inventory.${c}`),
+        ...staleStock.map((c) => `stock.${c}`),
+      ].join(", "),
+    });
   }
 
   logger.info("✓ Inventory schema verification passed");

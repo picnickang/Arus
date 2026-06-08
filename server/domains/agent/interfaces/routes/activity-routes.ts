@@ -12,7 +12,10 @@ export interface ActivityRouteDeps {
 }
 
 const activityQuerySchema = z.object({
-  triggerType: z.enum(["scheduled", "user"]).optional(),
+  triggerType: z.preprocess(
+    (value) => (value === "scheduled" || value === "user" ? value : undefined),
+    z.enum(["scheduled", "user"]).optional()
+  ),
   status: z.enum(["completed", "failed", "running"]).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -47,15 +50,23 @@ export function registerActivityRoutes(app: Express, deps: ActivityRouteDeps) {
         const orgId = authenticatedRequest(req).orgId;
         const q = activityQuerySchema.parse(req.query);
         const filter: ActivityFilter = {};
-        if (q.triggerType) {filter.triggerType = q.triggerType;}
-        if (q.status) {filter.status = q.status;}
+        if (q.triggerType) {
+          filter.triggerType = q.triggerType;
+        }
+        if (q.status) {
+          filter.status = q.status;
+        }
         if (q.startDate) {
           const d = new Date(q.startDate);
-          if (!isNaN(d.getTime())) {filter.startDate = d;}
+          if (!isNaN(d.getTime())) {
+            filter.startDate = d;
+          }
         }
         if (q.endDate) {
           const d = new Date(q.endDate);
-          if (!isNaN(d.getTime())) {filter.endDate = d;}
+          if (!isNaN(d.getTime())) {
+            filter.endDate = d;
+          }
         }
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
