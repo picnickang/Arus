@@ -13,7 +13,8 @@ import type { Request, Response, NextFunction } from "express";
 import { permissionService } from "../domains/permissions/service";
 import type { ActionCode } from "../config/permission-registry";
 
-type AuthenticatedRequest = Request;
+type CompiledUserPermissions = Awaited<ReturnType<typeof permissionService.compileUserPermissions>>;
+type AuthenticatedRequest = Request & { permissions?: CompiledUserPermissions };
 
 export function requirePermission(resource: string, action: ActionCode) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -135,7 +136,7 @@ export async function attachUserPermissions(
 
   try {
     const permissions = await permissionService.compileUserPermissions(userId, orgId);
-    (authReq as unknown as Record<string, unknown>)["permissions"] = permissions;
+    authReq.permissions = permissions;
   } catch (error) {
     // Log but don't fail the request
     console.error("Failed to attach user permissions:", error);

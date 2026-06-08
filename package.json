@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev:playwright": "tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:renderer": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite",
@@ -44,6 +45,10 @@
     "ci": "npm run lint && npm run check:guards && npm run check:cast-burndown && npm run check:explicit-any-burndown && npm run check && npm run test:unit && npm run test:integration && npm run build",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:coverage:summary": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --coverageReporters=text-summary",
+    "test:load": "node scripts/run-load-test.mjs",
+    "test:load:smoke": "node scripts/run-load-test.mjs smoke",
+    "test:load:steady": "node scripts/run-load-test.mjs steady",
+    "test:load:spike": "node scripts/run-load-test.mjs spike",
     "test:client": "node --experimental-vm-modules node_modules/jest/bin/jest.js client/tests",
     "test:quick": "node client/tests/runner.mjs",
     "test:export": "node client/tests/export.test.mjs",

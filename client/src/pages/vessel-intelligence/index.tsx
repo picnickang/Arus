@@ -299,10 +299,10 @@ export default function VesselIntelligencePage({
           </div>
         )}
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="rounded-md border p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
+        <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 rounded-md border p-4">
+            <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
                 <Badge variant="secondary">Full Hub v2</Badge>
                 <h1 className="mt-3 text-2xl font-semibold tracking-normal">
                   {vesselNameFor(selectedVessel)}
@@ -345,10 +345,10 @@ export default function VesselIntelligencePage({
               onValueChange={(value) =>
                 setLocation(pathForMode(selectedVesselId, value as HubMode))
               }
-              className="mt-5"
+              className="mt-5 min-w-0"
             >
               <TabsList
-                className="h-auto w-full justify-start overflow-x-auto"
+                className="flex h-auto max-w-full min-w-0 justify-start overflow-x-auto"
                 data-testid="vessel-intelligence-tabs"
               >
                 {HUB_TABS.map((tab) => (
@@ -360,7 +360,10 @@ export default function VesselIntelligencePage({
             </Tabs>
           </div>
 
-          <div className="rounded-md border p-4" data-testid="vessel-intelligence-data-sources">
+          <div
+            className="min-w-0 rounded-md border p-4"
+            data-testid="vessel-intelligence-data-sources"
+          >
             <h2 className="text-sm font-semibold">Live source bindings</h2>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-3">
@@ -400,7 +403,7 @@ export default function VesselIntelligencePage({
         </section>
 
         <section
-          className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4"
           data-testid="vessel-intelligence-metrics"
         >
           <MetricPanel
@@ -437,8 +440,8 @@ export default function VesselIntelligencePage({
           />
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-          <div className="rounded-md border p-4">
+        <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+          <div className="min-w-0 rounded-md border p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Sectioned Vessel Map</h2>
@@ -456,7 +459,7 @@ export default function VesselIntelligencePage({
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <DiagramRegistryPanel
               selectedVesselId={selectedVesselId}
               diagrams={registryQuery.data?.diagrams ?? []}
@@ -472,7 +475,7 @@ export default function VesselIntelligencePage({
           </div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
+        <section className="grid min-w-0 gap-4 lg:grid-cols-3">
           <WorkOrdersPanel
             selectedVesselId={selectedVesselId}
             vesselWorkOrders={vesselWorkOrders}

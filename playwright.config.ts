@@ -26,6 +26,7 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:5000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    serviceWorkers: "block",
   },
 
   projects: [
@@ -41,7 +42,26 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
     : {
-        command: "npm run dev",
+        command: "npm run build:renderer && npm run dev:playwright",
+        env: {
+          ...process.env,
+          DISABLE_EMAIL_WORKER: "true",
+          DISABLE_TELEMETRY_BATCH_WRITER: "true",
+          EMBEDDED_MODE: "true",
+          ENABLE_AUTO_REPLAN: "false",
+          ENABLE_BACKGROUND_JOBS: "false",
+          ENABLE_SCHEDULERS: "false",
+          ENABLE_SYNC_SERVICES: "false",
+          ENABLE_UPDATE_SYSTEM: "false",
+          EVENT_SPINE_ANALYTICS: "0",
+          EVENT_SPINE_DISABLED: "1",
+          EVENT_SPINE_WORKER: "0",
+          LOCAL_MODE: "true",
+          NODE_ENV: "development",
+          PLAYWRIGHT_TEST: "true",
+          PORT: "5000",
+          SESSION_SECRET: "playwright-test-session-secret-not-for-production",
+        },
         url: "http://localhost:5000/api/healthz",
         reuseExistingServer: true,
         timeout: 120_000,

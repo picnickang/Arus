@@ -5,6 +5,7 @@ import { drizzle as drizzleSqlite } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import { Pool as NeonPool, neonConfig, neon } from "@neondatabase/serverless";
 import { Pool as PgPool } from "pg";
+import { isTable } from "drizzle-orm/table";
 import ws from "ws";
 import * as schema from "@shared/schema-runtime";
 import * as schemaSqliteSync from "@shared/schema-sqlite-sync";
@@ -15,6 +16,14 @@ import { logExpectedLimitation } from "./utils/logger.js";
 import { createLogger } from "./lib/structured-logger";
 import { tenantContextStore } from "./db/tenant-context.js";
 const logger = createLogger("DbConfig");
+
+function buildDrizzleRuntimeSchema<TSchema extends Record<string, unknown>>(runtimeSchema: TSchema): TSchema {
+  return Object.fromEntries(
+    Object.entries(runtimeSchema).filter(([, value]) => isTable(value))
+  ) as TSchema;
+}
+
+const drizzleRuntimeSchema = buildDrizzleRuntimeSchema(schema);
 
 // Detect database type from DATABASE_URL
 function detectDatabaseType(url: string): "neon" | "standard" {
@@ -127,7 +136,7 @@ if (!isLocalMode) {
     });
 
     // Configure drizzle with node-postgres driver
-    cloudDatabase = drizzlePgNode(pgPool, { schema });
+    cloudDatabase = drizzlePgNode(pgPool, { schema: drizzleRuntimeSchema });
     connectionMode = "standard";
 
     logger.info("✓ Cloud PostgreSQL: Connected (standard mode)");
@@ -136,7 +145,7 @@ if (!isLocalMode) {
     logger.info("ℹ️ Replit + Neon detected: Using Neon HTTP driver (WebSocket proxy incompatible)");
 
     const sql = neon(process.env['DATABASE_URL']);
-    cloudDatabase = drizzlePgHttp(sql, { schema });
+    cloudDatabase = drizzlePgHttp(sql, { schema: drizzleRuntimeSchema });
     connectionMode = "http";
 
     logger.info("✓ Cloud PostgreSQL: Connected (HTTP mode)");
@@ -169,7 +178,9 @@ if (!isLocalMode) {
       }
     });
 
-    cloudDatabase = drizzlePgWs(pgPool as object as import("@neondatabase/serverless").Pool, { schema });
+    cloudDatabase = drizzlePgWs(pgPool as object as import("@neondatabase/serverless").Pool, {
+      schema: drizzleRuntimeSchema,
+    });
     connectionMode = "websocket";
 
     logger.info("✓ Cloud PostgreSQL: Connected (WebSocket mode)");
@@ -315,7 +326,7 @@ let dbInstance:
 // All three PG drivers (ws, http, node) share the same query-builder API, and
 // SQLite's libsql driver is interchangeable for our storage layer's purposes.
 // This gives downstream consumers a concrete query-builder type instead of `any`.
-type DbType = ReturnType<typeof drizzlePgWs<typeof schema>>;
+type DbType = ReturnType<typeof drizzlePgWs<typeof drizzleRuntimeSchema>>;
 
 // Export the appropriate database instance based on mode
 // This will be null initially in local mode, then set after initializeLocalDatabase()

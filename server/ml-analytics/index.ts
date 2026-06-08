@@ -43,7 +43,7 @@ export class MLAnalyticsService extends EventEmitter {
   }
 
   private async loadActiveModels(): Promise<void> {
-    if (!db) {
+    if (!("select" in db)) {
       logger.warn("[ML Analytics] Disabled: database not initialized (embedded/local mode)");
       this.enabled = false;
       return;

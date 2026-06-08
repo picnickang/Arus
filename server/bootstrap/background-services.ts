@@ -21,6 +21,11 @@ function errorDetails(error: unknown): { details: string } {
   return { details: error instanceof Error ? error.message : String(error) };
 }
 
+function envFlag(name: string): boolean {
+  const value = process.env[name];
+  return value === "true" || value === "1";
+}
+
 export async function initializePostDatabaseServices(logger: StartupLogger): Promise<void> {
   try {
     await initializeJobQueue();
@@ -78,7 +83,11 @@ export async function initializePostDatabaseServices(logger: StartupLogger): Pro
 
   try {
     await initializeBackgroundJobs(isEmbedded);
-    await initializeTelemetryBatchWriter();
+    if (envFlag("DISABLE_TELEMETRY_BATCH_WRITER")) {
+      logger.info("ℹ️  Telemetry batch writer disabled by DISABLE_TELEMETRY_BATCH_WRITER");
+    } else {
+      await initializeTelemetryBatchWriter();
+    }
     await initializeSchedulers(isEmbedded);
     await initializeAutoReplanPolicy();
     await initializeFmccPolling();
@@ -88,6 +97,10 @@ export async function initializePostDatabaseServices(logger: StartupLogger): Pro
   }
 
   try {
+    if (envFlag("DISABLE_EMAIL_WORKER")) {
+      logger.info("ℹ️  Email worker disabled by DISABLE_EMAIL_WORKER");
+      return;
+    }
     const { startEmailWorker } = await import("../purchasing/email-worker");
     startEmailWorker();
   } catch (e: unknown) {

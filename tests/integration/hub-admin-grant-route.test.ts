@@ -251,7 +251,7 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
 });
 
 describe("PATCH hub-access — grant / revoke persistence + audit", () => {
-  const adminHeader = "caller-admin:admin";
+  const adminHeader = "caller-admin:system_admin";
 
   it("persists a valid grant with a normalised partial allow-list and audits it", async () => {
     if (mountError) {throw new Error(mountError);}

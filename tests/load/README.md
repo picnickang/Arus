@@ -18,12 +18,24 @@ echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.i
 sudo apt-get update && sudo apt-get install k6
 ```
 
-Then point a script at the target environment:
+Then point a script at the target environment. The npm wrapper checks
+for `k6` before running and exits with a clear missing-dependency error
+instead of reporting a fake load result:
 
 ```bash
-BASE_URL=http://localhost:5000 k6 run tests/load/smoke.js
-BASE_URL=https://staging.example.app k6 run tests/load/steady.js
+BASE_URL=http://localhost:5000 npm run test:load:smoke
+BASE_URL=https://staging.example.app npm run test:load:steady
 ```
+
+If local `k6` is not available but Docker is, run the same scenarios
+through the official k6 image:
+
+```bash
+K6_RUNNER=docker BASE_URL=http://localhost:5000 npm run test:load:smoke
+```
+
+CI should install `k6` explicitly or set `K6_RUNNER=docker`; the load
+runner intentionally fails closed when no real runner is available.
 
 ## Scenarios
 

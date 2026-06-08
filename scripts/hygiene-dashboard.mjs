@@ -10,11 +10,11 @@
  *   node scripts/hygiene-dashboard.mjs              # Show current vs baseline
  *   node scripts/hygiene-dashboard.mjs --baseline   # Write new baseline
  *   node scripts/hygiene-dashboard.mjs --json       # JSON output for CI
- *   node scripts/hygiene-dashboard.mjs --strict     # Exit 1 if any metric got worse
+ *   node scripts/hygiene-dashboard.mjs --strict     # Exit 1 if any metric exceeds its ratchet
  *
  * Exit codes:
  *   0 — all metrics stable or improved
- *   1 — at least one metric got worse (in --strict mode only)
+ *   1 — at least one metric exceeded its ratchet (in --strict mode only)
  *   2 — script error
  */
 
@@ -26,6 +26,12 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const BASELINE_PATH = resolve(__dirname, "hygiene-baseline.json");
+const LONG_FILE_LIMIT = 500;
+const LONG_FILE_REPORT_PATH = "docs/qa/long-file-burndown.md";
+const LONG_FILE_EXCLUDE_CLAUSES = [
+  // Test fixture data is tracked outside the production long-file burndown.
+  '-not -path "server/tests/*/fixtures.ts"',
+];
 
 // ============================================================================
 // Configuration — what we measure and where we look
@@ -93,7 +99,8 @@ const METRICS = [
     name: "long-files",
     // Files over 500 lines counted separately — see scanLongFiles() below
     isLongFile: true,
-    description: "Source files over 500 lines (refactor opportunistically)",
+    description:
+      "Source files over 500 lines (ratcheted ceiling; see docs/qa/long-file-burndown.md)",
   },
 ];
 
@@ -129,7 +136,8 @@ function countMatches(metric) {
 }
 
 function scanLongFiles() {
-  const cmd = `find ${SEARCH_PATHS} \\( -name "*.ts" -o -name "*.tsx" \\) -not -path "*/node_modules/*" 2>/dev/null | xargs wc -l 2>/dev/null | awk '$1 > 500 && $2 != "total" {count++} END {print count+0}'`;
+  const excludes = LONG_FILE_EXCLUDE_CLAUSES.join(" ");
+  const cmd = `find ${SEARCH_PATHS} \\( -name "*.ts" -o -name "*.tsx" \\) -not -path "*/node_modules/*" ${excludes} 2>/dev/null | xargs wc -l 2>/dev/null | awk '$1 > ${LONG_FILE_LIMIT} && $2 != "total" {count++} END {print count+0}'`;
   const out = run(cmd).trim();
   return Number.parseInt(out, 10) || 0;
 }
@@ -155,11 +163,32 @@ function loadBaseline() {
   }
 }
 
+function ratchetBaselineCounts(counts) {
+  const previous = loadBaseline();
+  const ratcheted = { ...counts };
+  const previousLongFileCeiling = previous?.counts?.["long-files"];
+
+  if (typeof previousLongFileCeiling === "number") {
+    ratcheted["long-files"] = Math.min(counts["long-files"], previousLongFileCeiling);
+  }
+
+  return ratcheted;
+}
+
 function writeBaseline(counts) {
+  const ratchetedCounts = ratchetBaselineCounts(counts);
   const baseline = {
     createdAt: new Date().toISOString(),
-    counts,
-    note: "Regenerate with `node scripts/hygiene-dashboard.mjs --baseline`. Commit the result.",
+    counts: ratchetedCounts,
+    policy: {
+      "long-files": {
+        mode: "ratchet-ceiling",
+        lineLimit: LONG_FILE_LIMIT,
+        report: LONG_FILE_REPORT_PATH,
+        note: "Temporary ceiling only. Future increases fail CI; reductions should be committed by lowering this count.",
+      },
+    },
+    note: "Regenerate with `node scripts/hygiene-dashboard.mjs --baseline`. Long-file baseline only ratchets downward.",
   };
   writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + "\n", "utf8");
 }
@@ -213,6 +242,22 @@ function renderSummary(counts, baseline) {
   return `Improved: ${improved}  Worse: ${worse}  Unchanged: ${unchanged}`;
 }
 
+function renderLongFileRatchet(counts, baseline) {
+  const current = counts["long-files"];
+  const ceiling = baseline?.counts?.["long-files"];
+  if (typeof current !== "number" || typeof ceiling !== "number") {
+    return "";
+  }
+
+  if (current < ceiling) {
+    return `Long-file ratchet: ${current} is below ceiling ${ceiling}. Lower scripts/hygiene-baseline.json to lock in the reduction.`;
+  }
+  if (current === ceiling) {
+    return `Long-file ratchet: ${current} is at the temporary ceiling. Future increases fail CI.`;
+  }
+  return `Long-file ratchet: ${current} exceeds ceiling ${ceiling}.`;
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -262,6 +307,11 @@ if (isJson) {
   console.log(renderTable(counts, baseline));
   console.log("");
   console.log(renderSummary(counts, baseline));
+  const longFileRatchet = renderLongFileRatchet(counts, baseline);
+  if (longFileRatchet) {
+    console.log("");
+    console.log(longFileRatchet);
+  }
 }
 
 if (isStrict && baseline) {

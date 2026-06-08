@@ -16,15 +16,39 @@
  *
  * Wire into CI as: `node scripts/check-boot-health.mjs`
  * Configure expected count via env: BOOT_EXPECTED_MODULES=111
+ * If DATABASE_URL is absent, the guard boots deterministic embedded mode so
+ * route-registration health does not depend on ambient cloud credentials.
  */
 
 import { spawn } from "node:child_process";
 
 const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 111);
 const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 60_000);
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const deterministicEmbeddedEnv = hasDatabaseUrl
+  ? {}
+  : {
+      DISABLE_EMAIL_WORKER: "true",
+      DISABLE_TELEMETRY_BATCH_WRITER: "true",
+      EMBEDDED_MODE: "true",
+      ENABLE_AUTO_REPLAN: "false",
+      ENABLE_BACKGROUND_JOBS: "false",
+      ENABLE_SCHEDULERS: "false",
+      ENABLE_SYNC_SERVICES: "false",
+      ENABLE_UPDATE_SYSTEM: "false",
+      EVENT_SPINE_ANALYTICS: "0",
+      EVENT_SPINE_DISABLED: "1",
+      EVENT_SPINE_WORKER: "0",
+      LOCAL_MODE: "true",
+      SESSION_SECRET: "boot-health-session-secret-not-for-production",
+    };
 
 const child = spawn("npm", ["run", "dev"], {
-  env: { ...process.env, NODE_ENV: "development" },
+  env: {
+    ...process.env,
+    ...deterministicEmbeddedEnv,
+    NODE_ENV: "development",
+  },
   stdio: ["ignore", "pipe", "pipe"],
 });
 

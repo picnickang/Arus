@@ -298,7 +298,7 @@ export class DigitalTwinService extends EventEmitter {
   }
 
   private async loadActiveTwins(): Promise<void> {
-    if (!db) {
+    if (!("select" in db)) {
       logger.warn("[Digital Twin] Disabled: database not initialized");
       this.enabled = false;
       return;
