@@ -317,13 +317,14 @@ function Router() {
   // #218: the user portal has no visible BottomNav, so the ~56px
   // mobile clearance the admin portal needs becomes orphan
   // padding. Skip the `pb-14` in that case. The BottomNav
-  // component itself is still mounted on every non-login route
-  // (see below) — it returns null for user-portal roles but its
-  // hooks still run, so the #194 override self-heal effect keeps
-  // pruning stale admin ids from localStorage even when the bar
-  // is invisible. Same `getPortalForRole` policy used by the
-  // route guard and the bar itself; reading localStorage at
-  // render is fine because portal switches do a full reload.
+  // component itself is still mounted on non-shell, non-login routes
+  // (see below) — it returns null for user-portal roles but its hooks
+  // still run, so the #194 override self-heal effect keeps pruning
+  // stale admin ids from localStorage even when the bar is invisible.
+  // Universal admin hub routes render their own shell navigation.
+  // Same `getPortalForRole` policy used by the route guard and the
+  // bar itself; reading localStorage at render is fine because portal
+  // switches do a full reload.
   const isAdminPortal =
     !isLoginRoute &&
     isAdminPortalAccess(

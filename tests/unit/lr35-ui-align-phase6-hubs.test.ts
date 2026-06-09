@@ -25,10 +25,7 @@ const PAGES = {
   logistics: resolve(REPO_ROOT, "client/src/pages/logistics-hub.tsx"),
   system: resolve(REPO_ROOT, "client/src/pages/system-hub.tsx"),
   analytics: resolve(REPO_ROOT, "client/src/pages/analytics-hub.tsx"),
-  rolePolicy: resolve(
-    REPO_ROOT,
-    "client/src/application/navigation/role-navigation-policy.ts",
-  ),
+  rolePolicy: resolve(REPO_ROOT, "client/src/application/navigation/role-navigation-policy.ts"),
 } as const;
 
 async function loadPage(key: keyof typeof PAGES): Promise<string> {
@@ -113,12 +110,14 @@ describe("UI Align Phase 6 — Logistics hub (panel 4 / row 10)", () => {
     expect(src).toContain('data-testid="list-low-stock"');
     expect(src).toContain('"jump-inventory"');
     expect(src).toContain('"jump-service-orders"');
+    expect(src).toContain('"jump-service-requests"');
     expect(src).toContain('"jump-vendors"');
   });
 
   it("links to existing deep-link routes (no in-hub RBAC)", async () => {
     const src = await loadPage("logistics");
     expect(src).toContain('href="/logistics?tab=inventory"');
+    expect(src).toContain('href="/logistics?tab=service-requests"');
     expect(src).toContain('href="/logistics?tab=service-orders"');
     expect(src).toContain('href="/logistics?tab=vendors"');
     expect(src).not.toMatch(/PermissionGate|RoleGate|requireRole/);
@@ -190,41 +189,33 @@ describe("UI Align Phase 6 — RBAC behaviour (role-navigation-policy is the gat
   // The module is pure TS — node ESM/swc handles it via the same
   // jest transform the other LR-3.5 source-scan tests use.
   async function loadPolicy() {
-    return import(
-      "../../client/src/application/navigation/role-navigation-policy"
-    );
+    return import("../../client/src/application/navigation/role-navigation-policy");
   }
 
-  it.each(ADMIN_ROLES)(
-    "admin role %s sees all five hub categories",
-    async (role) => {
-      const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
-      expect(getPortalForRole(role)).toBe("admin");
-      const cats = getPrimaryCategoriesForRole(role);
-      const ids = cats.map((c: { id: string }) => c.id);
-      for (const hubId of HUB_IDS) {
-        expect(ids).toContain(hubId);
-      }
-    },
-  );
+  it.each(ADMIN_ROLES)("admin role %s sees all five hub categories", async (role) => {
+    const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
+    expect(getPortalForRole(role)).toBe("admin");
+    const cats = getPrimaryCategoriesForRole(role);
+    const ids = cats.map((c: { id: string }) => c.id);
+    for (const hubId of HUB_IDS) {
+      expect(ids).toContain(hubId);
+    }
+  });
 
   it.each(USER_ROLES)(
     "non-admin role %s does NOT receive any hub category in its primary nav",
     async (role) => {
       const { getPortalForRole, getPrimaryCategoriesForRole } = await loadPolicy();
       expect(getPortalForRole(role)).toBe("user");
-      const ids = getPrimaryCategoriesForRole(role).map(
-        (c: { id: string }) => c.id,
-      );
+      const ids = getPrimaryCategoriesForRole(role).map((c: { id: string }) => c.id);
       for (const hubId of HUB_IDS) {
         expect(ids).not.toContain(hubId);
       }
-    },
+    }
   );
 
   it("a tampered override cannot smuggle hub categories into a user-portal session", async () => {
-    const { intersectOverrideWithPolicy, getPrimaryCategoriesForRole } =
-      await loadPolicy();
+    const { intersectOverrideWithPolicy, getPrimaryCategoriesForRole } = await loadPolicy();
     const tampered = ["maintenance", "system", "crew", "logistics", "analytics"];
     const result = intersectOverrideWithPolicy("viewer", tampered);
     const ids = result.map((c: { id: string }) => c.id);

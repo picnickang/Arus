@@ -42,39 +42,37 @@ export function OpsSidebar({
       {brand ? <div className={cn("mb-4", compact ? "px-1" : "px-2")}>{brand}</div> : null}
       <nav className="flex flex-1 flex-col gap-1">
         {items.map((item) => (
-          <Link key={item.id} href={item.href}>
-            <a
-              className={cn(
-                "group rounded-lg font-medium transition-colors",
-                compact
-                  ? "flex min-h-12 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[10px]"
-                  : "flex items-center gap-3 px-3 py-2 text-sm",
-                item.isActive
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
-              )}
-              data-testid={`ops-sidebar-item-${item.id}`}
-              aria-current={item.isActive ? "page" : undefined}
-            >
-              {item.icon ? (
-                <span
-                  className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center",
-                    item.isActive
-                      ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )}
-                >
-                  {item.icon}
-                </span>
-              ) : null}
-              <span className={cn("truncate", compact && "max-w-[74px] leading-tight")}>
-                {item.label}
+          <Link
+            key={item.id}
+            href={item.href}
+            className={cn(
+              "group rounded-lg font-medium transition-colors",
+              compact
+                ? "flex min-h-12 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[10px]"
+                : "flex items-center gap-3 px-3 py-2 text-sm",
+              item.isActive
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            )}
+            data-testid={`ops-sidebar-item-${item.id}`}
+            aria-current={item.isActive ? "page" : undefined}
+          >
+            {item.icon ? (
+              <span
+                className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center",
+                  item.isActive
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground"
+                )}
+              >
+                {item.icon}
               </span>
-              {item.badge ? (
-                <span className={compact ? "mt-1" : "ml-auto"}>{item.badge}</span>
-              ) : null}
-            </a>
+            ) : null}
+            <span className={cn("truncate", compact && "max-w-[74px] leading-tight")}>
+              {item.label}
+            </span>
+            {item.badge ? <span className={compact ? "mt-1" : "ml-auto"}>{item.badge}</span> : null}
           </Link>
         ))}
       </nav>

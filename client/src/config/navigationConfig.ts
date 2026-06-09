@@ -309,14 +309,26 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Inventory, purchasing, and suppliers",
     children: [
       {
+        name: "Overview",
+        href: "/logistics",
+        icon: Package,
+        description: "Action queue and logistics data health",
+      },
+      {
         name: "Inventory",
         href: "/logistics?tab=inventory",
         icon: Boxes,
         description: "Parts, stock management & purchasing",
       },
       {
+        name: "Service Requests",
+        href: "/logistics?tab=service-requests",
+        icon: ClipboardCheck,
+        description: "Review and convert service requests",
+      },
+      {
         name: "Service Orders",
-        href: "/service-orders",
+        href: "/logistics?tab=service-orders",
         icon: Wrench,
         description: "Service order management",
       },
