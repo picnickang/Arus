@@ -5,9 +5,15 @@
  *
  * Rule:
  *   In hexagonal architecture, only the *infrastructure* layer is allowed
- *   to know about the database. The domain, application, and interfaces
- *   layers must depend on ports/repositories — never on `server/db/...` or
- *   `server/db-config` directly.
+ *   to hold the raw database handle. The domain, application, and interfaces
+ *   layers must never import the `db`/`pool` ORM instance from the
+ *   `server/db` root barrel, nor `server/db-config`, directly.
+ *
+ *   Importing a STORAGE ADAPTER from a `server/db/<domain>/` subpackage
+ *   (e.g. `dbInventoryStorage` from "../db/inventory") is allowed — those
+ *   subpackages are the sanctioned storage-layer surface, and the codebase
+ *   deliberately imports adapters directly (the inventory "Push B4" refactor
+ *   moved off the legacy `repositories.ts` service-locator barrel).
  *
  * Allowed importers of `server/db/...` and `server/db-config`:
  *   - server/db/**                (the implementations themselves)
@@ -42,10 +48,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const baselinePath = resolve(__dirname, "hex-storage-baseline.json");
 
+// Only the RAW database handle is forbidden outside infrastructure: the
+// `db`/`pool` ORM instance exported from the `server/db` root barrel
+// (server/db, server/db/index) and `server/db-config`. Importing a storage
+// ADAPTER from a `server/db/<domain>/` subpackage (e.g. dbInventoryStorage
+// from "../db/inventory") is the sanctioned storage-layer surface — those
+// subpackages ARE the data layer (see the inventory "Push B4" refactor that
+// deliberately imports adapters directly rather than via the legacy
+// repositories.ts barrel) — so those imports are allowed.
 const DB_IMPORT_RE =
-  /from\s+['"](?:\.\.\/)+(db(?:\/[^'"]*)?|db-config)['"]/;
+  /from\s+['"](?:\.\.\/)+(db|db\/index(?:\.[jt]s)?|db-config)['"]/;
 const DB_DYNAMIC_IMPORT_RE =
-  /await\s+import\s*\(\s*['"](?:\.\.\/)+(db(?:\/[^'"]*)?|db-config)['"]\s*\)/;
+  /await\s+import\s*\(\s*['"](?:\.\.\/)+(db|db\/index(?:\.[jt]s)?|db-config)['"]\s*\)/;
 
 function walkDir(dir) {
   const results = [];
