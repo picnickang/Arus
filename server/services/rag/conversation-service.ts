@@ -10,6 +10,7 @@
  */
 
 import { db } from "../../db";
+import { randomUUID } from "node:crypto";
 import { sql, eq, and } from "drizzle-orm";
 import { ragConversations, ragMessages } from "@shared/schema-runtime";
 import type { RagConversation, RagMessage } from "@shared/schema";
@@ -34,19 +35,26 @@ export class ConversationService {
     title?: string | undefined;
     context?: Record<string, unknown> | undefined;
   }): Promise<RagConversation> {
+    const now = new Date();
     const [conversation] = await db
       .insert(ragConversations)
       .values({
+        id: randomUUID(),
         orgId: params.orgId,
         userId: params.userId,
         title: params.title || "New Conversation",
         context: params.context || {},
         messageCount: 0,
         isActive: true,
+        lastMessageAt: now,
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
 
-    if (!conversation) {throw new Error("createConversation: insert returned no row");}
+    if (!conversation) {
+      throw new Error("createConversation: insert returned no row");
+    }
     logger.info(`[ConversationService] Created conversation ${conversation.id}`);
     return conversation;
   }
@@ -115,7 +123,11 @@ export class ConversationService {
 
   async updateConversation(
     conversationId: string,
-    updates: { title?: string | null | undefined; context?: unknown; isActive?: boolean | undefined }
+    updates: {
+      title?: string | null | undefined;
+      context?: unknown;
+      isActive?: boolean | undefined;
+    }
   ): Promise<RagConversation | null> {
     const [updated] = await db
       .update(ragConversations)
@@ -148,9 +160,11 @@ export class ConversationService {
     modelUsed?: string | undefined;
     latencyMs?: number | undefined;
   }): Promise<RagMessage> {
+    const now = new Date();
     const [message] = await db
       .insert(ragMessages)
       .values({
+        id: randomUUID(),
         conversationId: params.conversationId,
         role: params.role,
         content: params.content,
@@ -159,6 +173,7 @@ export class ConversationService {
         tokenCount: params.tokenCount,
         modelUsed: params.modelUsed,
         latencyMs: params.latencyMs,
+        createdAt: now,
       })
       .returning();
 
@@ -197,7 +212,9 @@ export class ConversationService {
 
     for (let i = messages.length - 1; i >= 0 && estimatedTokens < this.maxContextTokens; i--) {
       const msg = messages[i];
-      if (!msg) {continue;}
+      if (!msg) {
+        continue;
+      }
       const msgTokens = Math.ceil(msg.content.length / 4);
 
       if (estimatedTokens + msgTokens <= this.maxContextTokens) {

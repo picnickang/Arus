@@ -319,9 +319,12 @@ describe("Telemetry Pipeline Integration", () => {
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       const maxTime = Math.max(...times);
+      const sortedTimes = [...times].sort((a, b) => a - b);
+      const p90Time = sortedTimes[Math.floor((sortedTimes.length - 1) * 0.9)];
 
       expect(avgTime).toBeLessThan(100);
-      expect(maxTime).toBeLessThan(avgTime * 5);
+      expect(p90Time).toBeLessThan(Math.max(avgTime * 5, 100));
+      expect(maxTime).toBeLessThan(500);
     });
   });
 

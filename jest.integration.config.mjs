@@ -2,6 +2,10 @@ import baseConfig from "./jest.config.mjs";
 
 export default {
   ...baseConfig,
+  setupFilesAfterEnv: [
+    ...baseConfig.setupFilesAfterEnv,
+    "<rootDir>/tests/integration/setup-integration.ts",
+  ],
   testMatch: [
     "<rootDir>/tests/integration/**/*.test.ts",
     "<rootDir>/tests/e2e/briefing.e2e.ts",
@@ -12,4 +16,3 @@ export default {
   // cleanly without relying on forceExit to mask the leaked handle.
   forceExit: false,
 };
-

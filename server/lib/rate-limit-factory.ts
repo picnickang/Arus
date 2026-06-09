@@ -9,7 +9,7 @@
 import rateLimit, { type Options as RateLimitOptions } from "express-rate-limit";
 import { authenticatedRequest } from "../middleware/auth";
 import { ipKeyGenerator } from "express-rate-limit";
-import type { Request } from "express";
+import type { Request, RequestHandler } from "express";
 
 /** Rate limit time windows in milliseconds */
 export const RATE_LIMIT_WINDOWS = {
@@ -95,13 +95,23 @@ interface RateLimitConfig {
   skipUserAgent?: boolean;
 }
 
+const passThroughRateLimit: RequestHandler = (_req, _res, next) => next();
+
+function shouldDisableRateLimits(): boolean {
+  return process.env["NODE_ENV"] === "test" || process.env["DISABLE_RATE_LIMITS"] === "true";
+}
+
 /**
  * Creates a rate limiter with consistent configuration
  * Centralized factory eliminates duplication across 7+ files
  */
 export function createRateLimiter(config: RateLimitConfig) {
-  const isDevelopment = process.env['NODE_ENV'] === "development";
-  const isEmbedded = process.env['EMBEDDED_MODE'] === "true";
+  if (shouldDisableRateLimits()) {
+    return passThroughRateLimit;
+  }
+
+  const isDevelopment = process.env["NODE_ENV"] === "development";
+  const isEmbedded = process.env["EMBEDDED_MODE"] === "true";
   const relaxLimits = isDevelopment || isEmbedded;
 
   const effectiveMax = relaxLimits
@@ -211,8 +221,7 @@ export const RateLimiters = {
     createRateLimiter({
       windowMs: RATE_LIMIT_WINDOWS.FIFTEEN_MINUTES,
       max: RATE_LIMIT_DEFAULTS.LOGIN_ATTEMPTS,
-      message:
-        "Too many login attempts. Please wait 15 minutes before trying again.",
+      message: "Too many login attempts. Please wait 15 minutes before trying again.",
       code: RATE_LIMIT_ERROR_CODES.LOGIN,
       skipUserAgent: true,
     }),

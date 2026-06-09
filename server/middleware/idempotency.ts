@@ -15,22 +15,26 @@ const processedKeys = new Map<
 
 const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
-setInterval(
-  () => {
-    const now = Date.now();
-    let cleaned = 0;
-    for (const [key, entry] of processedKeys) {
-      if (now - entry.processedAt > KEY_TTL_MS) {
-        processedKeys.delete(key);
-        cleaned++;
-      }
+function cleanupExpiredKeys(): number {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [key, entry] of processedKeys) {
+    if (now - entry.processedAt > KEY_TTL_MS) {
+      processedKeys.delete(key);
+      cleaned++;
     }
-    if (cleaned > 0) {
-      logger.debug?.(LOG_CTX, `Cleaned ${cleaned} expired idempotency keys`);
-    }
-  },
-  10 * 60 * 1000
-);
+  }
+  if (cleaned > 0) {
+    logger.debug?.(LOG_CTX, `Cleaned ${cleaned} expired idempotency keys`);
+  }
+  return cleaned;
+}
+
+let cleanupInterval: NodeJS.Timeout | undefined;
+if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+  cleanupInterval = setInterval(cleanupExpiredKeys, 10 * 60 * 1000);
+  cleanupInterval.unref?.();
+}
 
 export function idempotencyMiddleware(options?: { required?: boolean }) {
   const required = options?.required ?? false;
@@ -43,7 +47,7 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
     // header.
     let idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     if (!idempotencyKey && req.body && typeof req.body === "object" && !Array.isArray(req.body)) {
-      const fromBody = (req.body as Record<string, unknown>)['clientMutationId'];
+      const fromBody = (req.body as Record<string, unknown>)["clientMutationId"];
       if (typeof fromBody === "string" && fromBody.length > 0 && fromBody.length <= 128) {
         idempotencyKey = fromBody;
       }
@@ -101,3 +105,13 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
 }
 
 export default idempotencyMiddleware;
+
+export const _internals = {
+  cleanupExpiredKeys,
+  stopCleanupInterval() {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = undefined;
+    }
+  },
+};

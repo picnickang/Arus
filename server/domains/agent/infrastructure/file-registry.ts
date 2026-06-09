@@ -5,6 +5,7 @@ import fs from "fs";
 import { db } from "../../../db";
 import { eq, and } from "drizzle-orm";
 import { agentFiles } from "@shared/schema/agent";
+import { withGeneratedInsertDefaults } from "./generated-id";
 
 export interface FileRecord {
   id: string;
@@ -58,16 +59,23 @@ export async function registerFile(
 ): Promise<FileRecord> {
   const [record] = await db
     .insert(agentFiles)
-    .values({
-      orgId,
-      conversationId,
-      filename: multerFile.originalname,
-      mimetype: multerFile.mimetype,
-      size: multerFile.size,
-      storedPath: multerFile.path,
-    })
+    .values(
+      withGeneratedInsertDefaults(
+        {
+          orgId,
+          conversationId,
+          filename: multerFile.originalname,
+          mimetype: multerFile.mimetype,
+          size: multerFile.size,
+          storedPath: multerFile.path,
+        },
+        ["createdAt"]
+      )
+    )
     .returning();
-  if (!record) {throw new Error("Failed to register agent file");}
+  if (!record) {
+    throw new Error("Failed to register agent file");
+  }
   return record;
 }
 

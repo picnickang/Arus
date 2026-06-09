@@ -16,6 +16,7 @@ import type {
   FindingSeverity,
   FindingStatus,
 } from "../domain/findings-types";
+import { optionalIsoString, toIsoString } from "./serialization";
 
 function normalizeSeverity(val: string | null | undefined): FindingSeverity {
   if (val === "critical" || val === "warning" || val === "info") {
@@ -93,12 +94,12 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             scheduleName: null,
             scheduleId: null,
             requiresAction: s.status === "pending",
-            createdAt: (s.createdAt ?? new Date()).toISOString(),
+            createdAt: toIsoString(s.createdAt),
             updatedAt: null,
             context: s.context as Record<string, unknown> | null,
             outcome: s.outcome ?? null,
             outcomeReason: s.outcomeReason ?? null,
-            outcomeAt: s.outcomeAt?.toISOString() ?? null,
+            outcomeAt: optionalIsoString(s.outcomeAt),
             outcomeBy: s.outcomeBy ?? null,
           });
         }
@@ -143,8 +144,8 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             scheduleName: null,
             scheduleId: null,
             requiresAction: d.status === "pending",
-            createdAt: (d.createdAt ?? new Date()).toISOString(),
-            updatedAt: d.updatedAt?.toISOString() ?? null,
+            createdAt: toIsoString(d.createdAt),
+            updatedAt: optionalIsoString(d.updatedAt),
             context: d.data as Record<string, unknown> | null,
           });
         }
@@ -210,8 +211,8 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
               scheduleName: schedule?.name ?? null,
               scheduleId: r.scheduleId,
               requiresAction: false,
-              createdAt: (r.startedAt ?? new Date()).toISOString(),
-              updatedAt: r.completedAt?.toISOString() ?? null,
+              createdAt: toIsoString(r.startedAt),
+              updatedAt: optionalIsoString(r.completedAt),
               context: r.output ? ({ output: r.output } as Record<string, unknown>) : null,
             });
           }
@@ -277,8 +278,8 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             scheduleName: null,
             scheduleId: null,
             requiresAction: f.status === "new",
-            createdAt: (f.createdAt ?? new Date()).toISOString(),
-            updatedAt: f.updatedAt?.toISOString() ?? null,
+            createdAt: toIsoString(f.createdAt),
+            updatedAt: optionalIsoString(f.updatedAt),
             context: f.metadata as Record<string, unknown> | null,
           });
         }

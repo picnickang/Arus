@@ -25,6 +25,7 @@ export class EnhancedRateLimiter {
   private memoryStore: Map<string, RateLimitEntry> = new Map();
   private redis: import("ioredis").Redis | null = null;
   private redisAvailable: boolean = false;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(config: RagSecurityConfig["rateLimiting"]) {
     this.config = config;
@@ -32,7 +33,10 @@ export class EnhancedRateLimiter {
       this.initRedis();
     }
 
-    setInterval(() => this.cleanupMemoryStore(), 60000);
+    if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+      this.cleanupInterval = setInterval(() => this.cleanupMemoryStore(), 60000);
+      this.cleanupInterval.unref?.();
+    }
   }
 
   private async initRedis(): Promise<void> {
@@ -234,6 +238,10 @@ export class EnhancedRateLimiter {
   }
 
   async close(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
     if (this.redis) {
       await this.redis.quit();
     }

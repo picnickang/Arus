@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../../../db";
+import { normalizeSectionMapImageTransform } from "../domain/types";
 import {
   vesselDiagrams,
   vesselDiagramVersions,
@@ -98,7 +99,9 @@ function mapAssignment(
   };
 }
 
-function mapIssue(row: typeof vesselDiagramValidationResults.$inferSelect): VesselDiagramValidationIssue {
+function mapIssue(
+  row: typeof vesselDiagramValidationResults.$inferSelect
+): VesselDiagramValidationIssue {
   return {
     severity: row.severity,
     code: row.code,
@@ -130,7 +133,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!row) {throw new Error("Failed to create vessel diagram");}
+    if (!row) {
+      throw new Error("Failed to create vessel diagram");
+    }
     return mapDiagram(row);
   }
 
@@ -158,11 +163,21 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       updatedBy: ctx.userId,
       updatedAt: new Date(),
     };
-    if (input.title !== undefined) {updates.title = input.title;}
-    if (input.description !== undefined) {updates.description = input.description;}
-    if (input.status !== undefined) {updates.status = input.status;}
-    if (input.activeVersionId !== undefined) {updates.activeVersionId = input.activeVersionId;}
-    if (input.currentSectionMapId !== undefined) {updates.currentSectionMapId = input.currentSectionMapId;}
+    if (input.title !== undefined) {
+      updates.title = input.title;
+    }
+    if (input.description !== undefined) {
+      updates.description = input.description;
+    }
+    if (input.status !== undefined) {
+      updates.status = input.status;
+    }
+    if (input.activeVersionId !== undefined) {
+      updates.activeVersionId = input.activeVersionId;
+    }
+    if (input.currentSectionMapId !== undefined) {
+      updates.currentSectionMapId = input.currentSectionMapId;
+    }
 
     const [row] = await db
       .update(vesselDiagrams)
@@ -175,7 +190,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) {throw notFound("Diagram not found");}
+    if (!row) {
+      throw notFound("Diagram not found");
+    }
     return mapDiagram(row);
   }
 
@@ -254,7 +271,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         uploadedAt: input.uploadedAt,
       })
       .returning();
-    if (!row) {throw new Error("Failed to create vessel diagram version");}
+    if (!row) {
+      throw new Error("Failed to create vessel diagram version");
+    }
     return mapVersion(row);
   }
 
@@ -308,7 +327,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
           eq(vesselDiagrams.id, diagramId)
         )
       );
-    if (!active) {throw new Error("Failed to activate vessel diagram version");}
+    if (!active) {
+      throw new Error("Failed to activate vessel diagram version");
+    }
     return mapVersion(active);
   }
 
@@ -333,7 +354,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) {throw notFound("Diagram version not found");}
+    if (!row) {
+      throw notFound("Diagram version not found");
+    }
 
     if (status === "archived") {
       const diagram = await this.getDiagram(ctx, diagramId);
@@ -372,12 +395,15 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         diagramWidth: input.diagramWidth ?? 895,
         diagramHeight: input.diagramHeight ?? 420,
         diagramKind: input.diagramKind ?? "side_elevation",
+        imageTransform: normalizeSectionMapImageTransform(input.imageTransform),
         status: "draft",
         createdBy: ctx.userId,
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!map) {throw new Error("Failed to create section map");}
+    if (!map) {
+      throw new Error("Failed to create section map");
+    }
 
     for (const [index, section] of (input.sections ?? []).entries()) {
       await this.insertSection(ctx, map.id, section, index);
@@ -431,14 +457,33 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       updatedAt: new Date(),
       updatedBy: ctx.userId,
     };
-    if (input.name !== undefined) {updates.name = input.name;}
-    if (input.diagramId !== undefined) {updates.diagramId = input.diagramId;}
-    if (input.diagramVersionId !== undefined) {updates.diagramVersionId = input.diagramVersionId;}
-    if (input.sourceMapId !== undefined) {updates.sourceMapId = input.sourceMapId;}
-    if (input.diagramWidth !== undefined) {updates.diagramWidth = input.diagramWidth;}
-    if (input.diagramHeight !== undefined) {updates.diagramHeight = input.diagramHeight;}
-    if (input.diagramKind !== undefined) {updates.diagramKind = input.diagramKind;}
-    if (input.status !== undefined) {updates.status = input.status;}
+    if (input.name !== undefined) {
+      updates.name = input.name;
+    }
+    if (input.diagramId !== undefined) {
+      updates.diagramId = input.diagramId;
+    }
+    if (input.diagramVersionId !== undefined) {
+      updates.diagramVersionId = input.diagramVersionId;
+    }
+    if (input.sourceMapId !== undefined) {
+      updates.sourceMapId = input.sourceMapId;
+    }
+    if (input.diagramWidth !== undefined) {
+      updates.diagramWidth = input.diagramWidth;
+    }
+    if (input.diagramHeight !== undefined) {
+      updates.diagramHeight = input.diagramHeight;
+    }
+    if (input.diagramKind !== undefined) {
+      updates.diagramKind = input.diagramKind;
+    }
+    if (input.imageTransform !== undefined) {
+      updates.imageTransform = normalizeSectionMapImageTransform(input.imageTransform);
+    }
+    if (input.status !== undefined) {
+      updates.status = input.status;
+    }
 
     const [row] = await db
       .update(vesselSectionMaps)
@@ -451,7 +496,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) {throw notFound("Section map not found");}
+    if (!row) {
+      throw notFound("Section map not found");
+    }
     return this.hydrateMap(ctx, row);
   }
 
@@ -465,7 +512,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     input: { name: string; diagramId?: string; diagramVersionId?: string }
   ): Promise<SectionMapRecord> {
     const source = await this.getSectionMap(ctx, mapId);
-    if (!source) {throw notFound("Section map not found");}
+    if (!source) {
+      throw notFound("Section map not found");
+    }
     return await this.createSectionMap(ctx, {
       name: input.name,
       diagramId: input.diagramId ?? source.diagramId ?? undefined,
@@ -474,6 +523,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       diagramWidth: source.diagramWidth,
       diagramHeight: source.diagramHeight,
       diagramKind: source.diagramKind,
+      imageTransform: source.imageTransform,
       sections: source.sections.map((section) => ({
         sectionKey: section.sectionKey,
         sectionNo: section.sectionNo,
@@ -498,7 +548,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     input: CreateSectionInput
   ): Promise<SectionRecord> {
     const map = await this.getSectionMap(ctx, mapId);
-    if (!map) {throw notFound("Section map not found");}
+    if (!map) {
+      throw notFound("Section map not found");
+    }
     const section = await this.insertSection(ctx, mapId, input, map.sections.length);
     await this.touchSectionMap(ctx, mapId);
     return section;
@@ -512,11 +564,21 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
   ): Promise<SectionRecord> {
     await this.requireSection(ctx, mapId, sectionId);
     const sectionUpdates: Partial<typeof vesselSections.$inferInsert> = { updatedAt: new Date() };
-    if (input.sectionKey !== undefined) {sectionUpdates.sectionKey = input.sectionKey;}
-    if (input.sectionNo !== undefined) {sectionUpdates.sectionNo = input.sectionNo;}
-    if (input.name !== undefined) {sectionUpdates.name = input.name;}
-    if (input.color !== undefined) {sectionUpdates.color = input.color;}
-    if (input.thumbnailFallback !== undefined) {sectionUpdates.thumbnailFallback = input.thumbnailFallback;}
+    if (input.sectionKey !== undefined) {
+      sectionUpdates.sectionKey = input.sectionKey;
+    }
+    if (input.sectionNo !== undefined) {
+      sectionUpdates.sectionNo = input.sectionNo;
+    }
+    if (input.name !== undefined) {
+      sectionUpdates.name = input.name;
+    }
+    if (input.color !== undefined) {
+      sectionUpdates.color = input.color;
+    }
+    if (input.thumbnailFallback !== undefined) {
+      sectionUpdates.thumbnailFallback = input.thumbnailFallback;
+    }
     if (Object.keys(sectionUpdates).length > 1) {
       await db
         .update(vesselSections)
@@ -591,7 +653,10 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
   async publishSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    validation: { summary: SectionMapRecord["validationSummary"]; issues: VesselDiagramValidationIssue[] }
+    validation: {
+      summary: SectionMapRecord["validationSummary"];
+      issues: VesselDiagramValidationIssue[];
+    }
   ): Promise<SectionMapRecord> {
     await db
       .update(vesselSectionMaps)
@@ -621,7 +686,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) {throw notFound("Section map not found");}
+    if (!row) {
+      throw notFound("Section map not found");
+    }
     return this.hydrateMap(ctx, row);
   }
 
@@ -648,7 +715,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .limit(1);
-    if (!section) {throw notFound("Section not found");}
+    if (!section) {
+      throw notFound("Section not found");
+    }
 
     const [row] = await db
       .insert(vesselSectionEquipmentAssignments)
@@ -664,7 +733,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         createdBy: ctx.userId,
       })
       .returning();
-    if (!row) {throw new Error("Failed to assign equipment");}
+    if (!row) {
+      throw new Error("Failed to assign equipment");
+    }
     return mapAssignment(row);
   }
 
@@ -696,10 +767,18 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     const updates: Partial<typeof vesselSectionEquipmentAssignments.$inferInsert> = {
       updatedAt: new Date(),
     };
-    if (input.equipmentId !== undefined) {updates.equipmentId = input.equipmentId;}
-    if (input.equipmentName !== undefined) {updates.equipmentName = input.equipmentName;}
-    if (input.assetCode !== undefined) {updates.assetCode = input.assetCode;}
-    if (input.system !== undefined) {updates.system = input.system;}
+    if (input.equipmentId !== undefined) {
+      updates.equipmentId = input.equipmentId;
+    }
+    if (input.equipmentName !== undefined) {
+      updates.equipmentName = input.equipmentName;
+    }
+    if (input.assetCode !== undefined) {
+      updates.assetCode = input.assetCode;
+    }
+    if (input.system !== undefined) {
+      updates.system = input.system;
+    }
     const [row] = await db
       .update(vesselSectionEquipmentAssignments)
       .set(updates)
@@ -713,7 +792,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .returning();
-    if (!row) {throw notFound("Equipment assignment not found");}
+    if (!row) {
+      throw notFound("Equipment assignment not found");
+    }
     return mapAssignment(row);
   }
 
@@ -741,7 +822,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     refs: { mapId?: string; diagramId?: string; diagramVersionId?: string },
     issues: VesselDiagramValidationIssue[]
   ): Promise<void> {
-    if (!issues.length) {return;}
+    if (!issues.length) {
+      return;
+    }
     await db.insert(vesselDiagramValidationResults).values(
       issues.map((issue) => ({
         orgId: ctx.orgId,
@@ -812,7 +895,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         updatedBy: ctx.userId,
       })
       .returning();
-    if (!row) {throw new Error("Failed to create thumbnail override");}
+    if (!row) {
+      throw new Error("Failed to create thumbnail override");
+    }
     return {
       id: row.id,
       vesselId: row.vesselId,
@@ -923,6 +1008,7 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       diagramWidth: row.diagramWidth,
       diagramHeight: row.diagramHeight,
       diagramKind: row.diagramKind,
+      imageTransform: normalizeSectionMapImageTransform(row.imageTransform),
       status: row.status,
       validationSummary: normalizeSummary(row.validationSummary),
       publishedAt: row.publishedAt,
@@ -956,32 +1042,38 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
       throw new Error("Failed to create section map section");
     }
 
-    const [polygonRow] = await db.insert(vesselSectionPolygons).values({
-      orgId: ctx.orgId,
-      vesselId: ctx.vesselId,
-      mapId,
-      sectionId: sectionRow.id,
-      pointsNormalized: section.polygonNormalized,
-      labelNormalized: section.labelNormalized,
-      isDraft: true,
-    }).returning();
+    const [polygonRow] = await db
+      .insert(vesselSectionPolygons)
+      .values({
+        orgId: ctx.orgId,
+        vesselId: ctx.vesselId,
+        mapId,
+        sectionId: sectionRow.id,
+        pointsNormalized: section.polygonNormalized,
+        labelNormalized: section.labelNormalized,
+        isDraft: true,
+      })
+      .returning();
 
     let assignmentRows: Array<typeof vesselSectionEquipmentAssignments.$inferSelect> = [];
     if (section.equipment?.length) {
-      assignmentRows = await db.insert(vesselSectionEquipmentAssignments).values(
-        section.equipment.map((equipment, equipmentIndex) => ({
-          orgId: ctx.orgId,
-          vesselId: ctx.vesselId,
-          mapId,
-          sectionId: sectionRow.id,
-          equipmentId: equipment.equipmentId,
-          equipmentName: equipment.equipmentName,
-          assetCode: equipment.assetCode,
-          system: equipment.system,
-          sortOrder: equipmentIndex,
-          createdBy: ctx.userId,
-        }))
-      ).returning();
+      assignmentRows = await db
+        .insert(vesselSectionEquipmentAssignments)
+        .values(
+          section.equipment.map((equipment, equipmentIndex) => ({
+            orgId: ctx.orgId,
+            vesselId: ctx.vesselId,
+            mapId,
+            sectionId: sectionRow.id,
+            equipmentId: equipment.equipmentId,
+            equipmentName: equipment.equipmentName,
+            assetCode: equipment.assetCode,
+            system: equipment.system,
+            sortOrder: equipmentIndex,
+            createdBy: ctx.userId,
+          }))
+        )
+        .returning();
     }
     return hydrateSection(sectionRow, polygonRow ? [polygonRow] : [], assignmentRows);
   }
@@ -1003,7 +1095,9 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
         )
       )
       .limit(1);
-    if (!section) {throw notFound("Section not found");}
+    if (!section) {
+      throw notFound("Section not found");
+    }
     return section;
   }
 

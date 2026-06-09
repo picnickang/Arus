@@ -6,6 +6,7 @@
  */
 
 import rateLimit from "express-rate-limit";
+import type { RequestHandler } from "express";
 
 // ============================================================================
 // RATE LIMIT CONFIGURATIONS
@@ -22,10 +23,20 @@ import rateLimit from "express-rate-limit";
  */
 function maxFromEnv(envVar: string, productionDefault: number): number {
   const raw = process.env[envVar];
-  if (!raw) {return productionDefault;}
+  if (!raw) {
+    return productionDefault;
+  }
   const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {return productionDefault;}
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return productionDefault;
+  }
   return parsed;
+}
+
+const passThroughRateLimit: RequestHandler = (_req, _res, next) => next();
+
+function shouldDisableRateLimits(): boolean {
+  return process.env["NODE_ENV"] === "test" || process.env["DISABLE_RATE_LIMITS"] === "true";
 }
 
 export const RateLimitConfig = {
@@ -135,6 +146,10 @@ export const RateLimitConfig = {
  * Create a rate limiter with consistent configuration
  */
 function createRateLimit(config: typeof RateLimitConfig.TELEMETRY) {
+  if (shouldDisableRateLimits()) {
+    return passThroughRateLimit;
+  }
+
   return rateLimit({
     ...config,
     standardHeaders: true,

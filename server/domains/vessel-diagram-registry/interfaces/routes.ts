@@ -55,6 +55,13 @@ const normalizedPointSchema = z.object({
   y: z.number().min(0).max(1),
 });
 
+const imageTransformSchema = z.object({
+  scaleX: z.number().min(0.75).max(1.35),
+  scaleY: z.number().min(0.75).max(1.35),
+  offsetX: z.number().min(-0.2).max(0.2),
+  offsetY: z.number().min(-0.2).max(0.2),
+});
+
 const sectionSchema = z.object({
   sectionKey: z.string().min(1).max(120),
   sectionNo: z.number().int().positive(),
@@ -83,6 +90,7 @@ const createSectionMapSchema = z.object({
   diagramWidth: z.number().int().positive().optional(),
   diagramHeight: z.number().int().positive().optional(),
   diagramKind: z.enum(vesselDiagramTypeValues).optional(),
+  imageTransform: imageTransformSchema.optional(),
   sections: z.array(sectionSchema).optional(),
 });
 
@@ -94,6 +102,7 @@ const updateSectionMapSchema = z.object({
   diagramWidth: z.number().int().positive().optional(),
   diagramHeight: z.number().int().positive().optional(),
   diagramKind: z.enum(vesselDiagramTypeValues).optional(),
+  imageTransform: imageTransformSchema.optional(),
   status: z.enum(["draft", "published", "archived"]).optional(),
 });
 
@@ -191,10 +200,13 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("list vessel section map templates", async (_req: AuthenticatedRequest, res) => {
-      const service = await getService();
-      res.json(service.listSectionMapTemplates());
-    })
+    withErrorHandling(
+      "list vessel section map templates",
+      async (_req: AuthenticatedRequest, res) => {
+        const service = await getService();
+        res.json(service.listSectionMapTemplates());
+      }
+    )
   );
 
   app.get(
@@ -202,11 +214,14 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("fetch vessel section map template", async (req: AuthenticatedRequest, res) => {
-      const params = templateParamsSchema.parse(req.params);
-      const service = await getService();
-      res.json(service.getSectionMapTemplate(params.templateId));
-    })
+    withErrorHandling(
+      "fetch vessel section map template",
+      async (req: AuthenticatedRequest, res) => {
+        const params = templateParamsSchema.parse(req.params);
+        const service = await getService();
+        res.json(service.getSectionMapTemplate(params.templateId));
+      }
+    )
   );
 
   app.get(
@@ -292,12 +307,15 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("fetch active vessel diagram version", async (req: AuthenticatedRequest, res) => {
-      const params = diagramParamsSchema.parse(req.params);
-      const service = await getService();
-      const version = await service.getActiveVersion(context(req, params), params.diagramId);
-      res.json(version ? versionResponse(params, version) : null);
-    })
+    withErrorHandling(
+      "fetch active vessel diagram version",
+      async (req: AuthenticatedRequest, res) => {
+        const params = diagramParamsSchema.parse(req.params);
+        const service = await getService();
+        const version = await service.getActiveVersion(context(req, params), params.diagramId);
+        res.json(version ? versionResponse(params, version) : null);
+      }
+    )
   );
 
   app.get(
@@ -339,7 +357,11 @@ export function registerVesselDiagramRegistryRoutes(
         });
         return;
       }
-      const version = await service.uploadDiagramVersion(context(req, params), params.diagramId, file);
+      const version = await service.uploadDiagramVersion(
+        context(req, params),
+        params.diagramId,
+        file
+      );
       res.status(201).json(versionResponse(params, version));
     })
   );
@@ -400,16 +422,19 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     writeLimit,
     permission(deps, "rollback-diagram"),
-    withErrorHandling("restore vessel diagram version draft", async (req: AuthenticatedRequest, res) => {
-      const params = versionParamsSchema.parse(req.params);
-      const service = await getService();
-      const version = await service.restoreDiagramVersionAsDraft(
-        context(req, params),
-        params.diagramId,
-        params.versionId
-      );
-      res.json(versionResponse(params, version));
-    })
+    withErrorHandling(
+      "restore vessel diagram version draft",
+      async (req: AuthenticatedRequest, res) => {
+        const params = versionParamsSchema.parse(req.params);
+        const service = await getService();
+        const version = await service.restoreDiagramVersionAsDraft(
+          context(req, params),
+          params.diagramId,
+          params.versionId
+        );
+        res.json(versionResponse(params, version));
+      }
+    )
   );
 
   app.get(
@@ -417,13 +442,20 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("download vessel diagram version media", async (req: AuthenticatedRequest, res) => {
-      const params = versionParamsSchema.parse(req.params);
-      const service = await getService();
-      const mediaStore = await getMediaStore();
-      const version = await service.getDiagramVersionMedia(context(req, params), params.diagramId, params.versionId);
-      await mediaStore.send(context(req, params), version.objectKey, res);
-    })
+    withErrorHandling(
+      "download vessel diagram version media",
+      async (req: AuthenticatedRequest, res) => {
+        const params = versionParamsSchema.parse(req.params);
+        const service = await getService();
+        const mediaStore = await getMediaStore();
+        const version = await service.getDiagramVersionMedia(
+          context(req, params),
+          params.diagramId,
+          params.versionId
+        );
+        await mediaStore.send(context(req, params), version.objectKey, res);
+      }
+    )
   );
 
   app.get(
@@ -545,14 +577,17 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     writeLimit,
     permission(deps, "edit-section-map"),
-    withErrorHandling("create vessel section map from template", async (req: AuthenticatedRequest, res) => {
-      const ctx = context(req, vesselParamsSchema.parse(req.params));
-      const input = fromTemplateSchema.parse(req.body);
-      const service = await getService();
-      res
-        .status(201)
-        .json(await service.createSectionMapFromTemplate(ctx, input.templateId, input));
-    })
+    withErrorHandling(
+      "create vessel section map from template",
+      async (req: AuthenticatedRequest, res) => {
+        const ctx = context(req, vesselParamsSchema.parse(req.params));
+        const input = fromTemplateSchema.parse(req.body);
+        const service = await getService();
+        res
+          .status(201)
+          .json(await service.createSectionMapFromTemplate(ctx, input.templateId, input));
+      }
+    )
   );
 
   app.post(
@@ -648,7 +683,9 @@ export function registerVesselDiagramRegistryRoutes(
     withErrorHandling("delete vessel section polygon", async (req: AuthenticatedRequest, res) => {
       const params = sectionParamsSchema.parse(req.params);
       const service = await getService();
-      res.json(await service.deleteSectionPolygon(context(req, params), params.mapId, params.sectionId));
+      res.json(
+        await service.deleteSectionPolygon(context(req, params), params.mapId, params.sectionId)
+      );
     })
   );
 
@@ -657,11 +694,14 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("list vessel section equipment assignments", async (req: AuthenticatedRequest, res) => {
-      const params = mapParamsSchema.parse(req.params);
-      const service = await getService();
-      res.json(await service.listEquipmentAssignments(context(req, params), params.mapId));
-    })
+    withErrorHandling(
+      "list vessel section equipment assignments",
+      async (req: AuthenticatedRequest, res) => {
+        const params = mapParamsSchema.parse(req.params);
+        const service = await getService();
+        res.json(await service.listEquipmentAssignments(context(req, params), params.mapId));
+      }
+    )
   );
 
   app.post(
@@ -686,20 +726,23 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     writeLimit,
     permission(deps, "assign-equipment"),
-    withErrorHandling("update vessel section equipment assignment", async (req: AuthenticatedRequest, res) => {
-      const params = assignmentParamsSchema.parse(req.params);
-      const input = updateEquipmentSchema.parse(req.body);
-      const service = await getService();
-      res.json(
-        await service.updateEquipmentAssignment(
-          context(req, params),
-          params.mapId,
-          params.sectionId,
-          params.assignmentId,
-          input
-        )
-      );
-    })
+    withErrorHandling(
+      "update vessel section equipment assignment",
+      async (req: AuthenticatedRequest, res) => {
+        const params = assignmentParamsSchema.parse(req.params);
+        const input = updateEquipmentSchema.parse(req.body);
+        const service = await getService();
+        res.json(
+          await service.updateEquipmentAssignment(
+            context(req, params),
+            params.mapId,
+            params.sectionId,
+            params.assignmentId,
+            input
+          )
+        );
+      }
+    )
   );
 
   app.delete(
@@ -707,17 +750,20 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     writeLimit,
     permission(deps, "assign-equipment"),
-    withErrorHandling("delete vessel section equipment assignment", async (req: AuthenticatedRequest, res) => {
-      const params = assignmentParamsSchema.parse(req.params);
-      const service = await getService();
-      await service.deleteEquipmentAssignment(
-        context(req, params),
-        params.mapId,
-        params.sectionId,
-        params.assignmentId
-      );
-      res.status(204).send();
-    })
+    withErrorHandling(
+      "delete vessel section equipment assignment",
+      async (req: AuthenticatedRequest, res) => {
+        const params = assignmentParamsSchema.parse(req.params);
+        const service = await getService();
+        await service.deleteEquipmentAssignment(
+          context(req, params),
+          params.mapId,
+          params.sectionId,
+          params.assignmentId
+        );
+        res.status(204).send();
+      }
+    )
   );
 
   app.post(
@@ -765,13 +811,20 @@ export function registerVesselDiagramRegistryRoutes(
     orgGate,
     deps.generalApiRateLimit,
     readPermission,
-    withErrorHandling("download vessel section thumbnail", async (req: AuthenticatedRequest, res) => {
-      const params = thumbnailSectionParamsSchema.parse(req.params);
-      const service = await getService();
-      const mediaStore = await getMediaStore();
-      const thumbnail = await service.getThumbnailMedia(context(req, params), "section", params.sectionId);
-      await mediaStore.send(context(req, params), thumbnail.objectKey, res);
-    })
+    withErrorHandling(
+      "download vessel section thumbnail",
+      async (req: AuthenticatedRequest, res) => {
+        const params = thumbnailSectionParamsSchema.parse(req.params);
+        const service = await getService();
+        const mediaStore = await getMediaStore();
+        const thumbnail = await service.getThumbnailMedia(
+          context(req, params),
+          "section",
+          params.sectionId
+        );
+        await mediaStore.send(context(req, params), thumbnail.objectKey, res);
+      }
+    )
   );
 
   app.delete(

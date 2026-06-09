@@ -160,6 +160,9 @@ export class DataAnonymizationService {
     if (config.preserveIds && (field.endsWith("Id") || field === "id")) {
       return true;
     }
+    if (this.isSensitiveFieldName(field)) {
+      return false;
+    }
     if (config.preserveTimestamps && this.isTimestampField(field)) {
       return true;
     }
@@ -218,13 +221,16 @@ export class DataAnonymizationService {
     return patterns.some((p) => field.toLowerCase().includes(p.toLowerCase()));
   }
   private isPotentialPiiField(field: string): boolean {
+    if (this.isSensitiveFieldName(field)) {
+      return true;
+    }
     if (this.isTechnicalField(field) || this.isTimestampField(field)) {
       return false;
     }
     if (field.endsWith("Id") || field === "id" || field.endsWith("_id")) {
       return false;
     }
-    return COMMON_PII_PATTERNS.some((p) => p.test(field));
+    return this.isNestedPiiKey(field) || COMMON_PII_PATTERNS.some((p) => p.test(field));
   }
 
   private anonymizeField(
@@ -257,10 +263,21 @@ export class DataAnonymizationService {
     entityName: string,
     deepScan: boolean
   ): string {
-    if (deepScan || this.isLikelyPiiString(value)) {
+    if (deepScan || this.isSensitiveFieldName(field) || this.isLikelyPiiString(value)) {
       return this.anonymizeString(field, value, entityName);
     }
     return value;
+  }
+
+  private isSensitiveFieldName(field: string): boolean {
+    return (
+      this.isEmailField(field) ||
+      this.isPhoneField(field) ||
+      this.isNameField(field) ||
+      this.isAddressField(field) ||
+      this.isIdentifierField(field) ||
+      COMMON_PII_PATTERNS.some((p) => p.test(field))
+    );
   }
 
   private processArrayValue(
@@ -404,7 +421,7 @@ export class DataAnonymizationService {
 
   private findLocalStart(s: string, atIdx: number): number {
     let i = atIdx - 1;
-    while (i >= 0 && /[a-zA-Z0-9._%+-]/.test(s[i] ?? '')) {
+    while (i >= 0 && /[a-zA-Z0-9._%+-]/.test(s[i] ?? "")) {
       i--;
     }
     return i + 1;
@@ -412,7 +429,7 @@ export class DataAnonymizationService {
 
   private findDomainEnd(s: string, atIdx: number): number {
     let i = atIdx + 1;
-    while (i < s.length && /[a-zA-Z0-9.-]/.test(s[i] ?? '')) {
+    while (i < s.length && /[a-zA-Z0-9.-]/.test(s[i] ?? "")) {
       i++;
     }
     return i;

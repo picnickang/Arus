@@ -111,13 +111,13 @@ describe("Agent Findings API", () => {
       }
     });
 
-    it("should enforce max limit of 200", async () => {
+    it("should reject limits above the API max of 200", async () => {
       const response = await request(app)
         .get("/api/agent/findings?limit=500")
         .set("x-org-id", TEST_ORG_ID)
-        .expect(200);
+        .expect(400);
 
-      expect(response.body.items.length).toBeLessThanOrEqual(200);
+      expect(response.body).toHaveProperty("error");
     });
 
     it("should return empty results for non-existent source type combinations", async () => {

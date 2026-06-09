@@ -22,4 +22,4 @@ export type * from "../../shared/schema-sqlite-sync";
 // so tests that import the route modules (e.g. ml model-routes,
 // promote two-person rule) get the real validators rather than
 // `undefined`.
-export { mlTrainConfigSchema } from "../../shared/validation/ml";
+export { mlAcousticDataSchema, mlTrainConfigSchema } from "../../shared/validation/ml";

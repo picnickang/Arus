@@ -45,6 +45,7 @@ function makeFixtures(options?: { viewer?: boolean }) {
     diagramWidth: sectionMap.diagramWidth,
     diagramHeight: sectionMap.diagramHeight,
     diagramKind: sectionMap.diagramKind,
+    imageTransform: { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
     sections: sectionMap.sections.map((section: Record<string, unknown>, sectionIndex: number) => ({
       id: `section-${section.sectionKey}`,
       sectionKey: section.sectionKey,
@@ -56,10 +57,14 @@ function makeFixtures(options?: { viewer?: boolean }) {
       thumbnailFallback: section.thumbnailFallback,
       equipment: (section.equipment as string[]).map((name, itemIndex) => ({
         id: `assignment-${sectionIndex + 1}-${itemIndex + 1}`,
-        equipmentId: equipment.find((item) => item.name === name || item.assetCode === name)?.id ?? null,
+        equipmentId:
+          equipment.find((item) => item.name === name || item.assetCode === name)?.id ?? null,
         equipmentName: name,
-        assetCode: equipment.find((item) => item.name === name || item.assetCode === name)?.assetCode ?? null,
-        system: equipment.find((item) => item.name === name || item.assetCode === name)?.system ?? null,
+        assetCode:
+          equipment.find((item) => item.name === name || item.assetCode === name)?.assetCode ??
+          null,
+        system:
+          equipment.find((item) => item.name === name || item.assetCode === name)?.system ?? null,
       })),
     })),
   };
@@ -116,7 +121,13 @@ function makeFixtures(options?: { viewer?: boolean }) {
     "/api/permissions/me": {
       userId: viewer ? "viewer-user" : "admin-user",
       orgId: "default-org-id",
-      roles: [{ id: viewer ? "viewer" : "admin", name: viewer ? "viewer" : "admin", displayName: viewer ? "Viewer" : "Admin" }],
+      roles: [
+        {
+          id: viewer ? "viewer" : "admin",
+          name: viewer ? "viewer" : "admin",
+          displayName: viewer ? "Viewer" : "Admin",
+        },
+      ],
       permissions,
       hubAdmin: true,
       hubAccess: null,
@@ -125,10 +136,22 @@ function makeFixtures(options?: { viewer?: boolean }) {
     "/api/vessels": [{ id: "vessel-1", name: "MV ARUS Explorer" }],
     "/api/equipment": equipment,
     "/api/work-orders": [
-      { id: "wo-1", vesselId: "vessel-1", title: "Inspect bow thruster bearing temperature trend", status: "Open", priority: "High" },
+      {
+        id: "wo-1",
+        vesselId: "vessel-1",
+        title: "Inspect bow thruster bearing temperature trend",
+        status: "Open",
+        priority: "High",
+      },
     ],
     "/api/alerts": [
-      { id: "alert-1", vesselId: "vessel-1", title: "Generator 2 vibration deviation", status: "Open", severity: "Caution" },
+      {
+        id: "alert-1",
+        vesselId: "vessel-1",
+        title: "Generator 2 vibration deviation",
+        status: "Open",
+        severity: "Caution",
+      },
     ],
     "/api/pdm/dashboard": { status: "connected" },
     "/api/agent/drafts": [],
@@ -145,7 +168,8 @@ function makeFixtures(options?: { viewer?: boolean }) {
     "/api/vessel-intelligence/vessel-1/diagrams": [sideElevationDiagram],
     "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation": sideElevationDiagram,
     "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions": versions,
-    "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions/active": versions[0],
+    "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions/active":
+      versions[0],
     "/api/vessel-intelligence/vessel-1/section-maps": [activeSectionMap, draftBlankMap],
     "/api/vessel-intelligence/vessel-1/section-maps/map-full-hub-v2": activeSectionMap,
     "/api/vessel-intelligence/vessel-1/section-maps/map-draft-blank": draftBlankMap,
@@ -161,11 +185,12 @@ function makeFixtures(options?: { viewer?: boolean }) {
 
 async function installVesselFixtures(page: Page, options?: { viewer?: boolean }) {
   const fixtures = makeFixtures(options);
+  const shellRole = "admin";
   await page.addInitScript((role) => {
     localStorage.setItem("arus-user-role", role);
     localStorage.setItem("arus-ui-theme", "dark");
     localStorage.setItem("arus-setup-complete", "true");
-  }, options?.viewer ? "admin" : "admin");
+  }, shellRole);
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/media")) {
@@ -173,12 +198,10 @@ async function installVesselFixtures(page: Page, options?: { viewer?: boolean })
       return;
     }
     if (route.request().method() === "POST" && url.pathname.endsWith("/versions/upload")) {
-      const activeVersion = fixtures[
-        "/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions"
-      ][0];
-      const draftBlankMap = fixtures[
-        "/api/vessel-intelligence/vessel-1/section-maps/map-draft-blank"
-      ];
+      const activeVersion =
+        fixtures["/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions"][0];
+      const draftBlankMap =
+        fixtures["/api/vessel-intelligence/vessel-1/section-maps/map-draft-blank"];
       await route.fulfill({
         status: 201,
         contentType: "application/json",
@@ -201,25 +224,118 @@ async function installVesselFixtures(page: Page, options?: { viewer?: boolean })
       });
       return;
     }
-    if (route.request().method() === "POST" && /\/(publish|archive|restore-draft)$/.test(url.pathname)) {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(versions[0]) });
+    if (
+      route.request().method() === "POST" &&
+      /\/(publish|archive|restore-draft)$/.test(url.pathname)
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(versions[0]),
+      });
       return;
     }
     const body = Object.hasOwn(fixtures, url.pathname)
       ? fixtures[url.pathname as keyof typeof fixtures]
       : { data: [] };
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
   });
 }
 
 test.describe("Vessel Intelligence visual workflow", () => {
-  test("desktop overview renders Figma-derived regions and uploaded schematic overlay", async ({ page }, testInfo) => {
+  test("fleet triage hub renders the Figma-aligned desktop structure and opens drill-downs", async ({
+    page,
+  }, testInfo) => {
+    await installVesselFixtures(page);
+    await page.goto("/fleet", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("universal-ops-shell")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-rail")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-subnav")).toBeVisible();
+    await expect(page.getByTestId("fleet-triage-page")).toBeVisible();
+    await expect(page.getByTestId("fleet-triage-list")).toContainText("MV ARUS Explorer");
+    await expect(page.getByTestId("fleet-map-status")).toBeVisible();
+    await expect(page.getByTestId("fleet-status-plot")).toBeVisible();
+    await expect(page.getByTestId("global-queue")).toContainText("Open technical alerts");
+    await expect(page.getByTestId("fleet-vessel-diagram-preview")).toBeVisible();
+    await expect(page.getByTestId("fleet-vessel-section-overlay")).toBeVisible();
+    await expect(page.getByTestId("fleet-side-elevation-status")).toContainText("Active");
+    await expect(page.getByTestId("fleet-registry-access")).toBeVisible();
+    await expect(page.getByTestId("button-open-diagram-registry")).toBeVisible();
+    await expect(page.getByTestId("section-polygon-main_engine_room")).toBeVisible();
+    await expect(page.getByTestId("fleet-action-board")).toContainText(
+      "Generator 2 vibration deviation"
+    );
+
+    await page.screenshot({
+      path: testInfo.outputPath("fleet-triage-desktop.png"),
+      fullPage: false,
+    });
+
+    await page.getByTestId("button-open-vessel-action-vessel-1").click();
+    await expect(page).toHaveURL(/\/vessel-intelligence\/vessel-1\/alerts/);
+  });
+
+  test("fleet side elevation replacement affordance reaches the working registry flow", async ({
+    page,
+  }) => {
+    await installVesselFixtures(page);
+    await page.goto("/fleet", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("button-replace-side-elevation")).toBeVisible();
+    await page.getByTestId("button-replace-side-elevation").click();
+    await expect(page).toHaveURL(
+      /\/vessel-intelligence\/vessel-1\/diagrams(\/diagram-side-elevation)?/
+    );
+    await expect(page.getByText("Side Elevation - Full Hub v2")).toBeVisible();
+    await expect(page.getByTestId("button-upload-replace-diagram").first()).toBeVisible();
+  });
+
+  test("mobile fleet triage uses the universal admin drawer shell", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installVesselFixtures(page);
+    await page.goto("/fleet", { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("fleet-triage-page")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-shell")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-mobile-menu-trigger")).toBeVisible();
+    await page.getByTestId("universal-ops-mobile-menu-trigger").click();
+    await expect(page.getByTestId("universal-ops-mobile-drawer")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-drawer-hub-fleet")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-drawer-child-vessel-intelligence")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("fleet-vessel-section-overlay")).toBeVisible();
+    await expect(page.getByTestId("fleet-registry-access")).toBeVisible();
+    await expect(page.getByTestId("section-polygon-main_engine_room")).toBeVisible();
+    await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
+
+    const diagramBox = await page.getByTestId("fleet-vessel-diagram-preview").boundingBox();
+    const triageBox = await page.getByTestId("fleet-triage-list").boundingBox();
+    expect(diagramBox).not.toBeNull();
+    expect(triageBox).not.toBeNull();
+    expect(diagramBox!.y).toBeLessThan(triageBox!.y);
+
+    await page.screenshot({
+      path: testInfo.outputPath("fleet-triage-mobile.png"),
+      fullPage: false,
+    });
+  });
+
+  test("desktop overview renders Figma-derived regions and uploaded schematic overlay", async ({
+    page,
+  }, testInfo) => {
     await installVesselFixtures(page);
     await page.goto("/vessel-intelligence/vessel-1/overview", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("vessel-intelligence-hub")).toBeVisible();
     await expect(page.getByTestId("vessel-intelligence-data-sources")).toContainText("Registry");
-    await expect(page.getByTestId("diagram-registry-panel")).toContainText("Side Elevation - Full Hub v2");
+    await expect(page.getByTestId("diagram-registry-panel")).toContainText(
+      "Side Elevation - Full Hub v2"
+    );
     await expect(page.getByTestId("equipment-mapping-panel")).toContainText("Main Engine 1");
     await expect(page.getByTestId("uploaded-schematic-base-layer")).toBeVisible();
     await expect(page.getByTestId("section-polygon-main_engine_room")).toBeVisible();
@@ -230,7 +346,9 @@ test.describe("Vessel Intelligence visual workflow", () => {
     });
   });
 
-  test("mobile section map is view-first and preserves the section detail flow", async ({ page }, testInfo) => {
+  test("mobile section map is view-first and preserves the section detail flow", async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installVesselFixtures(page);
     await page.goto("/vessel-intelligence/vessel-1/sections/main_engine_room", {
@@ -240,12 +358,53 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await expect(page.getByTestId("vessel-intelligence-section-map")).toBeVisible();
     await page.getByTestId("selected-section-detail").scrollIntoViewIfNeeded();
     await expect(page.getByTestId("selected-section-detail")).toContainText("Main Engine Room");
-    await expect(page.getByTestId("selected-section-detail")).toContainText("multiple equipment records");
+    await expect(page.getByTestId("selected-section-detail")).toContainText(
+      "multiple equipment records"
+    );
+    await expect(page.getByTestId("section-equipment-list")).toBeVisible();
+    await expect(page.getByTestId("section-equipment-live").first()).toBeVisible();
+    await expect(page.getByTestId("button-manage-section-assignments")).toBeVisible();
 
     await page.screenshot({
       path: testInfo.outputPath("vessel-intelligence-mobile-section-map.png"),
       fullPage: false,
     });
+  });
+
+  test("section map editor saves side elevation calibration through the registry API", async ({
+    page,
+  }) => {
+    await installVesselFixtures(page);
+    await page.goto("/vessel-intelligence/vessel-1/section-maps/map-full-hub-v2/edit", {
+      waitUntil: "domcontentloaded",
+    });
+
+    await expect(page.getByTestId("side-elevation-fit-controls")).toBeVisible();
+    await expect(page.getByTestId("button-save-side-elevation-fit")).toBeDisabled();
+
+    const lengthThumb = page.getByTestId("side-elevation-length-slider").locator('[role="slider"]');
+    await lengthThumb.focus();
+    await lengthThumb.press("ArrowRight");
+
+    const panThumb = page.getByTestId("side-elevation-pan-x-slider").locator('[role="slider"]');
+    await panThumb.focus();
+    await panThumb.press("ArrowRight");
+
+    await expect(page.getByTestId("button-save-side-elevation-fit")).toBeEnabled();
+    const patchRequest = page.waitForRequest(
+      (request) =>
+        request.method() === "PATCH" &&
+        request.url().includes("/api/vessel-intelligence/vessel-1/section-maps/map-full-hub-v2")
+    );
+    await page.getByTestId("button-save-side-elevation-fit").click();
+
+    const body = JSON.parse((await patchRequest).postData() ?? "{}") as {
+      imageTransform?: { scaleX?: number; scaleY?: number; offsetX?: number; offsetY?: number };
+    };
+    expect(body.imageTransform?.scaleX).toBeGreaterThan(1);
+    expect(body.imageTransform?.scaleY).toBe(1);
+    expect(body.imageTransform?.offsetX).toBeGreaterThan(0);
+    expect(body.imageTransform?.offsetY).toBe(0);
   });
 
   test("viewer permissions hide diagram and registry edit controls", async ({ page }) => {
@@ -259,14 +418,18 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await expect(page.getByTestId("settings-link")).toHaveCount(0);
   });
 
-  test("admin registry controls open real screens and complete start blank replacement", async ({ page }, testInfo) => {
+  test("admin registry controls open real screens and complete start blank replacement", async ({
+    page,
+  }, testInfo) => {
     const uploadFile = testInfo.outputPath("replacement.svg");
     fs.writeFileSync(uploadFile, BASE_SVG);
     await installVesselFixtures(page);
     await page.goto("/vessel-intelligence/vessel-1/diagrams", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("diagram-manager")).toBeVisible();
-    await expect(page.getByTestId("diagram-type-card-side_elevation")).toContainText("Side Elevation");
+    await expect(page.getByTestId("diagram-type-card-side_elevation")).toContainText(
+      "Side Elevation"
+    );
     await page.screenshot({
       path: testInfo.outputPath("vessel-intelligence-diagram-manager.png"),
       fullPage: false,
@@ -294,7 +457,9 @@ test.describe("Vessel Intelligence visual workflow", () => {
     });
   });
 
-  test("versions and thumbnails routes expose working registry actions", async ({ page }, testInfo) => {
+  test("versions and thumbnails routes expose working registry actions", async ({
+    page,
+  }, testInfo) => {
     await installVesselFixtures(page);
     await page.goto("/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions", {
       waitUntil: "domcontentloaded",
@@ -320,7 +485,11 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await page.goto("/vessel-intelligence/vessel-1/diagrams", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("diagram-manager")).toBeVisible();
-    await expect(page.getByText("You can view this registry, but you do not have permission to configure diagrams.")).toBeVisible();
+    await expect(
+      page.getByText(
+        "You can view this registry, but you do not have permission to configure diagrams."
+      )
+    ).toBeVisible();
     await expect(page.getByTestId("button-upload-replace-diagram").first()).toBeDisabled();
   });
 });

@@ -6,6 +6,7 @@ import { agentRepo } from "../../infrastructure/repository";
 import type { SuggestionEngine } from "../../application/suggestion-engine";
 import type { OutcomeTrackingService } from "../../application/outcome-service";
 import { OUTCOME_CATEGORIES } from "../../domain/ports";
+import { optionalIsoString, toBoolean, toIsoString } from "../../infrastructure/serialization";
 import type { RateLimitMiddleware, RoleMiddleware } from "./_shared";
 
 export interface SuggestionsRouteDeps {
@@ -30,9 +31,7 @@ const listSuggestionsQuerySchema = z.object({
   status: z.string().optional(),
   triggerType: z.string().optional(),
 });
-const generateBodySchema = z
-  .object({ preferences: jsonRecordSchema.optional() })
-  .partial();
+const generateBodySchema = z.object({ preferences: jsonRecordSchema.optional() }).partial();
 const updateSuggestionBodySchema = z.object({
   status: z.string().optional(),
   actedOn: jsonValueSchema.optional(),
@@ -54,6 +53,23 @@ const preferencesBodySchema = z.object({
   alerts: z.boolean().optional(),
   minSeverity: z.enum(["info", "warning", "critical"]).optional(),
 });
+
+interface SuggestionSerializable {
+  actedOn?: unknown;
+  outcomeAt?: unknown;
+  createdAt?: unknown;
+}
+
+function serializeSuggestion<T extends SuggestionSerializable>(
+  suggestion: T
+): T & { actedOn: boolean; outcomeAt: string | null; createdAt: string } {
+  return {
+    ...suggestion,
+    actedOn: toBoolean(suggestion.actedOn),
+    outcomeAt: optionalIsoString(suggestion.outcomeAt),
+    createdAt: toIsoString(suggestion.createdAt),
+  };
+}
 
 export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDeps) {
   const { suggestionEngine, outcomeService, rateLimit, requireAdminRole, requireMaintenanceRole } =
@@ -82,11 +98,15 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           status: "pending",
           entityType: entityType || null,
           entityId: entityId || null,
-          context: (context ?? null) as Parameters<typeof agentRepo.suggestions.create>[0]["context"],
+          context: (context ?? null) as Parameters<
+            typeof agentRepo.suggestions.create
+          >[0]["context"],
         });
-        return res.status(201).json(suggestion);
+        return res.status(201).json(serializeSuggestion(suggestion));
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -102,9 +122,11 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         if (triggerType) {
           suggestions = suggestions.filter((s) => s.triggerType === triggerType);
         }
-        return res.json(suggestions);
+        return res.json(suggestions.map((suggestion) => serializeSuggestion(suggestion)));
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -118,7 +140,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const pending = await agentRepo.suggestions.list(orgId, "pending");
         return res.json({ count: pending.length });
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -151,7 +175,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
 
         return res.json({ generated: newSuggestions.length, suggestions: newSuggestions });
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -174,18 +200,20 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         }
         const allowedUpdates: Record<string, unknown> = {};
         if (body.status) {
-          allowedUpdates['status'] = body.status;
+          allowedUpdates["status"] = body.status;
         }
         if (body.actedOn !== undefined) {
-          allowedUpdates['actedOn'] = body.actedOn;
+          allowedUpdates["actedOn"] = body.actedOn;
         }
         const suggestion = await agentRepo.suggestions.update(
           id,
           allowedUpdates as Parameters<typeof agentRepo.suggestions.update>[1]
         );
-        return res.json(suggestion);
+        return res.json(serializeSuggestion(suggestion));
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -200,7 +228,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
+        if (
+          outcome &&
+          !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])
+        ) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
@@ -209,18 +240,22 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           {
             suggestionId: id,
             orgId,
-            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
+            outcome: (outcome ?? null) as Parameters<
+              typeof outcomeService.recordOutcome
+            >[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
           "dismissed"
         );
-        return res.json(suggestion);
+        return res.json(serializeSuggestion(suggestion));
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -235,7 +270,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
+        if (
+          outcome &&
+          !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])
+        ) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
@@ -244,18 +282,22 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           {
             suggestionId: id,
             orgId,
-            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
+            outcome: (outcome ?? null) as Parameters<
+              typeof outcomeService.recordOutcome
+            >[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
           "acted"
         );
-        return res.json(suggestion);
+        return res.json(serializeSuggestion(suggestion));
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -270,7 +312,10 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const userId = authenticatedRequest(req).user?.id || "unknown";
         const { id } = idParamSchema.parse(req.params);
         const { outcome, outcomeReason } = outcomeBodySchema.parse(req.body ?? {});
-        if (outcome && !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])) {
+        if (
+          outcome &&
+          !OUTCOME_CATEGORIES.includes(outcome as (typeof OUTCOME_CATEGORIES)[number])
+        ) {
           return res
             .status(400)
             .json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
@@ -279,18 +324,22 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           {
             suggestionId: id,
             orgId,
-            outcome: (outcome ?? null) as Parameters<typeof outcomeService.recordOutcome>[0]["outcome"],
+            outcome: (outcome ?? null) as Parameters<
+              typeof outcomeService.recordOutcome
+            >[0]["outcome"],
             outcomeReason: outcomeReason || null,
             outcomeBy: userId,
           },
           "deferred"
         );
-        return res.json(suggestion);
+        return res.json(serializeSuggestion(suggestion));
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({ error: error.message });
         }
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -305,7 +354,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const summary = await outcomeService.getEffectiveness(orgId, Math.min(days ?? 30, 365));
         return res.json(summary);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -318,9 +369,11 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         const orgId = authenticatedRequest(req).orgId;
         const all = await agentRepo.suggestions.list(orgId, undefined, 200);
         const history = all.filter((s) => s.status !== "pending");
-        return res.json(history);
+        return res.json(history.map((suggestion) => serializeSuggestion(suggestion)));
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -344,7 +397,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
           }
         );
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -366,7 +421,9 @@ export function registerSuggestionsRoutes(app: Express, deps: SuggestionsRouteDe
         if (error instanceof z.ZodError) {
           return res.status(400).json({ error: "Invalid preferences", details: error.errors });
         }
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

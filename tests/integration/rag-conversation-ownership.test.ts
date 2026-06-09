@@ -17,12 +17,7 @@
  * `ragContext` identity from it.
  */
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import request from "supertest";
 
@@ -48,6 +43,10 @@ let currentSession: SessionShape | undefined;
 let ownerConvId: string;
 let otherConvId: string;
 let legacyConvId: string;
+
+function isClosedLibsqlClientError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("CLIENT_CLOSED");
+}
 
 const noopRateLimit = ((_req: Request, _res: Response, next: NextFunction) =>
   next()) as unknown as RateLimitRequestHandler;
@@ -109,11 +108,18 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const service = getConversationService();
-  await Promise.all(
-    [ownerConvId, otherConvId, legacyConvId]
-      .filter(Boolean)
-      .map((id) => service.deleteConversation(id))
-  );
+  try {
+    await Promise.all(
+      [ownerConvId, otherConvId, legacyConvId]
+        .filter(Boolean)
+        .map((id) => service.deleteConversation(id))
+    );
+  } catch (error) {
+    if (isClosedLibsqlClientError(error)) {
+      return;
+    }
+    throw error;
+  }
 });
 
 describe("Task #259 — RAG conversation ownership", () => {
@@ -138,17 +144,13 @@ describe("Task #259 — RAG conversation ownership", () => {
 
   describe("messages", () => {
     it("lets the owner read their own messages", async () => {
-      const res = await request(app).get(
-        `/api/rag/conversations/${ownerConvId}/messages`
-      );
+      const res = await request(app).get(`/api/rag/conversations/${ownerConvId}/messages`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
 
     it("denies a non-owner reading another user's messages (404)", async () => {
-      const res = await request(app).get(
-        `/api/rag/conversations/${otherConvId}/messages`
-      );
+      const res = await request(app).get(`/api/rag/conversations/${otherConvId}/messages`);
       expect(res.status).toBe(404);
     });
   });
@@ -178,9 +180,7 @@ describe("Task #259 — RAG conversation ownership", () => {
     });
 
     it("denies a non-owner deleting another user's conversation (404)", async () => {
-      const res = await request(app).delete(
-        `/api/rag/conversations/${otherConvId}`
-      );
+      const res = await request(app).delete(`/api/rag/conversations/${otherConvId}`);
       expect(res.status).toBe(404);
     });
 
@@ -210,10 +210,7 @@ describe("Task #259 — RAG conversation ownership", () => {
       // A valid streaming token authenticates USER_A; the ownership gate now
       // runs before any OpenAI/search work, so a non-owned conversationId is
       // rejected deterministically with 404.
-      const token = getRagSecurityServices().tokenService.generateToken(
-        USER_A,
-        TEST_ORG
-      );
+      const token = getRagSecurityServices().tokenService.generateToken(USER_A, TEST_ORG);
       const res = await request(app)
         .get("/api/rag/ask-stream")
         .query({ token, conversationId: otherConvId, query: "hello" });

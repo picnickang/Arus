@@ -26,8 +26,7 @@ const tokenStore: TokenStore = {
   usedNonces: new Set(),
 };
 
-// Clean up expired tokens every minute
-setInterval(() => {
+function cleanupExpiredTokens(): void {
   const now = Date.now();
   for (const [token, payload] of tokenStore.tokens.entries()) {
     if (payload.expiresAt < now) {
@@ -39,10 +38,16 @@ setInterval(() => {
     const noncesArray = Array.from(tokenStore.usedNonces);
     tokenStore.usedNonces = new Set(noncesArray.slice(-5000));
   }
-}, 60000);
+}
+
+let cleanupInterval: NodeJS.Timeout | undefined;
+if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+  cleanupInterval = setInterval(cleanupExpiredTokens, 60000);
+  cleanupInterval.unref?.();
+}
 
 // Secret key for signing tokens (should be from env in production)
-const SECRET_KEY = process.env['RAG_STREAMING_SECRET'] || crypto.randomBytes(32).toString("hex");
+const SECRET_KEY = process.env["RAG_STREAMING_SECRET"] || crypto.randomBytes(32).toString("hex");
 
 export class StreamingTokenService {
   private config: RagSecurityConfig["auth"];
@@ -178,3 +183,13 @@ export function updateStreamingTokenConfig(config: RagSecurityConfig["auth"]): v
     instance.updateConfig(config);
   }
 }
+
+export const _internals = {
+  cleanupExpiredTokens,
+  stopCleanupInterval() {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = undefined;
+    }
+  },
+};

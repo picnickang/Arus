@@ -27,6 +27,11 @@ import { getDigitalTwinTablesSql, getDigitalTwinIndexesSql } from "./digital-twi
 import { getSyncTablesSql, getSyncIndexesSql } from "./sync-tables.js";
 import { getOptimizationTablesSql, getOptimizationIndexesSql } from "./optimization-tables.js";
 import { getLogbookTablesSql, getLogbookIndexesSql } from "./logbook-tables.js";
+import { getRagTablesSql, getRagIndexesSql } from "./rag-tables.js";
+import { getComplianceTablesSql, getComplianceIndexesSql } from "./compliance-tables.js";
+import { getPermissionTablesSql, getPermissionIndexesSql } from "./permission-tables.js";
+import { getAgentTablesSql, getAgentIndexesSql } from "./agent-tables.js";
+import { getImportTablesSql, getImportIndexesSql } from "./import-tables.js";
 
 export function getAllTablesSql(): SQL[] {
   return [
@@ -48,6 +53,11 @@ export function getAllTablesSql(): SQL[] {
     ...getSyncTablesSql(),
     ...getOptimizationTablesSql(),
     ...getLogbookTablesSql(),
+    ...getRagTablesSql(),
+    ...getComplianceTablesSql(),
+    ...getPermissionTablesSql(),
+    ...getAgentTablesSql(),
+    ...getImportTablesSql(),
   ];
 }
 
@@ -71,6 +81,11 @@ export function getAllIndexesSql(): SQL[] {
     ...getSyncIndexesSql(),
     ...getOptimizationIndexesSql(),
     ...getLogbookIndexesSql(),
+    ...getRagIndexesSql(),
+    ...getComplianceIndexesSql(),
+    ...getPermissionIndexesSql(),
+    ...getAgentIndexesSql(),
+    ...getImportIndexesSql(),
   ];
 }
 
@@ -111,4 +126,14 @@ export {
   getOptimizationIndexesSql,
   getLogbookTablesSql,
   getLogbookIndexesSql,
+  getRagTablesSql,
+  getRagIndexesSql,
+  getComplianceTablesSql,
+  getComplianceIndexesSql,
+  getPermissionTablesSql,
+  getPermissionIndexesSql,
+  getAgentTablesSql,
+  getAgentIndexesSql,
+  getImportTablesSql,
+  getImportIndexesSql,
 };

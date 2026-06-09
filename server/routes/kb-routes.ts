@@ -6,7 +6,7 @@
  * Files are processed asynchronously and removed after ingestion.
  * In production, consider a secure application-owned directory.
  */
-import { Router, type Express } from "express";
+import { Router, type Express, type RequestHandler } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
@@ -32,6 +32,11 @@ import {
   updateDocumentVisibility,
   listDocumentsWithAccess,
 } from "../services/document-ingestion/repository";
+import {
+  isAllowedKbUploadMimeType,
+  validateMagicBytesFromBuffer,
+  validateMagicBytesFromPath,
+} from "../services/kb-upload-validation";
 
 // Helper to validate equipmentId belongs to org (optional field validation)
 async function validateEquipmentOwnership(
@@ -64,49 +69,9 @@ try {
 } catch (err) {
   // Don't crash boot on permission errors — log + continue; uploads
   // will surface a clear 500 with the underlying ENOENT/EACCES.
-  logger.warn(`[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${((err instanceof Error ? err.message : String(err)))}`);
-}
-
-// Magic-byte signatures for the allowed mimetypes. Multer's
-// `fileFilter` only inspects the *client-supplied* `Content-Type`,
-// which is trivially spoofable. We re-verify the first bytes of the
-// payload before persisting / handing off to the ingestion worker.
-const MAGIC_BYTES: Record<string, ReadonlyArray<number>> = {
-  "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d], // %PDF-
-  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-  "image/jpeg": [0xff, 0xd8, 0xff],
-};
-
-function bufferStartsWith(buf: Buffer, signature: ReadonlyArray<number>): boolean {
-  if (buf.length < signature.length) {
-    return false;
-  }
-  for (let i = 0; i < signature.length; i++) {
-    if (buf[i] !== signature[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function validateMagicBytesFromBuffer(buf: Buffer, mimetype: string): boolean {
-  const sig = MAGIC_BYTES[mimetype];
-  return !!sig && bufferStartsWith(buf, sig);
-}
-
-async function validateMagicBytesFromPath(filePath: string, mimetype: string): Promise<boolean> {
-  const sig = MAGIC_BYTES[mimetype];
-  if (!sig) {
-    return false;
-  }
-  const fh = await fsPromises.open(filePath, "r");
-  try {
-    const buf = Buffer.alloc(sig.length);
-    const { bytesRead } = await fh.read(buf, 0, sig.length, 0);
-    return bytesRead === sig.length && bufferStartsWith(buf, sig);
-  } finally {
-    await fh.close();
-  }
+  logger.warn(
+    `[KB Upload] Failed to harden ${KB_UPLOAD_DIR}: ${err instanceof Error ? err.message : String(err)}`
+  );
 }
 
 // Configure multer for disk storage (async processing)
@@ -123,8 +88,7 @@ const asyncUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (isAllowedKbUploadMimeType(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));
@@ -139,14 +103,32 @@ const syncUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (isAllowedKbUploadMimeType(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));
     }
   },
 });
+
+function handleSingleFileUpload(upload: multer.Multer): RequestHandler {
+  return (req, res, next) => {
+    upload.single("file")(req, res, (error: unknown) => {
+      if (!error) {
+        next();
+        return;
+      }
+
+      const isMulterError = error instanceof multer.MulterError;
+      const status = isMulterError && error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      const message = error instanceof Error ? error.message : "File upload rejected";
+      res.status(status).json({
+        error: message,
+        code: isMulterError ? error.code : "INVALID_FILE",
+      });
+    });
+  };
+}
 
 // Request validation schemas
 const searchQuerySchema = z.object({
@@ -178,7 +160,7 @@ export async function registerKnowledgeBaseRoutes(
     "/upload/async",
     writeOperationRateLimit,
     enforceQuota("storage_bytes"),
-    asyncUpload.single("file"),
+    handleSingleFileUpload(asyncUpload),
     async (req, res) => {
       // Track the staged file so any failure path (magic-byte
       // mismatch, validation throw, DB insert failure, enqueue
@@ -196,9 +178,7 @@ export async function registerKnowledgeBaseRoutes(
         // Reject + delete the staged file on mismatch (415).
         const magicOk = await validateMagicBytesFromPath(req.file.path, req.file.mimetype);
         if (!magicOk) {
-          return res
-            .status(415)
-            .json({ error: "File content does not match declared type" });
+          return res.status(415).json({ error: "File content does not match declared type" });
         }
         // Restrict the staged file itself to owner-only.
         await fsPromises.chmod(req.file.path, 0o600).catch(() => {});
@@ -210,11 +190,9 @@ export async function registerKnowledgeBaseRoutes(
 
         // Validate equipmentId belongs to org (security: prevent cross-tenant linking)
         if (equipmentId && !(await validateEquipmentOwnership(equipmentId, orgId))) {
-          return res
-            .status(400)
-            .json({
-              error: "Invalid equipmentId or equipment does not belong to your organization",
-            });
+          return res.status(400).json({
+            error: "Invalid equipmentId or equipment does not belong to your organization",
+          });
         }
 
         logger.info(
@@ -272,75 +250,79 @@ export async function registerKnowledgeBaseRoutes(
   );
 
   // Synchronous upload endpoint (for small files or immediate processing)
-  router.post("/upload", writeOperationRateLimit, enforceQuota("storage_bytes"), syncUpload.single("file"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+  router.post(
+    "/upload",
+    writeOperationRateLimit,
+    enforceQuota("storage_bytes"),
+    handleSingleFileUpload(syncUpload),
+    async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        const orgId = req.orgId;
+        const userId = req.user?.id;
+        const equipmentId = req.body?.equipmentId || null; // Optional: Link document to specific equipment
+
+        // Validate equipmentId belongs to org (security: prevent cross-tenant linking)
+        if (equipmentId && !(await validateEquipmentOwnership(equipmentId, orgId))) {
+          return res.status(400).json({
+            error: "Invalid equipmentId or equipment does not belong to your organization",
+          });
+        }
+
+        // P2 #12 — magic-byte verification on the in-memory buffer.
+        if (!validateMagicBytesFromBuffer(req.file.buffer, req.file.mimetype)) {
+          return res.status(415).json({ error: "File content does not match declared type" });
+        }
+
+        // Determine file type from mimetype
+        let fileType: "pdf" | "png" | "jpg" | "jpeg";
+        if (req.file.mimetype === "application/pdf") {
+          fileType = "pdf";
+        } else if (req.file.mimetype === "image/png") {
+          fileType = "png";
+        } else if (req.file.mimetype === "image/jpeg") {
+          fileType = "jpeg";
+        } else {
+          return res.status(400).json({ error: "Unsupported file type" });
+        }
+
+        logger.info(
+          `[KB Upload Sync] Processing ${req.file.originalname} for org ${orgId}${equipmentId ? ` (equipment: ${equipmentId})` : ""}`
+        );
+
+        const result = await ingestDocument({
+          orgId,
+          fileName: req.file.originalname,
+          fileBuffer: req.file.buffer,
+          fileType,
+          uploadedBy: userId,
+          equipmentId,
+          openAiKey: process.env["OPENAI_API_KEY"],
+        });
+
+        void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
+
+        return res.status(201).json({
+          success: true,
+          docId: result.docId,
+          chunksCreated: result.chunksCreated,
+          metadata: result.metadata,
+        });
+      } catch (error) {
+        logger.error("[KB Upload Sync] Failed:", undefined, error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        return res.status(500).json({ error: "Document upload failed", details: errorMessage });
       }
-
-      const orgId = req.orgId;
-      const userId = req.user?.id;
-      const equipmentId = req.body?.equipmentId || null; // Optional: Link document to specific equipment
-
-      // Validate equipmentId belongs to org (security: prevent cross-tenant linking)
-      if (equipmentId && !(await validateEquipmentOwnership(equipmentId, orgId))) {
-        return res
-          .status(400)
-          .json({ error: "Invalid equipmentId or equipment does not belong to your organization" });
-      }
-
-      // P2 #12 — magic-byte verification on the in-memory buffer.
-      if (!validateMagicBytesFromBuffer(req.file.buffer, req.file.mimetype)) {
-        return res
-          .status(415)
-          .json({ error: "File content does not match declared type" });
-      }
-
-      // Determine file type from mimetype
-      let fileType: "pdf" | "png" | "jpg" | "jpeg";
-      if (req.file.mimetype === "application/pdf") {
-        fileType = "pdf";
-      } else if (req.file.mimetype === "image/png") {
-        fileType = "png";
-      } else if (req.file.mimetype === "image/jpeg") {
-        fileType = "jpeg";
-      } else {
-        return res.status(400).json({ error: "Unsupported file type" });
-      }
-
-      logger.info(
-        `[KB Upload Sync] Processing ${req.file.originalname} for org ${orgId}${equipmentId ? ` (equipment: ${equipmentId})` : ""}`
-      );
-
-      const result = await ingestDocument({
-        orgId,
-        fileName: req.file.originalname,
-        fileBuffer: req.file.buffer,
-        fileType,
-        uploadedBy: userId,
-        equipmentId,
-        openAiKey: process.env['OPENAI_API_KEY'],
-      });
-
-      void quotaService.incrementUsage(orgId, "storage_bytes", req.file.size);
-
-      return res.status(201).json({
-        success: true,
-        docId: result.docId,
-        chunksCreated: result.chunksCreated,
-        metadata: result.metadata,
-      });
-    } catch (error) {
-      logger.error("[KB Upload Sync] Failed:", undefined, error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      return res.status(500).json({ error: "Document upload failed", details: errorMessage });
     }
-  });
+  );
 
   // Job status endpoint
   router.get("/jobs/:jobId", generalApiRateLimit, async (req, res) => {
     try {
-      const { jobId = '' } = req.params;
+      const { jobId = "" } = req.params;
       const orgId = req.orgId;
 
       const job = await jobQueueService.getJobStatus(jobId);
@@ -352,7 +334,9 @@ export async function registerKnowledgeBaseRoutes(
       // Security: Verify org ownership via job payload
       const jobData = job.data as DocumentIngestionJob;
       if (jobData.orgId !== orgId) {
-        logger.warn(`[KB Job Status] Unauthorized access attempt: job ${jobId} belongs to org ${jobData.orgId}, requested by org ${orgId}`);
+        logger.warn(
+          `[KB Job Status] Unauthorized access attempt: job ${jobId} belongs to org ${jobData.orgId}, requested by org ${orgId}`
+        );
         return res.status(404).json({ error: "Job not found" }); // Don't leak existence
       }
 
@@ -382,12 +366,16 @@ export async function registerKnowledgeBaseRoutes(
 
       logger.info(`[KB Search] Query: "${validatedQuery.q}" for org ${orgId}`);
 
-      const results = await (searchKnowledgeBase as object as (opts: Record<string, unknown>) => Promise<Array<Record<string, unknown>>>)({
+      const results = await (
+        searchKnowledgeBase as object as (
+          opts: Record<string, unknown>
+        ) => Promise<Array<Record<string, unknown>>>
+      )({
         orgId,
         query: validatedQuery.q,
         limit: validatedQuery.limit,
         threshold: validatedQuery.threshold,
-        openAiKey: process.env['OPENAI_API_KEY'],
+        openAiKey: process.env["OPENAI_API_KEY"],
       });
 
       return res.json({
@@ -410,8 +398,8 @@ export async function registerKnowledgeBaseRoutes(
     try {
       const orgId = req.orgId;
       const userId = req.user?.id || null;
-      const userRoles = ((req.user as { roles?: string[] } | undefined)?.roles) || [];
-      const equipmentId = req.query['equipmentId'] as string | undefined;
+      const userRoles = (req.user as { roles?: string[] } | undefined)?.roles || [];
+      const equipmentId = req.query["equipmentId"] as string | undefined;
 
       // Validate equipmentId belongs to org if provided (security: prevent cross-tenant probing)
       if (equipmentId && !(await validateEquipmentOwnership(equipmentId, orgId))) {
@@ -447,7 +435,7 @@ export async function registerKnowledgeBaseRoutes(
   router.delete("/documents/:id", writeOperationRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
 
       const [docRow] = await db
         .select({ sizeBytes: kbDocs.sizeBytes })
@@ -479,7 +467,9 @@ export async function registerKnowledgeBaseRoutes(
   router.get("/stats", generalApiRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const stats = await (getKnowledgeBaseStats as object as (orgId: string) => Promise<unknown>)(orgId);
+      const stats = await (getKnowledgeBaseStats as object as (orgId: string) => Promise<unknown>)(
+        orgId
+      );
 
       return res.json(stats);
     } catch (error) {
@@ -493,7 +483,7 @@ export async function registerKnowledgeBaseRoutes(
   router.get("/documents/:id/versions", generalApiRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
 
       const versions = await getDocumentVersionHistory(id, orgId);
       return res.json({ documentId: id, versions, count: versions.length });
@@ -503,7 +493,9 @@ export async function registerKnowledgeBaseRoutes(
       if (errorMessage.includes("not found")) {
         return res.status(404).json({ error: errorMessage });
       }
-      return res.status(500).json({ error: "Failed to get version history", details: errorMessage });
+      return res
+        .status(500)
+        .json({ error: "Failed to get version history", details: errorMessage });
     }
   });
 
@@ -512,7 +504,7 @@ export async function registerKnowledgeBaseRoutes(
     try {
       const orgId = req.orgId;
       const userId = req.user?.id;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const { changeType, changeNotes } = req.body;
 
       if (!userId) {
@@ -543,7 +535,7 @@ export async function registerKnowledgeBaseRoutes(
   router.patch("/documents/:id/visibility", writeOperationRateLimit, async (req, res) => {
     try {
       const orgId = req.orgId;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const { visibility, allowedRoles } = req.body;
 
       if (!visibility || !["org", "private", "role-based"].includes(visibility)) {

@@ -22,7 +22,9 @@ import {
  *  (matches the `WS_TENANT_STRICT_MODE` env-flag pattern). */
 function parseOrgConnectionLimit(): number {
   const raw = process.env["WS_ORG_CONNECTION_LIMIT"];
-  if (!raw) {return 0;}
+  if (!raw) {
+    return 0;
+  }
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
@@ -72,6 +74,7 @@ class TelemetryThrottler {
     this.intervalId = setInterval(() => {
       this.flush();
     }, this.intervalMs);
+    this.intervalId.unref?.();
   }
 
   stop(): void {
@@ -164,11 +167,11 @@ interface UpgradeAuthRejection {
  *  middleware's dev-mock behaviour and land in `DEFAULT_ORG_ID`. In
  *  `REQUIRE_TENANT_AUTH=true` mode anonymous upgrades are rejected. */
 async function resolveUpgradeOrg(
-  req: IncomingMessage,
+  req: IncomingMessage
 ): Promise<UpgradeAuthResult | UpgradeAuthRejection> {
   const tenantAuth = requireTenantAuth();
 
-  if (process.env['NODE_ENV'] === "development" && !tenantAuth) {
+  if (process.env["NODE_ENV"] === "development" && !tenantAuth) {
     return { ok: true, orgId: DEFAULT_ORG_ID, userId: "dev-admin-user" };
   }
 
@@ -181,14 +184,18 @@ async function resolveUpgradeOrg(
     try {
       const u = new URL(req.url, "http://x");
       const t = u.searchParams.get("token");
-      if (t) {token = t;}
+      if (t) {
+        token = t;
+      }
     } catch {
       /* malformed url — fall through to no-token path */
     }
   }
 
   if (!token) {
-    if (tenantAuth) {return { ok: false, reason: "UNAUTHENTICATED" };}
+    if (tenantAuth) {
+      return { ok: false, reason: "UNAUTHENTICATED" };
+    }
     // Legacy single-tenant deployments: same posture as the HTTP path's
     // dev mock — land in the default org so existing single-instance
     // boots keep working when fan-out is off.
@@ -197,7 +204,9 @@ async function resolveUpgradeOrg(
 
   try {
     const session = await dbSystemAdminStorage.getAdminSessionByToken(hashSessionToken(token));
-    if (!session) {return { ok: false, reason: "INVALID_TOKEN" };}
+    if (!session) {
+      return { ok: false, reason: "INVALID_TOKEN" };
+    }
     if (new Date(session.expiresAt) < new Date()) {
       return { ok: false, reason: "SESSION_EXPIRED" };
     }
@@ -282,7 +291,7 @@ class TelemetryWebSocketServer {
         if (current >= cap) {
           log(
             `WebSocket upgrade rejected (org_cap_exceeded org=${auth.orgId} ` +
-              `current=${current} cap=${cap}) for ${clientId}`,
+              `current=${current} cap=${cap}) for ${clientId}`
           );
           recordWsConnectionRejected(auth.orgId, "cap_exceeded");
           try {
@@ -369,11 +378,13 @@ class TelemetryWebSocketServer {
       channel?: string;
       lastEventId?: string | null;
       lastEventIds?: Record<string, string> | null;
-    },
+    }
   ) {
     const messageHandlers: Record<string, () => void> = {
       subscribe: () => {
-        if (!message.channel) {return;}
+        if (!message.channel) {
+          return;
+        }
         const channel = message.channel;
         // Per-namespace cursor map: `{ [orgId]: lastEventId }`. The
         // client tracks (orgId, channel) cursors because legacy
@@ -387,7 +398,9 @@ class TelemetryWebSocketServer {
         const cursors: Record<string, string> = {};
         if (message.lastEventIds && typeof message.lastEventIds === "object") {
           for (const [orgId, id] of Object.entries(message.lastEventIds)) {
-            if (typeof id === "string" && id.length > 0) {cursors[orgId] = id;}
+            if (typeof id === "string" && id.length > 0) {
+              cursors[orgId] = id;
+            }
           }
         } else if (typeof message.lastEventId === "string" && message.lastEventId.length > 0) {
           cursors[client.orgId] = message.lastEventId;
@@ -425,7 +438,9 @@ class TelemetryWebSocketServer {
 
         for (const orgId of namespaces) {
           const cursor = cursors[orgId];
-          if (!cursor) {continue;}
+          if (!cursor) {
+            continue;
+          }
           this.replayToClient(client, orgId, channel, cursor).catch((err) => {
             log(`Replay failed for ${client.id}:${orgId}:${channel}: ${err}`);
             const state = client.delivery.get(deliveryKey(orgId, channel));
@@ -440,7 +455,9 @@ class TelemetryWebSocketServer {
         }
       },
       unsubscribe: () => {
-        if (!message.channel) {return;}
+        if (!message.channel) {
+          return;
+        }
         if (client.subscriptions.delete(message.channel)) {
           const channel = message.channel;
           client.delivery.delete(deliveryKey(client.orgId, channel));
@@ -477,7 +494,9 @@ class TelemetryWebSocketServer {
   private releaseFanoutSub(orgId: string, channel: string): void {
     const key = `${orgId}::${channel}`;
     const existing = this.fanoutSubs.get(key);
-    if (!existing) {return;}
+    if (!existing) {
+      return;
+    }
     existing.count -= 1;
     if (existing.count <= 0) {
       existing.unsubscribe();
@@ -540,9 +559,15 @@ class TelemetryWebSocketServer {
       // SYSTEM_ORG_ID namespace (where legacy broadcasts still land).
       // This keeps existing `broadcast()` call sites working while
       // future tenant-scoped publishers reach only their own clients.
-      if (event.orgId !== client.orgId && event.orgId !== SYSTEM_ORG_ID) {return;}
-      if (!client.subscriptions.has(event.channel)) {return;}
-      if (client.ws.readyState !== WebSocket.OPEN) {return;}
+      if (event.orgId !== client.orgId && event.orgId !== SYSTEM_ORG_ID) {
+        return;
+      }
+      if (!client.subscriptions.has(event.channel)) {
+        return;
+      }
+      if (client.ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
 
       const state = client.delivery.get(deliveryKey(event.orgId, event.channel));
       if (state?.replaying) {
@@ -562,11 +587,13 @@ class TelemetryWebSocketServer {
       return false;
     }
     const frame = JSON.stringify(
-      this.envelope(event.payload as BroadcastPayload, event.channel, event.eventId, event.orgId),
+      this.envelope(event.payload as BroadcastPayload, event.channel, event.eventId, event.orgId)
     );
     try {
       client.ws.send(frame);
-      if (state) {state.deliveredUpTo = event.eventId;}
+      if (state) {
+        state.deliveredUpTo = event.eventId;
+      }
       return true;
     } catch (error) {
       log(`Failed to send to client ${client.id}: ${error}`);
@@ -576,7 +603,9 @@ class TelemetryWebSocketServer {
 
   private drainBuffer(client: WebSocketClient, orgId: string, channel: string): void {
     const state = client.delivery.get(deliveryKey(orgId, channel));
-    if (!state) {return;}
+    if (!state) {
+      return;
+    }
     const pending = state.buffer;
     state.buffer = [];
     // Buffer is FIFO from arrival order, but the buffered events are
@@ -597,7 +626,7 @@ class TelemetryWebSocketServer {
     payload: BroadcastPayload,
     channel: string,
     eventId: string,
-    orgId: string,
+    orgId: string
   ): Record<string, unknown> {
     const base =
       payload && typeof payload === "object" && !Array.isArray(payload)
@@ -610,14 +639,16 @@ class TelemetryWebSocketServer {
     client: WebSocketClient,
     orgId: string,
     channel: string,
-    lastEventId: string,
+    lastEventId: string
   ): Promise<void> {
     try {
       const events = await this.fanout.replaySince(channel, orgId, lastEventId);
       if (events.length > 0) {
         log(`Replaying ${events.length} event(s) to ${client.id} on ${orgId}:${channel}`);
         for (const event of events) {
-          if (client.ws.readyState !== WebSocket.OPEN) {return;}
+          if (client.ws.readyState !== WebSocket.OPEN) {
+            return;
+          }
           // sendEvent dedupes against state.deliveredUpTo and advances
           // it, so a later live frame with the same id is a no-op.
           this.sendEvent(client, event);
@@ -924,17 +955,14 @@ export { TelemetryWebSocketServer };
 // Delegates to the singleton in ./websocket-server. Methods are no-ops if the
 // server isn't initialized yet, so callers never crash during early boot.
 import { getWebSocketServer as _getWebSocketServer } from "./websocket-server";
-export const wsServer: TelemetryWebSocketServer = new Proxy(
-  {} as TelemetryWebSocketServer,
-  {
-    get(_target, prop: string | symbol) {
-      const instance = _getWebSocketServer();
-      if (!instance) {
-        // Return a no-op function for any method access to keep runtime safe.
-        return () => undefined;
-      }
-      const value = (instance as object as Record<string | symbol, unknown>)[prop];
-      return typeof value === "function" ? value.bind(instance) : value;
-    },
+export const wsServer: TelemetryWebSocketServer = new Proxy({} as TelemetryWebSocketServer, {
+  get(_target, prop: string | symbol) {
+    const instance = _getWebSocketServer();
+    if (!instance) {
+      // Return a no-op function for any method access to keep runtime safe.
+      return () => undefined;
+    }
+    const value = (instance as object as Record<string | symbol, unknown>)[prop];
+    return typeof value === "function" ? value.bind(instance) : value;
   },
-);
+});

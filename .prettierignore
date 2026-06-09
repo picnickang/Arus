@@ -3,6 +3,7 @@ build
 .cache
 *.config.js
 *.config.ts
+*.wxs
 coverage
 dist
 dist-electron

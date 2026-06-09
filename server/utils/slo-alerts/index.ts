@@ -36,5 +36,28 @@ export { getSLOStatus } from "./status.js";
 import { cleanupOldBuckets } from "./calculations.js";
 import { checkSLOViolations } from "./violations.js";
 
-setInterval(cleanupOldBuckets, 60000);
-setInterval(() => checkSLOViolations(), 30000);
+const shouldStartSLOIntervals =
+  process.env["DISABLE_OBSERVABILITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test";
+
+let cleanupInterval: NodeJS.Timeout | undefined;
+let violationInterval: NodeJS.Timeout | undefined;
+
+if (shouldStartSLOIntervals) {
+  cleanupInterval = setInterval(cleanupOldBuckets, 60000);
+  violationInterval = setInterval(() => checkSLOViolations(), 30000);
+  cleanupInterval.unref?.();
+  violationInterval.unref?.();
+}
+
+export const _internals = {
+  stopIntervals() {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = undefined;
+    }
+    if (violationInterval) {
+      clearInterval(violationInterval);
+      violationInterval = undefined;
+    }
+  },
+};

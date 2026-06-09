@@ -13,6 +13,7 @@ const IP_TRACKING_CONSTANTS = {
 } as const;
 
 export const flaggedIPs: Map<string, IPSecurityInfo> = new Map();
+let cleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Cleanup stale IP entries periodically
@@ -35,10 +36,19 @@ function cleanupStaleEntries(): void {
   }
 }
 
-setInterval(cleanupStaleEntries, IP_TRACKING_CONSTANTS.CLEANUP_INTERVAL_MS);
+if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+  cleanupInterval = setInterval(cleanupStaleEntries, IP_TRACKING_CONSTANTS.CLEANUP_INTERVAL_MS);
+  cleanupInterval.unref?.();
+}
 
 /** Export for testing */
 export const _internals = {
   cleanupStaleEntries,
+  stopCleanupInterval: () => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+  },
   IP_TRACKING_CONSTANTS,
 };

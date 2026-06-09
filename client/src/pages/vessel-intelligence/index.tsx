@@ -1,7 +1,6 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ClipboardCheck, Layers, RefreshCw, Wrench } from "lucide-react";
-import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { SectionedVesselMap } from "./SectionedVesselMap";
-import { SECTION_MAP, type DiagramTypeKey, type VesselSectionMapDefinition } from "./registry";
+import { SECTION_MAP } from "./registry";
 import {
   AlertsPanel,
   DiagramRegistryPanel,
@@ -28,6 +26,7 @@ import {
 import { RegistryRouteScreen, isRegistryRoute } from "./registry-screens";
 import {
   belongsToVessel,
+  sectionMapDefinitionFromRegistry,
   statusText,
   toArray,
   vesselIdFor,
@@ -35,7 +34,6 @@ import {
   type VesselIntelligenceAlertRecord,
   type EquipmentRecord,
   type PdmDashboardRecord,
-  type RegistrySectionMapRecord,
   type RegistrySummaryRecord,
   type VesselRecord,
   type VesselIntelligenceWorkOrderRecord,
@@ -59,22 +57,6 @@ interface VesselIntelligencePageProps {
   diagramId?: string;
   mapId?: string;
 }
-
-interface HubTab {
-  value: HubMode;
-  label: string;
-}
-
-const HUB_TABS: HubTab[] = [
-  { value: "overview", label: "Overview" },
-  { value: "sections", label: "Sections" },
-  { value: "maintenance", label: "Maintenance" },
-  { value: "alerts", label: "Alerts" },
-  { value: "performance", label: "Performance" },
-  { value: "reports", label: "Reports" },
-  { value: "diagrams", label: "Diagrams" },
-  { value: "settings", label: "Settings" },
-];
 
 function modeFromPath(path: string): HubMode {
   const target = new URLSearchParams(path.split("?")[1] ?? "").get("target");
@@ -118,32 +100,6 @@ function pathForMode(vesselId: string, mode: HubMode): string {
     return vesselId ? `${root}/overview` : root;
   }
   return `${root}/${mode}`;
-}
-
-function sectionMapFromRegistry(
-  map: RegistrySectionMapRecord | null | undefined
-): VesselSectionMapDefinition | null {
-  if (!map || map.coordinateMode !== "normalized_percent" || map.sections.length === 0) {
-    return null;
-  }
-  return {
-    coordinateMode: "normalized_percent",
-    diagramWidth: map.diagramWidth,
-    diagramHeight: map.diagramHeight,
-    diagramKind: (map.diagramKind || "side_elevation") as DiagramTypeKey,
-    sections: map.sections.map((section) => ({
-      sectionNo: section.sectionNo,
-      sectionKey: section.sectionKey,
-      name: section.name,
-      color: section.color,
-      polygonNormalized: section.polygonNormalized,
-      labelNormalized: section.labelNormalized,
-      equipment: section.equipment.map((assignment) => assignment.equipmentName),
-      thumbnailFallback:
-        section.thumbnailFallback ??
-        "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
-    })),
-  };
 }
 
 export default function VesselIntelligencePage({
@@ -209,10 +165,9 @@ export default function VesselIntelligencePage({
     enabled: Boolean(selectedVesselId),
   });
 
-  const activeSectionMap =
-    sectionMapFromRegistry(registryQuery.data?.activeSectionMap) ??
-    sectionMapFromRegistry(registryQuery.data?.sectionMaps[0]) ??
-    SECTION_MAP;
+  const activeSectionMapRecord =
+    registryQuery.data?.activeSectionMap ?? registryQuery.data?.sectionMaps[0];
+  const activeSectionMap = sectionMapDefinitionFromRegistry(activeSectionMapRecord) ?? SECTION_MAP;
   const activeDiagram = registryQuery.data?.activeDiagram;
   const activeDiagramBaseUrl =
     selectedVesselId && activeDiagram?.id && activeDiagram.activeVersionId
@@ -252,242 +207,267 @@ export default function VesselIntelligencePage({
 
   if (selectedVesselId && isRegistryRoute(location)) {
     return (
-      <RegistryRouteScreen
-        vesselId={selectedVesselId}
-        diagramId={diagramId}
-        mapId={mapId}
-        vessels={vessels}
-        selectedVessel={selectedVessel}
-        equipment={vesselEquipment}
-        onSelectVessel={(nextVesselId) => setLocation(`/vessel-intelligence/${nextVesselId}/diagrams`)}
-      />
+      <div className="mx-auto max-w-7xl space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Badge variant="secondary">Fleet</Badge>
+            <h1 className="mt-2 text-2xl font-semibold tracking-normal">
+              Replaceable Diagram Registry
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Versioned vessel schematics, section maps, and thumbnail overrides.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={selectedVesselId}
+              onValueChange={(nextVesselId) =>
+                setLocation(`/vessel-intelligence/${nextVesselId}/diagrams`)
+              }
+              disabled={vessels.length === 0}
+            >
+              <SelectTrigger className="h-9 w-56" data-testid="select-vessel-intelligence-vessel">
+                <SelectValue placeholder="Select vessel" />
+              </SelectTrigger>
+              <SelectContent>
+                {vessels.map((vessel) => {
+                  const id = vesselIdFor(vessel);
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {vesselNameFor(vessel)}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void registryQuery.refetch();
+                void equipmentQuery.refetch();
+              }}
+              data-testid="button-refresh-vessel-registry"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </div>
+        <RegistryRouteScreen
+          vesselId={selectedVesselId}
+          diagramId={diagramId}
+          mapId={mapId}
+          selectedVessel={selectedVessel}
+          equipment={vesselEquipment}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="vessel-intelligence-hub">
-      <PageHeader
-        title="Vessel Intelligence"
-        subtitle="Live vessel data, section maps, equipment context, and replaceable diagram registry"
-        action={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void vesselsQuery.refetch();
-              void equipmentQuery.refetch();
-              void workOrdersQuery.refetch();
-              void alertsQuery.refetch();
-              void pdmQuery.refetch();
-            }}
-            data-testid="button-refresh-vessel-intelligence"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-        }
-      />
-
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-5 lg:px-6">
-        {liveDataError && (
-          <div
-            className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
-            data-testid="vessel-intelligence-data-error"
-          >
-            Some live ARUS data did not load. The design registry still renders, but operational
-            counts may be incomplete.
-          </div>
-        )}
-
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="rounded-md border p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <Badge variant="secondary">Full Hub v2</Badge>
-                <h1 className="mt-3 text-2xl font-semibold tracking-normal">
-                  {vesselNameFor(selectedVessel)}
-                </h1>
-                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-                  Consolidates fleet technical triage, sectioned vessel maps, equipment health,
-                  maintenance, alerts, reports, and diagram administration without replacing crew,
-                  logistics, inventory, safety, system admin, or user dashboards.
-                </p>
-              </div>
-
-              <div className="w-full md:w-72">
-                <label className="mb-2 block text-xs font-medium uppercase text-muted-foreground">
-                  Vessel
-                </label>
-                <Select
-                  value={selectedVesselId}
-                  onValueChange={handleSelectVessel}
-                  disabled={vessels.length === 0}
-                >
-                  <SelectTrigger data-testid="select-vessel-intelligence-vessel">
-                    <SelectValue placeholder="No vessels available" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vessels.map((vessel) => {
-                      const id = vesselIdFor(vessel);
-                      return (
-                        <SelectItem key={id} value={id}>
-                          {vesselNameFor(vessel)}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Tabs
-              value={mode}
-              onValueChange={(value) =>
-                setLocation(pathForMode(selectedVesselId, value as HubMode))
-              }
-              className="mt-5"
-            >
-              <TabsList
-                className="h-auto w-full justify-start overflow-x-auto"
-                data-testid="vessel-intelligence-tabs"
-              >
-                {HUB_TABS.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-
-          <div className="rounded-md border p-4" data-testid="vessel-intelligence-data-sources">
-            <h2 className="text-sm font-semibold">Live source bindings</h2>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Vessels</span>
-                <span>{vesselsQuery.isLoading ? "Loading" : `${vessels.length} records`}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Equipment</span>
-                <span>
-                  {equipmentQuery.isLoading ? "Loading" : `${vesselEquipment.length} linked`}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Work orders</span>
-                <span>
-                  {workOrdersQuery.isLoading ? "Loading" : `${vesselWorkOrders.length} linked`}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Alerts</span>
-                <span>{alertsQuery.isLoading ? "Loading" : `${vesselAlerts.length} linked`}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">PdM</span>
-                <span>{pdmStatusLabel}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Registry</span>
-                <span>
-                  {registryQuery.isLoading
-                    ? "Loading"
-                    : `${registryQuery.data?.sectionMaps.length ?? 0} maps`}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-          data-testid="vessel-intelligence-metrics"
+    <div className="mx-auto max-w-7xl space-y-6" data-testid="vessel-intelligence-hub">
+      {liveDataError && (
+        <div
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+          data-testid="vessel-intelligence-data-error"
         >
-          <MetricPanel
-            label="Registry sections"
-            value={activeSectionMap.sections.length}
-            icon={Layers}
-            note={
-              registryQuery.data?.activeSectionMap
-                ? "From published section map API"
-                : "Design package fallback until a map is published"
-            }
-            testId="metric-section-count"
-          />
-          <MetricPanel
-            label="Linked equipment"
-            value={vesselEquipment.length}
-            icon={Wrench}
-            note="From /api/equipment for the selected vessel"
-            testId="metric-equipment-count"
-          />
-          <MetricPanel
-            label="Open technical work"
-            value={vesselWorkOrders.length}
-            icon={ClipboardCheck}
-            note="From /api/work-orders without fabricated counts"
-            testId="metric-work-order-count"
-          />
-          <MetricPanel
-            label="Active alerts"
-            value={vesselAlerts.length}
-            icon={AlertTriangle}
-            note="From /api/alerts for operational triage"
-            testId="metric-alert-count"
-          />
-        </section>
+          Some live ARUS data did not load. The design registry still renders, but operational
+          counts may be incomplete.
+        </div>
+      )}
 
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-          <div className="rounded-md border p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Sectioned Vessel Map</h2>
-                <p className="text-sm text-muted-foreground">
-                  Editable normalized polygons from the supplied Full Hub v2 package.
-                </p>
-              </div>
-              <Badge variant="outline">{statusText(activeSectionMap.diagramKind)}</Badge>
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 rounded-md border p-4">
+          <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <Badge variant="secondary">Full Hub v2</Badge>
+              <h1 className="mt-3 text-2xl font-semibold tracking-normal">
+                {vesselNameFor(selectedVessel)}
+              </h1>
+              <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                Consolidates fleet technical triage, sectioned vessel maps, equipment health,
+                maintenance, alerts, reports, and diagram administration without replacing crew,
+                logistics, inventory, safety, system admin, or user dashboards.
+              </p>
             </div>
-            <SectionedVesselMap
-              sectionMap={activeSectionMap}
-              selectedSectionKey={selectedSectionKey}
-              baseImageUrl={activeDiagramBaseUrl}
-              onSelectSection={handleSelectSection}
-            />
-          </div>
 
-          <div className="space-y-4">
-            <DiagramRegistryPanel
-              selectedVesselId={selectedVesselId}
-              diagrams={registryQuery.data?.diagrams ?? []}
-              buildPath={buildPath}
-              canManageDiagrams={canManageDiagrams}
-            />
-            <EquipmentMappingPanel
-              selectedVesselId={selectedVesselId}
-              vesselEquipment={vesselEquipment}
-              sectionMap={activeSectionMap}
-              buildPath={buildPath}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={selectedVesselId}
+                onValueChange={handleSelectVessel}
+                disabled={vessels.length === 0}
+              >
+                <SelectTrigger className="h-9 w-56" data-testid="select-vessel-intelligence-vessel">
+                  <SelectValue placeholder="Select vessel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vessels.map((vessel) => {
+                    const id = vesselIdFor(vessel);
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {vesselNameFor(vessel)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void vesselsQuery.refetch();
+                  void equipmentQuery.refetch();
+                  void workOrdersQuery.refetch();
+                  void alertsQuery.refetch();
+                  void pdmQuery.refetch();
+                }}
+                data-testid="button-refresh-vessel-intelligence"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+              <Badge variant="outline">{mode}</Badge>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <WorkOrdersPanel
+        <div
+          className="min-w-0 rounded-md border p-4"
+          data-testid="vessel-intelligence-data-sources"
+        >
+          <h2 className="text-sm font-semibold">Live source bindings</h2>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Vessels</span>
+              <span>{vesselsQuery.isLoading ? "Loading" : `${vessels.length} records`}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Equipment</span>
+              <span>
+                {equipmentQuery.isLoading ? "Loading" : `${vesselEquipment.length} linked`}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Work orders</span>
+              <span>
+                {workOrdersQuery.isLoading ? "Loading" : `${vesselWorkOrders.length} linked`}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Alerts</span>
+              <span>{alertsQuery.isLoading ? "Loading" : `${vesselAlerts.length} linked`}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">PdM</span>
+              <span>{pdmStatusLabel}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Registry</span>
+              <span>
+                {registryQuery.isLoading
+                  ? "Loading"
+                  : `${registryQuery.data?.sectionMaps.length ?? 0} maps`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4"
+        data-testid="vessel-intelligence-metrics"
+      >
+        <MetricPanel
+          label="Registry sections"
+          value={activeSectionMap.sections.length}
+          icon={Layers}
+          note={
+            registryQuery.data?.activeSectionMap
+              ? "From published section map API"
+              : "Design package fallback until a map is published"
+          }
+          testId="metric-section-count"
+        />
+        <MetricPanel
+          label="Linked equipment"
+          value={vesselEquipment.length}
+          icon={Wrench}
+          note="From /api/equipment for the selected vessel"
+          testId="metric-equipment-count"
+        />
+        <MetricPanel
+          label="Open technical work"
+          value={vesselWorkOrders.length}
+          icon={ClipboardCheck}
+          note="From /api/work-orders without fabricated counts"
+          testId="metric-work-order-count"
+        />
+        <MetricPanel
+          label="Active alerts"
+          value={vesselAlerts.length}
+          icon={AlertTriangle}
+          note="From /api/alerts for operational triage"
+          testId="metric-alert-count"
+        />
+      </section>
+
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+        <div className="min-w-0 rounded-md border p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Sectioned Vessel Map</h2>
+              <p className="text-sm text-muted-foreground">
+                Editable normalized polygons from the supplied Full Hub v2 package.
+              </p>
+            </div>
+            <Badge variant="outline">{statusText(activeSectionMap.diagramKind)}</Badge>
+          </div>
+          <SectionedVesselMap
+            sectionMap={activeSectionMap}
+            selectedSectionKey={selectedSectionKey}
+            baseImageUrl={activeDiagramBaseUrl}
+            vesselEquipment={vesselEquipment}
+            manageAssignmentsHref={
+              selectedVesselId && activeSectionMapRecord?.id
+                ? `/vessel-intelligence/${selectedVesselId}/section-maps/${activeSectionMapRecord.id}/edit`
+                : undefined
+            }
+            onSelectSection={handleSelectSection}
+          />
+        </div>
+
+        <div className="min-w-0 space-y-4">
+          <DiagramRegistryPanel
             selectedVesselId={selectedVesselId}
-            vesselWorkOrders={vesselWorkOrders}
+            diagrams={registryQuery.data?.diagrams ?? []}
+            buildPath={buildPath}
+            canManageDiagrams={canManageDiagrams}
+          />
+          <EquipmentMappingPanel
+            selectedVesselId={selectedVesselId}
+            vesselEquipment={vesselEquipment}
+            sectionMap={activeSectionMap}
             buildPath={buildPath}
           />
-          <AlertsPanel vesselAlerts={vesselAlerts} buildPath={buildPath} />
-          <ReportsPanel
-            pdmUnavailable={pdmQuery.isError}
-            buildPath={buildPath}
-            canManageRegistry={canManageRegistry}
-          />
-        </section>
+        </div>
+      </section>
 
-        {canManageRegistry && <RegistryAdministrationPanels />}
-      </div>
+      <section className="grid min-w-0 gap-4 lg:grid-cols-3">
+        <WorkOrdersPanel
+          selectedVesselId={selectedVesselId}
+          vesselWorkOrders={vesselWorkOrders}
+          buildPath={buildPath}
+        />
+        <AlertsPanel vesselAlerts={vesselAlerts} buildPath={buildPath} />
+        <ReportsPanel
+          pdmUnavailable={pdmQuery.isError}
+          buildPath={buildPath}
+          canManageRegistry={canManageRegistry}
+        />
+      </section>
+
+      {canManageRegistry && <RegistryAdministrationPanels />}
     </div>
   );
 }

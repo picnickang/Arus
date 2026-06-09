@@ -194,7 +194,7 @@ export const navigationCategories: NavigationCategory[] = [
     id: "fleet",
     name: "Fleet",
     icon: Ship,
-    hubRoute: "/vessel-intelligence",
+    hubRoute: "/fleet",
     description: "Vessel intelligence, diagrams, and technical equipment context",
     children: [
       {
@@ -482,8 +482,7 @@ export const routeMigrations: Record<string, string> = {
   "/outbox": "/offline-outbox",
   "/sync-outbox": "/offline-outbox",
   "/compliance/findings": "/logs/compliance?tab=findings",
-  "/fleet": "/vessel-intelligence",
-  "/fleet-map": "/vessel-intelligence/fleet",
+  "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",
   "/pdm": "/vessel-intelligence?target=overview",
   "/pdm-analytics": "/vessel-intelligence?target=performance",

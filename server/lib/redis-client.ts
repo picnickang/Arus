@@ -28,7 +28,10 @@ class RedisClientFactory {
   private constructor(options: RedisClientOptions = {}) {
     this.connectTimeout = options.connectTimeout ?? 250;
     this.circuitBreakerCooldownMs = options.circuitBreakerCooldownMs ?? 60000;
-    this.enabled = process.env['REDIS_ENABLED'] !== "false";
+    this.enabled =
+      process.env["REDIS_ENABLED"] !== "false" &&
+      process.env["DISABLE_REDIS"] !== "true" &&
+      process.env["NODE_ENV"] !== "test";
   }
 
   static getInstance(options?: RedisClientOptions): RedisClientFactory {
@@ -79,9 +82,9 @@ class RedisClientFactory {
   }
 
   private async connect(): Promise<Redis | null> {
-    const host = process.env['REDIS_HOST'] || "localhost";
-    const port = parseInt(process.env['REDIS_PORT'] || "6379", 10);
-    const password = process.env['REDIS_PASSWORD'];
+    const host = process.env["REDIS_HOST"] || "localhost";
+    const port = parseInt(process.env["REDIS_PORT"] || "6379", 10);
+    const password = process.env["REDIS_PASSWORD"];
 
     this.status = "connecting";
 

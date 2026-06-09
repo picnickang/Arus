@@ -146,8 +146,13 @@ type SafeCallResult<T> = {
   error?: string;
 };
 
-const WORKFLOW_DATA_DIR = process.env['ARUS_WORKFLOW_DATA_DIR'] || path.resolve(process.cwd(), "data", "workflow");
-const WORKFLOW_STATE_FILE = path.join(WORKFLOW_DATA_DIR, "attention-workflow-state.json");
+function getWorkflowDataDir(): string {
+  return process.env["ARUS_WORKFLOW_DATA_DIR"] || path.resolve(process.cwd(), "data", "workflow");
+}
+
+function getWorkflowStateFile(): string {
+  return path.join(getWorkflowDataDir(), "attention-workflow-state.json");
+}
 
 function emptyState(): WorkflowState {
   return { handovers: [], blockerResolutions: [], issueReports: [] };
@@ -155,7 +160,7 @@ function emptyState(): WorkflowState {
 
 async function readWorkflowState(): Promise<WorkflowState> {
   try {
-    const raw = await readFile(WORKFLOW_STATE_FILE, "utf8");
+    const raw = await readFile(getWorkflowStateFile(), "utf8");
     const parsed = JSON.parse(raw) as Partial<WorkflowState>;
     return {
       handovers: Array.isArray(parsed.handovers) ? parsed.handovers : [],
@@ -172,8 +177,8 @@ async function readWorkflowState(): Promise<WorkflowState> {
 }
 
 async function writeWorkflowState(state: WorkflowState): Promise<void> {
-  await mkdir(WORKFLOW_DATA_DIR, { recursive: true });
-  await writeFile(WORKFLOW_STATE_FILE, JSON.stringify(state, null, 2), "utf8");
+  await mkdir(getWorkflowDataDir(), { recursive: true });
+  await writeFile(getWorkflowStateFile(), JSON.stringify(state, null, 2), "utf8");
 }
 
 function latestBy<T>(items: T[], dateGetter: (item: T) => string | undefined): T[] {
@@ -225,8 +230,14 @@ function asDate(value: unknown): Date | null {
 }
 
 function isClosedStatus(status: unknown): boolean {
-  const normalized = String(status ?? "").toLowerCase().replace(/[_-]/g, " ");
-  return normalized.includes("complete") || normalized.includes("closed") || normalized.includes("cancel");
+  const normalized = String(status ?? "")
+    .toLowerCase()
+    .replace(/[_-]/g, " ");
+  return (
+    normalized.includes("complete") ||
+    normalized.includes("closed") ||
+    normalized.includes("cancel")
+  );
 }
 
 function isOpenStatus(status: unknown): boolean {
@@ -234,8 +245,12 @@ function isOpenStatus(status: unknown): boolean {
 }
 
 function isReadyToClose(status: unknown): boolean {
-  const normalized = String(status ?? "").toLowerCase().replace(/[_-]/g, " ");
-  return normalized.includes("ready") || normalized.includes("verify") || normalized.includes("review");
+  const normalized = String(status ?? "")
+    .toLowerCase()
+    .replace(/[_-]/g, " ");
+  return (
+    normalized.includes("ready") || normalized.includes("verify") || normalized.includes("review")
+  );
 }
 
 function isDueToday(dueDate: unknown, now = new Date()): boolean {
@@ -260,7 +275,12 @@ function isOverdue(dueDate: unknown, status: unknown, now = new Date()): boolean
 
 function severityForPriority(priority: unknown): WorkflowSeverity {
   const normalized = String(priority ?? "").toLowerCase();
-  if (priority === 1 || normalized === "1" || normalized === "critical" || normalized === "urgent") {
+  if (
+    priority === 1 ||
+    normalized === "1" ||
+    normalized === "critical" ||
+    normalized === "urgent"
+  ) {
     return "critical";
   }
   if (priority === 2 || normalized === "2" || normalized === "high") {
@@ -278,24 +298,30 @@ function dateLabel(value: unknown): string {
 }
 
 function getEquipmentName(workOrder: RecordLike): string {
-  const direct = asString(workOrder['equipmentName']) || asString(workOrder['equipmentId']);
-  const equipment = workOrder['equipment'];
+  const direct = asString(workOrder["equipmentName"]) || asString(workOrder["equipmentId"]);
+  const equipment = workOrder["equipment"];
   if (direct) {
     return direct;
   }
   if (isRecord(equipment)) {
-    return asString(equipment['name']) || "Unassigned equipment";
+    return asString(equipment["name"]) || "Unassigned equipment";
   }
   return "Unassigned equipment";
 }
 
 function workOrderTitle(workOrder: RecordLike): string {
-  return asString(workOrder['title']) || asString(workOrder['description']) || `Work order ${asString(workOrder['id']) ?? "unknown"}`;
+  return (
+    asString(workOrder["title"]) ||
+    asString(workOrder["description"]) ||
+    `Work order ${asString(workOrder["id"]) ?? "unknown"}`
+  );
 }
 
 function isPartsBlocker(reason: string | null | undefined): boolean {
   const normalized = reason?.toLowerCase() ?? "";
-  return normalized.includes("part") || normalized.includes("stock") || normalized.includes("inventory");
+  return (
+    normalized.includes("part") || normalized.includes("stock") || normalized.includes("inventory")
+  );
 }
 
 function blockerQueue(reason: string | null): WorkflowQueueId {
@@ -323,7 +349,9 @@ function sourceHealth(results: {
   };
 }
 
-function resolutionSummary(record: BlockerResolutionRecord | undefined): BlockerResolutionSummary | null {
+function resolutionSummary(
+  record: BlockerResolutionRecord | undefined
+): BlockerResolutionSummary | null {
   if (!record) {
     return null;
   }
@@ -337,9 +365,15 @@ function resolutionSummary(record: BlockerResolutionRecord | undefined): Blocker
 }
 
 function issueHref(target: IssueReportRecord["target"], issueId: string): string {
-  if (target === "work_order") {return `/work-orders?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
-  if (target === "finding") {return `/findings?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
-  if (target === "log_note") {return `/logs/deck?flow=report-issue&issueId=${encodeURIComponent(issueId)}`;}
+  if (target === "work_order") {
+    return `/work-orders?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
+  }
+  if (target === "finding") {
+    return `/findings?action=create&flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
+  }
+  if (target === "log_note") {
+    return `/logs/deck?flow=report-issue&issueId=${encodeURIComponent(issueId)}`;
+  }
   return `/attention-inbox?view=handover&issueId=${encodeURIComponent(issueId)}`;
 }
 
@@ -347,13 +381,14 @@ export class AttentionWorkflowService {
   constructor(private readonly sources: AttentionWorkflowSources) {}
 
   async getWorkflow(orgId: string): Promise<AttentionWorkflowResponse> {
-    const [alertResult, workOrderResult, equipmentResult, lowStockResult, workflowState] = await Promise.all([
-      safeCall("alerts", () => this.sources.alerts.getAlertNotifications(orgId)),
-      safeCall("work-orders", () => this.sources.workOrders.getWorkOrders(orgId)),
-      safeCall("equipment", () => this.sources.equipment.getEquipmentRegistry(orgId)),
-      safeCall("low-stock", () => this.sources.inventory.getLowStockParts(orgId)),
-      readWorkflowState(),
-    ]);
+    const [alertResult, workOrderResult, equipmentResult, lowStockResult, workflowState] =
+      await Promise.all([
+        safeCall("alerts", () => this.sources.alerts.getAlertNotifications(orgId)),
+        safeCall("work-orders", () => this.sources.workOrders.getWorkOrders(orgId)),
+        safeCall("equipment", () => this.sources.equipment.getEquipmentRegistry(orgId)),
+        safeCall("low-stock", () => this.sources.inventory.getLowStockParts(orgId)),
+        readWorkflowState(),
+      ]);
 
     const alertData = alertResult.data;
     const workOrderData = workOrderResult.data;
@@ -377,16 +412,20 @@ export class AttentionWorkflowService {
       }
     });
 
-    const openWorkOrders = workOrders.filter((wo) => isOpenStatus(wo['status']));
-    const completedWorkOrders = workOrders.filter((wo) => isClosedStatus(wo['status']));
-    const blockedWorkOrders = openWorkOrders.filter((wo) => Boolean(asString(wo['blockedReason'])));
-    const waitingParts = blockedWorkOrders.filter((wo) => isPartsBlocker(asString(wo['blockedReason'])));
-    const nonPartsBlocked = blockedWorkOrders.filter((wo) => !isPartsBlocker(asString(wo['blockedReason'])));
-    const dueToday = openWorkOrders.filter((wo) => isDueToday(wo['dueDate'], now));
-    const overdue = openWorkOrders.filter((wo) => isOverdue(wo['dueDate'], wo['status'], now));
-    const readyToClose = openWorkOrders.filter((wo) => isReadyToClose(wo['status']));
+    const openWorkOrders = workOrders.filter((wo) => isOpenStatus(wo["status"]));
+    const completedWorkOrders = workOrders.filter((wo) => isClosedStatus(wo["status"]));
+    const blockedWorkOrders = openWorkOrders.filter((wo) => Boolean(asString(wo["blockedReason"])));
+    const waitingParts = blockedWorkOrders.filter((wo) =>
+      isPartsBlocker(asString(wo["blockedReason"]))
+    );
+    const nonPartsBlocked = blockedWorkOrders.filter(
+      (wo) => !isPartsBlocker(asString(wo["blockedReason"]))
+    );
+    const dueToday = openWorkOrders.filter((wo) => isDueToday(wo["dueDate"], now));
+    const overdue = openWorkOrders.filter((wo) => isOverdue(wo["dueDate"], wo["status"], now));
+    const readyToClose = openWorkOrders.filter((wo) => isReadyToClose(wo["status"]));
     const highRiskEquipment = equipment.filter((eq) => {
-      const risk = String(eq['riskLevel'] ?? eq['risk'] ?? "").toLowerCase();
+      const risk = String(eq["riskLevel"] ?? eq["risk"] ?? "").toLowerCase();
       return risk === "high" || risk === "critical";
     });
 
@@ -410,15 +449,17 @@ export class AttentionWorkflowService {
     }
 
     highRiskEquipment.slice(0, 6).forEach((eq) => {
-      const id = asString(eq['id']) ?? asString(eq['equipmentId']) ?? asString(eq['name']) ?? randomUUID();
-      const risk = String(eq['riskLevel'] ?? eq['risk'] ?? "high").toLowerCase();
+      const id =
+        asString(eq["id"]) ?? asString(eq["equipmentId"]) ?? asString(eq["name"]) ?? randomUUID();
+      const risk = String(eq["riskLevel"] ?? eq["risk"] ?? "high").toLowerCase();
       items.push({
         id: `equipment-risk-${id}`,
         type: "equipment",
         sourceId: id,
-        title: `${asString(eq['name']) ?? "Equipment"} risk is ${risk}`,
+        title: `${asString(eq["name"]) ?? "Equipment"} risk is ${risk}`,
         source: "Equipment intelligence",
-        whyItMatters: "High-risk equipment should be converted into an inspection, maintenance, or deferment decision.",
+        whyItMatters:
+          "High-risk equipment should be converted into an inspection, maintenance, or deferment decision.",
         recommendedAction: "Review evidence and create an inspection work order where needed.",
         owner: "Chief Engineer",
         due: risk === "critical" ? "Now" : "Within 24 hours",
@@ -430,7 +471,7 @@ export class AttentionWorkflowService {
     });
 
     overdue.slice(0, 8).forEach((wo) => {
-      const id = asString(wo['id']) ?? randomUUID();
+      const id = asString(wo["id"]) ?? randomUUID();
       items.push({
         id: `wo-overdue-${id}`,
         type: "work_order",
@@ -439,18 +480,18 @@ export class AttentionWorkflowService {
         source: getEquipmentName(wo),
         whyItMatters: "This work is overdue and may create safety, reliability, or audit exposure.",
         recommendedAction: "Escalate, assign an owner, complete, or defer with a reason.",
-        owner: asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Chief Engineer",
-        due: dateLabel(wo['dueDate']),
+        owner: asString(wo["assignedToName"]) || asString(wo["assignedCrewId"]) || "Chief Engineer",
+        due: dateLabel(wo["dueDate"]),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=overdue`,
         severity: "critical",
         queue: "overdue",
-        status: asString(wo['status']) ?? null,
+        status: asString(wo["status"]) ?? null,
       });
     });
 
     blockedWorkOrders.slice(0, 8).forEach((wo) => {
-      const id = asString(wo['id']) ?? randomUUID();
-      const reason = asString(wo['blockedReason']) ?? "Missing blocker reason";
+      const id = asString(wo["id"]) ?? randomUUID();
+      const reason = asString(wo["blockedReason"]) ?? "Missing blocker reason";
       const queue = blockerQueue(reason);
       const lastResolution = resolutionSummary(latestResolutions.get(id));
       if (lastResolution?.status === "unblocked") {
@@ -467,19 +508,24 @@ export class AttentionWorkflowService {
           queue === "waiting_parts"
             ? "Check stock, create purchase request, or update part ETA."
             : "Resolve blocker or update owner/ETA.",
-        owner: lastResolution?.owner || asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Assigned owner",
-        due: lastResolution?.eta || dateLabel(wo['dueDate']),
+        owner:
+          lastResolution?.owner ||
+          asString(wo["assignedToName"]) ||
+          asString(wo["assignedCrewId"]) ||
+          "Assigned owner",
+        due: lastResolution?.eta || dateLabel(wo["dueDate"]),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=resolve-blocker`,
-        severity: (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "critical",
+        severity:
+          (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "critical",
         queue,
-        status: asString(wo['status']) ?? null,
+        status: asString(wo["status"]) ?? null,
         blockerReason: reason,
         lastResolution,
       });
     });
 
     dueToday.slice(0, 8).forEach((wo) => {
-      const id = asString(wo['id']) ?? randomUUID();
+      const id = asString(wo["id"]) ?? randomUUID();
       if (items.some((item) => item.sourceId === id && item.type === "work_order")) {
         return;
       }
@@ -491,17 +537,17 @@ export class AttentionWorkflowService {
         source: getEquipmentName(wo),
         whyItMatters: "Due today and should be completed or deferred before handover.",
         recommendedAction: "Complete, assign, or defer with a reason.",
-        owner: asString(wo['assignedToName']) || asString(wo['assignedCrewId']) || "Assigned owner",
+        owner: asString(wo["assignedToName"]) || asString(wo["assignedCrewId"]) || "Assigned owner",
         due: "Today",
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=due-today`,
-        severity: severityForPriority(wo['priority']),
+        severity: severityForPriority(wo["priority"]),
         queue: "due_today",
-        status: asString(wo['status']) ?? null,
+        status: asString(wo["status"]) ?? null,
       });
     });
 
     readyToClose.slice(0, 8).forEach((wo) => {
-      const id = asString(wo['id']) ?? randomUUID();
+      const id = asString(wo["id"]) ?? randomUUID();
       if (items.some((item) => item.sourceId === id && item.type === "work_order")) {
         return;
       }
@@ -514,17 +560,18 @@ export class AttentionWorkflowService {
         whyItMatters: "The job appears ready for verification or supervisor closeout.",
         recommendedAction: "Review evidence, request corrections, or close the work order.",
         owner: "Supervisor",
-        due: dateLabel(wo['dueDate']),
+        due: dateLabel(wo["dueDate"]),
         href: `/work-orders?id=${encodeURIComponent(id)}&workflow=closeout`,
         severity: "info",
         queue: "ready_to_close",
-        status: asString(wo['status']) ?? null,
+        status: asString(wo["status"]) ?? null,
       });
     });
 
     lowStock.slice(0, 6).forEach((part) => {
-      const id = asString(part['id']) ?? asString(part['partId']) ?? randomUUID();
-      const name = asString(part['name']) || asString(part['partName']) || asString(part['partNo']) || "Part";
+      const id = asString(part["id"]) ?? asString(part["partId"]) ?? randomUUID();
+      const name =
+        asString(part["name"]) || asString(part["partName"]) || asString(part["partNo"]) || "Part";
       const lastResolution = resolutionSummary(latestResolutions.get(id));
       if (lastResolution?.status === "unblocked") {
         return;
@@ -540,7 +587,8 @@ export class AttentionWorkflowService {
         owner: lastResolution?.owner || "Logistics",
         due: lastResolution?.eta || "Before next maintenance window",
         href: `/logistics?tab=inventory&partId=${encodeURIComponent(id)}&workflow=low-stock`,
-        severity: (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "warning",
+        severity:
+          (lastResolution?.status as string | undefined) === "unblocked" ? "info" : "warning",
         queue: "waiting_parts",
         status: "low_stock",
         lastResolution,
@@ -548,7 +596,12 @@ export class AttentionWorkflowService {
     });
 
     const sortedItems = items.sort((a, b) => {
-      const rank: Record<WorkflowSeverity, number> = { critical: 0, warning: 1, info: 2, success: 3 };
+      const rank: Record<WorkflowSeverity, number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+        success: 3,
+      };
       return rank[a.severity] - rank[b.severity];
     });
 
@@ -634,7 +687,9 @@ export class AttentionWorkflowService {
       readyForCloseout: readyToClose.length,
       openWorkOrders: openWorkOrders.length,
       lowStockParts: lowStock.length,
-      suggestedSummary: sortedItems.slice(0, 5).map((item) => `${item.title}: ${item.recommendedAction}`),
+      suggestedSummary: sortedItems
+        .slice(0, 5)
+        .map((item) => `${item.title}: ${item.recommendedAction}`),
     };
 
     return {
@@ -653,10 +708,12 @@ export class AttentionWorkflowService {
 
   async getLatestHandover(orgId: string): Promise<HandoverRecord | null> {
     const state = await readWorkflowState();
-    return latestBy(
-      state.handovers.filter((record) => record.orgId === orgId),
-      (record) => record.savedAt
-    )[0] ?? null;
+    return (
+      latestBy(
+        state.handovers.filter((record) => record.orgId === orgId),
+        (record) => record.savedAt
+      )[0] ?? null
+    );
   }
 
   async listHandovers(orgId: string, limit = 20): Promise<HandoverRecord[]> {
@@ -669,7 +726,13 @@ export class AttentionWorkflowService {
 
   async saveHandover(
     orgId: string,
-    input: { note: unknown; watchLabel?: unknown; generatedSummary?: unknown; itemIds?: unknown; status?: unknown },
+    input: {
+      note: unknown;
+      watchLabel?: unknown;
+      generatedSummary?: unknown;
+      itemIds?: unknown;
+      status?: unknown;
+    },
     authorId?: string
   ): Promise<HandoverRecord> {
     const state = await readWorkflowState();
@@ -679,7 +742,9 @@ export class AttentionWorkflowService {
       note: cleanString(input.note),
       watchLabel: cleanString(input.watchLabel) || undefined,
       generatedSummary: cleanString(input.generatedSummary),
-      itemIds: Array.isArray(input.itemIds) ? input.itemIds.map((item) => String(item)).slice(0, 50) : [],
+      itemIds: Array.isArray(input.itemIds)
+        ? input.itemIds.map((item) => String(item)).slice(0, 50)
+        : [],
       authorId,
       status: input.status === "shared" || input.status === "acknowledged" ? input.status : "draft",
       savedAt: new Date().toISOString(),
@@ -711,7 +776,10 @@ export class AttentionWorkflowService {
     const record: BlockerResolutionRecord = {
       id: randomUUID(),
       orgId,
-      itemId: cleanString(input.itemId, cleanString(input.workOrderId, cleanString(input.inventoryItemId, "unknown"))),
+      itemId: cleanString(
+        input.itemId,
+        cleanString(input.workOrderId, cleanString(input.inventoryItemId, "unknown"))
+      ),
       workOrderId: cleanString(input.workOrderId) || undefined,
       inventoryItemId: cleanString(input.inventoryItemId) || undefined,
       blockerType: cleanString(input.blockerType, "Information needed"),

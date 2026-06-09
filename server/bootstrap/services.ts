@@ -331,6 +331,11 @@ export async function applyGraphBootstrap(): Promise<void> {
 }
 
 export async function startSyncServices(isLocalMode: boolean): Promise<void> {
+  if (process.env['ENABLE_SYNC_SERVICES'] === "false") {
+    logger.info("ℹ️  Sync services disabled by ENABLE_SYNC_SERVICES=false");
+    return;
+  }
+
   if (!isLocalMode) {
     return;
   }

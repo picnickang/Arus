@@ -6,6 +6,7 @@ import {
   type VesselDiagramVersionStatus,
   type VesselSectionMapStatus,
   type VesselValidationSeverity,
+  type SectionMapImageTransform,
   type ValidationSummary,
 } from "@shared/schema-runtime";
 
@@ -17,8 +18,35 @@ export type {
   VesselDiagramVersionStatus,
   VesselSectionMapStatus,
   VesselValidationSeverity,
+  SectionMapImageTransform,
   ValidationSummary,
 };
+
+export const DEFAULT_SECTION_MAP_IMAGE_TRANSFORM: SectionMapImageTransform = {
+  scaleX: 1,
+  scaleY: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
+
+export function normalizeSectionMapImageTransform(
+  input: Partial<SectionMapImageTransform> | null | undefined
+): SectionMapImageTransform {
+  return {
+    scaleX:
+      typeof input?.scaleX === "number" ? input.scaleX : DEFAULT_SECTION_MAP_IMAGE_TRANSFORM.scaleX,
+    scaleY:
+      typeof input?.scaleY === "number" ? input.scaleY : DEFAULT_SECTION_MAP_IMAGE_TRANSFORM.scaleY,
+    offsetX:
+      typeof input?.offsetX === "number"
+        ? input.offsetX
+        : DEFAULT_SECTION_MAP_IMAGE_TRANSFORM.offsetX,
+    offsetY:
+      typeof input?.offsetY === "number"
+        ? input.offsetY
+        : DEFAULT_SECTION_MAP_IMAGE_TRANSFORM.offsetY,
+  };
+}
 
 export interface RegistryActor {
   userId?: string;
@@ -102,6 +130,7 @@ export interface SectionMapRecord {
   diagramWidth: number;
   diagramHeight: number;
   diagramKind: VesselDiagramType;
+  imageTransform: SectionMapImageTransform;
   status: VesselSectionMapStatus;
   validationSummary?: ValidationSummary | null;
   publishedAt?: Date | null;
@@ -180,6 +209,7 @@ export interface CreateSectionMapInput {
   diagramWidth?: number;
   diagramHeight?: number;
   diagramKind?: VesselDiagramType;
+  imageTransform?: SectionMapImageTransform;
   sections?: CreateSectionInput[];
 }
 
@@ -199,6 +229,7 @@ export interface UpdateSectionMapInput {
   diagramWidth?: number;
   diagramHeight?: number;
   diagramKind?: VesselDiagramType;
+  imageTransform?: SectionMapImageTransform;
   status?: VesselSectionMapStatus;
 }
 
@@ -298,7 +329,11 @@ export interface VesselDiagramRegistryStore {
     mapId: string,
     input: { name: string; diagramId?: string; diagramVersionId?: string }
   ): Promise<SectionMapRecord>;
-  addSection(ctx: RegistryContext, mapId: string, input: CreateSectionInput): Promise<SectionRecord>;
+  addSection(
+    ctx: RegistryContext,
+    mapId: string,
+    input: CreateSectionInput
+  ): Promise<SectionRecord>;
   updateSection(
     ctx: RegistryContext,
     mapId: string,
@@ -312,7 +347,11 @@ export interface VesselDiagramRegistryStore {
     sectionId: string,
     input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
   ): Promise<SectionRecord>;
-  deleteSectionPolygon(ctx: RegistryContext, mapId: string, sectionId: string): Promise<SectionRecord>;
+  deleteSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRecord>;
   publishSectionMap(
     ctx: RegistryContext,
     mapId: string,

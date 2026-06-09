@@ -51,10 +51,7 @@ function buildApp() {
     requireOrgId: auth,
     permissionMode: "skip",
     mediaStore,
-    service: new VesselDiagramRegistryService(
-      new InMemoryVesselDiagramRegistryStore(),
-      mediaStore
-    ),
+    service: new VesselDiagramRegistryService(new InMemoryVesselDiagramRegistryStore(), mediaStore),
   });
   return { app, mediaStore };
 }
@@ -97,9 +94,9 @@ function svgUploadBody(overrides: Record<string, unknown> = {}) {
   return {
     originalFileName: "general-arrangement.svg",
     mimeType: "image/svg+xml",
-    contentBase64: Buffer.from(
-      `<svg viewBox="0 0 895 420"><path d="M0 0h10v10z"/></svg>`
-    ).toString("base64"),
+    contentBase64: Buffer.from(`<svg viewBox="0 0 895 420"><path d="M0 0h10v10z"/></svg>`).toString(
+      "base64"
+    ),
     ...overrides,
   };
 }
@@ -330,7 +327,15 @@ describe("vessel diagram registry routes", () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.map((template: { id: string }) => template.id)).toEqual(
-          expect.arrayContaining(["osv_workboat", "ahts", "psv", "tugboat", "pilot_vessel", "crew_boat", "custom_blank"])
+          expect.arrayContaining([
+            "osv_workboat",
+            "ahts",
+            "psv",
+            "tugboat",
+            "pilot_vessel",
+            "crew_boat",
+            "custom_blank",
+          ])
         );
       });
 
@@ -397,8 +402,30 @@ describe("vessel diagram registry routes", () => {
         name: "Editable map",
         diagramId: diagram.body.id,
         diagramVersionId: upload.body.id,
+        imageTransform: { scaleX: 1.1, scaleY: 0.92, offsetX: 0.03, offsetY: -0.02 },
       })
-      .expect(201);
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.imageTransform).toEqual({
+          scaleX: 1.1,
+          scaleY: 0.92,
+          offsetX: 0.03,
+          offsetY: -0.02,
+        });
+      });
+
+    await request(app)
+      .patch(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}`)
+      .send({ imageTransform: { scaleX: 1.2, scaleY: 0.85, offsetX: -0.04, offsetY: 0.05 } })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.imageTransform).toEqual({
+          scaleX: 1.2,
+          scaleY: 0.85,
+          offsetX: -0.04,
+          offsetY: 0.05,
+        });
+      });
 
     const section = await request(app)
       .post(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections`)
@@ -406,7 +433,9 @@ describe("vessel diagram registry routes", () => {
       .expect(201);
 
     await request(app)
-      .patch(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`)
+      .patch(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`
+      )
       .send({ name: "Updated Engine Room", color: "#38bdf8" })
       .expect(200)
       .expect((res) => {
@@ -414,7 +443,9 @@ describe("vessel diagram registry routes", () => {
       });
 
     await request(app)
-      .put(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`)
+      .put(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`
+      )
       .send({
         polygonNormalized: [
           { x: 0.1, y: 0.1 },
@@ -437,13 +468,13 @@ describe("vessel diagram registry routes", () => {
       .expect(201);
 
     await request(app)
-      .get(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/equipment-assignments`)
+      .get(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/equipment-assignments`
+      )
       .expect(200)
       .expect((res) => {
         expect(res.body).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ equipmentName: "Updated Pump" }),
-          ])
+          expect.arrayContaining([expect.objectContaining({ equipmentName: "Updated Pump" })])
         );
       });
 
@@ -504,11 +535,15 @@ describe("vessel diagram registry routes", () => {
       .expect(204);
 
     await request(app)
-      .delete(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`)
+      .delete(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}/polygon`
+      )
       .expect(200);
 
     await request(app)
-      .delete(`/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`)
+      .delete(
+        `/api/vessel-intelligence/${VESSEL_ID}/section-maps/${map.body.id}/sections/${section.body.id}`
+      )
       .expect(204);
 
     await request(app)
@@ -523,7 +558,9 @@ describe("vessel diagram registry routes", () => {
       .expect(404);
 
     await request(app)
-      .post(`/api/vessel-intelligence/${OTHER_VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`)
+      .post(
+        `/api/vessel-intelligence/${OTHER_VESSEL_ID}/diagrams/${diagram.body.id}/versions/upload`
+      )
       .send(svgUploadBody())
       .expect(404);
   });

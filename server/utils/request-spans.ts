@@ -266,7 +266,20 @@ export function cleanupOldSpans(): void {
   }
 }
 
-setInterval(cleanupOldSpans, 30000);
+let cleanupInterval: NodeJS.Timeout | undefined;
+if (process.env["DISABLE_OBSERVABILITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
+  cleanupInterval = setInterval(cleanupOldSpans, 30000);
+  cleanupInterval.unref?.();
+}
+
+export const _internals = {
+  stopCleanupInterval() {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = undefined;
+    }
+  },
+};
 
 export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
   requestId: string;
@@ -290,7 +303,9 @@ export function getRecentSlowRequests(thresholdMs: number = 200): Array<{
 
     const firstSpan = context.spans[0];
     const lastSpan = context.spans[context.spans.length - 1];
-    if (!firstSpan || !lastSpan) {continue;}
+    if (!firstSpan || !lastSpan) {
+      continue;
+    }
     const totalDuration = (lastSpan.endTime || Date.now()) - firstSpan.startTime;
 
     if (totalDuration > thresholdMs) {

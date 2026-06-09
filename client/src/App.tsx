@@ -15,6 +15,7 @@ import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
+import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -104,6 +105,34 @@ const ROUTE_GROUP_HUB_BY_PATH: Record<string, string> = (() => {
  */
 function resolveRouteHubId(path: string): string | null {
   return getHubIdForRoute(path) ?? ROUTE_GROUP_HUB_BY_PATH[path] ?? null;
+}
+
+function normalizeRoutePath(path: string): string {
+  return (path.split("?")[0] ?? path).split("#")[0] ?? path;
+}
+
+function routePatternMatchesCurrent(routePattern: string, currentPath: string): boolean {
+  const patternSegments = normalizeRoutePath(routePattern).split("/").filter(Boolean);
+  const currentSegments = normalizeRoutePath(currentPath).split("/").filter(Boolean);
+  if (patternSegments.length !== currentSegments.length) {
+    return false;
+  }
+  return patternSegments.every((segment, index) => {
+    return segment.startsWith(":") || segment === currentSegments[index];
+  });
+}
+
+function resolveCurrentRouteHubId(path: string): string | null {
+  const navHubId = getHubIdForRoute(path);
+  if (navHubId) {
+    return navHubId;
+  }
+  for (const [routePath, hubId] of Object.entries(ROUTE_GROUP_HUB_BY_PATH)) {
+    if (routePatternMatchesCurrent(routePath, path)) {
+      return hubId;
+    }
+  }
+  return null;
 }
 
 function PageSkeleton() {
@@ -196,22 +225,12 @@ function AdminPortalRouteGuard({
   // explicit hub-admin grant (dev-mode bypasses). While permissions load we
   // fall back to the legacy role→portal map so an admin's first paint is not
   // a flash-redirect.
-  let allowed = isAdminPortalAccess(
-    role,
-    permissions.hubAdmin || permissions.isDevMode,
-    ready,
-  );
+  let allowed = isAdminPortalAccess(role, permissions.hubAdmin || permissions.isDevMode, ready);
   // Tier 2 — per-hub allow-list: once permissions have loaded, a granted
   // (non-super-admin, non-dev) account may only reach hubs in its allow-list.
   // `permissions.hubAccess === null` means "all hubs" (super-admins / dev
   // resolve to null server-side), so only a populated list restricts access.
-  if (
-    allowed &&
-    ready &&
-    hubId &&
-    !permissions.isDevMode &&
-    !isSuperAdminRole(role)
-  ) {
+  if (allowed && ready && hubId && !permissions.isDevMode && !isSuperAdminRole(role)) {
     const access = permissions.hubAccess;
     if (access && !access.includes(hubId)) {
       allowed = false;
@@ -294,6 +313,7 @@ function Router() {
   }
 
   const isLoginRoute = routerLoc === "/portal-login";
+  const usesUniversalOpsShell = resolveCurrentRouteHubId(routerLoc) !== null;
   // #218: the user portal has no visible BottomNav, so the ~56px
   // mobile clearance the admin portal needs becomes orphan
   // padding. Skip the `pb-14` in that case. The BottomNav
@@ -309,7 +329,7 @@ function Router() {
     isAdminPortalAccess(
       readCurrentRole(),
       permissions.hubAdmin || permissions.isDevMode,
-      !permissions.isLoading,
+      !permissions.isLoading
     );
 
   return (
@@ -325,7 +345,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isAdminPortal ? "pb-14 md:pb-0" : ""}`}
+        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-14 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >
@@ -357,9 +377,17 @@ function Router() {
                     );
                     const hubId = resolveRouteHubId(path);
                     const guarded = ADMIN_ONLY_ROUTES.has(path) || hubId !== null;
+                    const shelledPage =
+                      hubId && usesUniversalOpsShell ? (
+                        <UniversalOpsShell currentPath={routerLoc} activeHubId={hubId}>
+                          {page}
+                        </UniversalOpsShell>
+                      ) : (
+                        page
+                      );
                     return guarded ? (
                       <AdminPortalRouteGuard path={path} hubId={hubId}>
-                        {page}
+                        {shelledPage}
                       </AdminPortalRouteGuard>
                     ) : (
                       page
@@ -376,8 +404,8 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
-      {!isLoginRoute && <BottomNav />}
-      {!isLoginRoute && <CopilotFab />}
+      {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
+      {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
     </div>
   );
 }

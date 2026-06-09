@@ -1,3 +1,5 @@
+import type { SectionMapImageTransform } from "@shared/schema-runtime";
+
 export type DiagramTypeKey =
   | "side_elevation"
   | "deck_plan"
@@ -34,6 +36,7 @@ export interface VesselSectionMapDefinition {
   diagramWidth: number;
   diagramHeight: number;
   diagramKind: DiagramTypeKey;
+  imageTransform?: SectionMapImageTransform;
   sections: VesselSectionDefinition[];
 }
 

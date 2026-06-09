@@ -3,11 +3,17 @@ import { eq, desc, and, count } from "drizzle-orm";
 import { agentTasks } from "@shared/schema";
 import type { AgentTask, InsertAgentTask } from "@shared/schema";
 import type { AgentTaskRepositoryPort, AgentTaskFilter } from "../domain/task-types";
+import { withGeneratedInsertDefaults } from "./generated-id";
 
 export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
   async create(data: InsertAgentTask): Promise<AgentTask> {
-    const [task] = await db.insert(agentTasks).values(data).returning();
-    if (!task) {throw new Error("Failed to create agent task");}
+    const [task] = await db
+      .insert(agentTasks)
+      .values(withGeneratedInsertDefaults(data, ["createdAt", "updatedAt"]))
+      .returning();
+    if (!task) {
+      throw new Error("Failed to create agent task");
+    }
     return task;
   }
 
@@ -55,7 +61,9 @@ export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentTasks.id, id))
       .returning();
-    if (!task) {throw new Error(`Failed to update agent task ${id}`);}
+    if (!task) {
+      throw new Error(`Failed to update agent task ${id}`);
+    }
     return task;
   }
 

@@ -29,13 +29,17 @@ import {
   intersectOverrideWithPolicy,
 } from "@/application/navigation/role-navigation-policy";
 
-const ADMIN_HUB_IDS = ["maintenance", "system", "crew", "logistics", "analytics"];
-const USER_CATEGORY_IDS = [
-  "user-dashboard",
-  "user-tasks",
-  "user-feedback",
-  "user-profile",
+const ADMIN_HUB_IDS = [
+  "operations",
+  "fleet",
+  "maintenance",
+  "crew",
+  "logistics",
+  "records",
+  "analytics",
+  "system",
 ];
+const USER_CATEGORY_IDS = ["user-dashboard", "user-tasks", "user-feedback", "user-profile"];
 
 function ids(categories: { id: string }[]): string[] {
   return categories.map((c) => c.id);
@@ -61,17 +65,17 @@ describe("Persona navigation policy (11 personas)", () => {
   });
 
   describe("primary categories per persona", () => {
-    it("1. Super Admin sees all five admin hubs", () => {
+    it("1. Super Admin sees all eight admin hubs", () => {
       expect(ids(getPrimaryCategoriesForRole("super_admin")).sort()).toEqual(
-        [...ADMIN_HUB_IDS].sort(),
+        [...ADMIN_HUB_IDS].sort()
       );
     });
 
-    it("2. Admin (all hubs granted) sees all five admin hubs", () => {
+    it("2. Admin (all hubs granted) sees all eight admin hubs", () => {
       const cats = getPrimaryCategoriesForRole("admin");
       // hubAccess null = unrestricted (super-admin / fully-granted admin).
       expect(ids(filterCategoriesByHubAccess(cats, null)).sort()).toEqual(
-        [...ADMIN_HUB_IDS].sort(),
+        [...ADMIN_HUB_IDS].sort()
       );
     });
 

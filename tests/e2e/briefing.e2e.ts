@@ -1,19 +1,19 @@
 import { describe, it, expect } from "@jest/globals";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const HEADERS = {
+  "Content-Type": "application/json",
+  "X-Org-Id": "default-org-id",
+  "X-User-Id": "dev-admin-user",
+  "X-User-Role": "admin",
+};
 
-async function fetchPage(path: string) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { Accept: "text/html" },
-  });
-  const html = await res.text();
-  return { status: res.status, html };
-}
-
-async function fetchJson(method: string, path: string) {
+async function fetchJson(method: string, path: string, body?: Record<string, unknown>) {
   const opts: RequestInit = {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: HEADERS,
+    body: body ? JSON.stringify(body) : undefined,
   };
   const res = await fetch(`${BASE_URL}${path}`, opts);
   const data = await res.json();
@@ -21,11 +21,11 @@ async function fetchJson(method: string, path: string) {
 }
 
 describe("Briefing Page E2E", () => {
-  describe("Page load", () => {
-    it("serves the briefing page HTML", async () => {
-      const { status, html } = await fetchPage("/briefing");
+  describe("Server route reachability", () => {
+    it("serves the briefing list API in the server lane", async () => {
+      const { status, data } = await fetchJson("GET", "/api/agent/briefings");
       expect(status).toBe(200);
-      expect(html).toContain("<!DOCTYPE html>");
+      expect(Array.isArray(data)).toBe(true);
     });
   });
 
@@ -45,6 +45,7 @@ describe("Briefing Page E2E", () => {
       const { status, data } = await fetchJson("POST", "/api/agent/briefings/generate");
       expect(status).toBe(200);
       expect(data.id).toBeDefined();
+      expect(data.id).toMatch(UUID_RE);
       expect(data.status).toBe("ready");
       generatedBriefingId = data.id;
     });
@@ -52,6 +53,7 @@ describe("Briefing Page E2E", () => {
     it("generated briefing has 6 sections", async () => {
       const { data } = await fetchJson("GET", "/api/agent/briefings/latest");
       expect(data).not.toBeNull();
+      expect(generatedBriefingId).toMatch(UUID_RE);
       const sections = data.sections as Array<{
         key: string;
         title: string;
@@ -137,6 +139,7 @@ describe("Briefing Page E2E", () => {
     it("latest returns only today's briefing, not older ones", async () => {
       const { data } = await fetchJson("GET", "/api/agent/briefings/latest");
       if (data) {
+        expect(typeof data.generatedAt).toBe("string");
         const generatedAt = new Date(data.generatedAt);
         const today = new Date();
         expect(generatedAt.getFullYear()).toBe(today.getFullYear());
@@ -158,16 +161,31 @@ describe("Briefing Page E2E", () => {
     });
   });
 
-  describe("Schedule seed verification", () => {
-    it("briefing schedule exists in schedules list", async () => {
+  describe("Schedule API verification", () => {
+    it("creates and lists a briefing schedule deterministically", async () => {
+      const scheduleName = `Daily Operations Briefing Test ${Date.now()}`;
+      const created = await fetchJson("POST", "/api/agent/schedules", {
+        name: scheduleName,
+        prompt: "__briefing__",
+        cronExpression: "0 6 * * *",
+        allowedTools: [],
+        outputDestination: "notification",
+        allowWriteTools: false,
+        maxTokenBudget: 4000,
+        enabled: true,
+        consecutiveFailures: 0,
+      });
+      expect(created.status).toBe(201);
+      expect(created.data.name).toBe(scheduleName);
+
       const { status, data } = await fetchJson("GET", "/api/agent/schedules");
       expect(status).toBe(200);
       const briefingSchedule = data.find(
-        (s: { name: string }) => s.name === "Daily Operations Briefing"
+        (s: { id: string; name: string }) => s.id === created.data.id
       );
       expect(briefingSchedule).toBeDefined();
       expect(briefingSchedule.cronExpression).toBe("0 6 * * *");
-      expect(briefingSchedule.enabled).toBe(true);
+      expect(Boolean(briefingSchedule.enabled)).toBe(true);
     });
   });
 });

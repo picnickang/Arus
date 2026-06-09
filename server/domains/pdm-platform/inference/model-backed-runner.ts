@@ -58,9 +58,9 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 
   constructor(envOverride?: string) {
     this.envOverride = envOverride;
-    const rawMode = (process.env['PDM_ONNX_MODE'] ?? "live").toLowerCase();
+    const rawMode = (process.env["PDM_ONNX_MODE"] ?? "live").toLowerCase();
     this.mode = rawMode === "shadow" || rawMode === "canary" ? rawMode : "live";
-    const pct = Number(process.env['PDM_ONNX_CANARY_PERCENT'] ?? "0");
+    const pct = Number(process.env["PDM_ONNX_CANARY_PERCENT"] ?? "0");
     this.canaryPercent = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
   }
 
@@ -85,7 +85,9 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   ): Promise<ResolvedArtifact | null> {
     const cacheKey = `${orgId}::${modelVersionId}`;
     const cached = this.resolveCache.get(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
     const lookup = (async (): Promise<ResolvedArtifact | null> => {
       try {
         const [row] = await db
@@ -103,9 +105,13 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
             )
           )
           .limit(1);
-        if (!row) {return null;}
+        if (!row) {
+          return null;
+        }
         const metrics = (row.metrics ?? {}) as { artifactPath?: string };
-        if (!metrics.artifactPath) {return null;}
+        if (!metrics.artifactPath) {
+          return null;
+        }
         // metrics.artifactPath may be a legacy local path or a new
         // `arus-artifact://<backend>/<key>` URI. The read adapter is
         // chosen from the URI itself so flipping the admin write
@@ -138,7 +144,9 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
   /** Resolves the operator-pinned env artifact (one-time existence check). */
   private envArtifactReady?: Promise<ResolvedArtifact | null>;
   private async resolveFromEnv(): Promise<ResolvedArtifact | null> {
-    if (!this.envOverride) {return null;}
+    if (!this.envOverride) {
+      return null;
+    }
     if (!this.envArtifactReady) {
       const p = this.envOverride;
       this.envArtifactReady = fs
@@ -156,11 +164,10 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
 
   private async resolveArtifact(context: InferenceContext): Promise<ResolvedArtifact | null> {
     if (context.modelVersionId && context.orgId) {
-      const fromRegistry = await this.resolveFromRegistry(
-        context.orgId,
-        context.modelVersionId
-      );
-      if (fromRegistry) {return fromRegistry;}
+      const fromRegistry = await this.resolveFromRegistry(context.orgId, context.modelVersionId);
+      if (fromRegistry) {
+        return fromRegistry;
+      }
     }
     return this.resolveFromEnv();
   }
@@ -227,13 +234,21 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
  *  collapses to pure heuristic when no deployed artifact exists, so
  *  this is safe to wire unconditionally. */
 export function resolveInferenceRunner(): InferenceRunnerPort {
-  const envOverride = process.env['PDM_ONNX_MODEL_PATH']?.trim() || undefined;
-  const mode = process.env['PDM_ONNX_MODE'] ?? "live";
+  if (
+    process.env["NODE_ENV"] === "test" ||
+    process.env["DISABLE_MODEL_BACKED_INFERENCE"] === "true"
+  ) {
+    logger.info("ONNX runner disabled for deterministic test mode");
+    return new HeuristicInferenceRunner();
+  }
+
+  const envOverride = process.env["PDM_ONNX_MODEL_PATH"]?.trim() || undefined;
+  const mode = process.env["PDM_ONNX_MODE"] ?? "live";
   if (envOverride) {
     logger.info("ONNX runner active (registry + env override)", {
       envOverride,
       mode,
-      canaryPercent: process.env['PDM_ONNX_CANARY_PERCENT'] ?? "0",
+      canaryPercent: process.env["PDM_ONNX_CANARY_PERCENT"] ?? "0",
     });
   } else {
     logger.info("ONNX runner active (registry-backed)", { mode });
