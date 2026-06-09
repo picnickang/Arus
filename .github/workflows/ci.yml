@@ -237,6 +237,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [lint-and-typecheck, unit-tests]
+    # Override the workflow-level NODE_ENV=test: vite honours a preset
+    # NODE_ENV, so 'test' builds React in non-production mode (+~60 kB on
+    # the initial set, +~260 kB total) and the size budgets measure the
+    # wrong artefact. Deploy builds run with NODE_ENV=production.
+    env:
+      NODE_ENV: production
 
     steps:
       - uses: actions/checkout@v4
