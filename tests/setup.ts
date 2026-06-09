@@ -11,7 +11,7 @@ jest.setTimeout(30000);
 
 process.env.NODE_ENV = "test";
 process.env.SESSION_SECRET ||= "integration-test-session-secret-not-for-production";
-process.env.DEV_AUTH_BYPASS = "0";
+process.env.ARUS_DEV_LOGIN = "0";
 
 const explicitIntegrationDb =
   process.env.ARUS_INTEGRATION_DATABASE_URL ?? process.env.TEST_DATABASE_URL;

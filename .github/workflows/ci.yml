@@ -51,6 +51,15 @@ jobs:
       - name: Type-cast burndown (`as any` / `as unknown as`)
         run: npm run check:cast-burndown
 
+      - name: Explicit-any burndown
+        run: npm run check:explicit-any-burndown
+
+      - name: Lint-warnings burndown
+        run: npm run check:lint-warnings
+
+      - name: Prettier format ratchet
+        run: npm run check:format-ratchet
+
       - name: Code-hygiene burndown (catch-underscore, console-log, ts-ignore, ...)
         run: npm run check:hygiene
 
@@ -221,8 +230,9 @@ jobs:
 
       - name: Check build artifacts
         run: |
-          test -d dist || echo "Warning: dist/ not created"
-          ls -la dist/ 2>/dev/null || echo "Build output check completed"
+          set -e
+          test -d dist
+          ls -la dist/
 
       # Prod-hardening Wave 5: enforce client bundle budgets so
       # accidental imports of heavy vendor libs (xlsx, recharts,

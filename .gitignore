@@ -4,6 +4,43 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+# Timestamped tarball dumps (e.g. arus-...tar_1780380303668.gz) that the
+# *.tar.gz glob above does not match.
+*.gz
+
+# --- Generated dumps & one-off review/report artifacts (do not commit) ---
+# These are machine-generated codebase exports, review bundles, and
+# point-in-time reports. They bloated the repo (~100 MB) and are
+# reproducible; keep them out of source control.
+exports/
+code-export/
+installer-review-bundle/
+source-bundle/
+attached_assets/
+ARUS_DB_CODE.txt
+ARUS_SCHEMA.txt
+ARUS_FIX_SUMMARY.md
+ARUS_Professional_Evaluation.md
+BUILD-SUMMARY.txt
+BUILD_SUMMARY.txt
+DIGITAL_TWIN_REPORT.txt
+PDM_UPGRADE_REPORT.txt
+TAURI_INSTALLATION_MIGRATION_PLAN.txt
+WORKFLOW_UPDATE_SUMMARY.md
+arus-ui-files-for-review.md
+backend-all-routes.md
+backend-system-admin-routes.md
+commits_diff.txt
+errors-by-file.txt
+frontend-*.md
+full_diff.patch
+logistics-backend-code.txt
+logistics-frontend-code.txt
+source-review-bundle.txt
+tauri-desktop-review.md
+tauri-installation-files-review.md
+tauri-migration-review.md
+vessels-equipment-code-review.txt
 
 # Electron build artifacts
 dist-electron/

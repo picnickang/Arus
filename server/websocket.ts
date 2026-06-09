@@ -5,6 +5,7 @@ import { Server, IncomingMessage } from "node:http";
 import crypto from "node:crypto";
 import { dbAlertStorage, dbSystemAdminStorage, dbUserStorage } from "./repositories";
 import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
+import { resolveDevLoginSessionToken } from "./security/dev-login";
 import {
   setWebSocketConnections,
   incrementWebSocketMessage,
@@ -163,17 +164,14 @@ interface UpgradeAuthRejection {
  *
  *  Tokens may arrive on `?token=` (browsers can't set Authorization
  *  on the native WebSocket constructor) or, in server-to-server cases,
- *  on the `Authorization: Bearer …` header. In dev we mirror the HTTP
- *  middleware's dev-mock behaviour and land in `DEFAULT_ORG_ID`. In
+ *  on the `Authorization: Bearer …` header. Temporary dev-login sessions
+ *  are token-backed and resolved through the same module as HTTP auth;
+ *  anonymous upgrades never receive a synthetic admin identity. In
  *  `REQUIRE_TENANT_AUTH=true` mode anonymous upgrades are rejected. */
 async function resolveUpgradeOrg(
   req: IncomingMessage
 ): Promise<UpgradeAuthResult | UpgradeAuthRejection> {
   const tenantAuth = requireTenantAuth();
-
-  if (process.env["NODE_ENV"] === "development" && !tenantAuth) {
-    return { ok: true, orgId: DEFAULT_ORG_ID, userId: "dev-admin-user" };
-  }
 
   let token: string | undefined;
   const authHeader = req.headers["authorization"];
@@ -203,6 +201,11 @@ async function resolveUpgradeOrg(
   }
 
   try {
+    const devSession = resolveDevLoginSessionToken(token);
+    if (devSession) {
+      return { ok: true, orgId: devSession.orgId, userId: devSession.id };
+    }
+
     const session = await dbSystemAdminStorage.getAdminSessionByToken(hashSessionToken(token));
     if (!session) {
       return { ok: false, reason: "INVALID_TOKEN" };

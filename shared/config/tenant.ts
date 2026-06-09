@@ -1,19 +1,22 @@
 /**
  * Tenant Configuration
  *
- * Push B1 (Multi-tenancy with Postgres RLS):
- * - The platform is migrating from single-tenant (one hardcoded
- *   `DEFAULT_ORG_ID`) to multi-tenant. Old code paths still import
- *   `DEFAULT_ORG_ID` directly; the new contract is to derive `req.orgId`
- *   from the authenticated user's session claim and refuse anything else.
+ * AUTHORITATIVE MODEL: ARUS ships as a SINGLE-TENANT, multi-vessel system
+ * (see docs/adr/002-single-tenant-operating-model.md). `DEFAULT_ORG_ID` is the
+ * one and only organization; `org_id` columns exist for traceability and a
+ * forward-compatibility seam, not as an enforced cross-customer boundary. The
+ * canonical request path (`server/orgIdValidation.ts`) forces `DEFAULT_ORG_ID`
+ * and rejects any other `x-org-id`.
  *
- * - The cutover is gated by `REQUIRE_TENANT_AUTH=true`. While the flag is
- *   off, requests still fall back to `DEFAULT_ORG_ID` so existing
- *   single-tenant deployments keep working. When the flag is on:
+ * DORMANT, OPT-IN multi-tenant + Postgres RLS scaffolding (NOT a supported
+ * production mode today) is gated by `REQUIRE_TENANT_AUTH=true`. While the flag
+ * is off (the default), requests fall back to `DEFAULT_ORG_ID`. When the flag
+ * is on:
  *     * `requireOrgId` rejects unauthenticated requests with 401.
  *     * Auth middleware sets `req.orgId = req.user.orgId` (no fallback).
  *     * Postgres RLS policies (migration 0018) enforce isolation server-
  *       side so even a missing `WHERE org_id = …` clause returns 0 rows.
+ * Enabling it requires a dedicated hardening + test effort per ADR 002.
  */
 
 export const DEFAULT_ORG_ID = "default-org-id";
@@ -31,7 +34,7 @@ export const TENANT_CONFIG = {
  * platform into SaaS mode.
  */
 export function requireTenantAuth(): boolean {
-  return process.env['REQUIRE_TENANT_AUTH'] === "true";
+  return process.env["REQUIRE_TENANT_AUTH"] === "true";
 }
 
 /**

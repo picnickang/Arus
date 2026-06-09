@@ -20,7 +20,7 @@ function isLoopbackAddress(address: string): boolean {
 
 /** P2 #2 — see `./setup-token.ts` for the pure constant-time verifier. */
 function hasValidSetupToken(req: Request): boolean {
-  return verifySetupToken(process.env['SETUP_TOKEN'], req.headers["x-setup-token"]);
+  return verifySetupToken(process.env["SETUP_TOKEN"], req.headers["x-setup-token"]);
 }
 
 /**
@@ -31,11 +31,7 @@ function hasValidSetupToken(req: Request): boolean {
  * are. Audit is fire-and-forget structured-log only (avoids creating
  * a DB dependency on a route that runs pre-setup).
  */
-function auditSetupAttempt(
-  req: Request,
-  outcome: "allowed" | "denied",
-  reason: string
-): void {
+function auditSetupAttempt(req: Request, outcome: "allowed" | "denied", reason: string): void {
   logger.warn("Setup route access attempt", {
     outcome,
     reason,
@@ -50,24 +46,33 @@ function auditSetupAttempt(
 }
 
 function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
+  // SEC: trust ONLY the transport-level peer address and server-side
+  // env, never client-supplied headers. `Origin: tauri://localhost`
+  // and a "Tauri" `User-Agent` are attacker-controlled and previously
+  // let a remote caller pass this guard and complete first-run setup.
+  // The real Tauri sidecar reaches the bundled server over loopback, so
+  // `isLoopbackAddress` already covers it. Remote callers must present a
+  // valid X-Setup-Token (audited below).
   const socketAddress = req.socket.remoteAddress || "";
   const isLocal = isLoopbackAddress(socketAddress);
-  const origin = req.headers.origin || "";
-  const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
-  const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
-  const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
+  const isReplitDevelopment = !!process.env["REPL_ID"] && process.env["NODE_ENV"] !== "production";
 
-  if (isLocal || isTauriOrigin || isTauriUserAgent || isReplitDevelopment) {
+  if (isLocal || isReplitDevelopment) {
     next();
     return undefined;
   }
 
   // Remote caller: audit every attempt and require a valid token.
   const tokenOk = hasValidSetupToken(req);
-  auditSetupAttempt(req, tokenOk ? "allowed" : "denied", tokenOk ? "valid-setup-token" : "no-or-invalid-setup-token");
+  auditSetupAttempt(
+    req,
+    tokenOk ? "allowed" : "denied",
+    tokenOk ? "valid-setup-token" : "no-or-invalid-setup-token"
+  );
   if (!tokenOk) {
     return res.status(403).json({
-      error: "Setup is only available from localhost/Tauri, development Replit, or with X-Setup-Token",
+      error:
+        "Setup is only available from localhost/Tauri, development Replit, or with X-Setup-Token",
       code: "SETUP_LOCAL_ONLY",
     });
   }
