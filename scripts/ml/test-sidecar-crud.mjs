@@ -76,11 +76,14 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
-    // Seed the default organization so the org_id foreign keys on ml_models,
-    // equipment, equipment_features, … resolve. Idempotent across re-runs.
+    // Seed the organizations the harness references so the org_id foreign
+    // keys on ml_models, equipment, equipment_features, … resolve: the
+    // default org plus the foreign org used by the wrong-org SHAP phase.
+    // Idempotent across re-runs.
     await pool.query(
       `INSERT INTO organizations (id, name, slug)
-       VALUES ($1, 'Default Org', 'default')
+       VALUES ($1, 'Default Org', 'default'),
+              ('t89-test-org', 'T89 Foreign Org', 't89-test-org')
        ON CONFLICT DO NOTHING`,
       [ORG]
     );

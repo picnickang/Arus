@@ -256,6 +256,12 @@ let mountError: string | undefined;
 beforeAll(async () => {
   jest.unstable_mockModule("../../server/domains/permissions/repository", () => ({
     permissionRepository: fakeRepository,
+    // routes.ts imports these named queries at module load (hex-storage
+    // refactor moved the inline db reads into the repository). The CRUD
+    // paths under test never call them.
+    getUserPrimaryRole: async () => undefined,
+    getUserDiagnosticRow: async () => undefined,
+    getCrewLinkForUser: async () => undefined,
   }));
 
   // The CRUD paths never call compileUserPermissions, but routes.ts imports

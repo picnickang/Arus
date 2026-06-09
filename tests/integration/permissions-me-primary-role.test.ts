@@ -152,6 +152,13 @@ beforeAll(async () => {
         },
       }
     ),
+    // routes.ts imports these named queries at module load (hex-storage
+    // refactor moved the inline db reads into the repository). The /me path
+    // reads the primary role via getUserPrimaryRole — feed it the same
+    // fixture the old db.select mock provided.
+    getUserPrimaryRole: async () => userRowStub ?? undefined,
+    getUserDiagnosticRow: async () => undefined,
+    getCrewLinkForUser: async () => undefined,
   }));
 
   // Mock the db so the user-row lookup (db.select(...).from(users).where(...)
