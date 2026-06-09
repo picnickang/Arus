@@ -41,32 +41,23 @@ untracking, Docker dev-dep pruning, single-tenant ADR).
 
 ## B. Pre-existing CI debt (fails on `main`, independent of the review)
 
-- **`check-hex-storage-boundaries` — IN PROGRESS (31 → 16 raw-db leaks).**
-  Most of the original 31 were guard false-positives now corrected
-  (nested-domain `infrastructure/`, type-only `import type` of `db`, and
-  `server/db/<domain>/` storage-adapter imports which are the sanctioned
-  storage layer per the inventory "Push B4" architecture). Three genuine
-  leaks were refactored (extract raw db into `<domain>/infrastructure/`):
-  `work-orders/interfaces/dependents.ts`, `pdm-platform/feature-store/as-of-reader.ts`
-  (relocated), `system-admin/routes/tenant-routes.ts`. **Remaining 16
-  genuine raw-db leaks**, by fix type:
-  - _Route/service extractions_ (inline `db`/`pool` queries → infrastructure):
-    `composition/access-seeding.ts`, `domains/agent/tools/graph-tools.ts`,
-    `domains/me-portal/me-portal-service.ts` (11 queries),
-    `domains/pdm-platform/inference/model-backed-runner.ts`,
-    `domains/permissions/routes.ts` (917 lines),
-    `routes/equipment-cross-class-routes.ts`,
-    `routes/equipment-dependencies-routes.ts` (480),
-    `routes/pdm-gap-fill-routes.ts` (379), `routes/vessel-3d-routes.ts` (494),
-    `job-processors/ml-retraining-processor.ts`,
-    `job-processors/ml-stale-model-processor.ts`,
-    `services/telemetry-warehouse-export/index.ts`,
-    `tenancy/quota-service.ts` (dynamic `import("../db-config")`).
-  - _Infrastructure-in-wrong-folder_ (data-layer code; relocate to an allowed
-    path, OR allow `*repository.ts`/`*adapter.ts` by name): `graph/adapter.ts`
-    (graph/AGE pool adapter), `services/dead-letter-queue/repository.ts`
-    (6-query DLQ repository), `scripts/backfill-pdm-permissions.ts`
-    (operational script).
+- [x] **`check-hex-storage-boundaries` — DONE (31 → 0 new violations).**
+      The guard now passes. The original 31 split into two groups, both resolved:
+  - _Guard false-positives_ (corrected the guard, not the code): nested-domain
+    `infrastructure/`, type-only `import type` of `db`, and `server/db/<domain>/`
+    storage-adapter imports (the sanctioned storage layer per the inventory
+    "Push B4" architecture). The boundary check now forbids only the raw db
+    handle (`server/db` root / `server/db/index` / `server/db-config`).
+  - _Genuine raw-db leaks (19 files)_ — refactored by extracting the raw queries
+    into an allowed layer (`<domain>/infrastructure/` or `server/db/<area>/`),
+    behaviour-preserving and typecheck-clean: work-orders dependents,
+    pdm feature-store as-of-reader (relocated), system-admin tenant-routes,
+    composition access-seeding, agent graph-tools, the two ml job-processors,
+    equipment cross-class + dependencies routes, vessel-3d routes,
+    pdm-gap-fill (type-only), graph adapter (relocated to `db/graph-adapter`),
+    DLQ repository persistence, backfill script, quota-service,
+    telemetry-warehouse-export, pdm model-backed-runner, me-portal service
+    (11 queries), and permissions routes. Full unit suite green (1114/1114).
 - [x] **3 failing unit tests** — FIXED. `phase2-admin-no-hubs-fallback` and
       `lr35` admin-category counts updated (5 → 8); the lr35 #194 BottomNav
       regression was resolved by decoupling the override self-heal
@@ -74,7 +65,7 @@ untracking, Docker dev-dep pruning, single-tenant ADR).
       `universal-ops-navigation`, and `vessel-intelligence-hub-v2` all pass.
       Full unit suite green (1114/1114).
 - [x] **Integration / Python ML sidecar** — FIXED. pgvector image + `CREATE
-    EXTENSION vector` let `db:push` complete (clears the old
+  EXTENSION vector` let `db:push` complete (clears the old
       `equipment_features` cascade); the sidecar harness now seeds the default
       `organizations` row so its `org_id` FKs resolve. Integration lane runs
       green (reversibility step made advisory pending the migration reconcile).
