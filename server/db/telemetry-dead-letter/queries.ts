@@ -35,7 +35,7 @@ export function updateDeadLetterRetry(
   queueName: string,
   id: string,
   retryCount: number,
-  lastRetryAt: Date | null,
+  lastRetryAt: Date | null
 ): Promise<unknown> {
   return db
     .update(telemetryDeadLetter)
@@ -49,20 +49,15 @@ export function deleteDeadLetterOlderThan(queueName: string, cutoff: Date): Prom
     .where(
       and(
         eq(telemetryDeadLetter.queueName, queueName),
-        sql`${telemetryDeadLetter.createdAt} < ${cutoff}`,
-      ),
+        sql`${telemetryDeadLetter.createdAt} < ${cutoff}`
+      )
     );
 }
 
 export function deleteDeadLetterQueue(queueName: string): Promise<unknown> {
-  return db
-    .delete(telemetryDeadLetter)
-    .where(eq(telemetryDeadLetter.queueName, queueName));
+  return db.delete(telemetryDeadLetter).where(eq(telemetryDeadLetter.queueName, queueName));
 }
 
 export function selectDeadLetterRows(queueName: string) {
-  return db
-    .select()
-    .from(telemetryDeadLetter)
-    .where(eq(telemetryDeadLetter.queueName, queueName));
+  return db.select().from(telemetryDeadLetter).where(eq(telemetryDeadLetter.queueName, queueName));
 }

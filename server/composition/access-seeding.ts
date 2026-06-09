@@ -82,7 +82,9 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
   // 3. Backfill crew.roleId from rank for rows that have no RBAC role yet.
   //    Map rank → access level → the org role row with that name.
   const roleIdByName = new Map<string, string>();
-  for (const role of orgRoles) {roleIdByName.set(role.name.trim().toLowerCase(), role.id);}
+  for (const role of orgRoles) {
+    roleIdByName.set(role.name.trim().toLowerCase(), role.id);
+  }
 
   const unlinked = await listUnlinkedCrewForSeeding(orgId);
 
@@ -93,7 +95,9 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
     // access level row.
     const rankKey = normalizeRankKey(member.rank);
     const targetRoleId = roleIdByName.get(rankKey) ?? roleIdByName.get(accessLevel);
-    if (!targetRoleId) {continue;}
+    if (!targetRoleId) {
+      continue;
+    }
     await setCrewRoleId(orgId, member.id, targetRoleId);
     summary.crewBackfilled += 1;
   }

@@ -49,7 +49,9 @@ const logger = createLogger("Routes:Vessel3D");
  */
 const equipmentPinsReadSchema = z.array(equipmentPinSchema);
 function narrowEquipmentPins(value: unknown): EquipmentPin[] {
-  if (value === null || value === undefined) {return [];}
+  if (value === null || value === undefined) {
+    return [];
+  }
   const parsed = equipmentPinsReadSchema.safeParse(value);
   if (!parsed.success) {
     logger.warn("Discarding malformed vessel_3d_models.equipment_pins JSONB", {
@@ -85,7 +87,11 @@ const STORAGE_BASE = (() => {
     // Match the primary path's 0o700 perms so fallback can't widen access
     // when multiple users share /tmp.
     fs.mkdirSync(fallback, { recursive: true, mode: 0o700 });
-    try { fs.chmodSync(fallback, 0o700); } catch { /* noop */ }
+    try {
+      fs.chmodSync(fallback, 0o700);
+    } catch {
+      /* noop */
+    }
     logger.warn("Falling back to /tmp/vessel-3d for model storage");
     return fallback;
   }
@@ -149,13 +155,18 @@ const router = Router();
 // responses instead of falling through to the global 500 handler.
 function uploadSingleModel(req: Request, res: Response, next: (err?: unknown) => void) {
   upload.single("model")(req, res, (err: unknown) => {
-    if (!err) {return next();}
+    if (!err) {
+      return next();
+    }
     if (err instanceof multer.MulterError) {
       const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
       return res.status(status).json({ error: err.message, code: err.code });
     }
     const message =
-      err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
+      err &&
+      typeof err === "object" &&
+      "message" in err &&
+      typeof (err as { message: unknown }).message === "string"
         ? (err as { message: string }).message
         : null;
     if (message) {
@@ -176,7 +187,9 @@ router.post(
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { vesselId = "" } = req.params;
       const file = req.file;
-      if (!file) {return res.status(400).json({ error: "No file uploaded" });}
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
       if (!file.buffer || file.buffer.length === 0) {
         return res.status(400).json({ error: "Uploaded file is empty" });
       }
@@ -246,7 +259,12 @@ router.post(
           equipmentPins: pins,
         });
       } catch (dbErr) {
-        try { fs.unlinkSync(writtenPath); writtenPath = null; } catch { /* noop */ }
+        try {
+          fs.unlinkSync(writtenPath);
+          writtenPath = null;
+        } catch {
+          /* noop */
+        }
         logger.error("Vessel 3D model DB insert failed; uploaded file removed", {
           error: dbErr instanceof Error ? dbErr.message : String(dbErr),
           vesselId,
@@ -264,7 +282,11 @@ router.post(
       // Last-resort cleanup: only relevant if disk write succeeded but
       // an unexpected error fired before the metadata row was created.
       if (writtenPath) {
-        try { fs.unlinkSync(writtenPath); } catch { /* noop */ }
+        try {
+          fs.unlinkSync(writtenPath);
+        } catch {
+          /* noop */
+        }
       }
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Upload failed", { error: message });
@@ -279,7 +301,9 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
     const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { vesselId = "" } = req.params;
     const row = await getLatestVessel3dModel(orgId, vesselId);
-    if (!row) {return res.status(404).json({ error: "No 3D model attached" });}
+    if (!row) {
+      return res.status(404).json({ error: "No 3D model attached" });
+    }
     // Do not leak storedPath.
     const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
@@ -295,7 +319,9 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
     const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { modelId = "" } = req.params;
     const row = await getVessel3dModelById(orgId, modelId);
-    if (!row) {return res.status(404).json({ error: "Model not found" });}
+    if (!row) {
+      return res.status(404).json({ error: "Model not found" });
+    }
 
     // Path-traversal guard: stored file must live under the org's directory.
     const expectedDir = orgDir(orgId);
@@ -322,38 +348,22 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
 });
 
 // ---------- Replace equipment pins (admin only) ----------
-router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engineer"), async (req: Request, res: Response) => {
-  try {
-    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
-    const { modelId = "" } = req.params;
-    const parsed = pinsSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
-    }
-    const row = await updateVessel3dModelPins(orgId, modelId, parsed.data.pins);
-    if (!row) {return res.status(404).json({ error: "Model not found" });}
-    const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
-    return res.json(safe);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return res.status(500).json({ error: message });
-  }
-});
-
-// ---------- Version history (Task #99) ----------
-// List every uploaded GLB for a vessel ordered newest-first so admins
-// can roll back a bad upload. storedPath is stripped before returning.
-router.get(
-  "/vessels/:vesselId/3d-model/history",
+router.patch(
+  "/vessels/3d-model/:modelId/pins",
+  requireRole("admin", "chief_engineer"),
   async (req: Request, res: Response) => {
     try {
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
-      const { vesselId = "" } = req.params;
-      const rows = await listVessel3dModels(orgId, vesselId);
-      const safe = rows.map((r) => {
-        const { storedPath: _omit, ...rest } = narrowVessel3dModel(r);
-        return rest;
-      });
+      const { modelId = "" } = req.params;
+      const parsed = pinsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+      }
+      const row = await updateVessel3dModelPins(orgId, modelId, parsed.data.pins);
+      if (!row) {
+        return res.status(404).json({ error: "Model not found" });
+      }
+      const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
       return res.json(safe);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -361,6 +371,25 @@ router.get(
     }
   }
 );
+
+// ---------- Version history (Task #99) ----------
+// List every uploaded GLB for a vessel ordered newest-first so admins
+// can roll back a bad upload. storedPath is stripped before returning.
+router.get("/vessels/:vesselId/3d-model/history", async (req: Request, res: Response) => {
+  try {
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
+    const { vesselId = "" } = req.params;
+    const rows = await listVessel3dModels(orgId, vesselId);
+    const safe = rows.map((r) => {
+      const { storedPath: _omit, ...rest } = narrowVessel3dModel(r);
+      return rest;
+    });
+    return res.json(safe);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return res.status(500).json({ error: message });
+  }
+});
 
 // Promote an older row to "current" by stamping its createdAt to now.
 // The latest-metadata GET already orders by createdAt desc, so a fresh
@@ -375,7 +404,9 @@ router.post(
       const { modelId = "" } = req.params;
       const now = new Date();
       const row = await promoteVessel3dModel(orgId, modelId, now);
-      if (!row) {return res.status(404).json({ error: "Model not found" });}
+      if (!row) {
+        return res.status(404).json({ error: "Model not found" });
+      }
       const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
       return res.json(safe);
     } catch (error) {
@@ -397,7 +428,9 @@ router.delete(
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { modelId = "" } = req.params;
       const row = await getVessel3dModelById(orgId, modelId);
-      if (!row) {return res.status(404).json({ error: "Model not found" });}
+      if (!row) {
+        return res.status(404).json({ error: "Model not found" });
+      }
 
       // Path-traversal guard (same as binary serve): only unlink files
       // that resolve inside the org's storage directory.
@@ -439,25 +472,27 @@ router.delete(
 // Thin proxy over `failurePropagation` so the 3D viewer can highlight
 // downstream equipment when an operator clicks a pin. Empty array when
 // GRAPH_ENABLED=false (no-op adapter) — caller treats absence as "no overlay".
-router.get(
-  "/vessels/equipment/:equipmentId/dependencies",
-  async (req: Request, res: Response) => {
-    try {
-      const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
-      const { equipmentId = "" } = req.params;
-      const hopsParsed = z.coerce.number().int().min(1).max(5).default(3)
-        .safeParse(req.query['maxHops'] ?? 3);
-      if (!hopsParsed.success) {
-        return res.status(400).json({ error: "maxHops must be an integer between 1 and 5" });
-      }
-      const maxHops = hopsParsed.data;
-      const downstream = await failurePropagation(orgId, equipmentId, maxHops);
-      return res.json({ equipmentId, downstream });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return res.status(500).json({ error: message });
+router.get("/vessels/equipment/:equipmentId/dependencies", async (req: Request, res: Response) => {
+  try {
+    const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
+    const { equipmentId = "" } = req.params;
+    const hopsParsed = z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .default(3)
+      .safeParse(req.query["maxHops"] ?? 3);
+    if (!hopsParsed.success) {
+      return res.status(400).json({ error: "maxHops must be an integer between 1 and 5" });
     }
+    const maxHops = hopsParsed.data;
+    const downstream = await failurePropagation(orgId, equipmentId, maxHops);
+    return res.json({ equipmentId, downstream });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return res.status(500).json({ error: message });
   }
-);
+});
 
 export { router as vessel3dRouter };

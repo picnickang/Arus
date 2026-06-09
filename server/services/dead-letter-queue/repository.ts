@@ -35,11 +35,10 @@ const PERSISTENCE_DISABLED =
   process.env["LOCAL_MODE"] === "true" ||
   process.env["EMBEDDED_MODE"] === "true";
 
-function persistAdd(
-  queueName: string,
-  entry: DeadLetterEntry,
-): void {
-  if (PERSISTENCE_DISABLED) {return;}
+function persistAdd(queueName: string, entry: DeadLetterEntry): void {
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
   void insertDeadLetterRow({
     id: entry.id,
     queueName,
@@ -50,60 +49,65 @@ function persistAdd(
     metadata: entry.metadata ?? null,
     createdAt: entry.createdAt,
     lastRetryAt: entry.lastRetryAt,
-  })
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to persist dead-letter entry", {
-        queueName,
-        entryId: entry.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  }).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to persist dead-letter entry", {
+      queueName,
+      entryId: entry.id,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistRemove(queueName: string, id: string): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void deleteDeadLetterRow(queueName, id)
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
-        queueName,
-        id,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterRow(queueName, id).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
+      queueName,
+      id,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void updateDeadLetterRetry(queueName, entry.id, entry.retryCount, entry.lastRetryAt)
-    .catch((err: unknown) => {
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void updateDeadLetterRetry(queueName, entry.id, entry.retryCount, entry.lastRetryAt).catch(
+    (err: unknown) => {
       logger.warn("DLQ", "Failed to persist retry bump", {
         queueName,
         id: entry.id,
         error: err instanceof Error ? err.message : String(err),
       });
-    });
+    }
+  );
 }
 
 function persistClearOlder(queueName: string, cutoff: Date): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void deleteDeadLetterOlderThan(queueName, cutoff)
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
-        queueName,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterOlderThan(queueName, cutoff).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
+      queueName,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistClearQueue(queueName: string): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void deleteDeadLetterQueue(queueName)
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
-        queueName,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterQueue(queueName).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
+      queueName,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 /**
@@ -113,7 +117,9 @@ function persistClearQueue(queueName: string): void {
  * number of entries reloaded (0 on DB error so callers can log).
  */
 export async function hydrateFromDatabase(queueName: string): Promise<number> {
-  if (PERSISTENCE_DISABLED) {return 0;}
+  if (PERSISTENCE_DISABLED) {
+    return 0;
+  }
   try {
     const rows = await selectDeadLetterRows(queueName);
     const entries: DeadLetterEntry[] = rows.map((row) => ({
@@ -197,7 +203,11 @@ export function incrementRetry(queueName: string, id: string): void {
 
 export function listEntries(
   queueName: string,
-  options: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined } = {}
+  options: {
+    limit?: number | undefined;
+    offset?: number | undefined;
+    source?: string | undefined;
+  } = {}
 ): DeadLetterEntry[] {
   let queue = getQueue(queueName);
 

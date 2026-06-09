@@ -48,7 +48,7 @@ export async function listTenants(): Promise<TenantRow[]> {
   )) as object as PgExecResult | TenantRow[];
   return Array.isArray(result)
     ? (result as TenantRow[])
-    : ((result as PgExecResult).rows as TenantRow[] | undefined) ?? [];
+    : (((result as PgExecResult).rows as TenantRow[] | undefined) ?? []);
 }
 
 export async function provisionTenant(t: ProvisionTenantInput): Promise<void> {

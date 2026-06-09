@@ -18,7 +18,7 @@ import {
 export async function findEquipmentInVessel(
   orgId: string,
   vesselId: string,
-  equipmentIds: string[],
+  equipmentIds: string[]
 ): Promise<{ id: string }[]> {
   return db
     .select({ id: equipment.id })
@@ -27,8 +27,8 @@ export async function findEquipmentInVessel(
       and(
         eq(equipment.orgId, orgId),
         eq(equipment.vesselId, vesselId),
-        inArray(equipment.id, equipmentIds),
-      ),
+        inArray(equipment.id, equipmentIds)
+      )
     );
 }
 
@@ -42,10 +42,7 @@ export async function listDependenciesWithEditor(orgId: string, vesselId: string
     .from(equipmentDependencies)
     .leftJoin(users, eq(users.id, equipmentDependencies.notesUpdatedBy))
     .where(
-      and(
-        eq(equipmentDependencies.orgId, orgId),
-        eq(equipmentDependencies.vesselId, vesselId),
-      ),
+      and(eq(equipmentDependencies.orgId, orgId), eq(equipmentDependencies.vesselId, vesselId))
     );
 }
 
@@ -89,7 +86,12 @@ export async function insertDependenciesBatch(values: DependencyInsertInput[]) {
 export async function updateDependencyNotes(
   orgId: string,
   id: string,
-  set: { notes: string | null; notesUpdatedBy: string | null; notesUpdatedAt: Date; updatedAt: Date },
+  set: {
+    notes: string | null;
+    notesUpdatedBy: string | null;
+    notesUpdatedAt: Date;
+    updatedAt: Date;
+  }
 ) {
   const [updated] = await db
     .update(equipmentDependencies)
@@ -123,8 +125,8 @@ export async function getDependencyLayout(orgId: string, userId: string, vesselI
       and(
         eq(equipmentDependencyLayouts.orgId, orgId),
         eq(equipmentDependencyLayouts.userId, userId),
-        eq(equipmentDependencyLayouts.vesselId, vesselId),
-      ),
+        eq(equipmentDependencyLayouts.vesselId, vesselId)
+      )
     );
   return row;
 }

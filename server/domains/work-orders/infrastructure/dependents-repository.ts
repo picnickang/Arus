@@ -24,7 +24,7 @@ type CountRow = { count: number };
 async function countWhere(
   table: PgTable,
   workOrderIdCol: AnyColumn | SQLWrapper,
-  workOrderId: string,
+  workOrderId: string
 ): Promise<number> {
   const [row] = (await db
     .select({ count: sql<number>`count(*)::int` })
@@ -35,7 +35,7 @@ async function countWhere(
 
 /** Resolve a work order's id + orgId (for the tenant ownership check). */
 export async function findWorkOrderForDependents(
-  workOrderId: string,
+  workOrderId: string
 ): Promise<{ id: string; orgId: string | null } | undefined> {
   const [wo] = await db
     .select({ id: workOrders.id, orgId: workOrders.orgId })
@@ -56,9 +56,7 @@ export interface WorkOrderDependents {
 }
 
 /** Count the cascade + linked dependents of a work order. */
-export async function countWorkOrderDependents(
-  workOrderId: string,
-): Promise<WorkOrderDependents> {
+export async function countWorkOrderDependents(workOrderId: string): Promise<WorkOrderDependents> {
   const [
     partsCount,
     checklistsCount,
@@ -90,10 +88,7 @@ export async function countWorkOrderDependents(
     linked,
     totals: {
       cascade: cascade.parts + cascade.checklists + cascade.worklogs,
-      linked:
-        linked.purchaseRequests +
-        linked.serviceRequests +
-        linked.serviceOrders,
+      linked: linked.purchaseRequests + linked.serviceRequests + linked.serviceOrders,
     },
   };
 }

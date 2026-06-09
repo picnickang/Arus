@@ -56,8 +56,7 @@ const baselinePath = resolve(__dirname, "hex-storage-baseline.json");
 // subpackages ARE the data layer (see the inventory "Push B4" refactor that
 // deliberately imports adapters directly rather than via the legacy
 // repositories.ts barrel) — so those imports are allowed.
-const DB_IMPORT_RE =
-  /from\s+['"](?:\.\.\/)+(db|db\/index(?:\.[jt]s)?|db-config)['"]/;
+const DB_IMPORT_RE = /from\s+['"](?:\.\.\/)+(db|db\/index(?:\.[jt]s)?|db-config)['"]/;
 const DB_DYNAMIC_IMPORT_RE =
   /await\s+import\s*\(\s*['"](?:\.\.\/)+(db|db\/index(?:\.[jt]s)?|db-config)['"]\s*\)/;
 
@@ -146,7 +145,9 @@ console.log(`New violations:  ${newViolations.length}`);
 console.log(`Resolved:        ${resolved.length}`);
 
 if (resolved.length > 0) {
-  console.log("\nThe following files were on the baseline but no longer leak — please remove from baseline:");
+  console.log(
+    "\nThe following files were on the baseline but no longer leak — please remove from baseline:"
+  );
   for (const r of resolved) console.log(`  - ${r}`);
 }
 

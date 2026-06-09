@@ -8,11 +8,7 @@
  */
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import {
-  mlModels,
-  predictionOutcomes,
-  equipment,
-} from "@shared/schema-runtime";
+import { mlModels, predictionOutcomes, equipment } from "@shared/schema-runtime";
 
 export async function countEligibleOutcomes(orgId: string, since: Date): Promise<number> {
   const rows = await db
@@ -22,8 +18,8 @@ export async function countEligibleOutcomes(orgId: string, since: Date): Promise
       and(
         eq(predictionOutcomes.orgId, orgId),
         eq(predictionOutcomes.useForRetraining, true),
-        gte(predictionOutcomes.observedAt, since),
-      ),
+        gte(predictionOutcomes.observedAt, since)
+      )
     );
   return rows[0]?.count ?? 0;
 }
@@ -52,7 +48,7 @@ export interface ModelMetricsRow {
 
 export async function getModelTrainingMetrics(
   orgId: string,
-  modelId: string,
+  modelId: string
 ): Promise<ModelMetricsRow | undefined> {
   const [row] = await db
     .select({ id: mlModels.id, metrics: mlModels.trainingMetrics })
@@ -65,7 +61,7 @@ export async function getModelTrainingMetrics(
 export async function updateModelTrainingMetrics(
   orgId: string,
   modelId: string,
-  metrics: Record<string, unknown>,
+  metrics: Record<string, unknown>
 ): Promise<void> {
   await db
     .update(mlModels)

@@ -11,7 +11,7 @@ import { vessel3dModels, vessels, type EquipmentPin } from "@shared/schema-runti
 
 export async function findVesselInOrg(
   vesselId: string,
-  orgId: string,
+  orgId: string
 ): Promise<{ id: string } | undefined> {
   const [vessel] = await db
     .select({ id: vessels.id })
@@ -56,7 +56,7 @@ export async function getVessel3dModelById(orgId: string, modelId: string) {
 export async function updateVessel3dModelPins(
   orgId: string,
   modelId: string,
-  pins: EquipmentPin[],
+  pins: EquipmentPin[]
 ) {
   const [row] = await db
     .update(vessel3dModels)

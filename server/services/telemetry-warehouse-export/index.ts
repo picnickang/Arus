@@ -15,19 +15,13 @@
 
 import { db } from "../../db/drizzle-handle";
 import { createLogger } from "../../lib/structured-logger";
-import {
-  exportOrgDayToParquet,
-  listOrgIdsWithRollups,
-} from "./parquet-exporter";
+import { exportOrgDayToParquet, listOrgIdsWithRollups } from "./parquet-exporter";
 import { loadManifest, mergeEntry, saveManifest } from "./manifest";
 import { pruneOldExports } from "./retention";
 import { recordRun } from "./last-run";
 import { previousUtcDate, dateStrToUtcStart } from "./date-utils";
 import { recordWarehouseExportOutcome } from "../../observability/warehouse-export-metrics";
-import type {
-  WarehouseExportJobSummary,
-  WarehouseExportRunSummary,
-} from "./types";
+import type { WarehouseExportJobSummary, WarehouseExportRunSummary } from "./types";
 
 const logger = createLogger("TelemetryWarehouseExport");
 
@@ -41,7 +35,7 @@ export interface RunOptions {
 }
 
 export async function runTelemetryWarehouseExport(
-  options: RunOptions = {},
+  options: RunOptions = {}
 ): Promise<WarehouseExportJobSummary> {
   const start = Date.now();
   const now = options.now ?? new Date();
@@ -58,9 +52,10 @@ export async function runTelemetryWarehouseExport(
 
   let orgIds: string[];
   try {
-    orgIds = options.orgIds && options.orgIds.length > 0
-      ? options.orgIds
-      : await listOrgIdsWithRollups(db, dayStart, dayEnd);
+    orgIds =
+      options.orgIds && options.orgIds.length > 0
+        ? options.orgIds
+        : await listOrgIdsWithRollups(db, dayStart, dayEnd);
   } catch (err) {
     logger.error("Failed to enumerate orgs with rollups — aborting export", {
       date: dateStr,

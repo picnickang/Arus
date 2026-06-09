@@ -26,11 +26,7 @@
 
 import { pool } from "../db";
 import { createLogger } from "../lib/structured-logger";
-import {
-  ensureTenantGraph,
-  isGraphAvailable,
-  tenantGraphName,
-} from "../graph-bootstrap";
+import { ensureTenantGraph, isGraphAvailable, tenantGraphName } from "../graph-bootstrap";
 import type { EdgeType, NodeLabel } from "../graph/types";
 
 const logger = createLogger("GraphAdapter");
@@ -54,13 +50,15 @@ function escapeCypherString(value: string): string {
   return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
 }
 
-function propsToCypherMap(
-  props: Record<string, string | number | null | undefined>
-): string {
+function propsToCypherMap(props: Record<string, string | number | null | undefined>): string {
   const parts: string[] = [];
   for (const [key, val] of Object.entries(props)) {
-    if (val == null) {continue;}
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {continue;}
+    if (val == null) {
+      continue;
+    }
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      continue;
+    }
     if (typeof val === "number" && Number.isFinite(val)) {
       parts.push(`${key}: ${val}`);
     } else {
@@ -80,9 +78,13 @@ async function execCypher(
   cypher: string,
   returnColumns: string
 ): Promise<CypherExecResult> {
-  if (!isGraphAvailable()) {return { ok: false, rows: [] };}
+  if (!isGraphAvailable()) {
+    return { ok: false, rows: [] };
+  }
   const ok = await ensureTenantGraph(orgId);
-  if (!ok || !pool) {return { ok: false, rows: [] };}
+  if (!ok || !pool) {
+    return { ok: false, rows: [] };
+  }
   const graph = tenantGraphName(orgId);
   // `returnColumns` is a static template fragment provided by the caller —
   // never derived from user input — declaring the AGE (col agtype) tuple.
@@ -138,9 +140,13 @@ export async function upsertNode(
   id: string,
   extraProps: Record<string, string | number | null | undefined> = {}
 ): Promise<boolean> {
-  if (!isGraphAvailable()) {return false;}
+  if (!isGraphAvailable()) {
+    return false;
+  }
   const ok = await ensureTenantGraph(orgId);
-  if (!ok) {return false;}
+  if (!ok) {
+    return false;
+  }
   const propsMap = propsToCypherMap({ ...extraProps, id });
   const cypher = `MERGE (n:${label} {id: ${escapeCypherString(id)}}) SET n += ${propsMap} RETURN n.id`;
   const res = await execCypher(orgId, cypher, "id agtype");
@@ -162,9 +168,13 @@ export async function upsertEdge(
   toId: string,
   sourceId: string = STATIC_EDGE_SOURCE
 ): Promise<boolean> {
-  if (!isGraphAvailable()) {return false;}
+  if (!isGraphAvailable()) {
+    return false;
+  }
   const ok = await ensureTenantGraph(orgId);
-  if (!ok) {return false;}
+  if (!ok) {
+    return false;
+  }
   const cypher =
     `MATCH (a:${fromLabel} {id: ${escapeCypherString(fromId)}}), ` +
     `(b:${toLabel} {id: ${escapeCypherString(toId)}}) ` +
@@ -190,9 +200,13 @@ export async function deleteEdge(
   toLabel: NodeLabel,
   toId: string
 ): Promise<boolean> {
-  if (!isGraphAvailable()) {return false;}
+  if (!isGraphAvailable()) {
+    return false;
+  }
   const ok = await ensureTenantGraph(orgId);
-  if (!ok) {return false;}
+  if (!ok) {
+    return false;
+  }
   // `execCypher` always wraps with `AS (${returnColumns})`, so the
   // Cypher MUST end in a RETURN with at least one column or the
   // generated SQL is invalid (`AS ()`). A constant `1` keeps the
@@ -226,8 +240,12 @@ export async function deleteEdge(
  * when the value isn't parseable.
  */
 function decodeAgtype(v: unknown): unknown {
-  if (v === null || v === undefined) {return null;}
-  if (typeof v === "number" || typeof v === "boolean") {return v;}
+  if (v === null || v === undefined) {
+    return null;
+  }
+  if (typeof v === "number" || typeof v === "boolean") {
+    return v;
+  }
   const s = String(v);
   try {
     return JSON.parse(s);
@@ -258,8 +276,8 @@ export async function findSimilarFailures(
     `ORDER BY occurrences DESC LIMIT 10`;
   const res = await execCypher(orgId, cypher, "failureMode agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    failureMode: agString(r['failureMode']),
-    occurrences: agNumber(r['occurrences']),
+    failureMode: agString(r["failureMode"]),
+    occurrences: agNumber(r["occurrences"]),
   }));
 }
 
@@ -278,8 +296,8 @@ export async function whatPartsForFailureMode(
     `ORDER BY occurrences DESC LIMIT 25`;
   const res = await execCypher(orgId, cypher, "partId agtype, occurrences agtype");
   return res.rows.map((r) => ({
-    partId: agString(r['partId']),
-    occurrences: agNumber(r['occurrences']),
+    partId: agString(r["partId"]),
+    occurrences: agNumber(r["occurrences"]),
   }));
 }
 
@@ -305,11 +323,11 @@ export async function crossClassPatterns(
   equipmentType: string,
   limit: number = 10
 ): Promise<Array<{ failureMode: string; occurrences: number; vesselCount: number }>> {
-  if (peerVesselIds.length === 0) {return [];}
+  if (peerVesselIds.length === 0) {
+    return [];
+  }
   const safeLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
-  const vesselList = peerVesselIds
-    .map((v) => escapeCypherString(v))
-    .join(", ");
+  const vesselList = peerVesselIds.map((v) => escapeCypherString(v)).join(", ");
   const cypher =
     `MATCH (v:Vessel) WHERE v.id IN [${vesselList}] ` +
     `MATCH (peer:Equipment {type: ${escapeCypherString(equipmentType)}})` +
@@ -325,9 +343,9 @@ export async function crossClassPatterns(
     "failureMode agtype, occurrences agtype, vesselCount agtype"
   );
   return res.rows.map((r) => ({
-    failureMode: agString(r['failureMode']),
-    occurrences: agNumber(r['occurrences']),
-    vesselCount: agNumber(r['vesselCount']),
+    failureMode: agString(r["failureMode"]),
+    occurrences: agNumber(r["occurrences"]),
+    vesselCount: agNumber(r["vesselCount"]),
   }));
 }
 
@@ -348,7 +366,7 @@ export async function failurePropagation(
     `ORDER BY hops ASC LIMIT 50`;
   const res = await execCypher(orgId, cypher, "equipmentId agtype, hops agtype");
   return res.rows.map((r) => ({
-    equipmentId: agString(r['equipmentId']),
-    hops: agNumber(r['hops']),
+    equipmentId: agString(r["equipmentId"]),
+    hops: agNumber(r["hops"]),
   }));
 }

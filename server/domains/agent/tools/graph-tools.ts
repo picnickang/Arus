@@ -73,11 +73,13 @@ registerTool({
     properties: {
       failureMode: {
         type: "string",
-        description: "Failure mode label (string, not numeric id) — matches failure_history.failure_mode exactly",
+        description:
+          "Failure mode label (string, not numeric id) — matches failure_history.failure_mode exactly",
       },
       failureModeId: {
         type: "string",
-        description: "Alias for `failureMode`. Same string label; provided so callers that name the slot 'id' still resolve.",
+        description:
+          "Alias for `failureMode`. Same string label; provided so callers that name the slot 'id' still resolve.",
       },
     },
   },

@@ -19,10 +19,7 @@ export const DEV_BYPASS_USER_ID = "dev-admin-user";
 
 /** True when the no-login dev convenience is explicitly enabled for this process. */
 export function isDevAuthBypassEnabled(): boolean {
-  return (
-    process.env["NODE_ENV"] === "development" &&
-    process.env["DEV_AUTH_BYPASS"] === "1"
-  );
+  return process.env["NODE_ENV"] === "development" && process.env["DEV_AUTH_BYPASS"] === "1";
 }
 
 /** True when the resolved user id is the synthetic dev-bypass identity. */

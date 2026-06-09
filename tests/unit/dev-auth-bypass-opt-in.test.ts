@@ -19,32 +19,32 @@ describe("isDevAuthBypassEnabled — opt-in", () => {
   });
 
   it("is enabled only with NODE_ENV=development AND DEV_AUTH_BYPASS=1", () => {
-    process.env['NODE_ENV'] = "development";
-    process.env['DEV_AUTH_BYPASS'] = "1";
+    process.env["NODE_ENV"] = "development";
+    process.env["DEV_AUTH_BYPASS"] = "1";
     expect(isDevAuthBypassEnabled()).toBe(true);
   });
 
   it("is DISABLED in development when DEV_AUTH_BYPASS is unset (the hardening)", () => {
-    process.env['NODE_ENV'] = "development";
-    delete process.env['DEV_AUTH_BYPASS'];
+    process.env["NODE_ENV"] = "development";
+    delete process.env["DEV_AUTH_BYPASS"];
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
   it("is disabled in development when DEV_AUTH_BYPASS=0", () => {
-    process.env['NODE_ENV'] = "development";
-    process.env['DEV_AUTH_BYPASS'] = "0";
+    process.env["NODE_ENV"] = "development";
+    process.env["DEV_AUTH_BYPASS"] = "0";
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
   it("is never enabled in production, even with DEV_AUTH_BYPASS=1", () => {
-    process.env['NODE_ENV'] = "production";
-    process.env['DEV_AUTH_BYPASS'] = "1";
+    process.env["NODE_ENV"] = "production";
+    process.env["DEV_AUTH_BYPASS"] = "1";
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
   it("is disabled when NODE_ENV is unset", () => {
-    delete process.env['NODE_ENV'];
-    process.env['DEV_AUTH_BYPASS'] = "1";
+    delete process.env["NODE_ENV"];
+    process.env["DEV_AUTH_BYPASS"] = "1";
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 });

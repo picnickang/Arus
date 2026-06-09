@@ -54,33 +54,24 @@ const deleteSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
-export function registerTenantRoutes(
-  app: Express,
-  deps: SystemAdminDependencies
-): void {
-  const { requireAdminAuth, auditAdminAction, criticalOperationRateLimit } =
-    deps;
+export function registerTenantRoutes(app: Express, deps: SystemAdminDependencies): void {
+  const { requireAdminAuth, auditAdminAction, criticalOperationRateLimit } = deps;
   const adminAuth: RequestHandler = (req, res, next) => requireAdminAuth(req, res, next);
-  const auditAdmin = (action: string): RequestHandler =>
-    (req, res, next) => auditAdminAction(action)(req, res, next);
+  const auditAdmin =
+    (action: string): RequestHandler =>
+    (req, res, next) =>
+      auditAdminAction(action)(req, res, next);
 
   // List tenants ------------------------------------------------------------
-  app.get(
-    "/api/admin/tenants",
-    criticalOperationRateLimit,
-    adminAuth,
-    async (_req, res) => {
-      try {
-        const rows = await listTenants();
-        return res.json({ tenants: rows });
-      } catch (err: unknown) {
-        logger.error("List tenants failed", undefined, err);
-        return res
-          .status(500)
-          .json({ error: "Failed to list tenants", code: "TENANT_LIST_FAILED" });
-      }
+  app.get("/api/admin/tenants", criticalOperationRateLimit, adminAuth, async (_req, res) => {
+    try {
+      const rows = await listTenants();
+      return res.json({ tenants: rows });
+    } catch (err: unknown) {
+      logger.error("List tenants failed", undefined, err);
+      return res.status(500).json({ error: "Failed to list tenants", code: "TENANT_LIST_FAILED" });
     }
-  );
+  });
 
   // Provision a new tenant + default quotas --------------------------------
   app.post(
@@ -91,9 +82,7 @@ export function registerTenantRoutes(
     async (req, res) => {
       const parsed = provisionSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res
-          .status(400)
-          .json({ error: "Invalid body", details: parsed.error.flatten() });
+        return res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
       }
       const t = parsed.data;
       try {
@@ -119,13 +108,11 @@ export function registerTenantRoutes(
     async (req, res) => {
       const parsed = suspendSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res
-          .status(400)
-          .json({ error: "Invalid body", details: parsed.error.flatten() });
+        return res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
       }
       try {
-        await suspendTenant(req.params['orgId'] ?? '', parsed.data.reason);
-        return res.json({ orgId: req.params['orgId'], suspended: true });
+        await suspendTenant(req.params["orgId"] ?? "", parsed.data.reason);
+        return res.json({ orgId: req.params["orgId"], suspended: true });
       } catch (err: unknown) {
         logger.error("Suspend tenant failed", undefined, err);
         return res
@@ -142,8 +129,8 @@ export function registerTenantRoutes(
     auditAdmin("tenant_unsuspend"),
     async (req, res) => {
       try {
-        await unsuspendTenant(req.params['orgId'] ?? '');
-        return res.json({ orgId: req.params['orgId'], suspended: false });
+        await unsuspendTenant(req.params["orgId"] ?? "");
+        return res.json({ orgId: req.params["orgId"], suspended: false });
       } catch (err: unknown) {
         logger.error("Unsuspend tenant failed", undefined, err);
         return res.status(500).json({
@@ -164,8 +151,7 @@ export function registerTenantRoutes(
       const parsed = deleteSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({
-          error:
-            "Tenant deletion requires { confirm: 'DELETE_TENANT', reason }",
+          error: "Tenant deletion requires { confirm: 'DELETE_TENANT', reason }",
           details: parsed.error.flatten(),
         });
       }
@@ -175,31 +161,24 @@ export function registerTenantRoutes(
         // certificate without an explicit signing secret — the dev
         // fallback would silently produce non-verifiable certs.
         const signingSecret =
-          process.env['GDPR_DELETION_HMAC_SECRET'] ??
-          process.env['SESSION_SECRET'];
+          process.env["GDPR_DELETION_HMAC_SECRET"] ?? process.env["SESSION_SECRET"];
         if (!signingSecret) {
-          if (process.env['NODE_ENV'] === "production") {
+          if (process.env["NODE_ENV"] === "production") {
             logger.error(
               "Tenant delete refused: GDPR_DELETION_HMAC_SECRET (or SESSION_SECRET) is not configured"
             );
             return res.status(503).json({
-              error:
-                "Tenant deletion is unavailable: GDPR signing secret is not configured",
+              error: "Tenant deletion is unavailable: GDPR signing secret is not configured",
             });
           }
-          logger.warn(
-            "Tenant delete: GDPR signing secret missing; using non-prod dev fallback"
-          );
+          logger.warn("Tenant delete: GDPR signing secret missing; using non-prod dev fallback");
         }
         const service = createTenantDeleteService(
-          signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
+          signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod"
         );
-        const result = await service.execute(
-          req.params['orgId'] ?? '',
-          parsed.data.reason
-        );
+        const result = await service.execute(req.params["orgId"] ?? "", parsed.data.reason);
         logger.warn("Tenant deleted", {
-          orgId: req.params['orgId'] ?? '',
+          orgId: req.params["orgId"] ?? "",
           requestedBy: adminId,
           certificateId: result.certificate.certificateId,
         });

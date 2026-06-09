@@ -78,7 +78,9 @@ async function validateEquipmentBelongsToVessel(
   vesselId: string,
   equipmentIds: string[]
 ): Promise<{ ok: true } | { ok: false; missingIds: string[] }> {
-  if (equipmentIds.length === 0) {return { ok: true };}
+  if (equipmentIds.length === 0) {
+    return { ok: true };
+  }
   const rows = await findEquipmentInVessel(orgId, vesselId, equipmentIds);
   const found = new Set(rows.map((r) => r.id));
   const missing = equipmentIds.filter((id) => !found.has(id));
@@ -86,26 +88,23 @@ async function validateEquipmentBelongsToVessel(
 }
 
 // ---------- GET list ----------
-router.get(
-  "/vessels/:vesselId/equipment-dependencies",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const { vesselId } = req.params;
-    try {
-      const rows = await listDependenciesWithEditor(authReq.orgId, vesselId ?? '');
-      const dependencies = rows.map((r) => ({
-        ...r.dep,
-        notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
-      }));
-      res.json({ dependencies });
-    } catch (err) {
-      logger.error("list failed", {
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load dependencies" });
-    }
+router.get("/vessels/:vesselId/equipment-dependencies", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const { vesselId } = req.params;
+  try {
+    const rows = await listDependenciesWithEditor(authReq.orgId, vesselId ?? "");
+    const dependencies = rows.map((r) => ({
+      ...r.dep,
+      notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
+    }));
+    res.json({ dependencies });
+  } catch (err) {
+    logger.error("list failed", {
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load dependencies" });
   }
-);
+});
 
 // ---------- POST create ----------
 router.post(
@@ -120,11 +119,10 @@ router.post(
     }
     const body = parsed.data;
 
-    const check = await validateEquipmentBelongsToVessel(
-      authReq.orgId,
-      body.vesselId,
-      [body.upstreamEquipmentId, body.downstreamEquipmentId]
-    );
+    const check = await validateEquipmentBelongsToVessel(authReq.orgId, body.vesselId, [
+      body.upstreamEquipmentId,
+      body.downstreamEquipmentId,
+    ]);
     if (!check.ok) {
       res.status(400).json({
         error: "Equipment not found in this vessel",
@@ -148,11 +146,7 @@ router.post(
       }
 
       // Best-effort graph projection — never blocks the relational write.
-      void projectDependency(
-        authReq.orgId,
-        row.upstreamEquipmentId,
-        row.downstreamEquipmentId
-      );
+      void projectDependency(authReq.orgId, row.upstreamEquipmentId, row.downstreamEquipmentId);
 
       res.status(201).json({ dependency: row });
     } catch (err) {
@@ -189,7 +183,7 @@ router.patch(
     const editorId = authReq.user?.id ?? null;
     try {
       const now = new Date();
-      const updated = await updateDependencyNotes(authReq.orgId, id ?? '', {
+      const updated = await updateDependencyNotes(authReq.orgId, id ?? "", {
         notes: trimmed,
         notesUpdatedBy: editorId,
         notesUpdatedAt: now,
@@ -223,7 +217,7 @@ router.delete(
     const authReq = authenticatedRequest(req);
     const { id } = req.params;
     try {
-      const removed = await deleteDependency(authReq.orgId, id ?? '');
+      const removed = await deleteDependency(authReq.orgId, id ?? "");
 
       if (!removed) {
         res.status(404).json({ error: "Dependency not found" });
@@ -262,9 +256,7 @@ router.post(
     const rows = parsed.data.rows;
 
     // Reject self-loops up front so the SQL never sees them.
-    const selfLoops = rows.filter(
-      (r) => r.upstreamEquipmentId === r.downstreamEquipmentId
-    );
+    const selfLoops = rows.filter((r) => r.upstreamEquipmentId === r.downstreamEquipmentId);
     if (selfLoops.length > 0) {
       res.status(400).json({
         error: "Self-loops are not allowed",
@@ -278,7 +270,7 @@ router.post(
     );
     const check = await validateEquipmentBelongsToVessel(
       authReq.orgId,
-      vesselId ?? '',
+      vesselId ?? "",
       allEquipmentIds
     );
     if (!check.ok) {
@@ -293,19 +285,15 @@ router.post(
       const inserted = await insertDependenciesBatch(
         rows.map((r) => ({
           orgId: authReq.orgId,
-          vesselId: vesselId ?? '',
+          vesselId: vesselId ?? "",
           upstreamEquipmentId: r.upstreamEquipmentId,
           downstreamEquipmentId: r.downstreamEquipmentId,
           notes: r.notes ?? null,
-        })),
+        }))
       );
 
       for (const row of inserted) {
-        void projectDependency(
-          authReq.orgId,
-          row.upstreamEquipmentId,
-          row.downstreamEquipmentId
-        );
+        void projectDependency(authReq.orgId, row.upstreamEquipmentId, row.downstreamEquipmentId);
       }
 
       res.json({
@@ -323,29 +311,25 @@ router.post(
 );
 
 // ---------- GET layout (per-user) ----------
-router.get(
-  "/vessels/:vesselId/equipment-dependency-layout",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const userId = authReq.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    const { vesselId } = req.params;
-    try {
-      const row = await getDependencyLayout(authReq.orgId, userId, vesselId ?? '');
-      const positions: EquipmentDependencyLayoutPositions =
-        row?.positions ?? {};
-      res.json({ positions });
-    } catch (err) {
-      logger.error("layout load failed", {
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load layout" });
-    }
+router.get("/vessels/:vesselId/equipment-dependency-layout", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const userId = authReq.user?.id;
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
-);
+  const { vesselId } = req.params;
+  try {
+    const row = await getDependencyLayout(authReq.orgId, userId, vesselId ?? "");
+    const positions: EquipmentDependencyLayoutPositions = row?.positions ?? {};
+    res.json({ positions });
+  } catch (err) {
+    logger.error("layout load failed", {
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load layout" });
+  }
+});
 
 // ---------- PUT layout (per-user upsert) ----------
 const layoutBodySchema = z.object({
@@ -366,9 +350,7 @@ router.put(
 
     const parsed = layoutBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({ error: "Invalid body", details: parsed.error.flatten() });
+      res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
       return;
     }
     const { positions } = parsed.data;
@@ -386,7 +368,7 @@ router.put(
       const row = await upsertDependencyLayout({
         orgId: authReq.orgId,
         userId,
-        vesselId: vesselId ?? '',
+        vesselId: vesselId ?? "",
         positions,
         updatedAt: new Date(),
       });

@@ -110,7 +110,10 @@ async function listEquipmentTypes(orgId: string): Promise<string[]> {
   }
 }
 
-function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: string; code: number }> {
+function runTrainer(
+  orgId: string,
+  equipmentType: string
+): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
     // Routes through train-model-sidecar.mjs so the Python XGBoost
     // trainer is used when ML_PYTHON_TRAINER=1 and falls back to the
@@ -153,19 +156,22 @@ function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: str
  * keeps resolving via the local-disk adapter — no regression vs. the
  * pre-#108 path.
  */
-async function uploadCandidateArtifacts(
-  orgId: string,
-  modelId: string,
-): Promise<void> {
+async function uploadCandidateArtifacts(orgId: string, modelId: string): Promise<void> {
   try {
     const row = await getModelTrainingMetrics(orgId, modelId);
-    if (!row) {return;}
+    if (!row) {
+      return;
+    }
     const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
-    const artifactPath = metrics['artifactPath'] as string | undefined;
-    const nativeArtifactPath = metrics['nativeArtifactPath'] as string | undefined;
+    const artifactPath = metrics["artifactPath"] as string | undefined;
+    const nativeArtifactPath = metrics["nativeArtifactPath"] as string | undefined;
     // Already migrated (idempotent — covers re-runs).
-    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) {return;}
-    if (!artifactPath) {return;}
+    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) {
+      return;
+    }
+    if (!artifactPath) {
+      return;
+    }
 
     const adapter = await getWriteAdapter();
     if (adapter.backend === "local") {
@@ -176,7 +182,9 @@ async function uploadCandidateArtifacts(
 
     const uploads: Array<[string, "artifactPath" | "nativeArtifactPath"]> = [];
     uploads.push([artifactPath, "artifactPath"]);
-    if (nativeArtifactPath) {uploads.push([nativeArtifactPath, "nativeArtifactPath"]);}
+    if (nativeArtifactPath) {
+      uploads.push([nativeArtifactPath, "nativeArtifactPath"]);
+    }
 
     for (const [localPath, field] of uploads) {
       try {
@@ -204,7 +212,7 @@ async function uploadCandidateArtifacts(
       orgId,
       modelId,
       backend: adapter.backend,
-      artifactPath: metrics['artifactPath'],
+      artifactPath: metrics["artifactPath"],
     });
   } catch (err) {
     // Hard-failing here would block a promotion that the gate already
@@ -319,8 +327,11 @@ export async function processModelRetrain(
         // flips to 'deployed'. No-op when the backend is 'local'.
         await uploadCandidateArtifacts(orgId, metrics.modelId);
         promoted = await attemptPromote(orgId, metrics.modelId, metrics, !!data.dryRun);
-        if (promoted) {candidatesPromoted += 1;}
-        else if (data.dryRun) {skipped = "dryRun";}
+        if (promoted) {
+          candidatesPromoted += 1;
+        } else if (data.dryRun) {
+          skipped = "dryRun";
+        }
       } else if (!gate.promote && metrics.modelId) {
         // #110: Surface failed-gate decisions as structured alerts so
         // operators see WHICH gate blocked promotion (MAE regression

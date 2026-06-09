@@ -16,7 +16,7 @@ export interface FocalEquipment {
 
 export async function findFocalEquipment(
   orgId: string,
-  id: string,
+  id: string
 ): Promise<FocalEquipment | undefined> {
   const [row] = await db
     .select({ id: equipment.id, type: equipment.type, vesselId: equipment.vesselId })
@@ -28,7 +28,7 @@ export async function findFocalEquipment(
 
 export async function findVesselClass(
   orgId: string,
-  vesselId: string,
+  vesselId: string
 ): Promise<{ id: string; vesselClass: string | null } | undefined> {
   const [row] = await db
     .select({ id: vessels.id, vesselClass: vessels.vesselClass })
@@ -41,7 +41,7 @@ export async function findVesselClass(
 export async function findPeerVesselIds(
   orgId: string,
   vesselClass: string,
-  excludeVesselId: string,
+  excludeVesselId: string
 ): Promise<string[]> {
   const peers = await db
     .select({ id: vessels.id })
@@ -50,8 +50,8 @@ export async function findPeerVesselIds(
       and(
         eq(vessels.orgId, orgId),
         eq(vessels.vesselClass, vesselClass),
-        ne(vessels.id, excludeVesselId),
-      ),
+        ne(vessels.id, excludeVesselId)
+      )
     );
   return peers.map((p) => p.id);
 }

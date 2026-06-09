@@ -119,7 +119,9 @@ export async function getRoleByName(name: string, orgId: string): Promise<Role |
 
 export async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
-  if (!role) {throw new Error("Failed to create role");}
+  if (!role) {
+    throw new Error("Failed to create role");
+  }
   return role;
 }
 
@@ -302,7 +304,9 @@ export async function backfillPdmTemplateGrantsForOrg(
 
   if (apply) {
     for (const result of results) {
-      if (!result.roleId) {continue;}
+      if (!result.roleId) {
+        continue;
+      }
       for (const perm of result.added) {
         await setPermissionGrant(result.roleId, perm.resource, perm.action, true);
       }
@@ -332,7 +336,9 @@ export async function assignRoleToUser(
   data: InsertUserRoleAssignment
 ): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
-  if (!assignment) {throw new Error("Failed to assign role to user");}
+  if (!assignment) {
+    throw new Error("Failed to assign role to user");
+  }
   return assignment;
 }
 
@@ -400,8 +406,7 @@ export async function getPermissionAuditLog(
     action: r.eventType,
     targetType: r.entityType,
     targetId: r.entityId ?? null,
-    previousValue:
-      r.previousState != null ? JSON.stringify(r.previousState) : null,
+    previousValue: r.previousState != null ? JSON.stringify(r.previousState) : null,
     newValue: r.newState != null ? JSON.stringify(r.newState) : null,
     ipAddress: r.ipAddress ?? null,
     createdAt: r.eventTimestamp ?? null,
@@ -559,7 +564,7 @@ export async function listOrgRolesForSeeding(orgId: string): Promise<SeedRoleRow
 export async function setRoleHubDefaults(
   orgId: string,
   roleId: string,
-  values: { hubAdmin: boolean; hubAccess: string[] | null },
+  values: { hubAdmin: boolean; hubAccess: string[] | null }
 ): Promise<void> {
   await db
     .update(roles)
@@ -568,7 +573,7 @@ export async function setRoleHubDefaults(
 }
 
 export async function listUnlinkedCrewForSeeding(
-  orgId: string,
+  orgId: string
 ): Promise<{ id: string; rank: string | null }[]> {
   return db
     .select({ id: crew.id, rank: crew.rank })
@@ -576,11 +581,7 @@ export async function listUnlinkedCrewForSeeding(
     .where(and(eq(crew.orgId, orgId), isNull(crew.roleId)));
 }
 
-export async function setCrewRoleId(
-  orgId: string,
-  crewId: string,
-  roleId: string,
-): Promise<void> {
+export async function setCrewRoleId(orgId: string, crewId: string, roleId: string): Promise<void> {
   await db
     .update(crew)
     .set({ roleId })

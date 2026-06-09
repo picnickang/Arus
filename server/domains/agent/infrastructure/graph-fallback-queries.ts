@@ -7,12 +7,7 @@
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import {
-  equipment,
-  failureHistory,
-  inventoryMovements,
-  parts,
-} from "@shared/schema-runtime";
+import { equipment, failureHistory, inventoryMovements, parts } from "@shared/schema-runtime";
 
 export interface PeerFailureMode {
   failureMode: string | null;
@@ -23,7 +18,7 @@ export interface PeerFailureMode {
  *  peer equipment of the same type. */
 export async function findPeerFailureModes(
   orgId: string,
-  equipmentId: string,
+  equipmentId: string
 ): Promise<PeerFailureMode[]> {
   const [src] = await db
     .select({ type: equipment.type })
@@ -48,12 +43,7 @@ export async function findPeerFailureModes(
       occurrences: sql<number>`count(*)::int`,
     })
     .from(failureHistory)
-    .where(
-      and(
-        eq(failureHistory.orgId, orgId),
-        inArray(failureHistory.equipmentId, peerIds),
-      ),
-    )
+    .where(and(eq(failureHistory.orgId, orgId), inArray(failureHistory.equipmentId, peerIds)))
     .groupBy(failureHistory.failureMode)
     .orderBy(sql`count(*) DESC`)
     .limit(10);
@@ -69,18 +59,13 @@ export interface PartForFailureMode {
  *  movements ('reserve'/'consume') for work orders repairing this failure. */
 export async function findPartsConsumedForFailureMode(
   orgId: string,
-  failureMode: string,
+  failureMode: string
 ): Promise<PartForFailureMode[]> {
   const woIds = (
     await db
       .select({ id: failureHistory.workOrderId })
       .from(failureHistory)
-      .where(
-        and(
-          eq(failureHistory.orgId, orgId),
-          eq(failureHistory.failureMode, failureMode),
-        ),
-      )
+      .where(and(eq(failureHistory.orgId, orgId), eq(failureHistory.failureMode, failureMode)))
   )
     .map((r) => r.id)
     .filter((id): id is string => !!id);
@@ -99,8 +84,8 @@ export async function findPartsConsumedForFailureMode(
       and(
         eq(inventoryMovements.orgId, orgId),
         inArray(inventoryMovements.workOrderId, woIds),
-        inArray(inventoryMovements.movementType, ["reserve", "consume"]),
-      ),
+        inArray(inventoryMovements.movementType, ["reserve", "consume"])
+      )
     )
     .groupBy(inventoryMovements.partId, parts.name)
     .orderBy(sql`count(*) DESC`)

@@ -15,7 +15,7 @@ export interface DeployedModelRow {
 
 export async function findDeployedModelById(
   orgId: string,
-  modelVersionId: string,
+  modelVersionId: string
 ): Promise<DeployedModelRow | undefined> {
   const [row] = await db
     .select({
@@ -28,8 +28,8 @@ export async function findDeployedModelById(
       and(
         eq(mlModels.id, modelVersionId),
         eq(mlModels.orgId, orgId),
-        eq(mlModels.status, "deployed"),
-      ),
+        eq(mlModels.status, "deployed")
+      )
     )
     .limit(1);
   return row;

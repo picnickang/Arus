@@ -20,7 +20,7 @@ function isLoopbackAddress(address: string): boolean {
 
 /** P2 #2 — see `./setup-token.ts` for the pure constant-time verifier. */
 function hasValidSetupToken(req: Request): boolean {
-  return verifySetupToken(process.env['SETUP_TOKEN'], req.headers["x-setup-token"]);
+  return verifySetupToken(process.env["SETUP_TOKEN"], req.headers["x-setup-token"]);
 }
 
 /**
@@ -31,11 +31,7 @@ function hasValidSetupToken(req: Request): boolean {
  * are. Audit is fire-and-forget structured-log only (avoids creating
  * a DB dependency on a route that runs pre-setup).
  */
-function auditSetupAttempt(
-  req: Request,
-  outcome: "allowed" | "denied",
-  reason: string
-): void {
+function auditSetupAttempt(req: Request, outcome: "allowed" | "denied", reason: string): void {
   logger.warn("Setup route access attempt", {
     outcome,
     reason,
@@ -59,7 +55,7 @@ function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
   // valid X-Setup-Token (audited below).
   const socketAddress = req.socket.remoteAddress || "";
   const isLocal = isLoopbackAddress(socketAddress);
-  const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
+  const isReplitDevelopment = !!process.env["REPL_ID"] && process.env["NODE_ENV"] !== "production";
 
   if (isLocal || isReplitDevelopment) {
     next();
@@ -68,10 +64,15 @@ function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
 
   // Remote caller: audit every attempt and require a valid token.
   const tokenOk = hasValidSetupToken(req);
-  auditSetupAttempt(req, tokenOk ? "allowed" : "denied", tokenOk ? "valid-setup-token" : "no-or-invalid-setup-token");
+  auditSetupAttempt(
+    req,
+    tokenOk ? "allowed" : "denied",
+    tokenOk ? "valid-setup-token" : "no-or-invalid-setup-token"
+  );
   if (!tokenOk) {
     return res.status(403).json({
-      error: "Setup is only available from localhost/Tauri, development Replit, or with X-Setup-Token",
+      error:
+        "Setup is only available from localhost/Tauri, development Replit, or with X-Setup-Token",
       code: "SETUP_LOCAL_ONLY",
     });
   }

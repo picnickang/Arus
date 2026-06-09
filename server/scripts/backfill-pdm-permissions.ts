@@ -64,9 +64,7 @@ function summarizeOrg(results: PdmBackfillRoleResult[]): {
 async function main(): Promise<void> {
   const orgs = await listAllOrganizations();
 
-  console.log(
-    `[backfill-pdm] mode=${apply ? "APPLY" : "DRY-RUN"} | organizations=${orgs.length}`
-  );
+  console.log(`[backfill-pdm] mode=${apply ? "APPLY" : "DRY-RUN"} | organizations=${orgs.length}`);
   console.log(
     apply
       ? "[backfill-pdm] Writing missing predictive_maintenance grants...\n"
@@ -117,7 +115,9 @@ async function main(): Promise<void> {
 const invokedDirectly = (() => {
   try {
     const entry = process.argv[1] ?? "";
-    return entry.endsWith("backfill-pdm-permissions.ts") || entry.endsWith("backfill-pdm-permissions.js");
+    return (
+      entry.endsWith("backfill-pdm-permissions.ts") || entry.endsWith("backfill-pdm-permissions.js")
+    );
   } catch {
     return false;
   }

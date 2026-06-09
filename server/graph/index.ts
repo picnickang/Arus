@@ -28,10 +28,7 @@ export {
   retractDependency,
 } from "./projector";
 
-export {
-  NodeLabel,
-  EdgeType,
-} from "./types";
+export { NodeLabel, EdgeType } from "./types";
 
 export type {
   EquipmentProjection,

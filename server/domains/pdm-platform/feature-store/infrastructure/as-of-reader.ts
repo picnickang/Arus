@@ -52,11 +52,11 @@ export async function getFeaturesByPredictionId(
   const [pred] = await db
     .select({ snapshotId: failurePredictions.featureSnapshotId })
     .from(failurePredictions)
-    .where(
-      and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId))
-    )
+    .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
     .limit(1);
-  if (!pred?.snapshotId) {return null;}
+  if (!pred?.snapshotId) {
+    return null;
+  }
   return getFeaturesBySnapshotId(orgId, pred.snapshotId);
 }
 

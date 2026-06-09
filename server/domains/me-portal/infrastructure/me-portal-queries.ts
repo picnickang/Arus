@@ -9,16 +9,11 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import {
-  users,
-  adminSessions,
-  userDashboardPreferences,
-  crew,
-} from "@shared/schema-runtime";
+import { users, adminSessions, userDashboardPreferences, crew } from "@shared/schema-runtime";
 
 export async function getMustChangePassword(
   orgId: string,
-  userId: string,
+  userId: string
 ): Promise<{ mustChangePassword: boolean | null } | undefined> {
   const [record] = await db
     .select({ mustChangePassword: users.mustChangePassword })
@@ -32,10 +27,7 @@ export async function deleteAllUserSessions(userId: string): Promise<void> {
   await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
 }
 
-export async function deleteUserSessionByToken(
-  userId: string,
-  tokenHash: string,
-): Promise<void> {
+export async function deleteUserSessionByToken(userId: string, tokenHash: string): Promise<void> {
   await db
     .delete(adminSessions)
     .where(and(eq(adminSessions.sessionToken, tokenHash), eq(adminSessions.userId, userId)));
@@ -43,16 +35,13 @@ export async function deleteUserSessionByToken(
 
 export async function getDashboardPrefs(
   orgId: string,
-  userId: string,
+  userId: string
 ): Promise<{ prefsJson: unknown } | undefined> {
   const [row] = await db
     .select({ prefsJson: userDashboardPreferences.prefsJson })
     .from(userDashboardPreferences)
     .where(
-      and(
-        eq(userDashboardPreferences.orgId, orgId),
-        eq(userDashboardPreferences.userId, userId),
-      ),
+      and(eq(userDashboardPreferences.orgId, orgId), eq(userDashboardPreferences.userId, userId))
     )
     .limit(1);
   return row;
@@ -61,7 +50,7 @@ export async function getDashboardPrefs(
 export async function upsertDashboardPrefs(
   orgId: string,
   userId: string,
-  prefsJson: unknown,
+  prefsJson: unknown
 ): Promise<void> {
   await db
     .insert(userDashboardPreferences)
@@ -74,7 +63,7 @@ export async function upsertDashboardPrefs(
 
 export async function getCrewLinkId(
   orgId: string,
-  userId: string,
+  userId: string
 ): Promise<{ id: string } | undefined> {
   const [crewMember] = await db
     .select({ id: crew.id })
@@ -89,12 +78,7 @@ export async function findUserByUsername(orgId: string, username: string) {
   const [record] = await db
     .select()
     .from(users)
-    .where(
-      and(
-        eq(users.orgId, orgId),
-        sql`lower(${users.username}) = lower(${username})`,
-      ),
-    )
+    .where(and(eq(users.orgId, orgId), sql`lower(${users.username}) = lower(${username})`))
     .limit(1);
   return record;
 }
@@ -119,7 +103,7 @@ export async function getUserById(orgId: string, userId: string) {
 export async function updateUserPassword(
   orgId: string,
   userId: string,
-  passwordHash: string,
+  passwordHash: string
 ): Promise<void> {
   await db
     .update(users)

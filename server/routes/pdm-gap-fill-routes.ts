@@ -29,7 +29,7 @@ import type { WsBroadcaster } from "../services/ml/ml-training-job-queue";
 
 // The db handle is injected via deps; reference its type without importing the
 // value (a pure type-level `import(...)` is not a runtime db coupling).
-type DbHandle = typeof import("../db")["db"];
+type DbHandle = (typeof import("../db"))["db"];
 
 interface PdmGapFillDeps {
   db: DbHandle;
@@ -82,7 +82,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get calibration report", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const modelId = req.query['modelId'] as string | undefined;
+      const modelId = req.query["modelId"] as string | undefined;
 
       const calibrator = new PredictionCalibrator(db);
 
@@ -122,8 +122,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get correlated anomaly groups", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const equipmentId = req.query['equipmentId'] as string | undefined;
-      const includeAcknowledged = req.query['includeAcknowledged'] === "true";
+      const equipmentId = req.query["equipmentId"] as string | undefined;
+      const includeAcknowledged = req.query["includeAcknowledged"] === "true";
 
       const correlator = new AnomalyCorrelator(dbMlAnalyticsStorage);
 
@@ -159,14 +159,14 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("query aggregated telemetry", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const equipmentId = req.params['equipmentId'] ?? '';
-      const sensorType = req.params['sensorType'] ?? '';
+      const equipmentId = req.params["equipmentId"] ?? "";
+      const sensorType = req.params["sensorType"] ?? "";
       const startDate = new Date(
-        (req.query['startDate'] as string) || Date.now() - 24 * 60 * 60 * 1000
+        (req.query["startDate"] as string) || Date.now() - 24 * 60 * 60 * 1000
       );
-      const endDate = new Date((req.query['endDate'] as string) || Date.now());
+      const endDate = new Date((req.query["endDate"] as string) || Date.now());
       const aggregator = new TelemetryAggregator(db);
-      const bucket = req.query['bucket'] as Parameters<typeof aggregator.queryAggregated>[5];
+      const bucket = req.query["bucket"] as Parameters<typeof aggregator.queryAggregated>[5];
 
       const data = await aggregator.queryAggregated(
         orgId,
@@ -272,7 +272,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     generalApiRateLimit,
     withErrorHandling("get training job status", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const jobId = req.params['jobId'] ?? '';
+      const jobId = req.params["jobId"] ?? "";
 
       try {
         const boss = jobQueueService.getBoss();
@@ -328,8 +328,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     ...requireAdminAuth,
     generalApiRateLimit,
     withErrorHandling("get telemetry warehouse status", async (req: Request, res: Response) => {
-      const limit = Math.max(1, Math.min(50, Number(req.query['limit']) || 14));
-      const orgIdParam = typeof req.query['orgId'] === "string" ? req.query['orgId'] : undefined;
+      const limit = Math.max(1, Math.min(50, Number(req.query["limit"]) || 14));
+      const orgIdParam = typeof req.query["orgId"] === "string" ? req.query["orgId"] : undefined;
       const recentRuns = await getWarehouseRecentRuns(limit);
 
       let manifest: Awaited<ReturnType<typeof loadWarehouseManifest>> | null = null;
@@ -344,9 +344,9 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       return res.json({
         recentRuns,
         manifest,
-        retentionDays: Number(process.env['TELEMETRY_WAREHOUSE_RETENTION_DAYS'] ?? 0) || 0,
+        retentionDays: Number(process.env["TELEMETRY_WAREHOUSE_RETENTION_DAYS"] ?? 0) || 0,
       });
-    }),
+    })
   );
 
   // Task #95 — admin trigger for an ad-hoc back-fill or re-export of a given
@@ -363,7 +363,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         : undefined;
       const summary = await runTelemetryWarehouseExport({ date, orgIds });
       return res.json(summary);
-    }),
+    })
   );
 
   (async () => {

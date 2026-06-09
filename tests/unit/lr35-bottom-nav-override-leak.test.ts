@@ -28,26 +28,16 @@ import {
 // `lr35-ui-align-*` tests in this directory.
 const REPO_ROOT = process.cwd();
 const BOTTOM_NAV = resolve(REPO_ROOT, "client/src/components/BottomNav.tsx");
-const SWITCH_PORTAL = resolve(
-  REPO_ROOT,
-  "client/src/components/navigation/SwitchPortalButton.tsx",
-);
+const SWITCH_PORTAL = resolve(REPO_ROOT, "client/src/components/navigation/SwitchPortalButton.tsx");
 const PORTAL_LOGIN = resolve(REPO_ROOT, "client/src/pages/portal-login.tsx");
 const ROLES_CONFIG = resolve(REPO_ROOT, "client/src/config/roles.ts");
-const NAV_STORAGE = resolve(
-  REPO_ROOT,
-  "client/src/infrastructure/navigation/nav-storage.ts",
-);
+const NAV_STORAGE = resolve(REPO_ROOT, "client/src/infrastructure/navigation/nav-storage.ts");
 
 describe("BottomNav override-leak hardening (follow-up #194)", () => {
   describe("intersectOverrideWithPolicy — pure policy contract", () => {
     it("drops admin category ids when role is a user-portal role (deck_officer)", () => {
-      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
-      const adminPolicyIds = getPrimaryCategoriesForRole("system_admin").map(
-        (c) => c.id,
-      );
+      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
+      const adminPolicyIds = getPrimaryCategoriesForRole("system_admin").map((c) => c.id);
       const adminOverride = [...adminPolicyIds, ...userPolicyIds];
       const result = intersectOverrideWithPolicy("deck_officer", adminOverride);
       const ids = result.map((c) => c.id).sort();
@@ -60,24 +50,20 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
     });
 
     it("returns policy default when override is null/empty/undefined", () => {
-      const policyDefault = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
+      const policyDefault = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
+      expect(intersectOverrideWithPolicy("deck_officer", null).map((c) => c.id)).toEqual(
+        policyDefault
       );
-      expect(
-        intersectOverrideWithPolicy("deck_officer", null).map((c) => c.id),
-      ).toEqual(policyDefault);
-      expect(
-        intersectOverrideWithPolicy("deck_officer", undefined).map((c) => c.id),
-      ).toEqual(policyDefault);
-      expect(
-        intersectOverrideWithPolicy("deck_officer", []).map((c) => c.id),
-      ).toEqual(policyDefault);
+      expect(intersectOverrideWithPolicy("deck_officer", undefined).map((c) => c.id)).toEqual(
+        policyDefault
+      );
+      expect(intersectOverrideWithPolicy("deck_officer", []).map((c) => c.id)).toEqual(
+        policyDefault
+      );
     });
 
     it("falls back to policy default when intersection is empty (admin-only ids on a user role)", () => {
-      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       const result = intersectOverrideWithPolicy("deck_officer", [
         "system",
         "maintenance",
@@ -89,9 +75,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
     });
 
     it("preserves user preferred order within allowed-by-policy set", () => {
-      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       // Reverse the policy order and assert intersect honours it.
       const reversed = [...userPolicyIds].reverse();
       const result = intersectOverrideWithPolicy("deck_officer", reversed);
@@ -99,39 +83,26 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
     });
 
     it("admin role (system_admin) still resolves to the five admin categories under intersect", () => {
-      const policyIds = getPrimaryCategoriesForRole("system_admin").map(
-        (c) => c.id,
-      );
+      const policyIds = getPrimaryCategoriesForRole("system_admin").map((c) => c.id);
       // Admin policy grants all eight primary hubs — pin the
       // cardinality so a future shrink can't silently regress the
       // override codepath for admins.
       expect(policyIds.length).toBe(8);
       // With no override, intersect returns the same policy default
       // unchanged (admin nav is preserved end-to-end).
-      expect(
-        intersectOverrideWithPolicy("system_admin", null).map((c) => c.id),
-      ).toEqual(policyIds);
+      expect(intersectOverrideWithPolicy("system_admin", null).map((c) => c.id)).toEqual(policyIds);
       // With an override that subsets the admin set, only allowed
       // ids survive in the user's preferred order.
       const reordered = [...policyIds].reverse();
-      expect(
-        intersectOverrideWithPolicy("system_admin", reordered).map(
-          (c) => c.id,
-        ),
-      ).toEqual(reordered);
+      expect(intersectOverrideWithPolicy("system_admin", reordered).map((c) => c.id)).toEqual(
+        reordered
+      );
     });
 
     it("dedupes repeated ids in the override", () => {
-      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userPolicyIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       const [first, second] = userPolicyIds;
-      const result = intersectOverrideWithPolicy("deck_officer", [
-        first,
-        first,
-        second,
-        first,
-      ]);
+      const result = intersectOverrideWithPolicy("deck_officer", [first, first, second, first]);
       expect(result.map((c) => c.id)).toEqual([first, second]);
     });
   });
@@ -196,9 +167,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toContain("isAdminPortalAccess");
       expect(src).toMatch(/if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null\s*;\s*\}/);
       const useEffectIdx = src.indexOf("useEffect(");
-      const userReturnIdx = src.search(
-        /if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null/,
-      );
+      const userReturnIdx = src.search(/if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null/);
       expect(useEffectIdx).toBeGreaterThan(-1);
       expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
     });
@@ -218,10 +187,12 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toContain("isAdminPortalAccess");
       expect(src).toContain("permissions.hubAdmin");
       expect(src).toMatch(
-        /isAdminPortal\s*&&\s*!usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/,
+        /isAdminPortal\s*&&\s*!usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/
       );
       // Must not reintroduce the legacy unconditional clearance.
-      expect(src).not.toMatch(/className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/);
+      expect(src).not.toMatch(
+        /className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/
+      );
 
       // CRITICAL #194 contract: because BottomNav is gated off ops-shell
       // routes, UniversalOpsShell must carry the same prune self-heal so a
@@ -229,7 +200,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       // that only ever see the ops shell.
       const shell = await readFile(
         resolve(REPO_ROOT, "client/src/components/ops/UniversalOpsShell.tsx"),
-        "utf8",
+        "utf8"
       );
       expect(shell).toContain("pruneOverrideToPolicyIds");
       expect(shell).toContain("writeNavOverride");
@@ -248,9 +219,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
 
   describe("pruneOverrideToPolicyIds — partial-conflict self-heal", () => {
     it("drops disallowed ids but keeps allowed ids in user-preferred order", () => {
-      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       // Mixed override: one valid user id + two admin ids.
       const mixed = [userIds[0], "maintenance", "system", userIds[1]];
       const pruned = pruneOverrideToPolicyIds("deck_officer", mixed);
@@ -258,9 +227,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
     });
 
     it("returns null when the override is already clean (no rewrite needed)", () => {
-      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       expect(pruneOverrideToPolicyIds("deck_officer", userIds)).toBeNull();
     });
 
@@ -280,9 +247,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
     });
 
     it("dedupes repeated allowed ids while pruning", () => {
-      const userIds = getPrimaryCategoriesForRole("deck_officer").map(
-        (c) => c.id,
-      );
+      const userIds = getPrimaryCategoriesForRole("deck_officer").map((c) => c.id);
       const pruned = pruneOverrideToPolicyIds("deck_officer", [
         userIds[0],
         userIds[0],
@@ -314,8 +279,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toContain("ROLE_STORAGE_KEY");
       expect(src).toContain("BOTTOM_NAV_OVERRIDE_STORAGE_KEY");
       const roleLiteralMatches = src.match(/"arus-user-role"/g) ?? [];
-      const overrideLiteralMatches =
-        src.match(/"arus-bottom-nav-items"/g) ?? [];
+      const overrideLiteralMatches = src.match(/"arus-bottom-nav-items"/g) ?? [];
       // The literals appear only in the doc comments at the top of
       // the file (as `arus-user-role` / `arus-bottom-nav-items` inside
       // backticks). Forbid the JS-string spelling.
