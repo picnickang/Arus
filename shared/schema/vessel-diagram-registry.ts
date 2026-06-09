@@ -64,6 +64,13 @@ export const validationSummarySchema = z.object({
   checkedAt: z.string(),
 });
 
+export const sectionMapImageTransformSchema = z.object({
+  scaleX: z.number().positive(),
+  scaleY: z.number().positive(),
+  offsetX: z.number(),
+  offsetY: z.number(),
+});
+
 export type VesselDiagramType = (typeof vesselDiagramTypeValues)[number];
 export type VesselDiagramStatus = (typeof vesselDiagramStatusValues)[number];
 export type VesselDiagramVersionStatus = (typeof vesselDiagramVersionStatusValues)[number];
@@ -72,6 +79,7 @@ export type VesselValidationSeverity = (typeof vesselValidationSeverityValues)[n
 export type NormalizedPoint = z.infer<typeof normalizedPointSchema>;
 export type DiagramViewBox = z.infer<typeof diagramViewBoxSchema>;
 export type ValidationSummary = z.infer<typeof validationSummarySchema>;
+export type SectionMapImageTransform = z.infer<typeof sectionMapImageTransformSchema>;
 
 export const vesselDiagrams = pgTable(
   "vessel_diagrams",
@@ -154,6 +162,7 @@ export const vesselSectionMaps = pgTable(
       .notNull()
       .default("side_elevation")
       .$type<VesselDiagramType>(),
+    imageTransform: jsonb("image_transform").$type<SectionMapImageTransform>(),
     status: text("status").notNull().default("draft").$type<VesselSectionMapStatus>(),
     validationSummary: jsonb("validation_summary").$type<ValidationSummary>(),
     publishedAt: timestamp("published_at", { mode: "date" }),

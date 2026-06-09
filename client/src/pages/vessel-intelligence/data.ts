@@ -1,9 +1,16 @@
+import type { SectionMapImageTransform } from "@shared/schema-runtime";
+import type { DiagramTypeKey, VesselSectionMapDefinition } from "./registry";
+
 export interface VesselRecord {
   id?: string;
   name?: string;
   vesselName?: string;
   imo?: string;
   status?: string;
+  vesselClass?: string | null;
+  condition?: string | null;
+  onlineStatus?: string | null;
+  lastHeartbeat?: string | Date | null;
   currentPort?: string;
   route?: string;
 }
@@ -89,6 +96,7 @@ export interface RegistrySectionMapRecord {
   diagramWidth: number;
   diagramHeight: number;
   diagramKind: string;
+  imageTransform?: SectionMapImageTransform | null;
   validationSummary?: { blockers: number; warnings: number; checkedAt: string } | null;
   publishedAt?: string | null;
   sections: RegistrySectionRecord[];
@@ -102,6 +110,34 @@ export interface RegistrySummaryRecord {
   sectionMaps: RegistrySectionMapRecord[];
   activeSectionMap?: RegistrySectionMapRecord | null;
   validationIssues: Array<{ severity: string; code: string; message: string }>;
+}
+
+export function sectionMapDefinitionFromRegistry(
+  map: RegistrySectionMapRecord | null | undefined
+): VesselSectionMapDefinition | null {
+  if (!map || map.coordinateMode !== "normalized_percent" || map.sections.length === 0) {
+    return null;
+  }
+
+  return {
+    coordinateMode: "normalized_percent",
+    diagramWidth: map.diagramWidth,
+    diagramHeight: map.diagramHeight,
+    diagramKind: (map.diagramKind || "side_elevation") as DiagramTypeKey,
+    imageTransform: map.imageTransform ?? undefined,
+    sections: map.sections.map((section) => ({
+      sectionNo: section.sectionNo,
+      sectionKey: section.sectionKey,
+      name: section.name,
+      color: section.color,
+      polygonNormalized: section.polygonNormalized,
+      labelNormalized: section.labelNormalized,
+      equipment: section.equipment.map((assignment) => assignment.equipmentName),
+      thumbnailFallback:
+        section.thumbnailFallback ??
+        "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
+    })),
+  };
 }
 
 export function toArray<T>(value: unknown): T[] {

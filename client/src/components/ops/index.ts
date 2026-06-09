@@ -12,3 +12,4 @@ export { OpsActionCard } from "./OpsActionCard";
 export type { OpsActionCardProps } from "./OpsActionCard";
 export { OpsStatusPill } from "./OpsStatusPill";
 export type { OpsStatusPillProps, OpsSeverity } from "./OpsStatusPill";
+export { UniversalOpsShell } from "./UniversalOpsShell";

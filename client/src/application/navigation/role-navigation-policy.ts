@@ -17,18 +17,15 @@
  */
 
 import { Gauge, Flag, ListChecks, UserCircle } from "lucide-react";
-import {
-  getCategoryById,
-  type NavigationCategory,
-} from "@/config/navigationConfig";
+import { getCategoryById, type NavigationCategory } from "@/config/navigationConfig";
 import type { NavRoleId, PortalKind } from "@/domain/navigation/types";
 import { isSuperAdminRole } from "@shared/role-dashboard";
 
 export { isSuperAdminRole };
 
 /**
- * The five primary admin categories surfaced in the simplified pilot
- * nav. Order matches the mockup (left → right).
+ * The eight primary admin categories surfaced in the operations shell.
+ * Order matches `navigationConfig.navigationCategories`.
  *
  * These ids reference categories already declared in
  * `navigationConfig.navigationCategories`; the policy layer does NOT
@@ -36,11 +33,14 @@ export { isSuperAdminRole };
  * the slice + display-label overrides.
  */
 const ADMIN_PRIMARY_CATEGORY_IDS = [
+  "operations",
+  "fleet",
   "maintenance",
-  "system",
   "crew",
   "logistics",
+  "records",
   "analytics",
+  "system",
 ] as const;
 
 /**
@@ -137,9 +137,7 @@ export function getPortalForRole(role: NavRoleId | string | null): PortalKind {
  * exactly these in this order — they must NOT re-filter, re-sort, or
  * decide visibility themselves.
  */
-export function getPrimaryCategoriesForRole(
-  role: NavRoleId | string | null,
-): NavigationCategory[] {
+export function getPrimaryCategoriesForRole(role: NavRoleId | string | null): NavigationCategory[] {
   if (getPortalForRole(role) === "user") {
     return USER_PRIMARY_CATEGORIES;
   }
@@ -155,7 +153,9 @@ export function getAdminPrimaryCategories(): NavigationCategory[] {
   const out: NavigationCategory[] = [];
   for (const id of ADMIN_PRIMARY_CATEGORY_IDS) {
     const cat = getCategoryById(id);
-    if (!cat) {continue;}
+    if (!cat) {
+      continue;
+    }
     const label = ADMIN_LABEL_OVERRIDES[id];
     out.push(label ? { ...cat, name: label } : cat);
   }
@@ -179,7 +179,7 @@ export function getAdminPrimaryCategories(): NavigationCategory[] {
 export function isAdminPortalAccess(
   role: NavRoleId | string | null,
   hubAdmin: boolean,
-  ready: boolean,
+  ready: boolean
 ): boolean {
   if (isSuperAdminRole(role)) {
     return true;
@@ -199,7 +199,7 @@ export function isAdminPortalAccess(
  */
 export function filterCategoriesByHubAccess(
   categories: NavigationCategory[],
-  hubAccess: readonly string[] | null | undefined,
+  hubAccess: readonly string[] | null | undefined
 ): NavigationCategory[] {
   if (!hubAccess) {
     return categories;
@@ -231,12 +231,9 @@ export function filterCategoriesByHubAccess(
  */
 export function intersectOverrideWithPolicy(
   role: NavRoleId | string | null,
-  overrideCategoryIds: readonly string[] | null | undefined,
+  overrideCategoryIds: readonly string[] | null | undefined
 ): NavigationCategory[] {
-  return intersectOverrideWithCategories(
-    getPrimaryCategoriesForRole(role),
-    overrideCategoryIds,
-  );
+  return intersectOverrideWithCategories(getPrimaryCategoriesForRole(role), overrideCategoryIds);
 }
 
 /**
@@ -251,7 +248,7 @@ export function intersectOverrideWithPolicy(
  */
 export function intersectOverrideWithCategories(
   policyDefault: NavigationCategory[],
-  overrideCategoryIds: readonly string[] | null | undefined,
+  overrideCategoryIds: readonly string[] | null | undefined
 ): NavigationCategory[] {
   if (!overrideCategoryIds || overrideCategoryIds.length === 0) {
     return policyDefault;
@@ -294,14 +291,12 @@ export function intersectOverrideWithCategories(
  */
 export function pruneOverrideToPolicyIds(
   role: NavRoleId | string | null,
-  overrideCategoryIds: readonly string[] | null | undefined,
+  overrideCategoryIds: readonly string[] | null | undefined
 ): string[] | null {
   if (!overrideCategoryIds || overrideCategoryIds.length === 0) {
     return null;
   }
-  const allowedIds = new Set(
-    getPrimaryCategoriesForRole(role).map((c) => c.id),
-  );
+  const allowedIds = new Set(getPrimaryCategoriesForRole(role).map((c) => c.id));
   const pruned: string[] = [];
   const seen = new Set<string>();
   for (const id of overrideCategoryIds) {
@@ -338,7 +333,7 @@ export function pruneOverrideToPolicyIds(
  */
 export function resolveEffectiveRole(
   serverRoleNames: readonly string[],
-  fallback: NavRoleId | string | null,
+  fallback: NavRoleId | string | null
 ): NavRoleId | string | null {
   if (serverRoleNames.length === 0) {
     return fallback;

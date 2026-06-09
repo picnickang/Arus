@@ -201,6 +201,7 @@ export class VesselDiagramRegistryService {
       diagramWidth: source.diagramWidth,
       diagramHeight: source.diagramHeight,
       diagramKind: source.diagramKind,
+      imageTransform: source.imageTransform,
       sections: sectionsFromMap(source, { copyEquipment: false }),
     });
   }
@@ -271,6 +272,7 @@ export class VesselDiagramRegistryService {
           diagramWidth: source.diagramWidth,
           diagramHeight: source.diagramHeight,
           diagramKind: diagram.diagramType,
+          imageTransform: source.imageTransform,
           sections: sectionsFromMap(source, { copyEquipment: true }),
         });
         warnings.push(
@@ -308,15 +310,21 @@ export class VesselDiagramRegistryService {
         behavior.sourceMapId,
         { name: mapName, diagramId, diagramVersionId: version.id }
       );
-      warnings.push("Equipment assignments were not copied unless explicitly rematched on this vessel.");
+      warnings.push(
+        "Equipment assignments were not copied unless explicitly rematched on this vessel."
+      );
     }
 
     if (mode === "copy_template") {
-      draftMap = await this.createSectionMapFromTemplate(ctx, behavior.templateId ?? "custom_blank", {
-        name: mapName,
-        diagramId,
-        diagramVersionId: version.id,
-      });
+      draftMap = await this.createSectionMapFromTemplate(
+        ctx,
+        behavior.templateId ?? "custom_blank",
+        {
+          name: mapName,
+          diagramId,
+          diagramVersionId: version.id,
+        }
+      );
     }
 
     return { version, draftMap, warnings };
@@ -357,7 +365,10 @@ export class VesselDiagramRegistryService {
     ctx: RegistryContext,
     mapId: string,
     sectionId: string,
-    input: { polygonNormalized: CreateSectionInput["polygonNormalized"]; labelNormalized: CreateSectionInput["labelNormalized"] }
+    input: {
+      polygonNormalized: CreateSectionInput["polygonNormalized"];
+      labelNormalized: CreateSectionInput["labelNormalized"];
+    }
   ) {
     return this.store.updateSectionPolygon(ctx, mapId, sectionId, input);
   }
@@ -497,7 +508,8 @@ function sectionsFromMap(
     polygonNormalized: section.polygonNormalized,
     labelNormalized: section.labelNormalized,
     thumbnailFallback:
-      section.thumbnailFallback ?? "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
+      section.thumbnailFallback ??
+      "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
     equipment: options.copyEquipment
       ? section.equipment.map((assignment) => ({
           equipmentId: assignment.equipmentId ?? undefined,
@@ -595,7 +607,13 @@ export const SECTION_MAP_TEMPLATES: SectionMapTemplateRecord[] = [
     diagramKind: "side_elevation",
     diagramWidth: 895,
     diagramHeight: 420,
-    sections: templateSections("tug", ["Aft Deck", "Engine Room", "Galley", "Wheelhouse", "Forepeak"]),
+    sections: templateSections("tug", [
+      "Aft Deck",
+      "Engine Room",
+      "Galley",
+      "Wheelhouse",
+      "Forepeak",
+    ]),
   },
   {
     id: "pilot_vessel",
@@ -605,7 +623,13 @@ export const SECTION_MAP_TEMPLATES: SectionMapTemplateRecord[] = [
     diagramKind: "side_elevation",
     diagramWidth: 895,
     diagramHeight: 420,
-    sections: templateSections("pilot", ["Aft Deck", "Machinery", "Passenger Cabin", "Bridge", "Foredeck"]),
+    sections: templateSections("pilot", [
+      "Aft Deck",
+      "Machinery",
+      "Passenger Cabin",
+      "Bridge",
+      "Foredeck",
+    ]),
   },
   {
     id: "crew_boat",
@@ -615,7 +639,13 @@ export const SECTION_MAP_TEMPLATES: SectionMapTemplateRecord[] = [
     diagramKind: "side_elevation",
     diagramWidth: 895,
     diagramHeight: 420,
-    sections: templateSections("crew", ["Aft Deck", "Engine Room", "Passenger Cabin", "Bridge", "Bow"]),
+    sections: templateSections("crew", [
+      "Aft Deck",
+      "Engine Room",
+      "Passenger Cabin",
+      "Bridge",
+      "Bow",
+    ]),
   },
   {
     id: "custom_blank",
@@ -634,10 +664,7 @@ function getSectionMapTemplate(templateId: string): SectionMapTemplateRecord | n
 }
 
 class MetadataOnlyMediaStore implements VesselRegistryMediaStore {
-  async persist(
-    _ctx: RegistryContext,
-    input: { objectKeyHint: string }
-  ): Promise<string> {
+  async persist(_ctx: RegistryContext, input: { objectKeyHint: string }): Promise<string> {
     return input.objectKeyHint;
   }
 

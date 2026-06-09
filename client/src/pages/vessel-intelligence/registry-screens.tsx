@@ -15,7 +15,6 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { PageHeader } from "@/components/navigation/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useToast } from "@/hooks/use-toast";
 import { SectionedVesselMap } from "./SectionedVesselMap";
-import { DIAGRAM_TYPES, type DiagramTypeDefinition, type VesselSectionMapDefinition } from "./registry";
+import {
+  DIAGRAM_TYPES,
+  type DiagramTypeDefinition,
+  type VesselSectionMapDefinition,
+} from "./registry";
 import {
   equipmentNameFor,
   statusText,
@@ -83,10 +86,8 @@ interface RegistryRouteScreenProps {
   vesselId: string;
   diagramId?: string;
   mapId?: string;
-  vessels: VesselRecord[];
   selectedVessel?: VesselRecord;
   equipment: EquipmentRecord[];
-  onSelectVessel: (vesselId: string) => void;
 }
 
 interface PermissionSet {
@@ -112,10 +113,8 @@ export function RegistryRouteScreen({
   vesselId,
   diagramId,
   mapId,
-  vessels,
   selectedVessel,
   equipment,
-  onSelectVessel,
 }: RegistryRouteScreenProps) {
   const [location] = useLocation();
   const permissions = useRegistryPermissions();
@@ -129,9 +128,13 @@ export function RegistryRouteScreen({
   );
 
   if (location.includes("/diagrams/") && location.endsWith("/versions") && diagramId) {
-    content = <DiagramVersionHistory vesselId={vesselId} diagramId={diagramId} permissions={permissions} />;
+    content = (
+      <DiagramVersionHistory vesselId={vesselId} diagramId={diagramId} permissions={permissions} />
+    );
   } else if (location.includes("/diagrams/") && diagramId) {
-    content = <DiagramDetailPage vesselId={vesselId} diagramId={diagramId} permissions={permissions} />;
+    content = (
+      <DiagramDetailPage vesselId={vesselId} diagramId={diagramId} permissions={permissions} />
+    );
   } else if (location.includes("/section-maps/") && location.endsWith("/edit") && mapId) {
     content = (
       <SectionMapEditorEntry
@@ -142,48 +145,30 @@ export function RegistryRouteScreen({
       />
     );
   } else if (location.includes("/section-maps/") && location.endsWith("/validate") && mapId) {
-    content = <PublishValidationPanel vesselId={vesselId} mapId={mapId} permissions={permissions} />;
+    content = (
+      <PublishValidationPanel vesselId={vesselId} mapId={mapId} permissions={permissions} />
+    );
   } else if (location.includes("/thumbnails")) {
     content = (
-      <ThumbnailManager
-        vesselId={vesselId}
-        equipment={equipment}
-        permissions={permissions}
-      />
+      <ThumbnailManager vesselId={vesselId} equipment={equipment} permissions={permissions} />
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="vessel-intelligence-registry-route">
-      <PageHeader
-        title="Replaceable Diagram Registry"
-        subtitle="Versioned vessel schematics, section maps, and thumbnail overrides"
-        action={
-          <div className="w-64">
-            <Select value={vesselId} onValueChange={onSelectVessel} disabled={vessels.length === 0}>
-              <SelectTrigger data-testid="select-registry-vessel">
-                <SelectValue placeholder="Select vessel" />
-              </SelectTrigger>
-              <SelectContent>
-                {vessels.map((vessel) => (
-                  <SelectItem key={vessel.id} value={vessel.id ?? ""}>
-                    {vesselNameFor(vessel)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        }
-      />
-      <div className="mx-auto max-w-7xl space-y-4 px-4 py-5 lg:px-6">
+    <div className="mx-auto max-w-7xl space-y-4" data-testid="vessel-intelligence-registry-route">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Badge variant="secondary">{vesselNameFor(selectedVessel)}</Badge>
+          <h2 className="mt-2 text-lg font-semibold text-slate-50">Diagram Registry Workspace</h2>
+        </div>
         <Button variant="outline" size="sm" asChild>
           <Link href={`/vessel-intelligence/${vesselId}/overview`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to hub
           </Link>
         </Button>
-        {content}
       </div>
+      {content}
     </div>
   );
 }
@@ -248,10 +233,20 @@ export function DiagramManager({
               creating={createDiagram.isPending}
               onCreate={() => createDiagramForType(type)}
               onUpload={() => diagram && setUploadDiagram(diagram)}
-              onVersions={() => diagram && setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagram.id}/versions`)}
-              onDetail={() => diagram && setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagram.id}`)}
-              onEditMap={() => map && setLocation(`/vessel-intelligence/${vesselId}/section-maps/${map.id}/edit`)}
-              onValidateMap={() => map && setLocation(`/vessel-intelligence/${vesselId}/section-maps/${map.id}/validate`)}
+              onVersions={() =>
+                diagram &&
+                setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagram.id}/versions`)
+              }
+              onDetail={() =>
+                diagram && setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagram.id}`)
+              }
+              onEditMap={() =>
+                map && setLocation(`/vessel-intelligence/${vesselId}/section-maps/${map.id}/edit`)
+              }
+              onValidateMap={() =>
+                map &&
+                setLocation(`/vessel-intelligence/${vesselId}/section-maps/${map.id}/validate`)
+              }
               onThumbnails={() => setLocation(`/vessel-intelligence/${vesselId}/thumbnails`)}
             />
           );
@@ -309,9 +304,18 @@ export function DiagramTypeCard({
         <Badge variant={status === "active" ? "default" : "outline"}>{statusText(status)}</Badge>
       </div>
       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-        <StatusLine label="Active version" value={diagram?.activeVersionId ? "Available" : "None"} />
-        <StatusLine label="Section map" value={sectionMap ? statusText(sectionMap.status) : "No map"} />
-        <StatusLine label="Last updated" value={formatDate((diagram as { updatedAt?: string })?.updatedAt)} />
+        <StatusLine
+          label="Active version"
+          value={diagram?.activeVersionId ? "Available" : "None"}
+        />
+        <StatusLine
+          label="Section map"
+          value={sectionMap ? statusText(sectionMap.status) : "No map"}
+        />
+        <StatusLine
+          label="Last updated"
+          value={formatDate((diagram as { updatedAt?: string })?.updatedAt)}
+        />
         <StatusLine label="Record" value={diagram ? "Created" : "Not uploaded"} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -347,7 +351,11 @@ export function DiagramTypeCard({
           icon={Map}
           label="Edit section map"
           allowed={Boolean(sectionMap && permissions.canEditMap)}
-          reason={sectionMap ? "Requires vessel-intelligence:edit-section-map" : "No section map exists for this diagram"}
+          reason={
+            sectionMap
+              ? "Requires vessel-intelligence:edit-section-map"
+              : "No section map exists for this diagram"
+          }
           onClick={onEditMap}
         />
         <ActionButton
@@ -355,7 +363,11 @@ export function DiagramTypeCard({
           icon={CheckCircle}
           label="Validate map"
           allowed={Boolean(sectionMap && permissions.canEditMap)}
-          reason={sectionMap ? "Requires vessel-intelligence:edit-section-map" : "No section map exists for this diagram"}
+          reason={
+            sectionMap
+              ? "Requires vessel-intelligence:edit-section-map"
+              : "No section map exists for this diagram"
+          }
           onClick={onValidateMap}
         />
         <ActionButton
@@ -387,7 +399,9 @@ export function DiagramDetailPage({
   const diagram = diagramQuery.data;
   const versions = versionsQuery.data ?? [];
   const active = versions.find((version) => version.status === "active");
-  const draft = versions.find((version) => version.status === "draft" || version.status === "uploaded");
+  const draft = versions.find(
+    (version) => version.status === "draft" || version.status === "uploaded"
+  );
   const linkedMaps = (mapsQuery.data ?? []).filter((map) => map.diagramId === diagramId);
   const currentMap = linkedMaps.find((map) => map.status === "draft") ?? linkedMaps[0];
 
@@ -419,9 +433,22 @@ export function DiagramDetailPage({
               )}
             </div>
             <div className="space-y-3 rounded-md border p-4">
-              <StatusLine label="Active version" value={active ? `v${active.versionNumber}` : "None"} />
-              <StatusLine label="Draft version" value={draft ? `v${draft.versionNumber}` : "None"} />
-              <StatusLine label="Validation" value={currentMap?.validationSummary ? `${currentMap.validationSummary.blockers} blockers` : "Not validated"} />
+              <StatusLine
+                label="Active version"
+                value={active ? `v${active.versionNumber}` : "None"}
+              />
+              <StatusLine
+                label="Draft version"
+                value={draft ? `v${draft.versionNumber}` : "None"}
+              />
+              <StatusLine
+                label="Validation"
+                value={
+                  currentMap?.validationSummary
+                    ? `${currentMap.validationSummary.blockers} blockers`
+                    : "Not validated"
+                }
+              />
               <StatusLine label="Linked maps" value={String(linkedMaps.length)} />
               <ActionButton
                 testId="button-upload-replace-diagram"
@@ -436,22 +463,40 @@ export function DiagramDetailPage({
                 icon={History}
                 label="Version history"
                 allowed
-                onClick={() => setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagramId}/versions`)}
+                onClick={() =>
+                  setLocation(`/vessel-intelligence/${vesselId}/diagrams/${diagramId}/versions`)
+                }
               />
               <ActionButton
                 icon={Map}
                 label="Edit section map"
                 allowed={Boolean(currentMap && permissions.canEditMap)}
-                reason={currentMap ? "Requires vessel-intelligence:edit-section-map" : "No section map exists for this diagram. Start blank, copy from another vessel, or use a vessel type template."}
-                onClick={() => currentMap && setLocation(`/vessel-intelligence/${vesselId}/section-maps/${currentMap.id}/edit`)}
+                reason={
+                  currentMap
+                    ? "Requires vessel-intelligence:edit-section-map"
+                    : "No section map exists for this diagram. Start blank, copy from another vessel, or use a vessel type template."
+                }
+                onClick={() =>
+                  currentMap &&
+                  setLocation(`/vessel-intelligence/${vesselId}/section-maps/${currentMap.id}/edit`)
+                }
               />
               <ActionButton
                 testId="button-validate-map"
                 icon={CheckCircle}
                 label="Validate map"
                 allowed={Boolean(currentMap && permissions.canEditMap)}
-                reason={currentMap ? "Requires vessel-intelligence:edit-section-map" : "No section map exists for this diagram. Start blank, copy from another vessel, or use a vessel type template."}
-                onClick={() => currentMap && setLocation(`/vessel-intelligence/${vesselId}/section-maps/${currentMap.id}/validate`)}
+                reason={
+                  currentMap
+                    ? "Requires vessel-intelligence:edit-section-map"
+                    : "No section map exists for this diagram. Start blank, copy from another vessel, or use a vessel type template."
+                }
+                onClick={() =>
+                  currentMap &&
+                  setLocation(
+                    `/vessel-intelligence/${vesselId}/section-maps/${currentMap.id}/validate`
+                  )
+                }
               />
             </div>
           </div>
@@ -492,7 +537,11 @@ export function DiagramUploadReplaceDialog({
 
   const submit = async () => {
     if (!file) {
-      toast({ title: "File rejected", description: "Choose a diagram file before uploading.", variant: "destructive" });
+      toast({
+        title: "File rejected",
+        description: "Choose a diagram file before uploading.",
+        variant: "destructive",
+      });
       return;
     }
     const result = await upload.mutateAsync({
@@ -563,9 +612,17 @@ export function DiagramUploadReplaceDialog({
           <Button
             data-testid="button-submit-upload-replace"
             onClick={() => void submit()}
-            disabled={upload.isPending || !file || (behavior === "copy_vessel" && (!sourceVesselId || !sourceMapId))}
+            disabled={
+              upload.isPending ||
+              !file ||
+              (behavior === "copy_vessel" && (!sourceVesselId || !sourceMapId))
+            }
           >
-            {upload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            {upload.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
             Upload
           </Button>
         </DialogFooter>
@@ -581,7 +638,12 @@ export function ReplacementBehaviorSelector({
   value: ReplacementBehavior;
   onChange: (value: ReplacementBehavior) => void;
 }) {
-  const options: Array<{ value: ReplacementBehavior; label: string; description: string; testId: string }> = [
+  const options: Array<{
+    value: ReplacementBehavior;
+    label: string;
+    description: string;
+    testId: string;
+  }> = [
     {
       value: "keep_existing",
       label: "Keep existing section map as draft overlay",
@@ -608,7 +670,11 @@ export function ReplacementBehaviorSelector({
     },
   ];
   return (
-    <RadioGroup value={value} onValueChange={(next) => onChange(next as ReplacementBehavior)} className="grid gap-2">
+    <RadioGroup
+      value={value}
+      onValueChange={(next) => onChange(next as ReplacementBehavior)}
+      className="grid gap-2"
+    >
       {options.map((option) => (
         <label
           key={option.value}
@@ -644,7 +710,11 @@ export function CopyFromVesselDialog({
     <div className="grid gap-3 rounded-md border p-3 md:grid-cols-2">
       <div className="grid gap-2">
         <Label htmlFor="source-vessel-id">Source vessel ID</Label>
-        <Input id="source-vessel-id" value={sourceVesselId} onChange={(event) => onSourceVesselIdChange(event.target.value)} />
+        <Input
+          id="source-vessel-id"
+          value={sourceVesselId}
+          onChange={(event) => onSourceVesselIdChange(event.target.value)}
+        />
       </div>
       <div className="grid gap-2">
         <Label>Source map</Label>
@@ -690,7 +760,8 @@ export function CopyFromTemplateDialog({
         </SelectContent>
       </Select>
       <p className="text-xs text-muted-foreground">
-        {templates.find((template) => template.id === templateId)?.description ?? "Template registry loading."}
+        {templates.find((template) => template.id === templateId)?.description ??
+          "Template registry loading."}
       </p>
     </div>
   );
@@ -767,10 +838,13 @@ function VersionRow({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">v{version.versionNumber}</span>
-          <Badge variant={version.status === "active" ? "default" : "outline"}>{statusText(version.status)}</Badge>
+          <Badge variant={version.status === "active" ? "default" : "outline"}>
+            {statusText(version.status)}
+          </Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          {version.originalFileName} | uploaded by {version.uploadedBy ?? "unknown"} | {formatDate(version.uploadedAt)}
+          {version.originalFileName} | uploaded by {version.uploadedBy ?? "unknown"} |{" "}
+          {formatDate(version.uploadedAt)}
         </p>
         <p className="text-xs text-muted-foreground">
           published by {version.publishedBy ?? "not published"} | {formatDate(version.publishedAt)}
@@ -856,10 +930,16 @@ export function SectionMapEditorEntry({
   };
 
   const saveSection = async () => {
-    if (!map) {return;}
+    if (!map) {
+      return;
+    }
     const polygon = parsePolygon(polygonText);
     if (!polygon) {
-      toast({ title: "Section save failed", description: "Polygon must be valid normalized JSON.", variant: "destructive" });
+      toast({
+        title: "Section save failed",
+        description: "Polygon must be valid normalized JSON.",
+        variant: "destructive",
+      });
       return;
     }
     const payload = {
@@ -879,10 +959,18 @@ export function SectionMapEditorEntry({
   };
 
   const assign = () => {
-    if (!selectedSection) {return;}
-    const selectedEquipment = equipment.find((item) => equipmentIdForThumbnail(item) === equipmentId);
-    const equipmentName = selectedEquipment ? equipmentNameFor(selectedEquipment) : manualEquipmentName;
-    if (!equipmentName) {return;}
+    if (!selectedSection) {
+      return;
+    }
+    const selectedEquipment = equipment.find(
+      (item) => equipmentIdForThumbnail(item) === equipmentId
+    );
+    const equipmentName = selectedEquipment
+      ? equipmentNameFor(selectedEquipment)
+      : manualEquipmentName;
+    if (!equipmentName) {
+      return;
+    }
     assignEquipment.mutate({
       vesselId,
       mapId,
@@ -922,18 +1010,31 @@ export function SectionMapEditorEntry({
                   disabled={!permissions.canEditMap || validate.isPending}
                   data-testid="button-validate-map"
                 >
-                  {validate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                  {validate.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                  )}
                   Validate
                 </Button>
               </div>
               {sectionMapDefinition && map.sections.length > 0 ? (
                 <SectionedVesselMap
                   sectionMap={sectionMapDefinition}
-                  selectedSectionKey={selectedSection?.sectionKey ?? map.sections[0]?.sectionKey ?? ""}
+                  selectedSectionKey={
+                    selectedSection?.sectionKey ?? map.sections[0]?.sectionKey ?? ""
+                  }
                   baseImageUrl={baseImageUrl}
+                  vesselId={vesselId}
+                  mapId={mapId}
+                  canEditImageTransform={permissions.canEditMap}
+                  vesselEquipment={equipment}
+                  manageAssignmentsHref={`/vessel-intelligence/${vesselId}/section-maps/${mapId}/edit`}
                   onSelectSection={(sectionKey) => {
                     const next = map.sections.find((section) => section.sectionKey === sectionKey);
-                    if (next) {loadSection(next);}
+                    if (next) {
+                      loadSection(next);
+                    }
                   }}
                 />
               ) : (
@@ -947,10 +1048,15 @@ export function SectionMapEditorEntry({
               )}
               <div className="grid gap-2">
                 <Label>Section</Label>
-                <Select value={selectedSectionId} onValueChange={(id) => {
-                  const next = map.sections.find((section) => section.id === id);
-                  if (next) {loadSection(next);}
-                }}>
+                <Select
+                  value={selectedSectionId}
+                  onValueChange={(id) => {
+                    const next = map.sections.find((section) => section.id === id);
+                    if (next) {
+                      loadSection(next);
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Create new section" />
                   </SelectTrigger>
@@ -965,35 +1071,65 @@ export function SectionMapEditorEntry({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="section-name">Name</Label>
-                <Input id="section-name" value={sectionName} onChange={(event) => setSectionName(event.target.value)} placeholder="New Section" />
+                <Input
+                  id="section-name"
+                  value={sectionName}
+                  onChange={(event) => setSectionName(event.target.value)}
+                  placeholder="New Section"
+                />
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="section-key">Key</Label>
-                  <Input id="section-key" value={sectionKey} onChange={(event) => setSectionKey(event.target.value)} placeholder="new_section" />
+                  <Input
+                    id="section-key"
+                    value={sectionKey}
+                    onChange={(event) => setSectionKey(event.target.value)}
+                    placeholder="new_section"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="section-color">Color</Label>
-                  <Input id="section-color" type="color" value={sectionColor} onChange={(event) => setSectionColor(event.target.value)} />
+                  <Input
+                    id="section-color"
+                    type="color"
+                    value={sectionColor}
+                    onChange={(event) => setSectionColor(event.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="label-x">Label X</Label>
-                  <Input id="label-x" value={labelX} onChange={(event) => setLabelX(event.target.value)} />
+                  <Input
+                    id="label-x"
+                    value={labelX}
+                    onChange={(event) => setLabelX(event.target.value)}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="label-y">Label Y</Label>
-                  <Input id="label-y" value={labelY} onChange={(event) => setLabelY(event.target.value)} />
+                  <Input
+                    id="label-y"
+                    value={labelY}
+                    onChange={(event) => setLabelY(event.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="section-polygon">Polygon points</Label>
-                <Textarea id="section-polygon" rows={6} value={polygonText} onChange={(event) => setPolygonText(event.target.value)} />
+                <Textarea
+                  id="section-polygon"
+                  rows={6}
+                  value={polygonText}
+                  onChange={(event) => setPolygonText(event.target.value)}
+                />
               </div>
               <Button
                 onClick={() => void saveSection()}
-                disabled={!permissions.canEditMap || addSection.isPending || updateSection.isPending}
+                disabled={
+                  !permissions.canEditMap || addSection.isPending || updateSection.isPending
+                }
               >
                 <Save className="mr-2 h-4 w-4" />
                 Save draft
@@ -1006,9 +1142,14 @@ export function SectionMapEditorEntry({
               <h2 className="text-base font-semibold">Equipment Assignments</h2>
               {selectedSection ? (
                 <div className="mt-3 space-y-3">
-                  {selectedSection.equipment.length === 0 && <EmptyState message="No equipment assigned to this section." />}
+                  {selectedSection.equipment.length === 0 && (
+                    <EmptyState message="No equipment assigned to this section." />
+                  )}
                   {selectedSection.equipment.map((assignment) => (
-                    <div key={assignment.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                    <div
+                      key={assignment.id}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                    >
                       <span>{assignment.equipmentName}</span>
                       <Button
                         variant="outline"
@@ -1036,14 +1177,24 @@ export function SectionMapEditorEntry({
                       </SelectTrigger>
                       <SelectContent>
                         {equipment.map((item) => (
-                          <SelectItem key={equipmentIdForThumbnail(item)} value={equipmentIdForThumbnail(item)}>
+                          <SelectItem
+                            key={equipmentIdForThumbnail(item)}
+                            value={equipmentIdForThumbnail(item)}
+                          >
                             {equipmentNameFor(item)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input value={manualEquipmentName} onChange={(event) => setManualEquipmentName(event.target.value)} placeholder="Manual equipment name" />
-                    <Button onClick={assign} disabled={!permissions.canAssignEquipment || assignEquipment.isPending}>
+                    <Input
+                      value={manualEquipmentName}
+                      onChange={(event) => setManualEquipmentName(event.target.value)}
+                      placeholder="Manual equipment name"
+                    />
+                    <Button
+                      onClick={assign}
+                      disabled={!permissions.canAssignEquipment || assignEquipment.isPending}
+                    >
                       Assign
                     </Button>
                   </div>
@@ -1055,9 +1206,15 @@ export function SectionMapEditorEntry({
             <div className="rounded-md border p-4">
               <h2 className="text-base font-semibold">Thumbnail Controls</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {"Fallback chain: manual upload -> crop from active schematic -> generated placeholder -> generic icon."}
+                {
+                  "Fallback chain: manual upload -> crop from active schematic -> generated placeholder -> generic icon."
+                }
               </p>
-              <Button className="mt-3" variant="outline" onClick={() => setLocation(`/vessel-intelligence/${vesselId}/thumbnails`)}>
+              <Button
+                className="mt-3"
+                variant="outline"
+                onClick={() => setLocation(`/vessel-intelligence/${vesselId}/thumbnails`)}
+              >
                 <ImagePlus className="mr-2 h-4 w-4" />
                 Open thumbnail manager
               </Button>
@@ -1094,20 +1251,36 @@ export function PublishValidationPanel({
         <p className="text-sm text-muted-foreground">{mapQuery.data?.name ?? mapId}</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => validate.mutate({ vesselId, mapId })} disabled={!permissions.canEditMap || validate.isPending}>
-          {validate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+        <Button
+          onClick={() => validate.mutate({ vesselId, mapId })}
+          disabled={!permissions.canEditMap || validate.isPending}
+        >
+          {validate.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle className="mr-2 h-4 w-4" />
+          )}
           Run validation
         </Button>
         <Button
           data-testid="button-publish-map"
           onClick={() => publish.mutate({ vesselId, mapId })}
           disabled={!canPublish || publish.isPending}
-          title={permissions.canPublishMap ? "Publish map" : "Requires vessel-intelligence:publish-map"}
+          title={
+            permissions.canPublishMap ? "Publish map" : "Requires vessel-intelligence:publish-map"
+          }
         >
-          {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+          {publish.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle className="mr-2 h-4 w-4" />
+          )}
           Publish map
         </Button>
-        <Button variant="outline" onClick={() => setLocation(`/vessel-intelligence/${vesselId}/section-maps/${mapId}/edit`)}>
+        <Button
+          variant="outline"
+          onClick={() => setLocation(`/vessel-intelligence/${vesselId}/section-maps/${mapId}/edit`)}
+        >
           Back to editor
         </Button>
       </div>
@@ -1118,12 +1291,25 @@ export function PublishValidationPanel({
         <EmptyState message="Run validation to see blockers, warnings, and passed checks." />
       ) : (
         <div className="grid gap-3 lg:grid-cols-3">
-          <ValidationColumn title="Blockers" issues={blockers} empty="No blockers found." variant="destructive" />
-          <ValidationColumn title="Warnings" issues={warnings} empty="No warnings found." variant="warning" />
+          <ValidationColumn
+            title="Blockers"
+            issues={blockers}
+            empty="No blockers found."
+            variant="destructive"
+          />
+          <ValidationColumn
+            title="Warnings"
+            issues={warnings}
+            empty="No warnings found."
+            variant="warning"
+          />
           <ValidationColumn
             title="Passed checks"
             issues={[
-              { code: "sections_loaded", message: `${mapQuery.data?.sections.length ?? 0} sections loaded` },
+              {
+                code: "sections_loaded",
+                message: `${mapQuery.data?.sections.length ?? 0} sections loaded`,
+              },
               { code: "validation_complete", message: validation.summary.checkedAt },
             ]}
             empty="No passed checks."
@@ -1156,10 +1342,14 @@ export function ThumbnailManager({
       <div className="rounded-md border p-4">
         <h1 className="text-xl font-semibold tracking-normal">Thumbnail Management</h1>
         <p className="text-sm text-muted-foreground">
-          {"Fallback chain: manual upload -> crop from active schematic -> generated placeholder -> generic icon."}
+          {
+            "Fallback chain: manual upload -> crop from active schematic -> generated placeholder -> generic icon."
+          }
         </p>
       </div>
-      {sections.length === 0 && <EmptyState message="No thumbnails yet. The fallback chain will use generated placeholders until sections or equipment have overrides." />}
+      {sections.length === 0 && (
+        <EmptyState message="No thumbnails yet. The fallback chain will use generated placeholders until sections or equipment have overrides." />
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <h2 className="text-base font-semibold">Section thumbnails</h2>
@@ -1178,7 +1368,9 @@ export function ThumbnailManager({
         </div>
         <div className="space-y-3">
           <h2 className="text-base font-semibold">Equipment thumbnails</h2>
-          {equipment.length === 0 && <EmptyState message="No equipment assigned to this section." />}
+          {equipment.length === 0 && (
+            <EmptyState message="No equipment assigned to this section." />
+          )}
           {equipment.map((item) => {
             const equipmentId = equipmentIdForThumbnail(item);
             return (
@@ -1221,7 +1413,10 @@ export function SectionThumbnailCard({
     <ThumbnailCard
       title={section.name}
       color={section.color}
-      fallback={section.thumbnailFallback ?? "manual upload -> crop from active schematic -> generated placeholder -> generic icon"}
+      fallback={
+        section.thumbnailFallback ??
+        "manual upload -> crop from active schematic -> generated placeholder -> generic icon"
+      }
       canReplace={canReplace}
       permissionReason="Requires vessel-intelligence:replace-section-thumbnail"
       uploading={uploading}
@@ -1257,7 +1452,11 @@ export function EquipmentThumbnailCard({
       color="#64748b"
       fallback="manual upload -> section crop -> generated placeholder -> equipment icon"
       canReplace={canReplace && Boolean(equipmentId)}
-      permissionReason={equipmentId ? "Requires vessel-intelligence:replace-equipment-thumbnail" : "Equipment has no stable ID"}
+      permissionReason={
+        equipmentId
+          ? "Requires vessel-intelligence:replace-equipment-thumbnail"
+          : "Equipment has no stable ID"
+      }
       uploading={uploading}
       deleting={deleting}
       uploadTestId="equipment-thumbnail-upload"
@@ -1293,12 +1492,17 @@ function ThumbnailCard({
   return (
     <div className="rounded-md border p-3">
       <div className="flex gap-3">
-        <div className="grid h-16 w-20 shrink-0 place-items-center rounded-md border text-xs font-medium" style={{ backgroundColor: color }}>
+        <div
+          className="grid h-16 w-20 shrink-0 place-items-center rounded-md border text-xs font-medium"
+          style={{ backgroundColor: color }}
+        >
           Preview
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-medium">{title}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">Current thumbnail: manual override if present, otherwise fallback.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Current thumbnail: manual override if present, otherwise fallback.
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">Fallback source: {fallback}</p>
         </div>
       </div>
@@ -1310,7 +1514,9 @@ function ThumbnailCard({
           disabled={!canReplace || uploading}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
-            if (file) {onUpload(file);}
+            if (file) {
+              onUpload(file);
+            }
           }}
         />
         <Button variant="outline" size="sm" onClick={onDelete} disabled={!canReplace || deleting}>
@@ -1357,8 +1563,12 @@ function useRegistryPermissions(): PermissionSet {
     canRollbackDiagram: hasAnyPermission("vessel-intelligence", ["rollback-diagram"]),
     canEditMap: hasAnyPermission("vessel-intelligence", ["edit-section-map"]),
     canPublishMap: hasAnyPermission("vessel-intelligence", ["publish-map"]),
-    canReplaceSectionThumbnail: hasAnyPermission("vessel-intelligence", ["replace-section-thumbnail"]),
-    canReplaceEquipmentThumbnail: hasAnyPermission("vessel-intelligence", ["replace-equipment-thumbnail"]),
+    canReplaceSectionThumbnail: hasAnyPermission("vessel-intelligence", [
+      "replace-section-thumbnail",
+    ]),
+    canReplaceEquipmentThumbnail: hasAnyPermission("vessel-intelligence", [
+      "replace-equipment-thumbnail",
+    ]),
     canAssignEquipment: hasAnyPermission("vessel-intelligence", ["assign-equipment"]),
   };
 }
@@ -1390,7 +1600,11 @@ function ActionButton({
         title={allowed ? label : reason}
         data-testid={testId}
       >
-        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+        {loading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Icon className="mr-2 h-4 w-4" />
+        )}
         {label}
       </Button>
     </DeadControlGuard>
@@ -1425,7 +1639,11 @@ function ErrorState({ message }: { message: string }) {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{message}</div>;
+  return (
+    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
 }
 
 function ValidationColumn({
@@ -1453,7 +1671,10 @@ function ValidationColumn({
       ) : (
         <div className="mt-2 space-y-2">
           {issues.map((issue) => (
-            <div key={`${title}-${issue.code}-${issue.message}`} className="rounded-md border px-3 py-2 text-sm">
+            <div
+              key={`${title}-${issue.code}-${issue.message}`}
+              className="rounded-md border px-3 py-2 text-sm"
+            >
               <p className="font-medium">{issue.code}</p>
               <p className="text-muted-foreground">{issue.message}</p>
             </div>
@@ -1466,7 +1687,9 @@ function ValidationColumn({
 
 function mapForDiagram(maps: RegistrySectionMapRecord[], diagram: RegistryDiagramRecord) {
   return (
-    maps.find((map) => map.id === (diagram as { currentSectionMapId?: string | null }).currentSectionMapId) ??
+    maps.find(
+      (map) => map.id === (diagram as { currentSectionMapId?: string | null }).currentSectionMapId
+    ) ??
     maps.find((map) => map.diagramId === diagram.id && map.status === "draft") ??
     maps.find((map) => map.diagramId === diagram.id)
   );
@@ -1478,6 +1701,7 @@ function sectionMapDefinitionFromRecord(map: RegistrySectionMapRecord): VesselSe
     diagramWidth: map.diagramWidth,
     diagramHeight: map.diagramHeight,
     diagramKind: map.diagramKind as VesselSectionMapDefinition["diagramKind"],
+    imageTransform: map.imageTransform ?? undefined,
     sections: map.sections.map((section) => ({
       sectionNo: section.sectionNo,
       sectionKey: section.sectionKey,
@@ -1496,7 +1720,9 @@ function sectionMapDefinitionFromRecord(map: RegistrySectionMapRecord): VesselSe
 function parsePolygon(value: string) {
   try {
     const parsed = JSON.parse(value) as Array<{ x: number; y: number }>;
-    if (!Array.isArray(parsed) || parsed.length < 3) {return null;}
+    if (!Array.isArray(parsed) || parsed.length < 3) {
+      return null;
+    }
     if (parsed.some((point) => typeof point.x !== "number" || typeof point.y !== "number")) {
       return null;
     }
@@ -1520,8 +1746,12 @@ function defaultPolygonText() {
 }
 
 function formatDate(value: unknown) {
-  if (!value) {return "Not recorded";}
+  if (!value) {
+    return "Not recorded";
+  }
   const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {return "Not recorded";}
+  if (Number.isNaN(date.getTime())) {
+    return "Not recorded";
+  }
   return date.toLocaleDateString();
 }

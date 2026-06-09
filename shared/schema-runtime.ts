@@ -114,6 +114,7 @@ export type {
   VesselSafetyAlarmAcknowledgement,
   VesselSectionMapStatus,
   VesselValidationSeverity,
+  SectionMapImageTransform,
   ValidationSummary,
   WorkOrderCompletion,
   WorkOrderHistory,

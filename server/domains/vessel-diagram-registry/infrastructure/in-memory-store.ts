@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { normalizeSectionMapImageTransform } from "../domain/types";
 import type {
   CreateDiagramInput,
   CreateSectionInput,
@@ -93,11 +94,21 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     if (!diagram) {
       throw notFound("Diagram not found");
     }
-    if (input.title !== undefined) {diagram.title = input.title;}
-    if (input.description !== undefined) {diagram.description = input.description;}
-    if (input.status !== undefined) {diagram.status = input.status;}
-    if (input.activeVersionId !== undefined) {diagram.activeVersionId = input.activeVersionId;}
-    if (input.currentSectionMapId !== undefined) {diagram.currentSectionMapId = input.currentSectionMapId;}
+    if (input.title !== undefined) {
+      diagram.title = input.title;
+    }
+    if (input.description !== undefined) {
+      diagram.description = input.description;
+    }
+    if (input.status !== undefined) {
+      diagram.status = input.status;
+    }
+    if (input.activeVersionId !== undefined) {
+      diagram.activeVersionId = input.activeVersionId;
+    }
+    if (input.currentSectionMapId !== undefined) {
+      diagram.currentSectionMapId = input.currentSectionMapId;
+    }
     diagram.updatedAt = now();
     return diagram;
   }
@@ -207,6 +218,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
       diagramWidth: input.diagramWidth ?? 895,
       diagramHeight: input.diagramHeight ?? 420,
       diagramKind: input.diagramKind ?? "side_elevation",
+      imageTransform: normalizeSectionMapImageTransform(input.imageTransform),
       status: "draft",
       validationSummary: null,
       publishedAt: null,
@@ -248,14 +260,33 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     if (!map) {
       throw notFound("Section map not found");
     }
-    if (input.name !== undefined) {map.name = input.name;}
-    if (input.diagramId !== undefined) {map.diagramId = input.diagramId;}
-    if (input.diagramVersionId !== undefined) {map.diagramVersionId = input.diagramVersionId;}
-    if (input.sourceMapId !== undefined) {map.sourceMapId = input.sourceMapId;}
-    if (input.diagramWidth !== undefined) {map.diagramWidth = input.diagramWidth;}
-    if (input.diagramHeight !== undefined) {map.diagramHeight = input.diagramHeight;}
-    if (input.diagramKind !== undefined) {map.diagramKind = input.diagramKind;}
-    if (input.status !== undefined) {map.status = input.status;}
+    if (input.name !== undefined) {
+      map.name = input.name;
+    }
+    if (input.diagramId !== undefined) {
+      map.diagramId = input.diagramId;
+    }
+    if (input.diagramVersionId !== undefined) {
+      map.diagramVersionId = input.diagramVersionId;
+    }
+    if (input.sourceMapId !== undefined) {
+      map.sourceMapId = input.sourceMapId;
+    }
+    if (input.diagramWidth !== undefined) {
+      map.diagramWidth = input.diagramWidth;
+    }
+    if (input.diagramHeight !== undefined) {
+      map.diagramHeight = input.diagramHeight;
+    }
+    if (input.diagramKind !== undefined) {
+      map.diagramKind = input.diagramKind;
+    }
+    if (input.imageTransform !== undefined) {
+      map.imageTransform = normalizeSectionMapImageTransform(input.imageTransform);
+    }
+    if (input.status !== undefined) {
+      map.status = input.status;
+    }
     map.updatedAt = now();
     return map;
   }
@@ -281,6 +312,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
       diagramWidth: source.diagramWidth,
       diagramHeight: source.diagramHeight,
       diagramKind: source.diagramKind,
+      imageTransform: source.imageTransform,
       sections: source.sections.map((section) => ({
         sectionKey: section.sectionKey,
         sectionNo: section.sectionNo,
@@ -321,13 +353,27 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     input: UpdateSectionInput
   ): Promise<SectionRecord> {
     const section = await this.findSection(ctx, mapId, sectionId);
-    if (input.sectionKey !== undefined) {section.section.sectionKey = input.sectionKey;}
-    if (input.sectionNo !== undefined) {section.section.sectionNo = input.sectionNo;}
-    if (input.name !== undefined) {section.section.name = input.name;}
-    if (input.color !== undefined) {section.section.color = input.color;}
-    if (input.thumbnailFallback !== undefined) {section.section.thumbnailFallback = input.thumbnailFallback;}
-    if (input.labelNormalized !== undefined) {section.section.labelNormalized = input.labelNormalized;}
-    if (input.polygonNormalized !== undefined) {section.section.polygonNormalized = input.polygonNormalized;}
+    if (input.sectionKey !== undefined) {
+      section.section.sectionKey = input.sectionKey;
+    }
+    if (input.sectionNo !== undefined) {
+      section.section.sectionNo = input.sectionNo;
+    }
+    if (input.name !== undefined) {
+      section.section.name = input.name;
+    }
+    if (input.color !== undefined) {
+      section.section.color = input.color;
+    }
+    if (input.thumbnailFallback !== undefined) {
+      section.section.thumbnailFallback = input.thumbnailFallback;
+    }
+    if (input.labelNormalized !== undefined) {
+      section.section.labelNormalized = input.labelNormalized;
+    }
+    if (input.polygonNormalized !== undefined) {
+      section.section.polygonNormalized = input.polygonNormalized;
+    }
     section.map.updatedAt = now();
     return section.section;
   }
@@ -365,7 +411,10 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
   async publishSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    validation: { summary: SectionMapRecord["validationSummary"]; issues: VesselDiagramValidationIssue[] }
+    validation: {
+      summary: SectionMapRecord["validationSummary"];
+      issues: VesselDiagramValidationIssue[];
+    }
   ): Promise<SectionMapRecord> {
     const map = await this.getSectionMap(ctx, mapId);
     if (!map) {
@@ -435,10 +484,18 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
     if (!assignment) {
       throw notFound("Equipment assignment not found");
     }
-    if (input.equipmentId !== undefined) {assignment.equipmentId = input.equipmentId;}
-    if (input.equipmentName !== undefined) {assignment.equipmentName = input.equipmentName;}
-    if (input.assetCode !== undefined) {assignment.assetCode = input.assetCode;}
-    if (input.system !== undefined) {assignment.system = input.system;}
+    if (input.equipmentId !== undefined) {
+      assignment.equipmentId = input.equipmentId;
+    }
+    if (input.equipmentName !== undefined) {
+      assignment.equipmentName = input.equipmentName;
+    }
+    if (input.assetCode !== undefined) {
+      assignment.assetCode = input.assetCode;
+    }
+    if (input.system !== undefined) {
+      assignment.system = input.system;
+    }
     return assignment;
   }
 

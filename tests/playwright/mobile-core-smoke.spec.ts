@@ -63,10 +63,7 @@ async function installMobileFixtures(page: Page): Promise<void> {
     localStorage.setItem("arus-ui-theme", "dark");
     localStorage.setItem("arus-setup-complete", "true");
   };
-  await page.addInitScript(
-    seedStorage,
-    { key: ROLE_STORAGE_KEY },
-  );
+  await page.addInitScript(seedStorage, { key: ROLE_STORAGE_KEY });
 
   await page.route("**/api/**", async (route: Route) => {
     const request = route.request();
@@ -126,7 +123,9 @@ async function installMobileFixtures(page: Page): Promise<void> {
       "/api/alerts": [],
       "/api/crew": [crewMember],
       "/api/crew/former": [],
-      "/api/crew-roles": [{ id: "role-captain", name: "captain", displayName: "Captain", sortOrder: 1 }],
+      "/api/crew-roles": [
+        { id: "role-captain", name: "captain", displayName: "Captain", sortOrder: 1 },
+      ],
       "/api/permissions/roles": [],
       "/api/admin/crew/access-readiness": [],
       "/api/admin/crew/former-access-risks": [],
@@ -171,7 +170,11 @@ async function installMobileFixtures(page: Page): Promise<void> {
     };
 
     const body = Object.hasOwn(responses, path) ? responses[path] : [];
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
   });
 
   await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
@@ -210,7 +213,7 @@ async function expectNoMobileOverflow(page: Page): Promise<void> {
   });
   expect(
     overflow.hasOverflow,
-    `page should not horizontally overflow the mobile viewport: ${JSON.stringify(overflow)}`,
+    `page should not horizontally overflow the mobile viewport: ${JSON.stringify(overflow)}`
   ).toBe(false);
 }
 
@@ -221,10 +224,18 @@ async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise
   }, path);
 }
 
+async function expectMobileUniversalShell(page: Page, activeHubName: string): Promise<void> {
+  await expect(page.getByTestId("universal-ops-shell")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-mobile-menu-trigger")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-active-hub")).toContainText(activeHubName);
+  await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
+}
+
 test.describe("mobile core operational smokes", () => {
   test("Fleet/Vessel Intelligence renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/overview");
+    await expectMobileUniversalShell(page, "Fleet");
     await expect(page.getByTestId("vessel-intelligence-hub")).toBeVisible();
     await expectNoMobileOverflow(page);
   });
@@ -232,6 +243,7 @@ test.describe("mobile core operational smokes", () => {
   test("Crew renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
+    await expectMobileUniversalShell(page, "Crew");
     await expect(page.getByTestId("page-crew-management")).toBeVisible();
     await expectNoMobileOverflow(page);
   });
@@ -239,6 +251,7 @@ test.describe("mobile core operational smokes", () => {
   test("Inventory/Logistics renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
+    await expectMobileUniversalShell(page, "Logistics");
     await expect(page.getByTestId("inventory-management-page")).toBeVisible();
     await expectNoMobileOverflow(page);
   });
@@ -246,6 +259,7 @@ test.describe("mobile core operational smokes", () => {
   test("Safety renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/safety-bulletins");
+    await expectMobileUniversalShell(page, "Operations");
     await expect(page.getByTestId("text-page-title")).toBeVisible();
     await expectNoMobileOverflow(page);
   });

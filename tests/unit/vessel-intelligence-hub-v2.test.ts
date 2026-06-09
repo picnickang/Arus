@@ -8,12 +8,40 @@ import { legacyRedirects } from "@/routes/legacy-redirects";
 const TEST_DIR = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(TEST_DIR, "..", "..");
 const PAGE_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/index.tsx");
+const FLEET_PAGE_PATH = resolve(REPO_ROOT, "client/src/pages/fleet-hub.tsx");
+const FLEET_TRIAGE_COMPONENTS_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/fleet-triage-components.tsx"
+);
+const UNIVERSAL_SHELL_PATH = resolve(REPO_ROOT, "client/src/components/ops/UniversalOpsShell.tsx");
+const UNIVERSAL_NAV_PATH = resolve(
+  REPO_ROOT,
+  "client/src/application/navigation/universal-ops-navigation.ts"
+);
 const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry.ts");
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
-const REGISTRY_API_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry-api.ts");
-const REGISTRY_SCREENS_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry-screens.tsx");
+const REGISTRY_API_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/registry-api.ts"
+);
+const REGISTRY_SCREENS_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/registry-screens.tsx"
+);
+const SECTIONED_MAP_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/SectionedVesselMap.tsx"
+);
+const SIDE_ELEVATION_FIT_CONTROLS_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/SideElevationFitControls.tsx"
+);
+const SIDE_ELEVATION_CALIBRATION_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/side-elevation-calibration.ts"
+);
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 
 const EXPECTED_ROUTES = [
@@ -40,8 +68,7 @@ const EXPECTED_ROUTES = [
 ];
 
 const EXPECTED_LEGACY_REDIRECTS: Record<string, string> = {
-  "/fleet": "/vessel-intelligence",
-  "/fleet-map": "/vessel-intelligence/fleet",
+  "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",
   "/pdm": "/vessel-intelligence?target=overview",
   "/pdm-analytics": "/vessel-intelligence?target=performance",
@@ -77,13 +104,51 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     }
   });
 
-  it("surfaces Vessel Intelligence as the Fleet hub without weakening existing resources", async () => {
+  it("surfaces Fleet Triage as the Fleet hub without weakening existing resources", async () => {
     const nav = await load(NAV_PATH);
-    expect(nav).toContain('hubRoute: "/vessel-intelligence"');
+    expect(nav).toContain('hubRoute: "/fleet"');
     expect(nav).toContain('name: "Vessel Intelligence"');
     expect(nav).toContain('"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"');
     expect(nav).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
     expect(nav).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
+  });
+
+  it("keeps /fleet as a real route instead of a legacy redirect", async () => {
+    const redirectMap = new Map(legacyRedirects.map((redirect) => [redirect.from, redirect.to]));
+    const fleetPage = await load(FLEET_PAGE_PATH);
+    const fleetComponents = await load(FLEET_TRIAGE_COMPONENTS_PATH);
+
+    expect(routeMigrations["/fleet"]).toBeUndefined();
+    expect(redirectMap.has("/fleet")).toBe(false);
+    expect(fleetPage).toContain('data-testid="fleet-triage-page"');
+    expect(fleetPage).toContain("buildFleetTriageViewModel");
+    expect(fleetPage).toContain('"/api/vessels"');
+    expect(fleetPage).toContain('"/api/equipment"');
+    expect(fleetPage).toContain('"/api/work-orders"');
+    expect(fleetPage).toContain('"/api/alerts"');
+    expect(fleetPage).toContain('"/api/vessel-intelligence"');
+    expect(fleetPage).toContain("selectedDiagramMediaUrl");
+    expect(fleetPage).toContain("FleetVesselDiagramPreview");
+    expect(fleetPage).toContain("FleetRegistryAccessPanel");
+    expect(fleetComponents).toContain('testId="fleet-registry-access"');
+    expect(fleetComponents).toContain('testId: "button-open-diagram-registry"');
+    expect(fleetComponents).toContain('data-testid="button-replace-side-elevation"');
+    expect(fleetComponents).toContain('data-testid="fleet-side-elevation-status"');
+    expect(fleetPage).toContain("priorityVesselId");
+  });
+
+  it("uses the universal admin ops shell for Fleet and Vessel Intelligence routes", async () => {
+    const shell = await load(UNIVERSAL_SHELL_PATH);
+    const universalNav = await load(UNIVERSAL_NAV_PATH);
+    const app = await load(resolve(REPO_ROOT, "client/src/App.tsx"));
+
+    expect(shell).toContain("buildUniversalOpsNavModel");
+    expect(shell).toContain('testId="universal-ops-rail"');
+    expect(shell).toContain('data-testid="universal-ops-mobile-drawer"');
+    expect(universalNav).toContain('["/vessel-intelligence/", "fleet"]');
+    expect(app).toContain("resolveCurrentRouteHubId");
+    expect(app).toContain("usesUniversalOpsShell");
+    expect(app).toContain("!usesUniversalOpsShell && <BottomNav />");
   });
 });
 
@@ -160,6 +225,7 @@ describe("Replaceable Diagram Registry controls", () => {
       "useSectionMap",
       "useCreateSectionMap",
       "useCloneSectionMap",
+      "useUpdateSectionMapCalibration",
       "useValidateSectionMap",
       "usePublishSectionMap",
       "useSectionAssignments",
@@ -181,6 +247,9 @@ describe("Replaceable Diagram Registry controls", () => {
 
   it("pins replacement options, critical test ids, and permission-denied UI", async () => {
     const screens = await load(REGISTRY_SCREENS_PATH);
+    const sectionMap = await load(SECTIONED_MAP_PATH);
+    const fitControls = await load(SIDE_ELEVATION_FIT_CONTROLS_PATH);
+    const calibration = await load(SIDE_ELEVATION_CALIBRATION_PATH);
 
     for (const testId of [
       "diagram-manager",
@@ -202,6 +271,48 @@ describe("Replaceable Diagram Registry controls", () => {
     ]) {
       expect(screens).toContain(testId);
     }
+
+    for (const testId of [
+      "section-equipment-list",
+      "section-equipment-empty",
+      "section-equipment-live",
+      "section-equipment-registry-only",
+      "button-manage-section-assignments",
+    ]) {
+      expect(sectionMap).toContain(testId);
+    }
+
+    for (const testId of [
+      "side-elevation-fit-controls",
+      "button-side-elevation-fit-contract",
+      "button-side-elevation-fit-reset",
+      "button-side-elevation-fit-expand",
+      "side-elevation-scale-slider",
+      "side-elevation-scale-value",
+      "side-elevation-length-slider",
+      "side-elevation-length-value",
+      "side-elevation-height-slider",
+      "side-elevation-height-value",
+      "side-elevation-pan-x-slider",
+      "side-elevation-pan-y-slider",
+      "button-save-side-elevation-fit",
+    ]) {
+      expect(fitControls).toContain(testId);
+    }
+
+    expect(sectionMap).toContain('preserveAspectRatio="xMidYMid meet"');
+    expect(calibration).toContain("DEFAULT_IMAGE_TRANSFORM");
+    expect(calibration).toContain("scaleX: 1");
+    expect(calibration).toContain("scaleY: 1");
+    expect(sectionMap).toContain("baseImageOffsetX");
+    expect(sectionMap).toContain("baseImageOffsetY");
+    expect(calibration).toContain("clampImageScale");
+    expect(calibration).toContain("imageFrameForScale");
+    expect(fitControls).toContain("useUpdateSectionMapCalibration");
+    expect(fitControls).toContain("Length");
+    expect(fitControls).toContain("Height");
+    expect(fitControls).toContain("Position");
+    expect(fitControls).toContain("Best fit");
 
     expect(screens).toContain("Keep existing section map as draft overlay");
     expect(screens).toContain("Start blank section map");

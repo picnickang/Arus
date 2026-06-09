@@ -224,6 +224,46 @@ describe("VesselDiagramRegistryService with in-memory store", () => {
     expect(copied.warnings.join(" ")).toContain("Equipment assignments were not copied");
   });
 
+  it("persists side-elevation calibration through map edits, clones, and replacement overlays", async () => {
+    const diagram = await service.createDiagram(ctx, {
+      diagramType: "side_elevation",
+      title: "Calibrated side elevation",
+    });
+    const version = await service.uploadDiagramVersion(ctx, diagram.id, safeSvgUpload);
+    const calibration = { scaleX: 1.15, scaleY: 0.9, offsetX: 0.04, offsetY: -0.03 };
+    const sourceMap = await service.createSectionMap(ctx, {
+      name: "Calibrated draft",
+      diagramId: diagram.id,
+      diagramVersionId: version.id,
+      imageTransform: calibration,
+      sections: [section()],
+    });
+
+    expect(sourceMap.imageTransform).toEqual(calibration);
+
+    const updated = await service.updateSectionMap(ctx, sourceMap.id, {
+      imageTransform: { scaleX: 1.05, scaleY: 1.2, offsetX: -0.02, offsetY: 0.01 },
+    });
+    expect(updated.imageTransform).toEqual({
+      scaleX: 1.05,
+      scaleY: 1.2,
+      offsetX: -0.02,
+      offsetY: 0.01,
+    });
+
+    const cloned = await service.cloneSectionMap(ctx, updated.id, { name: "Calibration clone" });
+    expect(cloned.imageTransform).toEqual(updated.imageTransform);
+
+    await service.publishSectionMap(ctx, updated.id);
+    const keepExisting = await service.uploadDiagramVersionWithBehavior(
+      ctx,
+      diagram.id,
+      safeSvgUpload,
+      { mode: "keep_existing", mapName: "Calibration overlay" }
+    );
+    expect(keepExisting.draftMap?.imageTransform).toEqual(updated.imageTransform);
+  });
+
   it("validates blockers, archives active records, clones maps, and records validation issues", async () => {
     const diagram = await service.createDiagram(ctx, {
       diagramType: "side_elevation",

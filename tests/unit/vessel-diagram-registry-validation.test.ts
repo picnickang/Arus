@@ -44,6 +44,7 @@ describe("vessel diagram registry validation", () => {
       diagramWidth: 895,
       diagramHeight: 420,
       diagramKind: "side_elevation",
+      imageTransform: { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
       status: "draft",
       sections: [
         {

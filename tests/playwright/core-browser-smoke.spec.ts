@@ -201,6 +201,13 @@ async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise
   }, path);
 }
 
+async function expectUniversalOpsShell(page: Page, activeHubName: string): Promise<void> {
+  await expect(page.getByTestId("universal-ops-shell")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-rail")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-subnav")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-active-hub")).toContainText(activeHubName);
+}
+
 test.describe("core browser release smokes", () => {
   test("login and admin shell load with deterministic auth and tenant fixtures", async ({
     page,
@@ -209,9 +216,42 @@ test.describe("core browser release smokes", () => {
     await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
   });
 
+  test("top-level admin operational hubs share the universal shell", async ({ page }) => {
+    await loginAsAdmin(page);
+
+    const hubRoutes = [
+      ["/operations", "Operations"],
+      ["/fleet", "Fleet"],
+      ["/maint", "Maintenance"],
+      ["/crew-management", "Crew"],
+      ["/logistics", "Logistics"],
+      ["/logs", "Records"],
+      ["/analytics", "Analytics"],
+      ["/system", "System"],
+    ] as const;
+
+    for (const [path, activeHubName] of hubRoutes) {
+      await navigateWithinAuthenticatedSpa(page, path);
+      await expectUniversalOpsShell(page, activeHubName);
+    }
+  });
+
+  test("registered admin routes outside hub child nav still receive the universal shell", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+
+    await navigateWithinAuthenticatedSpa(page, "/safety-bulletins");
+    await expectUniversalOpsShell(page, "Operations");
+
+    await navigateWithinAuthenticatedSpa(page, "/admin/access-diagnostic");
+    await expectUniversalOpsShell(page, "System");
+  });
+
   test("Vessel Intelligence registry loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/diagrams");
+    await expectUniversalOpsShell(page, "Fleet");
     await expect(page.getByTestId("diagram-manager")).toBeVisible();
     await expect(page.getByTestId("diagram-type-card-side_elevation")).toContainText(
       "Side Elevation"
@@ -221,6 +261,7 @@ test.describe("core browser release smokes", () => {
   test("Crew page loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
+    await expectUniversalOpsShell(page, "Crew");
     await expect(page.getByTestId("page-crew-management")).toBeVisible();
     await page.getByTestId("card-open-current").click();
     await page.getByTestId("chip-group-name").click();
@@ -231,6 +272,7 @@ test.describe("core browser release smokes", () => {
   test("Inventory and Logistics page loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
+    await expectUniversalOpsShell(page, "Logistics");
     await expect(page.getByTestId("inventory-management-page")).toBeVisible();
     await expect(page.getByText("Duplex fuel filter")).toBeVisible();
   });
@@ -238,6 +280,7 @@ test.describe("core browser release smokes", () => {
   test("Safety page loads", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/safety-bulletins");
+    await expectUniversalOpsShell(page, "Operations");
     await expect(page.getByTestId("text-page-title")).toBeVisible();
     await expect(page.getByText("Muster drill notice")).toBeVisible();
   });
@@ -245,6 +288,7 @@ test.describe("core browser release smokes", () => {
   test("Admin permissions redirect lands on consolidated access management", async ({ page }) => {
     await loginAsAdmin(page);
     await navigateWithinAuthenticatedSpa(page, "/permissions-settings");
+    await expectUniversalOpsShell(page, "Crew");
     await expect(page.getByTestId("view-access-permissions")).toBeVisible();
     await expect(page.getByTestId("heading-access-permissions")).toContainText(
       "Access & Permissions"
