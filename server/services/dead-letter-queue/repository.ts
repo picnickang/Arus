@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
-import { db } from "../../db-config";
-import { telemetryDeadLetter } from "@shared/schema-runtime";
+import {
+  insertDeadLetterRow,
+  deleteDeadLetterRow,
+  updateDeadLetterRetry,
+  deleteDeadLetterOlderThan,
+  deleteDeadLetterQueue,
+  selectDeadLetterRows,
+} from "../../db/telemetry-dead-letter/queries";
 import type { DeadLetterEntry, DeadLetterQueueMetrics } from "./types";
 import { logger } from "../../utils/logger";
 
@@ -35,19 +40,17 @@ function persistAdd(
   entry: DeadLetterEntry,
 ): void {
   if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .insert(telemetryDeadLetter)
-    .values({
-      id: entry.id,
-      queueName,
-      payload: entry.payload,
-      error: entry.error,
-      source: entry.source,
-      retryCount: entry.retryCount,
-      metadata: entry.metadata ?? null,
-      createdAt: entry.createdAt,
-      lastRetryAt: entry.lastRetryAt,
-    })
+  void insertDeadLetterRow({
+    id: entry.id,
+    queueName,
+    payload: entry.payload,
+    error: entry.error,
+    source: entry.source,
+    retryCount: entry.retryCount,
+    metadata: entry.metadata ?? null,
+    createdAt: entry.createdAt,
+    lastRetryAt: entry.lastRetryAt,
+  })
     .catch((err: unknown) => {
       logger.warn("DLQ", "Failed to persist dead-letter entry", {
         queueName,
@@ -59,11 +62,7 @@ function persistAdd(
 
 function persistRemove(queueName: string, id: string): void {
   if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(
-      and(eq(telemetryDeadLetter.id, id), eq(telemetryDeadLetter.queueName, queueName)),
-    )
+  void deleteDeadLetterRow(queueName, id)
     .catch((err: unknown) => {
       logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
         queueName,
@@ -75,15 +74,7 @@ function persistRemove(queueName: string, id: string): void {
 
 function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
   if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .update(telemetryDeadLetter)
-    .set({ retryCount: entry.retryCount, lastRetryAt: entry.lastRetryAt })
-    .where(
-      and(
-        eq(telemetryDeadLetter.id, entry.id),
-        eq(telemetryDeadLetter.queueName, queueName),
-      ),
-    )
+  void updateDeadLetterRetry(queueName, entry.id, entry.retryCount, entry.lastRetryAt)
     .catch((err: unknown) => {
       logger.warn("DLQ", "Failed to persist retry bump", {
         queueName,
@@ -95,14 +86,7 @@ function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
 
 function persistClearOlder(queueName: string, cutoff: Date): void {
   if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(
-      and(
-        eq(telemetryDeadLetter.queueName, queueName),
-        sql`${telemetryDeadLetter.createdAt} < ${cutoff}`,
-      ),
-    )
+  void deleteDeadLetterOlderThan(queueName, cutoff)
     .catch((err: unknown) => {
       logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
         queueName,
@@ -113,9 +97,7 @@ function persistClearOlder(queueName: string, cutoff: Date): void {
 
 function persistClearQueue(queueName: string): void {
   if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(eq(telemetryDeadLetter.queueName, queueName))
+  void deleteDeadLetterQueue(queueName)
     .catch((err: unknown) => {
       logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
         queueName,
@@ -133,10 +115,7 @@ function persistClearQueue(queueName: string): void {
 export async function hydrateFromDatabase(queueName: string): Promise<number> {
   if (PERSISTENCE_DISABLED) {return 0;}
   try {
-    const rows = await db
-      .select()
-      .from(telemetryDeadLetter)
-      .where(eq(telemetryDeadLetter.queueName, queueName));
+    const rows = await selectDeadLetterRows(queueName);
     const entries: DeadLetterEntry[] = rows.map((row) => ({
       id: row.id,
       payload: row.payload as unknown,
