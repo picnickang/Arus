@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { LayoutGrid, Menu } from "lucide-react";
+import { pruneOverrideToPolicyIds } from "@/application/navigation/role-navigation-policy";
+import {
+  readUserRole,
+  readNavOverride,
+  writeNavOverride,
+  clearNavOverride,
+} from "@/infrastructure/navigation/nav-storage";
 import {
   buildUniversalOpsNavModel,
   resolveActiveOpsHubId,
@@ -222,6 +230,28 @@ function UniversalMobileDrawer({
 
 export function UniversalOpsShell({ currentPath, activeHubId, children }: UniversalOpsShellProps) {
   const { permissions } = usePermissions();
+
+  // #194 override self-heal — mirrors BottomNav. On ops-shell routes the
+  // BottomNav launcher is intentionally not mounted (App.tsx gates it on
+  // `!usesUniversalOpsShell`), so its prune effect would not run here. Run
+  // the same prune so a stale/tampered admin override never lingers in
+  // localStorage for accounts that only ever see the ops shell.
+  const navOverride = readNavOverride();
+  const navRoleId = readUserRole();
+  useEffect(() => {
+    if (!navOverride) {
+      return;
+    }
+    const pruned = pruneOverrideToPolicyIds(navRoleId, navOverride);
+    if (pruned === null) {
+      return;
+    }
+    if (pruned.length === 0) {
+      clearNavOverride();
+    } else {
+      writeNavOverride(pruned);
+    }
+  }, [navOverride, navRoleId]);
   const resolvedHubId = activeHubId ?? resolveActiveOpsHubId(currentPath);
   const navModel = buildUniversalOpsNavModel({
     currentPath,

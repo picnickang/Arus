@@ -345,7 +345,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isAdminPortal ? "pb-14 md:pb-0" : ""}`}
+        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-14 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >
@@ -404,12 +404,12 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
-      {/* #194: BottomNav must mount on every non-login route (not gated on
-          the ops shell) so its override self-heal effect keeps pruning stale
-          admin ids from storage even on hub/ops-shell routes. The bar itself
-          returns null for non-admin accounts and is mobile-only, so mounting
-          it here costs nothing visually on the user portal. */}
-      {!isLoginRoute && <BottomNav />}
+      {/* BottomNav is the mobile launcher for the non-ops-shell admin
+          surface; it is gated off on ops-shell routes to avoid a double
+          bottom bar. Its #194 override self-heal still runs on those routes
+          because UniversalOpsShell carries the same override self-heal
+          effect (the #194 mirror). */}
+      {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
       {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
     </div>
   );

@@ -203,25 +203,37 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
     });
 
-    it("App.tsx mounts BottomNav on every non-login route but only pads for the admin portal (#218)", async () => {
+    it("BottomNav is gated off the ops shell, but the #194 self-heal still runs everywhere", async () => {
       const APP_TSX = resolve(REPO_ROOT, "client/src/App.tsx");
       const src = await readFile(APP_TSX, "utf8");
-      // CRITICAL #194 contract: BottomNav must still mount for
-      // user-portal sessions so its useEffect-driven override
-      // self-heal (`pruneOverrideToPolicyIds`) keeps running even
-      // though the bar itself returns null and is invisible.
-      // Gating the mount on `isAdminPortal` would disable prune
-      // for the very roles whose stale admin ids we're scrubbing.
-      expect(src).toContain("{!isLoginRoute && <BottomNav />}");
+      // BottomNav mounts on every non-login route EXCEPT ops-shell routes
+      // (those carry their own nav rail; gating avoids a double bottom bar).
+      // It is NOT gated on `isAdminPortal` — that would also disable the
+      // override self-heal for the very user-portal roles we scrub.
+      expect(src).toContain("!usesUniversalOpsShell && <BottomNav />");
       expect(src).not.toMatch(/\{\s*isAdminPortal\s*&&\s*<BottomNav\s*\/>\s*\}/);
-      // The mobile clearance for the bar is portal-scoped — no
-      // orphan `pb-14` strip on user-portal pages.
+      // Mobile clearance is scoped to the admin portal AND off the ops shell
+      // (no orphan `pb-14` strip on routes where BottomNav isn't mounted).
       expect(src).toContain("isAdminPortal");
       expect(src).toContain("isAdminPortalAccess");
       expect(src).toContain("permissions.hubAdmin");
-      expect(src).toMatch(/isAdminPortal\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/);
+      expect(src).toMatch(
+        /isAdminPortal\s*&&\s*!usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/,
+      );
       // Must not reintroduce the legacy unconditional clearance.
       expect(src).not.toMatch(/className=\{`min-h-screen \$\{isLoginRoute \? "" : "pb-14 md:pb-0"\}`\}/);
+
+      // CRITICAL #194 contract: because BottomNav is gated off ops-shell
+      // routes, UniversalOpsShell must carry the same prune self-heal so a
+      // stale/tampered admin override never lingers in storage for sessions
+      // that only ever see the ops shell.
+      const shell = await readFile(
+        resolve(REPO_ROOT, "client/src/components/ops/UniversalOpsShell.tsx"),
+        "utf8",
+      );
+      expect(shell).toContain("pruneOverrideToPolicyIds");
+      expect(shell).toContain("writeNavOverride");
+      expect(shell).toContain("clearNavOverride");
     });
 
     it("portal-login.tsx writes nav state ONLY through the centralised adapter", async () => {
