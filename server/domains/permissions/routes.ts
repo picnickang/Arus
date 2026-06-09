@@ -39,6 +39,7 @@ import {
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
+import { devUserRoleLabel, getDevLoginUserRole } from "../../security/dev-login";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 
@@ -63,13 +64,13 @@ const fromTemplateBodySchema = z.object({
  * Super-admin-only gate for permission/role MUTATIONS. By policy ONLY the true
  * super-admin tier (super_admin / system_admin / company_admin) may create,
  * edit, or delete roles and grants — a regular `admin` reaches the admin hub
- * but cannot rewrite the access model. The no-login dev-bypass identity is
- * allowed through so local development keeps working.
+ * but cannot rewrite the access model. Temporary dev-login admin sessions are
+ * allowed through only when a minted dev token has resolved to the synthetic
+ * superuser identity.
  */
 function requireSuperAdminForPermissions(req: Request, res: Response, next: () => void) {
   const sessionUser = authenticatedRequest(req).user ?? null;
-  const isDevBypass =
-    isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+  const isDevBypass = isDevAuthBypassEnabled() && isDevBypassUser(sessionUser?.id);
   if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
     res.status(403).json({
       code: "INSUFFICIENT_PERMISSIONS",
@@ -89,10 +90,35 @@ export function registerPermissionRoutes(app: Express) {
       const realUserId = authReq.user?.id;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
-      // Dev convenience ONLY when nobody is really logged in (or the request is
-      // running as the no-token dev-bypass identity). A real session resolves to
-      // that user's real roles/permissions below — never the blanket all-access.
-      if (isDevAuthBypassEnabled() && (!realUserId || isDevBypassUser(realUserId))) {
+      const devUserRole = getDevLoginUserRole(realUserId);
+      if (isDevAuthBypassEnabled() && devUserRole) {
+        return res.json(
+          validateResponse(
+            permissionsMeResponseSchema,
+            {
+              userId: realUserId,
+              orgId,
+              roles: [
+                {
+                  id: `dev-user-role:${devUserRole}`,
+                  name: devUserRole,
+                  displayName: `${devUserRoleLabel(devUserRole)} (Dev Preview)`,
+                },
+              ],
+              permissions: {},
+              isDevMode: false,
+              hubAdmin: false,
+              hubAccess: [],
+            },
+            "GET /api/permissions/me (dev user preview)"
+          )
+        );
+      }
+
+      // Temporary dev-login admin sessions resolve to the synthetic superuser id
+      // and intentionally receive all permissions. Regular dev-user previews
+      // are handled above and never inherit this blanket grant.
+      if (isDevAuthBypassEnabled() && isDevBypassUser(realUserId)) {
         const allPermissions: Record<string, Record<string, boolean>> = {};
         for (const resource of RESOURCES) {
           allPermissions[resource.code] = {};
@@ -104,17 +130,11 @@ export function registerPermissionRoutes(app: Express) {
           validateResponse(
             permissionsMeResponseSchema,
             {
-              userId: DEV_USER_ID,
-              orgId: DEV_ORG_ID,
-              // The dev auth bypass authenticates as the admin identity
-              // (dev-admin-user) and this branch grants every permission, so the
-              // reported role must be an admin-portal role too. Returning a
-              // non-admin name like "developer" passes permission-based gates but
-              // FAILS role-name gates (e.g. CrewManagement's admin tabs, the
-              // getPortalForRole navigation pivot), hiding admin surfaces in dev.
-              // Tradeoff: dev always resolves to admin, so exercising the reduced
-              // user-portal experience in dev needs a separate mechanism.
-              roles: [{ id: "dev-role", name: "system_admin", displayName: "System Admin (Dev Mode)" }],
+              userId: realUserId ?? DEV_USER_ID,
+              orgId,
+              roles: [
+                { id: "dev-role", name: "super_admin", displayName: "Super Admin (Dev Mode)" },
+              ],
               permissions: allPermissions,
               isDevMode: true,
               hubAdmin: true,
@@ -141,8 +161,7 @@ export function registerPermissionRoutes(app: Express) {
         .from(users)
         .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
         .limit(1);
-      const { hubAdmin, hubAccess } =
-        await permissionService.getEffectiveHubAccess(userId, orgId);
+      const { hubAdmin, hubAccess } = await permissionService.getEffectiveHubAccess(userId, orgId);
 
       // The user's PRIMARY role (`users.role`) is what server-side route
       // guards authorize against (`requireRole(...)` checks `user.role`
@@ -162,9 +181,7 @@ export function registerPermissionRoutes(app: Express) {
           (r) => r.name.toLowerCase() === normalizedPrimary
         );
         if (!alreadyPresent) {
-          const fromOrg = orgRoles.find(
-            (r) => r.name.toLowerCase() === normalizedPrimary
-          );
+          const fromOrg = orgRoles.find((r) => r.name.toLowerCase() === normalizedPrimary);
           rolesWithPrimary.unshift(
             fromOrg
               ? { id: fromOrg.id, name: fromOrg.name, displayName: fromOrg.displayName }
@@ -208,11 +225,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list permission actions", async (_req: Request, res: Response) => {
       const actions = await permissionRepository.listActions();
       return res.json(
-        validateResponse(
-          permissionActionsResponseSchema,
-          actions,
-          "GET /api/permissions/actions"
-        )
+        validateResponse(permissionActionsResponseSchema, actions, "GET /api/permissions/actions")
       );
     })
   );
@@ -241,7 +254,9 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list roles", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const roles = await permissionRepository.listRoles(orgId);
-      return res.json(validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles"));
+      return res.json(
+        validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles")
+      );
     })
   );
 
@@ -417,11 +432,7 @@ export function registerPermissionRoutes(app: Express) {
       }
       const grants = await permissionRepository.getPermissionGrantsForRole(id);
       return res.json(
-        validateResponse(
-          roleGrantsResponseSchema,
-          grants,
-          "GET /api/permissions/roles/:id/grants"
-        )
+        validateResponse(roleGrantsResponseSchema, grants, "GET /api/permissions/roles/:id/grants")
       );
     })
   );
@@ -446,10 +457,7 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       const bodyShape = z
-        .union([
-          z.object({ grants: z.array(grantSchema) }),
-          z.array(grantSchema),
-        ])
+        .union([z.object({ grants: z.array(grantSchema) }), z.array(grantSchema)])
         .parse(req.body);
       const grantsArray = Array.isArray(bodyShape) ? bodyShape : bodyShape.grants;
 
@@ -470,15 +478,15 @@ export function registerPermissionRoutes(app: Express) {
       if (revokesManage) {
         const proposedChange = [...grantsArray]
           .reverse()
-          .find(
-            (g) => g.resourceCode === MANAGE_RESOURCE && g.actionCode === MANAGE_ACTION
-          );
+          .find((g) => g.resourceCode === MANAGE_RESOURCE && g.actionCode === MANAGE_ACTION);
 
         // Does this role grant manage today? (cached per role id)
         const currentManageCache = new Map<string, boolean>();
         const roleManagesNow = async (roleId: string): Promise<boolean> => {
           const cached = currentManageCache.get(roleId);
-          if (cached !== undefined) {return cached;}
+          if (cached !== undefined) {
+            return cached;
+          }
           const grants = await permissionRepository.getPermissionGrantsForRole(roleId);
           const value = grants.some(
             (g) =>
@@ -518,15 +526,14 @@ export function registerPermissionRoutes(app: Express) {
         // remove that ability from them.
         const actorId = authReq.user?.id;
         if (actorId) {
-          const assignments = await permissionRepository.listUserRoleAssignments(
-            actorId,
-            orgId
-          );
+          const assignments = await permissionRepository.listUserRoleAssignments(actorId, orgId);
           const actorRoleIds = new Set(assignments.map((a) => a.roleId));
           const primaryRoleName = authReq.user?.role;
           if (primaryRoleName) {
             const primaryRole = orgRoles.find((r) => r.name === primaryRoleName);
-            if (primaryRole) {actorRoleIds.add(primaryRole.id);}
+            if (primaryRole) {
+              actorRoleIds.add(primaryRole.id);
+            }
           }
 
           let actorManagesNow = false;
@@ -593,7 +600,10 @@ export function registerPermissionRoutes(app: Express) {
 
       permissionService.invalidateOrgPermissionCache(orgId);
 
-      return res.json({ success: true, message: `Updated ${grantsArray.length} permission grants` });
+      return res.json({
+        success: true,
+        message: `Updated ${grantsArray.length} permission grants`,
+      });
     })
   );
 
@@ -603,11 +613,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list role templates", async (_req: Request, res: Response) => {
       const templates = await permissionRepository.listRoleTemplates();
       return res.json(
-        validateResponse(
-          roleTemplatesResponseSchema,
-          templates,
-          "GET /api/permissions/templates"
-        )
+        validateResponse(roleTemplatesResponseSchema, templates, "GET /api/permissions/templates")
       );
     })
   );
@@ -642,10 +648,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list user role assignments", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { userId } = userIdParamSchema.parse(req.params);
-      const assignments = await permissionRepository.listUserRoleAssignments(
-        userId,
-        orgId
-      );
+      const assignments = await permissionRepository.listUserRoleAssignments(userId, orgId);
       return res.json(
         validateResponse(
           userRoleAssignmentsResponseSchema,
@@ -741,11 +744,7 @@ export function registerPermissionRoutes(app: Express) {
       const { limit } = auditQuerySchema.parse(req.query);
       const auditLog = await permissionRepository.getPermissionAuditLog(orgId, limit);
       return res.json(
-        validateResponse(
-          permissionAuditResponseSchema,
-          auditLog,
-          "GET /api/permissions/audit"
-        )
+        validateResponse(permissionAuditResponseSchema, auditLog, "GET /api/permissions/audit")
       );
     })
   );
@@ -811,7 +810,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("dev access diagnostic", async (req: Request, res: Response) => {
       // Never reachable in production — return 404 so it doesn't even advertise
       // its existence to a prod caller.
-      if (process.env['NODE_ENV'] === "production") {
+      if (process.env["NODE_ENV"] === "production") {
         return res.status(404).json({ message: "Not found" });
       }
 
@@ -819,10 +818,9 @@ export function registerPermissionRoutes(app: Express) {
       const sessionUser = authReq.user ?? null;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
-      // Only super-admin-capable roles (or the no-login dev-bypass identity) may
+      // Only super-admin-capable roles (or a minted dev-login admin identity) may
       // read a full access picture; everyone else is forbidden.
-      const isDevBypass =
-        isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+      const isDevBypass = isDevAuthBypassEnabled() && isDevBypassUser(sessionUser?.id);
       if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
         return res.status(403).json({
           code: "INSUFFICIENT_PERMISSIONS",
@@ -856,13 +854,11 @@ export function registerPermissionRoutes(app: Express) {
       const compiled = await compileUserPermissions(userId, orgId);
       const orgRoles = await permissionRepository.listRoles(orgId);
       const mapperLogger: MapperLogger = {
-        warn: (message, context) =>
-          structuredLog("warn", message, context as Partial<LogContext>),
+        warn: (message, context) => structuredLog("warn", message, context as Partial<LogContext>),
       };
       const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
-      const { hubAdmin, hubAccess } =
-        await permissionService.getEffectiveHubAccess(userId, orgId);
+      const { hubAdmin, hubAccess } = await permissionService.getEffectiveHubAccess(userId, orgId);
 
       // Permission grant summary — counts only, to keep the payload bounded.
       let grantedActions = 0;
@@ -870,7 +866,9 @@ export function registerPermissionRoutes(app: Express) {
       for (const actions of Object.values(mapped.permissions)) {
         const granted = Object.values(actions).filter(Boolean).length;
         grantedActions += granted;
-        if (granted > 0) {resourcesWithAnyGrant += 1;}
+        if (granted > 0) {
+          resourcesWithAnyGrant += 1;
+        }
       }
 
       // Crew link (optional 1:1 login-account link, if any).

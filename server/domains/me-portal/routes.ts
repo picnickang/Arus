@@ -15,6 +15,12 @@ import { withErrorHandling } from "../../lib/route-utils";
 import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { authenticatedRequest } from "../../middleware/auth";
+import {
+  createDevLoginSession,
+  devLoginRequestSchema,
+  isDevLoginEnabled,
+  revokeDevLoginSessionToken,
+} from "../../security/dev-login";
 
 const loginSchema = z.object({
   username: z.string().min(1).max(60),
@@ -55,7 +61,7 @@ export function registerMePortalRoutes(
   rateLimit: {
     generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
     loginRateLimit?: import("../../lib/rate-limit-factory").RateLimit;
-  },
+  }
 ) {
   const { generalApiRateLimit, loginRateLimit } = rateLimit;
   const loginLimit = loginRateLimit || generalApiRateLimit;
@@ -74,10 +80,28 @@ export function registerMePortalRoutes(
         });
         return res.json(result);
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
+  );
+
+  app.post(
+    "/api/portal/dev-login",
+    loginLimit,
+    withErrorHandling("temporary dev login", async (req: Request, res: Response) => {
+      if (!isDevLoginEnabled()) {
+        return res.status(404).json({ error: "Not found", code: "NOT_FOUND" });
+      }
+      const input = devLoginRequestSchema.parse(req.body);
+      const result = createDevLoginSession(input, {
+        ip: req.ip,
+        userAgent: req.get("user-agent") ?? undefined,
+      });
+      return res.json(result);
+    })
   );
 
   /* ----------------------------- Dashboard ------------------------- */
@@ -90,10 +114,12 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getDashboard(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.get(
@@ -104,10 +130,12 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getPreferences(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.put(
@@ -118,10 +146,12 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.savePreferences(resolveMeUser(req), req.body));
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.get(
@@ -132,10 +162,12 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getTasks(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   /* --------------------------- Safety alarms ----------------------- */
@@ -148,10 +180,12 @@ export function registerMePortalRoutes(
       try {
         return res.json(await mePortalService.getVisibleAlarms(resolveMeUser(req)));
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.post(
@@ -162,13 +196,13 @@ export function registerMePortalRoutes(
       const { comment } = ackSchema.parse(req.body ?? {});
       const meUser = resolveMeUser(req);
       try {
-        await mePortalService.acknowledgeAlarm(meUser, req.params['id'], comment);
+        await mePortalService.acknowledgeAlarm(meUser, req.params["id"], comment);
         await auditService.logEvent({
           orgId: meUser.orgId,
           eventCategory: "compliance_event",
           eventType: "alert_acknowledged",
           entityType: "safety_alarm",
-          entityId: req.params['id'],
+          entityId: req.params["id"],
           performedBy: meUser.id,
           performedByName: meUser.name ?? meUser.email,
           performedByRole: meUser.role,
@@ -176,14 +210,16 @@ export function registerMePortalRoutes(
           metadata: { source: "user_portal", comment: comment ?? null },
         });
         broadcastSafetyAlarmEvent(meUser.orgId, "safety_alarm_acknowledged", {
-          alarmId: req.params['id'],
+          alarmId: req.params["id"],
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   /* ------------------------------ Logout --------------------------- */
@@ -200,29 +236,31 @@ export function registerMePortalRoutes(
           ? authHeader.substring(7)
           : null;
       try {
-        // No bearer token means a dev-mode mock session (nothing persisted to
-        // revoke) — still return success so the client tears down locally.
         if (token) {
-          await mePortalService.logout(meUser, token);
-          await auditService.logEvent({
-            orgId: meUser.orgId,
-            eventCategory: "security_event",
-            eventType: "logout",
-            entityType: "user_session",
-            entityId: meUser.id,
-            performedBy: meUser.id,
-            performedByName: meUser.name ?? meUser.email,
-            performedByRole: meUser.role,
-            ipAddress: req.ip,
-            metadata: { source: "user_portal" },
-          });
+          if (!revokeDevLoginSessionToken(token)) {
+            await mePortalService.logout(meUser, token);
+            await auditService.logEvent({
+              orgId: meUser.orgId,
+              eventCategory: "security_event",
+              eventType: "logout",
+              entityType: "user_session",
+              entityId: meUser.id,
+              performedBy: meUser.id,
+              performedByName: meUser.name ?? meUser.email,
+              performedByRole: meUser.role,
+              ipAddress: req.ip,
+              metadata: { source: "user_portal" },
+            });
+          }
         }
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   /* --------------------------- Change password --------------------- */
@@ -251,9 +289,11 @@ export function registerMePortalRoutes(
         });
         return res.json({ success: true });
       } catch (error) {
-        if (handleMeError(error, res)) {return undefined;}
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 }

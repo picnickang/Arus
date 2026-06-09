@@ -20,7 +20,7 @@ function isLoopbackAddress(address: string): boolean {
 }
 
 function hasValidSetupToken(req: Request): boolean {
-  const configuredToken = process.env['SETUP_TOKEN'];
+  const configuredToken = process.env["SETUP_TOKEN"];
   if (!configuredToken) {
     return false;
   }
@@ -52,10 +52,9 @@ export function isLocalSetupRequest(req: Request): boolean {
   // is a server-side env var (not spoofable) and only relaxes the gate
   // in non-production Replit previews.
   const socketAddress = req.socket.remoteAddress || "";
-  const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
+  const isReplitDevelopment = !!process.env["REPL_ID"] && process.env["NODE_ENV"] !== "production";
   return isLoopbackAddress(socketAddress) || isReplitDevelopment || hasValidSetupToken(req);
 }
-
 
 async function atomicWriteEnv(envPath: string, content: string): Promise<void> {
   const fs = await import("fs/promises");
@@ -136,12 +135,12 @@ async function getAdminCredential(): Promise<{ hash?: string; legacyPlaintext?: 
     return { hash: databaseHash };
   }
 
-  if (process.env['ADMIN_TOKEN_HASH']) {
-    return { hash: process.env['ADMIN_TOKEN_HASH'] };
+  if (process.env["ADMIN_TOKEN_HASH"]) {
+    return { hash: process.env["ADMIN_TOKEN_HASH"] };
   }
 
-  if (process.env['ADMIN_TOKEN']) {
-    return { legacyPlaintext: process.env['ADMIN_TOKEN'] };
+  if (process.env["ADMIN_TOKEN"]) {
+    return { legacyPlaintext: process.env["ADMIN_TOKEN"] };
   }
 
   return {};
@@ -161,8 +160,8 @@ async function mirrorAdminHashToEnv(hash: string): Promise<void> {
     : `ADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`;
 
   await atomicWriteEnv(envPath, finalContent);
-  process.env['ADMIN_TOKEN_HASH'] = hash;
-  delete process.env['ADMIN_TOKEN'];
+  process.env["ADMIN_TOKEN_HASH"] = hash;
+  delete process.env["ADMIN_TOKEN"];
 }
 
 async function persistAdminHash(hash: string): Promise<void> {
@@ -171,8 +170,8 @@ async function persistAdminHash(hash: string): Promise<void> {
     await mirrorAdminHashToEnv(hash);
   } catch (error) {
     logger.warn("AdminAuth", "Admin hash saved to database, but .env mirror failed", error);
-    process.env['ADMIN_TOKEN_HASH'] = hash;
-    delete process.env['ADMIN_TOKEN'];
+    process.env["ADMIN_TOKEN_HASH"] = hash;
+    delete process.env["ADMIN_TOKEN"];
   }
 }
 

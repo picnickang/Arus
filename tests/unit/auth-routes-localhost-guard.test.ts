@@ -15,10 +15,7 @@ import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import type { Request } from "express";
 import { isLocalSetupRequest } from "../../server/domains/system-admin/routes/auth-routes";
 
-function fakeReq(opts: {
-  remoteAddress?: string;
-  headers?: Record<string, string>;
-}): Request {
+function fakeReq(opts: { remoteAddress?: string; headers?: Record<string, string> }): Request {
   return {
     socket: { remoteAddress: opts.remoteAddress } as Request["socket"],
     headers: opts.headers ?? {},
@@ -29,9 +26,9 @@ describe("isLocalSetupRequest — header-spoofing regression", () => {
   const savedEnv = { ...process.env };
 
   beforeEach(() => {
-    delete process.env['REPL_ID'];
-    delete process.env['SETUP_TOKEN'];
-    process.env['NODE_ENV'] = "production";
+    delete process.env["REPL_ID"];
+    delete process.env["SETUP_TOKEN"];
+    process.env["NODE_ENV"] = "production";
   });
 
   afterEach(() => {
@@ -65,10 +62,13 @@ describe("isLocalSetupRequest — header-spoofing regression", () => {
   });
 
   it("allows a remote caller only with a valid X-Setup-Token", () => {
-    process.env['SETUP_TOKEN'] = "s3cret-token-value";
+    process.env["SETUP_TOKEN"] = "s3cret-token-value";
     expect(
       isLocalSetupRequest(
-        fakeReq({ remoteAddress: "203.0.113.7", headers: { "x-setup-token": "s3cret-token-value" } })
+        fakeReq({
+          remoteAddress: "203.0.113.7",
+          headers: { "x-setup-token": "s3cret-token-value" },
+        })
       )
     ).toBe(true);
     expect(

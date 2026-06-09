@@ -56,6 +56,7 @@ import { useAttentionItems } from "./home/use-attention-items";
 import { AlertNoticeRow, AssignedTaskRow, OverviewTile } from "./home/portal-rows";
 import { greetingForNow, relativeTime } from "./home/time";
 import { WorkflowCommandCenter } from "@/features/workflow/components/WorkflowCommandCenter";
+import { DevUserRoleTabs } from "@/features/dev-login";
 
 export { trackPageVisit };
 export type { RoleConfig };
@@ -579,7 +580,15 @@ export default function HomePage() {
   // Empty-state ids `empty-attention` / `empty-my-tasks` are
   // preserved verbatim because other surfaces and tests key off them.
   if (!isAdmin) {
-    return <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} />;
+    return (
+      <>
+        <DevUserRoleTabs
+          currentRole={effectiveRole ?? role}
+          onRoleChanged={(nextRole) => setRole(nextRole)}
+        />
+        <UserPortalHome role={effectiveRole ?? role} roleLabel={roleConfig?.label} />
+      </>
+    );
   }
 
   // Admin portal: anchor the home-grid to the same 5 categories the

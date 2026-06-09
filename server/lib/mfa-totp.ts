@@ -16,7 +16,7 @@
 import { TOTP, Secret } from "otpauth";
 import { randomInt } from "node:crypto";
 
-const DEFAULT_ISSUER = process.env['MFA_TOTP_ISSUER'] || "ARUS";
+const DEFAULT_ISSUER = process.env["MFA_TOTP_ISSUER"] || "ARUS";
 const DEFAULT_WINDOW = 1;
 const DEFAULT_DIGITS = 6;
 const DEFAULT_PERIOD = 30;
@@ -44,7 +44,9 @@ export function generateTotpEnrollment(label: string): TotpEnrollment {
 export function verifyTotpCode(secretBase32: string, code: string): boolean {
   // `validate` returns the delta in periods (negative/positive) or null
   // if no match within the window. We accept any match within ±1 step.
-  if (!secretBase32 || !code) {return false;}
+  if (!secretBase32 || !code) {
+    return false;
+  }
   try {
     const totp = new TOTP({
       issuer: DEFAULT_ISSUER,
@@ -76,7 +78,9 @@ export function generateRecoveryCodes(count = 10): string[] {
       // gives a uniform, unbiased index (rejection-sampled internally),
       // replacing the predictable `Math.random()`.
       code += alphabet[randomInt(alphabet.length)];
-      if (c === 4) {code += "-";}
+      if (c === 4) {
+        code += "-";
+      }
     }
     out.push(code);
   }
