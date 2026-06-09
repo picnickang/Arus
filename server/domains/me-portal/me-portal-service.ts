@@ -9,11 +9,19 @@
 
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db } from "../../db";
-import { users, adminSessions } from "@shared/schema-runtime";
-import { userDashboardPreferences } from "@shared/schema-runtime";
 import { userDashboardPrefsSchema, type UserDashboardPrefs } from "@shared/schema-runtime";
-import { and, eq, sql } from "drizzle-orm";
+import {
+  getMustChangePassword,
+  deleteAllUserSessions,
+  deleteUserSessionByToken,
+  getDashboardPrefs,
+  upsertDashboardPrefs,
+  getCrewLinkId,
+  findUserByUsername,
+  touchUserLastLogin,
+  getUserById,
+  updateUserPassword,
+} from "./infrastructure/me-portal-queries";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -24,7 +32,6 @@ import {
 import { crewAdminService } from "../../services/crew-admin-facade";
 import { safetyAlarmService, AlarmValidationError } from "../../services/safety-alarm-facade";
 import { crewTaskService } from "../../services/crew-task-facade";
-import { crew } from "@shared/schema-runtime";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -145,11 +152,7 @@ export class MePortalService {
    * distinct `PASSWORD_CHANGE_REQUIRED` (403) the frontend can route on.
    */
   private async assertPasswordChangeNotRequired(user: MeUser): Promise<void> {
-    const [record] = await db
-      .select({ mustChangePassword: users.mustChangePassword })
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+    const record = await getMustChangePassword(user.orgId, user.id);
     if (record?.mustChangePassword) {
       throw new MePortalError(
         "You must change your password before continuing",
@@ -161,7 +164,7 @@ export class MePortalService {
 
   /** Revoke every active session for a user (credential-rotation hardening). */
   private async invalidateUserSessions(userId: string): Promise<void> {
-    await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
+    await deleteAllUserSessions(userId);
   }
 
   /**
@@ -173,9 +176,7 @@ export class MePortalService {
    */
   async logout(user: MeUser, sessionToken: string): Promise<void> {
     const tokenHash = hashSessionToken(sessionToken);
-    await db
-      .delete(adminSessions)
-      .where(and(eq(adminSessions.sessionToken, tokenHash), eq(adminSessions.userId, user.id)));
+    await deleteUserSessionByToken(user.id, tokenHash);
   }
 
   async getDashboard(user: MeUser): Promise<DashboardPayload> {
@@ -204,11 +205,7 @@ export class MePortalService {
       ? vesselList
       : vesselList.filter((v) => scope.vesselIds.includes(v.id));
 
-    const [record] = await db
-      .select({ mustChangePassword: users.mustChangePassword })
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+    const record = await getMustChangePassword(user.orgId, user.id);
 
     return {
       user,
@@ -229,16 +226,7 @@ export class MePortalService {
    */
   async getPreferences(user: MeUser): Promise<UserDashboardPrefs | null> {
     await this.assertPasswordChangeNotRequired(user);
-    const [row] = await db
-      .select({ prefsJson: userDashboardPreferences.prefsJson })
-      .from(userDashboardPreferences)
-      .where(
-        and(
-          eq(userDashboardPreferences.orgId, user.orgId),
-          eq(userDashboardPreferences.userId, user.id),
-        ),
-      )
-      .limit(1);
+    const row = await getDashboardPrefs(user.orgId, user.id);
     if (!row) {return null;}
     const parsed = userDashboardPrefsSchema.safeParse(row.prefsJson);
     return parsed.success ? parsed.data : null;
@@ -252,13 +240,7 @@ export class MePortalService {
   async savePreferences(user: MeUser, prefs: unknown): Promise<UserDashboardPrefs> {
     await this.assertPasswordChangeNotRequired(user);
     const validated = userDashboardPrefsSchema.parse(prefs);
-    await db
-      .insert(userDashboardPreferences)
-      .values({ orgId: user.orgId, userId: user.id, prefsJson: validated })
-      .onConflictDoUpdate({
-        target: [userDashboardPreferences.orgId, userDashboardPreferences.userId],
-        set: { prefsJson: validated, updatedAt: new Date() },
-      });
+    await upsertDashboardPrefs(user.orgId, user.id, validated);
     return validated;
   }
 
@@ -367,11 +349,7 @@ export class MePortalService {
       // Personal crew-task feed = tasks assigned to THIS user's crew record.
       // The portal identity is a `users` row; crew tasks reference `crew.id`,
       // so resolve the 1:1 crew link first. No crew record => no crew tasks.
-      const [crewMember] = await db
-        .select({ id: crew.id })
-        .from(crew)
-        .where(and(eq(crew.orgId, user.orgId), eq(crew.userId, user.id)))
-        .limit(1);
+      const crewMember = await getCrewLinkId(user.orgId, user.id);
       if (crewMember) {
         const tasks = await crewTaskService.listTasks(user.orgId, {
           assignedCrewId: crewMember.id,
@@ -473,16 +451,7 @@ export class MePortalService {
     password: string,
     context: { ip?: string; userAgent?: string },
   ): Promise<SessionResult> {
-    const [record] = await db
-      .select()
-      .from(users)
-      .where(
-        and(
-          eq(users.orgId, orgId),
-          sql`lower(${users.username}) = lower(${username})`,
-        ),
-      )
-      .limit(1);
+    const record = await findUserByUsername(orgId, username);
 
     const invalid = new MePortalError("Invalid username or password", "INVALID_CREDENTIALS", 401);
 
@@ -517,10 +486,7 @@ export class MePortalService {
       lastActivityAt: new Date(),
     });
 
-    await db
-      .update(users)
-      .set({ lastLoginAt: new Date() })
-      .where(and(eq(users.orgId, orgId), eq(users.id, record.id)));
+    await touchUserLastLogin(orgId, record.id);
 
     return {
       sessionToken,
@@ -542,11 +508,7 @@ export class MePortalService {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
-    const [record] = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+    const record = await getUserById(user.orgId, user.id);
     if (!record || !record.passwordHash) {
       throw new MePortalError("No password is set for this account", "NO_PASSWORD", 400);
     }
@@ -556,15 +518,7 @@ export class MePortalService {
     }
     this.assertPasswordPolicy(newPassword);
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
-    await db
-      .update(users)
-      .set({
-        passwordHash,
-        passwordUpdatedAt: new Date(),
-        mustChangePassword: false,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)));
+    await updateUserPassword(user.orgId, user.id, passwordHash);
     // Rotate credentials => revoke every existing session so any pre-change
     // token (including the caller's current one) can no longer be used.
     await this.invalidateUserSessions(user.id);
