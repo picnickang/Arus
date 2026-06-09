@@ -24,6 +24,7 @@ describe("LR-3.5 V3 — public-api allowlist positive controls", () => {
     "/api/setup/status",
     "/api/setup/complete",
     "/api/portal/login",
+    "/api/portal/dev-login",
     "/api/health",
     "/api/healthz",
     "/api/readyz",

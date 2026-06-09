@@ -6,6 +6,7 @@ const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
+  "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
 ];
 
@@ -65,6 +66,7 @@ export default defineConfig({
           DISABLE_REDIS: "true",
           DISABLE_SECURITY_TIMERS: "true",
           DISABLE_TELEMETRY_BATCH_WRITER: "true",
+          ARUS_DEV_LOGIN: "1",
           EMBEDDED_MODE: "true",
           ENABLE_AUTO_REPLAN: "false",
           ENABLE_BACKGROUND_JOBS: "false",
@@ -79,6 +81,7 @@ export default defineConfig({
           PLAYWRIGHT_TEST: "true",
           PORT: "5000",
           SESSION_SECRET: "playwright-test-session-secret-not-for-production",
+          VITE_ARUS_DEV_LOGIN: "1",
         },
         url: "http://127.0.0.1:5000/api/healthz",
         reuseExistingServer: false,

@@ -24,35 +24,67 @@ function parseParams(search: string): URLSearchParams {
 function tabFromParams(params: URLSearchParams): "attention" | "blockers" | "handover" {
   const view = params.get("view");
   const queue = params.get("queue");
-  if (view === "handover") {return "handover";}
-  if (queue === "blocked" || queue === "waiting_parts") {return "blockers";}
+  if (view === "handover") {
+    return "handover";
+  }
+  if (queue === "blocked" || queue === "waiting_parts") {
+    return "blockers";
+  }
   return "attention";
 }
 
 function queueLabel(queue: string | null, items: { id: string; label: string }[]): string {
-  if (!queue) {return "All attention";}
+  if (!queue) {
+    return "All attention";
+  }
   return items.find((item) => item.id === queue)?.label ?? queue.replace(/_/g, " ");
 }
 
 function itemMatchesQueue(item: AttentionItem, queue: string | null): boolean {
-  if (!queue || queue === "all") {return true;}
-  if (queue === "open_work") {return item.type === "work_order";}
+  if (!queue || queue === "all") {
+    return true;
+  }
+  if (queue === "open_work") {
+    return item.type === "work_order";
+  }
   return item.queue === queue;
 }
 
 function itemMatchesFilter(item: AttentionItem, filter: string | null): boolean {
-  if (!filter || filter === "all") {return true;}
-  if (filter === "equipment") {return item.type === "equipment" || item.source.toLowerCase().includes("equipment");}
-  if (filter === "inventory") {return item.type === "inventory" || item.source.toLowerCase().includes("inventory");}
-  if (filter === "work_order") {return item.type === "work_order";}
-  return [item.type, item.source, item.status].some((value) => String(value ?? "").toLowerCase().includes(filter.toLowerCase()));
+  if (!filter || filter === "all") {
+    return true;
+  }
+  if (filter === "equipment") {
+    return item.type === "equipment" || item.source.toLowerCase().includes("equipment");
+  }
+  if (filter === "inventory") {
+    return item.type === "inventory" || item.source.toLowerCase().includes("inventory");
+  }
+  if (filter === "work_order") {
+    return item.type === "work_order";
+  }
+  return [item.type, item.source, item.status].some((value) =>
+    String(value ?? "")
+      .toLowerCase()
+      .includes(filter.toLowerCase())
+  );
 }
 
 function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
   const term = search.trim().toLowerCase();
-  if (!term) {return items;}
+  if (!term) {
+    return items;
+  }
   return items.filter((item) =>
-    [item.title, item.source, item.whyItMatters, item.recommendedAction, item.owner, item.queue, item.status]
+    [
+      item.title,
+      item.source,
+      item.whyItMatters,
+      item.recommendedAction,
+      item.owner,
+      item.queue,
+      item.status,
+    ]
       .join(" ")
       .toLowerCase()
       .includes(term)
@@ -62,7 +94,16 @@ function searchItems(items: AttentionItem[], search: string): AttentionItem[] {
 export default function AttentionInboxPage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { queues, attentionItems, workOrders, handover, hasLiveData, usingAggregatedWorkflow, generatedAt, sources } = useOperationalWorkflow();
+  const {
+    queues,
+    attentionItems,
+    workOrders,
+    handover,
+    hasLiveData,
+    usingAggregatedWorkflow,
+    generatedAt,
+    sources,
+  } = useOperationalWorkflow();
   const [search, setSearch] = useState("");
   const params = useMemo(() => parseParams(searchString), [searchString]);
   const queue = params.get("queue") as WorkflowStatus | null;
@@ -82,11 +123,17 @@ export default function AttentionInboxPage() {
     if (queue === "waiting_parts") {
       return attentionItems.filter((item) => item.queue === "waiting_parts");
     }
-    return attentionItems.filter((item) => item.queue === "blocked" || item.queue === "waiting_parts");
+    return attentionItems.filter(
+      (item) => item.queue === "blocked" || item.queue === "waiting_parts"
+    );
   }, [attentionItems, queue]);
 
   const closeoutWork = workOrders
-    .filter((item) => item.status?.toLowerCase().includes("ready") || item.status?.toLowerCase().includes("verify"))
+    .filter(
+      (item) =>
+        item.status?.toLowerCase().includes("ready") ||
+        item.status?.toLowerCase().includes("verify")
+    )
     .slice(0, 8);
 
   const changeTab = (value: string) => {
@@ -116,20 +163,25 @@ export default function AttentionInboxPage() {
                   Work from risk to resolution
                 </CardTitle>
                 <CardDescription>
-                  Each item shows what happened, why it matters, who owns it, and the recommended next action.
+                  Each item shows what happened, why it matters, who owns it, and the recommended
+                  next action.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant={usingAggregatedWorkflow ? "default" : "outline"}>
                   {usingAggregatedWorkflow ? "Aggregated workflow" : "Fallback workflow"}
                 </Badge>
-                <Button onClick={() => setLocation("/work-orders?action=create")}> 
+                <Button onClick={() => setLocation("/work-orders?action=create")}>
                   <ClipboardCheck className="h-4 w-4" />
                   New work order
                 </Button>
               </div>
             </div>
-            {generatedAt && <p className="text-xs text-muted-foreground">Updated {new Date(generatedAt).toLocaleString()}</p>}
+            {generatedAt && (
+              <p className="text-xs text-muted-foreground">
+                Updated {new Date(generatedAt).toLocaleString()}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             <WorkflowQueueStrip queues={queues} />
@@ -142,7 +194,11 @@ export default function AttentionInboxPage() {
               <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
               <div>
                 <div className="font-medium">Some attention sources are unavailable.</div>
-                <p className="text-muted-foreground">The inbox is showing partial data. Source health: work orders {sources.workOrders}, alerts {sources.alerts}, equipment {sources.equipment}, inventory {sources.inventory}.</p>
+                <p className="text-muted-foreground">
+                  The inbox is showing partial data. Source health: work orders {sources.workOrders}
+                  , alerts {sources.alerts}, equipment {sources.equipment}, inventory{" "}
+                  {sources.inventory}.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -171,7 +227,9 @@ export default function AttentionInboxPage() {
                 <span>Queue: {queueLabel(queue, queues)}</span>
                 {filter && <span>• Filter: {filter}</span>}
                 {(queue || filter) && (
-                  <Button variant="ghost" size="sm" onClick={() => setLocation("/attention-inbox")}>Clear</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/attention-inbox")}>
+                    Clear
+                  </Button>
                 )}
               </div>
             </div>
@@ -186,12 +244,13 @@ export default function AttentionInboxPage() {
               </div>
             ) : (
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-6" data-testid="empty-attention-inbox">
                   <h3 className="font-semibold">
                     {hasLiveData ? "No matching attention items." : "No live attention data yet."}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Create a finding, import equipment, record logs, or add work orders to populate this queue.
+                    Create a finding, import equipment, record logs, or add work orders to populate
+                    this queue.
                   </p>
                 </CardContent>
               </Card>
@@ -204,7 +263,9 @@ export default function AttentionInboxPage() {
                 <div key={item.id} className="space-y-3">
                   <AttentionItemCard item={item} />
                   <ResolveBlockerPanel item={item} />
-                  {item.type === "work_order" && item.status && <WorkOrderLifecycleStrip status={item.status} />}
+                  {item.type === "work_order" && item.status && (
+                    <WorkOrderLifecycleStrip status={item.status} />
+                  )}
                 </div>
               ))
             ) : (
@@ -212,7 +273,8 @@ export default function AttentionInboxPage() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold">No blocked work detected.</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    When work is blocked, require a reason such as parts, vendor, approval, weather, crew, or missing information.
+                    When work is blocked, require a reason such as parts, vendor, approval, weather,
+                    crew, or missing information.
                   </p>
                 </CardContent>
               </Card>
@@ -245,11 +307,15 @@ export default function AttentionInboxPage() {
                   <div className="text-sm text-muted-foreground">Waiting on parts</div>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{handover.readyForCloseout || closeoutWork.length}</div>
+                  <div className="text-2xl font-bold">
+                    {handover.readyForCloseout || closeoutWork.length}
+                  </div>
                   <div className="text-sm text-muted-foreground">Ready for closeout</div>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <div className="text-2xl font-bold">{handover.openWorkOrders || workOrders.length}</div>
+                  <div className="text-2xl font-bold">
+                    {handover.openWorkOrders || workOrders.length}
+                  </div>
                   <div className="text-sm text-muted-foreground">Open work orders</div>
                 </div>
                 <div className="rounded-lg border p-4">

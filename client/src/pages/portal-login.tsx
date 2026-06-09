@@ -11,11 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { getLandingRouteForRole } from "@/application/navigation/role-navigation-policy";
 import { isSuperAdminRole } from "@shared/role-dashboard";
-import {
-  clearNavOverride,
-  clearUserRole,
-  writeUserRole,
-} from "@/infrastructure/navigation/nav-storage";
+import { clearDevLoginSession, DevLoginButtons } from "@/features/dev-login";
+import { rememberRoleHint } from "@/application/navigation/role-hint";
+import { clearUserRole } from "@/infrastructure/navigation/nav-storage";
 import {
   Shield,
   User,
@@ -68,11 +66,6 @@ const PORTALS: PortalChoice[] = [
   },
 ];
 
-function rememberRoleHint(roleHint: string) {
-  writeUserRole(roleHint);
-  clearNavOverride();
-}
-
 export default function PortalLoginPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -99,6 +92,7 @@ export default function PortalLoginPage() {
         password,
       }),
     onSuccess: (data) => {
+      clearDevLoginSession();
       setApiSessionToken(data.sessionToken);
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/me"] });
       if (data.mustChangePassword) {
@@ -133,6 +127,7 @@ export default function PortalLoginPage() {
         password,
       }),
     onSuccess: (data) => {
+      clearDevLoginSession();
       // The Admin Portal is gated to admin-capable accounts. A valid non-admin
       // credential authenticates against the same endpoint, so reject it here
       // and drop the freshly-minted session rather than granting admin access.
@@ -159,9 +154,7 @@ export default function PortalLoginPage() {
       navigate(getLandingRouteForRole(data.user.role));
     },
     onError: () =>
-      setAdminError(
-        "Check your username and password, or your account may be disabled.",
-      ),
+      setAdminError("Check your username and password, or your account may be disabled."),
   });
 
   const changePassword = useMutation({
@@ -210,8 +203,7 @@ export default function PortalLoginPage() {
     setView(mode);
   }
 
-  const passwordsMismatch =
-    confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
 
   function backToChooser() {
     setView("choose");
@@ -233,10 +225,7 @@ export default function PortalLoginPage() {
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-16">
           <div className="mb-10">
-            <h1
-              className="text-4xl font-bold tracking-tight text-white"
-              data-testid="text-brand"
-            >
+            <h1 className="text-4xl font-bold tracking-tight text-white" data-testid="text-brand">
               ARUS
             </h1>
             <p className="mt-2 text-sm text-slate-400">Operational access for ARUS</p>
@@ -283,6 +272,8 @@ export default function PortalLoginPage() {
             })}
           </div>
 
+          <DevLoginButtons />
+
           <div className="mt-auto pt-10">
             <div className="border-t border-white/10" />
             <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-300">
@@ -322,11 +313,7 @@ export default function PortalLoginPage() {
               <Icon className="h-6 w-6 text-slate-700" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900" data-testid="text-login-title">
-              {stage === "change"
-                ? "Set a new password"
-                : isAdmin
-                  ? "Admin Portal"
-                  : "User Portal"}
+              {stage === "change" ? "Set a new password" : isAdmin ? "Admin Portal" : "User Portal"}
             </h2>
             <p className="text-sm text-slate-600 mt-1">
               {stage === "change"
@@ -428,7 +415,9 @@ export default function PortalLoginPage() {
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (passwordsMismatch) {return;}
+                if (passwordsMismatch) {
+                  return;
+                }
                 changePassword.mutate();
               }}
             >
