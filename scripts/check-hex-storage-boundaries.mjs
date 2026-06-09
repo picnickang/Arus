@@ -104,6 +104,10 @@ for (const filePath of tsFiles) {
     const line = fileLines[i];
     const trimmed = line.trimStart();
     if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+    // Type-only imports (`import type { db } from "../db"`) are erased at
+    // compile time — they create no runtime dependency on the database, so
+    // they are not a hexagonal boundary violation (the db type is injected).
+    if (/\bimport\s+type\b/.test(line)) continue;
     if (DB_IMPORT_RE.test(line) || DB_DYNAMIC_IMPORT_RE.test(line)) {
       violations.push(relPath);
       break; // one entry per file is enough for the baseline
