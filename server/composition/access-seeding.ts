@@ -13,11 +13,14 @@
  * flag the SQL migration cannot derive.
  */
 
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "../db";
-import { roles } from "@shared/schema-runtime";
-import { crew } from "@shared/schema-runtime";
-import { provisionTemplatesForOrg } from "../domains/permissions/repository";
+import {
+  provisionTemplatesForOrg,
+  listOrgRolesForSeeding,
+  setRoleHubDefaults,
+  listUnlinkedCrewForSeeding,
+  setCrewRoleId,
+  listDistinctRoleOrgIds,
+} from "../domains/permissions/repository";
 import {
   SUPER_ADMIN_ROLE_KEYS,
   DEFAULT_RANK_TO_ACCESS_LEVEL,
@@ -54,15 +57,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
   //    Regular admin → admin hub + a sensible working set, but ONLY when it has
   //    not been configured yet (hubAdmin still false), so we never clobber an
   //    operator's narrower/wider choice.
-  const orgRoles = await db
-    .select({
-      id: roles.id,
-      name: roles.name,
-      hubAdmin: roles.hubAdmin,
-      hubAccess: roles.hubAccess,
-    })
-    .from(roles)
-    .where(eq(roles.orgId, orgId));
+  const orgRoles = await listOrgRolesForSeeding(orgId);
 
   const superKeys = new Set<string>(SUPER_ADMIN_ROLE_KEYS as readonly string[]);
 
@@ -70,18 +65,15 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
     const key = role.name.trim().toLowerCase();
     if (superKeys.has(key)) {
       if (!role.hubAdmin || role.hubAccess !== null) {
-        await db
-          .update(roles)
-          .set({ hubAdmin: true, hubAccess: null })
-          .where(and(eq(roles.id, role.id), eq(roles.orgId, orgId)));
+        await setRoleHubDefaults(orgId, role.id, { hubAdmin: true, hubAccess: null });
         summary.hubDefaultsApplied += 1;
       }
     } else if (key === "admin") {
       if (!role.hubAdmin) {
-        await db
-          .update(roles)
-          .set({ hubAdmin: true, hubAccess: [...ADMIN_DEFAULT_HUB_ACCESS] })
-          .where(and(eq(roles.id, role.id), eq(roles.orgId, orgId)));
+        await setRoleHubDefaults(orgId, role.id, {
+          hubAdmin: true,
+          hubAccess: [...ADMIN_DEFAULT_HUB_ACCESS],
+        });
         summary.hubDefaultsApplied += 1;
       }
     }
@@ -92,10 +84,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
   const roleIdByName = new Map<string, string>();
   for (const role of orgRoles) {roleIdByName.set(role.name.trim().toLowerCase(), role.id);}
 
-  const unlinked = await db
-    .select({ id: crew.id, rank: crew.rank })
-    .from(crew)
-    .where(and(eq(crew.orgId, orgId), isNull(crew.roleId)));
+  const unlinked = await listUnlinkedCrewForSeeding(orgId);
 
   for (const member of unlinked) {
     const accessLevel = defaultAccessLevelForRank(member.rank, DEFAULT_RANK_TO_ACCESS_LEVEL);
@@ -105,10 +94,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
     const rankKey = normalizeRankKey(member.rank);
     const targetRoleId = roleIdByName.get(rankKey) ?? roleIdByName.get(accessLevel);
     if (!targetRoleId) {continue;}
-    await db
-      .update(crew)
-      .set({ roleId: targetRoleId })
-      .where(and(eq(crew.id, member.id), eq(crew.orgId, orgId)));
+    await setCrewRoleId(orgId, member.id, targetRoleId);
     summary.crewBackfilled += 1;
   }
 
@@ -122,12 +108,7 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
  */
 export async function seedAccessForAllOrgs(): Promise<void> {
   try {
-    const orgRows = await db
-      .select({ orgId: roles.orgId })
-      .from(roles)
-      .groupBy(roles.orgId);
-
-    const orgIds = new Set<string>(orgRows.map((r) => r.orgId));
+    const orgIds = new Set<string>(await listDistinctRoleOrgIds());
     // Always include the default org even if it has no roles yet.
     orgIds.add("default-org-id");
 

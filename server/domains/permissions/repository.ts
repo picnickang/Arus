@@ -15,7 +15,7 @@ import type { WidenPartial } from "../../lib/widen-partial";
  */
 
 import { db } from "../../db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { crew } from "../../../shared/schema/crew";
 import { users } from "../../../shared/schema/core";
 import {
@@ -532,3 +532,62 @@ export const permissionRepository = {
   getCrewCountByRoleId,
   listUsersWithRoles,
 };
+
+// --- Access & dashboards seeding (used by the composition-root seeder) -------
+// These hold the raw role/crew queries the boot-time access seeder needs, so
+// the composition root depends on this repository rather than the db handle.
+
+export interface SeedRoleRow {
+  id: string;
+  name: string;
+  hubAdmin: boolean;
+  hubAccess: string[] | null;
+}
+
+export async function listOrgRolesForSeeding(orgId: string): Promise<SeedRoleRow[]> {
+  return db
+    .select({
+      id: roles.id,
+      name: roles.name,
+      hubAdmin: roles.hubAdmin,
+      hubAccess: roles.hubAccess,
+    })
+    .from(roles)
+    .where(eq(roles.orgId, orgId));
+}
+
+export async function setRoleHubDefaults(
+  orgId: string,
+  roleId: string,
+  values: { hubAdmin: boolean; hubAccess: string[] | null },
+): Promise<void> {
+  await db
+    .update(roles)
+    .set({ hubAdmin: values.hubAdmin, hubAccess: values.hubAccess })
+    .where(and(eq(roles.id, roleId), eq(roles.orgId, orgId)));
+}
+
+export async function listUnlinkedCrewForSeeding(
+  orgId: string,
+): Promise<{ id: string; rank: string | null }[]> {
+  return db
+    .select({ id: crew.id, rank: crew.rank })
+    .from(crew)
+    .where(and(eq(crew.orgId, orgId), isNull(crew.roleId)));
+}
+
+export async function setCrewRoleId(
+  orgId: string,
+  crewId: string,
+  roleId: string,
+): Promise<void> {
+  await db
+    .update(crew)
+    .set({ roleId })
+    .where(and(eq(crew.id, crewId), eq(crew.orgId, orgId)));
+}
+
+export async function listDistinctRoleOrgIds(): Promise<string[]> {
+  const rows = await db.select({ orgId: roles.orgId }).from(roles).groupBy(roles.orgId);
+  return rows.map((r) => r.orgId);
+}
