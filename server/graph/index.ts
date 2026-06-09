@@ -18,7 +18,7 @@ export {
   crossClassPatterns,
   upsertNode,
   upsertEdge,
-} from "./adapter";
+} from "../db/graph-adapter";
 
 export {
   projectEquipment,

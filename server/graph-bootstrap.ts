@@ -5,7 +5,7 @@
  * Wave 2.8). The graph is gated behind `GRAPH_ENABLED=true`; if the
  * `age` extension is missing or the executing role lacks permission to
  * install it, we log a warning and continue. Downstream adapters
- * (`server/graph/adapter.ts`) check `isGraphAvailable()` and degrade
+ * (`server/db/graph-adapter.ts`) check `isGraphAvailable()` and degrade
  * to a no-op so the application keeps booting.
  *
  * Tenant isolation: per ADR 001, each tenant gets its own named graph

@@ -22,7 +22,7 @@ import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin, type Vessel3dModel } from "@shared/schema-runtime";
 import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
-import { failurePropagation } from "../graph/adapter";
+import { failurePropagation } from "../db/graph-adapter";
 import { requireRole } from "../middleware/role-auth";
 import { enforceQuota } from "../middleware/tenant-quota";
 import { quotaService } from "../tenancy/quota-service";

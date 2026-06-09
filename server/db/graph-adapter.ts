@@ -31,7 +31,7 @@ import {
   isGraphAvailable,
   tenantGraphName,
 } from "../graph-bootstrap";
-import type { EdgeType, NodeLabel } from "./types";
+import type { EdgeType, NodeLabel } from "../graph/types";
 
 const logger = createLogger("GraphAdapter");
 

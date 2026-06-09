@@ -24,7 +24,7 @@
  */
 
 import { isGraphAvailable } from "../graph-bootstrap";
-import { upsertEdge, upsertNode, deleteEdge, STATIC_EDGE_SOURCE } from "./adapter";
+import { upsertEdge, upsertNode, deleteEdge, STATIC_EDGE_SOURCE } from "../db/graph-adapter";
 import { EdgeType, NodeLabel } from "./types";
 import { createLogger } from "../lib/structured-logger";
 
