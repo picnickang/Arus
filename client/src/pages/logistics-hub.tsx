@@ -27,13 +27,33 @@ import {
   AlertTriangle,
   PackageX,
   ChevronRight,
-  DollarSign,
   ClipboardList,
+  PackageCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageLoader } from "@/components/layouts/PageLoader";
+import { useServiceRequests } from "@/features/serviceRequests/hooks/useServiceRequests";
+import { useServiceOrders } from "@/features/serviceOrders/hooks/useServiceOrders";
+import { useSuppliersWithStats } from "@/features/suppliers/hooks/useSuppliers";
+import {
+  buildLogisticsOverviewModel,
+  formatCurrency,
+  parseLogisticsTab,
+  type LowStockResponse,
+} from "@/features/logistics/logistics-overview-model";
+import {
+  ActionButton,
+  DataHealthPanel,
+  EmptyState,
+  JumpCard,
+  KpiCard,
+  PanelHeader,
+  QueueRow,
+  SkeletonList,
+  SummaryPanel,
+} from "@/features/logistics/LogisticsOverviewPanels";
 
 const InventoryManagement = lazy(() => import("@/pages/inventory-management"));
 const VendorsPage = lazy(() =>
@@ -46,57 +66,9 @@ const ServiceRequestsPage = lazy(() =>
   import("@/features/serviceRequests").then((m) => ({ default: m.ServiceRequestsPage }))
 );
 
-type LogisticsTab =
-  | "overview"
-  | "inventory"
-  | "vendors"
-  | "service-orders"
-  | "service-requests";
-
-function parseTab(search: string): LogisticsTab {
-  const params = new URLSearchParams(search);
-  const raw = params.get("tab");
-  switch (raw) {
-    case "inventory":
-    case "vendors":
-    case "service-orders":
-    case "service-requests":
-      return raw;
-    default:
-      return "overview";
-  }
-}
-
-interface LowStockSuggestion {
-  partId?: string | null;
-  partNumber?: string | null;
-  partName?: string | null;
-  quantityOnHand?: number | null;
-  minStockLevel?: number | null;
-  suggestedOrderQty?: number | null;
-  estimatedCost?: number | null;
-  vesselName?: string | null;
-}
-
-interface LowStockResponse {
-  total?: number;
-  suggestions?: LowStockSuggestion[];
-  estimatedTotalCost?: number | null;
-}
-
-function formatCurrency(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) {
-    return "N/A";
-  }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(1)}k`;
-  }
-  return `$${value.toFixed(0)}`;
-}
-
 export default function LogisticsHub() {
   const searchString = useSearch();
-  const tab = parseTab(searchString);
+  const tab = parseLogisticsTab(searchString);
 
   if (tab !== "overview") {
     return (
@@ -113,18 +85,31 @@ export default function LogisticsHub() {
 }
 
 function LogisticsOverview() {
-  const {
-    data: lowStock,
-    isLoading,
-    error,
-  } = useQuery<LowStockResponse>({
+  const lowStockQuery = useQuery<LowStockResponse>({
     queryKey: ["/api/parts-inventory/low-stock-suggestions"],
     staleTime: 60_000,
   });
+  const serviceRequestsQuery = useServiceRequests({ status: "actionable", sortBy: "urgency" });
+  const serviceOrdersQuery = useServiceOrders();
+  const vendorsQuery = useSuppliersWithStats();
 
-  const suggestions = lowStock?.suggestions ?? [];
-  const blockerCount = lowStock?.total ?? suggestions.length;
-  const estimatedCost = lowStock?.estimatedTotalCost ?? null;
+  const isLoading =
+    lowStockQuery.isLoading ||
+    serviceRequestsQuery.isLoading ||
+    serviceOrdersQuery.isLoading ||
+    vendorsQuery.isLoading;
+  const model = buildLogisticsOverviewModel({
+    lowStock: lowStockQuery.data,
+    serviceRequests: serviceRequestsQuery.data,
+    serviceOrders: serviceOrdersQuery.data,
+    vendors: vendorsQuery.data,
+    errors: {
+      lowStock: lowStockQuery.error,
+      serviceRequests: serviceRequestsQuery.error,
+      serviceOrders: serviceOrdersQuery.error,
+      vendors: vendorsQuery.error,
+    },
+  });
 
   return (
     <div className="p-4 lg:p-6 space-y-6" data-testid="logistics-hub-overview">
@@ -132,126 +117,193 @@ function LogisticsOverview() {
         <div>
           <h1 className="text-xl font-bold">Logistics Overview</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Inventory blockers, purchasing, service orders, and supplier management.
+            Inventory blockers, service requests, service orders, and vendor actions.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground" data-testid="logistics-data-freshness">
+            Updated from live sources when available. Missing sources stay visible as degraded.
           </p>
         </div>
-        <Link href="/logistics?tab=inventory">
-          <Button data-testid="button-open-inventory" variant="outline" className="gap-2">
+        <Button asChild data-testid="button-open-inventory" variant="outline" className="gap-2">
+          <Link href="/logistics?tab=inventory">
             Open inventory <ChevronRight className="h-4 w-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
-      {error && (
-        <div
-          className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm"
-          data-testid="logistics-hub-error"
-        >
-          <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-          <span>Could not load inventory data. Try again shortly.</span>
+      <div
+        className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
+        data-testid="logistics-action-row"
+      >
+        <ActionButton
+          href="/logistics?tab=inventory&action=receive"
+          label="Receive Stock"
+          icon={PackageCheck}
+          primary
+        />
+        <ActionButton
+          href="/logistics?tab=inventory&action=reserve"
+          label="Reserve Parts"
+          icon={Boxes}
+        />
+        <ActionButton
+          href="/logistics?tab=inventory&action=consume"
+          label="Consume Parts"
+          icon={PackageX}
+        />
+        <ActionButton
+          href="/logistics?tab=service-requests&action=create"
+          label="Create Request"
+          icon={ClipboardList}
+        />
+        <ActionButton
+          href="/logistics?tab=service-orders&action=create"
+          label="Create Order"
+          icon={Wrench}
+        />
+        <ActionButton
+          href="/logistics?tab=vendors&action=create"
+          label="Add Vendor"
+          icon={Building2}
+        />
+      </div>
+
+      {model.errors.length > 0 && (
+        <div className="grid gap-2" data-testid="logistics-error-state">
+          {model.errors.map((safeError, index) => (
+            <div
+              key={`${safeError.title}-${index}`}
+              className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm"
+              data-testid="logistics-hub-error"
+            >
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-semibold">{safeError.title}</div>
+                <div className="text-muted-foreground">{safeError.message}</div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="logistics-counter-row">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3"
+        data-testid="logistics-counter-row"
+      >
         {isLoading ? (
-          [0, 1].map((i) => <Skeleton key={i} className="h-24 rounded-lg" />)
+          [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-lg" />)
         ) : (
           <>
-            <Card data-testid="counter-blockers">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div
-                  className={`rounded-md p-2 ${
-                    blockerCount > 0
-                      ? "bg-rose-500/15 text-rose-600"
-                      : "bg-emerald-500/15 text-emerald-600"
-                  }`}
-                >
-                  <PackageX className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-                    Inventory Blockers
-                  </div>
-                  <div className="text-3xl font-bold mt-1">{blockerCount}</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card data-testid="counter-reorder-cost">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="rounded-md p-2 bg-blue-500/15 text-blue-600">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-                    Estimated Reorder Cost
-                  </div>
-                  <div className="text-3xl font-bold mt-1">{formatCurrency(estimatedCost)}</div>
-                </div>
-              </CardContent>
-            </Card>
+            {model.kpis[0] && <KpiCard kpi={model.kpis[0]} data-testid="counter-blockers" />}
+            {model.kpis[1] && <KpiCard kpi={model.kpis[1]} data-testid="counter-reorder-cost" />}
+            {model.kpis.slice(2).map((kpi) => (
+              <KpiCard key={kpi.id} kpi={kpi} data-testid={`counter-${kpi.id}`} />
+            ))}
           </>
         )}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between border-b px-4 py-2">
-            <h2 className="text-sm font-semibold">Low-stock parts</h2>
-            <Link href="/logistics?tab=inventory&filter=low-stock">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 text-xs"
-                data-testid="button-view-all-low-stock"
-              >
-                View all <ChevronRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
-          {isLoading ? (
-            <div className="p-4 space-y-2">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : suggestions.length === 0 ? (
-            <div
-              className="p-6 text-sm text-muted-foreground"
-              data-testid="empty-low-stock"
-            >
-              All parts are above minimum stock levels.
-            </div>
-          ) : (
-            <ul className="divide-y" data-testid="list-low-stock">
-              {suggestions.slice(0, 10).map((p, i) => (
-                <li
-                  key={p.partId ?? `${p.partNumber ?? "row"}-${i}`}
-                  className="flex items-center gap-3 px-4 py-2"
-                  data-testid={`row-low-stock-${p.partId ?? i}`}
-                >
-                  <div className="text-xs font-mono text-muted-foreground w-24 shrink-0 truncate">
-                    {p.partNumber ?? "—"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {p.partName ?? "Unnamed part"}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-4">
+        <Card data-testid="logistics-urgent-queue">
+          <CardContent className="p-0">
+            <PanelHeader
+              title="Urgent Logistics Queue"
+              description="Exception-first work requiring action"
+              actionHref="/logistics?tab=inventory"
+              actionLabel="Open queue"
+            />
+            {isLoading ? (
+              <SkeletonList rows={4} />
+            ) : model.urgentQueue.length === 0 ? (
+              <EmptyState message={model.emptyMessage ?? "No urgent logistics actions."} />
+            ) : (
+              <div className="divide-y">
+                {model.urgentQueue.map((row) => (
+                  <QueueRow key={row.id} row={row} />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          <SummaryPanel
+            title="Service Requests Awaiting Review"
+            description="Review and convert requests"
+            rows={model.serviceRequestRows}
+            empty="No service requests awaiting review."
+            href="/logistics?tab=service-requests"
+            testId="logistics-service-request-queue"
+          />
+          <SummaryPanel
+            title="Service Orders"
+            description="Vendor work and parts readiness"
+            rows={model.serviceOrderRows}
+            empty="No open service orders requiring action."
+            href="/logistics?tab=service-orders"
+            testId="logistics-service-order-queue"
+          />
+          <SummaryPanel
+            title="Vendor Follow-Up"
+            description="Supplier and provider readiness"
+            rows={model.vendorRows}
+            empty="No vendor issues requiring action."
+            href="/logistics?tab=vendors"
+            testId="logistics-vendor-directory"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-4">
+        <Card>
+          <CardContent className="p-0">
+            <PanelHeader
+              title="Low-stock parts"
+              description="Inventory ledger blockers and reorder estimate"
+              actionHref="/logistics?tab=inventory&filter=low-stock"
+              actionLabel="View all"
+              actionTestId="button-view-all-low-stock"
+            />
+            {isLoading ? (
+              <SkeletonList rows={4} />
+            ) : model.lowStockRows.length === 0 ? (
+              <EmptyState
+                message="No critical stockouts. View all inventory when you need the full catalog."
+                testId="empty-low-stock"
+              />
+            ) : (
+              <ul className="divide-y" data-testid="list-low-stock">
+                {model.lowStockRows.slice(0, 6).map((p, i) => (
+                  <li
+                    key={p.partId ?? `${p.partNumber ?? "row"}-${i}`}
+                    className="flex items-center gap-3 px-4 py-2"
+                    data-testid={`row-low-stock-${p.partId ?? i}`}
+                  >
+                    <div className="text-xs font-mono text-muted-foreground w-24 shrink-0 truncate">
+                      {p.partNumber ?? "—"}
                     </div>
-                    {p.vesselName && (
-                      <div className="text-xs text-muted-foreground truncate">{p.vesselName}</div>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground w-24 text-right shrink-0">
-                    {p.quantityOnHand ?? 0} / {p.minStockLevel ?? 0}
-                  </div>
-                  <div className="text-xs font-semibold w-20 text-right shrink-0">
-                    {formatCurrency(p.estimatedCost)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {p.partName ?? "Unnamed part"}
+                      </div>
+                      {p.vesselName && (
+                        <div className="text-xs text-muted-foreground truncate">{p.vesselName}</div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground w-24 text-right shrink-0">
+                      {p.quantityOnHand ?? 0} / {p.minStockLevel ?? 0}
+                    </div>
+                    <div className="text-xs font-semibold w-20 text-right shrink-0">
+                      {formatCurrency(p.estimatedCost)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <DataHealthPanel sources={model.dataHealth} />
+      </div>
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
@@ -264,18 +316,18 @@ function LogisticsOverview() {
             testId="jump-inventory"
           />
           <JumpCard
-            href="/logistics?tab=service-orders"
-            icon={Wrench}
-            label="Service Orders"
-            description="External services"
-            testId="jump-service-orders"
-          />
-          <JumpCard
             href="/logistics?tab=service-requests"
             icon={ClipboardList}
             label="Service Requests"
             description="Pending requests"
             testId="jump-service-requests"
+          />
+          <JumpCard
+            href="/logistics?tab=service-orders"
+            icon={Wrench}
+            label="Service Orders"
+            description="External services"
+            testId="jump-service-orders"
           />
           <JumpCard
             href="/logistics?tab=vendors"
@@ -287,38 +339,5 @@ function LogisticsOverview() {
         </div>
       </div>
     </div>
-  );
-}
-
-function JumpCard({
-  href,
-  icon: Icon,
-  label,
-  description,
-  testId,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  description?: string;
-  testId: string;
-}) {
-  return (
-    <Link href={href}>
-      <Card
-        className="hover:bg-accent/40 transition-colors cursor-pointer"
-        data-testid={testId}
-      >
-        <CardContent className="flex items-center gap-3 p-4">
-          <Icon className="h-5 w-5 text-primary shrink-0" />
-          <div>
-            <div className="text-sm font-medium">{label}</div>
-            {description && (
-              <div className="text-xs text-muted-foreground">{description}</div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
