@@ -1,11 +1,12 @@
 import { describe, it, expect, jest } from "@jest/globals";
 
+import { IngestTelemetryBatch } from "../../telemetry/application/ingest-batch";
+import type { IngestBatchResult } from "../../telemetry/ports/inbound";
+import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
+
 describe("Telemetry Ingestion Architecture", () => {
   describe("IngestBatchResult Interface", () => {
     it("should include archiveId and batchId fields in result type", async () => {
-      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
-      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
-
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -69,9 +70,6 @@ describe("Telemetry Ingestion Architecture", () => {
     });
 
     it("should return empty batchId when not provided", async () => {
-      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
-      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
-
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -136,9 +134,6 @@ describe("Telemetry Ingestion Architecture", () => {
 
   describe("IngestBatchResult with config options", () => {
     it("should support raw archive, heartbeat, and batch ack config options", async () => {
-      const { IngestTelemetryBatch } = await import("../../telemetry/application/ingest-batch");
-      const { BridgeProcessor } = await import("../../services/sqlite-bridge/bridgeProcessor");
-
       const mockPersistence = {
         writeBatch: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         checkIdempotency: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -239,10 +234,8 @@ describe("Telemetry Ingestion Architecture", () => {
   });
 
   describe("Inbound Port Interface", () => {
-    it("should have archiveId and batchId in IngestBatchResult", async () => {
-      const inbound = await import("../../telemetry/ports/inbound");
-
-      const result: typeof import("../../telemetry/ports/inbound").IngestBatchResult = {
+    it("should have archiveId and batchId in IngestBatchResult", () => {
+      const result: IngestBatchResult = {
         framesProcessed: 0,
         readingsDecoded: 0,
         readingsPersisted: 0,

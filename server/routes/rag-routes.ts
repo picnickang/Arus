@@ -321,8 +321,7 @@ export function registerRagRoutes(
     "/api/rag/feedback",
     generalApiRateLimit,
     withErrorHandling("submit RAG feedback", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
-      const userId = (req.headers["x-user-id"] as string) || undefined;
+      const { orgId, userId } = getConversationIdentity(req);
 
       const parsed = feedbackSchema.parse(req.body);
 
@@ -341,7 +340,7 @@ export function registerRagRoutes(
     "/api/rag/feedback/stats",
     generalApiRateLimit,
     withErrorHandling("get RAG feedback stats", async (req, res) => {
-      const orgId = DEFAULT_ORG_ID;
+      const { orgId } = getConversationIdentity(req);
 
       const feedbackService = getFeedbackService();
       const stats = await feedbackService.getOrgStats(orgId);

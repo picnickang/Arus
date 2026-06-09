@@ -8,6 +8,8 @@
 
 import { describe, it, expect } from "@jest/globals";
 
+import PredictionCalibrator from "../../server/services/ml/prediction-calibration";
+
 // Since PredictionCalibrator requires a DB connection, we test the pure functions
 // by importing them indirectly. We extract and test the mathematical core.
 
@@ -229,5 +231,88 @@ describe("Prediction Calibration", () => {
       expect(calibrateIsotonic(0.5, mapping)).toBe(0.4); // <= second threshold
       expect(calibrateIsotonic(0.95, mapping)).toBe(0.8); // > last threshold
     });
+  });
+});
+
+describe("PredictionCalibrator production behavior", () => {
+  const makeCalibrator = (
+    data: Array<{ predictedProbability: number; actualOutcome: 0 | 1 }>
+  ): PredictionCalibrator => {
+    const calibrator = new PredictionCalibrator({} as never);
+    (
+      calibrator as unknown as {
+        fetchCalibrationData: () => Promise<
+          Array<{ predictedProbability: number; actualOutcome: 0 | 1 }>
+        >;
+      }
+    ).fetchCalibrationData = async () => data;
+    return calibrator;
+  };
+
+  it("returns null and leaves probabilities raw when history is insufficient", async () => {
+    const calibrator = makeCalibrator([{ predictedProbability: 0.7, actualOutcome: 1 }]);
+
+    await expect(
+      calibrator.fitFromHistory("org-calibration-a", "model-a", {
+        method: "platt",
+        minDataPoints: 5,
+      })
+    ).resolves.toBeNull();
+
+    expect(calibrator.isCalibrated("org-calibration-a", "model-a")).toBe(false);
+    expect(calibrator.calibrate(0.73, "org-calibration-a", "model-a")).toBe(0.73);
+    await expect(
+      calibrator.getCalibrationReport("org-calibration-a", "model-a")
+    ).resolves.toBeNull();
+  });
+
+  it("fits a Platt model and returns bounded calibrated probabilities and report bins", async () => {
+    const data = Array.from({ length: 80 }, (_, index) => {
+      const predictedProbability = 0.1 + (index % 8) * 0.1;
+      return {
+        predictedProbability,
+        actualOutcome: (predictedProbability >= 0.5 ? 1 : 0) as 0 | 1,
+      };
+    });
+    const calibrator = makeCalibrator(data);
+
+    const model = await calibrator.fitFromHistory("org-calibration-b", "model-b", {
+      method: "platt",
+      minDataPoints: 20,
+    });
+    const calibrated = calibrator.calibrate(0.8, "org-calibration-b", "model-b");
+    const report = await calibrator.getCalibrationReport("org-calibration-b", "model-b");
+
+    expect(model?.method).toBe("platt");
+    expect(model?.dataPointCount).toBe(80);
+    expect(calibrator.isCalibrated("org-calibration-b", "model-b")).toBe(true);
+    expect(calibrated).toBeGreaterThanOrEqual(0);
+    expect(calibrated).toBeLessThanOrEqual(1);
+    expect(report).toMatchObject({
+      orgId: "org-calibration-b",
+      modelId: "model-b",
+      method: "platt",
+      dataPoints: 80,
+    });
+    expect(report?.reliabilityDiagram).toHaveLength(10);
+  });
+
+  it("fits isotonic models explicitly and uses the all-model cache key", async () => {
+    const data = Array.from({ length: 40 }, (_, index) => ({
+      predictedProbability: index / 40,
+      actualOutcome: (index >= 20 ? 1 : 0) as 0 | 1,
+    }));
+    const calibrator = makeCalibrator(data);
+
+    const model = await calibrator.fitFromHistory("org-calibration-c", undefined, {
+      method: "isotonic",
+      minDataPoints: 10,
+    });
+
+    expect(model?.method).toBe("isotonic");
+    expect(model?.isotonicMapping?.thresholds.length).toBeGreaterThan(0);
+    expect(calibrator.isCalibrated("org-calibration-c")).toBe(true);
+    expect(calibrator.calibrate(-1, "org-calibration-c")).toBeGreaterThanOrEqual(0);
+    expect(calibrator.calibrate(2, "org-calibration-c")).toBeLessThanOrEqual(1);
   });
 });

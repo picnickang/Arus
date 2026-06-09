@@ -54,6 +54,7 @@
 
 import { parseAmosCSV } from "../amos/parser";
 import { applyMapping } from "../amos/field-mapping";
+import { randomUUID } from "node:crypto";
 import {
   getShipmateMapping,
   normalizeShipmateHeaders,
@@ -259,7 +260,9 @@ class ShipmateImportService {
       const originalHeaders = Object.keys(row);
       for (let i = 0; i < originalHeaders.length; i++) {
         const origKey = originalHeaders[i];
-        if (!origKey) {continue;}
+        if (!origKey) {
+          continue;
+        }
         const newKey = normalizedHeaders[i] || origKey;
         normalized[newKey] = row[origKey] ?? "";
       }
@@ -281,9 +284,9 @@ class ShipmateImportService {
     // Step 5: Map all rows
     const mappedRows = normalizedRows.map((row, i) => {
       const { data, errors, warnings } = applyMapping(row, mapping);
-      data['orgId'] = orgId;
-      if (resolvedVesselId && !data['vesselId']) {
-        data['vesselId'] = resolvedVesselId;
+      data["orgId"] = orgId;
+      if (resolvedVesselId && !data["vesselId"]) {
+        data["vesselId"] = resolvedVesselId;
       }
       return { rowNum: i + 2, data, errors, warnings };
     });
@@ -357,6 +360,7 @@ class ShipmateImportService {
         const [manifest] = await tx
           .insert(importManifest)
           .values({
+            id: randomUUID(),
             orgId,
             sourceSystem: "shipmate",
             module: options.module,
@@ -364,6 +368,7 @@ class ShipmateImportService {
             vesselId: resolvedVesselId,
             vesselNameRequested: options.vesselName ?? null,
             status: "running",
+            startedAt: new Date(),
             rowsTotal: parsed.rowCount,
             rowsImported: 0,
             rowsUpdated: 0,
@@ -373,7 +378,9 @@ class ShipmateImportService {
           })
           .returning({ id: importManifest.id });
 
-        if (!manifest) {throw new Error("import: manifest insert returned no row");}
+        if (!manifest) {
+          throw new Error("import: manifest insert returned no row");
+        }
         manifestId = manifest.id;
 
         // Upsert each valid row within the same transaction.
@@ -468,6 +475,7 @@ class ShipmateImportService {
         const [failedManifest] = await db
           .insert(importManifest)
           .values({
+            id: randomUUID(),
             orgId,
             sourceSystem: "shipmate",
             module: options.module,
@@ -475,6 +483,7 @@ class ShipmateImportService {
             vesselId: resolvedVesselId,
             vesselNameRequested: options.vesselName ?? null,
             status: "failed",
+            startedAt: new Date(),
             completedAt: new Date(),
             rowsTotal: parsed.rowCount,
             rowsImported: 0,
@@ -485,7 +494,9 @@ class ShipmateImportService {
             initiatedBy: options.initiatedBy ?? null,
           })
           .returning({ id: importManifest.id });
-        if (!failedManifest) {throw new Error("import: failed-manifest insert returned no row");}
+        if (!failedManifest) {
+          throw new Error("import: failed-manifest insert returned no row");
+        }
         manifestId = failedManifest.id;
       } catch (manifestErr) {
         // Can't even record the failure — log and carry on so the caller
@@ -573,8 +584,8 @@ class ShipmateImportService {
 
   private sortByHierarchy(rows: Array<{ rowNum: number; data: Record<string, unknown> }>): void {
     rows.sort((a, b) => {
-      const aId = (a.data['id'] as string) || "";
-      const bId = (b.data['id'] as string) || "";
+      const aId = (a.data["id"] as string) || "";
+      const bId = (b.data["id"] as string) || "";
       const aDepth = aId.split(".").length;
       const bDepth = bId.split(".").length;
       if (aDepth !== bDepth) {
@@ -607,7 +618,7 @@ class ShipmateImportService {
       case "cms_rest_hours":
         logger.debug("Crew data ingested for analytics (read-only)", {
           module,
-          id: data['employeeId'],
+          id: data["employeeId"],
         });
         return "skipped";
       default:
@@ -635,13 +646,13 @@ class ShipmateImportService {
     }
 
     if (Object.keys(specifications).length > 0) {
-      cleanData['specifications'] = specifications;
+      cleanData["specifications"] = specifications;
     }
 
-    cleanData['orgId'] = orgId;
-    cleanData['sourceSystem'] = "shipmate";
+    cleanData["orgId"] = orgId;
+    cleanData["sourceSystem"] = "shipmate";
 
-    const equipmentId = cleanData['id'] as string;
+    const equipmentId = cleanData["id"] as string;
     if (!equipmentId) {
       return "skipped";
     }
@@ -676,7 +687,9 @@ class ShipmateImportService {
       },
       priorVesselId: string | null
     ) => {
-      if (!orgId) {return;}
+      if (!orgId) {
+        return;
+      }
       pendingEquipmentProjections.push({
         orgId,
         id: persisted.id,
@@ -744,13 +757,13 @@ class ShipmateImportService {
       }
     }
 
-    cleanData['orgId'] = orgId;
-    cleanData['sourceSystem'] = "shipmate";
+    cleanData["orgId"] = orgId;
+    cleanData["sourceSystem"] = "shipmate";
     if (Object.keys(metadata).length > 0) {
-      cleanData['metadata'] = metadata;
+      cleanData["metadata"] = metadata;
     }
 
-    const woNumber = cleanData['woNumber'] as string;
+    const woNumber = cleanData["woNumber"] as string;
     if (!woNumber) {
       return "skipped";
     }
@@ -771,7 +784,7 @@ class ShipmateImportService {
 
     await tx.insert(workOrders).values({
       ...cleanData,
-      createdAt: cleanData['createdAt'] ?? new Date(),
+      createdAt: cleanData["createdAt"] ?? new Date(),
       updatedAt: new Date(),
     } as object as never);
     return "inserted";
@@ -793,10 +806,10 @@ class ShipmateImportService {
       }
     }
 
-    cleanData['orgId'] = orgId;
-    cleanData['sourceSystem'] = "shipmate";
+    cleanData["orgId"] = orgId;
+    cleanData["sourceSystem"] = "shipmate";
 
-    const partNo = cleanData['partNo'] as string;
+    const partNo = cleanData["partNo"] as string;
     if (!partNo) {
       return "skipped";
     }
@@ -824,13 +837,15 @@ class ShipmateImportService {
           updatedAt: new Date(),
         } as object as never)
         .returning({ id: parts.id });
-      if (!inserted) {throw new Error("import: parts insert returned no row");}
+      if (!inserted) {
+        throw new Error("import: parts insert returned no row");
+      }
       partId = inserted.id;
     }
 
     // Upsert stock (inside the same transaction)
     if (Object.keys(stockData).length > 0) {
-      const location = (stockData['location'] as string) || "MAIN";
+      const location = (stockData["location"] as string) || "MAIN";
 
       const [existingStock] = await tx
         .select({ id: stock.id })
@@ -842,8 +857,8 @@ class ShipmateImportService {
         await tx
           .update(stock)
           .set({
-            quantityOnHand: (stockData['quantityOnHand'] as number) ?? 0,
-            unitCost: (stockData['unitCost'] as number) ?? 0,
+            quantityOnHand: (stockData["quantityOnHand"] as number) ?? 0,
+            unitCost: (stockData["unitCost"] as number) ?? 0,
             updatedAt: new Date(),
           })
           .where(eq(stock.id, existingStock.id));
@@ -853,8 +868,8 @@ class ShipmateImportService {
           partId,
           partNo,
           location,
-          quantityOnHand: (stockData['quantityOnHand'] as number) ?? 0,
-          unitCost: (stockData['unitCost'] as number) ?? 0,
+          quantityOnHand: (stockData["quantityOnHand"] as number) ?? 0,
+          unitCost: (stockData["unitCost"] as number) ?? 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as object as never);
@@ -871,8 +886,8 @@ class ShipmateImportService {
   private async syncRunningHours(orgId: string, rows: Record<string, unknown>[]): Promise<void> {
     let synced = 0;
     for (const row of rows) {
-      const id = row['id'] as string;
-      const hours = row['runningHours'] as number;
+      const id = row["id"] as string;
+      const hours = row["runningHours"] as number;
       if (!id || hours == null) {
         continue;
       }
@@ -968,7 +983,7 @@ class ShipmateImportService {
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
     const bySystem = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
-      const system = (row['systemType'] as string) || "General";
+      const system = (row["systemType"] as string) || "General";
       if (!bySystem.has(system)) {
         bySystem.set(system, []);
       }
@@ -983,13 +998,13 @@ class ShipmateImportService {
         "",
         ...items.map((item) =>
           [
-            `## ${item['id']}: ${item['name']}`,
-            item['manufacturer'] && `Maker: ${item['manufacturer']}`,
-            item['model'] && `Model: ${item['model']}`,
-            item['serialNumber'] && `Serial: ${item['serialNumber']}`,
-            item['criticalityLevel'] && `Criticality: ${item['criticalityLevel']}`,
-            item['runningHours'] && `Running Hours: ${item['runningHours']}`,
-            item['location'] && `Location: ${item['location']}`,
+            `## ${item["id"]}: ${item["name"]}`,
+            item["manufacturer"] && `Maker: ${item["manufacturer"]}`,
+            item["model"] && `Model: ${item["model"]}`,
+            item["serialNumber"] && `Serial: ${item["serialNumber"]}`,
+            item["criticalityLevel"] && `Criticality: ${item["criticalityLevel"]}`,
+            item["runningHours"] && `Running Hours: ${item["runningHours"]}`,
+            item["location"] && `Location: ${item["location"]}`,
           ]
             .filter(Boolean)
             .join("\n")
@@ -1010,7 +1025,7 @@ class ShipmateImportService {
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
     const byEquipment = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
-      const eqId = (row['equipmentId'] as string) || "unknown";
+      const eqId = (row["equipmentId"] as string) || "unknown";
       if (!byEquipment.has(eqId)) {
         byEquipment.set(eqId, []);
       }
@@ -1019,8 +1034,8 @@ class ShipmateImportService {
 
     return [...byEquipment.entries()].map(([eqId, jobs]) => {
       jobs.sort((a, b) => {
-        const da = a['completedAt'] ? new Date(a['completedAt'] as string).getTime() : 0;
-        const dbTime = b['completedAt'] ? new Date(b['completedAt'] as string).getTime() : 0;
+        const da = a["completedAt"] ? new Date(a["completedAt"] as string).getTime() : 0;
+        const dbTime = b["completedAt"] ? new Date(b["completedAt"] as string).getTime() : 0;
         return dbTime - da;
       });
 
@@ -1034,12 +1049,12 @@ class ShipmateImportService {
             .slice(0, 50)
             .map((job) =>
               [
-                `## ${job['woNumber']}: ${job['title']}`,
-                `Type: ${job['maintenanceType'] || "N/A"} | Status: ${job['status'] || "N/A"}`,
-                job['completedAt'] &&
-                  `Completed: ${new Date(job['completedAt'] as string).toLocaleDateString()}`,
-                job['actualHours'] && `Hours: ${job['actualHours']}`,
-                job['notes'] && `Notes: ${job['notes']}`,
+                `## ${job["woNumber"]}: ${job["title"]}`,
+                `Type: ${job["maintenanceType"] || "N/A"} | Status: ${job["status"] || "N/A"}`,
+                job["completedAt"] &&
+                  `Completed: ${new Date(job["completedAt"] as string).toLocaleDateString()}`,
+                job["actualHours"] && `Hours: ${job["actualHours"]}`,
+                job["notes"] && `Notes: ${job["notes"]}`,
               ]
                 .filter(Boolean)
                 .join("\n")
@@ -1061,7 +1076,7 @@ class ShipmateImportService {
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
     const byCategory = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
-      const cat = (row['category'] as string) || "General";
+      const cat = (row["category"] as string) || "General";
       if (!byCategory.has(cat)) {
         byCategory.set(cat, []);
       }
@@ -1076,9 +1091,9 @@ class ShipmateImportService {
         "",
         ...items.map(
           (item) =>
-            `- **${item['partNo']}**: ${item['name']}${
-              item['manufacturer'] ? ` (${item['manufacturer']})` : ""
-            }${item['criticality'] ? ` [${item['criticality']}]` : ""}`
+            `- **${item["partNo"]}**: ${item["name"]}${
+              item["manufacturer"] ? ` (${item["manufacturer"]})` : ""
+            }${item["criticality"] ? ` [${item["criticality"]}]` : ""}`
         ),
       ].join("\n"),
       metadata: {

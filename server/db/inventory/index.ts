@@ -1,20 +1,20 @@
 import type { WidenPartial } from "../../lib/widen-partial";
 /**
-   * CANONICAL HOME — Inventory
-   * ============================================================
-   * This module is the single canonical home for Inventory data
-   * access. Other layers (domain adapters under
-   * `server/domains/inventory/infrastructure/`, legacy route handlers,
-   * cross-domain readers in `server/composition/*`, etc.) MUST import
-   * the `db…Storage` singleton from this file directly rather than
-   * routing through `server/repositories.ts`. Push B4 (Repositories
-   * Proxy Decomposition) removed the four primary-domain importers of
-   * that proxy; the proxy now exists only as a transitional re-export
-   * barrel for legacy non-domain consumers. New code MUST import from
-   * here.
-   * ============================================================
-   */
-  /**
+ * CANONICAL HOME — Inventory
+ * ============================================================
+ * This module is the single canonical home for Inventory data
+ * access. Other layers (domain adapters under
+ * `server/domains/inventory/infrastructure/`, legacy route handlers,
+ * cross-domain readers in `server/composition/*`, etc.) MUST import
+ * the `db…Storage` singleton from this file directly rather than
+ * routing through `server/repositories.ts`. Push B4 (Repositories
+ * Proxy Decomposition) removed the four primary-domain importers of
+ * that proxy; the proxy now exists only as a transitional re-export
+ * barrel for legacy non-domain consumers. New code MUST import from
+ * here.
+ * ============================================================
+ */
+/**
  * Inventory Repository
  *
  * FIXES APPLIED:
@@ -57,7 +57,7 @@ import type {
   InsertSupplier,
   InsertPartSubstitution,
 } from "@shared/schema-runtime";
-import { DbPartsStorage } from "./db-parts.js";
+import { DbPartsStorage, partAndStockToPartsInventory } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
 
 /**
@@ -99,7 +99,9 @@ async function fireProjectionsAfterCommit(
   orgId: string,
   pending: PendingMovementProjection[]
 ): Promise<void> {
-  if (pending.length === 0) {return;}
+  if (pending.length === 0) {
+    return;
+  }
   try {
     const partIds = Array.from(new Set(pending.map((p) => p.partId)));
     // Statically imported `partsTable` (was dynamic import + escape-hatch cast
@@ -113,14 +115,13 @@ async function fireProjectionsAfterCommit(
         primarySupplierId: partsTable.primarySupplierId,
       })
       .from(partsTable)
-      .where(
-        and(
-          eq(partsTable.orgId, orgId),
-          sql`${partsTable.id} = ANY(${partIds})`
-        )
-      );
+      .where(and(eq(partsTable.orgId, orgId), sql`${partsTable.id} = ANY(${partIds})`));
     const partMeta = new Map<string, { name?: string | null; supplierId?: string | null }>();
-    for (const r of partRows as Array<{ id: string; name: string | null; primarySupplierId: string | null }>) {
+    for (const r of partRows as Array<{
+      id: string;
+      name: string | null;
+      primarySupplierId: string | null;
+    }>) {
       partMeta.set(r.id, {
         name: r.name,
         supplierId: r.primarySupplierId,
@@ -147,13 +148,12 @@ async function fireProjectionsAfterCommit(
         })
         .from(failureHistory)
         .where(
-          and(
-            eq(failureHistory.orgId, orgId),
-            sql`${failureHistory.workOrderId} = ANY(${woIds})`
-          )
+          and(eq(failureHistory.orgId, orgId), sql`${failureHistory.workOrderId} = ANY(${woIds})`)
         );
       for (const r of fhRows as Array<{ workOrderId: string | null; failureMode: string | null }>) {
-        if (r.workOrderId && r.failureMode) {failureModeByWo.set(r.workOrderId, r.failureMode);}
+        if (r.workOrderId && r.failureMode) {
+          failureModeByWo.set(r.workOrderId, r.failureMode);
+        }
       }
     }
     await Promise.all(
@@ -161,7 +161,7 @@ async function fireProjectionsAfterCommit(
         const meta = partMeta.get(p.partId) ?? {};
         const isConsuming = p.movementType === "reserve" || p.movementType === "consume";
         const failureMode =
-          isConsuming && p.workOrderId ? failureModeByWo.get(p.workOrderId) ?? null : null;
+          isConsuming && p.workOrderId ? (failureModeByWo.get(p.workOrderId) ?? null) : null;
         return projectInventoryMovement(orgId, {
           movementId: p.movementId,
           partId: p.partId,
@@ -386,8 +386,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       offset?: number | undefined;
     }
   ): Promise<PartsInventory[]> {
-    const { partAndStockToPartsInventory } = await import("./db-parts.js");
-    const { parts: partsTable } = await import("@shared/schema-runtime");
     const conditions: SQL<unknown>[] = [];
     if (orgId) {
       conditions.push(eq(partsTable.orgId, orgId));
@@ -506,7 +504,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       limit,
       offset,
     });
-    const { parts: partsTable } = await import("@shared/schema-runtime");
     const pConditions: SQL<unknown>[] = [eq(partsTable.orgId, orgId)];
     if (category) {
       pConditions.push(eq(partsTable.category, category));
@@ -528,8 +525,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async getPartById(id: string, orgId?: string): Promise<PartsInventory | undefined> {
-    const { partAndStockToPartsInventory } = await import("./db-parts.js");
-    const { parts: partsTable } = await import("@shared/schema-runtime");
     const conditions = orgId
       ? and(eq(partsTable.id, id), eq(partsTable.orgId, orgId))
       : eq(partsTable.id, id);
@@ -543,7 +538,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     }
     const stockRows = rows.map((r) => r.stock).filter((s): s is Stock => s !== null);
     const first = rows[0];
-    if (!first) {return undefined;}
+    if (!first) {
+      return undefined;
+    }
     return partAndStockToPartsInventory(first.parts, stockRows);
   }
 
@@ -615,7 +612,6 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async syncStockCostFromPart(partId: string): Promise<void> {
-    const { parts: partsTable } = await import("@shared/schema-runtime");
     const [part] = await db.select().from(partsTable).where(eq(partsTable.id, partId));
     if (!part) {
       return;
@@ -709,9 +705,12 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     : partToAdd.notes
                   : existing.notes,
                 updatedAt: new Date(),
-              } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
+              } as never)
+              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
-            if (!updated) {throw new Error("addBulkParts: update returned no row");}
+            if (!updated) {
+              throw new Error("addBulkParts: update returned no row");
+            }
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -729,8 +728,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 notes: partToAdd.notes,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              } as never)              .returning();
-            if (!newPart) {throw new Error("addBulkParts: insert returned no row");}
+              } as never)
+              .returning();
+            if (!newPart) {
+              throw new Error("addBulkParts: insert returned no row");
+            }
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -839,9 +841,12 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                     : partToAdd.notes
                   : existing.notes,
                 updatedAt: new Date(),
-              } as never)              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
+              } as never)
+              .where(and(eq(workOrderParts.id, existing.id), eq(workOrderParts.orgId, orgId)))
               .returning();
-            if (!updated) {throw new Error("addBulkPartsAndReserveInventory: update returned no row");}
+            if (!updated) {
+              throw new Error("addBulkPartsAndReserveInventory: update returned no row");
+            }
             result.updated.push(updated);
             existingMap.set(partToAdd.partId, updated);
           } else {
@@ -859,8 +864,11 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
                 notes: partToAdd.notes,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              } as never)              .returning();
-            if (!newPart) {throw new Error("addBulkPartsAndReserveInventory: insert returned no row");}
+              } as never)
+              .returning();
+            if (!newPart) {
+              throw new Error("addBulkPartsAndReserveInventory: insert returned no row");
+            }
             result.added.push(newPart);
             existingMap.set(partToAdd.partId, newPart);
           }
@@ -976,7 +984,9 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
       .insert(workOrderHistory)
       .values({ id: randomUUID(), ...entry, createdAt: new Date() })
       .returning();
-    if (!newEntry) {throw new Error("Failed to add work order history entry");}
+    if (!newEntry) {
+      throw new Error("Failed to add work order history entry");
+    }
     return newEntry;
   }
 

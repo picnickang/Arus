@@ -1,3 +1,5 @@
+import process from "node:process";
+
 import baseConfig from "./jest.config.mjs";
 
 const {
@@ -62,6 +64,10 @@ const deterministicIntegrationTests = [
   "tests/integration/role-403-matrix.test.ts",
   "tests/integration/lr35-rag-security-admin-gate.test.ts",
   "tests/integration/equipment-dependencies-graph-projection.test.ts",
+  "tests/integration/import-shipmate-golden.test.ts",
+  "tests/integration/findings.test.ts",
+  "tests/integration/rag-conversations.test.ts",
+  "tests/integration/crew-photo-object-serving.test.ts",
   "tests/e2e/activity.e2e.ts",
   "tests/e2e/briefing.e2e.ts",
 ];

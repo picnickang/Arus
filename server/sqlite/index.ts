@@ -31,6 +31,7 @@ import { getRagTablesSql, getRagIndexesSql } from "./rag-tables.js";
 import { getComplianceTablesSql, getComplianceIndexesSql } from "./compliance-tables.js";
 import { getPermissionTablesSql, getPermissionIndexesSql } from "./permission-tables.js";
 import { getAgentTablesSql, getAgentIndexesSql } from "./agent-tables.js";
+import { getImportTablesSql, getImportIndexesSql } from "./import-tables.js";
 
 export function getAllTablesSql(): SQL[] {
   return [
@@ -56,6 +57,7 @@ export function getAllTablesSql(): SQL[] {
     ...getComplianceTablesSql(),
     ...getPermissionTablesSql(),
     ...getAgentTablesSql(),
+    ...getImportTablesSql(),
   ];
 }
 
@@ -83,6 +85,7 @@ export function getAllIndexesSql(): SQL[] {
     ...getComplianceIndexesSql(),
     ...getPermissionIndexesSql(),
     ...getAgentIndexesSql(),
+    ...getImportIndexesSql(),
   ];
 }
 
@@ -131,4 +134,6 @@ export {
   getPermissionIndexesSql,
   getAgentTablesSql,
   getAgentIndexesSql,
+  getImportTablesSql,
+  getImportIndexesSql,
 };

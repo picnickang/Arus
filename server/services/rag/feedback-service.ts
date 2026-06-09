@@ -14,6 +14,7 @@ import { ragFeedback } from "@shared/schema-runtime";
 import type { RagFeedback } from "@shared/schema";
 import type { FeedbackInput } from "./types";
 import { logger } from "../../utils/logger";
+import { randomUUID } from "node:crypto";
 
 export interface FeedbackStats {
   totalFeedback: number;
@@ -36,6 +37,7 @@ export class FeedbackService {
     const [feedback] = await db
       .insert(ragFeedback)
       .values({
+        id: randomUUID(),
         orgId: input.orgId,
         messageId: input.messageId,
         chunkId: input.chunkId,
@@ -44,10 +46,13 @@ export class FeedbackService {
         rating: input.rating,
         comment: input.comment,
         queryText: input.queryText,
+        createdAt: new Date(),
       })
       .returning();
 
-    if (!feedback) {throw new Error("Failed to record feedback");}
+    if (!feedback) {
+      throw new Error("Failed to record feedback");
+    }
     logger.info(`[FeedbackService] Recorded ${input.feedbackType} feedback for org ${input.orgId}`);
     return feedback;
   }

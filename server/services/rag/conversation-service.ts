@@ -46,6 +46,7 @@ export class ConversationService {
         context: params.context || {},
         messageCount: 0,
         isActive: true,
+        lastMessageAt: now,
         createdAt: now,
         updatedAt: now,
       })

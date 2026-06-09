@@ -130,9 +130,7 @@ beforeEach(() => {
 
 describe("Task #81 — live graph projector wiring", () => {
   it("createEquipment fires projectEquipment with the inserted row", async () => {
-    const { DatabaseEquipmentStorage } = await import(
-      "../../server/db/equipment/db-equipment"
-    );
+    const { DatabaseEquipmentStorage } = await import("../../server/db/equipment/db-equipment");
     const newRow = {
       id: "eq-A",
       orgId: "org-1",
@@ -192,8 +190,7 @@ describe("Task #81 — live graph projector wiring", () => {
 
     expect(result.id).toBe(42);
     expect(projectorMock.projectFailureHistory).toHaveBeenCalledTimes(1);
-    const [orgIdArg, payload] =
-      projectorMock.projectFailureHistory.mock.calls[0];
+    const [orgIdArg, payload] = projectorMock.projectFailureHistory.mock.calls[0];
     expect(orgIdArg).toBe("org-1");
     expect(payload).toMatchObject({
       failureHistoryId: 42,
@@ -214,9 +211,7 @@ describe("Task #81 — live graph projector wiring", () => {
     // Then the post-commit fireProjectionsAfterCommit does:
     //   5. select parts metadata → one row
     //   6. select failure_history for wo → empty (no failure linkage)
-    selectQueue.push([
-      { partId: "P1", quantityUsed: 3, orgId: "org-1", workOrderId: "wo-1" },
-    ]); // workOrderParts
+    selectQueue.push([{ partId: "P1", quantityUsed: 3, orgId: "org-1", workOrderId: "wo-1" }]); // workOrderParts
     selectQueue.push([
       {
         id: "stock-1",
@@ -228,20 +223,15 @@ describe("Task #81 — live graph projector wiring", () => {
     ]); // stock for allocateReservation
     insertQueue.push([]); // update stock (no returning needed)
     insertQueue.push([]); // insert inventoryMovements
-    selectQueue.push([
-      { id: "P1", name: "Pump Seal", primarySupplierId: "sup-1" },
-    ]); // partsTable in fireProjectionsAfterCommit
+    selectQueue.push([{ id: "P1", name: "Pump Seal", primarySupplierId: "sup-1" }]); // partsTable in fireProjectionsAfterCommit
     selectQueue.push([]); // failureHistory lookup in fireProjectionsAfterCommit
 
-    const { DatabaseInventoryStorage } = await import(
-      "../../server/db/inventory/index"
-    );
+    const { DatabaseInventoryStorage } = await import("../../server/db/inventory/index");
     const storage = new DatabaseInventoryStorage();
     await storage.reservePartsForWorkOrder("wo-1", "org-1");
 
     expect(projectorMock.projectInventoryMovement).toHaveBeenCalledTimes(1);
-    const [orgIdArg, payload] =
-      projectorMock.projectInventoryMovement.mock.calls[0];
+    const [orgIdArg, payload] = projectorMock.projectInventoryMovement.mock.calls[0];
     expect(orgIdArg).toBe("org-1");
     expect(payload).toMatchObject({
       partId: "P1",
@@ -251,6 +241,146 @@ describe("Task #81 — live graph projector wiring", () => {
       failureMode: null,
     });
     expect(payload.movementId).toBeDefined();
+  });
+
+  it("releasePartsFromWorkOrder records release movement projections after reservation release", async () => {
+    selectQueue.push([{ partId: "P1", quantityUsed: 2, orgId: "org-1", workOrderId: "wo-1" }]); // workOrderParts
+    selectQueue.push([
+      {
+        id: "stock-1",
+        partId: "P1",
+        orgId: "org-1",
+        quantityOnHand: 10,
+        quantityReserved: 5,
+      },
+    ]); // stock for distributeRelease
+    insertQueue.push([]); // update stock
+    insertQueue.push([]); // insert inventoryMovements
+    selectQueue.push([{ id: "P1", name: "Pump Seal", primarySupplierId: "sup-1" }]); // parts metadata
+
+    const { DatabaseInventoryStorage } = await import("../../server/db/inventory/index");
+    const storage = new DatabaseInventoryStorage();
+    await storage.releasePartsFromWorkOrder("wo-1", "org-1");
+
+    expect(projectorMock.projectInventoryMovement).toHaveBeenCalledTimes(1);
+    const [orgIdArg, payload] = projectorMock.projectInventoryMovement.mock.calls[0];
+    expect(orgIdArg).toBe("org-1");
+    expect(payload).toMatchObject({
+      partId: "P1",
+      workOrderId: "wo-1",
+      partName: "Pump Seal",
+      supplierId: "sup-1",
+      failureMode: null,
+    });
+  });
+
+  it("removePartAndRestoreInventory returns reserved stock before deleting the work-order part", async () => {
+    selectQueue.push([
+      {
+        id: "wop-1",
+        partId: "P1",
+        quantityUsed: 2,
+        orgId: "org-1",
+        workOrderId: "wo-1",
+      },
+    ]); // workOrderPart lookup
+    selectQueue.push([
+      {
+        id: "stock-1",
+        partId: "P1",
+        orgId: "org-1",
+        quantityOnHand: 10,
+        quantityReserved: 5,
+      },
+    ]); // stock for distributeRelease
+    insertQueue.push([]); // update stock
+    insertQueue.push([]); // insert inventoryMovements
+    selectQueue.push([{ id: "wo-1", orgId: "org-1", totalLaborCost: 25 }]); // work order
+    selectQueue.push([{ totalCost: 8 }]); // remaining parts cost
+    insertQueue.push([]); // update work order totals
+    selectQueue.push([{ id: "P1", name: "Pump Seal", primarySupplierId: "sup-1" }]); // parts metadata
+
+    const { DatabaseInventoryStorage } = await import("../../server/db/inventory/index");
+    const storage = new DatabaseInventoryStorage();
+    await storage.removePartAndRestoreInventory("wop-1", "org-1", "tech-1");
+
+    expect(projectorMock.projectInventoryMovement).toHaveBeenCalledTimes(1);
+    const [orgIdArg, payload] = projectorMock.projectInventoryMovement.mock.calls[0];
+    expect(orgIdArg).toBe("org-1");
+    expect(payload).toMatchObject({
+      partId: "P1",
+      workOrderId: "wo-1",
+      partName: "Pump Seal",
+      supplierId: "sup-1",
+      failureMode: null,
+    });
+  });
+
+  it("addBulkPartsAndReserveInventory inserts the work-order part, reserves stock, and projects movement", async () => {
+    selectQueue.push([]); // existing workOrderParts
+    selectQueue.push([{ unitCost: 14 }]); // stock cost lookup for the part
+    insertQueue.push([
+      {
+        id: "wop-1",
+        orgId: "org-1",
+        workOrderId: "wo-1",
+        partId: "P1",
+        quantityUsed: 4,
+        unitCost: 14,
+        totalCost: 56,
+      },
+    ]); // inserted work-order part
+    selectQueue.push([{ partId: "P1", quantityUsed: 4, orgId: "org-1", workOrderId: "wo-1" }]); // all workOrderParts after insert
+    selectQueue.push([
+      {
+        id: "stock-1",
+        partId: "P1",
+        orgId: "org-1",
+        quantityOnHand: 12,
+        quantityReserved: 1,
+      },
+    ]); // stock for allocateReservation
+    insertQueue.push([]); // update stock
+    insertQueue.push([]); // insert inventoryMovements
+    selectQueue.push([{ id: "P1", name: "Pump Seal", primarySupplierId: "sup-1" }]); // parts metadata
+    selectQueue.push([]); // failureHistory lookup for consuming movement
+
+    const { DatabaseInventoryStorage } = await import("../../server/db/inventory/index");
+    const storage = new DatabaseInventoryStorage();
+    const result = await storage.addBulkPartsAndReserveInventory(
+      "wo-1",
+      [{ partId: "P1", quantity: 4, usedBy: "tech-1", notes: "planned job" }],
+      "org-1"
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.added).toHaveLength(1);
+    expect(projectorMock.projectInventoryMovement).toHaveBeenCalledTimes(1);
+    const [orgIdArg, payload] = projectorMock.projectInventoryMovement.mock.calls[0];
+    expect(orgIdArg).toBe("org-1");
+    expect(payload).toMatchObject({
+      partId: "P1",
+      workOrderId: "wo-1",
+      partName: "Pump Seal",
+      supplierId: "sup-1",
+      failureMode: null,
+    });
+  });
+
+  it("inventory work-order mutation paths fail closed without org context", async () => {
+    const { DatabaseInventoryStorage } = await import("../../server/db/inventory/index");
+    const storage = new DatabaseInventoryStorage();
+
+    await expect(storage.reservePartsForWorkOrder("wo-1", "")).rejects.toThrow("orgId is required");
+    await expect(storage.releasePartsFromWorkOrder("wo-1", "")).rejects.toThrow(
+      "orgId is required"
+    );
+    await expect(storage.addBulkPartsAndReserveInventory("wo-1", [], "")).rejects.toThrow(
+      "orgId is required"
+    );
+    await expect(storage.removePartAndRestoreInventory("wop-1", "", "tech-1")).rejects.toThrow(
+      "orgId is required"
+    );
   });
 
   it("FailureHistoryAdapter (live work-order closeout path) routes through the canonical createFailureHistory writer", async () => {
@@ -285,8 +415,7 @@ describe("Task #81 — live graph projector wiring", () => {
     // closes the loop the code-review flagged: the adapter no
     // longer inlines its own INSERT + projector call.
     expect(projectorMock.projectFailureHistory).toHaveBeenCalledTimes(1);
-    const [orgIdArg, payload] =
-      projectorMock.projectFailureHistory.mock.calls[0];
+    const [orgIdArg, payload] = projectorMock.projectFailureHistory.mock.calls[0];
     expect(orgIdArg).toBe("org-1");
     expect(payload).toMatchObject({
       failureHistoryId: 101,
@@ -312,9 +441,7 @@ describe("Task #81 — live graph projector wiring", () => {
         systemType: null,
       },
     ]);
-    const { DatabaseEquipmentStorage } = await import(
-      "../../server/db/equipment/db-equipment"
-    );
+    const { DatabaseEquipmentStorage } = await import("../../server/db/equipment/db-equipment");
     const storage = new DatabaseEquipmentStorage();
     await expect(
       storage.createEquipment({

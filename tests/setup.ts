@@ -93,6 +93,27 @@ beforeAll(async () => {
   console.log("[Test Setup] Starting test environment...");
 });
 
+function withCleanupTimeout<T>(
+  label: string,
+  promise: Promise<T>,
+  timeoutMs: number
+): Promise<T | undefined> {
+  let timeout: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<undefined>((resolve) => {
+    timeout = setTimeout(() => {
+      console.warn(`[Test Setup] Cleanup task timed out after ${timeoutMs}ms: ${label}`);
+      resolve(undefined);
+    }, timeoutMs);
+    timeout.unref?.();
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  });
+}
+
 async function cleanupResidualNetworkHandles(): Promise<void> {
   const getActiveHandles = (process as unknown as { _getActiveHandles?: () => unknown[] })
     ._getActiveHandles;
@@ -114,13 +135,17 @@ async function cleanupResidualNetworkHandles(): Promise<void> {
         server.unref?.();
         if (server.close && server.listening) {
           closeTasks.push(
-            new Promise((resolve) => {
-              try {
-                server.close?.(() => resolve());
-              } catch {
-                resolve();
-              }
-            })
+            withCleanupTimeout(
+              "server.close",
+              new Promise((resolve) => {
+                try {
+                  server.close?.(() => resolve());
+                } catch {
+                  resolve();
+                }
+              }),
+              1000
+            )
           );
         }
       } catch {
@@ -150,40 +175,56 @@ async function cleanupResidualNetworkHandles(): Promise<void> {
 
 afterAll(async () => {
   console.log("[Test Setup] Cleaning up test environment...");
-  const cleanupTasks: Array<Promise<void>> = [];
+  const cleanupTasks: Array<Promise<void | undefined>> = [];
 
   cleanupTasks.push(
-    import("../server/telemetry-batch-writer")
-      .then(({ telemetryBatchWriter }) => telemetryBatchWriter.stop())
-      .catch(() => undefined)
+    withCleanupTimeout(
+      "telemetryBatchWriter.stop",
+      import("../server/telemetry-batch-writer")
+        .then(({ telemetryBatchWriter }) => telemetryBatchWriter.stop())
+        .catch(() => undefined),
+      2500
+    )
   );
   cleanupTasks.push(
-    import("../server/mqtt-reliable-sync")
-      .then(({ mqttReliableSync }) => mqttReliableSync.stop())
-      .catch(() => undefined)
+    withCleanupTimeout(
+      "mqttReliableSync.stop",
+      import("../server/mqtt-reliable-sync")
+        .then(({ mqttReliableSync }) => mqttReliableSync.stop())
+        .catch(() => undefined),
+      2500
+    )
   );
   cleanupTasks.push(
-    import("../server/lib/redis-client")
-      .then(({ redisClientFactory }) => redisClientFactory.disconnect())
-      .catch(() => undefined)
+    withCleanupTimeout(
+      "redisClientFactory.disconnect",
+      import("../server/lib/redis-client")
+        .then(({ redisClientFactory }) => redisClientFactory.disconnect())
+        .catch(() => undefined),
+      2500
+    )
   );
   if (!isIntegrationJestRun) {
     cleanupTasks.push(
-      import("../server/db-config")
-        .then(async ({ libsqlClient, pool }) => {
-          const clientClose = (libsqlClient as { close?: () => void | Promise<void> } | null)
-            ?.close;
-          if (clientClose) {
-            await clientClose.call(libsqlClient);
-          }
-          await pool?.end?.();
-        })
-        .catch(() => undefined)
+      withCleanupTimeout(
+        "db-config close",
+        import("../server/db-config")
+          .then(async ({ libsqlClient, pool }) => {
+            const clientClose = (libsqlClient as { close?: () => void | Promise<void> } | null)
+              ?.close;
+            if (clientClose) {
+              await clientClose.call(libsqlClient);
+            }
+            await pool?.end?.();
+          })
+          .catch(() => undefined),
+        2500
+      )
     );
   }
 
-  await Promise.all(cleanupTasks);
-  await cleanupResidualNetworkHandles();
+  await withCleanupTimeout("all cleanup tasks", Promise.all(cleanupTasks), 5000);
+  await withCleanupTimeout("cleanupResidualNetworkHandles", cleanupResidualNetworkHandles(), 2000);
 
   if (process.env.ARUS_DEBUG_OPEN_HANDLES === "true") {
     const getActiveHandles = (process as unknown as { _getActiveHandles?: () => unknown[] })
