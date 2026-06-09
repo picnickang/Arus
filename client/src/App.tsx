@@ -405,11 +405,8 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
-      {/* BottomNav is the mobile launcher for the non-ops-shell admin
-          surface; it is gated off on ops-shell routes to avoid a double
-          bottom bar. Its #194 override self-heal still runs on those routes
-          because UniversalOpsShell carries the same override self-heal
-          effect (the #194 mirror). */}
+      {/* Gated off ops-shell routes (own nav rail); the #194 override
+          self-heal still runs there via UniversalOpsShell's mirror effect. */}
       {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
       {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
     </div>
