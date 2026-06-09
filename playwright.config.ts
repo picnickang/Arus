@@ -1,5 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const INCLUDE_QUARANTINED = process.env.PLAYWRIGHT_INCLUDE_QUARANTINE === "1";
+
+const CORE_RELEASE_TESTS = [
+  "**/smoke.spec.ts",
+  "**/core-browser-smoke.spec.ts",
+  "**/mobile-core-smoke.spec.ts",
+  "**/vessel-intelligence.spec.ts",
+];
+
 /**
  * Prod-hardening Wave 5: minimal Playwright smoke harness.
  *
@@ -14,16 +23,17 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests/playwright",
-  fullyParallel: true,
+  testMatch: INCLUDE_QUARANTINED ? ["**/*.spec.ts"] : CORE_RELEASE_TESTS,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: process.env.CI ? [["list"], ["github"]] : "list",
   timeout: 30_000,
   expect: { timeout: 5_000 },
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:5000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     serviceWorkers: "block",
@@ -45,7 +55,15 @@ export default defineConfig({
         command: "npm run build:renderer && npm run dev:playwright",
         env: {
           ...process.env,
+          DISABLE_AGENT_SCHEDULER: "true",
+          DISABLE_DIGITAL_TWIN_STARTUP: "true",
           DISABLE_EMAIL_WORKER: "true",
+          DISABLE_ML_SERVICE_STARTUP: "true",
+          DISABLE_MODEL_BACKED_INFERENCE: "true",
+          DISABLE_OBSERVABILITY_TIMERS: "true",
+          DISABLE_RATE_LIMITS: "true",
+          DISABLE_REDIS: "true",
+          DISABLE_SECURITY_TIMERS: "true",
           DISABLE_TELEMETRY_BATCH_WRITER: "true",
           EMBEDDED_MODE: "true",
           ENABLE_AUTO_REPLAN: "false",
@@ -57,13 +75,13 @@ export default defineConfig({
           EVENT_SPINE_DISABLED: "1",
           EVENT_SPINE_WORKER: "0",
           LOCAL_MODE: "true",
-          NODE_ENV: "development",
+          NODE_ENV: "test",
           PLAYWRIGHT_TEST: "true",
           PORT: "5000",
           SESSION_SECRET: "playwright-test-session-secret-not-for-production",
         },
-        url: "http://localhost:5000/api/healthz",
-        reuseExistingServer: true,
+        url: "http://127.0.0.1:5000/api/healthz",
+        reuseExistingServer: false,
         timeout: 120_000,
       },
 });

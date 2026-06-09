@@ -3,6 +3,7 @@
  * Alert cooldown and deduplication logic
  */
 
+import { randomUUID } from "node:crypto";
 import { db } from "../../../db.js";
 import { alertCooldown, type AlertCooldown } from "@shared/schema";
 import { eq, and, lte, sql } from "drizzle-orm";
@@ -67,12 +68,15 @@ export async function recordAlertSent(
       })
       .where(eq(alertCooldown.id, existing.id))
       .returning();
-    if (!updated) {throw new Error("Failed to update alert cooldown");}
+    if (!updated) {
+      throw new Error("Failed to update alert cooldown");
+    }
     return updated;
   }
   const [created] = await db
     .insert(alertCooldown)
     .values({
+      id: randomUUID(),
       orgId,
       alertType,
       alertKey,
@@ -82,7 +86,9 @@ export async function recordAlertSent(
       alertCount: 1,
     })
     .returning();
-  if (!created) {throw new Error("Failed to create alert cooldown");}
+  if (!created) {
+    throw new Error("Failed to create alert cooldown");
+  }
   return created;
 }
 
@@ -163,8 +169,9 @@ export async function atomicClaimAlertSlot(
           return { claimed: true, cooldownId: row.id, snapshot };
         }
 
+        const cooldownId = randomUUID();
         const insertResult = await tx.execute(
-          sql`INSERT INTO alert_cooldown (id, org_id, vessel_id, alert_type, alert_key, entity_id, last_alert_at, last_email_at, alert_count, created_at, updated_at) VALUES (gen_random_uuid(), ${orgId}, ${vesselId || null}, ${alertType}, ${alertKey}, ${entityId || null}, ${now}, NULL, 1, ${now}, ${now}) RETURNING id`
+          sql`INSERT INTO alert_cooldown (id, org_id, vessel_id, alert_type, alert_key, entity_id, last_alert_at, last_email_at, alert_count, created_at, updated_at) VALUES (${cooldownId}, ${orgId}, ${vesselId || null}, ${alertType}, ${alertKey}, ${entityId || null}, ${now}, NULL, 1, ${now}, ${now}) RETURNING id`
         );
         const newRow = insertResult.rows[0] as { id: string };
         return {
@@ -176,9 +183,7 @@ export async function atomicClaimAlertSlot(
     } catch (err) {
       const e = err as { code?: string; message?: string };
       if (
-        (e.code === "23505" ||
-          e.message?.includes("unique") ||
-          e.message?.includes("duplicate")) &&
+        (e.code === "23505" || e.message?.includes("unique") || e.message?.includes("duplicate")) &&
         attempt < 2
       ) {
         await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
@@ -216,7 +221,9 @@ async function atomicClaimAlertSlotSQLite(
       .limit(1);
     if (existing.length > 0) {
       const row = existing[0];
-      if (!row) {throw new Error("atomicClaimAlertSlotSQLite: row missing despite length>0");}
+      if (!row) {
+        throw new Error("atomicClaimAlertSlotSQLite: row missing despite length>0");
+      }
       if (row.lastEmailAt && new Date(row.lastEmailAt) >= cooldownThreshold) {
         return { claimed: false, reason: "Cooldown active" };
       }
@@ -240,6 +247,7 @@ async function atomicClaimAlertSlotSQLite(
     const [newRow] = await db
       .insert(alertCooldown)
       .values({
+        id: randomUUID(),
         orgId,
         vesselId: vesselId || null,
         alertType,
@@ -250,7 +258,9 @@ async function atomicClaimAlertSlotSQLite(
         alertCount: 1,
       })
       .returning({ id: alertCooldown.id });
-    if (!newRow) {throw new Error("claimCooldown: no row returned");}
+    if (!newRow) {
+      throw new Error("claimCooldown: no row returned");
+    }
     return {
       claimed: true,
       cooldownId: newRow.id,

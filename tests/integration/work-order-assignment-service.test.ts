@@ -22,9 +22,22 @@ type WO = Record<string, unknown> & { id: string };
 
 let store: Map<string, WO>;
 let nextCrewResult: Array<{ id: string; name: string }>;
+const TX = { tx: true };
+
+const transactionMock = jest.fn(async (callback: (tx: typeof TX) => Promise<unknown>) =>
+  callback(TX)
+);
+const fireInventoryMovementProjections = jest.fn(async () => {});
+const broadcastChange = jest.fn(() => {});
 
 const repoMock = {
   findById: jest.fn(async (id: string) => store.get(id)),
+  create: jest.fn(async (data: Record<string, unknown>) => {
+    const id = String(data.id ?? `wo-${store.size + 1}`);
+    const created = { ...data, id } as WO;
+    store.set(id, created);
+    return created;
+  }),
   update: jest.fn(async (id: string, data: Record<string, unknown>) => {
     const current = store.get(id) ?? ({ id } as WO);
     const next = { ...current, ...data, id } as WO;
@@ -32,11 +45,7 @@ const repoMock = {
     return next;
   }),
   findAll: jest.fn(
-    async (
-      _equipmentId?: string,
-      _orgId?: string,
-      filters?: { assignedCrewId?: string }
-    ) => {
+    async (_equipmentId?: string, _orgId?: string, filters?: { assignedCrewId?: string }) => {
       const all = Array.from(store.values());
       if (filters?.assignedCrewId) {
         return all.filter((w) => w.assignedCrewId === filters.assignedCrewId);
@@ -44,6 +53,10 @@ const repoMock = {
       return all;
     }
   ),
+  completeInTx: jest.fn(async () => ({
+    completion: { id: "completion-1", workOrderId: "wo1", orgId: ORG },
+    pendingProjections: [{ movementId: "move-1", partId: "part-1" }],
+  })),
 };
 
 const limitFn = jest.fn(async () => nextCrewResult);
@@ -56,6 +69,7 @@ jest.unstable_mockModule("../../server/domains/work-orders/repository", () => ({
 jest.unstable_mockModule("../../server/db", () => ({
   __esModule: true,
   db: {
+    transaction: transactionMock,
     select: () => ({ from: () => ({ where: () => ({ limit: limitFn }) }) }),
   },
 }));
@@ -73,19 +87,18 @@ jest.unstable_mockModule("@shared/schema", () => ({
 
 jest.unstable_mockModule("../../server/db/inventory/index", () => ({
   __esModule: true,
-  fireInventoryMovementProjections: jest.fn(async () => {}),
+  fireInventoryMovementProjections,
 }));
 
 jest.unstable_mockModule("../../server/db/workorders/types", () => ({
   __esModule: true,
-  broadcastChange: jest.fn(() => {}),
+  broadcastChange,
 }));
 
 const eventPublisher = { publish: jest.fn(async () => () => {}) };
 
-type ServiceCtor = typeof import(
-  "../../server/domains/work-orders/application/work-order-service"
-).WorkOrderApplicationService;
+type ServiceCtor =
+  typeof import("../../server/domains/work-orders/application/work-order-service").WorkOrderApplicationService;
 
 let WorkOrderApplicationService: ServiceCtor;
 let service: InstanceType<ServiceCtor>;
@@ -97,11 +110,55 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  jest.clearAllMocks();
   store = new Map();
   nextCrewResult = [];
   service = new WorkOrderApplicationService({
     workOrderRepository: repoMock as never,
     eventPublisher: eventPublisher as never,
+  });
+  eventPublisher.publish.mockImplementation(async () => () => {});
+  repoMock.completeInTx.mockImplementation(async () => ({
+    completion: { id: "completion-1", workOrderId: "wo1", orgId: ORG },
+    pendingProjections: [{ movementId: "move-1", partId: "part-1" }],
+  }));
+});
+
+describe("WorkOrderApplicationService.createWorkOrder", () => {
+  it("publishes and broadcasts only after the transaction returns", async () => {
+    const postCommit = jest.fn();
+    eventPublisher.publish.mockResolvedValueOnce(postCommit);
+
+    const created = await service.createWorkOrder(
+      {
+        id: "wo-create",
+        orgId: ORG,
+        vesselId: "vessel-1",
+        equipmentId: "eq-1",
+        priority: "not-a-real-priority",
+      } as never,
+      "user-supervisor"
+    );
+
+    expect(created.id).toBe("wo-create");
+    expect(transactionMock).toHaveBeenCalledTimes(1);
+    expect(repoMock.create).toHaveBeenCalledWith(expect.objectContaining({ id: "wo-create" }), TX);
+    expect(eventPublisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "WORK_ORDER_CREATED",
+        workOrderId: "wo-create",
+        orgId: ORG,
+        vesselId: "vessel-1",
+        equipmentId: "eq-1",
+        priority: "medium",
+      }),
+      TX
+    );
+    expect(postCommit).toHaveBeenCalledTimes(1);
+    expect(broadcastChange).toHaveBeenCalledWith(
+      "create",
+      expect.objectContaining({ id: "wo-create" })
+    );
   });
 });
 
@@ -186,7 +243,9 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     const res = await service.respondToAssignment("wo1", "user-alice", ORG, "accept");
 
     expect(res.status).toBe("ok");
-    if (res.status !== "ok") {throw new Error("expected ok result");}
+    if (res.status !== "ok") {
+      throw new Error("expected ok result");
+    }
     expect(res.workOrder.assignmentStatus).toBe("accepted");
     expect(res.workOrder.status).toBe("in_progress");
     expect(res.workOrder.assignmentResponseReason).toBeNull();
@@ -212,7 +271,9 @@ describe("WorkOrderApplicationService.respondToAssignment", () => {
     );
 
     expect(res.status).toBe("ok");
-    if (res.status !== "ok") {throw new Error("expected ok result");}
+    if (res.status !== "ok") {
+      throw new Error("expected ok result");
+    }
     expect(res.workOrder.assignmentStatus).toBe("declined");
     expect(res.workOrder.status).toBe("open");
     expect(res.workOrder.assignmentResponseReason).toBe("Already on another job");
@@ -277,9 +338,24 @@ describe("WorkOrderApplicationService.getAssignmentsForUser", () => {
   it("returns only the caller's non-completed, non-cancelled assignments", async () => {
     nextCrewResult = [{ id: "crew-1", name: "Alice" }];
     store.set("wo-open", { id: "wo-open", orgId: ORG, assignedCrewId: "crew-1", status: "open" });
-    store.set("wo-progress", { id: "wo-progress", orgId: ORG, assignedCrewId: "crew-1", status: "in_progress" });
-    store.set("wo-done", { id: "wo-done", orgId: ORG, assignedCrewId: "crew-1", status: "completed" });
-    store.set("wo-cancelled", { id: "wo-cancelled", orgId: ORG, assignedCrewId: "crew-1", status: "cancelled" });
+    store.set("wo-progress", {
+      id: "wo-progress",
+      orgId: ORG,
+      assignedCrewId: "crew-1",
+      status: "in_progress",
+    });
+    store.set("wo-done", {
+      id: "wo-done",
+      orgId: ORG,
+      assignedCrewId: "crew-1",
+      status: "completed",
+    });
+    store.set("wo-cancelled", {
+      id: "wo-cancelled",
+      orgId: ORG,
+      assignedCrewId: "crew-1",
+      status: "cancelled",
+    });
     store.set("wo-other", { id: "wo-other", orgId: ORG, assignedCrewId: "crew-2", status: "open" });
 
     const assignments = await service.getAssignmentsForUser("user-alice", ORG);
@@ -295,5 +371,54 @@ describe("WorkOrderApplicationService.getAssignmentsForUser", () => {
     const assignments = await service.getAssignmentsForUser("user-ghost", ORG);
 
     expect(assignments).toEqual([]);
+  });
+});
+
+describe("WorkOrderApplicationService.completeWorkOrder", () => {
+  it("uses transactional completion, emits after commit, and projects inventory movement updates", async () => {
+    const postCommit = jest.fn();
+    eventPublisher.publish.mockResolvedValueOnce(postCommit);
+    repoMock.completeInTx.mockResolvedValueOnce({
+      completion: { id: "completion-1", workOrderId: "wo1", orgId: ORG, notes: "Done" },
+      pendingProjections: [{ movementId: "move-1", partId: "part-1" }],
+    });
+
+    const completion = await service.completeWorkOrder(
+      "wo1",
+      { orgId: ORG, completionNotes: "Done" } as never,
+      ORG,
+      "user-chief"
+    );
+
+    expect(completion.id).toBe("completion-1");
+    expect(repoMock.completeInTx).toHaveBeenCalledWith(
+      TX,
+      "wo1",
+      expect.objectContaining({ orgId: ORG })
+    );
+    expect(eventPublisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "WORK_ORDER_COMPLETED",
+        workOrderId: "wo1",
+        orgId: ORG,
+        completedBy: "user-chief",
+      }),
+      TX
+    );
+    expect(postCommit).toHaveBeenCalledTimes(1);
+    expect(fireInventoryMovementProjections).toHaveBeenCalledWith(ORG, [
+      { movementId: "move-1", partId: "part-1" },
+    ]);
+  });
+
+  it("does not project inventory movements when completion has no org context", async () => {
+    repoMock.completeInTx.mockResolvedValueOnce({
+      completion: { id: "completion-1", workOrderId: "wo1" },
+      pendingProjections: [{ movementId: "move-1" }],
+    });
+
+    await service.completeWorkOrder("wo1", {} as never);
+
+    expect(fireInventoryMovementProjections).not.toHaveBeenCalled();
   });
 });

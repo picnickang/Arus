@@ -32,6 +32,8 @@ data/*.sqlite-*
 *.db-shm
 coverage/
 reports/
+test-results/*
+!test-results/.last-run.json
 .scannerwork/
 
 # Rust compiler crash dumps (transient tooling artifacts)

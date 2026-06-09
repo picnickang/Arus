@@ -39,24 +39,35 @@ const assignmentFixtures = [
   { userId: "admin-1", roleId: "pdm-gate-admin" },
 ] as const;
 
+function isClosedLibsqlClientError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("CLIENT_CLOSED");
+}
+
 async function cleanupPermissionFixtures(): Promise<void> {
   const { libsqlClient } = await import("../../server/db-config.js");
   if (!libsqlClient) {
     return;
   }
 
-  await libsqlClient.execute({
-    sql: "DELETE FROM user_role_assignments WHERE org_id = ? AND id LIKE 'pdm-gate-%'",
-    args: [ORG],
-  });
-  await libsqlClient.execute({
-    sql: "DELETE FROM permission_grants WHERE role_id LIKE 'pdm-gate-%'",
-    args: [],
-  });
-  await libsqlClient.execute({
-    sql: "DELETE FROM roles WHERE org_id = ? AND id LIKE 'pdm-gate-%'",
-    args: [ORG],
-  });
+  try {
+    await libsqlClient.execute({
+      sql: "DELETE FROM user_role_assignments WHERE org_id = ? AND id LIKE 'pdm-gate-%'",
+      args: [ORG],
+    });
+    await libsqlClient.execute({
+      sql: "DELETE FROM permission_grants WHERE role_id LIKE 'pdm-gate-%'",
+      args: [],
+    });
+    await libsqlClient.execute({
+      sql: "DELETE FROM roles WHERE org_id = ? AND id LIKE 'pdm-gate-%'",
+      args: [ORG],
+    });
+  } catch (error) {
+    if (isClosedLibsqlClientError(error)) {
+      return;
+    }
+    throw error;
+  }
 }
 
 async function seedPermissionFixtures(): Promise<void> {

@@ -1,109 +1,200 @@
-import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
-const TEST_ORG_ID = "default-org-id";
+type SelectRow = Record<string, unknown>;
 
-async function api(method: string, path: string, body?: Record<string, unknown>) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-org-id": TEST_ORG_ID,
-      "x-user-role": "admin",
-      "x-user-id": "test-user-1",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => null);
-  return { status: res.status, data };
+const tableIds = {
+  costModel: { __table: "costModel", downtimePerHour: "costModel.downtimePerHour" },
+  equipment: { __table: "equipment", downtimeCostPerHour: "equipment.downtimeCostPerHour" },
+  serviceOrders: {
+    __table: "serviceOrders",
+    actualAmount: "serviceOrders.actualAmount",
+    id: "serviceOrders.id",
+    orgId: "serviceOrders.orgId",
+    quotedAmount: "serviceOrders.quotedAmount",
+    serviceProviderId: "serviceOrders.serviceProviderId",
+    soNumber: "serviceOrders.soNumber",
+    status: "serviceOrders.status",
+    workOrderId: "serviceOrders.workOrderId",
+  },
+  workOrderParts: {
+    __table: "workOrderParts",
+    totalCost: "workOrderParts.totalCost",
+    workOrderId: "workOrderParts.workOrderId",
+  },
+  workOrders: {
+    __table: "workOrders",
+    actualDowntimeHours: "workOrders.actualDowntimeHours",
+    downtimeCostPerHour: "workOrders.downtimeCostPerHour",
+    equipmentId: "workOrders.equipmentId",
+    id: "workOrders.id",
+    orgId: "workOrders.orgId",
+    totalLaborCost: "workOrders.totalLaborCost",
+  },
+};
+
+const selectQueues = new Map<string, SelectRow[][]>();
+const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
+
+function enqueueSelect(table: string, rows: SelectRow[]): void {
+  const queue = selectQueues.get(table) ?? [];
+  queue.push(rows);
+  selectQueues.set(table, queue);
 }
 
-let testWoId: string;
-let testSoId: string;
-let testEquipmentId: string;
-let testSupplierId: string;
+function dequeueSelect(table: string): SelectRow[] {
+  const queue = selectQueues.get(table) ?? [];
+  const rows = queue.shift();
+  if (!rows) {
+    throw new Error(`No mocked select rows queued for ${table}`);
+  }
+  return rows;
+}
 
-describe("Procurement Cost → Work Order Integration", () => {
-  beforeAll(async () => {
-    const equipRes = await api("GET", "/api/equipment");
-    expect(equipRes.status).toBe(200);
-    testEquipmentId = equipRes.data[0].id;
+function tableName(table: unknown): string {
+  const candidate = table as { __table?: string };
+  return candidate.__table ?? "unknown";
+}
 
-    const suppRes = await api("GET", "/api/suppliers");
-    expect(suppRes.status).toBe(200);
-    testSupplierId = suppRes.data[0].id;
+function selectQueryFor(table: unknown) {
+  const rows = () => Promise.resolve(dequeueSelect(tableName(table)));
+  const whereResult = {
+    limit: jest.fn(async () => rows()),
+    then: (resolve: (value: SelectRow[]) => void, reject: (reason: unknown) => void) =>
+      rows().then(resolve, reject),
+  };
+  return {
+    where: jest.fn(() => whereResult),
+  };
+}
 
-    const woRes = await api("POST", "/api/work-orders", {
-      equipmentId: testEquipmentId,
-      reason: "Procurement cost integration test",
-      priority: 2,
-      maintenanceType: "corrective",
-      status: "in_progress",
+const mockDb = {
+  select: jest.fn(() => ({
+    from: jest.fn((table: unknown) => selectQueryFor(table)),
+  })),
+  update: jest.fn((table: unknown) => ({
+    set: jest.fn((values: Record<string, unknown>) => {
+      updateCalls.push({ table, values });
+      return {
+        where: jest.fn(async () => []),
+      };
+    }),
+  })),
+};
+
+jest.unstable_mockModule("../db", () => ({
+  db: mockDb,
+}));
+
+jest.unstable_mockModule("@shared/schema-runtime", () => tableIds);
+
+jest.unstable_mockModule("drizzle-orm", () => ({
+  and: (...clauses: unknown[]) => ({ clauses, op: "and" }),
+  eq: (left: unknown, right: unknown) => ({ left, op: "eq", right }),
+}));
+
+const { aggregateProcurementCostsToWorkOrder, getWorkOrderProcurementCosts } = await import(
+  "./procurement-costs"
+);
+
+describe("Procurement cost rollup", () => {
+  beforeEach(() => {
+    selectQueues.clear();
+    updateCalls.length = 0;
+    jest.clearAllMocks();
+  });
+
+  it("does not count draft service order amounts and resolves downtime from equipment", async () => {
+    enqueueSelect("serviceOrders", [
+      {
+        actualAmount: 4200,
+        id: "so-draft",
+        quotedAmount: 5000,
+        serviceProviderId: "supplier-1",
+        soNumber: "SO-0001",
+        status: "draft",
+      },
+    ]);
+    enqueueSelect("workOrders", [{ downtimeCostPerHour: null, equipmentId: "eq-1" }]);
+    enqueueSelect("equipment", [{ downtimeCostPerHour: 1750 }]);
+    enqueueSelect("costModel", [{ downtimePerHour: 2100 }]);
+
+    const costs = await getWorkOrderProcurementCosts("wo-1", "org-1");
+
+    expect(costs).toMatchObject({
+      resolvedDowntimeCostPerHour: 1750,
+      serviceOrderCosts: 0,
+      totalProcurementCost: 0,
     });
-    expect(woRes.status).toBe(201);
-    testWoId = woRes.data.id;
+    expect(costs.serviceOrderDetails).toEqual([
+      {
+        actualAmount: 4200,
+        id: "so-draft",
+        quotedAmount: 5000,
+        serviceProviderId: "supplier-1",
+        soNumber: "SO-0001",
+        status: "draft",
+      },
+    ]);
+  });
 
-    const soRes = await api("POST", "/api/service-orders", {
-      orgId: TEST_ORG_ID,
-      workOrderId: testWoId,
-      serviceProviderId: testSupplierId,
-      soNumber: "SO-INTEGRATION-TEST",
-      quotedAmount: 5000,
-      description: "Test service for procurement integration",
+  it("counts finalized service order actual amounts and writes aggregate totals", async () => {
+    enqueueSelect("serviceOrders", [
+      {
+        actualAmount: 4200,
+        id: "so-completed",
+        quotedAmount: 5000,
+        serviceProviderId: "supplier-1",
+        soNumber: "SO-0002",
+        status: "completed",
+      },
+      {
+        actualAmount: 1600,
+        id: "so-invoiced",
+        quotedAmount: 1750,
+        serviceProviderId: "supplier-2",
+        soNumber: "SO-0003",
+        status: "invoiced",
+      },
+      {
+        actualAmount: 999,
+        id: "so-in-progress",
+        quotedAmount: 1250,
+        serviceProviderId: "supplier-3",
+        soNumber: "SO-0004",
+        status: "in_progress",
+      },
+    ]);
+    enqueueSelect("workOrders", [
+      {
+        downtimeCostPerHour: 1200,
+        equipmentId: "eq-1",
+      },
+    ]);
+    enqueueSelect("equipment", [{ downtimeCostPerHour: 1750 }]);
+    enqueueSelect("costModel", [{ downtimePerHour: 2100 }]);
+    enqueueSelect("workOrders", [
+      {
+        actualDowntimeHours: 2,
+        downtimeCostPerHour: 1200,
+        equipmentId: "eq-1",
+        totalLaborCost: 300,
+      },
+    ]);
+    enqueueSelect("workOrderParts", [{ totalCost: 250 }, { totalCost: 50 }]);
+
+    const result = await aggregateProcurementCostsToWorkOrder("wo-1", "org-1");
+
+    expect(result).toEqual({
+      totalPartsCost: 6100,
+      totalProcurementCost: 5800,
     });
-    expect(soRes.status).toBe(201);
-    testSoId = soRes.data.id;
-  });
-
-  afterAll(async () => {
-    if (testSoId) {
-      await api("DELETE", `/api/service-orders/${testSoId}`);
-    }
-    if (testWoId) {
-      await api("DELETE", `/api/work-orders/${testWoId}`);
-    }
-  });
-
-  it("should return zero serviceOrderCosts for draft SOs", async () => {
-    const res = await api("GET", `/api/work-orders/${testWoId}/procurement-costs`);
-    expect(res.status).toBe(200);
-    expect(res.data.serviceOrderCosts).toBe(0);
-    expect(res.data.serviceOrderDetails.length).toBeGreaterThanOrEqual(1);
-    expect(res.data.resolvedDowntimeCostPerHour).toBeGreaterThan(0);
-  });
-
-  it("should include actualAmount after SO completion in aggregation", async () => {
-    const sendRes = await api("POST", `/api/service-orders/${testSoId}/send`);
-    expect(sendRes.status).toBe(200);
-
-    const confirmRes = await api("POST", `/api/service-orders/${testSoId}/confirm`);
-    expect(confirmRes.status).toBe(200);
-
-    const startRes = await api("POST", `/api/service-orders/${testSoId}/start`);
-    expect(startRes.status).toBe(200);
-
-    const completeRes = await api("POST", `/api/service-orders/${testSoId}/complete`, {
-      actualAmount: 4200,
-      actualDurationHours: 8,
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toMatchObject({
+      table: tableIds.workOrders,
+      values: {
+        totalCost: 8800,
+        totalPartsCost: 6100,
+      },
     });
-    expect(completeRes.status).toBe(200);
-
-    const costsRes = await api("GET", `/api/work-orders/${testWoId}/procurement-costs`);
-    expect(costsRes.status).toBe(200);
-    expect(costsRes.data.serviceOrderCosts).toBe(4200);
-    expect(costsRes.data.totalProcurementCost).toBe(4200);
-  });
-
-  it("should aggregate procurement costs into WO totalPartsCost on completion trigger", async () => {
-    const woRes = await api("GET", `/api/work-orders/${testWoId}`);
-    expect(woRes.status).toBe(200);
-    expect(woRes.data.totalPartsCost).toBe(4200);
-  });
-
-  it("should recalculate via manual aggregation endpoint", async () => {
-    const aggRes = await api("POST", `/api/work-orders/${testWoId}/aggregate-procurement-costs`);
-    expect(aggRes.status).toBe(200);
-    expect(aggRes.data.totalPartsCost).toBe(4200);
-    expect(aggRes.data.totalProcurementCost).toBe(4200);
   });
 });

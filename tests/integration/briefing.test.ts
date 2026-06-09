@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function api(method: string, path: string, body?: Record<string, unknown>) {
   const opts: RequestInit = {
@@ -29,6 +30,7 @@ describe("Briefing API", () => {
       const { status, data } = await api("POST", "/api/agent/briefings/generate");
       expect(status).toBe(200);
       expect(data.id).toBeDefined();
+      expect(data.id).toMatch(UUID_RE);
       expect(data.orgId).toBeDefined();
       expect(data.status).toBe("ready");
       expect(data.periodStart).toBeDefined();

@@ -32,6 +32,11 @@ import {
   updateDocumentVisibility,
   listDocumentsWithAccess,
 } from "../services/document-ingestion/repository";
+import {
+  isAllowedKbUploadMimeType,
+  validateMagicBytesFromBuffer,
+  validateMagicBytesFromPath,
+} from "../services/kb-upload-validation";
 
 // Helper to validate equipmentId belongs to org (optional field validation)
 async function validateEquipmentOwnership(
@@ -69,48 +74,6 @@ try {
   );
 }
 
-// Magic-byte signatures for the allowed mimetypes. Multer's
-// `fileFilter` only inspects the *client-supplied* `Content-Type`,
-// which is trivially spoofable. We re-verify the first bytes of the
-// payload before persisting / handing off to the ingestion worker.
-const MAGIC_BYTES: Record<string, ReadonlyArray<number>> = {
-  "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d], // %PDF-
-  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-  "image/jpeg": [0xff, 0xd8, 0xff],
-};
-
-function bufferStartsWith(buf: Buffer, signature: ReadonlyArray<number>): boolean {
-  if (buf.length < signature.length) {
-    return false;
-  }
-  for (let i = 0; i < signature.length; i++) {
-    if (buf[i] !== signature[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function validateMagicBytesFromBuffer(buf: Buffer, mimetype: string): boolean {
-  const sig = MAGIC_BYTES[mimetype];
-  return !!sig && bufferStartsWith(buf, sig);
-}
-
-async function validateMagicBytesFromPath(filePath: string, mimetype: string): Promise<boolean> {
-  const sig = MAGIC_BYTES[mimetype];
-  if (!sig) {
-    return false;
-  }
-  const fh = await fsPromises.open(filePath, "r");
-  try {
-    const buf = Buffer.alloc(sig.length);
-    const { bytesRead } = await fh.read(buf, 0, sig.length, 0);
-    return bytesRead === sig.length && bufferStartsWith(buf, sig);
-  } finally {
-    await fh.close();
-  }
-}
-
 // Configure multer for disk storage (async processing)
 // NOSONAR: S5443 - /tmp used for temporary upload processing; files processed immediately
 const asyncUpload = multer({
@@ -125,8 +88,7 @@ const asyncUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (isAllowedKbUploadMimeType(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));
@@ -141,8 +103,7 @@ const syncUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (isAllowedKbUploadMimeType(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only PDF, PNG, and JPEG are allowed."));

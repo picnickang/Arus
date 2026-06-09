@@ -1,7 +1,12 @@
+import { randomUUID } from "node:crypto";
 import type { Express, Request, RequestHandler, Response } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
-import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../middleware/auth";
 import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
@@ -56,9 +61,11 @@ interface WorkOrderRow {
 }
 
 function unwrapRows<T = Record<string, unknown>>(r: unknown): T[] {
-  if (Array.isArray(r)) {return r as T[];}
+  if (Array.isArray(r)) {
+    return r as T[];
+  }
   if (r && typeof r === "object" && "rows" in r) {
-    return ((r as { rows: T[] }).rows) ?? [];
+    return (r as { rows: T[] }).rows ?? [];
   }
   return [];
 }
@@ -79,9 +86,9 @@ export function registerServiceRequestRoutes(
     generalApiRateLimit,
     withErrorHandling("list service requests", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const status = req.query['status'] as string | undefined;
-      const workOrderId = req.query['workOrderId'] as string | undefined;
-      const sortBy = req.query['sortBy'] as string | undefined;
+      const status = req.query["status"] as string | undefined;
+      const workOrderId = req.query["workOrderId"] as string | undefined;
+      const sortBy = req.query["sortBy"] as string | undefined;
 
       let query = sql`
         SELECT
@@ -166,7 +173,7 @@ export function registerServiceRequestRoutes(
         LEFT JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
         LEFT JOIN equipment e ON e.id = wo.equipment_id
         LEFT JOIN vessels v ON v.id = wo.vessel_id
-        WHERE sr.id = ${req.params['id']} AND sr.org_id = ${orgId}
+        WHERE sr.id = ${req.params["id"]} AND sr.org_id = ${orgId}
       `
         )
         .then(unwrapRows<ServiceRequestRow>);
@@ -191,7 +198,7 @@ export function registerServiceRequestRoutes(
         .execute(
           sql`
         SELECT id, status FROM service_requests
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
       `
         )
         .then(unwrapRows<ServiceRequestRow>);
@@ -209,22 +216,22 @@ export function registerServiceRequestRoutes(
 
       const updates: Record<string, string | number | null> = {};
       if (title !== undefined) {
-        updates['title'] = title;
+        updates["title"] = title;
       }
       if (description !== undefined) {
-        updates['description'] = description || null;
+        updates["description"] = description || null;
       }
       if (urgency !== undefined) {
-        updates['urgency'] = urgency;
+        updates["urgency"] = urgency;
       }
       if (estimatedCost !== undefined) {
-        updates['estimated_cost'] = estimatedCost ? Number(estimatedCost) : null;
+        updates["estimated_cost"] = estimatedCost ? Number(estimatedCost) : null;
       }
       if (serviceDetails !== undefined) {
-        updates['service_details'] = serviceDetails || null;
+        updates["service_details"] = serviceDetails || null;
       }
       if (specialRequirements !== undefined) {
-        updates['special_requirements'] = specialRequirements || null;
+        updates["special_requirements"] = specialRequirements || null;
       }
 
       if (Object.keys(updates).length === 0) {
@@ -236,15 +243,15 @@ export function registerServiceRequestRoutes(
           sql`
         UPDATE service_requests
         SET
-          title = ${updates['title'] !== undefined ? updates['title'] : sql`title`},
-          description = ${updates['description'] !== undefined ? updates['description'] : sql`description`},
-          urgency = ${updates['urgency'] !== undefined ? updates['urgency'] : sql`urgency`},
-          estimated_cost = ${updates['estimated_cost'] !== undefined ? updates['estimated_cost'] : sql`estimated_cost`},
-          service_details = ${updates['service_details'] !== undefined ? updates['service_details'] : sql`service_details`},
-          special_requirements = ${updates['special_requirements'] !== undefined ? updates['special_requirements'] : sql`special_requirements`},
+          title = ${updates["title"] !== undefined ? updates["title"] : sql`title`},
+          description = ${updates["description"] !== undefined ? updates["description"] : sql`description`},
+          urgency = ${updates["urgency"] !== undefined ? updates["urgency"] : sql`urgency`},
+          estimated_cost = ${updates["estimated_cost"] !== undefined ? updates["estimated_cost"] : sql`estimated_cost`},
+          service_details = ${updates["service_details"] !== undefined ? updates["service_details"] : sql`service_details`},
+          special_requirements = ${updates["special_requirements"] !== undefined ? updates["special_requirements"] : sql`special_requirements`},
           reviewed_by = COALESCE(reviewed_by, ${userId}),
           updated_at = NOW()
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
         RETURNING *
       `
         )
@@ -263,7 +270,7 @@ export function registerServiceRequestRoutes(
       "create service request from work order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const workOrderId = req.params['id'] ?? '';
+        const workOrderId = req.params["id"] ?? "";
         const userId = getUserId(req);
 
         const [wo] = await db
@@ -330,6 +337,7 @@ export function registerServiceRequestRoutes(
               .then(unwrapRows<{ next_num: number | string | null }>);
             const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
+            const serviceRequestId = randomUUID();
             const [inserted] = await db
               .execute(
                 sql`
@@ -341,7 +349,7 @@ export function registerServiceRequestRoutes(
               created_at, updated_at
             )
             VALUES (
-              gen_random_uuid()::text,
+              ${serviceRequestId},
               ${orgId},
               ${workOrderId},
               ${requestNumber},
@@ -430,7 +438,7 @@ export function registerServiceRequestRoutes(
         .execute(
           sql`
         SELECT id, status, work_order_id, request_number FROM service_requests
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
       `
         )
         .then(unwrapRows<ServiceRequestRow>);
@@ -448,7 +456,7 @@ export function registerServiceRequestRoutes(
           sql`
         UPDATE service_requests
         SET status = 'under_review', reviewed_by = ${userId}, updated_at = NOW()
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
         RETURNING *
       `
         )
@@ -472,7 +480,7 @@ export function registerServiceRequestRoutes(
           sql`
         SELECT id, status, work_order_id, title, description, estimated_cost, request_number
         FROM service_requests
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
       `
         )
         .then(unwrapRows<ServiceRequestRow>);
@@ -490,7 +498,7 @@ export function registerServiceRequestRoutes(
           sql`
         UPDATE service_requests
         SET status = 'approved', reviewed_by = ${userId}, reviewed_at = NOW(), updated_at = NOW()
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
         RETURNING *
       `
         )
@@ -529,7 +537,7 @@ export function registerServiceRequestRoutes(
           sql`
         SELECT id, status, work_order_id, request_number, previous_wo_status
         FROM service_requests
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
       `
         )
         .then(unwrapRows<ServiceRequestRow>);
@@ -554,7 +562,7 @@ export function registerServiceRequestRoutes(
           reviewed_by = ${userId},
           reviewed_at = NOW(),
           updated_at = NOW()
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
         RETURNING *
       `
         )
@@ -605,7 +613,7 @@ export function registerServiceRequestRoutes(
         )
       );
 
-      logger.info(`Service request ${req.params['id']} rejected by ${userId}`);
+      logger.info(`Service request ${req.params["id"]} rejected by ${userId}`);
       res.json(updated);
     })
   );
@@ -630,7 +638,7 @@ export function registerServiceRequestRoutes(
                wo.equipment_id, wo.vessel_id
         FROM service_requests sr
         JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
-        WHERE sr.id = ${req.params['id']} AND sr.org_id = ${orgId}
+        WHERE sr.id = ${req.params["id"]} AND sr.org_id = ${orgId}
       `
           )
           .then(unwrapRows<ServiceRequestRow>);
@@ -707,7 +715,7 @@ export function registerServiceRequestRoutes(
           reviewed_by = ${userId},
           reviewed_at = COALESCE(reviewed_at, NOW()),
           updated_at = NOW()
-        WHERE id = ${req.params['id']} AND org_id = ${orgId}
+        WHERE id = ${req.params["id"]} AND org_id = ${orgId}
       `);
 
         domainEventBus.emit(
@@ -728,10 +736,10 @@ export function registerServiceRequestRoutes(
         );
 
         logger.info(
-          `Service request ${req.params['id']} converted to SO ${newSo.so_number} by ${userId}`
+          `Service request ${req.params["id"]} converted to SO ${newSo.so_number} by ${userId}`
         );
         res.json({
-          serviceRequest: { id: req.params['id'], status: "converted", serviceOrderId: newSo.id },
+          serviceRequest: { id: req.params["id"], status: "converted", serviceOrderId: newSo.id },
           serviceOrder: newSo,
         });
       }
@@ -746,7 +754,7 @@ export function registerServiceRequestRoutes(
       "get service requests for work order",
       async (req: Request, res: Response) => {
         const orgId = getOrgId(req);
-        const workOrderId = req.params['id'];
+        const workOrderId = req.params["id"];
 
         const rows = await db.execute(sql`
         SELECT

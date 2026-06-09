@@ -7,14 +7,6 @@ const HEADERS = {
   "X-User-Role": "admin",
 };
 
-async function fetchPage(path: string) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { Accept: "text/html" },
-  });
-  const html = await res.text();
-  return { status: res.status, html };
-}
-
 async function fetchJson<T>(path: string): Promise<{ status: number; data: T }> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { ...HEADERS, "Content-Type": "application/json" },
@@ -49,17 +41,17 @@ interface ActivitySummary {
 }
 
 describe("Agent Activity E2E", () => {
-  describe("Page load", () => {
-    it("serves the activity page HTML", async () => {
-      const { status, html } = await fetchPage("/agent/activity");
+  describe("Server route reachability", () => {
+    it("serves the activity summary API in the server lane", async () => {
+      const { status, data } = await fetchJson<ActivitySummary>("/api/agent/activity/summary");
       expect(status).toBe(200);
-      expect(html).toContain("<!DOCTYPE html>");
+      expect(typeof data.runsToday).toBe("number");
     });
 
-    it("serves the copilot admin page HTML", async () => {
-      const { status, html } = await fetchPage("/copilot-admin");
+    it("serves the activity list API in the server lane", async () => {
+      const { status, data } = await fetchJson<ActivityItem[]>("/api/agent/activity");
       expect(status).toBe(200);
-      expect(html).toContain("<!DOCTYPE html>");
+      expect(Array.isArray(data)).toBe(true);
     });
   });
 

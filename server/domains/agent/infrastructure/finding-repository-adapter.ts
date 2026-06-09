@@ -6,11 +6,17 @@ import type {
   AgentFindingRepositoryPort,
   AgentFindingFilter,
 } from "../domain/finding-domain-types";
+import { withGeneratedInsertDefaults } from "./generated-id";
 
 export class AgentFindingRepositoryAdapter implements AgentFindingRepositoryPort {
   async create(data: InsertAgentFinding): Promise<AgentFinding> {
-    const [finding] = await db.insert(agentFindings).values(data).returning();
-    if (!finding) {throw new Error("Failed to create agent finding");}
+    const [finding] = await db
+      .insert(agentFindings)
+      .values(withGeneratedInsertDefaults(data, ["createdAt", "updatedAt"]))
+      .returning();
+    if (!finding) {
+      throw new Error("Failed to create agent finding");
+    }
     return finding;
   }
 
@@ -58,7 +64,9 @@ export class AgentFindingRepositoryAdapter implements AgentFindingRepositoryPort
       .set({ ...data, updatedAt: new Date() })
       .where(eq(agentFindings.id, id))
       .returning();
-    if (!finding) {throw new Error(`Failed to update agent finding ${id}`);}
+    if (!finding) {
+      throw new Error(`Failed to update agent finding ${id}`);
+    }
     return finding;
   }
 
