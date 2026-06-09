@@ -237,12 +237,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [lint-and-typecheck, unit-tests]
-    # Override the workflow-level NODE_ENV=test: vite honours a preset
-    # NODE_ENV, so 'test' builds React in non-production mode (+~60 kB on
-    # the initial set, +~260 kB total) and the size budgets measure the
-    # wrong artefact. Deploy builds run with NODE_ENV=production.
-    env:
-      NODE_ENV: production
 
     steps:
       - uses: actions/checkout@v4
@@ -254,11 +248,22 @@ jobs:
 
       - run: npm ci
 
+      # NODE_ENV=production is scoped to the build/measure steps only —
+      # at job level it would also make `npm ci` skip devDependencies
+      # (vite lives there). Without the override, the workflow-level
+      # NODE_ENV=test leaks into `vite build` (vite honours a preset
+      # NODE_ENV) and React is bundled in non-production mode (+~60 kB
+      # initial, +~260 kB total), so the size budgets would measure the
+      # wrong artefact.
       - name: Build client
         run: npm run build:renderer
+        env:
+          NODE_ENV: production
 
       - name: Build server
         run: npm run build:server
+        env:
+          NODE_ENV: production
 
       - name: Check build artifacts
         run: |
@@ -273,6 +278,8 @@ jobs:
       # the current chunk sizes.
       - name: Check bundle size budgets
         run: npx size-limit
+        env:
+          NODE_ENV: production
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
