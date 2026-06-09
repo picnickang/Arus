@@ -1,29 +1,10 @@
 import type { Express, Request, Response } from "express";
-import { sql, type AnyColumn, type SQLWrapper } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
-import { db } from "../../../db";
-import {
-  workOrders,
-  workOrderParts,
-  workOrderChecklists,
-  workOrderWorklogs,
-} from "@shared/schema-runtime";
-import { purchaseRequests, serviceRequests, serviceOrders } from "@shared/schema-runtime";
 import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils";
-
-type CountRow = { count: number };
-async function countWhere(
-  table: PgTable,
-  workOrderIdCol: AnyColumn | SQLWrapper,
-  workOrderId: string,
-): Promise<number> {
-  const [row] = (await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(table)
-    .where(sql`${workOrderIdCol} = ${workOrderId}`)) as CountRow[];
-  return row?.count ?? 0;
-}
+import {
+  findWorkOrderForDependents,
+  countWorkOrderDependents,
+} from "../infrastructure/dependents-repository";
 
 export function registerDependentsRoutes(app: Express) {
   app.get(
@@ -35,52 +16,13 @@ export function registerDependentsRoutes(app: Express) {
         const orgId = authenticatedRequest(req).orgId;
         const id = req.params['id'] ?? '';
 
-        const [wo] = await db
-          .select({ id: workOrders.id, orgId: workOrders.orgId })
-          .from(workOrders)
-          .where(sql`${workOrders.id} = ${id}`)
-          .limit(1);
-
+        const wo = await findWorkOrderForDependents(id);
         if (!wo || (orgId && wo.orgId !== orgId)) {
           sendNotFound(res, "Work order");
           return;
         }
 
-        const [
-          partsCount,
-          checklistsCount,
-          worklogsCount,
-          purchaseRequestsCount,
-          serviceRequestsCount,
-          serviceOrdersCount,
-        ] = await Promise.all([
-          countWhere(workOrderParts, workOrderParts.workOrderId, id),
-          countWhere(workOrderChecklists, workOrderChecklists.workOrderId, id),
-          countWhere(workOrderWorklogs, workOrderWorklogs.workOrderId, id),
-          countWhere(purchaseRequests, purchaseRequests.workOrderId, id),
-          countWhere(serviceRequests, serviceRequests.workOrderId, id),
-          countWhere(serviceOrders, serviceOrders.workOrderId, id),
-        ]);
-
-        const cascade = {
-          parts: partsCount,
-          checklists: checklistsCount,
-          worklogs: worklogsCount,
-        };
-        const linked = {
-          purchaseRequests: purchaseRequestsCount,
-          serviceRequests: serviceRequestsCount,
-          serviceOrders: serviceOrdersCount,
-        };
-        const totals = {
-          cascade:
-            cascade.parts + cascade.checklists + cascade.worklogs,
-          linked:
-            linked.purchaseRequests +
-            linked.serviceRequests +
-            linked.serviceOrders,
-        };
-
+        const { cascade, linked, totals } = await countWorkOrderDependents(id);
         res.json({ workOrderId: id, cascade, linked, totals });
       },
     ),
