@@ -16,10 +16,18 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { and, desc, eq } from "drizzle-orm";
-import { db } from "../db";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { vessel3dModels, equipmentPinSchema, vessels, type EquipmentPin, type Vessel3dModel } from "@shared/schema-runtime";
+import { equipmentPinSchema, type EquipmentPin, type Vessel3dModel } from "@shared/schema-runtime";
+import {
+  findVesselInOrg,
+  insertVessel3dModel,
+  getLatestVessel3dModel,
+  getVessel3dModelById,
+  updateVessel3dModelPins,
+  listVessel3dModels,
+  promoteVessel3dModel,
+  deleteVessel3dModel,
+} from "../db/vessel-3d/queries";
 import { z } from "zod";
 import { createLogger } from "../lib/structured-logger";
 import { failurePropagation } from "../db/graph-adapter";
@@ -185,10 +193,7 @@ router.post(
       }
 
       // 2) Verify vessel belongs to org.
-      const [vessel] = await db
-        .select({ id: vessels.id })
-        .from(vessels)
-        .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, orgId)));
+      const vessel = await findVesselInOrg(vesselId, orgId);
       if (!vessel) {
         return res.status(404).json({ error: "Vessel not found" });
       }
@@ -228,21 +233,18 @@ router.post(
       // 5) Insert metadata row. On failure, unlink the file we just wrote.
       let row;
       try {
-        [row] = await db
-          .insert(vessel3dModels)
-          .values({
-            orgId,
-            vesselId,
-            filename: file.originalname,
-            // Canonicalise to the GLB spec mime; the uploaded mimetype is
-            // advisory and varies by client. We've already verified the magic
-            // header so it's safe to assert this on serve.
-            mimetype: "model/gltf-binary",
-            sizeBytes: file.size,
-            storedPath: writtenPath,
-            equipmentPins: pins,
-          })
-          .returning();
+        row = await insertVessel3dModel({
+          orgId,
+          vesselId,
+          filename: file.originalname,
+          // Canonicalise to the GLB spec mime; the uploaded mimetype is
+          // advisory and varies by client. We've already verified the magic
+          // header so it's safe to assert this on serve.
+          mimetype: "model/gltf-binary",
+          sizeBytes: file.size,
+          storedPath: writtenPath,
+          equipmentPins: pins,
+        });
       } catch (dbErr) {
         try { fs.unlinkSync(writtenPath); writtenPath = null; } catch { /* noop */ }
         logger.error("Vessel 3D model DB insert failed; uploaded file removed", {
@@ -276,12 +278,7 @@ router.get("/vessels/:vesselId/3d-model", async (req: Request, res: Response) =>
   try {
     const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { vesselId = "" } = req.params;
-    const [row] = await db
-      .select()
-      .from(vessel3dModels)
-      .where(and(eq(vessel3dModels.orgId, orgId), eq(vessel3dModels.vesselId, vesselId)))
-      .orderBy(desc(vessel3dModels.createdAt))
-      .limit(1);
+    const row = await getLatestVessel3dModel(orgId, vesselId);
     if (!row) {return res.status(404).json({ error: "No 3D model attached" });}
     // Do not leak storedPath.
     const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
@@ -297,10 +294,7 @@ router.get("/vessels/3d-model/:modelId/binary", async (req: Request, res: Respon
   try {
     const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
     const { modelId = "" } = req.params;
-    const [row] = await db
-      .select()
-      .from(vessel3dModels)
-      .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)));
+    const row = await getVessel3dModelById(orgId, modelId);
     if (!row) {return res.status(404).json({ error: "Model not found" });}
 
     // Path-traversal guard: stored file must live under the org's directory.
@@ -336,11 +330,7 @@ router.patch("/vessels/3d-model/:modelId/pins", requireRole("admin", "chief_engi
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
-    const [row] = await db
-      .update(vessel3dModels)
-      .set({ equipmentPins: parsed.data.pins, updatedAt: new Date() })
-      .where(and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId)))
-      .returning();
+    const row = await updateVessel3dModelPins(orgId, modelId, parsed.data.pins);
     if (!row) {return res.status(404).json({ error: "Model not found" });}
     const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
     return res.json(safe);
@@ -359,13 +349,7 @@ router.get(
     try {
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { vesselId = "" } = req.params;
-      const rows = await db
-        .select()
-        .from(vessel3dModels)
-        .where(
-          and(eq(vessel3dModels.orgId, orgId), eq(vessel3dModels.vesselId, vesselId))
-        )
-        .orderBy(desc(vessel3dModels.createdAt));
+      const rows = await listVessel3dModels(orgId, vesselId);
       const safe = rows.map((r) => {
         const { storedPath: _omit, ...rest } = narrowVessel3dModel(r);
         return rest;
@@ -390,13 +374,7 @@ router.post(
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { modelId = "" } = req.params;
       const now = new Date();
-      const [row] = await db
-        .update(vessel3dModels)
-        .set({ createdAt: now, updatedAt: now })
-        .where(
-          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
-        )
-        .returning();
+      const row = await promoteVessel3dModel(orgId, modelId, now);
       if (!row) {return res.status(404).json({ error: "Model not found" });}
       const { storedPath: _omit, ...safe } = narrowVessel3dModel(row);
       return res.json(safe);
@@ -418,12 +396,7 @@ router.delete(
     try {
       const orgId = authenticatedRequest(req).orgId || DEFAULT_ORG_ID;
       const { modelId = "" } = req.params;
-      const [row] = await db
-        .select()
-        .from(vessel3dModels)
-        .where(
-          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
-        );
+      const row = await getVessel3dModelById(orgId, modelId);
       if (!row) {return res.status(404).json({ error: "Model not found" });}
 
       // Path-traversal guard (same as binary serve): only unlink files
@@ -447,11 +420,7 @@ router.delete(
         logger.warn("Refusing to unlink out-of-bounds file", { modelId, orgId });
       }
 
-      await db
-        .delete(vessel3dModels)
-        .where(
-          and(eq(vessel3dModels.id, modelId), eq(vessel3dModels.orgId, orgId))
-        );
+      await deleteVessel3dModel(orgId, modelId);
 
       const freed = Number(row.sizeBytes ?? 0);
       if (Number.isFinite(freed) && freed > 0) {
