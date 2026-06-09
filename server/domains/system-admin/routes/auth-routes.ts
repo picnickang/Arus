@@ -37,19 +37,23 @@ function hasValidSetupToken(req: Request): boolean {
   return constantTimeEqualString(provided, configuredToken);
 }
 
-function isLocalhostOrTauri(req: Request): boolean {
+// Exported for unit testing (see auth-routes-localhost-guard.test.ts) so the
+// header-spoofing regression can be asserted without standing up the full
+// DB-bearing route module.
+export function isLocalSetupRequest(req: Request): boolean {
+  // SEC: trust ONLY the transport-level peer address and server-side
+  // env — never client-supplied headers. The previous gate also
+  // accepted `Origin: tauri://localhost` and a `User-Agent` containing
+  // "Tauri", both of which a remote attacker fully controls, letting an
+  // unauthenticated caller pass the localhost-only guard and seize the
+  // first-run admin bootstrap. The legitimate Tauri desktop sidecar
+  // talks to the bundled Node server over loopback, so it is already
+  // covered by `isLoopbackAddress` without any header check. `REPL_ID`
+  // is a server-side env var (not spoofable) and only relaxes the gate
+  // in non-production Replit previews.
   const socketAddress = req.socket.remoteAddress || "";
-  const origin = req.headers.origin || "";
-  const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
-  const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
   const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
-  return (
-    isLoopbackAddress(socketAddress) ||
-    isTauriOrigin ||
-    isTauriUserAgent ||
-    isReplitDevelopment ||
-    hasValidSetupToken(req)
-  );
+  return isLoopbackAddress(socketAddress) || isReplitDevelopment || hasValidSetupToken(req);
 }
 
 
@@ -187,7 +191,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     "/api/admin/auth/status",
     generalApiRateLimit,
     withErrorHandling("check admin auth status", async (req: Request, res: Response) => {
-      if (!isLocalhostOrTauri(req)) {
+      if (!isLocalSetupRequest(req)) {
         res.json({ configured: true });
         return;
       }
@@ -201,9 +205,9 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     "/api/admin/auth/setup",
     criticalOperationRateLimit,
     withErrorHandling("initial admin password setup", async (req: Request, res: Response) => {
-      if (!isLocalhostOrTauri(req)) {
+      if (!isLocalSetupRequest(req)) {
         res.status(403).json({
-          error: "Setup is only available from localhost or Tauri",
+          error: "Setup is only available from localhost or with a valid X-Setup-Token",
           code: "SETUP_LOCALHOST_ONLY",
         });
         return;

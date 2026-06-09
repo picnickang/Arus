@@ -1,0 +1,100 @@
+name: Security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Weekly full scan so newly-disclosed advisories surface even without a push.
+    - cron: "0 6 * * 1"
+
+# Least-privilege by default; jobs widen as needed.
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    name: CodeQL (JS/TS SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # 'security-and-quality' is broader than the default 'security'
+          # suite; tune down to 'security-extended' if noise is high.
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  npm-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      # Blocking gate: fail on any CRITICAL advisory. Criticals are
+      # expected to always be fixable; this stops a new one from landing.
+      - name: Audit — fail on critical (production deps)
+        run: npm audit --omit=dev --audit-level=critical
+
+      # Informational: full prod + dev report. Non-blocking because a
+      # handful of HIGH advisories have no upstream fix yet (e.g. xlsx,
+      # @dsnp/parquetjs→thrift) and are tracked for replacement.
+      - name: Audit — full report (non-blocking)
+        if: always()
+        run: npm audit || true
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # PR-only: compares the PR's dependency delta against advisories.
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the scan covers the PR/push range, not just HEAD.
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
