@@ -75,6 +75,15 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
+    // Seed the default organization so the org_id foreign keys on ml_models,
+    // equipment, equipment_features, … resolve. Idempotent across re-runs.
+    await pool.query(
+      `INSERT INTO organizations (id, name, slug)
+       VALUES ($1, 'Default Org', 'default')
+       ON CONFLICT DO NOTHING`,
+      [ORG],
+    );
+
     // ---------- CREATE ----------
     step("C — train XGB model and INSERT ml_models row");
     const trainPy = `
