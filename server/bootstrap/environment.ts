@@ -261,8 +261,10 @@ export function validateEnvironment(): EnvironmentConfig {
   if (isProduction && !process.env['SESSION_SECRET']) {
     errors.push("Production deployment without SESSION_SECRET is insecure");
   }
-  if (isDevelopment) {
-    logger.info("ℹ Auth: Development mode — auth bypass enabled for dev-admin-user");
+  if (isDevelopment && process.env['DEV_AUTH_BYPASS'] === "1") {
+    logger.warn("⚠ Auth: Dev auth bypass ENABLED (DEV_AUTH_BYPASS=1) — unauthenticated requests run as dev-admin-user");
+  } else if (isDevelopment) {
+    logger.info("ℹ Auth: Dev auth bypass disabled (set DEV_AUTH_BYPASS=1 to enable for local preview)");
   }
 
   outputResults(warnings, errors, isEmbedded, localMode);

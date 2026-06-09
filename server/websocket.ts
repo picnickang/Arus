@@ -5,6 +5,7 @@ import { Server, IncomingMessage } from "node:http";
 import crypto from "node:crypto";
 import { dbAlertStorage, dbSystemAdminStorage, dbUserStorage } from "./repositories";
 import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
+import { isDevAuthBypassEnabled } from "./security/dev-auth";
 import {
   setWebSocketConnections,
   incrementWebSocketMessage,
@@ -171,7 +172,10 @@ async function resolveUpgradeOrg(
 ): Promise<UpgradeAuthResult | UpgradeAuthRejection> {
   const tenantAuth = requireTenantAuth();
 
-  if (process.env["NODE_ENV"] === "development" && !tenantAuth) {
+  // Mirror the HTTP middleware's opt-in dev bypass (NODE_ENV=development +
+  // DEV_AUTH_BYPASS=1) rather than keying off NODE_ENV alone, so a stray
+  // development env can't grant anonymous WS upgrades an admin identity.
+  if (isDevAuthBypassEnabled() && !tenantAuth) {
     return { ok: true, orgId: DEFAULT_ORG_ID, userId: "dev-admin-user" };
   }
 
