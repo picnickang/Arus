@@ -46,7 +46,6 @@ const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-reg
 
 const EXPECTED_ROUTES = [
   "/vessel-intelligence",
-  "/vessel-intelligence/fleet",
   "/vessel-intelligence/:vesselId/overview",
   "/vessel-intelligence/:vesselId/sections",
   "/vessel-intelligence/:vesselId/sections/:sectionId",
@@ -68,6 +67,7 @@ const EXPECTED_ROUTES = [
 ];
 
 const EXPECTED_LEGACY_REDIRECTS: Record<string, string> = {
+  "/vessel-intelligence/fleet": "/fleet",
   "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",
   "/pdm": "/vessel-intelligence?target=overview",
@@ -107,7 +107,12 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
   it("surfaces Fleet Triage as the Fleet hub without weakening existing resources", async () => {
     const nav = await load(NAV_PATH);
     expect(nav).toContain('hubRoute: "/fleet"');
+    expect(nav.indexOf('name: "Fleet Triage"')).toBeLessThan(
+      nav.indexOf('name: "Vessel Intelligence"')
+    );
+    expect(nav).toContain('href: "/fleet"');
     expect(nav).toContain('name: "Vessel Intelligence"');
+    expect(nav).toContain("vessel-specific workflows");
     expect(nav).toContain('"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"');
     expect(nav).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
     expect(nav).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
@@ -135,6 +140,13 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(fleetComponents).toContain('data-testid="button-replace-side-elevation"');
     expect(fleetComponents).toContain('data-testid="fleet-side-elevation-status"');
     expect(fleetPage).toContain("priorityVesselId");
+  });
+
+  it("renders an explicit empty section state for blank maps", async () => {
+    const sectionedMap = await load(SECTIONED_MAP_PATH);
+
+    expect(sectionedMap).toContain("No sections yet. Draw or add your first section.");
+    expect(sectionedMap).toContain('data-testid="section-map-empty-sections"');
   });
 
   it("uses the universal admin ops shell for Fleet and Vessel Intelligence routes", async () => {

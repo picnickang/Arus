@@ -31,13 +31,21 @@ function stableEquipmentId(equipment: EquipmentRecord | undefined): string | nul
   return equipment?.id ?? equipment?.equipmentId ?? equipment?.assetCode ?? null;
 }
 
+function nonEmptyTrimmed(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed;
+}
+
 function findLiveEquipment(
   assignment: RegistrySectionAssignmentRecord,
   vesselEquipment: EquipmentRecord[]
 ): EquipmentRecord | undefined {
-  const assignmentId = assignment.equipmentId?.trim() || undefined;
-  const assignmentAssetCode = assignment.assetCode?.trim() || undefined;
-  const assignmentName = assignment.equipmentName.toLowerCase();
+  const assignmentId = nonEmptyTrimmed(assignment.equipmentId);
+  const assignmentAssetCode = nonEmptyTrimmed(assignment.assetCode);
+  const assignmentName = nonEmptyTrimmed(assignment.equipmentName)?.toLowerCase();
   return vesselEquipment.find((item) => {
     const ids = [item.id, item.equipmentId, item.assetCode, item.tagNumber]
       .map((id) => id?.trim())
@@ -48,8 +56,12 @@ function findLiveEquipment(
     if (assignmentAssetCode && ids.includes(assignmentAssetCode)) {
       return true;
     }
-    return equipmentNameFor(item).toLowerCase() === assignmentName;
+    return Boolean(assignmentName) && equipmentNameFor(item).toLowerCase() === assignmentName;
   });
+}
+
+function assignmentNameFor(assignment: RegistrySectionAssignmentRecord): string {
+  return nonEmptyTrimmed(assignment.equipmentName) ?? "Unnamed equipment";
 }
 
 export function buildFleetSectionEquipmentSummary(
@@ -68,7 +80,7 @@ export function buildFleetSectionEquipmentSummary(
       const live = findLiveEquipment(assignment, vesselEquipment);
       return {
         equipmentId: stableEquipmentId(live) ?? assignment.equipmentId ?? null,
-        equipmentName: assignment.equipmentName,
+        equipmentName: assignmentNameFor(assignment),
         matchStatus: live ? "live" : "registry_only",
       };
     }),

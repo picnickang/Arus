@@ -216,6 +216,7 @@ export function SectionedVesselMap({
   const [baseImageScaleY, setBaseImageScaleY] = useState(savedImageTransform.scaleY);
   const [baseImageOffsetX, setBaseImageOffsetX] = useState(savedImageTransform.offsetX);
   const [baseImageOffsetY, setBaseImageOffsetY] = useState(savedImageTransform.offsetY);
+  const hasSections = sectionMap.sections.length > 0;
   const selectedSection =
     sectionMap.sections.find((section) => section.sectionKey === selectedSectionKey) ??
     sectionMap.sections[0];
@@ -274,31 +275,43 @@ export function SectionedVesselMap({
         />
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5" data-testid="section-selector-grid">
-        {sectionMap.sections.map((section) => {
-          const selected = section.sectionKey === selectedSection?.sectionKey;
-          return (
-            <Button
-              key={section.sectionKey}
-              type="button"
-              variant={selected ? "default" : "outline"}
-              className="h-auto justify-start gap-2 whitespace-normal px-3 py-2 text-left"
-              onClick={() => onSelectSection(section.sectionKey)}
-              data-testid={`section-button-${section.sectionKey}`}
-            >
-              <span
-                className="h-3 w-3 shrink-0 rounded-sm"
-                style={{ backgroundColor: section.color }}
-                aria-hidden="true"
-              />
-              <span className="min-w-0 text-xs leading-tight">
-                <span className="block font-semibold">Section {section.sectionNo}</span>
-                <span className="block text-muted-foreground">{section.name}</span>
-              </span>
-            </Button>
-          );
-        })}
-      </div>
+      {hasSections ? (
+        <div
+          className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5"
+          data-testid="section-selector-grid"
+        >
+          {sectionMap.sections.map((section) => {
+            const selected = section.sectionKey === selectedSection?.sectionKey;
+            return (
+              <Button
+                key={section.sectionKey}
+                type="button"
+                variant={selected ? "default" : "outline"}
+                className="h-auto justify-start gap-2 whitespace-normal px-3 py-2 text-left"
+                onClick={() => onSelectSection(section.sectionKey)}
+                data-testid={`section-button-${section.sectionKey}`}
+              >
+                <span
+                  className="h-3 w-3 shrink-0 rounded-sm"
+                  style={{ backgroundColor: section.color }}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 text-xs leading-tight">
+                  <span className="block font-semibold">Section {section.sectionNo}</span>
+                  <span className="block text-muted-foreground">{section.name}</span>
+                </span>
+              </Button>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className="rounded-md border border-dashed p-4 text-sm text-muted-foreground"
+          data-testid="section-map-empty-sections"
+        >
+          No sections yet. Draw or add your first section.
+        </div>
+      )}
 
       {selectedSection && (
         <div className="rounded-md border p-4" data-testid="selected-section-detail">

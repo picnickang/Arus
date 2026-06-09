@@ -198,10 +198,16 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Vessel intelligence, diagrams, and technical equipment context",
     children: [
       {
+        name: "Fleet Triage",
+        href: "/fleet",
+        icon: Ship,
+        description: "Fleet-level triage, priority vessels, queues, and registry entry points",
+      },
+      {
         name: "Vessel Intelligence",
         href: "/vessel-intelligence",
         icon: Ship,
-        description: "Consolidated technical hub for vessels, sections, equipment, and alerts",
+        description: "vessel-specific workflows for sections, equipment, maintenance, and alerts",
       },
       {
         name: "Vessel Registry",
@@ -482,6 +488,7 @@ export const routeMigrations: Record<string, string> = {
   "/outbox": "/offline-outbox",
   "/sync-outbox": "/offline-outbox",
   "/compliance/findings": "/logs/compliance?tab=findings",
+  "/vessel-intelligence/fleet": "/fleet",
   "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",
   "/pdm": "/vessel-intelligence?target=overview",

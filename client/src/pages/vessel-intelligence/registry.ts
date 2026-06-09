@@ -52,7 +52,6 @@ export interface EquipmentRegistrySeed {
 
 export const VESSEL_INTELLIGENCE_ROUTES = [
   "/vessel-intelligence",
-  "/vessel-intelligence/fleet",
   "/vessel-intelligence/:vesselId/overview",
   "/vessel-intelligence/:vesselId/sections",
   "/vessel-intelligence/:vesselId/sections/:sectionId",

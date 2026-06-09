@@ -132,6 +132,8 @@ export const vesselDiagramVersions = pgTable(
     viewBox: jsonb("view_box").$type<DiagramViewBox>(),
     validationSummary: jsonb("validation_summary").$type<ValidationSummary>(),
     uploadedBy: varchar("uploaded_by").references(() => users.id),
+    publishedBy: varchar("published_by").references(() => users.id),
+    publishedAt: timestamp("published_at", { mode: "date" }),
     uploadedAt: timestamp("uploaded_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({

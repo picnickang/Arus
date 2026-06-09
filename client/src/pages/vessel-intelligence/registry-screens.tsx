@@ -918,6 +918,9 @@ export function SectionMapEditorEntry({
   const { toast } = useToast();
   const map = mapQuery.data;
   const selectedSection = map?.sections.find((section) => section.id === selectedSectionId);
+  const equipmentOptions = equipment
+    .map((item) => ({ item, id: equipmentIdForThumbnail(item) }))
+    .filter((option): option is { item: EquipmentRecord; id: string } => Boolean(option.id));
 
   const loadSection = (section: RegistrySectionRecord) => {
     setSelectedSectionId(section.id);
@@ -962,9 +965,7 @@ export function SectionMapEditorEntry({
     if (!selectedSection) {
       return;
     }
-    const selectedEquipment = equipment.find(
-      (item) => equipmentIdForThumbnail(item) === equipmentId
-    );
+    const selectedEquipment = equipmentOptions.find((option) => option.id === equipmentId)?.item;
     const equipmentName = selectedEquipment
       ? equipmentNameFor(selectedEquipment)
       : manualEquipmentName;
@@ -1176,11 +1177,8 @@ export function SectionMapEditorEntry({
                         <SelectValue placeholder="Select equipment" />
                       </SelectTrigger>
                       <SelectContent>
-                        {equipment.map((item) => (
-                          <SelectItem
-                            key={equipmentIdForThumbnail(item)}
-                            value={equipmentIdForThumbnail(item)}
-                          >
+                        {equipmentOptions.map(({ item, id }) => (
+                          <SelectItem key={id} value={id}>
                             {equipmentNameFor(item)}
                           </SelectItem>
                         ))}
@@ -1373,6 +1371,17 @@ export function ThumbnailManager({
           )}
           {equipment.map((item) => {
             const equipmentId = equipmentIdForThumbnail(item);
+            if (!equipmentId) {
+              return (
+                <div
+                  key={equipmentNameFor(item)}
+                  className="rounded-md border border-dashed p-3 text-sm text-muted-foreground"
+                >
+                  {equipmentNameFor(item)} cannot use thumbnail actions until it has an equipment
+                  ID, asset code, or name.
+                </div>
+              );
+            }
             return (
               <EquipmentThumbnailCard
                 key={equipmentId}

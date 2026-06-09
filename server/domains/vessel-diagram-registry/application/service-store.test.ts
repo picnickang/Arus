@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "@jest/globals";
+import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { VesselDiagramRegistryService } from "./service.js";
 import { InMemoryVesselDiagramRegistryStore } from "../infrastructure/in-memory-store.js";
 import type {
@@ -301,6 +301,19 @@ describe("VesselDiagramRegistryService with in-memory store", () => {
     await expect(service.publishSectionMap(ctx, invalidMap.id)).rejects.toThrow(
       "Section map cannot be published"
     );
+    await expect(
+      service.updateSection(ctx, invalidMap.id, invalidMap.sections[0].id, {
+        polygonNormalized: [
+          { x: 0.1, y: 0.1 },
+          { x: 0.2, y: 0.2 },
+        ],
+      })
+    ).rejects.toThrow("Section contains invalid geometry");
+    await expect(
+      service.updateSection(ctx, invalidMap.id, invalidMap.sections[0].id, {
+        labelNormalized: { x: 2, y: 0.5 },
+      })
+    ).rejects.toThrow("Section contains invalid geometry");
 
     const fixed = await service.updateSection(ctx, invalidMap.id, invalidMap.sections[0].id, {
       polygonNormalized: section().polygonNormalized,
@@ -365,5 +378,38 @@ describe("VesselDiagramRegistryService with in-memory store", () => {
     await expect(service.deleteSection(ctx, map.id, "missing-section")).rejects.toMatchObject({
       statusCode: 404,
     });
+  });
+
+  it("preserves the original version-store error when upload cleanup archive fails", async () => {
+    const diagram = await service.createDiagram(ctx, {
+      diagramType: "side_elevation",
+      title: "Cleanup error precedence",
+    });
+    const original = new Error("add version failed");
+    jest.spyOn(store, "addVersion").mockRejectedValueOnce(original);
+    jest.spyOn(media, "archive").mockRejectedValueOnce(new Error("archive failed"));
+
+    await expect(service.uploadDiagramVersion(ctx, diagram.id, safeSvgUpload)).rejects.toThrow(
+      "add version failed"
+    );
+    expect(media.archive).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the original thumbnail-store error when upload cleanup archive fails", async () => {
+    const original = new Error("thumbnail upsert failed");
+    jest.spyOn(store, "upsertThumbnail").mockRejectedValueOnce(original);
+    jest.spyOn(media, "archive").mockRejectedValueOnce(new Error("archive failed"));
+
+    await expect(
+      service.uploadThumbnail(ctx, {
+        ownerType: "section",
+        ownerId: "section-a",
+        mapId: "map-a",
+        originalFileName: "thumb.svg",
+        mimeType: "image/svg+xml",
+        content: Buffer.from(`<svg viewBox="0 0 10 10"><rect width="10" height="10"/></svg>`),
+      })
+    ).rejects.toThrow("thumbnail upsert failed");
+    expect(media.archive).toHaveBeenCalledTimes(1);
   });
 });
