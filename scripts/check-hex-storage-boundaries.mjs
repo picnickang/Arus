@@ -78,8 +78,10 @@ function isAllowedImporter(relPath) {
   if (p.startsWith("server/storage/")) return true;
   // Canonical repository surface
   if (p === "server/repositories.ts") return true;
-  // Hexagonal infrastructure layer for any domain
-  if (/^server\/domains\/[^/]+\/infrastructure\//.test(p)) return true;
+  // Hexagonal infrastructure layer for any domain — at any nesting depth,
+  // so sub-domains (e.g. domains/pdm-platform/decision-support/infrastructure/)
+  // are recognised as infrastructure, not flagged as leaks.
+  if (/^server\/domains\/.+\/infrastructure\//.test(p)) return true;
   // Domain router registry is the integration seam, not domain code
   if (p === "server/routes/domain-router-registry.ts") return true;
   // Boot middleware sometimes touches db-config to wire connections
