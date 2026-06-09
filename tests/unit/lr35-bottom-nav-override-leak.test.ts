@@ -102,10 +102,10 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       const policyIds = getPrimaryCategoriesForRole("system_admin").map(
         (c) => c.id,
       );
-      // Admin policy currently grants five primary categories — pin
-      // the cardinality so a future shrink can't silently regress
-      // the override codepath for admins.
-      expect(policyIds.length).toBe(5);
+      // Admin policy grants all eight primary hubs — pin the
+      // cardinality so a future shrink can't silently regress the
+      // override codepath for admins.
+      expect(policyIds.length).toBe(8);
       // With no override, intersect returns the same policy default
       // unchanged (admin nav is preserved end-to-end).
       expect(
