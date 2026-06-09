@@ -21,18 +21,23 @@
  */
 
 import { Router, type Response } from "express";
-import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../db";
 import {
-  equipmentDependencies,
-  equipmentDependencyLayouts,
   equipmentDependencyLayoutPositionsSchema,
-  equipment,
   insertEquipmentDependencySchema,
-  users,
   type EquipmentDependencyLayoutPositions,
 } from "@shared/schema-runtime";
+import {
+  findEquipmentInVessel,
+  listDependenciesWithEditor,
+  insertDependency,
+  insertDependenciesBatch,
+  updateDependencyNotes,
+  getEditorNameEmail,
+  deleteDependency,
+  getDependencyLayout,
+  upsertDependencyLayout,
+} from "../db/equipment-dependencies/queries";
 import { requireRole } from "../middleware/role-auth";
 import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
@@ -74,16 +79,7 @@ async function validateEquipmentBelongsToVessel(
   equipmentIds: string[]
 ): Promise<{ ok: true } | { ok: false; missingIds: string[] }> {
   if (equipmentIds.length === 0) {return { ok: true };}
-  const rows = await db
-    .select({ id: equipment.id })
-    .from(equipment)
-    .where(
-      and(
-        eq(equipment.orgId, orgId),
-        eq(equipment.vesselId, vesselId),
-        inArray(equipment.id, equipmentIds)
-      )
-    );
+  const rows = await findEquipmentInVessel(orgId, vesselId, equipmentIds);
   const found = new Set(rows.map((r) => r.id));
   const missing = equipmentIds.filter((id) => !found.has(id));
   return missing.length === 0 ? { ok: true } : { ok: false, missingIds: missing };
@@ -96,20 +92,7 @@ router.get(
     const authReq = authenticatedRequest(req);
     const { vesselId } = req.params;
     try {
-      const rows = await db
-        .select({
-          dep: equipmentDependencies,
-          editorName: users.name,
-          editorEmail: users.email,
-        })
-        .from(equipmentDependencies)
-        .leftJoin(users, eq(users.id, equipmentDependencies.notesUpdatedBy))
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.vesselId, vesselId)
-          )
-        );
+      const rows = await listDependenciesWithEditor(authReq.orgId, vesselId ?? '');
       const dependencies = rows.map((r) => ({
         ...r.dep,
         notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
@@ -151,23 +134,13 @@ router.post(
     }
 
     try {
-      const [row] = await db
-        .insert(equipmentDependencies)
-        .values({
-          orgId: authReq.orgId,
-          vesselId: body.vesselId,
-          upstreamEquipmentId: body.upstreamEquipmentId,
-          downstreamEquipmentId: body.downstreamEquipmentId,
-          notes: body.notes ?? null,
-        })
-        .onConflictDoNothing({
-          target: [
-            equipmentDependencies.orgId,
-            equipmentDependencies.upstreamEquipmentId,
-            equipmentDependencies.downstreamEquipmentId,
-          ],
-        })
-        .returning();
+      const row = await insertDependency({
+        orgId: authReq.orgId,
+        vesselId: body.vesselId,
+        upstreamEquipmentId: body.upstreamEquipmentId,
+        downstreamEquipmentId: body.downstreamEquipmentId,
+        notes: body.notes ?? null,
+      });
 
       if (!row) {
         res.status(409).json({ error: "Dependency already exists" });
@@ -216,21 +189,12 @@ router.patch(
     const editorId = authReq.user?.id ?? null;
     try {
       const now = new Date();
-      const [updated] = await db
-        .update(equipmentDependencies)
-        .set({
-          notes: trimmed,
-          notesUpdatedBy: editorId,
-          notesUpdatedAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id ?? '')
-          )
-        )
-        .returning();
+      const updated = await updateDependencyNotes(authReq.orgId, id ?? '', {
+        notes: trimmed,
+        notesUpdatedBy: editorId,
+        notesUpdatedAt: now,
+        updatedAt: now,
+      });
 
       if (!updated) {
         res.status(404).json({ error: "Dependency not found" });
@@ -238,10 +202,7 @@ router.patch(
       }
       let notesUpdatedByName: string | null = null;
       if (updated.notesUpdatedBy) {
-        const [editor] = await db
-          .select({ name: users.name, email: users.email })
-          .from(users)
-          .where(eq(users.id, updated.notesUpdatedBy));
+        const editor = await getEditorNameEmail(updated.notesUpdatedBy);
         notesUpdatedByName = editor?.name ?? editor?.email ?? null;
       }
       res.json({ dependency: { ...updated, notesUpdatedByName } });
@@ -262,15 +223,7 @@ router.delete(
     const authReq = authenticatedRequest(req);
     const { id } = req.params;
     try {
-      const [removed] = await db
-        .delete(equipmentDependencies)
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id ?? '')
-          )
-        )
-        .returning();
+      const removed = await deleteDependency(authReq.orgId, id ?? '');
 
       if (!removed) {
         res.status(404).json({ error: "Dependency not found" });
@@ -337,25 +290,15 @@ router.post(
     }
 
     try {
-      const inserted = await db
-        .insert(equipmentDependencies)
-        .values(
-          rows.map((r) => ({
-            orgId: authReq.orgId,
-            vesselId: vesselId ?? '',
-            upstreamEquipmentId: r.upstreamEquipmentId,
-            downstreamEquipmentId: r.downstreamEquipmentId,
-            notes: r.notes ?? null,
-          }))
-        )
-        .onConflictDoNothing({
-          target: [
-            equipmentDependencies.orgId,
-            equipmentDependencies.upstreamEquipmentId,
-            equipmentDependencies.downstreamEquipmentId,
-          ],
-        })
-        .returning();
+      const inserted = await insertDependenciesBatch(
+        rows.map((r) => ({
+          orgId: authReq.orgId,
+          vesselId: vesselId ?? '',
+          upstreamEquipmentId: r.upstreamEquipmentId,
+          downstreamEquipmentId: r.downstreamEquipmentId,
+          notes: r.notes ?? null,
+        })),
+      );
 
       for (const row of inserted) {
         void projectDependency(
@@ -391,16 +334,7 @@ router.get(
     }
     const { vesselId } = req.params;
     try {
-      const [row] = await db
-        .select()
-        .from(equipmentDependencyLayouts)
-        .where(
-          and(
-            eq(equipmentDependencyLayouts.orgId, authReq.orgId),
-            eq(equipmentDependencyLayouts.userId, userId),
-            eq(equipmentDependencyLayouts.vesselId, vesselId)
-          )
-        );
+      const row = await getDependencyLayout(authReq.orgId, userId, vesselId ?? '');
       const positions: EquipmentDependencyLayoutPositions =
         row?.positions ?? {};
       res.json({ positions });
@@ -449,24 +383,13 @@ router.put(
     }
 
     try {
-      const [row] = await db
-        .insert(equipmentDependencyLayouts)
-        .values({
-          orgId: authReq.orgId,
-          userId,
-          vesselId: vesselId ?? '',
-          positions,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [
-            equipmentDependencyLayouts.orgId,
-            equipmentDependencyLayouts.userId,
-            equipmentDependencyLayouts.vesselId,
-          ],
-          set: { positions, updatedAt: new Date() },
-        })
-        .returning();
+      const row = await upsertDependencyLayout({
+        orgId: authReq.orgId,
+        userId,
+        vesselId: vesselId ?? '',
+        positions,
+        updatedAt: new Date(),
+      });
       res.json({ ok: true, positions: row?.positions ?? positions });
     } catch (err) {
       logger.error("layout save failed", {
