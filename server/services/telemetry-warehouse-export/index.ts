@@ -13,7 +13,7 @@
  *      bug downstream cannot conflate two tenants' files.
  */
 
-import { db } from "../../db";
+import { db } from "../../db/drizzle-handle";
 import { createLogger } from "../../lib/structured-logger";
 import {
   exportOrgDayToParquet,
