@@ -227,7 +227,14 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         await seedBriefingSchedule("default-org-id");
         await globalScheduler.initialize("default-org-id");
       }
-    })();
+    })().catch((err: unknown) => {
+      // Fire-and-forget boot task: scheduler init failing (e.g. the database
+      // is unreachable) must degrade to "no agent schedules", never escape as
+      // an unhandled rejection that kills the boot.
+      logger.warn(
+        `[AgentScheduler] initialization skipped: ${err instanceof Error ? err.message : "unknown"}`
+      );
+    });
   }
 
   const activityAdapter = new ActivityRepositoryAdapter();

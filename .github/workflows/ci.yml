@@ -63,8 +63,14 @@ jobs:
       - name: Code-hygiene burndown (catch-underscore, console-log, ts-ignore, ...)
         run: npm run check:hygiene
 
+      # Boot-health validates dynamic-import safety, not DB connectivity.
+      # This job has no Postgres service, but the workflow-level
+      # DATABASE_URL would make the app boot against a dead PG and die in
+      # initializeDatabase. Unset it so boot uses the embedded fallback.
       - name: Boot health (dynamic-import safety net)
-        run: npm run check:boot-health
+        run: |
+          unset DATABASE_URL
+          npm run check:boot-health
 
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
