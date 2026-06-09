@@ -33,12 +33,17 @@ import type { Request } from "express";
 //                          loginRateLimit; credentials are constant-time
 //                          compared by bcrypt and a dummy compare runs on
 //                          unknown users to flatten timing.
+//   /portal/dev-login    — TEMPORARY development-only no-credential login.
+//                          The route itself returns 404 unless the
+//                          ARUS_DEV_LOGIN gate permits it and production
+//                          always denies it.
 const EXACT_PUBLIC_API_PATHS = new Set([
   "/admin/auth/status",
   "/admin/auth/setup",
   "/setup/status",
   "/setup/complete",
   "/portal/login",
+  "/portal/dev-login",
 ]);
 
 // PUBLIC_API_PREFIXES — prefix-match (and bare path) is allowed.

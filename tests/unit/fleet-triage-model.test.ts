@@ -300,9 +300,7 @@ describe("buildFleetTriageViewModel", () => {
       equipment: [],
       alerts: [],
       workOrders: [],
-      summariesByVesselId: Object.fromEntries(
-        vessels.map((vessel) => [vessel.id, summary()])
-      ),
+      summariesByVesselId: Object.fromEntries(vessels.map((vessel) => [vessel.id, summary()])),
       now: NOW,
     });
 
@@ -353,5 +351,37 @@ describe("buildFleetTriageViewModel", () => {
         matchStatus: "registry_only",
       },
     ]);
+  });
+
+  it("handles registry equipment assignments with missing names without throwing", () => {
+    const baseSummary = summary();
+    const missingNameSummary: RegistrySummaryRecord = {
+      ...baseSummary,
+      sectionMaps: [
+        {
+          ...baseSummary.sectionMaps[0],
+          sections: [
+            {
+              ...baseSummary.sectionMaps[0].sections[0],
+              equipment: [
+                {
+                  id: "assignment-missing-name",
+                  equipmentId: null,
+                  equipmentName: undefined,
+                  assetCode: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as RegistrySummaryRecord;
+
+    expect(() => buildFleetSectionEquipmentSummary(missingNameSummary, [])).not.toThrow();
+    expect(buildFleetSectionEquipmentSummary(missingNameSummary, [])[0].equipment[0]).toEqual({
+      equipmentId: null,
+      equipmentName: "Unnamed equipment",
+      matchStatus: "registry_only",
+    });
   });
 });

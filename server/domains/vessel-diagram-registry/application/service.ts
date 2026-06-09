@@ -18,6 +18,7 @@ import type {
 import {
   assertNoBlockers,
   validateDiagramUpload,
+  validateSectionGeometryPatch,
   validateSectionInput,
   validateSectionMapDraft,
   validateThumbnailUpload,
@@ -108,7 +109,7 @@ export class VesselDiagramRegistryService {
         uploadedAt: new Date(),
       });
     } catch (error) {
-      await this.mediaStore.archive(ctx, objectKey);
+      await this.archiveMediaBestEffort(ctx, objectKey);
       throw error;
     }
   }
@@ -341,16 +342,17 @@ export class VesselDiagramRegistryService {
     sectionId: string,
     input: UpdateSectionInput
   ) {
-    if (input.polygonNormalized && input.labelNormalized) {
+    if (input.polygonNormalized !== undefined || input.labelNormalized !== undefined) {
       assertNoBlockers(
         "Section contains invalid geometry",
-        validateSectionInput({
+        validateSectionGeometryPatch({
           sectionKey: input.sectionKey ?? "section",
-          sectionNo: input.sectionNo ?? 1,
-          name: input.name ?? "Section",
-          color: input.color ?? "#38bdf8",
-          polygonNormalized: input.polygonNormalized,
-          labelNormalized: input.labelNormalized,
+          ...(input.polygonNormalized !== undefined
+            ? { polygonNormalized: input.polygonNormalized }
+            : {}),
+          ...(input.labelNormalized !== undefined
+            ? { labelNormalized: input.labelNormalized }
+            : {}),
         })
       );
     }
@@ -462,7 +464,7 @@ export class VesselDiagramRegistryService {
         deletedAt: null,
       });
     } catch (error) {
-      await this.mediaStore.archive(ctx, objectKey);
+      await this.archiveMediaBestEffort(ctx, objectKey);
       throw error;
     }
   }
@@ -481,6 +483,14 @@ export class VesselDiagramRegistryService {
       throw notFound(`${ownerType} thumbnail not found`);
     }
     return thumbnail;
+  }
+
+  private async archiveMediaBestEffort(ctx: RegistryContext, objectKey: string): Promise<void> {
+    try {
+      await this.mediaStore.archive(ctx, objectKey);
+    } catch {
+      // Preserve the original store failure; cleanup is best-effort only.
+    }
   }
 }
 

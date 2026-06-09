@@ -40,6 +40,7 @@ import {
 } from "../../../shared/schema/permissions";
 import { RESOURCES, ACTIONS, RESOURCE_CATEGORIES } from "../../config/permission-registry";
 import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
+import { devUserRoleLabel, getDevLoginUserRole } from "../../security/dev-login";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 
@@ -64,13 +65,13 @@ const fromTemplateBodySchema = z.object({
  * Super-admin-only gate for permission/role MUTATIONS. By policy ONLY the true
  * super-admin tier (super_admin / system_admin / company_admin) may create,
  * edit, or delete roles and grants — a regular `admin` reaches the admin hub
- * but cannot rewrite the access model. The no-login dev-bypass identity is
- * allowed through so local development keeps working.
+ * but cannot rewrite the access model. Temporary dev-login admin sessions are
+ * allowed through only when a minted dev token has resolved to the synthetic
+ * superuser identity.
  */
 function requireSuperAdminForPermissions(req: Request, res: Response, next: () => void) {
   const sessionUser = authenticatedRequest(req).user ?? null;
-  const isDevBypass =
-    isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+  const isDevBypass = isDevAuthBypassEnabled() && isDevBypassUser(sessionUser?.id);
   if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
     res.status(403).json({
       code: "INSUFFICIENT_PERMISSIONS",
@@ -90,10 +91,35 @@ export function registerPermissionRoutes(app: Express) {
       const realUserId = authReq.user?.id;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
-      // Dev convenience ONLY when nobody is really logged in (or the request is
-      // running as the no-token dev-bypass identity). A real session resolves to
-      // that user's real roles/permissions below — never the blanket all-access.
-      if (isDevAuthBypassEnabled() && (!realUserId || isDevBypassUser(realUserId))) {
+      const devUserRole = getDevLoginUserRole(realUserId);
+      if (isDevAuthBypassEnabled() && devUserRole) {
+        return res.json(
+          validateResponse(
+            permissionsMeResponseSchema,
+            {
+              userId: realUserId,
+              orgId,
+              roles: [
+                {
+                  id: `dev-user-role:${devUserRole}`,
+                  name: devUserRole,
+                  displayName: `${devUserRoleLabel(devUserRole)} (Dev Preview)`,
+                },
+              ],
+              permissions: {},
+              isDevMode: false,
+              hubAdmin: false,
+              hubAccess: [],
+            },
+            "GET /api/permissions/me (dev user preview)"
+          )
+        );
+      }
+
+      // Temporary dev-login admin sessions resolve to the synthetic superuser id
+      // and intentionally receive all permissions. Regular dev-user previews
+      // are handled above and never inherit this blanket grant.
+      if (isDevAuthBypassEnabled() && isDevBypassUser(realUserId)) {
         const allPermissions: Record<string, Record<string, boolean>> = {};
         for (const resource of RESOURCES) {
           allPermissions[resource.code] = {};
@@ -105,18 +131,10 @@ export function registerPermissionRoutes(app: Express) {
           validateResponse(
             permissionsMeResponseSchema,
             {
-              userId: DEV_USER_ID,
-              orgId: DEV_ORG_ID,
-              // The dev auth bypass authenticates as the admin identity
-              // (dev-admin-user) and this branch grants every permission, so the
-              // reported role must be an admin-portal role too. Returning a
-              // non-admin name like "developer" passes permission-based gates but
-              // FAILS role-name gates (e.g. CrewManagement's admin tabs, the
-              // getPortalForRole navigation pivot), hiding admin surfaces in dev.
-              // Tradeoff: dev always resolves to admin, so exercising the reduced
-              // user-portal experience in dev needs a separate mechanism.
+              userId: realUserId ?? DEV_USER_ID,
+              orgId,
               roles: [
-                { id: "dev-role", name: "system_admin", displayName: "System Admin (Dev Mode)" },
+                { id: "dev-role", name: "super_admin", displayName: "Super Admin (Dev Mode)" },
               ],
               permissions: allPermissions,
               isDevMode: true,
@@ -797,10 +815,9 @@ export function registerPermissionRoutes(app: Express) {
       const sessionUser = authReq.user ?? null;
       const orgId = authReq.orgId || DEV_ORG_ID;
 
-      // Only super-admin-capable roles (or the no-login dev-bypass identity) may
+      // Only super-admin-capable roles (or a minted dev-login admin identity) may
       // read a full access picture; everyone else is forbidden.
-      const isDevBypass =
-        isDevAuthBypassEnabled() && (!sessionUser?.id || isDevBypassUser(sessionUser.id));
+      const isDevBypass = isDevAuthBypassEnabled() && isDevBypassUser(sessionUser?.id);
       if (!isDevBypass && !isSuperAdminRole(sessionUser?.role)) {
         return res.status(403).json({
           code: "INSUFFICIENT_PERMISSIONS",

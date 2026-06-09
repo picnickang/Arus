@@ -1,21 +1,10 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useSyncExternalStore,
-} from "react";
-import {
-  getApiSessionToken,
-  setApiSessionToken,
-  subscribeToApiSessionToken,
-} from "@/lib/sessionToken";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { isSuperAdminRole } from "@shared/role-dashboard";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { clearAllPortalState } from "@/infrastructure/navigation/nav-storage";
+import { clearDevLoginSession } from "@/features/dev-login";
 
 interface AdminAccessContextType {
   isAdminUnlocked: boolean;
@@ -41,19 +30,7 @@ export function getAdminSessionToken(): string | null {
   return getApiSessionToken();
 }
 
-// Development convenience: when running a dev build AND nobody is really
-// logged in, treat the admin portal as unlocked so the preview is usable
-// before sign-in. This NEVER overrides a real session — the moment a real
-// token is present (a real login), admin-unlock is driven solely by the
-// logged-in user's role (see `effectiveIsAdminUnlocked` below). We no longer
-// inject a placeholder token; with no token the server applies its own
-// no-login dev identity, keeping client and server in agreement.
-// Use Vite's built-in environment detection for safety.
 const DEV_MODE = import.meta.env.DEV === true;
-// Client mirror of the server-side DEV_AUTH_BYPASS kill switch. Setting
-// VITE_DEV_AUTH_BYPASS=0 disables the local auto-admin convenience so the UI
-// matches the server (which then resolves the caller's real permissions).
-const DEV_AUTO_ADMIN = DEV_MODE && import.meta.env['VITE_DEV_AUTH_BYPASS'] !== "0";
 
 // Default client-side session window used when adopting a session that was
 // established before this provider mounted (the desktop setup wizard signs in
@@ -64,22 +41,13 @@ const DEV_AUTO_ADMIN = DEV_MODE && import.meta.env['VITE_DEV_AUTH_BYPASS'] !== "
 const ADOPTED_SESSION_MS = 12 * 60 * 60 * 1000;
 
 export function AdminAccessProvider({ children }: { children: React.ReactNode }) {
-  // Start LOCKED. The dev convenience (auto-admin when nobody is logged in) is
-  // applied via `effectiveIsAdminUnlocked` below, not by pre-seeding state with
-  // a fake token — so a real login is never overridden.
+  // Start locked. Development superuser access now comes only from an explicit
+  // temporary dev-login token, never from an automatic no-token unlock.
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
   const [timeUntilExpiry, setTimeUntilExpiry] = useState<number | null>(null);
   const [timeUntilIdleTimeout, setTimeUntilIdleTimeout] = useState<number | null>(null);
-
-  // Real session presence, tracked reactively. Drives the dev auto-admin
-  // fallback: it only applies while there is NO real token.
-  const hasRealSession = useSyncExternalStore(
-    subscribeToApiSessionToken,
-    () => getApiSessionToken() !== null,
-    () => false,
-  );
 
   const lastActivityRef = useRef<number>(Date.now());
   const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,6 +95,7 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
 
     // Clear in-memory API session token
     setApiSessionToken(null);
+    clearDevLoginSession();
 
     // Clear timers
     if (expiryTimerRef.current) {
@@ -254,13 +223,8 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     };
   }, [isAdminUnlocked, updateActivity]);
 
-  // A real login wins: when a real token is present, admin-unlock reflects only
-  // the genuine unlock state. With no real session in a dev build, fall back to
-  // the auto-admin convenience so the preview is usable before sign-in.
-  const effectiveIsAdminUnlocked = isAdminUnlocked || (DEV_AUTO_ADMIN && !hasRealSession);
-
   const value: AdminAccessContextType = {
-    isAdminUnlocked: effectiveIsAdminUnlocked,
+    isAdminUnlocked,
     sessionToken,
     sessionExpiresAt,
     unlockAdminFromUserSession,

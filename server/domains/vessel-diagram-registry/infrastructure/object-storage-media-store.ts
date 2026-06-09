@@ -6,6 +6,9 @@ import type {
 } from "../domain/types";
 import { quotaService } from "../../../tenancy/quota-service.js";
 import { ObjectStorageService } from "../../../replit_integrations/object_storage/objectStorage.js";
+import { createLogger } from "../../../lib/structured-logger.js";
+
+const logger = createLogger("VesselDiagramRegistry:ObjectStorageMediaStore");
 
 export class ObjectStorageVesselRegistryMediaStore implements VesselRegistryMediaStore {
   async persist(ctx: RegistryContext, input: PersistRegistryMediaInput): Promise<string> {
@@ -27,7 +30,16 @@ export class ObjectStorageVesselRegistryMediaStore implements VesselRegistryMedi
       owner: ctx.userId ?? "",
       visibility: "private",
     });
-    void quotaService.incrementUsage(ctx.orgId, "storage_bytes", input.content.byteLength);
+    try {
+      await quotaService.incrementUsage(ctx.orgId, "storage_bytes", input.content.byteLength);
+    } catch (error) {
+      logger.warn("Failed to update vessel registry media quota usage", {
+        orgId: ctx.orgId,
+        mediaKind: input.kind,
+        bytes: input.content.byteLength,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     return objectPath;
   }
 

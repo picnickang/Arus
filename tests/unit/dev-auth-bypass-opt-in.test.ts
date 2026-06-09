@@ -1,50 +1,55 @@
 /**
- * SEC regression — the dev auth bypass must be OPT-IN.
+ * SEC regression — the temporary dev auth helper must be token-login scoped.
  *
- * Previously the bypass was opt-out: active whenever NODE_ENV=development
- * unless DEV_AUTH_BYPASS=0. That meant any context that landed in
- * "development" (and forgot to set DEV_AUTH_BYPASS=0) silently granted an
- * admin identity to unauthenticated callers. It is now opt-in: it requires
- * BOTH NODE_ENV=development AND DEV_AUTH_BYPASS=1, so a stray/forgotten env
- * fails closed. (`npm run dev` sets both, preserving local DX.)
+ * The old DEV_AUTH_BYPASS flag granted synthetic admin identity to
+ * unauthenticated callers. The helper now follows the modular dev-login
+ * feature flag only; callers still need a token minted by /api/portal/dev-login
+ * before they resolve as admin or user preview sessions.
  */
 
 import { describe, it, expect, afterEach } from "@jest/globals";
 import { isDevAuthBypassEnabled } from "../../server/security/dev-auth";
 
-describe("isDevAuthBypassEnabled — opt-in", () => {
+describe("isDevAuthBypassEnabled — dev-login scoped", () => {
   const saved = { ...process.env };
   afterEach(() => {
     process.env = { ...saved };
   });
 
-  it("is enabled only with NODE_ENV=development AND DEV_AUTH_BYPASS=1", () => {
+  it("is enabled in development by the modular dev-login gate", () => {
     process.env["NODE_ENV"] = "development";
-    process.env["DEV_AUTH_BYPASS"] = "1";
+    delete process.env["ARUS_DEV_LOGIN"];
     expect(isDevAuthBypassEnabled()).toBe(true);
   });
 
-  it("is DISABLED in development when DEV_AUTH_BYPASS is unset (the hardening)", () => {
+  it("is disabled in development when ARUS_DEV_LOGIN=0", () => {
     process.env["NODE_ENV"] = "development";
-    delete process.env["DEV_AUTH_BYPASS"];
+    process.env["ARUS_DEV_LOGIN"] = "0";
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
-  it("is disabled in development when DEV_AUTH_BYPASS=0", () => {
-    process.env["NODE_ENV"] = "development";
-    process.env["DEV_AUTH_BYPASS"] = "0";
+  it("does not honor the retired DEV_AUTH_BYPASS flag in test", () => {
+    process.env["NODE_ENV"] = "test";
+    process.env["DEV_AUTH_BYPASS"] = "1";
+    delete process.env["ARUS_DEV_LOGIN"];
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
-  it("is never enabled in production, even with DEV_AUTH_BYPASS=1", () => {
+  it("is enabled in test only when ARUS_DEV_LOGIN=1", () => {
+    process.env["NODE_ENV"] = "test";
+    process.env["ARUS_DEV_LOGIN"] = "1";
+    expect(isDevAuthBypassEnabled()).toBe(true);
+  });
+
+  it("is never enabled in production, even with ARUS_DEV_LOGIN=1", () => {
     process.env["NODE_ENV"] = "production";
-    process.env["DEV_AUTH_BYPASS"] = "1";
+    process.env["ARUS_DEV_LOGIN"] = "1";
     expect(isDevAuthBypassEnabled()).toBe(false);
   });
 
-  it("is disabled when NODE_ENV is unset", () => {
+  it("can be explicitly enabled outside production for local tooling", () => {
     delete process.env["NODE_ENV"];
-    process.env["DEV_AUTH_BYPASS"] = "1";
-    expect(isDevAuthBypassEnabled()).toBe(false);
+    process.env["ARUS_DEV_LOGIN"] = "1";
+    expect(isDevAuthBypassEnabled()).toBe(true);
   });
 });

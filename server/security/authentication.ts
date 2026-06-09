@@ -5,7 +5,7 @@ import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
 import { isPublicApiPath } from "../bootstrap/public-api-paths";
 import { DEFAULT_ORG_ID, requireTenantAuth } from "@shared/config/tenant";
-import { DEV_BYPASS_USER_ID, isDevAuthBypassEnabled } from "./dev-auth";
+import { resolveDevLoginSessionToken } from "./dev-login";
 
 function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -18,31 +18,6 @@ export async function requireAuthentication(req: Request, res: Response, next: N
     }
 
     const authHeader = req.headers.authorization;
-    const hasBearerToken =
-      typeof authHeader === "string" && authHeader.startsWith("Bearer ");
-
-    if (isDevAuthBypassEnabled() && !hasBearerToken) {
-      // Push B1: dev mock user carries the legacy DEFAULT_ORG_ID so
-      // unmigrated dev workflows keep working. In REQUIRE_TENANT_AUTH
-      // mode this still works because the dev user does have an orgId
-      // claim — it's just the default one.
-      //
-      // IMPORTANT: only fall back to the mock admin when the caller did NOT
-      // present a real session token. A real portal login (e.g. a regular
-      // user changing their own password) sends `Authorization: Bearer …`;
-      // if we forced the mock admin here, self-service flows like
-      // /api/me/change-password would silently operate on the dev admin
-      // instead of the logged-in user and always fail.
-      req.user = {
-        id: DEV_BYPASS_USER_ID,
-        email: "admin@example.com",
-        role: "admin",
-        name: "Development Admin",
-        isActive: true,
-        orgId: DEFAULT_ORG_ID,
-      };
-      return next();
-    }
 
     if (!authHeader) {
       return res.status(401).json({
@@ -68,6 +43,19 @@ export async function requireAuthentication(req: Request, res: Response, next: N
         code: "MISSING_TOKEN",
         message: "Bearer token is required for admin access",
       });
+    }
+
+    const devSession = resolveDevLoginSessionToken(token);
+    if (devSession) {
+      req.user = {
+        id: devSession.id,
+        email: devSession.email,
+        role: devSession.role,
+        name: devSession.name,
+        isActive: true,
+        orgId: devSession.orgId,
+      };
+      return next();
     }
 
     const tokenHash = hashSessionToken(token);

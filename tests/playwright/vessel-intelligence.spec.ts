@@ -256,6 +256,11 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await expect(page.getByTestId("universal-ops-shell")).toBeVisible();
     await expect(page.getByTestId("universal-ops-rail")).toBeVisible();
     await expect(page.getByTestId("universal-ops-subnav")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-subnav-fleet-triage")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-subnav-fleet-triage")).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
     await expect(page.getByTestId("fleet-triage-page")).toBeVisible();
     await expect(page.getByTestId("fleet-triage-list")).toContainText("MV ARUS Explorer");
     await expect(page.getByTestId("fleet-map-status")).toBeVisible();
@@ -278,6 +283,14 @@ test.describe("Vessel Intelligence visual workflow", () => {
 
     await page.getByTestId("button-open-vessel-action-vessel-1").click();
     await expect(page).toHaveURL(/\/vessel-intelligence\/vessel-1\/alerts/);
+  });
+
+  test("/vessel-intelligence/fleet redirects to canonical Fleet Triage", async ({ page }) => {
+    await installVesselFixtures(page);
+    await page.goto("/vessel-intelligence/fleet", { waitUntil: "domcontentloaded" });
+
+    await expect(page).toHaveURL(/\/fleet$/);
+    await expect(page.getByTestId("fleet-triage-page")).toBeVisible();
   });
 
   test("fleet side elevation replacement affordance reaches the working registry flow", async ({
@@ -306,6 +319,7 @@ test.describe("Vessel Intelligence visual workflow", () => {
     await page.getByTestId("universal-ops-mobile-menu-trigger").click();
     await expect(page.getByTestId("universal-ops-mobile-drawer")).toBeVisible();
     await expect(page.getByTestId("universal-ops-drawer-hub-fleet")).toBeVisible();
+    await expect(page.getByTestId("universal-ops-drawer-child-fleet-triage")).toBeVisible();
     await expect(page.getByTestId("universal-ops-drawer-child-vessel-intelligence")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("fleet-vessel-section-overlay")).toBeVisible();

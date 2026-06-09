@@ -1,14 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-} from "react";
+import { createContext, useContext, useMemo, useEffect, useRef, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDevModeOverride } from "@/components/DevModeToggle";
 import { queryClient } from "@/lib/queryClient";
 import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionToken";
 
@@ -43,22 +34,6 @@ interface PermissionsContextType {
   canExport: (resource: string) => boolean;
 }
 
-function useDevModeState(): boolean {
-  const [devMode, setDevMode] = useState(() => getDevModeOverride());
-
-  useEffect(() => {
-    const handleChange = () => setDevMode(getDevModeOverride());
-    window.addEventListener("devModeChange", handleChange);
-    window.addEventListener("storage", handleChange);
-    return () => {
-      window.removeEventListener("devModeChange", handleChange);
-      window.removeEventListener("storage", handleChange);
-    };
-  }, []);
-
-  return devMode;
-}
-
 const defaultPermissions: UserPermissions = {
   userId: "",
   orgId: "",
@@ -85,11 +60,9 @@ interface PermissionsResponse {
 }
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
-  const clientDevMode = useDevModeState();
-
   // Track the live API session token. A login or logout changes the identity,
   // and the permissions response is cached for 5 minutes — so without this a
-  // real user could briefly inherit the previous (e.g. no-login dev-mode) grants
+  // real user could briefly inherit the previous identity's grants
   // until the stale window elapsed. `resetQueries` (not just invalidate) drops
   // the cached payload so access collapses to "deny" during the refetch instead
   // of showing stale elevated permissions.
@@ -114,19 +87,13 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
-  // Dev "all-permissions" mode is driven by an EXPLICIT signal only: the
-  // developer's manual toggle, or a successful server response that reports
-  // `isDevMode` (the no-login dev identity). We deliberately do NOT treat a
-  // failed request as dev mode — that fail-open used to grant everything on
-  // error and would defeat the server-side dev-bypass kill switch and any real
-  // login whose request happened to fail.
-  const effectiveDevMode = clientDevMode || data?.isDevMode === true;
+  // Only the server may mark a session as dev-all-access. Regular dev-user
+  // preview sessions deliberately return isDevMode=false.
+  const effectiveDevMode = data?.isDevMode === true;
 
   const permissions: UserPermissions = useMemo(() => {
     if (isLoading) {
-      // Until permissions are known, only the explicit manual toggle grants
-      // dev mode; otherwise deny so a real user never flashes full access.
-      return { ...defaultPermissions, isLoading: true, isDevMode: clientDevMode };
+      return { ...defaultPermissions, isLoading: true, isDevMode: false };
     }
     if (error || !data) {
       return {
@@ -148,7 +115,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       isLoading: false,
       error: null,
     };
-  }, [data, isLoading, error, effectiveDevMode, clientDevMode]);
+  }, [data, isLoading, error, effectiveDevMode]);
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (import.meta.env.DEV && permissions.isDevMode) {

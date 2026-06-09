@@ -2,16 +2,9 @@
  * Admin API Utilities
  *
  * Provides authenticated API request functions for admin operations.
- * Dev mode: bypasses session checks for development access.
  */
 
 import { getApiSessionToken } from "@/lib/sessionToken";
-
-// Development mode: a real session is not required (the server applies its own
-// no-login dev identity when no token is sent). We never inject a placeholder
-// token — that would override a real login and fail server-side auth.
-// Use Vite's built-in environment detection for safety.
-const DEV_MODE = import.meta.env.DEV === true;
 
 /**
  * Admin API request function with session-based authentication.
@@ -26,11 +19,9 @@ export async function adminApiRequest<T = unknown>(
   url: string,
   data?: unknown
 ): Promise<T> {
-  // Use the real session token. In dev, a missing token is fine (server applies
-  // its no-login dev identity); outside dev a session is required.
   const sessionToken = getApiSessionToken();
 
-  if (!sessionToken && !DEV_MODE) {
+  if (!sessionToken) {
     throw new Error("Admin session not active. Please unlock admin mode first.");
   }
 
@@ -82,11 +73,9 @@ export async function adminApiRequest<T = unknown>(
  */
 export function adminQueryFn(queryKey: readonly string[]) {
   return async () => {
-    // Use the real session token. In dev, a missing token is fine (server
-    // applies its no-login dev identity); outside dev a session is required.
     const sessionToken = getApiSessionToken();
 
-    if (!sessionToken && !DEV_MODE) {
+    if (!sessionToken) {
       throw new Error("Admin session not active. Please unlock admin mode first.");
     }
 

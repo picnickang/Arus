@@ -5,6 +5,7 @@
 
 import { randomBytes } from "node:crypto";
 import { createLogger } from "../lib/structured-logger";
+import { isDevLoginEnabled } from "../security/dev-login/config";
 const logger = createLogger("Bootstrap:Environment");
 
 export interface EnvironmentConfig {
@@ -267,14 +268,12 @@ export function validateEnvironment(): EnvironmentConfig {
   if (isProduction && !process.env["SESSION_SECRET"]) {
     errors.push("Production deployment without SESSION_SECRET is insecure");
   }
-  if (isDevelopment && process.env["DEV_AUTH_BYPASS"] === "1") {
+  if (isDevelopment && isDevLoginEnabled()) {
     logger.warn(
-      "⚠ Auth: Dev auth bypass ENABLED (DEV_AUTH_BYPASS=1) — unauthenticated requests run as dev-admin-user"
+      "⚠ Auth: Temporary dev login ENABLED (ARUS_DEV_LOGIN) — use /api/portal/dev-login to mint preview sessions"
     );
   } else if (isDevelopment) {
-    logger.info(
-      "ℹ Auth: Dev auth bypass disabled (set DEV_AUTH_BYPASS=1 to enable for local preview)"
-    );
+    logger.info("ℹ Auth: Temporary dev login disabled (set ARUS_DEV_LOGIN=1 for local preview)");
   }
 
   outputResults(warnings, errors, isEmbedded, localMode);

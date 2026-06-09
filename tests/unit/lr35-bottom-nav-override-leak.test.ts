@@ -209,11 +209,21 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
 
     it("portal-login.tsx writes nav state ONLY through the centralised adapter", async () => {
       const src = await readFile(PORTAL_LOGIN, "utf8");
-      // Brief #194 requirement: PortalLogin MUST write nav state
-      // through a centralised helper, not raw `localStorage`.
-      expect(src).toContain("writeUserRole");
-      expect(src).toContain("clearNavOverride");
+      // Brief #194 requirement: PortalLogin MUST write nav state through a
+      // centralised helper, not raw `localStorage`. The role write moved
+      // behind `rememberRoleHint` (application/navigation/role-hint.ts),
+      // which performs writeUserRole + clearNavOverride via the nav-storage
+      // adapter — assert the indirection end-to-end.
+      expect(src).toContain("rememberRoleHint");
       expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
+      const roleHint = await readFile(
+        resolve(REPO_ROOT, "client/src/application/navigation/role-hint.ts"),
+        "utf8",
+      );
+      expect(roleHint).toContain("writeUserRole");
+      expect(roleHint).toContain("clearNavOverride");
+      expect(roleHint).toContain("@/infrastructure/navigation/nav-storage");
+      expect(roleHint).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
     });
   });
 
