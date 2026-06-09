@@ -596,3 +596,50 @@ export async function listDistinctRoleOrgIds(): Promise<string[]> {
 export async function listAllOrganizations(): Promise<{ id: string; name: string }[]> {
   return db.select({ id: organizations.id, name: organizations.name }).from(organizations);
 }
+
+// --- Reads for the permissions routes (me / admin diagnostics) ---------------
+
+/** The user's PRIMARY role column (what server-side route guards authorize). */
+export async function getUserPrimaryRole(orgId: string, userId: string) {
+  const [row] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+  return row;
+}
+
+/** Canonical DB user row used by the permissions self-diagnostic route. */
+export async function getUserDiagnosticRow(orgId: string, userId: string) {
+  const [row] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      loginEnabled: users.loginEnabled,
+      mustChangePassword: users.mustChangePassword,
+      hubAdmin: users.hubAdmin,
+      hubAccess: users.hubAccess,
+    })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+  return row;
+}
+
+/** Optional 1:1 crew login-account link for a user, if any. */
+export async function getCrewLinkForUser(orgId: string, userId: string) {
+  const [row] = await db
+    .select({
+      id: crew.id,
+      name: crew.name,
+      vesselId: crew.vesselId,
+      roleId: crew.roleId,
+    })
+    .from(crew)
+    .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
+    .limit(1);
+  return row;
+}
