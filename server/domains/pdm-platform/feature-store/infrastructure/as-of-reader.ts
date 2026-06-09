@@ -15,7 +15,7 @@
  */
 
 import { and, desc, eq, lte } from "drizzle-orm";
-import { db } from "../../../db";
+import { db } from "../../../../db";
 import { equipmentFeatures, failurePredictions } from "@shared/schema-runtime";
 import type { EquipmentFeature } from "@shared/schema-runtime";
 
