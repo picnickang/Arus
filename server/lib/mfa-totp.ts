@@ -14,6 +14,7 @@
  * Default skew window is ±1 step (±30s) to tolerate clock drift.
  */
 import { TOTP, Secret } from "otpauth";
+import { randomInt } from "node:crypto";
 
 const DEFAULT_ISSUER = process.env['MFA_TOTP_ISSUER'] || "ARUS";
 const DEFAULT_WINDOW = 1;
@@ -70,7 +71,11 @@ export function generateRecoveryCodes(count = 10): string[] {
   for (let i = 0; i < count; i++) {
     let code = "";
     for (let c = 0; c < 10; c++) {
-      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+      // SEC: recovery codes are break-glass credentials "as powerful as
+      // the TOTP secret" — they MUST use a CSPRNG. `crypto.randomInt`
+      // gives a uniform, unbiased index (rejection-sampled internally),
+      // replacing the predictable `Math.random()`.
+      code += alphabet[randomInt(alphabet.length)];
       if (c === 4) {code += "-";}
     }
     out.push(code);

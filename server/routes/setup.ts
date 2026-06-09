@@ -50,14 +50,18 @@ function auditSetupAttempt(
 }
 
 function localOnlyGuard(req: Request, res: Response, next: NextFunction) {
+  // SEC: trust ONLY the transport-level peer address and server-side
+  // env, never client-supplied headers. `Origin: tauri://localhost`
+  // and a "Tauri" `User-Agent` are attacker-controlled and previously
+  // let a remote caller pass this guard and complete first-run setup.
+  // The real Tauri sidecar reaches the bundled server over loopback, so
+  // `isLoopbackAddress` already covers it. Remote callers must present a
+  // valid X-Setup-Token (audited below).
   const socketAddress = req.socket.remoteAddress || "";
   const isLocal = isLoopbackAddress(socketAddress);
-  const origin = req.headers.origin || "";
-  const isTauriOrigin = origin === "tauri://localhost" || origin === "https://tauri.localhost";
-  const isTauriUserAgent = req.headers["user-agent"]?.includes("Tauri") || false;
   const isReplitDevelopment = !!process.env['REPL_ID'] && process.env['NODE_ENV'] !== "production";
 
-  if (isLocal || isTauriOrigin || isTauriUserAgent || isReplitDevelopment) {
+  if (isLocal || isReplitDevelopment) {
     next();
     return undefined;
   }

@@ -43,8 +43,24 @@ export interface SsoSessionIssuer {
     displayName?: string | undefined;
     attributes: Record<string, unknown>;
     req: Request;
-  }): Promise<{ sessionToken: string; redirectTo: string } | null>;
+  }): Promise<{
+    sessionToken: string;
+    redirectTo: string;
+    /**
+     * Absolute session expiry (epoch ms). When provided, the session
+     * cookie's `maxAge` is bound to it so the browser drops the cookie
+     * in lock-step with the server-side session record. When omitted, a
+     * bounded default TTL is applied (never an open-ended session cookie).
+     */
+    expiresAt?: number;
+  } | null>;
 }
+
+/** Default session-cookie lifetime when the issuer does not supply one. */
+const DEFAULT_SESSION_TTL_MS = (() => {
+  const hours = Number(process.env['SSO_SESSION_TTL_HOURS']);
+  return Number.isFinite(hours) && hours > 0 ? hours * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
+})();
 
 export interface MountSsoOptions {
   configLookup: SsoConfigLookup;
@@ -101,17 +117,25 @@ function clearPkceCookie(res: Response): void {
   res.clearCookie(PKCE_COOKIE, { path: "/" });
 }
 
-function buildSessionCookieOptions(): {
+function buildSessionCookieOptions(expiresAt?: number): {
   httpOnly: true;
   sameSite: "lax";
   secure: boolean;
   path: string;
+  maxAge: number;
 } {
+  // SEC: always set a finite `maxAge`. Previously the session cookie had
+  // no expiry/maxAge, making it an open-ended browser session cookie not
+  // bound to the server session's lifetime. Prefer the issuer-supplied
+  // absolute expiry; otherwise fall back to a bounded default TTL.
+  const remaining = typeof expiresAt === "number" ? expiresAt - Date.now() : NaN;
+  const maxAge = Number.isFinite(remaining) && remaining > 0 ? remaining : DEFAULT_SESSION_TTL_MS;
   return {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env['NODE_ENV'] === "production",
     path: "/",
+    maxAge,
   };
 }
 
@@ -151,7 +175,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
       });
       if (!issued) {return res.status(403).json({ error: "user_not_provisioned" });}
 
-      res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions());
+      res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions(issued.expiresAt));
       const target = sanitizeRedirect(body.RelayState || issued.redirectTo);
       return res.redirect(302, target);
     } catch (err) {
@@ -221,7 +245,7 @@ export function createSsoRouter(opts: MountSsoOptions): Router {
       }
 
       clearPkceCookie(res);
-      res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions());
+      res.cookie(sessionCookie, issued.sessionToken, buildSessionCookieOptions(issued.expiresAt));
       return res.redirect(302, sanitizeRedirect(issued.redirectTo));
     } catch (err) {
       clearPkceCookie(res);
