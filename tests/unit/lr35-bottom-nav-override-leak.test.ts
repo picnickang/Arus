@@ -30,6 +30,7 @@ const REPO_ROOT = process.cwd();
 const BOTTOM_NAV = resolve(REPO_ROOT, "client/src/components/BottomNav.tsx");
 const SWITCH_PORTAL = resolve(REPO_ROOT, "client/src/components/navigation/SwitchPortalButton.tsx");
 const PORTAL_LOGIN = resolve(REPO_ROOT, "client/src/pages/portal-login.tsx");
+const ROLE_HINT = resolve(REPO_ROOT, "client/src/application/navigation/role-hint.ts");
 const ROLES_CONFIG = resolve(REPO_ROOT, "client/src/config/roles.ts");
 const NAV_STORAGE = resolve(REPO_ROOT, "client/src/infrastructure/navigation/nav-storage.ts");
 
@@ -82,11 +83,11 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(result.map((c) => c.id)).toEqual(reversed);
     });
 
-    it("admin role (system_admin) still resolves to the five admin categories under intersect", () => {
+    it("admin role (system_admin) still resolves to the eight admin categories under intersect", () => {
       const policyIds = getPrimaryCategoriesForRole("system_admin").map((c) => c.id);
-      // Admin policy grants all eight primary hubs — pin the
-      // cardinality so a future shrink can't silently regress the
-      // override codepath for admins.
+      // Admin policy currently grants eight primary categories — pin
+      // the cardinality so a future shrink can't silently regress
+      // the override codepath for admins.
       expect(policyIds.length).toBe(8);
       // With no override, intersect returns the same policy default
       // unchanged (admin nav is preserved end-to-end).
@@ -172,14 +173,16 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
     });
 
-    it("BottomNav is gated off the ops shell, but the #194 self-heal still runs everywhere", async () => {
+    it("App.tsx mounts BottomNav only outside the universal shell and only pads for the admin portal (#218)", async () => {
       const APP_TSX = resolve(REPO_ROOT, "client/src/App.tsx");
       const src = await readFile(APP_TSX, "utf8");
-      // BottomNav mounts on every non-login route EXCEPT ops-shell routes
-      // (those carry their own nav rail; gating avoids a double bottom bar).
-      // It is NOT gated on `isAdminPortal` — that would also disable the
-      // override self-heal for the very user-portal roles we scrub.
-      expect(src).toContain("!usesUniversalOpsShell && <BottomNav />");
+      // CRITICAL #194 contract: BottomNav must still mount for
+      // non-shell user-portal sessions so its useEffect-driven
+      // override self-heal (`pruneOverrideToPolicyIds`) keeps running
+      // even though the bar itself returns null and is invisible.
+      // Universal admin hub routes provide their own navigation chrome,
+      // so BottomNav must not mount there.
+      expect(src).toContain("{!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}");
       expect(src).not.toMatch(/\{\s*isAdminPortal\s*&&\s*<BottomNav\s*\/>\s*\}/);
       // Mobile clearance is scoped to the admin portal AND off the ops shell
       // (no orphan `pb-14` strip on routes where BottomNav isn't mounted).
@@ -187,7 +190,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toContain("isAdminPortalAccess");
       expect(src).toContain("permissions.hubAdmin");
       expect(src).toMatch(
-        /isAdminPortal\s*&&\s*!usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/
+        /isAdminPortal\s*&&\s*!\s*usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/
       );
       // Must not reintroduce the legacy unconditional clearance.
       expect(src).not.toMatch(
@@ -209,21 +212,15 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
 
     it("portal-login.tsx writes nav state ONLY through the centralised adapter", async () => {
       const src = await readFile(PORTAL_LOGIN, "utf8");
-      // Brief #194 requirement: PortalLogin MUST write nav state through a
-      // centralised helper, not raw `localStorage`. The role write moved
-      // behind `rememberRoleHint` (application/navigation/role-hint.ts),
-      // which performs writeUserRole + clearNavOverride via the nav-storage
-      // adapter — assert the indirection end-to-end.
+      const roleHintSrc = await readFile(ROLE_HINT, "utf8");
+      // Brief #194 requirement: PortalLogin MUST write nav state
+      // through a centralised helper, not raw `localStorage`.
       expect(src).toContain("rememberRoleHint");
+      expect(src).toContain("clearUserRole");
+      expect(roleHintSrc).toContain("writeUserRole");
+      expect(roleHintSrc).toContain("clearNavOverride");
       expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
-      const roleHint = await readFile(
-        resolve(REPO_ROOT, "client/src/application/navigation/role-hint.ts"),
-        "utf8",
-      );
-      expect(roleHint).toContain("writeUserRole");
-      expect(roleHint).toContain("clearNavOverride");
-      expect(roleHint).toContain("@/infrastructure/navigation/nav-storage");
-      expect(roleHint).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
+      expect(roleHintSrc).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
     });
   });
 
