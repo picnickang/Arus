@@ -207,7 +207,7 @@
     "input-otp": "^1.4.2",
     "ioredis": "^5.8.2",
     "javascript-lp-solver": "^0.4.24",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.2",
     "kafkajs": "^2.2.4",
     "lru-cache": "^11.2.7",
