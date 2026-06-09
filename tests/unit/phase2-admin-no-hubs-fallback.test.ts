@@ -35,11 +35,13 @@ async function readSrc(p: string): Promise<string> {
 describe("Phase 2 — admin no-hubs safe fallback", () => {
   it("policy: an empty hub allow-list yields zero admin categories", () => {
     const cats = getAdminPrimaryCategories();
-    expect(cats.length).toBe(5);
+    // The admin portal exposes every top-level hub (operations, fleet,
+    // maintenance, crew, logistics, records, analytics, system).
+    expect(cats.length).toBe(8);
     // [] = granted admin access, no hubs assigned → nothing to launch.
     expect(filterCategoriesByHubAccess(cats, [])).toEqual([]);
     // null = unrestricted (super-admin / dev) → all hubs survive.
-    expect(filterCategoriesByHubAccess(cats, null).length).toBe(5);
+    expect(filterCategoriesByHubAccess(cats, null).length).toBe(cats.length);
   });
 
   describe("home.tsx source contract", () => {
