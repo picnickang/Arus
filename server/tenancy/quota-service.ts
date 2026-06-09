@@ -18,6 +18,7 @@
  */
 
 import { sql } from "drizzle-orm";
+import { getDbExecutor } from "../db/lazy-db";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("Tenancy:QuotaService");
@@ -109,8 +110,7 @@ export class QuotaService {
 
   private async executor(): Promise<SqlExecutor> {
     if (!this.resolved) {
-      const mod = await import("../db-config");
-      this.resolved = mod.db as SqlExecutor;
+      this.resolved = (await getDbExecutor()) as SqlExecutor;
     }
     return this.resolved;
   }

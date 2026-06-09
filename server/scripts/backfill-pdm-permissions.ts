@@ -34,10 +34,9 @@
  * grants immediately.
  */
 
-import { db } from "../db";
-import { organizations } from "@shared/schema-runtime";
 import {
   backfillPdmTemplateGrantsForOrg,
+  listAllOrganizations,
   type PdmBackfillRoleResult,
 } from "../domains/permissions/repository";
 
@@ -63,9 +62,7 @@ function summarizeOrg(results: PdmBackfillRoleResult[]): {
 }
 
 async function main(): Promise<void> {
-  const orgs = await db
-    .select({ id: organizations.id, name: organizations.name })
-    .from(organizations);
+  const orgs = await listAllOrganizations();
 
   console.log(
     `[backfill-pdm] mode=${apply ? "APPLY" : "DRY-RUN"} | organizations=${orgs.length}`

@@ -17,7 +17,7 @@ import type { WidenPartial } from "../../lib/widen-partial";
 import { db } from "../../db";
 import { eq, and, count, isNull } from "drizzle-orm";
 import { crew } from "../../../shared/schema/crew";
-import { users } from "../../../shared/schema/core";
+import { users, organizations } from "../../../shared/schema/core";
 import {
   roles,
   permissionGrants,
@@ -590,4 +590,9 @@ export async function setCrewRoleId(
 export async function listDistinctRoleOrgIds(): Promise<string[]> {
   const rows = await db.select({ orgId: roles.orgId }).from(roles).groupBy(roles.orgId);
   return rows.map((r) => r.orgId);
+}
+
+/** All organizations (id + name) — used by the PdM-permissions backfill script. */
+export async function listAllOrganizations(): Promise<{ id: string; name: string }[]> {
+  return db.select({ id: organizations.id, name: organizations.name }).from(organizations);
 }
