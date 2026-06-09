@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useWorkOrderTasksTabData } from "@/features/work-orders";
+import { safeIsoDate } from "./work-order-task-dates";
 
 interface WorkOrderTasksTabProps {
   workOrderId: string;
@@ -181,19 +182,35 @@ export function WorkOrderTasksTab({ workOrderId, isReadOnly = false }: WorkOrder
             </div>
           )}
 
-          {(workOrderTasks as Array<{ id: string; description: string; isCompleted: boolean; completedByName?: string | null; completedAt?: string | Date | null }>).length > 0 && (
+          {(
+            workOrderTasks as Array<{
+              id: string;
+              description: string;
+              isCompleted: boolean;
+              completedByName?: string | null;
+              completedAt?: string | Date | null;
+            }>
+          ).length > 0 && (
             <div className="space-y-2" data-testid="additional-tasks-section">
               {templateCompletions.length > 0 && (
                 <h4 className="text-sm font-medium text-muted-foreground mt-4">Additional Tasks</h4>
               )}
-              {(workOrderTasks as Array<{ id: string; description: string; isCompleted: boolean; completedByName?: string | null; completedAt?: string | Date | null }>).map((task) => (
+              {(
+                workOrderTasks as Array<{
+                  id: string;
+                  description: string;
+                  isCompleted: boolean;
+                  completedByName?: string | null;
+                  completedAt?: string | Date | null;
+                }>
+              ).map((task) => (
                 <TaskItem
                   key={task.id}
                   id={task.id}
                   description={task.description}
                   isCompleted={task.isCompleted}
                   completedByName={task.completedByName ?? undefined}
-                  completedAt={task.completedAt ? new Date(task.completedAt).toISOString() : undefined}
+                  completedAt={safeIsoDate(task.completedAt)}
                   isReadOnly={isReadOnly}
                   isPending={toggleTaskCompletion.isPending || deleteTaskMutation.isPending}
                   onToggle={(completed) =>

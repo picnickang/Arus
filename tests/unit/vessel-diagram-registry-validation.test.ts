@@ -8,8 +8,8 @@ import {
 import type { SectionMapRecord } from "../../server/domains/vessel-diagram-registry/domain/types";
 
 describe("vessel diagram registry validation", () => {
-  it("rejects SVG scripts, event handlers, external refs, and javascript URLs", () => {
-    const svg = `<svg><script>alert(1)</script><image href="https://example.com/x.png"/><a href="javascript:alert(1)" onclick="bad()"/></svg>`;
+  it("rejects SVG scripts, event handlers, external refs, javascript URLs, and data URLs", () => {
+    const svg = `<svg><script>alert(1)</script><image href="https://example.com/x.png"/><image href="data:image/png;base64,AAAA"/><a href="javascript:alert(1)" onclick="bad()"/></svg>`;
     const result = sanitizeSvgContent(svg);
 
     expect(result.issues.map((issue) => issue.code)).toEqual(
@@ -18,6 +18,7 @@ describe("vessel diagram registry validation", () => {
         "svg_event_handler",
         "svg_javascript_url",
         "svg_external_reference",
+        "svg_data_url",
       ])
     );
   });

@@ -58,6 +58,7 @@ describe("universal admin ops navigation", () => {
 
     expect(ids(model.primaryHubs)).toEqual(navigationCategories.map((category) => category.id));
     expect(model.activeHub?.id).toBe("fleet");
+    expect(model.activeChildren[0]).toMatchObject({ name: "Fleet Triage", href: "/fleet" });
     expect(model.activeChildren.map((child) => child.href)).toEqual(
       navigationCategories
         .find((category) => category.id === "fleet")

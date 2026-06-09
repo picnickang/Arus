@@ -3,11 +3,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiFormDataRequest, apiRequest, queryClient } from "@/lib/queryClient";
 import type { SectionMapImageTransform } from "@shared/schema-runtime";
 import type {
-  EquipmentRecord,
   RegistryDiagramRecord,
   RegistrySectionAssignmentRecord,
   RegistrySectionMapRecord,
 } from "./data";
+export { equipmentIdForThumbnail } from "./registry-identifiers";
 
 export interface RegistryDiagramVersionRecord {
   id: string;
@@ -635,8 +635,4 @@ async function uploadFormData<T = UploadDiagramVersionResult>(
   body: FormData
 ): Promise<T> {
   return apiFormDataRequest<T>("POST", url, body);
-}
-
-export function equipmentIdForThumbnail(equipment: EquipmentRecord): string {
-  return equipment.id ?? equipment.equipmentId ?? equipment.assetCode ?? equipment.name ?? "";
 }

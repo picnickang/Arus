@@ -3,6 +3,7 @@ import { z } from "zod";
 import type {
   CreateSectionInput,
   DiagramUploadInput,
+  NormalizedPoint,
   SectionMapRecord,
   ThumbnailUploadInput,
   VesselDiagramValidationIssue,
@@ -40,6 +41,11 @@ const SVG_BLOCK_PATTERNS: Array<{ code: string; pattern: RegExp; message: string
     code: "svg_javascript_url",
     pattern: /javascript\s*:/i,
     message: "SVG javascript URLs are not allowed",
+  },
+  {
+    code: "svg_data_url",
+    pattern: /\b(?:href|xlink:href|src)\s*=\s*["']\s*data:|url\(\s*["']?\s*data:/i,
+    message: "SVG data URLs are not allowed",
   },
   {
     code: "svg_external_reference",
@@ -80,7 +86,9 @@ function isSvg(mimeType: string, originalFileName: string): boolean {
 }
 
 function hasSignature(content: Buffer, signature: ReadonlyArray<number>): boolean {
-  return content.length >= signature.length && signature.every((byte, index) => content[index] === byte);
+  return (
+    content.length >= signature.length && signature.every((byte, index) => content[index] === byte)
+  );
 }
 
 function hasWebpSignature(content: Buffer): boolean {
@@ -279,24 +287,51 @@ export function validateSectionInput(section: CreateSectionInput): VesselDiagram
       path: `sections.${section.sectionKey}.color`,
     });
   }
-  if (section.polygonNormalized.length < 3) {
+  issues.push(
+    ...validateSectionGeometryPatch({
+      sectionKey: section.sectionKey,
+      polygonNormalized: section.polygonNormalized,
+      labelNormalized: section.labelNormalized,
+    })
+  );
+
+  return issues;
+}
+
+export function validateSectionGeometryPatch(input: {
+  sectionKey?: string;
+  polygonNormalized?: NormalizedPoint[];
+  labelNormalized?: NormalizedPoint;
+}): VesselDiagramValidationIssue[] {
+  const issues: VesselDiagramValidationIssue[] = [];
+  const sectionKey = input.sectionKey ?? "section";
+
+  if (input.polygonNormalized !== undefined && input.polygonNormalized.length < 3) {
     issues.push({
       severity: "blocker",
       code: "polygon_too_small",
       message: "A section polygon needs at least three normalized points",
-      path: `sections.${section.sectionKey}.polygonNormalized`,
+      path: `sections.${sectionKey}.polygonNormalized`,
     });
   }
 
-  const allPoints = [...section.polygonNormalized, section.labelNormalized];
-  for (const [index, point] of allPoints.entries()) {
+  const points = [
+    ...(input.polygonNormalized ?? []).map((point, index) => ({
+      point,
+      path: `sections.${sectionKey}.polygonNormalized.${index}`,
+    })),
+    ...(input.labelNormalized
+      ? [{ point: input.labelNormalized, path: `sections.${sectionKey}.labelNormalized` }]
+      : []),
+  ];
+  for (const { point, path } of points) {
     const parsed = normalizedPointSchema.safeParse(point);
     if (!parsed.success) {
       issues.push({
         severity: "blocker",
         code: "normalized_point_out_of_range",
         message: "Section geometry points must be normalized between 0 and 1",
-        path: `sections.${section.sectionKey}.points.${index}`,
+        path,
       });
     }
   }
@@ -394,7 +429,10 @@ export function validationError(
   statusCode: number;
   issues: VesselDiagramValidationIssue[];
 } {
-  const error = new Error(message) as Error & { statusCode: number; issues: VesselDiagramValidationIssue[] };
+  const error = new Error(message) as Error & {
+    statusCode: number;
+    issues: VesselDiagramValidationIssue[];
+  };
   error.statusCode = 400;
   error.issues = issues;
   return error;
