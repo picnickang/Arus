@@ -22,14 +22,17 @@ import {
 import { ModelEvaluationGate } from "../services/ml/model-evaluation-gate";
 import { MlTrainingJobQueue } from "../services/ml/ml-training-job-queue";
 import { jobQueueService } from "../job-queue-service";
-import { db as dbInstance } from "../db";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
 import type { WsBroadcaster } from "../services/ml/ml-training-job-queue";
 
+// The db handle is injected via deps; reference its type without importing the
+// value (a pure type-level `import(...)` is not a runtime db coupling).
+type DbHandle = typeof import("../db")["db"];
+
 interface PdmGapFillDeps {
-  db: typeof dbInstance;
+  db: DbHandle;
   generalApiRateLimit: RequestHandler;
   writeOperationRateLimit: RequestHandler;
   wsServer?: WsBroadcaster;
