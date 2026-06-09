@@ -17,31 +17,18 @@
  * field in the body so it can't be triggered by accident.
  */
 
-import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { RequestHandler } from "express";
-import { db } from "../../../db-config";
-import { TenantDeleteService } from "../../../services/tenant-delete-facade";
-import { TENANT_TABLE_NAMES } from "../../../tenancy/tenant-tables";
+import {
+  listTenants,
+  provisionTenant,
+  suspendTenant,
+  unsuspendTenant,
+  createTenantDeleteService,
+} from "../infrastructure/tenant-repository";
 import { createLogger } from "../../../lib/structured-logger";
 import { authenticatedRequest } from "../../../middleware/auth";
 import type { Express, SystemAdminDependencies } from "./types.js";
-
-interface PgExecResult {
-  rows?: unknown[];
-  [key: string]: unknown;
-}
-
-interface TenantRow {
-  id: string;
-  name: string;
-  slug: string | null;
-  suspended_at: string | null;
-  suspension_reason: string | null;
-  max_storage_bytes: number | null;
-  max_equipment_count: number | null;
-  max_telemetry_rows_per_day: number | null;
-}
 
 const logger = createLogger("SystemAdmin:TenantRoutes");
 
@@ -84,17 +71,7 @@ export function registerTenantRoutes(
     adminAuth,
     async (_req, res) => {
       try {
-        const result = (await db.execute(
-          sql`SELECT o.id, o.name, o.slug, o.suspended_at, o.suspension_reason,
-                     q.max_storage_bytes, q.max_equipment_count,
-                     q.max_telemetry_rows_per_day
-              FROM organizations o
-              LEFT JOIN tenant_quotas q ON q.org_id = o.id
-              ORDER BY o.id`
-        )) as object as PgExecResult | TenantRow[];
-        const rows: TenantRow[] = Array.isArray(result)
-          ? (result as TenantRow[])
-          : ((result as PgExecResult).rows as TenantRow[] | undefined) ?? [];
+        const rows = await listTenants();
         return res.json({ tenants: rows });
       } catch (err: unknown) {
         logger.error("List tenants failed", undefined, err);
@@ -120,28 +97,7 @@ export function registerTenantRoutes(
       }
       const t = parsed.data;
       try {
-        await db.transaction(async (tx) => {
-          await tx.execute(
-            sql`INSERT INTO organizations (id, name, slug)
-                VALUES (${t.id}, ${t.name}, ${t.slug ?? t.id})
-                ON CONFLICT (id) DO NOTHING`
-          );
-          await tx.execute(
-            sql`INSERT INTO tenant_quotas (org_id, max_storage_bytes,
-                  max_equipment_count, max_telemetry_rows_per_day)
-                VALUES (
-                  ${t.id},
-                  ${t.maxStorageBytes ?? 10737418240},
-                  ${t.maxEquipmentCount ?? 5000},
-                  ${t.maxTelemetryRowsPerDay ?? 10000000}
-                )
-                ON CONFLICT (org_id) DO UPDATE SET
-                  max_storage_bytes = EXCLUDED.max_storage_bytes,
-                  max_equipment_count = EXCLUDED.max_equipment_count,
-                  max_telemetry_rows_per_day = EXCLUDED.max_telemetry_rows_per_day,
-                  updated_at = now()`
-          );
-        });
+        await provisionTenant(t);
         logger.info("Provisioned tenant", { orgId: t.id });
         return res.status(201).json({ orgId: t.id, status: "provisioned" });
       } catch (err: unknown) {
@@ -168,11 +124,7 @@ export function registerTenantRoutes(
           .json({ error: "Invalid body", details: parsed.error.flatten() });
       }
       try {
-        await db.execute(
-          sql`UPDATE organizations
-              SET suspended_at = now(), suspension_reason = ${parsed.data.reason}
-              WHERE id = ${req.params['orgId']}`
-        );
+        await suspendTenant(req.params['orgId'] ?? '', parsed.data.reason);
         return res.json({ orgId: req.params['orgId'], suspended: true });
       } catch (err: unknown) {
         logger.error("Suspend tenant failed", undefined, err);
@@ -190,11 +142,7 @@ export function registerTenantRoutes(
     auditAdmin("tenant_unsuspend"),
     async (req, res) => {
       try {
-        await db.execute(
-          sql`UPDATE organizations
-              SET suspended_at = NULL, suspension_reason = NULL
-              WHERE id = ${req.params['orgId']}`
-        );
+        await unsuspendTenant(req.params['orgId'] ?? '');
         return res.json({ orgId: req.params['orgId'], suspended: false });
       } catch (err: unknown) {
         logger.error("Unsuspend tenant failed", undefined, err);
@@ -243,15 +191,9 @@ export function registerTenantRoutes(
             "Tenant delete: GDPR signing secret missing; using non-prod dev fallback"
           );
         }
-        const service = new TenantDeleteService({
-          // TenantDeleteService accepts the same drizzle handle the rest of
-          // the server uses; the constructor's `db` parameter is intentionally
-          // typed loosely so it can also accept a transaction inside tests.
-          db: db as object as ConstructorParameters<typeof TenantDeleteService>[0]["db"],
-          tables: TENANT_TABLE_NAMES.map((table) => ({ table })),
-          signingSecret:
-            signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
-        });
+        const service = createTenantDeleteService(
+          signingSecret ?? "dev-only-fallback-secret-do-not-use-in-prod",
+        );
         const result = await service.execute(
           req.params['orgId'] ?? '',
           parsed.data.reason
