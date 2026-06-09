@@ -19,9 +19,7 @@
  *     inference path would never reach.
  */
 
-import { and, eq, lt } from "drizzle-orm";
-import { db } from "../db";
-import { mlModels } from "@shared/schema-runtime";
+import { findStaleDeployedModels } from "../domains/ml-analytics/infrastructure/retraining-queries";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("MlStaleModelProcessor");
@@ -68,15 +66,7 @@ export async function processStaleModelCheck(): Promise<StaleModelCheckResult> {
     deployedOn: Date | null;
   }> = [];
   try {
-    rows = await db
-      .select({
-        id: mlModels.id,
-        orgId: mlModels.orgId,
-        equipmentType: mlModels.equipmentType,
-        deployedOn: mlModels.deployedOn,
-      })
-      .from(mlModels)
-      .where(and(eq(mlModels.status, "deployed"), lt(mlModels.deployedOn, cutoff)));
+    rows = await findStaleDeployedModels(cutoff);
   } catch (err) {
     logger.warn("Stale-model sweep query failed", {
       err: err instanceof Error ? err.message : String(err),

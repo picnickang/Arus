@@ -25,9 +25,13 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { and, eq, gte, sql } from "drizzle-orm";
-import { db } from "../db";
-import { predictionOutcomes, equipment, mlModels } from "@shared/schema-runtime";
+import {
+  countEligibleOutcomes,
+  listOrgsWithOutcomes,
+  listEquipmentTypesForOrg,
+  getModelTrainingMetrics,
+  updateModelTrainingMetrics,
+} from "../domains/ml-analytics/infrastructure/retraining-queries";
 import { createLogger } from "../lib/structured-logger";
 import {
   getWriteAdapter,
@@ -77,17 +81,7 @@ export interface ModelRetrainJobResult {
 
 async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promise<number> {
   try {
-    const rows = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(predictionOutcomes)
-      .where(
-        and(
-          eq(predictionOutcomes.orgId, orgId),
-          eq(predictionOutcomes.useForRetraining, true),
-          gte(predictionOutcomes.observedAt, new Date(sinceMs))
-        )
-      );
-    return rows[0]?.count ?? 0;
+    return await countEligibleOutcomes(orgId, new Date(sinceMs));
   } catch (err) {
     logger.warn("Failed to count eligible outcomes", {
       orgId,
@@ -99,11 +93,7 @@ async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promi
 
 async function listOrgs(): Promise<string[]> {
   try {
-    const rows = await db
-      .select({ orgId: predictionOutcomes.orgId })
-      .from(predictionOutcomes)
-      .groupBy(predictionOutcomes.orgId);
-    return rows.map((r) => r.orgId);
+    return await listOrgsWithOutcomes();
   } catch (err) {
     logger.warn("Failed to enumerate orgs for retrain — skipping", {
       err: err instanceof Error ? err.message : String(err),
@@ -114,12 +104,7 @@ async function listOrgs(): Promise<string[]> {
 
 async function listEquipmentTypes(orgId: string): Promise<string[]> {
   try {
-    const rows = await db
-      .select({ type: equipment.type })
-      .from(equipment)
-      .where(eq(equipment.orgId, orgId))
-      .groupBy(equipment.type);
-    return rows.map((r) => r.type).filter((t): t is string => !!t);
+    return await listEquipmentTypesForOrg(orgId);
   } catch {
     return [];
   }
@@ -173,14 +158,7 @@ async function uploadCandidateArtifacts(
   modelId: string,
 ): Promise<void> {
   try {
-    const [row] = await db
-      .select({
-        id: mlModels.id,
-        metrics: mlModels.trainingMetrics,
-      })
-      .from(mlModels)
-      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)))
-      .limit(1);
+    const row = await getModelTrainingMetrics(orgId, modelId);
     if (!row) {return;}
     const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
     const artifactPath = metrics['artifactPath'] as string | undefined;
@@ -220,10 +198,7 @@ async function uploadCandidateArtifacts(
       fs.unlink(localPath).catch(() => undefined);
     }
 
-    await db
-      .update(mlModels)
-      .set({ trainingMetrics: metrics as Record<string, unknown> })
-      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)));
+    await updateModelTrainingMetrics(orgId, modelId, metrics as Record<string, unknown>);
 
     logger.info("Candidate artifacts uploaded to backend", {
       orgId,
