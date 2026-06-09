@@ -19,10 +19,12 @@
  */
 
 import { Router, type Response } from "express";
-import { and, eq, ne } from "drizzle-orm";
-import { db } from "../db";
-import { equipment } from "@shared/schema-runtime";
-import { vessels } from "@shared/schema-runtime";
+import {
+  findFocalEquipment,
+  findVesselClass,
+  findPeerVesselIds,
+  equipmentExistsInOrg,
+} from "../db/equipment/cross-class-queries";
 import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
 import {
@@ -44,15 +46,7 @@ router.get(
 
     try {
       // 1) Look up the focal equipment (RLS-scoped via orgId).
-      const [eq0] = await db
-        .select({
-          id: equipment.id,
-          type: equipment.type,
-          vesselId: equipment.vesselId,
-        })
-        .from(equipment)
-        .where(and(eq(equipment.orgId, authReq.orgId), eq(equipment.id, id)))
-        .limit(1);
+      const eq0 = await findFocalEquipment(authReq.orgId, id ?? "");
 
       if (!eq0) {
         res.status(404).json({ error: "Equipment not found" });
@@ -70,11 +64,7 @@ router.get(
       }
 
       // 2) Get the focal vessel's class.
-      const [vessel] = await db
-        .select({ id: vessels.id, vesselClass: vessels.vesselClass })
-        .from(vessels)
-        .where(and(eq(vessels.orgId, authReq.orgId), eq(vessels.id, eq0.vesselId)))
-        .limit(1);
+      const vessel = await findVesselClass(authReq.orgId, eq0.vesselId);
 
       if (!vessel || !vessel.vesselClass) {
         res.json({
@@ -90,17 +80,11 @@ router.get(
       // 3) Peer vessels of the same class, same org, NOT the focal
       //    vessel. RLS keeps this org-bounded; the explicit orgId +
       //    `ne(id)` keeps cross-tenant and self-vessel rows out.
-      const peers = await db
-        .select({ id: vessels.id })
-        .from(vessels)
-        .where(
-          and(
-            eq(vessels.orgId, authReq.orgId),
-            eq(vessels.vesselClass, vessel.vesselClass),
-            ne(vessels.id, vessel.id)
-          )
-        );
-      const peerVesselIds = peers.map((p) => p.id);
+      const peerVesselIds = await findPeerVesselIds(
+        authReq.orgId,
+        vessel.vesselClass,
+        vessel.id,
+      );
 
       if (!isGraphAvailable() || peerVesselIds.length === 0) {
         res.json({
@@ -146,13 +130,9 @@ router.get(
       // Confirm the focal equipment is in the caller's org before
       // we expose any graph rows. The graph itself is org-isolated,
       // but a 404 here gives a clean contract.
-      const [eq0] = await db
-        .select({ id: equipment.id })
-        .from(equipment)
-        .where(and(eq(equipment.orgId, authReq.orgId), eq(equipment.id, id)))
-        .limit(1);
+      const exists = await equipmentExistsInOrg(authReq.orgId, id ?? "");
 
-      if (!eq0) {
+      if (!exists) {
         res.status(404).json({ error: "Equipment not found" });
         return;
       }
