@@ -14,6 +14,8 @@ import { isSuperAdminRole } from "@shared/role-dashboard";
 import { clearDevLoginSession, DevLoginButtons } from "@/features/dev-login";
 import { rememberRoleHint } from "@/application/navigation/role-hint";
 import { clearUserRole } from "@/infrastructure/navigation/nav-storage";
+import { ChangePasswordForm } from "./portal-login/ChangePasswordForm";
+import type { PasswordChangeData } from "@/lib/password-change";
 import {
   Shield,
   User,
@@ -73,13 +75,11 @@ export default function PortalLoginPage() {
 
   const [view, setView] = useState<"choose" | "user" | "admin">("choose");
 
-  // User login state
+  // User login state. In the forced-change flow the login password doubles as
+  // the seeded "current password" for ChangePasswordForm.
   const [stage, setStage] = useState<"login" | "change">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Admin login error. Admin sign-in reuses the shared username/password
   // fields below — there is no separate shared-password field anymore.
@@ -96,7 +96,6 @@ export default function PortalLoginPage() {
       setApiSessionToken(data.sessionToken);
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/me"] });
       if (data.mustChangePassword) {
-        setCurrentPassword(password);
         setStage("change");
         toast({
           title: "Password change required",
@@ -140,7 +139,6 @@ export default function PortalLoginPage() {
       setApiSessionToken(data.sessionToken);
       queryClient.invalidateQueries({ queryKey: ["/api/permissions/me"] });
       if (data.mustChangePassword) {
-        setCurrentPassword(password);
         setStage("change");
         toast({
           title: "Password change required",
@@ -158,10 +156,10 @@ export default function PortalLoginPage() {
   });
 
   const changePassword = useMutation({
-    mutationFn: () =>
+    mutationFn: (data: PasswordChangeData) =>
       apiRequest("POST", "/api/me/change-password", {
-        currentPassword,
-        newPassword,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       }),
     onSuccess: () => {
       // Changing the password invalidates ALL of the user's sessions on the
@@ -173,9 +171,6 @@ export default function PortalLoginPage() {
       queryClient.clear();
       setStage("login");
       setPassword("");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
       toast({
         title: "Password updated",
         description: "Please sign in with your new password.",
@@ -202,8 +197,6 @@ export default function PortalLoginPage() {
     setStage("login");
     setView(mode);
   }
-
-  const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
 
   function backToChooser() {
     setView("choose");
@@ -411,75 +404,11 @@ export default function PortalLoginPage() {
               </Button>
             </form>
           ) : (
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (passwordsMismatch) {
-                  return;
-                }
-                changePassword.mutate();
-              }}
-            >
-              <div>
-                <Label htmlFor="change-current" className="text-slate-700">
-                  Current password
-                </Label>
-                <Input
-                  id="change-current"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  autoComplete="current-password"
-                  data-testid="input-change-current"
-                />
-              </div>
-              <div>
-                <Label htmlFor="change-new" className="text-slate-700">
-                  New password
-                </Label>
-                <Input
-                  id="change-new"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                  data-testid="input-change-new"
-                />
-                <p className="text-xs text-slate-500 mt-1">At least 8 characters.</p>
-              </div>
-              <div>
-                <Label htmlFor="change-confirm" className="text-slate-700">
-                  Confirm new password
-                </Label>
-                <Input
-                  id="change-confirm"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  data-testid="input-change-confirm"
-                />
-                {passwordsMismatch && (
-                  <p className="text-xs text-destructive mt-1" data-testid="text-password-mismatch">
-                    Passwords do not match.
-                  </p>
-                )}
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-teal-600 text-white hover:bg-teal-700"
-                disabled={
-                  changePassword.isPending ||
-                  newPassword.length < 8 ||
-                  passwordsMismatch ||
-                  !currentPassword
-                }
-                data-testid="button-change-password"
-              >
-                Update password
-              </Button>
-            </form>
+            <ChangePasswordForm
+              initialCurrentPassword={password}
+              isPending={changePassword.isPending}
+              onSubmit={(data) => changePassword.mutate(data)}
+            />
           )}
         </CardContent>
       </Card>
