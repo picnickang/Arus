@@ -184,6 +184,28 @@ export interface CostMeterEvent {
 }
 
 /**
+ * Pluggable per-tenant token-budget guard. The gateway calls `preflight`
+ * BEFORE issuing a call — which may throw to abort an over-budget request —
+ * and `record` AFTER, with the actual tokens consumed. Both are no-ops when
+ * the tenant has no budget configured. Kept as a narrow port so the gateway
+ * does not depend on the concrete `BudgetGuard` implementation.
+ */
+export interface BudgetGuardPort {
+  /** Throws (e.g. `BudgetExceededError`) if the projected spend is over budget. */
+  preflight(orgId: string, projectedTokens: number): void;
+  /** Records actual tokens consumed after a successful call. */
+  record(orgId: string, model: string, tokens: number): void;
+}
+
+/**
+ * Pluggable outbound message redactor. The gateway runs this over the
+ * messages before they reach the provider so PII never leaves the process.
+ */
+export interface MessageRedactor {
+  redactMessages(messages: readonly LLMMessage[]): { messages: LLMMessage[]; totalHits: number };
+}
+
+/**
  * The gateway exposed to application code. It is intentionally identical
  * in shape to `LLMProviderPort` so that callers do not need to know
  * whether they're talking to a single provider or a multi-provider

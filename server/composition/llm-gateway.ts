@@ -11,13 +11,23 @@
  */
 
 import {
+  budgetGuard,
   DefaultLLMGateway,
   LoggingCostMeter,
   OpenAIProvider,
+  redactMessages,
   type LLMGateway,
 } from "../lib/llm-gateway/index.js";
 
 const provider = new OpenAIProvider();
 const meter = new LoggingCostMeter();
 
-export const llmGateway: LLMGateway = new DefaultLLMGateway({ provider, meter });
+// Budget enforcement is a no-op until OPENAI_DAILY/MONTHLY_TOKEN_BUDGET is set,
+// so wiring the singleton here is backward-compatible. PII redaction is always
+// on for outbound messages (it only rewrites detected PII, otherwise a no-op).
+export const llmGateway: LLMGateway = new DefaultLLMGateway({
+  provider,
+  meter,
+  budgetGuard,
+  redactor: { redactMessages },
+});
