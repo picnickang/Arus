@@ -112,6 +112,14 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
   },
   {
+    // Checklist/worklog routes the client has always called but which were
+    // never registered — see docs/qa/route-contract-triage.md.
+    name: "MaintenanceChecklists",
+    importPath: "../domains/maintenance/index.js",
+    functionName: "registerChecklistRoutes",
+    getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
+  },
+  {
     name: "Inventory",
     importPath: "../domains/inventory/index.js",
     functionName: "registerInventoryRoutes",

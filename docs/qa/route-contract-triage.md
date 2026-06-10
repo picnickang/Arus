@@ -4,6 +4,30 @@ Triaged 2026-06-10 against the live route table (1,110 routes from `scripts/dump
 plus a runtime probe of every entry on a fully booted dev server. **Every `200-html` probe
 means the request fell through Express to Vite's SPA fallback — no API route exists.**
 
+## Resolution log
+
+**2026-06-10 (pass 2)** — 14 entries resolved, baseline 153 → 139:
+
+- **Implemented (9 routes)** — `server/domains/maintenance/interfaces/checklist-routes.ts` over the
+  pre-existing `dbChecklistsStorage`/`dbWorkOrderStorage`: work-order checklist GET + complete/reset
+  upsert, `initialize-checklist`, ad-hoc checklists + worklogs, template items GET/POST, template
+  clone. Verified live end-to-end (template → work order → initialize → complete → progress rollup)
+  and pinned by `tests/unit/checklist-routes.test.ts`.
+- **Repointed (4 client paths)** — `change-password` → `/api/admin/auth/change-password`,
+  `heartbeats` → `/api/edge/heartbeats`, integrations list/PATCH → `/api/admin/integrations`.
+  (`/api/integrations/*/test` and `*/sync` remain missing-api: the admin `:id/health` PATCH updates
+  status, it is not a connectivity test.)
+- **Deleted dead client code** — `use-upload.ts` (knip-confirmed) and the caller-less
+  `useRestSheet`/`useSubmitRestSheet` hooks in `useCrew.ts` (re-classified from wrong-path: the
+  real rest-sheet API is `/api/crew/rest/sheet` with a different contract, and nothing rendered
+  these hooks).
+
+Still open, with dispositions unchanged below: **organization/user management needs a product
+decision** (it is a cross-tenant super-admin console; the org-scoped `/api/admin/crew/users`
+family cannot back it and no `/api/organizations` routes exist at all), and the logbook/STCW
+families have a server-side Logbook domain whose paths differ from what the client calls —
+reconcile the path scheme rather than implementing duplicates.
+
 ## Verdict
 
 - **146 missing-api** — the client ships UI that calls routes the server never registers.

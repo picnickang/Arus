@@ -219,7 +219,7 @@ export function useConfigurationTabData() {
   });
   const changePasswordMutation = useCustomMutation({
     mutationFn: async (data: ChangePasswordForm) =>
-      adminApiRequest("POST", "/api/admin/change-password", data),
+      adminApiRequest("POST", "/api/admin/auth/change-password", data),
     successMessage: "Password updated successfully",
   });
 
