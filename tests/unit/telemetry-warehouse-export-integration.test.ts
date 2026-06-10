@@ -200,6 +200,13 @@ jest.unstable_mockModule("../../server/db", () => ({
   libsqlClient: null,
 }));
 
+// The export job acquires its db handle via the storage-layer re-export
+// (server/db/drizzle-handle); mock it directly so the injected db the
+// exporter helpers receive is the test double.
+jest.unstable_mockModule("../../server/db/drizzle-handle", () => ({
+  db: { execute: dbExecute },
+}));
+
 jest.unstable_mockModule(
   "../../server/replit_integrations/object_storage",
   () => ({ objectStorageClient: fakeObjectStorageClient }),

@@ -9,11 +9,19 @@
 
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db } from "../../db";
-import { users, adminSessions } from "@shared/schema-runtime";
-import { userDashboardPreferences } from "@shared/schema-runtime";
 import { userDashboardPrefsSchema, type UserDashboardPrefs } from "@shared/schema-runtime";
-import { and, eq, sql } from "drizzle-orm";
+import {
+  getMustChangePassword,
+  deleteAllUserSessions,
+  deleteUserSessionByToken,
+  getDashboardPrefs,
+  upsertDashboardPrefs,
+  getCrewLinkId,
+  findUserByUsername,
+  touchUserLastLogin,
+  getUserById,
+  updateUserPassword,
+} from "./infrastructure/me-portal-queries";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -24,7 +32,6 @@ import {
 import { crewAdminService } from "../../services/crew-admin-facade";
 import { safetyAlarmService, AlarmValidationError } from "../../services/safety-alarm-facade";
 import { crewTaskService } from "../../services/crew-task-facade";
-import { crew } from "@shared/schema-runtime";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -35,10 +42,7 @@ import {
   scopeForSource,
   scopeForAlarms,
 } from "@shared/role-dashboard";
-import type {
-  SafetyAlarmWithAcks,
-  UserAlarmScope,
-} from "../../services/safety-alarm-facade";
+import type { SafetyAlarmWithAcks, UserAlarmScope } from "../../services/safety-alarm-facade";
 import type { VesselAssignmentEntity } from "../../services/crew-admin-facade";
 
 const BCRYPT_COST = 12;
@@ -50,7 +54,7 @@ export class MePortalError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly status: number,
+    public readonly status: number
   ) {
     super(message);
     this.name = "MePortalError";
@@ -113,8 +117,12 @@ function asString(value: unknown): string | null {
 
 /** Normalize a priority field that may arrive as a string or a numeric rank. */
 function asPriority(value: unknown): string | null {
-  if (typeof value === "string") {return value;}
-  if (typeof value === "number") {return String(value);}
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
   return null;
 }
 
@@ -128,7 +136,7 @@ export class MePortalService {
    */
   private computeScope(
     assignments: VesselAssignmentEntity[],
-    scope: VisibilityScope | null,
+    scope: VisibilityScope | null
   ): UserAlarmScope {
     const vesselIds = assignments
       .filter((a) => a.isActive && a.vesselId)
@@ -145,23 +153,19 @@ export class MePortalService {
    * distinct `PASSWORD_CHANGE_REQUIRED` (403) the frontend can route on.
    */
   private async assertPasswordChangeNotRequired(user: MeUser): Promise<void> {
-    const [record] = await db
-      .select({ mustChangePassword: users.mustChangePassword })
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+    const record = await getMustChangePassword(user.orgId, user.id);
     if (record?.mustChangePassword) {
       throw new MePortalError(
         "You must change your password before continuing",
         "PASSWORD_CHANGE_REQUIRED",
-        403,
+        403
       );
     }
   }
 
   /** Revoke every active session for a user (credential-rotation hardening). */
   private async invalidateUserSessions(userId: string): Promise<void> {
-    await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
+    await deleteAllUserSessions(userId);
   }
 
   /**
@@ -173,9 +177,7 @@ export class MePortalService {
    */
   async logout(user: MeUser, sessionToken: string): Promise<void> {
     const tokenHash = hashSessionToken(sessionToken);
-    await db
-      .delete(adminSessions)
-      .where(and(eq(adminSessions.sessionToken, tokenHash), eq(adminSessions.userId, user.id)));
+    await deleteUserSessionByToken(user.id, tokenHash);
   }
 
   async getDashboard(user: MeUser): Promise<DashboardPayload> {
@@ -183,7 +185,7 @@ export class MePortalService {
     const configs = await crewAdminService.resolveEffectiveConfigList(
       user.orgId,
       user.id,
-      user.role,
+      user.role
     );
     const roleConfig = mergeDashboardConfigs(configs);
     // Layer the caller's personal tweaks on top (intersect-only: hidden/order/
@@ -204,11 +206,7 @@ export class MePortalService {
       ? vesselList
       : vesselList.filter((v) => scope.vesselIds.includes(v.id));
 
-    const [record] = await db
-      .select({ mustChangePassword: users.mustChangePassword })
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+    const record = await getMustChangePassword(user.orgId, user.id);
 
     return {
       user,
@@ -229,17 +227,10 @@ export class MePortalService {
    */
   async getPreferences(user: MeUser): Promise<UserDashboardPrefs | null> {
     await this.assertPasswordChangeNotRequired(user);
-    const [row] = await db
-      .select({ prefsJson: userDashboardPreferences.prefsJson })
-      .from(userDashboardPreferences)
-      .where(
-        and(
-          eq(userDashboardPreferences.orgId, user.orgId),
-          eq(userDashboardPreferences.userId, user.id),
-        ),
-      )
-      .limit(1);
-    if (!row) {return null;}
+    const row = await getDashboardPrefs(user.orgId, user.id);
+    if (!row) {
+      return null;
+    }
     const parsed = userDashboardPrefsSchema.safeParse(row.prefsJson);
     return parsed.success ? parsed.data : null;
   }
@@ -252,13 +243,7 @@ export class MePortalService {
   async savePreferences(user: MeUser, prefs: unknown): Promise<UserDashboardPrefs> {
     await this.assertPasswordChangeNotRequired(user);
     const validated = userDashboardPrefsSchema.parse(prefs);
-    await db
-      .insert(userDashboardPreferences)
-      .values({ orgId: user.orgId, userId: user.id, prefsJson: validated })
-      .onConflictDoUpdate({
-        target: [userDashboardPreferences.orgId, userDashboardPreferences.userId],
-        set: { prefsJson: validated, updatedAt: new Date() },
-      });
+    await upsertDashboardPrefs(user.orgId, user.id, validated);
     return validated;
   }
 
@@ -267,7 +252,7 @@ export class MePortalService {
     const configs = await crewAdminService.resolveEffectiveConfigList(
       user.orgId,
       user.id,
-      user.role,
+      user.role
     );
     const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
     const sources = new Set<TaskSourceKey>(configs.flatMap((c) => c.taskSources));
@@ -279,23 +264,27 @@ export class MePortalService {
       const scope = this.computeScope(assignments, scopeForSource(configs, "work_orders"));
       const workOrders = (await workOrderService.getWorkOrdersWithDetails(
         undefined,
-        user.orgId,
+        user.orgId
       )) as unknown[];
       for (const raw of workOrders) {
-        if (typeof raw !== "object" || raw === null) {continue;}
+        if (typeof raw !== "object" || raw === null) {
+          continue;
+        }
         const wo = raw as Record<string, unknown>;
-        const vesselId = asString(wo['vesselId']);
+        const vesselId = asString(wo["vesselId"]);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
-        const id = asString(wo['id']);
-        if (!id) {continue;}
+        const id = asString(wo["id"]);
+        if (!id) {
+          continue;
+        }
         items.push({
           id,
           source: "work_orders",
-          title: asString(wo['title']) ?? asString(wo['description']) ?? "Work order",
-          status: asString(wo['status']),
-          priority: asString(wo['priority']),
+          title: asString(wo["title"]) ?? asString(wo["description"]) ?? "Work order",
+          status: asString(wo["status"]),
+          priority: asString(wo["priority"]),
           vesselId,
           link: `/work-orders?id=${id}`,
         });
@@ -305,30 +294,34 @@ export class MePortalService {
     if (sources.has("maintenance_schedules")) {
       const scope = this.computeScope(
         assignments,
-        scopeForSource(configs, "maintenance_schedules"),
+        scopeForSource(configs, "maintenance_schedules")
       );
       const schedules = (await dbMaintenanceStorage.getMaintenanceSchedules(
         undefined,
-        user.orgId,
+        user.orgId
       )) as unknown[];
       for (const raw of schedules) {
-        if (typeof raw !== "object" || raw === null) {continue;}
+        if (typeof raw !== "object" || raw === null) {
+          continue;
+        }
         const row = raw as Record<string, unknown>;
-        const vesselId = asString(row['vesselId']);
+        const vesselId = asString(row["vesselId"]);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
-        const id = asString(row['id']);
-        if (!id) {continue;}
+        const id = asString(row["id"]);
+        if (!id) {
+          continue;
+        }
         items.push({
           id,
           source: "maintenance_schedules",
           title:
-            asString(row['description']) ??
-            asString(row['maintenanceType']) ??
+            asString(row["description"]) ??
+            asString(row["maintenanceType"]) ??
             "Maintenance schedule",
-          status: asString(row['status']),
-          priority: asPriority(row['priority']),
+          status: asString(row["status"]),
+          priority: asPriority(row["priority"]),
           vesselId,
           link: `/maintenance?id=${id}`,
         });
@@ -338,25 +331,26 @@ export class MePortalService {
     if (sources.has("alerts")) {
       const scope = this.computeScope(assignments, scopeForSource(configs, "alerts"));
       // Only unacknowledged alerts are actionable for a personal task feed.
-      const alerts = (await dbAlertStorage.getAlertNotifications(
-        false,
-        user.orgId,
-      )) as unknown[];
+      const alerts = (await dbAlertStorage.getAlertNotifications(false, user.orgId)) as unknown[];
       for (const raw of alerts) {
-        if (typeof raw !== "object" || raw === null) {continue;}
+        if (typeof raw !== "object" || raw === null) {
+          continue;
+        }
         const row = raw as Record<string, unknown>;
-        const vesselId = asString(row['vesselId']);
+        const vesselId = asString(row["vesselId"]);
         if (!scope.fleetWide && vesselId && !scope.vesselIds.includes(vesselId)) {
           continue;
         }
-        const id = asString(row['id']);
-        if (!id) {continue;}
+        const id = asString(row["id"]);
+        if (!id) {
+          continue;
+        }
         items.push({
           id,
           source: "alerts",
-          title: asString(row['title']) ?? asString(row['message']) ?? "Alert",
-          status: row['acknowledged'] === true ? "acknowledged" : "active",
-          priority: asString(row['severity']) ?? asString(row['alertType']),
+          title: asString(row["title"]) ?? asString(row["message"]) ?? "Alert",
+          status: row["acknowledged"] === true ? "acknowledged" : "active",
+          priority: asString(row["severity"]) ?? asString(row["alertType"]),
           vesselId,
           link: `/alerts?id=${id}`,
         });
@@ -367,11 +361,7 @@ export class MePortalService {
       // Personal crew-task feed = tasks assigned to THIS user's crew record.
       // The portal identity is a `users` row; crew tasks reference `crew.id`,
       // so resolve the 1:1 crew link first. No crew record => no crew tasks.
-      const [crewMember] = await db
-        .select({ id: crew.id })
-        .from(crew)
-        .where(and(eq(crew.orgId, user.orgId), eq(crew.userId, user.id)))
-        .limit(1);
+      const crewMember = await getCrewLinkId(user.orgId, user.id);
       if (crewMember) {
         const tasks = await crewTaskService.listTasks(user.orgId, {
           assignedCrewId: crewMember.id,
@@ -402,7 +392,7 @@ export class MePortalService {
       .sort(
         (a, b) =>
           (ALARM_SEVERITY_RANK[b.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0) -
-          (ALARM_SEVERITY_RANK[a.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0),
+          (ALARM_SEVERITY_RANK[a.severity as keyof typeof ALARM_SEVERITY_RANK] ?? 0)
       );
   }
 
@@ -430,7 +420,7 @@ export class MePortalService {
     const configs = await crewAdminService.resolveEffectiveConfigList(
       user.orgId,
       user.id,
-      user.role,
+      user.role
     );
     const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
     return this.computeScope(assignments, scopeForAlarms(configs));
@@ -439,7 +429,7 @@ export class MePortalService {
   async acknowledgeAlarm(
     user: MeUser,
     alarmId: string,
-    comment: string | undefined,
+    comment: string | undefined
   ): Promise<void> {
     await this.assertPasswordChangeNotRequired(user);
     const scope = await this.resolveAlarmScope(user);
@@ -453,7 +443,7 @@ export class MePortalService {
           source: "user_portal",
           comment,
         },
-        scope,
+        scope
       );
     } catch (error) {
       if (error instanceof AlarmValidationError) {
@@ -471,18 +461,9 @@ export class MePortalService {
     orgId: string,
     username: string,
     password: string,
-    context: { ip?: string; userAgent?: string },
+    context: { ip?: string; userAgent?: string }
   ): Promise<SessionResult> {
-    const [record] = await db
-      .select()
-      .from(users)
-      .where(
-        and(
-          eq(users.orgId, orgId),
-          sql`lower(${users.username}) = lower(${username})`,
-        ),
-      )
-      .limit(1);
+    const record = await findUserByUsername(orgId, username);
 
     const invalid = new MePortalError("Invalid username or password", "INVALID_CREDENTIALS", 401);
 
@@ -517,10 +498,7 @@ export class MePortalService {
       lastActivityAt: new Date(),
     });
 
-    await db
-      .update(users)
-      .set({ lastLoginAt: new Date() })
-      .where(and(eq(users.orgId, orgId), eq(users.id, record.id)));
+    await touchUserLastLogin(orgId, record.id);
 
     return {
       sessionToken,
@@ -537,16 +515,8 @@ export class MePortalService {
     };
   }
 
-  async changePassword(
-    user: MeUser,
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<void> {
-    const [record] = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)))
-      .limit(1);
+  async changePassword(user: MeUser, currentPassword: string, newPassword: string): Promise<void> {
+    const record = await getUserById(user.orgId, user.id);
     if (!record || !record.passwordHash) {
       throw new MePortalError("No password is set for this account", "NO_PASSWORD", 400);
     }
@@ -556,15 +526,7 @@ export class MePortalService {
     }
     this.assertPasswordPolicy(newPassword);
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
-    await db
-      .update(users)
-      .set({
-        passwordHash,
-        passwordUpdatedAt: new Date(),
-        mustChangePassword: false,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(users.orgId, user.orgId), eq(users.id, user.id)));
+    await updateUserPassword(user.orgId, user.id, passwordHash);
     // Rotate credentials => revoke every existing session so any pre-change
     // token (including the caller's current one) can no longer be used.
     await this.invalidateUserSessions(user.id);
@@ -575,14 +537,14 @@ export class MePortalService {
       throw new MePortalError(
         `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
         "PASSWORD_TOO_SHORT",
-        400,
+        400
       );
     }
     if (password.length > MAX_PASSWORD_LENGTH) {
       throw new MePortalError(
         `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
         "PASSWORD_TOO_LONG",
-        400,
+        400
       );
     }
     if (/[\r\n\0]/.test(password)) {

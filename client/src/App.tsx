@@ -405,6 +405,8 @@ function Router() {
         <PWAInstallPrompt />
       </main>
 
+      {/* Gated off ops-shell routes (own nav rail); the #194 override
+          self-heal still runs there via UniversalOpsShell's mirror effect. */}
       {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
       {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
     </div>

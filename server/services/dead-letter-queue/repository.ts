@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
-import { db } from "../../db-config";
-import { telemetryDeadLetter } from "@shared/schema-runtime";
+import {
+  insertDeadLetterRow,
+  deleteDeadLetterRow,
+  updateDeadLetterRetry,
+  deleteDeadLetterOlderThan,
+  deleteDeadLetterQueue,
+  selectDeadLetterRows,
+} from "../../db/telemetry-dead-letter/queries";
 import type { DeadLetterEntry, DeadLetterQueueMetrics } from "./types";
 import { logger } from "../../utils/logger";
 
@@ -30,98 +35,79 @@ const PERSISTENCE_DISABLED =
   process.env["LOCAL_MODE"] === "true" ||
   process.env["EMBEDDED_MODE"] === "true";
 
-function persistAdd(
-  queueName: string,
-  entry: DeadLetterEntry,
-): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .insert(telemetryDeadLetter)
-    .values({
-      id: entry.id,
+function persistAdd(queueName: string, entry: DeadLetterEntry): void {
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void insertDeadLetterRow({
+    id: entry.id,
+    queueName,
+    payload: entry.payload,
+    error: entry.error,
+    source: entry.source,
+    retryCount: entry.retryCount,
+    metadata: entry.metadata ?? null,
+    createdAt: entry.createdAt,
+    lastRetryAt: entry.lastRetryAt,
+  }).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to persist dead-letter entry", {
       queueName,
-      payload: entry.payload,
-      error: entry.error,
-      source: entry.source,
-      retryCount: entry.retryCount,
-      metadata: entry.metadata ?? null,
-      createdAt: entry.createdAt,
-      lastRetryAt: entry.lastRetryAt,
-    })
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to persist dead-letter entry", {
-        queueName,
-        entryId: entry.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      entryId: entry.id,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistRemove(queueName: string, id: string): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(
-      and(eq(telemetryDeadLetter.id, id), eq(telemetryDeadLetter.queueName, queueName)),
-    )
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
-        queueName,
-        id,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterRow(queueName, id).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to delete persisted dead-letter entry", {
+      queueName,
+      id,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistRetryBump(queueName: string, entry: DeadLetterEntry): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .update(telemetryDeadLetter)
-    .set({ retryCount: entry.retryCount, lastRetryAt: entry.lastRetryAt })
-    .where(
-      and(
-        eq(telemetryDeadLetter.id, entry.id),
-        eq(telemetryDeadLetter.queueName, queueName),
-      ),
-    )
-    .catch((err: unknown) => {
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void updateDeadLetterRetry(queueName, entry.id, entry.retryCount, entry.lastRetryAt).catch(
+    (err: unknown) => {
       logger.warn("DLQ", "Failed to persist retry bump", {
         queueName,
         id: entry.id,
         error: err instanceof Error ? err.message : String(err),
       });
-    });
+    }
+  );
 }
 
 function persistClearOlder(queueName: string, cutoff: Date): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(
-      and(
-        eq(telemetryDeadLetter.queueName, queueName),
-        sql`${telemetryDeadLetter.createdAt} < ${cutoff}`,
-      ),
-    )
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
-        queueName,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterOlderThan(queueName, cutoff).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to prune persisted dead-letter rows", {
+      queueName,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 function persistClearQueue(queueName: string): void {
-  if (PERSISTENCE_DISABLED) {return;}
-  void db
-    .delete(telemetryDeadLetter)
-    .where(eq(telemetryDeadLetter.queueName, queueName))
-    .catch((err: unknown) => {
-      logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
-        queueName,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  if (PERSISTENCE_DISABLED) {
+    return;
+  }
+  void deleteDeadLetterQueue(queueName).catch((err: unknown) => {
+    logger.warn("DLQ", "Failed to clear persisted dead-letter queue", {
+      queueName,
+      error: err instanceof Error ? err.message : String(err),
     });
+  });
 }
 
 /**
@@ -131,12 +117,11 @@ function persistClearQueue(queueName: string): void {
  * number of entries reloaded (0 on DB error so callers can log).
  */
 export async function hydrateFromDatabase(queueName: string): Promise<number> {
-  if (PERSISTENCE_DISABLED) {return 0;}
+  if (PERSISTENCE_DISABLED) {
+    return 0;
+  }
   try {
-    const rows = await db
-      .select()
-      .from(telemetryDeadLetter)
-      .where(eq(telemetryDeadLetter.queueName, queueName));
+    const rows = await selectDeadLetterRows(queueName);
     const entries: DeadLetterEntry[] = rows.map((row) => ({
       id: row.id,
       payload: row.payload as unknown,
@@ -218,7 +203,11 @@ export function incrementRetry(queueName: string, id: string): void {
 
 export function listEntries(
   queueName: string,
-  options: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined } = {}
+  options: {
+    limit?: number | undefined;
+    offset?: number | undefined;
+    source?: string | undefined;
+  } = {}
 ): DeadLetterEntry[] {
   let queue = getQueue(queueName);
 

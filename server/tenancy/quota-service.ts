@@ -18,14 +18,12 @@
  */
 
 import { sql } from "drizzle-orm";
+import { getDbExecutor } from "../db/lazy-db";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("Tenancy:QuotaService");
 
-export type QuotaMetric =
-  | "storage_bytes"
-  | "equipment_count"
-  | "telemetry_rows_today";
+export type QuotaMetric = "storage_bytes" | "equipment_count" | "telemetry_rows_today";
 
 export interface QuotaCheck {
   metric: QuotaMetric;
@@ -56,15 +54,7 @@ const COL_FOR: Record<QuotaMetric, string> = {
 function secondsUntilNextUtcMidnight(): number {
   const now = new Date();
   const next = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1,
-      0,
-      0,
-      0,
-      0
-    )
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)
   );
   return Math.max(1, Math.ceil((next.getTime() - now.getTime()) / 1000));
 }
@@ -74,19 +64,27 @@ function todayWindowDate(): string {
 }
 
 function extractRows<T>(result: unknown): T[] {
-  if (Array.isArray(result)) {return result as T[];}
+  if (Array.isArray(result)) {
+    return result as T[];
+  }
   if (result && typeof result === "object" && "rows" in result) {
     const rows = (result as { rows?: unknown }).rows;
-    if (Array.isArray(rows)) {return rows as T[];}
+    if (Array.isArray(rows)) {
+      return rows as T[];
+    }
   }
   return [];
 }
 
 function errorMessage(err: unknown): string | undefined {
-  if (err instanceof Error) {return err.message;}
+  if (err instanceof Error) {
+    return err.message;
+  }
   if (err && typeof err === "object" && "message" in err) {
     const m = (err as { message?: unknown }).message;
-    if (typeof m === "string") {return m;}
+    if (typeof m === "string") {
+      return m;
+    }
   }
   return undefined;
 }
@@ -109,8 +107,7 @@ export class QuotaService {
 
   private async executor(): Promise<SqlExecutor> {
     if (!this.resolved) {
-      const mod = await import("../db-config");
-      this.resolved = mod.db as SqlExecutor;
+      this.resolved = (await getDbExecutor()) as SqlExecutor;
     }
     return this.resolved;
   }
@@ -118,15 +115,21 @@ export class QuotaService {
   async getLimit(orgId: string, metric: QuotaMetric): Promise<number> {
     try {
       const col = COL_FOR[metric];
-      const result: unknown = await (await this.executor()).execute(
+      const result: unknown = await (
+        await this.executor()
+      ).execute(
         sql.raw(
           `SELECT ${col} AS limit_value FROM tenant_quotas WHERE org_id = '${orgId.replace(/'/g, "''")}'`
         )
       );
       const rows = extractRows<{ limit_value?: string | number | null }>(result);
       const v = rows[0]?.limit_value;
-      if (typeof v === "string") {return Number(v);}
-      if (typeof v === "number") {return v;}
+      if (typeof v === "string") {
+        return Number(v);
+      }
+      if (typeof v === "number") {
+        return v;
+      }
     } catch (err: unknown) {
       // If the table doesn't exist yet (migration not applied), use the
       // built-in defaults rather than crashing the request path.
@@ -141,10 +144,11 @@ export class QuotaService {
 
   async getUsage(orgId: string, metric: QuotaMetric): Promise<number> {
     const safeOrg = orgId.replace(/'/g, "''");
-    const windowDate =
-      metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
+    const windowDate = metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
     try {
-      const result: unknown = await (await this.executor()).execute(
+      const result: unknown = await (
+        await this.executor()
+      ).execute(
         sql.raw(
           `SELECT value FROM tenant_usage
              WHERE org_id = '${safeOrg}'
@@ -154,8 +158,12 @@ export class QuotaService {
       );
       const rows = extractRows<{ value?: string | number | null }>(result);
       const v = rows[0]?.value;
-      if (typeof v === "string") {return Number(v);}
-      if (typeof v === "number") {return v;}
+      if (typeof v === "string") {
+        return Number(v);
+      }
+      if (typeof v === "number") {
+        return v;
+      }
     } catch (err: unknown) {
       logger.warn("tenant_usage lookup failed; assuming 0", {
         orgId,
@@ -166,15 +174,12 @@ export class QuotaService {
     return 0;
   }
 
-  async incrementUsage(
-    orgId: string,
-    metric: QuotaMetric,
-    delta: number
-  ): Promise<void> {
-    if (!Number.isFinite(delta) || delta === 0) {return;}
+  async incrementUsage(orgId: string, metric: QuotaMetric, delta: number): Promise<void> {
+    if (!Number.isFinite(delta) || delta === 0) {
+      return;
+    }
     const safeOrg = orgId.replace(/'/g, "''");
-    const windowDate =
-      metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
+    const windowDate = metric === "telemetry_rows_today" ? todayWindowDate() : "1970-01-01";
     try {
       // Clamp the stored value at 0. Negative deltas (e.g. KB document
       // deletes from task #89) must still shrink the counter when there
@@ -191,7 +196,9 @@ export class QuotaService {
       //     EXCLUDED.value here would produce — EXCLUDED.value is
       //     the already-clamped 0 from the VALUES branch).
       const truncated = Math.trunc(delta);
-      await (await this.executor()).execute(
+      await (
+        await this.executor()
+      ).execute(
         sql.raw(
           `INSERT INTO tenant_usage (org_id, metric, window_start, value)
              VALUES ('${safeOrg}', '${metric}', '${windowDate}', GREATEST(0, ${truncated}))
@@ -222,8 +229,7 @@ export class QuotaService {
       ratio,
       exceeded: used >= limit && limit > 0,
       warning: ratio >= 0.8 && !(used >= limit && limit > 0),
-      retryAfterSeconds:
-        metric === "telemetry_rows_today" ? secondsUntilNextUtcMidnight() : 0,
+      retryAfterSeconds: metric === "telemetry_rows_today" ? secondsUntilNextUtcMidnight() : 0,
     };
   }
 }

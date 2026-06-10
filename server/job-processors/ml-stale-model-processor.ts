@@ -19,9 +19,7 @@
  *     inference path would never reach.
  */
 
-import { and, eq, lt } from "drizzle-orm";
-import { db } from "../db";
-import { mlModels } from "@shared/schema-runtime";
+import { findStaleDeployedModels } from "../domains/ml-analytics/infrastructure/retraining-queries";
 import { createLogger } from "../lib/structured-logger";
 
 const logger = createLogger("MlStaleModelProcessor");
@@ -31,8 +29,10 @@ const logger = createLogger("MlStaleModelProcessor");
  *  the env (e.g. `14d`) doesn't silently disable detection by yielding
  *  NaN — the lt(deployedOn, NaN-date) query would match no rows. */
 function resolveThresholdDays(): number {
-  const raw = process.env['PDM_STALE_MODEL_DAYS'];
-  if (raw === undefined || raw === "") {return 14;}
+  const raw = process.env["PDM_STALE_MODEL_DAYS"];
+  if (raw === undefined || raw === "") {
+    return 14;
+  }
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) {
     logger.warn("PDM_STALE_MODEL_DAYS invalid — falling back to 14", { raw });
@@ -68,20 +68,17 @@ export async function processStaleModelCheck(): Promise<StaleModelCheckResult> {
     deployedOn: Date | null;
   }> = [];
   try {
-    rows = await db
-      .select({
-        id: mlModels.id,
-        orgId: mlModels.orgId,
-        equipmentType: mlModels.equipmentType,
-        deployedOn: mlModels.deployedOn,
-      })
-      .from(mlModels)
-      .where(and(eq(mlModels.status, "deployed"), lt(mlModels.deployedOn, cutoff)));
+    rows = await findStaleDeployedModels(cutoff);
   } catch (err) {
     logger.warn("Stale-model sweep query failed", {
       err: err instanceof Error ? err.message : String(err),
     });
-    return { checkedAt: checkedAt.toISOString(), thresholdDays: STALE_MODEL_THRESHOLD_DAYS, staleCount: 0, alerts: [] };
+    return {
+      checkedAt: checkedAt.toISOString(),
+      thresholdDays: STALE_MODEL_THRESHOLD_DAYS,
+      staleCount: 0,
+      alerts: [],
+    };
   }
 
   const alerts: StaleModelAlert[] = rows.map((r) => {

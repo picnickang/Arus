@@ -25,9 +25,13 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { and, eq, gte, sql } from "drizzle-orm";
-import { db } from "../db";
-import { predictionOutcomes, equipment, mlModels } from "@shared/schema-runtime";
+import {
+  countEligibleOutcomes,
+  listOrgsWithOutcomes,
+  listEquipmentTypesForOrg,
+  getModelTrainingMetrics,
+  updateModelTrainingMetrics,
+} from "../domains/ml-analytics/infrastructure/retraining-queries";
 import { createLogger } from "../lib/structured-logger";
 import {
   getWriteAdapter,
@@ -77,17 +81,7 @@ export interface ModelRetrainJobResult {
 
 async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promise<number> {
   try {
-    const rows = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(predictionOutcomes)
-      .where(
-        and(
-          eq(predictionOutcomes.orgId, orgId),
-          eq(predictionOutcomes.useForRetraining, true),
-          gte(predictionOutcomes.observedAt, new Date(sinceMs))
-        )
-      );
-    return rows[0]?.count ?? 0;
+    return await countEligibleOutcomes(orgId, new Date(sinceMs));
   } catch (err) {
     logger.warn("Failed to count eligible outcomes", {
       orgId,
@@ -99,11 +93,7 @@ async function fetchEligibleOutcomesCount(orgId: string, sinceMs: number): Promi
 
 async function listOrgs(): Promise<string[]> {
   try {
-    const rows = await db
-      .select({ orgId: predictionOutcomes.orgId })
-      .from(predictionOutcomes)
-      .groupBy(predictionOutcomes.orgId);
-    return rows.map((r) => r.orgId);
+    return await listOrgsWithOutcomes();
   } catch (err) {
     logger.warn("Failed to enumerate orgs for retrain — skipping", {
       err: err instanceof Error ? err.message : String(err),
@@ -114,18 +104,16 @@ async function listOrgs(): Promise<string[]> {
 
 async function listEquipmentTypes(orgId: string): Promise<string[]> {
   try {
-    const rows = await db
-      .select({ type: equipment.type })
-      .from(equipment)
-      .where(eq(equipment.orgId, orgId))
-      .groupBy(equipment.type);
-    return rows.map((r) => r.type).filter((t): t is string => !!t);
+    return await listEquipmentTypesForOrg(orgId);
   } catch {
     return [];
   }
 }
 
-function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: string; code: number }> {
+function runTrainer(
+  orgId: string,
+  equipmentType: string
+): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
     // Routes through train-model-sidecar.mjs so the Python XGBoost
     // trainer is used when ML_PYTHON_TRAINER=1 and falls back to the
@@ -168,26 +156,22 @@ function runTrainer(orgId: string, equipmentType: string): Promise<{ stdout: str
  * keeps resolving via the local-disk adapter — no regression vs. the
  * pre-#108 path.
  */
-async function uploadCandidateArtifacts(
-  orgId: string,
-  modelId: string,
-): Promise<void> {
+async function uploadCandidateArtifacts(orgId: string, modelId: string): Promise<void> {
   try {
-    const [row] = await db
-      .select({
-        id: mlModels.id,
-        metrics: mlModels.trainingMetrics,
-      })
-      .from(mlModels)
-      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)))
-      .limit(1);
-    if (!row) {return;}
+    const row = await getModelTrainingMetrics(orgId, modelId);
+    if (!row) {
+      return;
+    }
     const metrics = { ...((row.metrics ?? {}) as Record<string, unknown>) };
-    const artifactPath = metrics['artifactPath'] as string | undefined;
-    const nativeArtifactPath = metrics['nativeArtifactPath'] as string | undefined;
+    const artifactPath = metrics["artifactPath"] as string | undefined;
+    const nativeArtifactPath = metrics["nativeArtifactPath"] as string | undefined;
     // Already migrated (idempotent — covers re-runs).
-    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) {return;}
-    if (!artifactPath) {return;}
+    if (artifactPath?.startsWith(ARTIFACT_URI_SCHEME)) {
+      return;
+    }
+    if (!artifactPath) {
+      return;
+    }
 
     const adapter = await getWriteAdapter();
     if (adapter.backend === "local") {
@@ -198,7 +182,9 @@ async function uploadCandidateArtifacts(
 
     const uploads: Array<[string, "artifactPath" | "nativeArtifactPath"]> = [];
     uploads.push([artifactPath, "artifactPath"]);
-    if (nativeArtifactPath) {uploads.push([nativeArtifactPath, "nativeArtifactPath"]);}
+    if (nativeArtifactPath) {
+      uploads.push([nativeArtifactPath, "nativeArtifactPath"]);
+    }
 
     for (const [localPath, field] of uploads) {
       try {
@@ -220,16 +206,13 @@ async function uploadCandidateArtifacts(
       fs.unlink(localPath).catch(() => undefined);
     }
 
-    await db
-      .update(mlModels)
-      .set({ trainingMetrics: metrics as Record<string, unknown> })
-      .where(and(eq(mlModels.id, modelId), eq(mlModels.orgId, orgId)));
+    await updateModelTrainingMetrics(orgId, modelId, metrics as Record<string, unknown>);
 
     logger.info("Candidate artifacts uploaded to backend", {
       orgId,
       modelId,
       backend: adapter.backend,
-      artifactPath: metrics['artifactPath'],
+      artifactPath: metrics["artifactPath"],
     });
   } catch (err) {
     // Hard-failing here would block a promotion that the gate already
@@ -344,8 +327,11 @@ export async function processModelRetrain(
         // flips to 'deployed'. No-op when the backend is 'local'.
         await uploadCandidateArtifacts(orgId, metrics.modelId);
         promoted = await attemptPromote(orgId, metrics.modelId, metrics, !!data.dryRun);
-        if (promoted) {candidatesPromoted += 1;}
-        else if (data.dryRun) {skipped = "dryRun";}
+        if (promoted) {
+          candidatesPromoted += 1;
+        } else if (data.dryRun) {
+          skipped = "dryRun";
+        }
       } else if (!gate.promote && metrics.modelId) {
         // #110: Surface failed-gate decisions as structured alerts so
         // operators see WHICH gate blocked promotion (MAE regression

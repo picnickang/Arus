@@ -17,11 +17,6 @@
  */
 
 import { z } from "zod";
-import { and, eq, inArray, sql } from "drizzle-orm";
-import { db } from "../../../db";
-import { equipment } from "@shared/schema-runtime";
-import { failureHistory } from "@shared/schema-runtime";
-import { inventoryMovements, parts } from "@shared/schema-runtime";
 import { registerTool } from "./registry";
 import type { ToolContext } from "../domain/types";
 import {
@@ -30,6 +25,10 @@ import {
   isGraphAvailable,
   whatPartsForFailureMode as graphWhatPartsForFailureMode,
 } from "../../../graph";
+import {
+  findPeerFailureModes,
+  findPartsConsumedForFailureMode,
+} from "../infrastructure/graph-fallback-queries";
 
 registerTool({
   name: "findSimilarFailures",
@@ -58,34 +57,7 @@ registerTool({
       return { source: "graph", results: rows };
     }
     // Relational fallback — same business question via JOIN.
-    const [src] = await db
-      .select({ type: equipment.type })
-      .from(equipment)
-      .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, ctx.orgId)))
-      .limit(1);
-    if (!src?.type) {return { source: "relational", results: [] };}
-    const peerIds = (
-      await db
-        .select({ id: equipment.id })
-        .from(equipment)
-        .where(and(eq(equipment.type, src.type), eq(equipment.orgId, ctx.orgId)))
-    ).map((r) => r.id);
-    if (peerIds.length === 0) {return { source: "relational", results: [] };}
-    const rows = await db
-      .select({
-        failureMode: failureHistory.failureMode,
-        occurrences: sql<number>`count(*)::int`,
-      })
-      .from(failureHistory)
-      .where(
-        and(
-          eq(failureHistory.orgId, ctx.orgId),
-          inArray(failureHistory.equipmentId, peerIds)
-        )
-      )
-      .groupBy(failureHistory.failureMode)
-      .orderBy(sql`count(*) DESC`)
-      .limit(10);
+    const rows = await findPeerFailureModes(ctx.orgId, equipmentId);
     return { source: "relational", results: rows };
   },
 });
@@ -101,11 +73,13 @@ registerTool({
     properties: {
       failureMode: {
         type: "string",
-        description: "Failure mode label (string, not numeric id) — matches failure_history.failure_mode exactly",
+        description:
+          "Failure mode label (string, not numeric id) — matches failure_history.failure_mode exactly",
       },
       failureModeId: {
         type: "string",
-        description: "Alias for `failureMode`. Same string label; provided so callers that name the slot 'id' still resolve.",
+        description:
+          "Alias for `failureMode`. Same string label; provided so callers that name the slot 'id' still resolve.",
       },
     },
   },
@@ -132,43 +106,7 @@ registerTool({
       const rows = await graphWhatPartsForFailureMode(ctx.orgId, failureMode);
       return { source: "graph", results: rows };
     }
-    const woIds = (
-      await db
-        .select({ id: failureHistory.workOrderId })
-        .from(failureHistory)
-        .where(
-          and(
-            eq(failureHistory.orgId, ctx.orgId),
-            eq(failureHistory.failureMode, failureMode)
-          )
-        )
-    )
-      .map((r) => r.id)
-      .filter((id): id is string => !!id);
-    if (woIds.length === 0) {return { source: "relational", results: [] };}
-    const rows = await db
-      .select({
-        partId: inventoryMovements.partId,
-        partName: parts.name,
-        occurrences: sql<number>`count(*)::int`,
-      })
-      .from(inventoryMovements)
-      .leftJoin(parts, eq(parts.id, inventoryMovements.partId))
-      .where(
-        and(
-          eq(inventoryMovements.orgId, ctx.orgId),
-          inArray(inventoryMovements.workOrderId, woIds),
-          // Align with graph semantics: REQUIRES_PART counts only
-          // forward-consumption movements. `release` cancels a
-          // reservation, `return` undoes a use — including them
-          // here would flip-count and disagree with the graph path
-          // (reviewer comment on the fourth pass).
-          inArray(inventoryMovements.movementType, ["reserve", "consume"])
-        )
-      )
-      .groupBy(inventoryMovements.partId, parts.name)
-      .orderBy(sql`count(*) DESC`)
-      .limit(25);
+    const rows = await findPartsConsumedForFailureMode(ctx.orgId, failureMode);
     return { source: "relational", results: rows };
   },
 });

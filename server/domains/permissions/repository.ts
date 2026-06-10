@@ -15,9 +15,9 @@ import type { WidenPartial } from "../../lib/widen-partial";
  */
 
 import { db } from "../../db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { crew } from "../../../shared/schema/crew";
-import { users } from "../../../shared/schema/core";
+import { users, organizations } from "../../../shared/schema/core";
 import {
   roles,
   permissionGrants,
@@ -119,7 +119,9 @@ export async function getRoleByName(name: string, orgId: string): Promise<Role |
 
 export async function createRole(data: InsertRole): Promise<Role> {
   const [role] = await db.insert(roles).values(data).returning();
-  if (!role) {throw new Error("Failed to create role");}
+  if (!role) {
+    throw new Error("Failed to create role");
+  }
   return role;
 }
 
@@ -302,7 +304,9 @@ export async function backfillPdmTemplateGrantsForOrg(
 
   if (apply) {
     for (const result of results) {
-      if (!result.roleId) {continue;}
+      if (!result.roleId) {
+        continue;
+      }
       for (const perm of result.added) {
         await setPermissionGrant(result.roleId, perm.resource, perm.action, true);
       }
@@ -332,7 +336,9 @@ export async function assignRoleToUser(
   data: InsertUserRoleAssignment
 ): Promise<UserRoleAssignment> {
   const [assignment] = await db.insert(userRoleAssignments).values(data).returning();
-  if (!assignment) {throw new Error("Failed to assign role to user");}
+  if (!assignment) {
+    throw new Error("Failed to assign role to user");
+  }
   return assignment;
 }
 
@@ -400,8 +406,7 @@ export async function getPermissionAuditLog(
     action: r.eventType,
     targetType: r.entityType,
     targetId: r.entityId ?? null,
-    previousValue:
-      r.previousState != null ? JSON.stringify(r.previousState) : null,
+    previousValue: r.previousState != null ? JSON.stringify(r.previousState) : null,
     newValue: r.newState != null ? JSON.stringify(r.newState) : null,
     ipAddress: r.ipAddress ?? null,
     createdAt: r.eventTimestamp ?? null,
@@ -532,3 +537,110 @@ export const permissionRepository = {
   getCrewCountByRoleId,
   listUsersWithRoles,
 };
+
+// --- Access & dashboards seeding (used by the composition-root seeder) -------
+// These hold the raw role/crew queries the boot-time access seeder needs, so
+// the composition root depends on this repository rather than the db handle.
+
+export interface SeedRoleRow {
+  id: string;
+  name: string;
+  hubAdmin: boolean;
+  hubAccess: string[] | null;
+}
+
+export async function listOrgRolesForSeeding(orgId: string): Promise<SeedRoleRow[]> {
+  return db
+    .select({
+      id: roles.id,
+      name: roles.name,
+      hubAdmin: roles.hubAdmin,
+      hubAccess: roles.hubAccess,
+    })
+    .from(roles)
+    .where(eq(roles.orgId, orgId));
+}
+
+export async function setRoleHubDefaults(
+  orgId: string,
+  roleId: string,
+  values: { hubAdmin: boolean; hubAccess: string[] | null }
+): Promise<void> {
+  await db
+    .update(roles)
+    .set({ hubAdmin: values.hubAdmin, hubAccess: values.hubAccess })
+    .where(and(eq(roles.id, roleId), eq(roles.orgId, orgId)));
+}
+
+export async function listUnlinkedCrewForSeeding(
+  orgId: string
+): Promise<{ id: string; rank: string | null }[]> {
+  return db
+    .select({ id: crew.id, rank: crew.rank })
+    .from(crew)
+    .where(and(eq(crew.orgId, orgId), isNull(crew.roleId)));
+}
+
+export async function setCrewRoleId(orgId: string, crewId: string, roleId: string): Promise<void> {
+  await db
+    .update(crew)
+    .set({ roleId })
+    .where(and(eq(crew.id, crewId), eq(crew.orgId, orgId)));
+}
+
+export async function listDistinctRoleOrgIds(): Promise<string[]> {
+  const rows = await db.select({ orgId: roles.orgId }).from(roles).groupBy(roles.orgId);
+  return rows.map((r) => r.orgId);
+}
+
+/** All organizations (id + name) — used by the PdM-permissions backfill script. */
+export async function listAllOrganizations(): Promise<{ id: string; name: string }[]> {
+  return db.select({ id: organizations.id, name: organizations.name }).from(organizations);
+}
+
+// --- Reads for the permissions routes (me / admin diagnostics) ---------------
+
+/** The user's PRIMARY role column (what server-side route guards authorize). */
+export async function getUserPrimaryRole(orgId: string, userId: string) {
+  const [row] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+  return row;
+}
+
+/** Canonical DB user row used by the permissions self-diagnostic route. */
+export async function getUserDiagnosticRow(orgId: string, userId: string) {
+  const [row] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+      loginEnabled: users.loginEnabled,
+      mustChangePassword: users.mustChangePassword,
+      hubAdmin: users.hubAdmin,
+      hubAccess: users.hubAccess,
+    })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
+    .limit(1);
+  return row;
+}
+
+/** Optional 1:1 crew login-account link for a user, if any. */
+export async function getCrewLinkForUser(orgId: string, userId: string) {
+  const [row] = await db
+    .select({
+      id: crew.id,
+      name: crew.name,
+      vesselId: crew.vesselId,
+      roleId: crew.roleId,
+    })
+    .from(crew)
+    .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
+    .limit(1);
+  return row;
+}

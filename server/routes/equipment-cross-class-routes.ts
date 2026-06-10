@@ -19,160 +19,122 @@
  */
 
 import { Router, type Response } from "express";
-import { and, eq, ne } from "drizzle-orm";
-import { db } from "../db";
-import { equipment } from "@shared/schema-runtime";
-import { vessels } from "@shared/schema-runtime";
+import {
+  findFocalEquipment,
+  findVesselClass,
+  findPeerVesselIds,
+  equipmentExistsInOrg,
+} from "../db/equipment/cross-class-queries";
 import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
-import {
-  crossClassPatterns,
-  whatPartsForFailureMode,
-  isGraphAvailable,
-} from "../graph";
+import { crossClassPatterns, whatPartsForFailureMode, isGraphAvailable } from "../graph";
 
 const logger = createLogger("Routes:EquipmentCrossClass");
 
 const router = Router();
 
 // ---------- GET cross-class patterns ----------
-router.get(
-  "/equipment/:id/cross-class-patterns",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const { id } = req.params;
+router.get("/equipment/:id/cross-class-patterns", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const { id } = req.params;
 
-    try {
-      // 1) Look up the focal equipment (RLS-scoped via orgId).
-      const [eq0] = await db
-        .select({
-          id: equipment.id,
-          type: equipment.type,
-          vesselId: equipment.vesselId,
-        })
-        .from(equipment)
-        .where(and(eq(equipment.orgId, authReq.orgId), eq(equipment.id, id)))
-        .limit(1);
+  try {
+    // 1) Look up the focal equipment (RLS-scoped via orgId).
+    const eq0 = await findFocalEquipment(authReq.orgId, id ?? "");
 
-      if (!eq0) {
-        res.status(404).json({ error: "Equipment not found" });
-        return;
-      }
-      if (!eq0.vesselId) {
-        res.json({
-          vesselClass: null,
-          equipmentType: eq0.type,
-          peerVesselCount: 0,
-          patterns: [],
-          reason: "equipment_not_assigned_to_vessel",
-        });
-        return;
-      }
+    if (!eq0) {
+      res.status(404).json({ error: "Equipment not found" });
+      return;
+    }
+    if (!eq0.vesselId) {
+      res.json({
+        vesselClass: null,
+        equipmentType: eq0.type,
+        peerVesselCount: 0,
+        patterns: [],
+        reason: "equipment_not_assigned_to_vessel",
+      });
+      return;
+    }
 
-      // 2) Get the focal vessel's class.
-      const [vessel] = await db
-        .select({ id: vessels.id, vesselClass: vessels.vesselClass })
-        .from(vessels)
-        .where(and(eq(vessels.orgId, authReq.orgId), eq(vessels.id, eq0.vesselId)))
-        .limit(1);
+    // 2) Get the focal vessel's class.
+    const vessel = await findVesselClass(authReq.orgId, eq0.vesselId);
 
-      if (!vessel || !vessel.vesselClass) {
-        res.json({
-          vesselClass: vessel?.vesselClass ?? null,
-          equipmentType: eq0.type,
-          peerVesselCount: 0,
-          patterns: [],
-          reason: "vessel_class_not_set",
-        });
-        return;
-      }
+    if (!vessel || !vessel.vesselClass) {
+      res.json({
+        vesselClass: vessel?.vesselClass ?? null,
+        equipmentType: eq0.type,
+        peerVesselCount: 0,
+        patterns: [],
+        reason: "vessel_class_not_set",
+      });
+      return;
+    }
 
-      // 3) Peer vessels of the same class, same org, NOT the focal
-      //    vessel. RLS keeps this org-bounded; the explicit orgId +
-      //    `ne(id)` keeps cross-tenant and self-vessel rows out.
-      const peers = await db
-        .select({ id: vessels.id })
-        .from(vessels)
-        .where(
-          and(
-            eq(vessels.orgId, authReq.orgId),
-            eq(vessels.vesselClass, vessel.vesselClass),
-            ne(vessels.id, vessel.id)
-          )
-        );
-      const peerVesselIds = peers.map((p) => p.id);
+    // 3) Peer vessels of the same class, same org, NOT the focal
+    //    vessel. RLS keeps this org-bounded; the explicit orgId +
+    //    `ne(id)` keeps cross-tenant and self-vessel rows out.
+    const peerVesselIds = await findPeerVesselIds(authReq.orgId, vessel.vesselClass, vessel.id);
 
-      if (!isGraphAvailable() || peerVesselIds.length === 0) {
-        res.json({
-          vesselClass: vessel.vesselClass,
-          equipmentType: eq0.type,
-          peerVesselCount: peerVesselIds.length,
-          patterns: [],
-        });
-        return;
-      }
-
-      // 4) Graph query — restricted to the peer-vessel id list.
-      const patterns = await crossClassPatterns(
-        authReq.orgId,
-        peerVesselIds,
-        eq0.type
-      );
-
+    if (!isGraphAvailable() || peerVesselIds.length === 0) {
       res.json({
         vesselClass: vessel.vesselClass,
         equipmentType: eq0.type,
         peerVesselCount: peerVesselIds.length,
-        patterns,
+        patterns: [],
       });
-    } catch (err) {
-      logger.error("cross-class-patterns failed", {
-        equipmentId: id,
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load cross-class patterns" });
+      return;
     }
+
+    // 4) Graph query — restricted to the peer-vessel id list.
+    const patterns = await crossClassPatterns(authReq.orgId, peerVesselIds, eq0.type);
+
+    res.json({
+      vesselClass: vessel.vesselClass,
+      equipmentType: eq0.type,
+      peerVesselCount: peerVesselIds.length,
+      patterns,
+    });
+  } catch (err) {
+    logger.error("cross-class-patterns failed", {
+      equipmentId: id,
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load cross-class patterns" });
   }
-);
+});
 
 // ---------- GET parts drill-down for a failure mode ----------
-router.get(
-  "/equipment/:id/cross-class-patterns/:failureMode/parts",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const { id, failureMode } = req.params;
+router.get("/equipment/:id/cross-class-patterns/:failureMode/parts", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const { id, failureMode } = req.params;
 
-    try {
-      // Confirm the focal equipment is in the caller's org before
-      // we expose any graph rows. The graph itself is org-isolated,
-      // but a 404 here gives a clean contract.
-      const [eq0] = await db
-        .select({ id: equipment.id })
-        .from(equipment)
-        .where(and(eq(equipment.orgId, authReq.orgId), eq(equipment.id, id)))
-        .limit(1);
+  try {
+    // Confirm the focal equipment is in the caller's org before
+    // we expose any graph rows. The graph itself is org-isolated,
+    // but a 404 here gives a clean contract.
+    const exists = await equipmentExistsInOrg(authReq.orgId, id ?? "");
 
-      if (!eq0) {
-        res.status(404).json({ error: "Equipment not found" });
-        return;
-      }
-
-      if (!isGraphAvailable()) {
-        res.json({ failureMode, parts: [] });
-        return;
-      }
-
-      const parts = await whatPartsForFailureMode(authReq.orgId, failureMode);
-      res.json({ failureMode, parts });
-    } catch (err) {
-      logger.error("cross-class parts drill-down failed", {
-        equipmentId: id,
-        failureMode,
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load parts" });
+    if (!exists) {
+      res.status(404).json({ error: "Equipment not found" });
+      return;
     }
+
+    if (!isGraphAvailable()) {
+      res.json({ failureMode, parts: [] });
+      return;
+    }
+
+    const parts = await whatPartsForFailureMode(authReq.orgId, failureMode);
+    res.json({ failureMode, parts });
+  } catch (err) {
+    logger.error("cross-class parts drill-down failed", {
+      equipmentId: id,
+      failureMode,
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load parts" });
   }
-);
+});
 
 export { router as equipmentCrossClassRouter };
