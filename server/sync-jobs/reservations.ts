@@ -21,7 +21,7 @@ export async function checkReservationOverflow(orgId: string): Promise<CheckResu
         partId: stock.partId,
         partName: parts.name,
         onHand: stock.quantityOnHand,
-        reserved: sql<number>`COALESCE(SUM(${reservations.quantity}), 0)`,
+        reserved: sql<number>`COALESCE(SUM(${reservations.quantity}), 0)::float8`,
       })
       .from(stock)
       .innerJoin(parts, eq(stock.partId, parts.id))

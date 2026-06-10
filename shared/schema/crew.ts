@@ -9,6 +9,7 @@ import {
   varchar,
   integer,
   real,
+  numeric,
   timestamp,
   boolean,
   index,
@@ -57,10 +58,10 @@ export const crew = pgTable(
     active: boolean("active").default(true),
     onDuty: boolean("on_duty").default(false),
     notes: text("notes"),
-    hourlyRate: real("hourly_rate"), // Hourly salary rate in SGD for labor cost calculations
+    hourlyRate: numeric("hourly_rate", { precision: 12, scale: 2, mode: "number" }), // Hourly salary rate in SGD for labor cost calculations
     startDate: timestamp("start_date", { mode: "date" }), // Contract start date
     contractEndDate: timestamp("contract_end_date", { mode: "date" }), // Contract expected end date
-    contractPenalty: real("contract_penalty"), // Penalty fee in SGD if contract cancelled
+    contractPenalty: numeric("contract_penalty", { precision: 12, scale: 2, mode: "number" }), // Penalty fee in SGD if contract cancelled
     terminationType: text("termination_type"), // 'retired' | 'cancelled' | null
     terminationDate: timestamp("termination_date", { mode: "date" }), // When crew member left
     terminationNotes: text("termination_notes"), // Reason/notes for departure
@@ -99,7 +100,7 @@ export const crewEmploymentHistory = pgTable(
     endDate: timestamp("end_date", { mode: "date" }).notNull(),
     terminationType: text("termination_type").notNull(), // 'retired' | 'cancelled'
     terminationNotes: text("termination_notes"),
-    contractPenalty: real("contract_penalty"), // Penalty applied if cancelled
+    contractPenalty: numeric("contract_penalty", { precision: 12, scale: 2, mode: "number" }), // Penalty applied if cancelled
     vesselId: varchar("vessel_id"), // Last vessel assignment during this period
     rank: text("rank"), // Rank during this period
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
