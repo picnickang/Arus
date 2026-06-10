@@ -52,6 +52,7 @@ import {
   type WidgetKey,
 } from "@shared/role-dashboard";
 import { RoleSelector } from "./home/role-selector";
+import { HubCountChips } from "./home/HubCountChips";
 import { useAttentionItems } from "./home/use-attention-items";
 import { AlertNoticeRow, AssignedTaskRow, OverviewTile } from "./home/portal-rows";
 import { greetingForNow, relativeTime } from "./home/time";
@@ -705,6 +706,7 @@ export default function HomePage() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{hub.name}</div>
                     <div className="truncate text-xs text-muted-foreground">{hub.description}</div>
+                    <HubCountChips hubId={hub.id} />
                   </div>
                   <span
                     className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
