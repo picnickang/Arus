@@ -34,6 +34,7 @@ const PortalLogin = lazy(() => import("@/pages/portal-login"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const MyTasksPage = lazy(() => import("@/pages/my-tasks"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
+const GlobalCommandPalette = lazy(() => import("@/components/search/GlobalCommandPalette"));
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -342,6 +343,14 @@ function Router() {
       </a>
 
       <ConnectivityBannerWithSync />
+
+      {/* Global quick-switcher: Cmd/Ctrl-K or the shell search button.
+          Admin-portal only — the user portal has four pages and no need. */}
+      {isAdminPortal && (
+        <Suspense fallback={null}>
+          <GlobalCommandPalette />
+        </Suspense>
+      )}
 
       <main
         id="main-content"
