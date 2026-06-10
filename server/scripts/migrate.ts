@@ -75,9 +75,60 @@ const REQUIRED_INDEXES: ReadonlyArray<{ name: string; from: string }> = [
   { name: "uq_work_orders_org_wo_number", from: "0039 identity uniques" },
 ];
 
-const REQUIRED_CASCADE_FKS: ReadonlyArray<{ table: string; column: string; from: string }> = [
-  { table: "purchase_order_items", column: "po_id", from: "0023 FK cascade" },
-  { table: "purchase_request_items", column: "pr_id", from: "0023 FK cascade" },
+// deleteRule matches pg_constraint.confdeltype: "c" = CASCADE, "n" = SET NULL,
+// "a" = NO ACTION. refTable (when set) additionally asserts the FK points at
+// that table — used to prove model_id was retargeted off ml_models_legacy.
+const REQUIRED_FKS: ReadonlyArray<{
+  table: string;
+  column: string;
+  deleteRule: "c" | "n" | "a";
+  refTable?: string;
+  from: string;
+}> = [
+  { table: "purchase_order_items", column: "po_id", deleteRule: "c", from: "0023 FK cascade" },
+  { table: "purchase_request_items", column: "pr_id", deleteRule: "c", from: "0023 FK cascade" },
+  {
+    table: "anomaly_detections",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0040 ML FK integrity",
+  },
+  {
+    table: "anomaly_detections",
+    column: "equipment_id",
+    deleteRule: "c",
+    refTable: "equipment",
+    from: "0040 ML FK integrity",
+  },
+  {
+    table: "anomaly_detections",
+    column: "model_id",
+    deleteRule: "n",
+    refTable: "ml_models",
+    from: "0040 ML FK integrity",
+  },
+  {
+    table: "failure_predictions",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0040 ML FK integrity",
+  },
+  {
+    table: "failure_predictions",
+    column: "equipment_id",
+    deleteRule: "c",
+    refTable: "equipment",
+    from: "0040 ML FK integrity",
+  },
+  {
+    table: "failure_predictions",
+    column: "model_id",
+    deleteRule: "n",
+    refTable: "ml_models",
+    from: "0040 ML FK integrity",
+  },
 ];
 
 // Columns the application assumes exist post-migration. Asserted after every
@@ -280,8 +331,9 @@ async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
 
 /**
  * Verify the critical objects the application assumes exist after migration:
- * the telemetry dedup unique index (0024), the hot-path indexes (0021), and the
- * FK cascade rules (0023). Throws a single error listing everything missing.
+ * the telemetry dedup unique index (0024), the hot-path indexes (0021), the
+ * identity unique indexes (0039), and the FK delete rules (0023, 0040).
+ * Throws a single error listing everything missing.
  */
 async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
   const missing: string[] = [];
@@ -298,21 +350,31 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
     }
   }
 
-  for (const fk of REQUIRED_CASCADE_FKS) {
+  const DELETE_RULE_LABEL: Record<string, string> = {
+    c: "ON DELETE CASCADE",
+    n: "ON DELETE SET NULL",
+    a: "ON DELETE NO ACTION",
+  };
+  for (const fk of REQUIRED_FKS) {
     const res = await pool.query(
       `SELECT 1
          FROM pg_constraint c
          JOIN pg_class r ON r.oid = c.conrelid
+         JOIN pg_class fr ON fr.oid = c.confrelid
          JOIN pg_attribute a ON a.attrelid = r.oid AND a.attnum = ANY(c.conkey)
         WHERE c.contype = 'f'
-          AND c.confdeltype = 'c'
+          AND c.confdeltype = $3
           AND r.relname = $1
           AND a.attname = $2
+          AND ($4::text IS NULL OR fr.relname = $4)
         LIMIT 1`,
-      [fk.table, fk.column]
+      [fk.table, fk.column, fk.deleteRule, fk.refTable ?? null]
     );
     if (!res.rowCount || res.rowCount === 0) {
-      missing.push(`FK ON DELETE CASCADE on ${fk.table}.${fk.column} (${fk.from})`);
+      const target = fk.refTable ? ` -> ${fk.refTable}` : "";
+      missing.push(
+        `FK ${DELETE_RULE_LABEL[fk.deleteRule]} on ${fk.table}.${fk.column}${target} (${fk.from})`
+      );
     }
   }
 
@@ -336,7 +398,7 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
   }
 
   logger.info(
-    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, FK cascades present)"
+    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, identity uniques, FK delete rules present)"
   );
 }
 
