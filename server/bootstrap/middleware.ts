@@ -227,6 +227,12 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   // Deprecation / Sunset / Link headers on legacy unversioned /api/* calls.
   applyApiVersioning(app);
 
+  // Response-envelope wrapping for migrated domains (lib/envelope-manifest).
+  // Mounted before the auth chain so auth failures on migrated prefixes are
+  // enveloped too; the middleware no-ops for paths outside the manifest.
+  const { envelopeJson } = await import("../middleware/envelope");
+  app.use("/api", envelopeJson());
+
   const skipPublicPaths =
     (middleware: import("express").RequestHandler): import("express").RequestHandler =>
     (req, res, next) => {

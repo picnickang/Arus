@@ -14,11 +14,7 @@ export function envelope<T>(data: T): { success: true; data: T } {
   return { success: true, data };
 }
 
-export function errorEnvelope(
-  status: number,
-  code: string,
-  message: string
-): HttpResponse {
+export function errorEnvelope(status: number, code: string, message: string) {
   return HttpResponse.json(
     { success: false, error: { code, message }, message },
     { status }
