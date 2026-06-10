@@ -15,10 +15,7 @@
  */
 
 import { createLogger } from "../lib/structured-logger";
-import {
-  applyTelemetryRetention,
-  type RetentionResult,
-} from "../db-utils/retention.js";
+import { applyTelemetryRetention, type RetentionResult } from "../db-utils/retention.js";
 
 const logger = createLogger("JobProcessors:TelemetryRetention");
 

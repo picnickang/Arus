@@ -41,7 +41,7 @@ export async function processTelemetryPartitionMaintenance(): Promise<TelemetryP
     // Rows in DEFAULT mean a partition gap existed at write time — the
     // safety net caught them (no loss), but the gap deserves attention.
     logger.warn(
-      `equipment_telemetry_default holds ${defaultPartitionRows} rows — a partition gap existed`,
+      `equipment_telemetry_default holds ${defaultPartitionRows} rows — a partition gap existed`
     );
   }
 

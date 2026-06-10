@@ -69,6 +69,21 @@ one equipment, default sensor set.
 Raw responses and metric snapshots: `artifacts/load/ingest-*.json`,
 `artifacts/load/ingest-metrics-*.txt` (not committed).
 
+## Post-partitioning re-baseline (migrations/0038)
+
+After `equipment_telemetry` was rebuilt as a natively partitioned table (monthly RANGE on `ts`,
+migration 0038), the ingestion ladder was re-run against the live server with no restart:
+
+| Target rate | Achieved | Errors | Evicted | Dropped | Avg flush (partitioned) | Avg flush (plain table) |
+|---|---|---|---|---|---|---|
+| 500 msg/s | 500/s | 0 | 0 | 0 | **149 ms** | 239 ms |
+| 2,000 msg/s | 2,000/s | 0 | 0 | 0 | **120 ms** | 140 ms |
+
+No regression — flush latency was equal or better, and `tableoid` checks confirmed every row
+routed to the correct monthly partition. Retention's partition fast path was also exercised
+end-to-end in this environment: an expired monthly partition (5,000 rows) was DETACH+DROPped and
+3,000 backdated DEFAULT-partition rows were deleted in per-org batches.
+
 ## Findings & harness fixes made during this pass
 
 1. **`db:push` alone is not a runnable schema.** A fresh database bootstrapped only with

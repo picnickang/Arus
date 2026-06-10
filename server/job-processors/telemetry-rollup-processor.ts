@@ -44,7 +44,7 @@ export interface TelemetryRollupJobSummary {
 }
 
 export async function processTelemetryRollup(
-  data: TelemetryRollupJobData = {},
+  data: TelemetryRollupJobData = {}
 ): Promise<TelemetryRollupJobSummary> {
   const startedAt = Date.now();
   const aggregator = new TelemetryAggregator(db);
@@ -64,7 +64,7 @@ export async function processTelemetryRollup(
   for (const orgId of orgIds) {
     try {
       const result = await withTenantContext(orgId, () =>
-        aggregator.runScheduledAggregation(orgId, data.lookbackHours ?? 2),
+        aggregator.runScheduledAggregation(orgId, data.lookbackHours ?? 2)
       );
       bucketsCreated +=
         result.minute.bucketsCreated + result.hour.bucketsCreated + result.day.bucketsCreated;

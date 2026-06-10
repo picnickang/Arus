@@ -110,9 +110,12 @@ export async function listPartitions(): Promise<PartitionInfo[]> {
  * <= cutoff). The DEFAULT partition is never eligible.
  * Exported for unit tests via the pure selection helper below.
  */
-export function selectExpiredPartitions(partitions: PartitionInfo[], cutoff: Date): PartitionInfo[] {
+export function selectExpiredPartitions(
+  partitions: PartitionInfo[],
+  cutoff: Date
+): PartitionInfo[] {
   return partitions.filter(
-    (p) => !p.isDefault && p.upperBound !== null && p.upperBound.getTime() <= cutoff.getTime(),
+    (p) => !p.isDefault && p.upperBound !== null && p.upperBound.getTime() <= cutoff.getTime()
   );
 }
 
@@ -138,7 +141,7 @@ function assertSafePartitionName(name: string): void {
  */
 export async function ensureFutureMonthlyPartitions(
   monthsAhead = 3,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): Promise<{ created: string[]; movedFromDefault: number }> {
   const created: string[] = [];
   let movedFromDefault = 0;
@@ -162,8 +165,8 @@ export async function ensureFutureMonthlyPartitions(
         await db.execute(
           sql.raw(
             `CREATE TABLE IF NOT EXISTS ${name} PARTITION OF ${PARENT_TABLE} ` +
-              `FOR VALUES FROM ('${from}') TO ('${to}')`,
-          ),
+              `FOR VALUES FROM ('${from}') TO ('${to}')`
+          )
         );
         created.push(name);
       } catch (err) {
@@ -172,7 +175,7 @@ export async function ensureFutureMonthlyPartitions(
           throw err;
         }
         logger.warn(
-          `DEFAULT partition holds rows in ${name}'s range — detaching to carve the month out`,
+          `DEFAULT partition holds rows in ${name}'s range — detaching to carve the month out`
         );
         movedFromDefault += await carveMonthOutOfDefault(name, from, to);
         created.push(name);
@@ -192,22 +195,22 @@ async function carveMonthOutOfDefault(name: string, from: string, to: string): P
     await tx.execute(
       sql.raw(
         `CREATE TABLE IF NOT EXISTS ${name} PARTITION OF ${PARENT_TABLE} ` +
-          `FOR VALUES FROM ('${from}') TO ('${to}')`,
-      ),
+          `FOR VALUES FROM ('${from}') TO ('${to}')`
+      )
     );
     const inserted = await tx.execute(
       sql.raw(
         `INSERT INTO ${PARENT_TABLE} (id, org_id, ts, equipment_id, sensor_type, value, unit, threshold, status, idempotency_key) ` +
           `SELECT id, org_id, ts, equipment_id, sensor_type, value, unit, threshold, status, idempotency_key ` +
           `FROM ${DEFAULT_PARTITION} WHERE ts >= '${from}' AND ts < '${to}' ` +
-          `ON CONFLICT (org_id, equipment_id, sensor_type, ts) DO NOTHING`,
-      ),
+          `ON CONFLICT (org_id, equipment_id, sensor_type, ts) DO NOTHING`
+      )
     );
     await tx.execute(
-      sql.raw(`DELETE FROM ${DEFAULT_PARTITION} WHERE ts >= '${from}' AND ts < '${to}'`),
+      sql.raw(`DELETE FROM ${DEFAULT_PARTITION} WHERE ts >= '${from}' AND ts < '${to}'`)
     );
     await tx.execute(
-      sql.raw(`ALTER TABLE ${PARENT_TABLE} ATTACH PARTITION ${DEFAULT_PARTITION} DEFAULT`),
+      sql.raw(`ALTER TABLE ${PARENT_TABLE} ATTACH PARTITION ${DEFAULT_PARTITION} DEFAULT`)
     );
     moved = inserted.rowCount ?? 0;
   });
@@ -230,12 +233,12 @@ export async function dropExpiredPartitions(cutoff: Date): Promise<number> {
     assertSafePartitionName(partition.name);
     try {
       await db.execute(
-        sql.raw(`ALTER TABLE ${PARENT_TABLE} DETACH PARTITION ${partition.name} CONCURRENTLY`),
+        sql.raw(`ALTER TABLE ${PARENT_TABLE} DETACH PARTITION ${partition.name} CONCURRENTLY`)
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.warn(
-        `DETACH CONCURRENTLY failed for ${partition.name} (${message}) — retrying plain DETACH`,
+        `DETACH CONCURRENTLY failed for ${partition.name} (${message}) — retrying plain DETACH`
       );
       await db.execute(sql.raw(`ALTER TABLE ${PARENT_TABLE} DETACH PARTITION ${partition.name}`));
     }

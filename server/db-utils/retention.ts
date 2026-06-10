@@ -63,7 +63,7 @@ async function deleteExpiredRowsForOrg(
   orgId: string,
   cutoffDate: Date,
   batchSize: number,
-  remainingBatches: number,
+  remainingBatches: number
 ): Promise<{ deleted: number; batchesUsed: number; exhausted: boolean }> {
   let deleted = 0;
   let batchesUsed = 0;
@@ -156,14 +156,16 @@ export async function applyTelemetryRetention(): Promise<RetentionResult> {
         org.id,
         cutoffDate,
         batchSize,
-        maxBatches - batchesUsed,
+        maxBatches - batchesUsed
       );
       deletedRecords += orgResult.deleted;
       batchesUsed += orgResult.batchesUsed;
-      exhausted = exhausted || orgResult.exhausted;
+      exhausted ||= orgResult.exhausted;
     }
 
-    const suffix = exhausted
+    const droppedNote =
+      partitionsDropped > 0 ? ` and dropped ${partitionsDropped} expired partitions` : "";
+    const capNote = exhausted
       ? ` (batch cap of ${maxBatches} reached — the next run continues)`
       : "";
     return {
@@ -171,10 +173,7 @@ export async function applyTelemetryRetention(): Promise<RetentionResult> {
       deletedRecords,
       partitionsDropped,
       exhausted,
-      message:
-        `Successfully deleted ${deletedRecords} telemetry records older than ${retentionDays} days` +
-        (partitionsDropped > 0 ? ` and dropped ${partitionsDropped} expired partitions` : "") +
-        suffix,
+      message: `Successfully deleted ${deletedRecords} telemetry records older than ${retentionDays} days${droppedNote}${capNote}`,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
