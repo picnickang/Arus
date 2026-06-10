@@ -104,6 +104,17 @@ export function DriftMonitoringTab() {
               Method: normalized mean shift (|μ_live - μ_train| / σ_train) &gt; 2.0
             </span>
           </div>
+          {driftedCount > 0 && (
+            <div
+              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs"
+              data-testid="drift-recommendation"
+            >
+              <span className="font-semibold">What to do:</span> live inputs have shifted from
+              what this version was trained on, so its accuracy degrades from here. If a single
+              feature drifted, check that sensor's calibration first; if several drifted
+              together, retrain on recent data (Training tab) and promote the new version.
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Drift Metrics</CardTitle>

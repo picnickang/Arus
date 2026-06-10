@@ -37,7 +37,7 @@ export function createGetEquipmentHubUseCase(repo: EquipmentHubRepository) {
 
 function generateDiagnosticSummary(analysisType: string, hub: EquipmentHubAggregate): string {
   const health = hub.health;
-  const rul = hub.rul;
+  const rul = hub.rul ?? "unknown";
   const trend = hub.trend;
   const trendLabel =
     trend === "declining"
@@ -45,6 +45,10 @@ function generateDiagnosticSummary(analysisType: string, hub: EquipmentHubAggreg
       : trend === "improving"
         ? "improving trend observed"
         : "stable trend";
+
+  if (health == null) {
+    return `${analysisType === "bearing" ? "Bearing analysis" : analysisType === "pump" ? "Pump performance analysis" : "General health assessment"} for ${hub.name}: no PdM health score is recorded yet, so condition cannot be assessed from scoring data. Verify telemetry/sensor mapping; operational records remain available.`;
+  }
 
   switch (analysisType) {
     case "bearing": {
@@ -101,31 +105,42 @@ function generateDiagnosticResults(
     activeSignals: hub.signals.length,
   };
 
+  if (hub.health == null) {
+    return {
+      ...baseContext,
+      analysisType,
+      status: "no-data",
+      note: "No PdM health score recorded — analysis values unavailable until scoring runs.",
+      signals: hub.signals.slice(0, 5),
+    };
+  }
+  const health = hub.health;
+
   switch (analysisType) {
     case "bearing": {
-      const healthOk = hub.health >= 70;
+      const healthOk = health >= 70;
       return {
         ...baseContext,
         analysisType: "bearing",
-        vibrationLevel: healthOk ? "normal" : hub.health >= 40 ? "elevated" : "critical",
+        vibrationLevel: healthOk ? "normal" : health >= 40 ? "elevated" : "critical",
         peakFrequency: healthOk ? "42 Hz" : "67 Hz",
-        rmsVelocity: healthOk ? "2.1 mm/s" : hub.health >= 40 ? "4.8 mm/s" : "7.2 mm/s",
+        rmsVelocity: healthOk ? "2.1 mm/s" : health >= 40 ? "4.8 mm/s" : "7.2 mm/s",
         kurtosis: healthOk ? 3.2 : 5.1,
         crestFactor: healthOk ? 3.8 : 6.4,
-        status: healthOk ? "healthy" : hub.health >= 40 ? "degraded" : "critical",
+        status: healthOk ? "healthy" : health >= 40 ? "degraded" : "critical",
         signals: hub.signals.slice(0, 5),
       };
     }
     case "pump": {
-      const healthOk = hub.health >= 70;
+      const healthOk = health >= 70;
       return {
         ...baseContext,
         analysisType: "pump",
-        flowRate: healthOk ? "nominal" : hub.health >= 40 ? "reduced" : "critically low",
+        flowRate: healthOk ? "nominal" : health >= 40 ? "reduced" : "critically low",
         pressureDifferential: healthOk ? "within range" : "out of range",
-        cavitationIndex: healthOk ? 0.12 : hub.health >= 40 ? 0.35 : 0.62,
-        efficiency: healthOk ? "87%" : hub.health >= 40 ? "72%" : "54%",
-        status: healthOk ? "healthy" : hub.health >= 40 ? "degraded" : "critical",
+        cavitationIndex: healthOk ? 0.12 : health >= 40 ? 0.35 : 0.62,
+        efficiency: healthOk ? "87%" : health >= 40 ? "72%" : "54%",
+        status: healthOk ? "healthy" : health >= 40 ? "degraded" : "critical",
         signals: hub.signals.slice(0, 5),
       };
     }
@@ -133,7 +148,7 @@ function generateDiagnosticResults(
       return {
         ...baseContext,
         analysisType: "general",
-        overallStatus: hub.health >= 70 ? "healthy" : hub.health >= 40 ? "degraded" : "critical",
+        overallStatus: health >= 70 ? "healthy" : health >= 40 ? "degraded" : "critical",
         parametersChecked: 12 + hub.telemetry.length,
         anomaliesFound: hub.signals.length,
         prediction: hub.prediction,

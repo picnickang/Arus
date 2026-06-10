@@ -15,7 +15,9 @@ import {
   CalendarClock,
   Stethoscope,
 } from "lucide-react";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { SummaryDashboard } from "./pdm-platform/SummaryDashboard";
+import { MlOpsTabPicker } from "./pdm-platform/MlOpsTabPicker";
 import { FeatureStoreTab } from "./pdm-platform/FeatureStoreTab";
 import { FleetAnalyticsTab } from "./pdm-platform/FleetAnalyticsTab";
 import { ModelRegistryTab } from "./pdm-platform/ModelRegistryTab";
@@ -28,7 +30,7 @@ import { DecisionSupportTab } from "./pdm-platform/DecisionSupportTab";
 const ScheduleView = lazy(() => import("@/features/pdm/components/schedule-view"));
 const PdmDiagnostics = lazy(() => import("@/pages/pdm-pack"));
 
-const VALID_TABS = [
+export const VALID_TABS = [
   "features",
   "fleet",
   "models",
@@ -41,6 +43,32 @@ const VALID_TABS = [
   "diagnostics",
 ] as const;
 
+// Watchkeeper-facing tabs stay in the row; ML-engineer tooling (raw
+// Z-scores, μ/σ tables, training metrics) moves behind the gated picker.
+// Governance stays operator-side: it is the chief engineer's prediction
+// review queue, relabeled "Reviews" (tab id unchanged for deep links).
+export const OPERATOR_TABS = ["schedule", "decision-support", "governance"] as const;
+export const ML_OPS_TABS = [
+  "models",
+  "training",
+  "inference",
+  "drift",
+  "features",
+  "fleet",
+  "diagnostics",
+] as const;
+const DEFAULT_TAB = "schedule";
+
+const ML_OPS_TAB_DEFS = [
+  { id: "models", label: "Models & versions", icon: Box },
+  { id: "training", label: "Training runs", icon: FlaskConical },
+  { id: "inference", label: "Inference", icon: Zap },
+  { id: "drift", label: "Drift monitoring", icon: AlertTriangle },
+  { id: "features", label: "Feature store", icon: Database },
+  { id: "fleet", label: "Fleet baselines", icon: BarChart3 },
+  { id: "diagnostics", label: "Diagnostics (Z-scores)", icon: Stethoscope },
+];
+
 function TabLoader() {
   return (
     <div className="flex items-center justify-center py-16">
@@ -52,8 +80,13 @@ function TabLoader() {
 export default function PdmPlatformPage() {
   const search = useSearch();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("features");
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
   const [highlightedModelVersionId, setHighlightedModelVersionId] = useState<string | null>(null);
+  const { hasPermission, permissions } = usePermissions();
+  // While permissions load, don't strip a gated deep link — permitted
+  // users' ?tab= must survive first paint; denied users fall back below.
+  const canMlOps = hasPermission("predictive_maintenance", "manage_config");
+  const mlOpsKnown = !permissions.isLoading;
 
   useEffect(() => {
     const tab = new URLSearchParams(search).get("tab");
@@ -61,6 +94,12 @@ export default function PdmPlatformPage() {
       setActiveTab(tab);
     }
   }, [search]);
+
+  useEffect(() => {
+    if (mlOpsKnown && !canMlOps && (ML_OPS_TABS as readonly string[]).includes(activeTab)) {
+      setActiveTab(DEFAULT_TAB);
+    }
+  }, [mlOpsKnown, canMlOps, activeTab]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -89,33 +128,21 @@ export default function PdmPlatformPage() {
             <TabsTrigger value="schedule" data-testid="tab-schedule">
               <CalendarClock className="w-4 h-4 mr-1" /> Schedule
             </TabsTrigger>
-            <TabsTrigger value="diagnostics" data-testid="tab-diagnostics">
-              <Stethoscope className="w-4 h-4 mr-1" /> Diagnostics
-            </TabsTrigger>
-            <TabsTrigger value="features" data-testid="tab-features">
-              <Database className="w-4 h-4 mr-1" /> Features
-            </TabsTrigger>
-            <TabsTrigger value="fleet" data-testid="tab-fleet">
-              <BarChart3 className="w-4 h-4 mr-1" /> Fleet
-            </TabsTrigger>
-            <TabsTrigger value="models" data-testid="tab-models">
-              <Box className="w-4 h-4 mr-1" /> Models
-            </TabsTrigger>
-            <TabsTrigger value="training" data-testid="tab-training">
-              <FlaskConical className="w-4 h-4 mr-1" /> Training
-            </TabsTrigger>
-            <TabsTrigger value="inference" data-testid="tab-inference">
-              <Zap className="w-4 h-4 mr-1" /> Inference
-            </TabsTrigger>
-            <TabsTrigger value="drift" data-testid="tab-drift">
-              <AlertTriangle className="w-4 h-4 mr-1" /> Drift
-            </TabsTrigger>
-            <TabsTrigger value="governance" data-testid="tab-governance">
-              <Shield className="w-4 h-4 mr-1" /> Governance
-            </TabsTrigger>
             <TabsTrigger value="decision-support" data-testid="tab-decision-support">
               <BrainCircuit className="w-4 h-4 mr-1" /> Decisions
             </TabsTrigger>
+            <TabsTrigger value="governance" data-testid="tab-governance">
+              <Shield className="w-4 h-4 mr-1" /> Reviews
+            </TabsTrigger>
+            {canMlOps && (
+              <div className="ml-auto">
+                <MlOpsTabPicker
+                  tabs={ML_OPS_TAB_DEFS}
+                  activeTab={activeTab}
+                  onSelect={handleTabChange}
+                />
+              </div>
+            )}
           </TabsList>
 
           <TabsContent value="schedule" className="mt-4">
@@ -123,35 +150,39 @@ export default function PdmPlatformPage() {
               <ScheduleView />
             </Suspense>
           </TabsContent>
-          <TabsContent value="diagnostics" className="mt-4">
-            <Suspense fallback={<TabLoader />}>
-              <PdmDiagnostics />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="features" className="mt-4">
-            <FeatureStoreTab />
-          </TabsContent>
-          <TabsContent value="fleet" className="mt-4">
-            <FleetAnalyticsTab />
-          </TabsContent>
-          <TabsContent value="models" className="mt-4">
-            <ModelRegistryTab highlightedVersionId={highlightedModelVersionId} />
-          </TabsContent>
-          <TabsContent value="training" className="mt-4">
-            <TrainingPipelineTab />
-          </TabsContent>
-          <TabsContent value="inference" className="mt-4">
-            <InferenceTab />
-          </TabsContent>
-          <TabsContent value="drift" className="mt-4">
-            <DriftMonitoringTab />
-          </TabsContent>
           <TabsContent value="governance" className="mt-4">
             <GovernanceTab onSwitchToModels={handleSwitchToModels} />
           </TabsContent>
           <TabsContent value="decision-support" className="mt-4">
             <DecisionSupportTab />
           </TabsContent>
+          {(canMlOps || !mlOpsKnown) && (
+            <>
+              <TabsContent value="diagnostics" className="mt-4">
+                <Suspense fallback={<TabLoader />}>
+                  <PdmDiagnostics />
+                </Suspense>
+              </TabsContent>
+              <TabsContent value="features" className="mt-4">
+                <FeatureStoreTab />
+              </TabsContent>
+              <TabsContent value="fleet" className="mt-4">
+                <FleetAnalyticsTab />
+              </TabsContent>
+              <TabsContent value="models" className="mt-4">
+                <ModelRegistryTab highlightedVersionId={highlightedModelVersionId} />
+              </TabsContent>
+              <TabsContent value="training" className="mt-4">
+                <TrainingPipelineTab />
+              </TabsContent>
+              <TabsContent value="inference" className="mt-4">
+                <InferenceTab />
+              </TabsContent>
+              <TabsContent value="drift" className="mt-4">
+                <DriftMonitoringTab />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
     </IntelligenceLayout>

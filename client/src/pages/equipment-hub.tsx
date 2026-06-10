@@ -277,7 +277,19 @@ export default function EquipmentHub() {
         {/* Section 1: Header */}
         <div className="flex flex-col md:flex-row gap-5 items-start" data-testid="hub-header">
           <div className="flex items-center gap-4 flex-1">
-            <HealthRing value={data.health} size={80} stroke={7} />
+            {data.health == null ? (
+              <div
+                className="flex h-20 w-20 flex-col items-center justify-center rounded-full border-4 border-slate-700/40 text-center"
+                data-testid="health-ring-empty"
+              >
+                <span className="text-sm font-bold text-slate-500">—</span>
+                <span className="text-[8px] uppercase tracking-wider text-slate-600">
+                  No score
+                </span>
+              </div>
+            ) : (
+              <HealthRing value={data.health} size={80} stroke={7} />
+            )}
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-xl font-bold text-slate-100" data-testid="equipment-name">
@@ -298,13 +310,13 @@ export default function EquipmentHub() {
                 <div>
                   <span className="text-slate-600">RUL</span>{" "}
                   <span className={`font-bold ${riskColor(data.risk)}`} data-testid="rul-value">
-                    {data.rul}d
+                    {data.rul == null ? "—" : `${data.rul}d`}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600">Confidence</span>{" "}
                   <span className="font-bold text-slate-200" data-testid="confidence-value">
-                    {data.confidence}%
+                    {data.confidence == null ? "—" : `${data.confidence}%`}
                   </span>
                 </div>
                 <div>
@@ -322,7 +334,12 @@ export default function EquipmentHub() {
               </div>
             </div>
           </div>
-          <MiniSparkline data={data.telemetry} color={healthStroke(data.health)} w={140} h={40} />
+          <MiniSparkline
+            data={data.telemetry}
+            color={healthStroke(data.health ?? 100)}
+            w={140}
+            h={40}
+          />
         </div>
 
         {/* Section 2: Sticky Action Bar */}

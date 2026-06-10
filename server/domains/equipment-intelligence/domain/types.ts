@@ -143,10 +143,13 @@ export interface EquipmentHubAggregate {
   vessel: string;
   vesselId: string;
   type: string;
-  health: number;
-  rul: number;
+  /** null = no PdM score recorded yet — never fabricate a healthy 100. */
+  health: number | null;
+  /** null = no failure prediction yet — never fabricate a 365-day RUL. */
+  rul: number | null;
   risk: "critical" | "warning" | "low";
-  confidence: number;
+  /** null = no prediction to derive confidence from (was a fake 85%). */
+  confidence: number | null;
   prediction: string;
   trend: "declining" | "stable" | "improving";
   signals: string[];

@@ -2,12 +2,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useModels } from "@/features/pdm/hooks/use-model-registry";
 import { useDriftSummary } from "@/features/pdm/hooks/use-model-monitoring";
 import { usePredictionGovernance } from "@/features/pdm/hooks/usePredictionGovernance";
+import { useCostSavingsSummary } from "@/features/pdm/hooks/use-pdm-dashboard";
+
+function formatUsd(value: number): string {
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `$${Math.round(value / 1_000)}K`;
+  }
+  return `$${Math.round(value)}`;
+}
 
 export function SummaryDashboard() {
   const { data: models } = useModels();
   const { data: pendingPredictions } = usePredictionGovernance("pending");
   const { data: allPredictions } = usePredictionGovernance();
   const { data: driftSummary } = useDriftSummary();
+  const { data: costSavings } = useCostSavingsSummary(12);
 
   const modelsList: Array<{ status?: string }> = Array.isArray(models) ? models : [];
   const deployedCount = modelsList.filter((m) => m.status === "deployed").length;
@@ -70,6 +82,29 @@ export function SummaryDashboard() {
           </div>
         </CardContent>
       </Card>
+      {/* Value strip — only rendered when real savings rows exist; the
+          figures are estimates (probability × repair cost), labeled so. */}
+      {costSavings && costSavings.savingsCount > 0 && (
+        <Card className="col-span-2 md:col-span-4 border-emerald-500/40 bg-emerald-500/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
+              PdM value (12 mo)
+            </span>
+            <span className="text-sm font-bold" data-testid="text-summary-savings-total">
+              {formatUsd(costSavings.totalSavings)} saved
+            </span>
+            <span className="text-sm text-muted-foreground">
+              · {costSavings.savingsCount} incidents averted
+            </span>
+            <span className="text-sm text-muted-foreground">
+              · {Math.round(costSavings.totalDowntimePrevented)}h downtime prevented
+            </span>
+            <span className="ml-auto rounded border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              ESTIMATES — probability × repair cost
+            </span>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
