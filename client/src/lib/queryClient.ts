@@ -5,6 +5,7 @@ import { getBackendUrlSync } from "@/lib/desktopFetch";
 import { getApiSessionToken } from "@/lib/sessionToken";
 import {
   addConflict,
+  generateClientMutationId,
   getPendingOperations,
   getUnresolvedConflictOperationIds,
   isOnline,
@@ -168,9 +169,15 @@ function asPayloadRecord(data: unknown): Record<string, unknown> | undefined {
 async function queueOfflineApiRequest(
   method: string,
   url: string,
-  data: unknown
+  data: unknown,
+  clientMutationId?: string
 ): Promise<QueuedApiResponse> {
-  const operation = await queueApiOperation(method, url, asPayloadRecord(data));
+  const payload = asPayloadRecord(data);
+  const operation = await queueApiOperation(
+    method,
+    url,
+    clientMutationId ? { ...(payload ?? {}), __clientMutationId: clientMutationId } : payload
+  );
   return {
     queuedForSync: true,
     offline: true,
@@ -204,22 +211,36 @@ export async function apiRequest<T = unknown>(
 
   const shouldQueueOffline = isQueueableMutation(method, url);
 
+  // Queueable mutations carry an idempotency key from the very first attempt, so a
+  // request that succeeds server-side but fails client-side (timeout, dropped link)
+  // replays to the same cached response instead of double-writing.
+  const payloadRecord = shouldQueueOffline ? asPayloadRecord(data) : undefined;
+  const clientMutationId = shouldQueueOffline
+    ? (payloadRecord?.["clientMutationId"] as string | undefined) ??
+      (payloadRecord?.["__clientMutationId"] as string | undefined) ??
+      generateClientMutationId()
+    : undefined;
+
   if (shouldQueueOffline && !isOnline()) {
-    return (await queueOfflineApiRequest(method, url, data)) as T;
+    return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
   }
 
   let res: Response;
   try {
     res = await fetch(resolveUrl(url), {
       method,
-      headers: { ...createHeaders(includeContentType), ...(options?.headers ?? {}) },
+      headers: {
+        ...createHeaders(includeContentType),
+        ...(clientMutationId ? { "Idempotency-Key": clientMutationId } : {}),
+        ...(options?.headers ?? {}),
+      },
       ...(body !== undefined ? { body } : {}),
       credentials: "include",
       ...(options?.signal !== undefined ? { signal: options.signal } : {}),
     });
   } catch (error) {
     if (shouldQueueOffline && isNetworkFailure(error)) {
-      return (await queueOfflineApiRequest(method, url, data)) as T;
+      return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
     }
     throw error;
   }
@@ -339,42 +360,36 @@ export const queryClient = new QueryClient({
       retry: 1,
     },
     mutations: {
-      retry: 1,
+      // Never auto-retry mutations: most POSTs are not idempotent, and queueable
+      // mutations already get exactly-once replay via the offline outbox.
+      // Idempotent calls can opt back in with a per-mutation `retry`.
+      retry: 0,
     },
   },
 });
 
-export function optimisticUpdate<TData, TVariables>(
-  queryKey: string | string[],
-  updater: (oldData: TData | undefined, variables: TVariables) => TData
-) {
-  return async (variables: TVariables) => {
-    const key = Array.isArray(queryKey) ? queryKey : [queryKey];
+let replayInFlight: Promise<{ synced: number; failed: number; conflicts: number }> | null = null;
 
-    await queryClient.cancelQueries({ queryKey: key });
-
-    const previousData = queryClient.getQueryData<TData>(key);
-
-    queryClient.setQueryData<TData>(key, (old) => updater(old, variables));
-
-    return { previousData, queryKey: key };
-  };
+/**
+ * Replays the offline outbox. Concurrent callers (connectivity listeners, manual
+ * sync button, app mount) share a single in-flight replay so an operation can
+ * never be submitted twice in parallel.
+ */
+export function replayQueuedApiRequests(): Promise<{
+  synced: number;
+  failed: number;
+  conflicts: number;
+}> {
+  if (replayInFlight) {
+    return replayInFlight;
+  }
+  replayInFlight = doReplayQueuedApiRequests().finally(() => {
+    replayInFlight = null;
+  });
+  return replayInFlight;
 }
 
-export function rollbackUpdate<TData>(_queryKey: string | string[]) {
-  return (
-    _error: Error,
-    _variables: unknown,
-    context?: { previousData?: TData; queryKey: string[] }
-  ) => {
-    if (context?.previousData !== undefined) {
-      queryClient.setQueryData(context.queryKey, context.previousData);
-    }
-  };
-}
-
-
-export async function replayQueuedApiRequests(): Promise<{
+async function doReplayQueuedApiRequests(): Promise<{
   synced: number;
   failed: number;
   conflicts: number;
@@ -402,10 +417,21 @@ export async function replayQueuedApiRequests(): Promise<{
       }
     });
 
+    // The key travels as a header because `__`-prefixed payload keys are stripped
+    // above. Older queue records only stored it in the payload, so fall back there.
+    const idempotencyKey =
+      op.clientMutationId ??
+      (typeof op.payload["__clientMutationId"] === "string"
+        ? op.payload["__clientMutationId"]
+        : undefined);
+
     try {
       const response = await fetch(resolveUrl(op.request.url), {
         method: op.request.method,
-        headers: createHeaders(op.request.method !== "DELETE"),
+        headers: {
+          ...createHeaders(op.request.method !== "DELETE"),
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
         ...(op.request.method !== "DELETE" ? { body: JSON.stringify(payload) } : {}),
         credentials: "include",
       });

@@ -1,4 +1,8 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
+import {
+  classifyOfflineEntityPath,
+  isQueueableMutationPath,
+} from "@shared/offline-queue-routes";
 
 export type OperationType = "create" | "update" | "delete";
 export type EntityType =
@@ -119,6 +123,24 @@ export function generateClientMutationId(prefix = "client-mutation"): string {
   return `${prefix}:${randomPart}`;
 }
 
+/**
+ * Hard cap on queued offline operations. Overflow rejects loudly instead of
+ * silently evicting older entries — these are maritime work records, and a
+ * dropped one is worse than a blocked save.
+ */
+export const MAX_PENDING_OPERATIONS = 500;
+
+export class OfflineQueueFullError extends Error {
+  readonly code = "OFFLINE_QUEUE_FULL";
+
+  constructor() {
+    super(
+      `Offline outbox is full (${MAX_PENDING_OPERATIONS} pending changes). Reconnect and sync before saving more changes.`
+    );
+    this.name = "OfflineQueueFullError";
+  }
+}
+
 export async function queueOperation(
   entityType: EntityType,
   entityId: string,
@@ -129,11 +151,15 @@ export async function queueOperation(
   const db = await getDB();
 
   const shouldDedupe = operationType !== "create" || payload['__allowOfflineCreateDedupe'] === true;
+
+  // Dedup lookup, cap check, and write share one readwrite transaction so two
+  // concurrent queue calls for the same entity cannot both miss the lookup and
+  // insert duplicates.
+  const tx = db.transaction("pendingOperations", "readwrite");
+  const store = tx.objectStore("pendingOperations");
+
   const existingOps = shouldDedupe
-    ? await db.getAllFromIndex("pendingOperations", "by-entity", [
-        entityType,
-        entityId,
-      ])
+    ? await store.index("by-entity").getAll([entityType, entityId])
     : [];
 
   const existingOp = existingOps.find((op) => op.operationType === operationType);
@@ -143,9 +169,15 @@ export async function queueOperation(
       payload: { ...existingOp.payload, ...payload },
       lastModifiedAt: lastModifiedAt || new Date().toISOString(),
     };
-    await db.put("pendingOperations", updatedOp);
+    await store.put(updatedOp);
+    await tx.done;
     broadcastOfflineSyncChange();
     return existingOp.id;
+  }
+
+  if ((await store.count()) >= MAX_PENDING_OPERATIONS) {
+    await tx.done;
+    throw new OfflineQueueFullError();
   }
 
   const operation: PendingOperation = {
@@ -159,7 +191,8 @@ export async function queueOperation(
     lastModifiedAt: lastModifiedAt || new Date().toISOString(),
   };
 
-  await db.add("pendingOperations", operation);
+  await store.add(operation);
+  await tx.done;
   broadcastOfflineSyncChange();
   return operation.id;
 }
@@ -412,64 +445,14 @@ const MUTATION_TO_OPERATION: Record<string, OperationType> = {
 };
 
 export function classifyOfflineEntity(url: string): EntityType {
-  const path = url.split("?")[0] ?? url;
-  if (
-    /\/acknowledge$/.test(path) &&
-    (path.startsWith("/api/rms/alerts/") || path.startsWith("/api/me/safety-alarms/"))
-  ) {
-    return "safety_acknowledgement";
-  }
-  if (path.startsWith("/api/parts-inventory/") && /\/stock$/.test(path)) {return "inventory_stock";}
-  if (path.startsWith("/api/parts-inventory")) {return "inventory_item";}
-  if (path.startsWith("/api/work-orders") && path.includes("/parts")) {return "parts";}
-  if (path.startsWith("/api/work-orders")) {return "work_order";}
-  if (
-    path.startsWith("/api/offshore-ops") ||
-    path.startsWith("/api/service-requests") ||
-    path.startsWith("/api/service-orders")
-  ) {
-    return "logistics_task";
-  }
-  if (path.startsWith("/api/logbook/")) {return "logbook";}
-  if (path.startsWith("/api/maintenance-checklist")) {return "checklist";}
-  if (path.startsWith("/api/attention/")) {return "handover";}
-  if (
-    path.startsWith("/api/rms/alerts") ||
-    path.startsWith("/api/alerts") ||
-    path.startsWith("/api/admin/safety-alarms")
-  ) {
-    return "alert";
-  }
-  if (path.startsWith("/api/pdm/risk")) {return "pdm_risk";}
-  return "api_request";
+  // The registry is shared with the server (which mounts idempotency
+  // middleware on the same families); entity types are validated against the
+  // EntityType union in tests/unit/offline-queue-routes.test.ts.
+  return classifyOfflineEntityPath(url) as EntityType;
 }
 
 export function isQueueableMutation(method: string, url: string): boolean {
-  const verb = method.toUpperCase();
-  if (!(verb in MUTATION_TO_OPERATION)) {
-    return false;
-  }
-
-  if (verb === "DELETE" && /\/clear(?:$|[/?#])/.test(url)) {
-    return false;
-  }
-
-  return [
-    "/api/parts-inventory",
-    "/api/work-orders",
-    "/api/offshore-ops",
-    "/api/service-requests",
-    "/api/service-orders",
-    "/api/me/safety-alarms",
-    "/api/admin/safety-alarms",
-    "/api/logbook/deck",
-    "/api/logbook/engine",
-    "/api/maintenance-checklist",
-    "/api/attention/",
-    "/api/rms/alerts",
-    "/api/alerts",
-    "/api/pdm/risk",
-  ].some((prefix) => url.startsWith(prefix));
+  return isQueueableMutationPath(method, url);
 }
 
 export async function queueApiOperation(

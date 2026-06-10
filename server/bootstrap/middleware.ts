@@ -241,4 +241,15 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   app.use("/api", skipPublicPaths(requireOrgId));
   app.use("/api", skipPublicPaths(validateOrgIdHeader));
   app.use("/api", skipPublicPaths(withDatabaseContext));
+
+  // Idempotency on every offline-queueable route family (needs orgId, so it
+  // mounts after the auth chain). The shared registry keeps client
+  // queueability and server replay protection in lockstep; older per-route
+  // mounts compose via the claim marker inside the middleware.
+  const { idempotencyMiddleware } = await import("../middleware/idempotency");
+  const { getQueueablePrefixes } = await import("@shared/offline-queue-routes");
+  const queueableIdempotency = idempotencyMiddleware();
+  for (const prefix of getQueueablePrefixes()) {
+    app.use(prefix.replace(/\/$/, ""), queueableIdempotency);
+  }
 }
