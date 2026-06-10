@@ -84,7 +84,19 @@ export const pilotFeedbackDraftSchema = z.object({
   description: z.string().trim().min(10).max(2000),
 });
 
+/**
+ * Office/admin review action (`PATCH /api/feedback-review/:id`) — moves a
+ * report to acknowledged or resolved; crews never set these states.
+ * `linkedWorkOrderId: null` explicitly clears an existing link.
+ */
+export const pilotFeedbackReviewSchema = z.object({
+  status: z.enum(["acknowledged", "resolved"]),
+  resolutionNote: z.string().trim().max(2000).optional(),
+  linkedWorkOrderId: z.string().trim().min(1).nullable().optional(),
+});
+
 export type PilotFeedback = typeof pilotFeedback.$inferSelect;
 export type InsertPilotFeedback = z.infer<typeof insertPilotFeedbackSchema>;
 export type PilotFeedbackDraft = z.infer<typeof pilotFeedbackDraftSchema>;
+export type PilotFeedbackReview = z.infer<typeof pilotFeedbackReviewSchema>;
 export type PilotFeedbackStatus = (typeof PILOT_FEEDBACK_STATUSES)[number];

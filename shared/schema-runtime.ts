@@ -66,7 +66,7 @@ export {
   publishBehaviorSchema,
   rotationTemplateSchema,
 } from "./schema/scheduling-settings";
-export { pilotFeedbackDraftSchema } from "./schema/feedback";
+export { pilotFeedbackDraftSchema, pilotFeedbackReviewSchema } from "./schema/feedback";
 
 /**
  * Re-export ONLY types (no runtime values)
