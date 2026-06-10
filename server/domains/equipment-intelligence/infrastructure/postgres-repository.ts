@@ -2,6 +2,7 @@ import { db } from "../../../db-config.js";
 import { equipment, vessels, failurePredictions, actionableInsights } from "@shared/schema-runtime";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
+import { deriveHubHealthFields } from "../domain/hub-health.js";
 import type { EquipmentIntelligenceRepository } from "../domain/ports.js";
 import type {
   FleetSummary,
@@ -88,18 +89,19 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const pdmScores = await this.fetchPdmScores(orgId);
     const healthMap = new Map<string, number>();
     for (const score of pdmScores) {
-      if (!healthMap.has(score.equipmentId)) {
-        healthMap.set(score.equipmentId, score.healthIdx ?? 100);
+      // A score row with a null healthIdx is no score — never default to 100.
+      if (score.healthIdx != null && !healthMap.has(score.equipmentId)) {
+        healthMap.set(score.equipmentId, score.healthIdx);
       }
     }
 
     const vesselMap = new Map<string, FleetSummaryVessel>();
+    const scoredTotals = new Map<string, { sum: number; count: number }>();
 
     for (const row of allEquipment) {
       const vId = row.eq.vesselId || "unassigned";
       const vName = row.vesselName || row.eq.vesselName || "Unassigned";
-      const healthScore = healthMap.get(row.eq.id) ?? 100;
-      const risk = computeRisk(healthScore);
+      const healthScore = healthMap.get(row.eq.id) ?? null;
 
       if (!vesselMap.has(vId)) {
         vesselMap.set(vId, {
@@ -109,11 +111,18 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
           critical: 0,
           warning: 0,
           healthy: 0,
-          avgHealth: 0,
+          noData: 0,
+          avgHealth: null,
         });
+        scoredTotals.set(vId, { sum: 0, count: 0 });
       }
       const vessel = vesselMap.get(vId)!;
       vessel.equipment++;
+      if (healthScore == null) {
+        vessel.noData++;
+        continue;
+      }
+      const risk = computeRisk(healthScore);
       if (risk === "critical") {
         vessel.critical++;
       } else if (risk === "warning") {
@@ -121,22 +130,29 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       } else {
         vessel.healthy++;
       }
-      vessel.avgHealth += healthScore;
+      const totals = scoredTotals.get(vId)!;
+      totals.sum += healthScore;
+      totals.count++;
     }
 
-    const vArr = Array.from(vesselMap.values()).map((v) => ({
-      ...v,
-      avgHealth: v.equipment > 0 ? Math.round(v.avgHealth / v.equipment) : 100,
-    }));
+    const vArr = Array.from(vesselMap.values()).map((v) => {
+      const totals = scoredTotals.get(v.id)!;
+      return {
+        ...v,
+        avgHealth: totals.count > 0 ? Math.round(totals.sum / totals.count) : null,
+      };
+    });
 
     const totalEquipment = allEquipment.length;
     const criticalCount = vArr.reduce((s, v) => s + v.critical, 0);
     const warningCount = vArr.reduce((s, v) => s + v.warning, 0);
     const healthyCount = vArr.reduce((s, v) => s + v.healthy, 0);
+    const noDataCount = vArr.reduce((s, v) => s + v.noData, 0);
+    const scoredCount = totalEquipment - noDataCount;
     const fleetHealth =
-      totalEquipment > 0
-        ? Math.round(vArr.reduce((s, v) => s + v.avgHealth * v.equipment, 0) / totalEquipment)
-        : 100;
+      scoredCount > 0
+        ? Math.round(Array.from(scoredTotals.values()).reduce((s, t) => s + t.sum, 0) / scoredCount)
+        : null;
 
     const pdmDataAvailable = pdmScores.length > 0;
 
@@ -147,6 +163,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       criticalCount,
       warningCount,
       healthyCount,
+      noDataCount,
       dataStatus: pdmDataAvailable ? ("ok" as const) : ("degraded" as const),
     };
   }
@@ -164,8 +181,8 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const pdmScores = await this.fetchPdmScores(orgId);
     const healthMap = new Map<string, number>();
     for (const score of pdmScores) {
-      if (!healthMap.has(score.equipmentId)) {
-        healthMap.set(score.equipmentId, score.healthIdx ?? 100);
+      if (score.healthIdx != null && !healthMap.has(score.equipmentId)) {
+        healthMap.set(score.equipmentId, score.healthIdx);
       }
     }
 
@@ -210,10 +227,15 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const hasPredictions = predictions.length > 0;
 
     return allEquipment.map((row) => {
-      const healthScore = healthMap.get(row.eq.id) ?? 100;
-      const pred = predMap.get(row.eq.id);
-      const risk = computeRisk(healthScore);
-      const telemetry = telemetryMap.get(row.eq.id) || [healthScore];
+      const pred = predMap.get(row.eq.id) ?? null;
+      // Same honest derivation as the equipment hub: no score row → null,
+      // never a fabricated 100 / 365 d / 85%.
+      const { health, rul, confidence } = deriveHubHealthFields(
+        healthMap.get(row.eq.id) ?? null,
+        pred
+      );
+      const risk = computeRisk(health ?? 100);
+      const telemetry = telemetryMap.get(row.eq.id) || (health == null ? [] : [health]);
       const trend = computeTrend(telemetry);
       const signals = insightMap.get(row.eq.id) || [];
 
@@ -230,19 +252,21 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
         name: row.eq.name,
         vessel: row.vesselName || row.eq.vesselName || "Unassigned",
         vesselId: row.eq.vesselId || "unassigned",
-        health: Math.round(healthScore),
-        rul: pred?.remainingUsefulLife ?? 365,
+        health: health == null ? null : Math.round(health),
+        rul,
         risk,
         status: statusFromRisk(risk),
         type: row.eq.type || "General",
         prediction: pred?.failureMode
-          ? `${pred.failureMode} — ${this.recommendedActionText(risk, pred.remainingUsefulLife ?? 365)}`
-          : dataAvailability === "unavailable"
-            ? "No prediction data available"
-            : risk === "low"
-              ? "Operating within normal parameters"
-              : "Monitoring — data analysis in progress",
-        confidence: pred ? Math.round((pred.failureProbability ?? 0.85) * 100) : 85,
+          ? `${pred.failureMode} — ${this.recommendedActionText(risk, rul ?? 365)}`
+          : health == null
+            ? "No PdM score recorded yet"
+            : dataAvailability === "unavailable"
+              ? "No prediction data available"
+              : risk === "low"
+                ? "Operating within normal parameters"
+                : "Monitoring — data analysis in progress",
+        confidence,
         trend,
         lastService: null,
         nextDue: null,
@@ -271,11 +295,15 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     }
 
     const pdmScores = await this.fetchPdmScores(orgId, equipmentId);
-    const healthScore = pdmScores[0]?.healthIdx ?? 100;
-    const risk = computeRisk(healthScore);
-
     const predictions = await this.fetchPredictions(orgId, equipmentId);
     const pred = predictions[0];
+
+    const {
+      health: healthScore,
+      rul,
+      confidence,
+    } = deriveHubHealthFields(pdmScores[0]?.healthIdx ?? null, pred ?? null);
+    const risk = computeRisk(healthScore ?? 100);
 
     const insights = await this.fetchInsights(orgId, equipmentId);
     const signals: string[] = [];
@@ -293,7 +321,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     }
 
     const telemetryMap = await this.fetchTelemetrySummaries(orgId, [equipmentId]);
-    const telemetry = telemetryMap.get(equipmentId) || [healthScore];
+    const telemetry = telemetryMap.get(equipmentId) || (healthScore == null ? [] : [healthScore]);
     const trend = computeTrend(telemetry);
 
     const workOrders = await this.getWorkOrdersForEquipment(orgId, equipmentId);
@@ -309,15 +337,17 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       vessel: row.vesselName || row.eq.vesselName || "Unassigned",
       vesselId: row.eq.vesselId || "unassigned",
       type: row.eq.type || "General",
-      health: Math.round(healthScore),
-      rul: pred?.remainingUsefulLife ?? 365,
+      health: healthScore == null ? null : Math.round(healthScore),
+      rul,
       risk,
-      confidence: pred ? Math.round((pred.failureProbability ?? 0.85) * 100) : 85,
+      confidence,
       prediction: pred?.failureMode
-        ? `${pred.failureMode} — ${this.recommendedActionText(risk, pred.remainingUsefulLife ?? 365)}`
-        : dataAvailability === "unavailable"
-          ? "No prediction data available"
-          : "Operating within normal parameters",
+        ? `${pred.failureMode} — ${this.recommendedActionText(risk, rul ?? 365)}`
+        : healthScore == null
+          ? "No PdM score recorded yet"
+          : dataAvailability === "unavailable"
+            ? "No prediction data available"
+            : "Operating within normal parameters",
       trend,
       signals: signals.slice(0, 10),
       telemetry,

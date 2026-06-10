@@ -1,12 +1,17 @@
-import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -24,12 +29,9 @@ import {
 } from "@/components/ui/dialog";
 import { CERTIFICATE_TYPES, CERTIFICATE_STATUSES, ISSUING_AUTHORITY_TYPES } from "@shared/schema";
 import type { VesselCertificate } from "@shared/schema";
-import {
-  CERT_TYPE_LABELS,
-  CERT_STATUS_LABELS,
-  AUTHORITY_TYPE_LABELS,
-} from "./constants";
-import { type CertFormData, defaultFormData } from "./types";
+import { CERT_TYPE_LABELS, CERT_STATUS_LABELS, AUTHORITY_TYPE_LABELS } from "./constants";
+import { toCreatePayload, toEditPatch, type CertificateFormData } from "./certificateFormSchema";
+import { useCertificateForm } from "./useCertificateForm";
 
 export function CertificateFormDialog({
   open,
@@ -47,58 +49,7 @@ export function CertificateFormDialog({
   equipmentList: Array<{ id: string; name: string }>;
 }) {
   const { toast } = useToast();
-  const [form, setForm] = useState<CertFormData>(defaultFormData);
-  const [editStatus, setEditStatus] = useState("");
-  const [editNextSurveyDue, setEditNextSurveyDue] = useState("");
-
-  const resetForm = (data?: VesselCertificate | null) => {
-    if (data) {
-      setForm({
-        vesselId: data.vesselId || "",
-        certificateType: data.certificateType || "",
-        certificateName: data.certificateName || "",
-        certificateNumber: data.certificateNumber || "",
-        issuingAuthority: data.issuingAuthority || "",
-        issuingAuthorityType: (data as { issuingAuthorityType?: string }).issuingAuthorityType || "",
-        issueDate: data.issueDate
-          ? format(
-              typeof data.issueDate === "string" ? parseISO(data.issueDate) : data.issueDate,
-              "yyyy-MM-dd"
-            )
-          : "",
-        expiryDate: data.expiryDate
-          ? format(
-              typeof data.expiryDate === "string" ? parseISO(data.expiryDate) : data.expiryDate,
-              "yyyy-MM-dd"
-            )
-          : "",
-        equipmentId: data.equipmentId || "",
-        notes: data.notes || "",
-      });
-      setEditStatus(data.status || "valid");
-      setEditNextSurveyDue(
-        data.nextSurveyDue
-          ? format(
-              typeof data.nextSurveyDue === "string"
-                ? parseISO(data.nextSurveyDue)
-                : data.nextSurveyDue,
-              "yyyy-MM-dd"
-            )
-          : ""
-      );
-    } else {
-      setForm(defaultFormData);
-      setEditStatus("");
-      setEditNextSurveyDue("");
-    }
-  };
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      resetForm(mode === "edit" ? initialData : null);
-    }
-    onOpenChange(isOpen);
-  };
+  const form = useCertificateForm({ open, mode, initialData });
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/certificates", data),
@@ -133,64 +84,18 @@ export function CertificateFormDialog({
     },
   });
 
-  const handleSubmit = () => {
+  const onSubmit = (data: CertificateFormData) => {
     if (mode === "create") {
-      const payload: Record<string, unknown> = {
-        vesselId: form.vesselId,
-        certificateType: form.certificateType,
-        certificateName: form.certificateName,
-        issuingAuthority: form.issuingAuthority,
-        issueDate: form.issueDate,
-      };
-      if (form.certificateNumber) {
-        payload['certificateNumber'] = form.certificateNumber;
-      }
-      if (form.issuingAuthorityType) {
-        payload['issuingAuthorityType'] = form.issuingAuthorityType;
-      }
-      if (form.expiryDate) {
-        payload['expiryDate'] = form.expiryDate;
-      }
-      if (form.equipmentId) {
-        payload['equipmentId'] = form.equipmentId;
-      }
-      if (form.notes) {
-        payload['notes'] = form.notes;
-      }
-      createMutation.mutate(payload);
+      createMutation.mutate(toCreatePayload(data));
     } else {
-      const payload: Record<string, unknown> = {};
-      if (editStatus) {
-        payload['status'] = editStatus;
-      }
-      if (form.certificateNumber) {
-        payload['certificateNumber'] = form.certificateNumber;
-      }
-      if (form.expiryDate) {
-        payload['expiryDate'] = form.expiryDate;
-      }
-      if (editNextSurveyDue) {
-        payload['nextSurveyDue'] = editNextSurveyDue;
-      }
-      if (form.notes !== undefined) {
-        payload['notes'] = form.notes;
-      }
-      updateMutation.mutate(payload);
+      updateMutation.mutate(toEditPatch(data));
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const isValid =
-    mode === "create"
-      ? form.vesselId &&
-        form.certificateType &&
-        form.certificateName &&
-        form.issuingAuthority &&
-        form.issueDate
-      : true;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle data-testid="text-dialog-title">
@@ -202,197 +107,286 @@ export function CertificateFormDialog({
               : "Update certificate details."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          {mode === "create" && (
-            <>
-              <div className="space-y-2">
-                <Label>Vessel *</Label>
-                <Select
-                  value={form.vesselId}
-                  onValueChange={(v) => setForm({ ...form, vesselId: v })}
-                >
-                  <SelectTrigger data-testid="select-form-vessel">
-                    <SelectValue placeholder="Select vessel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vessels.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Certificate Type *</Label>
-                <Select
-                  value={form.certificateType}
-                  onValueChange={(v) => setForm({ ...form, certificateType: v })}
-                >
-                  <SelectTrigger data-testid="select-form-cert-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CERTIFICATE_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {CERT_TYPE_LABELS[t] || t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Certificate Name *</Label>
-                <Input
-                  value={form.certificateName}
-                  onChange={(e) => setForm({ ...form, certificateName: e.target.value })}
-                  placeholder="e.g., Cargo Ship Safety Equipment Certificate"
-                  data-testid="input-form-cert-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Issuing Authority *</Label>
-                <Input
-                  value={form.issuingAuthority}
-                  onChange={(e) => setForm({ ...form, issuingAuthority: e.target.value })}
-                  placeholder="e.g., Lloyd's Register"
-                  data-testid="input-form-issuing-authority"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Issuing Authority Type</Label>
-                <Select
-                  value={form.issuingAuthorityType}
-                  onValueChange={(v) => setForm({ ...form, issuingAuthorityType: v })}
-                >
-                  <SelectTrigger data-testid="select-form-authority-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ISSUING_AUTHORITY_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {AUTHORITY_TYPE_LABELS[t] || t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Issue Date *</Label>
-                  <Input
-                    type="date"
-                    value={form.issueDate}
-                    onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-                    data-testid="input-form-issue-date"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-4 py-2">
+              {mode === "create" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="vesselId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required>Vessel</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-form-vessel">
+                              <SelectValue placeholder="Select vessel" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vessels.map((v) => (
+                              <SelectItem key={v.id} value={v.id}>
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Expiry Date</Label>
-                  <Input
-                    type="date"
-                    value={form.expiryDate}
-                    onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                    data-testid="input-form-expiry-date"
+                  <FormField
+                    control={form.control}
+                    name="certificateType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required>Certificate Type</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-form-cert-type">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {CERTIFICATE_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {CERT_TYPE_LABELS[t] || t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Equipment (optional)</Label>
-                <Select
-                  value={form.equipmentId || "none"}
-                  onValueChange={(v) => setForm({ ...form, equipmentId: v === "none" ? "" : v })}
-                >
-                  <SelectTrigger data-testid="select-form-equipment">
-                    <SelectValue placeholder="Select equipment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {equipmentList.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-          <div className="space-y-2">
-            <Label>Certificate Number</Label>
-            <Input
-              value={form.certificateNumber}
-              onChange={(e) => setForm({ ...form, certificateNumber: e.target.value })}
-              placeholder="Certificate number"
-              data-testid="input-form-cert-number"
-            />
-          </div>
-          {mode === "edit" && (
-            <>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger data-testid="select-form-status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CERTIFICATE_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {CERT_STATUS_LABELS[s] || s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Expiry Date</Label>
-                  <Input
-                    type="date"
-                    value={form.expiryDate}
-                    onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                    data-testid="input-form-expiry-date-edit"
+                  <FormField
+                    control={form.control}
+                    name="certificateName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required>Certificate Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., Cargo Ship Safety Equipment Certificate"
+                            data-testid="input-form-cert-name"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Next Survey Due</Label>
-                  <Input
-                    type="date"
-                    value={editNextSurveyDue}
-                    onChange={(e) => setEditNextSurveyDue(e.target.value)}
-                    data-testid="input-form-next-survey"
+                  <FormField
+                    control={form.control}
+                    name="issuingAuthority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required>Issuing Authority</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., Lloyd's Register"
+                            data-testid="input-form-issuing-authority"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
-            </>
-          )}
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Additional notes..."
-              rows={3}
-              data-testid="input-form-notes"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            data-testid="button-form-cancel"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isPending || !isValid}
-            data-testid="button-form-submit"
-          >
-            {isPending ? "Saving..." : mode === "create" ? "Create" : "Update"}
-          </Button>
-        </DialogFooter>
+                  <FormField
+                    control={form.control}
+                    name="issuingAuthorityType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Issuing Authority Type</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-form-authority-type">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {ISSUING_AUTHORITY_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {AUTHORITY_TYPE_LABELS[t] || t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="issueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required>Issue Date</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" data-testid="input-form-issue-date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="expiryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expiry Date</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" data-testid="input-form-expiry-date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="equipmentId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Equipment (optional)</FormLabel>
+                        <Select
+                          value={field.value || "none"}
+                          onValueChange={(v) => field.onChange(v === "none" ? "" : v)}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="select-form-equipment">
+                              <SelectValue placeholder="Select equipment" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {equipmentList.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>
+                                {e.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+              <FormField
+                control={form.control}
+                name="certificateNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Certificate Number</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Certificate number"
+                        data-testid="input-form-cert-number"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {mode === "edit" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-form-status">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {CERTIFICATE_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {CERT_STATUS_LABELS[s] || s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="expiryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expiry Date</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="date"
+                              data-testid="input-form-expiry-date-edit"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="nextSurveyDue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Next Survey Due</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" data-testid="input-form-next-survey" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Additional notes..."
+                        rows={3}
+                        data-testid="input-form-notes"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                data-testid="button-form-cancel"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending} data-testid="button-form-submit">
+                {isPending ? "Saving..." : mode === "create" ? "Create" : "Update"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -66,9 +66,10 @@ function PredictiveInsightsCard() {
     );
   }
 
-  const prob = typeof top.failureProbability === "number"
-    ? Math.round(top.failureProbability * (top.failureProbability <= 1 ? 100 : 1))
-    : null;
+  const prob =
+    typeof top.failureProbability === "number"
+      ? Math.round(top.failureProbability * (top.failureProbability <= 1 ? 100 : 1))
+      : null;
   const rul = top.remainingUsefulLife;
   const eta = top.predictedFailureDate
     ? new Date(top.predictedFailureDate).toLocaleDateString(undefined, {
@@ -99,16 +100,17 @@ function PredictiveInsightsCard() {
           <div className="flex items-start gap-4 flex-wrap">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-base font-semibold">
-                  {top.equipmentName ?? "Equipment"}
-                </span>
+                <span className="text-base font-semibold">{top.equipmentName ?? "Equipment"}</span>
                 {top.riskLevel && (
                   <Badge variant="outline" className={riskTone} data-testid="predictive-risk-badge">
                     {top.riskLevel.toUpperCase()}
                   </Badge>
                 )}
                 {prob !== null && (
-                  <Badge variant="outline" className="bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                  <Badge
+                    variant="outline"
+                    className="bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                  >
                     {prob}% failure probability
                   </Badge>
                 )}
@@ -247,18 +249,18 @@ function KeyFindings({
   equipmentHealth: EquipmentHealthItem[];
   workOrderStats: { open: number; overdue: number; completionRate: number };
   costData: { monthlySpend: number; monthlyChange: number; totalSavings: number };
-  dataIntegrity: { healthScore: number; issueCount: number };
+  dataIntegrity: { healthScore: number | null; issueCount: number };
   hasErrors: boolean;
 }) {
   const findings: string[] = [];
 
-  const criticalCount = equipmentHealth.filter(
-    (e) => (e.healthIndex ?? e.healthScore ?? 100) < 40
-  ).length;
-  const warningCount = equipmentHealth.filter((e) => {
-    const h = e.healthIndex ?? e.healthScore ?? 100;
-    return h >= 40 && h < 70;
-  }).length;
+  // Only items with a real score are classified — unscored equipment is
+  // neither healthy nor critical, it is unscored.
+  const scores = equipmentHealth
+    .map((e) => e.healthIndex ?? e.healthScore)
+    .filter((h): h is number => h != null);
+  const criticalCount = scores.filter((h) => h < 40).length;
+  const warningCount = scores.filter((h) => h >= 40 && h < 70).length;
 
   if (criticalCount > 0) {
     findings.push(
@@ -290,7 +292,7 @@ function KeyFindings({
     );
   }
 
-  if (dataIntegrity.healthScore < 95) {
+  if (dataIntegrity.healthScore != null && dataIntegrity.healthScore < 95) {
     findings.push(
       `Data quality at ${dataIntegrity.healthScore}% — ${dataIntegrity.issueCount} validation issue${dataIntegrity.issueCount > 1 ? "s" : ""} detected.`
     );
@@ -358,19 +360,19 @@ export default function AnalyticsHub() {
   const hasErrors = healthError || woError || costError || integrityError;
 
   const avgHealth = useMemo(() => {
-    if (!equipmentHealth || equipmentHealth.length === 0) {
-      return 0;
+    const scores = (equipmentHealth ?? [])
+      .map((e) => e.healthIndex ?? e.healthScore)
+      .filter((h): h is number => h != null);
+    if (scores.length === 0) {
+      return null;
     }
-    const sum = equipmentHealth.reduce(
-      (s, e) => s + (e.healthIndex ?? e.healthScore ?? 100),
-      0
-    );
-    return Math.round(sum / equipmentHealth.length);
+    return Math.round(scores.reduce((s, h) => s + h, 0) / scores.length);
   }, [equipmentHealth]);
 
-  const criticalCount = equipmentHealth.filter(
-    (e) => (e.healthIndex ?? e.healthScore ?? 100) < 40
-  ).length;
+  const criticalCount = equipmentHealth.filter((e) => {
+    const h = e.healthIndex ?? e.healthScore;
+    return h != null && h < 40;
+  }).length;
 
   const openWOs = workOrderSummary?.openCount ?? workOrderSummary?.open ?? 0;
   const overdueWOs = workOrderSummary?.overdueCount ?? workOrderSummary?.overdue ?? 0;
@@ -380,7 +382,7 @@ export default function AnalyticsHub() {
   const monthlyChange = costSummary?.monthlyChange ?? 0;
   const totalSavings = costSummary?.totalSavings ?? 0;
 
-  const dataHealthScore = integrityStatus?.healthPercentage ?? integrityStatus?.healthScore ?? 100;
+  const dataHealthScore = integrityStatus?.healthPercentage ?? integrityStatus?.healthScore ?? null;
   const dataIssueCount = integrityStatus?.issueCount ?? 0;
 
   if (healthLoading) {
@@ -459,9 +461,15 @@ export default function AnalyticsHub() {
           />
           <HeadlineMetric
             label="Data Quality"
-            value={`${dataHealthScore}%`}
+            value={dataHealthScore == null ? "—" : `${dataHealthScore}%`}
             icon={Shield}
-            color={dataHealthScore >= 95 ? "text-green-600" : "text-yellow-600"}
+            color={
+              dataHealthScore == null
+                ? "text-muted-foreground"
+                : dataHealthScore >= 95
+                  ? "text-green-600"
+                  : "text-yellow-600"
+            }
             domain="Integrity"
             testId="headline-data"
           />
@@ -486,7 +494,11 @@ export default function AnalyticsHub() {
             stats={[
               `${criticalCount} critical equipment`,
               `${equipmentHealth.length} total monitored`,
-              avgHealth >= 80 ? "Fleet healthy" : "Needs attention",
+              avgHealth == null
+                ? "No health scores yet"
+                : avgHealth >= 80
+                  ? "Fleet healthy"
+                  : "Needs attention",
             ]}
             href="/analytics/operations"
             color="text-blue-600"
