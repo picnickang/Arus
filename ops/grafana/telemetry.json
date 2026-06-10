@@ -48,6 +48,25 @@
       "targets": [
         { "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total[10m]))", "legendFormat": "{{org_id}}" }
       ]
+    },
+    {
+      "id": 6,
+      "title": "Silent loss — evicted / dropped per 10m (alerts: any increase pages)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "increase(arus_telemetry_batch_evicted_total[10m])", "legendFormat": "evicted (buffer overflow)" },
+        { "expr": "increase(arus_telemetry_batch_dropped_total[10m])", "legendFormat": "dropped (retries exhausted)" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Bridge backlog frames (alert: BridgeBacklogGrowing > 10k for 15m)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "arus_bridge_backlog_frames", "legendFormat": "backlog" }
+      ]
     }
   ]
 }
