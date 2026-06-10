@@ -13,8 +13,10 @@
  * - rulModels, rulFitHistory, vibrationAnalysis, weibullEstimates
  * - pdmBaseline, pdmAlerts, realTimePredictions, featureImportances
  * - sensorFusionSnapshots, acousticEvents, modelDeployments
- * - llmBudgetConfigs, retrainingTriggers, digitalTwins, twinSimulations
- * - visualizationAssets, arMaintenanceProcedures
+ * - llmBudgetConfigs, retrainingTriggers, digitalTwins
+ *
+ * (twinSimulations, visualizationAssets, arMaintenanceProcedures moved
+ * to digital-twin.ts.)
  */
 
 export * from "./ml-analytics-core";
