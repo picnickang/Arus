@@ -30,7 +30,7 @@ function ConfigAuditLogTabComponent() {
     error,
   } = useQuery({
     queryKey: ["/api/admin/config-audit"],
-    queryFn: adminQueryFn(["/api/admin/config-audit"]),
+    queryFn: adminQueryFn<ConfigAuditLog[]>(["/api/admin/config-audit"]),
     enabled: true,
   });
 

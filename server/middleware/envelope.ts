@@ -98,6 +98,12 @@ export function envelopeJson() {
       if (res.statusCode === 204 || res.statusCode === 205) {
         return originalJson(body);
       }
+      // Downloads are documents, not API payloads — wrapping a JSON export
+      // served via res.json + Content-Disposition would corrupt the file.
+      const disposition = res.getHeader("content-disposition");
+      if (typeof disposition === "string" && disposition.toLowerCase().includes("attachment")) {
+        return originalJson(body);
+      }
       if (isEnvelope(body)) {
         return originalJson(body);
       }

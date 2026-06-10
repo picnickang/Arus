@@ -24,7 +24,7 @@ import { formatDate } from "@/lib/formatters";
 function AuditTrailTabComponent() {
   const { data: auditEvents, isLoading } = useQuery({
     queryKey: ["/api/admin/audit"],
-    queryFn: adminQueryFn(["/api/admin/audit"]),
+    queryFn: adminQueryFn<AdminAuditEvent[]>(["/api/admin/audit"]),
     enabled: true,
   });
 

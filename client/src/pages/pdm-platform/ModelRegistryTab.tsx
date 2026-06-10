@@ -7,7 +7,7 @@ import {
   useModelVersions,
   useActiveDeployment,
 } from "@/features/pdm/hooks/use-model-registry";
-import { useOrganization } from "@/contexts/OrganizationContext";
+import { apiRequest } from "@/lib/queryClient";
 
 export function ModelRegistryTab({
   highlightedVersionId,
@@ -15,7 +15,6 @@ export function ModelRegistryTab({
   highlightedVersionId?: string | null;
 }) {
   const { data: models, isLoading } = useModels();
-  const { currentOrgId } = useOrganization();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const resolvedRef = useRef<string | null>(null);
 
@@ -36,13 +35,10 @@ export function ModelRegistryTab({
     const resolveParentModel = async () => {
       for (const m of modelsList) {
         try {
-          const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
-            headers: { "x-org-id": String(currentOrgId ?? "") },
-          });
-          if (!res.ok) {
-            continue;
-          }
-          const versionsList = await res.json();
+          const versionsList = await apiRequest<{ id: string }[]>(
+            "GET",
+            `/api/pdm/models/${m.id}/versions`
+          );
           if (
             Array.isArray(versionsList) &&
             versionsList.some((v: { id: string }) => v.id === highlightedVersionId)
@@ -59,7 +55,7 @@ export function ModelRegistryTab({
       }
     };
     resolveParentModel();
-  }, [highlightedVersionId, modelsList, currentOrgId]);
+  }, [highlightedVersionId, modelsList]);
 
   return (
     <div className="space-y-4">
