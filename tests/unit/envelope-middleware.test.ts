@@ -53,8 +53,8 @@ function buildApp() {
   app.delete("/api/home/gone", (_req, res) => {
     res.status(204).send();
   });
-  app.get("/api/equipment", (_req, res) => {
-    res.json([{ id: "eq-1" }]);
+  app.get("/api/work-orders", (_req, res) => {
+    res.json([{ id: "wo-1" }]);
   });
 
   return app;
@@ -83,13 +83,14 @@ describe("envelopeJson (WS4 wave 0)", () => {
     expect(res.body).toEqual({ success: true, data: { fromHelper: true } });
   });
 
-  it("normalizes legacy {message} errors with the top-level mirror", async () => {
+  it("normalizes legacy {message} errors with the top-level mirrors", async () => {
     const res = await request(buildApp()).get("/api/home/legacy-error");
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe("NOT_FOUND");
     expect(res.body.error.message).toBe("Summary not found");
     expect(res.body.message).toBe("Summary not found");
+    expect(res.body.code).toBe("NOT_FOUND");
     expect(errorEnvelopeSchema.safeParse(res.body).success).toBe(true);
   });
 
@@ -124,14 +125,29 @@ describe("envelopeJson (WS4 wave 0)", () => {
   });
 
   it("does not wrap paths outside the manifest", async () => {
-    const res = await request(buildApp()).get("/api/equipment");
-    expect(res.body).toEqual([{ id: "eq-1" }]);
+    const res = await request(buildApp()).get("/api/work-orders");
+    expect(res.body).toEqual([{ id: "wo-1" }]);
   });
 
   it("treats /api/v1 spellings the same as unversioned paths", () => {
     expect(isEnvelopedPath("/api/v1/home/attention-summary")).toBe(true);
     expect(isEnvelopedPath("/api/home/attention-summary?since=x")).toBe(true);
     expect(isEnvelopedPath("/api/homeX/other")).toBe(false);
+  });
+
+  it("wave 1 domains are enveloped end to end", async () => {
+    expect(isEnvelopedPath("/api/equipment/eq-1")).toBe(true);
+    expect(isEnvelopedPath("/api/vessels")).toBe(true);
+    expect(isEnvelopedPath("/api/pdm/dashboard")).toBe(true);
+    expect(isEnvelopedPath("/api/optimization/results")).toBe(true);
+
+    const app = express();
+    app.use("/api", envelopeJson());
+    app.get("/api/vessels", (_req, res) => {
+      res.json([{ id: "v-1", name: "MV Test" }]);
+    });
+    const res = await request(app).get("/api/vessels");
+    expect(res.body).toEqual({ success: true, data: [{ id: "v-1", name: "MV Test" }] });
   });
 
   it("double mounts wrap exactly once", async () => {

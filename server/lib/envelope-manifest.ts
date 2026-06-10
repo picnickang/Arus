@@ -19,6 +19,11 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   // Aggregate endpoints — born enveloped
   "/api/crew/unified",
   "/api/optimization/dashboard",
+  // Wave 1: read-heavy core domains
+  "/api/equipment",
+  "/api/vessels",
+  "/api/pdm",
+  "/api/optimization",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [

@@ -82,6 +82,7 @@ export function normalizeErrorBody(status: number, body: unknown): ErrorEnvelope
       ...(correlationId ? { correlationId } : {}),
     },
     message,
+    code,
   };
 }
 

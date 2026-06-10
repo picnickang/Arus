@@ -2,6 +2,10 @@
   "envelopedPrefixes": [
     "/api/home",
     "/api/crew/unified",
-    "/api/optimization/dashboard"
+    "/api/optimization/dashboard",
+    "/api/equipment",
+    "/api/vessels",
+    "/api/pdm",
+    "/api/optimization"
   ]
 }
