@@ -1,7 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { HealthBar, Pulse, statusFill, healthColor, type SlotAssignment } from "@/components/vessel/VesselSchematic";
+import {
+  HealthBar,
+  Pulse,
+  statusFill,
+  healthColor,
+  type SlotAssignment,
+} from "@/components/vessel/VesselSchematic";
 import type { VesselEquipment } from "@/features/vessels/types";
 import type { Part } from "@/features/inventory/types";
 import { statusColor } from "./utils";
@@ -137,10 +143,16 @@ export function VesselStatusPanel({
 
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[11px] text-slate-400">Health</span>
-                <HealthBar value={eq.healthScore ?? 85} width={80} height={5} />
-                <span className="text-xs font-bold" style={{ color: statusFill(eq.status) }}>
-                  {eq.healthScore ?? 85}%
-                </span>
+                {eq.healthScore == null ? (
+                  <span className="text-[11px] text-slate-500">No score yet</span>
+                ) : (
+                  <>
+                    <HealthBar value={eq.healthScore} width={80} height={5} />
+                    <span className="text-xs font-bold" style={{ color: statusFill(eq.status) }}>
+                      {eq.healthScore}%
+                    </span>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5 mb-3">

@@ -48,11 +48,38 @@ export function HealthRing({
   size = 72,
   stroke = 6,
 }: {
-  value: number;
+  value: number | null;
   size?: number;
   stroke?: number;
 }) {
   const r = (size - stroke) / 2;
+  // No PdM score yet — dashed neutral ring instead of a fabricated value.
+  if (value == null) {
+    return (
+      <svg width={size} height={size} data-testid="health-ring-none">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(148,163,184,0.35)"
+          strokeWidth={2}
+          strokeDasharray="4 4"
+        />
+        <text
+          x={size / 2}
+          y={size / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#64748b"
+          fontSize={size * 0.28}
+          fontWeight={800}
+        >
+          —
+        </text>
+      </svg>
+    );
+  }
   const circ = 2 * Math.PI * r;
   const offset = circ - (value / 100) * circ;
   const color = healthStroke(value);

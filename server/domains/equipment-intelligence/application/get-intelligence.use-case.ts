@@ -15,7 +15,8 @@ export function createGetIntelligenceUseCase(repo: EquipmentIntelligenceReposito
         if (riskDiff !== 0) {
           return riskDiff;
         }
-        return a.health - b.health;
+        // Unscored equipment (health null) sorts after scored items.
+        return (a.health ?? Number.POSITIVE_INFINITY) - (b.health ?? Number.POSITIVE_INFINITY);
       });
 
       return { fleet, equipment };
