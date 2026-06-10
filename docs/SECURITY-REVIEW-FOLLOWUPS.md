@@ -10,6 +10,53 @@ reverse-SQL, CI security scanning, dependency reclassification, npm-audit
 remediation incl. `jspdf` 4.x and `drizzle-orm` 0.45.x security bumps, artifact
 untracking, Docker dev-dep pruning, single-tenant ADR).
 
+## 0. External assessment verification (single-tenant, ADR-002)
+
+An external "ARUS Full-Stack Repo Assessment" was verified against the current
+repo. Verdicts:
+
+**Fixed in this follow-up (real defects regardless of tenancy):**
+
+- [x] **Software-update trust** — `patch-applicator.ts` now enforces the
+      Ed25519 manifest signature (fail-closed; non-production opt-in only via
+      `ALLOW_UNSIGNED_PATCHES`), pre-scans archives for tar-slip
+      (symlink/hardlink/device entries, absolute paths, `../` escapes) before
+      extraction, and contains every file change / migration path. Migrations
+      may only come from `<extract>/migrations/`.
+- [x] **Public health exposure** — the detailed `/api/health/*` sub-paths
+      (background-jobs, cache, telemetry, scalability, circuit-breakers,
+      dependencies) now require `requireOrgId`; the public allowlist exact-
+      matches `/health`, `/healthz`, `/readyz`, `/metrics` (no prefix sprawl).
+- [x] **ML eval-gate honesty** — the training queue no longer hard-codes
+      `evaluationPassed=true`; runs with no held-out test data are recorded as
+      `not_evaluated`, the real `ModelEvaluationGate` runs when data exists, and
+      a gate error degrades to `not_evaluated` (never a spurious pass).
+- [x] **LLM budget/PII** — `DefaultLLMGateway` now preflights a per-tenant token
+      budget (aborting over-budget calls before the provider) and redacts
+      outbound message PII; wired in the composition root (no-op until a budget
+      env is set; redaction always on).
+- [x] **Legacy admin token** — the plaintext `ADMIN_TOKEN` fallback is ignored
+      under `NODE_ENV=production` (hash-only); honoured in non-production with a
+      one-shot warn.
+
+**Verified NOT applicable (false or already fixed):**
+
+- RAG conversation IDOR — FALSE: `rag-routes.ts` calls
+  `getOwnedConversation(id, { orgId, userId })` and 404s before reading
+  messages; the frontend has migrated off `/api/rag/*`.
+- Offline conflict-resolver no-op — FALSE:
+  `conflict-resolution-service.ts` implements real optimistic-concurrency with
+  a version guard and `sync_conflicts`, exposed via `domains/sync/routes.ts`.
+- drizzle-orm SQLi / jspdf criticals — already fixed (0.45.x / 4.x bumps).
+- "AI half-migration" guardrail failures — stale; `check:guards` is green.
+
+**Holds as code but MOOT under single-tenant (ADR-002) — only revisit if
+multi-tenant is pursued:** `DEFAULT_ORG_ID` route fallbacks, hub-sync
+sheet-lock/replay scoping and shift-template org-from-query, and the
+`SYSTEM_ORG_ID` legacy WebSocket broadcasts. With exactly one tenant these are
+correct behaviour, not isolation defects; they would each need org-scoping
+before a second tenant is onboarded.
+
 ## A. Deferred follow-ups (coordination / dedicated effort)
 
 - [ ] **Git history rewrite to reclaim ~70 MB.** The bloat (generated dumps,
