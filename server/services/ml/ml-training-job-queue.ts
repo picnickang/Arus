@@ -77,11 +77,7 @@ export interface MlJobStatus {
  * Matches `server/websocket.ts` `broadcast(channel, data, orgId?)` signature.
  */
 export interface WsBroadcaster {
-  broadcast: (
-    channel: string,
-    data: Record<string, unknown>,
-    orgId?: string
-  ) => void;
+  broadcast: (channel: string, data: Record<string, unknown>, orgId?: string) => void;
 }
 
 type DbHandle = typeof DbInstance;
@@ -142,17 +138,13 @@ export class MlTrainingJobQueue {
 
     // pg-boss v10: concurrency is controlled by `batchSize` (max jobs per
     // fetch). Keep training serialized by fetching one at a time.
-    await this.boss.work<MlTrainingJobData>(
-      QUEUE_NAME,
-      { batchSize: 1 },
-      async (jobs) => {
-        const results: MlTrainingJobResult[] = [];
-        for (const job of jobs) {
-          results.push(await this.processTrainingJob(job));
-        }
-        return results.length === 1 ? results[0] : results;
+    await this.boss.work<MlTrainingJobData>(QUEUE_NAME, { batchSize: 1 }, async (jobs) => {
+      const results: MlTrainingJobResult[] = [];
+      for (const job of jobs) {
+        results.push(await this.processTrainingJob(job));
       }
-    );
+      return results.length === 1 ? results[0] : results;
+    });
 
     this.isWorkerRegistered = true;
     logger.info(LOG_CTX, "ML training worker registered");
@@ -188,11 +180,9 @@ export class MlTrainingJobQueue {
    * returns `JobWithMetadata<T> | null` with camelCase metadata fields.
    */
   async getJobStatus(jobId: string): Promise<MlJobStatus | null> {
-    const job = await this.boss.getJobById<MlTrainingJobData>(
-      QUEUE_NAME,
-      jobId,
-      { includeArchive: true }
-    );
+    const job = await this.boss.getJobById<MlTrainingJobData>(QUEUE_NAME, jobId, {
+      includeArchive: true,
+    });
     if (!job) {
       return null;
     }
@@ -239,19 +229,19 @@ export class MlTrainingJobQueue {
           return [];
         }
         const row = raw as Record<string, unknown>;
-        const id = row['id'];
-        const state = row['state'];
-        const createdon = row['createdon'];
+        const id = row["id"];
+        const state = row["state"];
+        const createdon = row["createdon"];
         if (typeof id !== "string" || typeof state !== "string") {
           return [];
         }
         if (!(typeof createdon === "string" || createdon instanceof Date)) {
           return [];
         }
-        const startedon = row['startedon'];
-        const completedon = row['completedon'];
-        const data = (row['data'] ?? {}) as MlTrainingJobData;
-        const output = (row['output'] ?? undefined) as MlTrainingJobResult | undefined;
+        const startedon = row["startedon"];
+        const completedon = row["completedon"];
+        const data = (row["data"] ?? {}) as MlTrainingJobData;
+        const output = (row["output"] ?? undefined) as MlTrainingJobResult | undefined;
         return [
           {
             jobId: id,
@@ -299,6 +289,9 @@ export class MlTrainingJobQueue {
     const db = this.db;
     try {
       const { ModelEvaluationGate } = await import("./model-evaluation-gate");
+      // Worker evaluations always use the gate's DEFAULT_CONFIG thresholds.
+      // Request-provided thresholds (as accepted by /api/ml/evaluate-model)
+      // are not threaded through training jobs.
       const gate = new ModelEvaluationGate(db);
       const gateResult = await gate.evaluate(
         orgId,
@@ -308,11 +301,7 @@ export class MlTrainingJobQueue {
       );
       return gateResult.approved ? "passed" : "failed";
     } catch (error) {
-      logger.error(
-        LOG_CTX,
-        "Model evaluation gate errored; recording run as not_evaluated",
-        error
-      );
+      logger.error(LOG_CTX, "Model evaluation gate errored; recording run as not_evaluated", error);
       return "not_evaluated";
     }
   }
@@ -342,7 +331,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "lstm",
-          ...((data.config['lstmConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["lstmConfig"] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
@@ -351,7 +340,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "random_forest",
-          ...((data.config['rfConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["rfConfig"] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
@@ -360,7 +349,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "xgboost",
-          ...((data.config['xgboostConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["xgboostConfig"] as Record<string, unknown> | undefined) || {}),
         });
       }
 

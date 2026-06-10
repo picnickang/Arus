@@ -52,6 +52,7 @@ import {
   type WidgetKey,
 } from "@shared/role-dashboard";
 import { RoleSelector } from "./home/role-selector";
+import { HubCountChips } from "./home/HubCountChips";
 import { useAttentionItems } from "./home/use-attention-items";
 import { AlertNoticeRow, AssignedTaskRow, OverviewTile } from "./home/portal-rows";
 import { greetingForNow, relativeTime } from "./home/time";
@@ -694,28 +695,35 @@ export default function HomePage() {
               );
             }
             return (
-              <Link key={hub.id} href={hub.hubRoute}>
-                <div
-                  className="ops-card flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-white/5"
-                  data-testid={`card-hub-${hub.id}`}
-                >
-                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold">{hub.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">{hub.description}</div>
+              // Chips render as a sibling of the Link (not inside it):
+              // HubCountChips are <button>s and nesting them in an anchor is
+              // invalid interactive content.
+              <div key={hub.id} className="ops-card p-4" data-testid={`card-hub-${hub.id}`}>
+                <Link href={hub.hubRoute}>
+                  <div className="flex cursor-pointer items-center gap-3 transition-colors hover:bg-white/5">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold">{hub.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {hub.description}
+                      </div>
+                    </div>
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
+                      data-testid={`pill-granted-${hub.id}`}
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      Granted access
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </div>
-                  <span
-                    className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
-                    data-testid={`pill-granted-${hub.id}`}
-                  >
-                    <ShieldCheck className="h-3 w-3" />
-                    Granted access
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+                <div className="pl-14">
+                  <HubCountChips hubId={hub.id} />
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>

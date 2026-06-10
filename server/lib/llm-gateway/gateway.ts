@@ -99,7 +99,9 @@ export class DefaultLLMGateway implements LLMGateway {
     let finalUsage: LLMUsage | undefined;
 
     for await (const chunk of this.provider.chatStream(effectiveParams)) {
-      if (chunk.usage) {finalUsage = chunk.usage;}
+      if (chunk.usage) {
+        finalUsage = chunk.usage;
+      }
       yield chunk;
     }
 
@@ -139,7 +141,11 @@ export class DefaultLLMGateway implements LLMGateway {
   }
 
   /** Record actual tokens consumed. Failures here must not bubble. */
-  private recordBudget(meta: LLMCallMeta | undefined, model: string, usage: LLMUsage | undefined): void {
+  private recordBudget(
+    meta: LLMCallMeta | undefined,
+    model: string,
+    usage: LLMUsage | undefined
+  ): void {
     const orgId = meta?.orgId;
     if (!this.budgetGuard || !orgId || !usage) {
       return;
@@ -158,11 +164,15 @@ export class DefaultLLMGateway implements LLMGateway {
       const result = this.meter.record(event);
       if (result && typeof (result as Promise<void>).then === "function") {
         (result as Promise<void>).catch((err) => {
-          logger.warn("CostMeter async failure swallowed", { err: err instanceof Error ? err.message : String(err) });
+          logger.warn("CostMeter async failure swallowed", {
+            err: err instanceof Error ? err.message : String(err),
+          });
         });
       }
     } catch (err) {
-      logger.warn("CostMeter sync failure swallowed", { err: err instanceof Error ? err.message : String(err) });
+      logger.warn("CostMeter sync failure swallowed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 }

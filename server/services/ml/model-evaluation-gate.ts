@@ -276,9 +276,7 @@ export class ModelEvaluationGate {
       } catch (error) {
         failed++;
         if (sampleFailureMessages.length < MAX_SAMPLE_FAILURE_MESSAGES) {
-          sampleFailureMessages.push(
-            error instanceof Error ? error.message : String(error)
-          );
+          sampleFailureMessages.push(error instanceof Error ? error.message : String(error));
         }
         logger.warn(LOG_CTX, `Prediction failed for sample`, error);
       }

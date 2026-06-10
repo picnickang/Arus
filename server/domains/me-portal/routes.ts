@@ -14,6 +14,7 @@ import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { pilotFeedbackDraftSchema } from "@shared/schema-runtime";
 import { authenticatedRequest } from "../../middleware/auth";
 import {
   createDevLoginSession,
@@ -288,6 +289,42 @@ export function registerMePortalRoutes(
           newState: { selfPasswordChange: true },
         });
         return res.json({ success: true });
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  /* --------------------------- Pilot feedback ---------------------- */
+
+  app.post(
+    "/api/me/feedback",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("submit me feedback", async (req: Request, res: Response) => {
+      const draft = pilotFeedbackDraftSchema.parse(req.body);
+      try {
+        const row = await mePortalService.submitFeedback(resolveMeUser(req), draft);
+        return res.status(201).json(row);
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  app.get(
+    "/api/me/feedback",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("list me feedback", async (req: Request, res: Response) => {
+      try {
+        return res.json(await mePortalService.listMyFeedback(resolveMeUser(req)));
       } catch (error) {
         if (handleMeError(error, res)) {
           return undefined;

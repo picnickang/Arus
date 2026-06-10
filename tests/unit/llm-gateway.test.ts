@@ -41,13 +41,20 @@ function makeResponse(overrides: Partial<LLMChatResponse> = {}): LLMChatResponse
 
 class FakeProvider implements LLMProviderPort {
   readonly name = "fake";
-  constructor(private readonly nextResponse: LLMChatResponse, private readonly stream: LLMStreamChunk[] = []) {}
-  async isAvailable() { return true; }
+  constructor(
+    private readonly nextResponse: LLMChatResponse,
+    private readonly stream: LLMStreamChunk[] = []
+  ) {}
+  async isAvailable() {
+    return true;
+  }
   async chat(_params: LLMChatParams): Promise<LLMChatResponse> {
     return this.nextResponse;
   }
   async *chatStream(_params: LLMChatParams): AsyncIterable<LLMStreamChunk> {
-    for (const c of this.stream) {yield c;}
+    for (const c of this.stream) {
+      yield c;
+    }
   }
 }
 
@@ -98,9 +105,13 @@ describe("DefaultLLMGateway", () => {
     const provider: LLMProviderPort = {
       name: "broken",
       isAvailable: async () => true,
-      chat: async () => { throw new Error("nope"); },
+      chat: async () => {
+        throw new Error("nope");
+      },
       // eslint-disable-next-line require-yield
-      async *chatStream () { throw new Error("nope"); },
+      async *chatStream() {
+        throw new Error("nope");
+      },
     };
     const meter = new RecordingMeter();
     const gateway = new DefaultLLMGateway({ provider, meter });
@@ -112,7 +123,9 @@ describe("DefaultLLMGateway", () => {
   it("swallows synchronous meter failures so the LLM response still resolves", async () => {
     const provider = new FakeProvider(makeResponse());
     const meter: CostMeter = {
-      record: () => { throw new Error("meter exploded"); },
+      record: () => {
+        throw new Error("meter exploded");
+      },
     };
     const gateway = new DefaultLLMGateway({ provider, meter });
 
@@ -147,7 +160,9 @@ describe("DefaultLLMGateway", () => {
     const gateway = new DefaultLLMGateway({ provider, meter });
 
     const got: string[] = [];
-    for await (const c of gateway.chatStream(baseParams)) {got.push(c.contentDelta);}
+    for await (const c of gateway.chatStream(baseParams)) {
+      got.push(c.contentDelta);
+    }
 
     expect(got.join("")).toBe("hello");
     expect(meter.events).toHaveLength(1);
@@ -161,7 +176,9 @@ describe("DefaultLLMGateway", () => {
     const meter = new RecordingMeter();
     const gateway = new DefaultLLMGateway({ provider, meter });
 
-    for await (const _ of gateway.chatStream(baseParams)) { /* drain */ }
+    for await (const _ of gateway.chatStream(baseParams)) {
+      /* drain */
+    }
     expect(meter.events).toHaveLength(0);
   });
 

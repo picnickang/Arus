@@ -45,14 +45,13 @@ import {
 } from "@/features/logistics/logistics-overview-model";
 import {
   ActionButton,
-  DataHealthPanel,
+  DataHealthStrip,
   EmptyState,
   JumpCard,
   KpiCard,
   PanelHeader,
   QueueRow,
   SkeletonList,
-  SummaryPanel,
 } from "@/features/logistics/LogisticsOverviewPanels";
 
 const InventoryManagement = lazy(() => import("@/pages/inventory-management"));
@@ -202,108 +201,75 @@ function LogisticsOverview() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-4">
-        <Card data-testid="logistics-urgent-queue">
-          <CardContent className="p-0">
-            <PanelHeader
-              title="Urgent Logistics Queue"
-              description="Exception-first work requiring action"
-              actionHref="/logistics?tab=inventory"
-              actionLabel="Open queue"
+      <Card data-testid="logistics-urgent-queue">
+        <CardContent className="p-0">
+          <PanelHeader
+            title="Urgent Logistics Queue"
+            description="Stock, requests, orders and vendors — one exception-first feed"
+          />
+          {isLoading ? (
+            <SkeletonList rows={4} />
+          ) : model.urgentQueue.length === 0 ? (
+            <EmptyState message={model.emptyMessage ?? "No urgent logistics actions."} />
+          ) : (
+            <div className="divide-y">
+              {model.urgentQueue.map((row) => (
+                <QueueRow key={row.id} row={row} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <PanelHeader
+            title="Low-stock parts"
+            description="Inventory ledger blockers and reorder estimate"
+            actionHref="/logistics?tab=inventory&filter=low-stock"
+            actionLabel="View all"
+            actionTestId="button-view-all-low-stock"
+          />
+          {isLoading ? (
+            <SkeletonList rows={4} />
+          ) : model.lowStockRows.length === 0 ? (
+            <EmptyState
+              message="No critical stockouts. View all inventory when you need the full catalog."
+              testId="empty-low-stock"
             />
-            {isLoading ? (
-              <SkeletonList rows={4} />
-            ) : model.urgentQueue.length === 0 ? (
-              <EmptyState message={model.emptyMessage ?? "No urgent logistics actions."} />
-            ) : (
-              <div className="divide-y">
-                {model.urgentQueue.map((row) => (
-                  <QueueRow key={row.id} row={row} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          ) : (
+            <ul className="divide-y" data-testid="list-low-stock">
+              {model.lowStockRows.slice(0, 6).map((p, i) => (
+                <li
+                  key={p.partId ?? `${p.partNumber ?? "row"}-${i}`}
+                  className="flex items-center gap-3 px-4 py-2"
+                  data-testid={`row-low-stock-${p.partId ?? i}`}
+                >
+                  <div className="text-xs font-mono text-muted-foreground w-24 shrink-0 truncate">
+                    {p.partNumber ?? "—"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {p.partName ?? "Unnamed part"}
+                    </div>
+                    {p.vesselName && (
+                      <div className="text-xs text-muted-foreground truncate">{p.vesselName}</div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground w-24 text-right shrink-0">
+                    {p.quantityOnHand ?? 0} / {p.minStockLevel ?? 0}
+                  </div>
+                  <div className="text-xs font-semibold w-20 text-right shrink-0">
+                    {formatCurrency(p.estimatedCost)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-        <div className="grid gap-4">
-          <SummaryPanel
-            title="Service Requests Awaiting Review"
-            description="Review and convert requests"
-            rows={model.serviceRequestRows}
-            empty="No service requests awaiting review."
-            href="/logistics?tab=service-requests"
-            testId="logistics-service-request-queue"
-          />
-          <SummaryPanel
-            title="Service Orders"
-            description="Vendor work and parts readiness"
-            rows={model.serviceOrderRows}
-            empty="No open service orders requiring action."
-            href="/logistics?tab=service-orders"
-            testId="logistics-service-order-queue"
-          />
-          <SummaryPanel
-            title="Vendor Follow-Up"
-            description="Supplier and provider readiness"
-            rows={model.vendorRows}
-            empty="No vendor issues requiring action."
-            href="/logistics?tab=vendors"
-            testId="logistics-vendor-directory"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-4">
-        <Card>
-          <CardContent className="p-0">
-            <PanelHeader
-              title="Low-stock parts"
-              description="Inventory ledger blockers and reorder estimate"
-              actionHref="/logistics?tab=inventory&filter=low-stock"
-              actionLabel="View all"
-              actionTestId="button-view-all-low-stock"
-            />
-            {isLoading ? (
-              <SkeletonList rows={4} />
-            ) : model.lowStockRows.length === 0 ? (
-              <EmptyState
-                message="No critical stockouts. View all inventory when you need the full catalog."
-                testId="empty-low-stock"
-              />
-            ) : (
-              <ul className="divide-y" data-testid="list-low-stock">
-                {model.lowStockRows.slice(0, 6).map((p, i) => (
-                  <li
-                    key={p.partId ?? `${p.partNumber ?? "row"}-${i}`}
-                    className="flex items-center gap-3 px-4 py-2"
-                    data-testid={`row-low-stock-${p.partId ?? i}`}
-                  >
-                    <div className="text-xs font-mono text-muted-foreground w-24 shrink-0 truncate">
-                      {p.partNumber ?? "—"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {p.partName ?? "Unnamed part"}
-                      </div>
-                      {p.vesselName && (
-                        <div className="text-xs text-muted-foreground truncate">{p.vesselName}</div>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground w-24 text-right shrink-0">
-                      {p.quantityOnHand ?? 0} / {p.minStockLevel ?? 0}
-                    </div>
-                    <div className="text-xs font-semibold w-20 text-right shrink-0">
-                      {formatCurrency(p.estimatedCost)}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <DataHealthPanel sources={model.dataHealth} />
-      </div>
+      <DataHealthStrip sources={model.dataHealth} />
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>

@@ -113,6 +113,8 @@ jobs:
 
       - name: Run unit tests
         run: npm run test:unit
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
   integration-tests:
     name: Integration Tests

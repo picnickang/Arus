@@ -66,6 +66,7 @@ export {
   publishBehaviorSchema,
   rotationTemplateSchema,
 } from "./schema/scheduling-settings";
+export { pilotFeedbackDraftSchema } from "./schema/feedback";
 
 /**
  * Re-export ONLY types (no runtime values)
@@ -201,6 +202,7 @@ export const crewNotificationSettings = pgSchema.crewNotificationSettings;
 export const crewAlerts = pgSchema.crewAlerts;
 export const crewRoles = pgSchema.crewRoles;
 export const crewTasks = cloudOnly(pgSchema.crewTasks);
+export const pilotFeedback = cloudOnly(pgSchema.pilotFeedback);
 export const crewTaskEvents = cloudOnly(pgSchema.crewTaskEvents);
 export const roles = cloudOnly(pgSchema.roles);
 export const userRoleAssignments = cloudOnly(pgSchema.userRoleAssignments);

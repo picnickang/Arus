@@ -21,7 +21,10 @@ import {
   touchUserLastLogin,
   getUserById,
   updateUserPassword,
+  insertPilotFeedback,
+  listPilotFeedbackForUser,
 } from "./infrastructure/me-portal-queries";
+import type { PilotFeedback, PilotFeedbackDraft } from "@shared/schema";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -530,6 +533,25 @@ export class MePortalService {
     // Rotate credentials => revoke every existing session so any pre-change
     // token (including the caller's current one) can no longer be used.
     await this.invalidateUserSessions(user.id);
+  }
+
+  /* --------------------------- Pilot feedback ----------------------- */
+
+  /** Persist a crew feedback report; the server mints the tracking id. */
+  async submitFeedback(user: MeUser, draft: PilotFeedbackDraft): Promise<PilotFeedback> {
+    const random = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const stamp = Date.now().toString(36).toUpperCase();
+    return insertPilotFeedback({
+      ...draft,
+      orgId: user.orgId,
+      userId: user.id,
+      trackingId: `FB-${stamp}-${random}`,
+    });
+  }
+
+  /** The caller's own reports, newest first ("My reports"). */
+  async listMyFeedback(user: MeUser): Promise<PilotFeedback[]> {
+    return listPilotFeedbackForUser(user.orgId, user.id);
   }
 
   private assertPasswordPolicy(password: string): void {

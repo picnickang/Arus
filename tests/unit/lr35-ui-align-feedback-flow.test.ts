@@ -4,9 +4,10 @@
  * Asserts:
  *   - Validation rules live in the application layer
  *     (`feedback-submission.ts`) and block invalid submissions.
- *   - Successful submissions write through the same module
- *     (sessionStorage path), with a `pendingBackend` flag — no
- *     pretend network success.
+ *   - Submission is server-first (POST /api/me/feedback via an
+ *     injectable transport); when the transport fails (offline at
+ *     sea) the report falls back to the sessionStorage outbox with
+ *     `pendingBackend: true` — no pretend network success.
  *   - The Phase 5 field set (location, severity pills) is wired in
  *     the React page WITHOUT moving validation into the component.
  *   - Local-only photo capture is not exposed as a production control
@@ -27,6 +28,8 @@ import { resolve } from "node:path";
 import {
   FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
+  removeFromOutbox,
+  retrySessionFeedback,
   submitFeedback,
   validateFeedback,
   type FeedbackDraft,
@@ -105,9 +108,28 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
     });
   });
 
-  describe("submitFeedback (sessionStorage path, no network)", () => {
-    it("returns ok+pendingBackend and writes the entry to sessionStorage", async () => {
-      const result = await submitFeedback(VALID_DRAFT);
+  describe("submitFeedback (server-first, sessionStorage offline fallback)", () => {
+    const failingTransport = {
+      post: async () => {
+        throw new Error("offline");
+      },
+    };
+
+    it("returns the server tracking id WITHOUT touching storage when the POST succeeds", async () => {
+      const result = await submitFeedback(VALID_DRAFT, {
+        post: async () => ({ trackingId: "FB-SERVER-1" }),
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+      expect(result.pendingBackend).toBe(false);
+      expect(result.trackingId).toBe("FB-SERVER-1");
+      expect(sessionStorage.getItem("arus-pilot-feedback-outbox")).toBeNull();
+    });
+
+    it("falls back to the session outbox (pendingBackend) when the POST fails", async () => {
+      const result = await submitFeedback(VALID_DRAFT, failingTransport);
       expect(result.ok).toBe(true);
       if (!result.ok) {
         return;
@@ -132,11 +154,14 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
     });
 
     it("returns ok=false WITHOUT writing storage when the draft fails validation", async () => {
-      const result = await submitFeedback({
-        ...VALID_DRAFT,
-        subject: "x",
-        description: "y",
-      });
+      const result = await submitFeedback(
+        {
+          ...VALID_DRAFT,
+          subject: "x",
+          description: "y",
+        },
+        failingTransport
+      );
       expect(result.ok).toBe(false);
       if (result.ok) {
         return;
@@ -146,8 +171,8 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
     });
 
     it("listSessionFeedback returns newest-first", async () => {
-      await submitFeedback({ ...VALID_DRAFT, subject: "first entry" });
-      await submitFeedback({ ...VALID_DRAFT, subject: "second entry" });
+      await submitFeedback({ ...VALID_DRAFT, subject: "first entry" }, failingTransport);
+      await submitFeedback({ ...VALID_DRAFT, subject: "second entry" }, failingTransport);
       const list = listSessionFeedback();
       expect(list).toHaveLength(2);
       expect(list[0].subject).toBe("second entry");
@@ -155,39 +180,101 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
     });
   });
 
+  describe("retrySessionFeedback (offline reports become server rows, never duplicates)", () => {
+    const failingTransport = {
+      post: async () => {
+        throw new Error("offline");
+      },
+    };
+
+    it("re-submits a queued report and removes its outbox entry on success", async () => {
+      const queued = await submitFeedback(VALID_DRAFT, failingTransport);
+      if (!queued.ok) {
+        throw new Error("expected queued submission");
+      }
+      const result = await retrySessionFeedback(queued.trackingId, {
+        post: async () => ({ trackingId: "FB-SERVER-9" }),
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+      expect(result.pendingBackend).toBe(false);
+      expect(result.trackingId).toBe("FB-SERVER-9");
+      expect(listSessionFeedback()).toHaveLength(0);
+    });
+
+    it("keeps the entry queued (same id, no duplicate) when the retry also fails", async () => {
+      const queued = await submitFeedback(VALID_DRAFT, failingTransport);
+      if (!queued.ok) {
+        throw new Error("expected queued submission");
+      }
+      const result = await retrySessionFeedback(queued.trackingId, failingTransport);
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+      expect(result.pendingBackend).toBe(true);
+      expect(result.trackingId).toBe(queued.trackingId);
+      const list = listSessionFeedback();
+      expect(list).toHaveLength(1);
+      expect(list[0].trackingId).toBe(queued.trackingId);
+    });
+
+    it("returns ok=false when the tracking id is no longer queued", async () => {
+      const result = await retrySessionFeedback("FB-GONE", {
+        post: async () => ({ trackingId: "FB-SERVER-X" }),
+      });
+      expect(result.ok).toBe(false);
+    });
+
+    it("removeFromOutbox drops only the matching entry and keeps order", async () => {
+      await submitFeedback({ ...VALID_DRAFT, subject: "first entry" }, failingTransport);
+      const second = await submitFeedback(
+        { ...VALID_DRAFT, subject: "second entry" },
+        failingTransport
+      );
+      if (!second.ok) {
+        throw new Error("expected queued submission");
+      }
+      removeFromOutbox(second.trackingId);
+      const list = listSessionFeedback();
+      expect(list).toHaveLength(1);
+      expect(list[0].subject).toBe("first entry");
+    });
+  });
+
   describe("listSessionFeedback normalisation (forward/backward compat)", () => {
     it("defaults a legacy entry (no location field) to 'other'", () => {
-      const legacy = [{
-        trackingId: "FB-LEGACY",
-        createdAt: new Date().toISOString(),
-        category: "bug",
-        severity: "low",
-        subject: "old entry",
-        description: "description long enough to pass the guard",
-      }];
-      sessionStorage.setItem(
-        "arus-pilot-feedback-outbox",
-        JSON.stringify(legacy),
-      );
+      const legacy = [
+        {
+          trackingId: "FB-LEGACY",
+          createdAt: new Date().toISOString(),
+          category: "bug",
+          severity: "low",
+          subject: "old entry",
+          description: "description long enough to pass the guard",
+        },
+      ];
+      sessionStorage.setItem("arus-pilot-feedback-outbox", JSON.stringify(legacy));
       const list = listSessionFeedback();
       expect(list).toHaveLength(1);
       expect(list[0].location).toBe("other");
     });
 
     it("normalises a tampered/unknown location string to 'other'", () => {
-      const tampered = [{
-        trackingId: "FB-T",
-        createdAt: new Date().toISOString(),
-        category: "bug",
-        severity: "low",
-        subject: "tampered entry",
-        description: "description long enough to pass the guard",
-        location: "lunar_module",
-      }];
-      sessionStorage.setItem(
-        "arus-pilot-feedback-outbox",
-        JSON.stringify(tampered),
-      );
+      const tampered = [
+        {
+          trackingId: "FB-T",
+          createdAt: new Date().toISOString(),
+          category: "bug",
+          severity: "low",
+          subject: "tampered entry",
+          description: "description long enough to pass the guard",
+          location: "lunar_module",
+        },
+      ];
+      sessionStorage.setItem("arus-pilot-feedback-outbox", JSON.stringify(tampered));
       const list = listSessionFeedback();
       expect(list).toHaveLength(1);
       expect(list[0].location).toBe("other");
@@ -195,38 +282,42 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
 
     it("drops corrupt rows that miss the base shape", () => {
       const mixed = [
-        { trackingId: "ok", createdAt: "x", category: "bug", severity: "low", subject: "s", description: "long enough description", location: "engine_room" },
+        {
+          trackingId: "ok",
+          createdAt: "x",
+          category: "bug",
+          severity: "low",
+          subject: "s",
+          description: "long enough description",
+          location: "engine_room",
+        },
         { totally: "wrong" },
       ];
-      sessionStorage.setItem(
-        "arus-pilot-feedback-outbox",
-        JSON.stringify(mixed),
-      );
+      sessionStorage.setItem("arus-pilot-feedback-outbox", JSON.stringify(mixed));
       const list = listSessionFeedback();
       expect(list).toHaveLength(1);
       expect(list[0].subject).toBe("s");
     });
 
     it("strips legacy local-only photo metadata from session rows", () => {
-      const legacyWithPhoto = [{
-        trackingId: "FB-PHOTO",
-        createdAt: new Date().toISOString(),
-        category: "bug",
-        severity: "medium",
-        subject: "photo row",
-        description: "description long enough to pass the guard",
-        location: "engine_room",
-        photo: {
-          name: "engine.jpg",
-          sizeBytes: 12345,
-          mimeType: "image/jpeg",
-          previewUrl: "data:image/jpeg;base64,AAAA",
+      const legacyWithPhoto = [
+        {
+          trackingId: "FB-PHOTO",
+          createdAt: new Date().toISOString(),
+          category: "bug",
+          severity: "medium",
+          subject: "photo row",
+          description: "description long enough to pass the guard",
+          location: "engine_room",
+          photo: {
+            name: "engine.jpg",
+            sizeBytes: 12345,
+            mimeType: "image/jpeg",
+            previewUrl: "data:image/jpeg;base64,AAAA",
+          },
         },
-      }];
-      sessionStorage.setItem(
-        "arus-pilot-feedback-outbox",
-        JSON.stringify(legacyWithPhoto),
-      );
+      ];
+      sessionStorage.setItem("arus-pilot-feedback-outbox", JSON.stringify(legacyWithPhoto));
       const list = listSessionFeedback();
       expect(list).toHaveLength(1);
       expect(list[0]).not.toHaveProperty("photo");
@@ -237,9 +328,7 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
 describe("UI Align Phase 5 — feedback page wiring (source-scan)", () => {
   it("imports validation + submission from the application module, not inline", async () => {
     const src = await readFile(PAGE_PATH, "utf8");
-    expect(src).toContain(
-      'from "@/application/feedback/feedback-submission"',
-    );
+    expect(src).toContain('from "@/application/feedback/feedback-submission"');
     // The component must NOT redefine the validation rules. Pin the
     // absence of the well-known rule strings — they only live in the
     // application module.
