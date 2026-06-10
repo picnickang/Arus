@@ -20,6 +20,20 @@
     "/api/certificates",
     "/api/compliance",
     "/api/stcw",
-    "/api/hr"
+    "/api/hr",
+    "/api/ml",
+    "/api/analytics",
+    "/api/rag",
+    "/api/kb",
+    "/api/dashboard",
+    "/api/diagnostics",
+    "/api/alerts",
+    "/api/rms",
+    "/api/logbook",
+    "/api/attention",
+    "/api/digital-twins",
+    "/api/sensor-bundles",
+    "/api/sensor-templates",
+    "/api/me"
   ]
 }

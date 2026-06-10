@@ -40,6 +40,21 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   "/api/compliance",
   "/api/stcw",
   "/api/hr",
+  // Wave 4: ml/analytics/kb + operational long tail
+  "/api/ml",
+  "/api/analytics",
+  "/api/rag",
+  "/api/kb",
+  "/api/dashboard",
+  "/api/diagnostics",
+  "/api/alerts",
+  "/api/rms",
+  "/api/logbook",
+  "/api/attention",
+  "/api/digital-twins",
+  "/api/sensor-bundles",
+  "/api/sensor-templates",
+  "/api/me",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
@@ -54,6 +69,11 @@ export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
   // infra that expects exact shapes.
   "/api/observability/web-vitals",
   "/api/error-logs",
+  // Health probes answer 503 WITH a JSON health payload — the status code
+  // carries the signal and the body IS the data; wrapping would mangle both.
+  "/api/diagnostics/health",
+  "/api/healthz",
+  "/api/health",
   // Spec/document endpoints serve raw documents, not API data.
   "/api/openapi.json",
   "/api/docs",

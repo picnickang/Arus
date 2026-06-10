@@ -174,9 +174,12 @@ describe("envelope exclusions (frozen contracts)", () => {
     expect([...ENVELOPE_EXCLUDED_PREFIXES].sort()).toEqual(
       [
         "/api/agent",
+        "/api/diagnostics/health",
         "/api/docs",
         "/api/edge",
         "/api/error-logs",
+        "/api/health",
+        "/api/healthz",
         "/api/observability/web-vitals",
         "/api/openapi.json",
         "/api/telemetry/bulk",

@@ -87,11 +87,7 @@ interface MlModelFormData {
 
 async function fetchAnalyticsData(endpoint: string, orgId: string) {
   try {
-    const res = await fetch(`/api/analytics/${endpoint}?orgId=${orgId}`);
-    if (!res.ok) {
-      return [];
-    }
-    const data = await res.json();
+    const data = await apiRequest("GET", `/api/analytics/${endpoint}?orgId=${orgId}`);
     return Array.isArray(data) ? data : [];
   } catch {
     return [];
