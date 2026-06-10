@@ -32,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Wrench, FileText, Clock, DollarSign } from "lucide-react";
+import { useDiscardGuard, DiscardConfirmDialog } from "@/hooks/useDiscardGuard";
 import type { WorkOrder } from "@shared/schema";
 import {
   useWorkOrderFormDialogData,
@@ -85,8 +86,10 @@ export function WorkOrderFormDialog({
   const handleSubmit = (data: WorkOrderFormData) =>
     onSubmit({ ...data, ...(selectedTemplateId && { templateId: selectedTemplateId }) });
 
+  const guard = useDiscardGuard({ isDirty: form.formState.isDirty, onOpenChange });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={guard.handleOpenChange}>
       <DialogContent
         className="max-w-2xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto"
         data-testid="work-order-form-dialog"
@@ -596,7 +599,7 @@ export function WorkOrderFormDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => guard.handleOpenChange(false)}
                 disabled={isSubmitting}
                 data-testid="button-cancel"
               >
@@ -610,6 +613,11 @@ export function WorkOrderFormDialog({
           </form>
         </Form>
       </DialogContent>
+      <DiscardConfirmDialog
+        open={guard.confirmOpen}
+        onConfirm={guard.onConfirm}
+        onCancel={guard.onCancel}
+      />
     </Dialog>
   );
 }
