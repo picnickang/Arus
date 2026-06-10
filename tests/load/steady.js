@@ -20,8 +20,10 @@ export const options = {
 const BASE = __ENV.BASE_URL || "http://localhost:5000";
 const TOKEN = __ENV.K6_SESSION_TOKEN || "";
 
+// Send the token both ways: SSO sessions authenticate via the arus_session
+// cookie, while dev-login tokens (POST /api/portal/dev-login) are Bearer-only.
 const headers = TOKEN
-  ? { Cookie: `arus_session=${TOKEN}` }
+  ? { Cookie: `arus_session=${TOKEN}`, Authorization: `Bearer ${TOKEN}` }
   : {};
 
 export default function () {
