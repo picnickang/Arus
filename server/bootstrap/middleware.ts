@@ -9,6 +9,7 @@ import type { Express } from "express";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 import { additionalSecurityHeaders, sanitizeRequestData, detectAttackPatterns } from "../security";
 import { originAllowed } from "../utils/corsWildcard";
 import { safeStringify } from "../utils/redact-log";
@@ -164,6 +165,20 @@ export function configureMiddleware(app: Express): void {
     express.urlencoded({
       extended: false,
       limit: "5mb",
+    })
+  );
+
+  // App-level gzip: the Caddy proxy compresses cloud traffic, but desktop
+  // sidecar and direct :5000 access were shipping uncompressed JSON. SSE
+  // streams must not be buffered by compression.
+  app.use(
+    compression({
+      filter: (req, res) => {
+        if (res.getHeader("Content-Type")?.toString().includes("text/event-stream")) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
     })
   );
 

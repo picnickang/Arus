@@ -113,6 +113,33 @@ export function createHeaders(includeContentType: boolean = false): Record<strin
 export interface ApiRequestOptions {
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  /** Abort the request after this many ms. GETs default to 30s; pass 0 to disable. */
+  timeoutMs?: number;
+}
+
+export const DEFAULT_GET_TIMEOUT_MS = 30_000;
+
+/**
+ * Composes a caller/TanStack signal with a default timeout. Falls back
+ * gracefully where AbortSignal.timeout/any are unavailable (older webviews).
+ */
+function composeSignal(
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): AbortSignal | undefined {
+  const timeoutSignal =
+    timeoutMs !== undefined &&
+    timeoutMs > 0 &&
+    typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(timeoutMs)
+      : undefined;
+  if (signal && timeoutSignal) {
+    return typeof AbortSignal.any === "function"
+      ? AbortSignal.any([signal, timeoutSignal])
+      : signal;
+  }
+  return signal ?? timeoutSignal;
 }
 
 export interface ApiRequestInit extends ApiRequestOptions {
@@ -202,6 +229,13 @@ export async function apiRequest<T = unknown>(
     return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
   }
 
+  // GETs time out by default; mutations only when the caller opts in —
+  // aborting a long-running write client-side doesn't stop it server-side.
+  const effectiveSignal = composeSignal(
+    options?.signal,
+    options?.timeoutMs ?? (method === "GET" ? DEFAULT_GET_TIMEOUT_MS : undefined)
+  );
+
   let res: Response;
   try {
     res = await fetch(resolveUrl(url), {
@@ -213,7 +247,7 @@ export async function apiRequest<T = unknown>(
       },
       ...(body !== undefined ? { body } : {}),
       credentials: "include",
-      ...(options?.signal !== undefined ? { signal: options.signal } : {}),
+      ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
     });
   } catch (error) {
     if (shouldQueueOffline && isNetworkFailure(error)) {
@@ -273,7 +307,7 @@ export async function apiFormDataRequest<T = unknown>(
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+  async ({ queryKey, signal }) => {
     let url: string;
 
     if (queryKey.length === 1) {
@@ -300,9 +334,13 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       }
     }
 
+    // Forwarding TanStack's signal lets unmounted/superseded queries cancel
+    // their in-flight fetches instead of completing into a dead cache entry.
+    const effectiveSignal = composeSignal(signal, DEFAULT_GET_TIMEOUT_MS);
     const res = await fetch(resolveUrl(url), {
       headers: createHeaders(false),
       credentials: "include",
+      ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

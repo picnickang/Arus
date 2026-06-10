@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ export function EmergencyAlarmBanner() {
     isSuccess,
   } = useQuery<MeSafetyAlarm[]>({
     queryKey: ["/api/me/safety-alarms"],
-    refetchInterval: 15000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
     refetchOnWindowFocus: true,
     retry: 1,
     select: (rows) =>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -79,7 +80,7 @@ export function useOptimizationData() {
       return apiRequest<OptimizationResult[]>("GET", "/api/optimization/results");
     },
     staleTime: 10000,
-    refetchInterval: 15000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
 
   const { data: trendAnalyses, isLoading: trendsLoading } = useQuery({
