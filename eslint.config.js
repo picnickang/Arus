@@ -255,6 +255,20 @@ export default [
         {
           selector: "CatchClause[param.type='Identifier'][param.name=/^_/]",
           message: 'Underscore-prefixed catch bindings (catch (_error)) suggest unused errors. Use bare `catch { }` or handle the error explicitly.'
+        },
+        // Polling: numeric refetchInterval literals poll hidden tabs and
+        // scatter magic numbers. Use pollingInterval(POLL_INTERVALS.X) from
+        // @/lib/polling (visibility-gated, centralized values).
+        {
+          selector: 'Property[key.name="refetchInterval"] > Literal[value=/^[0-9]+$/]',
+          message: 'Use refetchInterval: pollingInterval(POLL_INTERVALS.X) from @/lib/polling instead of a numeric literal — it pauses polling while the tab is hidden.'
+        },
+        // Query keys: template literals defeat hierarchical cache
+        // invalidation. Use a key factory (see crewKeys in
+        // client/src/features/crew/hooks/useCrew.ts).
+        {
+          selector: 'Property[key.name="queryKey"] > ArrayExpression TemplateLiteral',
+          message: 'Template literals inside queryKey break prefix-based invalidation. Use array segments via a key factory (model: crewKeys in features/crew/hooks/useCrew.ts).'
         }
       ]
     }

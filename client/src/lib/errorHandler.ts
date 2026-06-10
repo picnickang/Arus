@@ -1,3 +1,6 @@
+import { createHeaders } from "@/lib/queryClient";
+import { getCurrentOrgId } from "@/contexts/OrganizationContext";
+
 interface ErrorContext {
   url?: string;
   userAgent?: string;
@@ -7,6 +10,39 @@ interface ErrorContext {
 
 let isInitialized = false;
 
+/**
+ * Failures of these endpoints must never be reported back through them —
+ * a 5xx from /api/error-logs would otherwise re-trigger the reporter forever.
+ */
+const SELF_LOG_URL_PATTERNS = ["/api/error-logs", "/api/observability/"];
+
+function isSelfLogUrl(url: string): boolean {
+  return SELF_LOG_URL_PATTERNS.some((pattern) => url.includes(pattern));
+}
+
+// Token bucket: at most 10 reports per minute, and never the same message
+// twice within 30s — an error loop should degrade to console noise, not
+// a request storm.
+const MAX_REPORTS_PER_MINUTE = 10;
+let reportTimestamps: number[] = [];
+let lastReportKey = "";
+let lastReportAt = 0;
+
+function shouldReport(message: string): boolean {
+  const now = Date.now();
+  reportTimestamps = reportTimestamps.filter((t) => now - t < 60_000);
+  if (reportTimestamps.length >= MAX_REPORTS_PER_MINUTE) {
+    return false;
+  }
+  if (message === lastReportKey && now - lastReportAt < 30_000) {
+    return false;
+  }
+  reportTimestamps.push(now);
+  lastReportKey = message;
+  lastReportAt = now;
+  return true;
+}
+
 async function logErrorToBackend(
   severity: "info" | "warning" | "error" | "critical",
   category: "frontend" | "backend" | "api" | "database" | "security" | "performance",
@@ -15,15 +51,15 @@ async function logErrorToBackend(
   context?: ErrorContext,
   errorCode?: string
 ) {
+  if (!shouldReport(message)) {
+    return;
+  }
   try {
     await fetch("/api/error-logs", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-org-id": "default-org-id",
-      },
+      headers: createHeaders(true),
       body: JSON.stringify({
-        orgId: "default-org-id",
+        orgId: getCurrentOrgId() || "default-org-id",
         severity,
         category,
         message,
@@ -101,6 +137,9 @@ export function initializeGlobalErrorHandlers() {
 
       if (!response.ok && response.status >= 500) {
         const url = typeof args[0] === "string" ? args[0] : (args[0] as { url: string }).url;
+        if (isSelfLogUrl(url)) {
+          return response;
+        }
         logErrorToBackend(
           "error",
           "api",
@@ -123,6 +162,9 @@ export function initializeGlobalErrorHandlers() {
         throw error;
       }
       const url = typeof args[0] === "string" ? args[0] : (args[0] as { url: string }).url;
+      if (isSelfLogUrl(url)) {
+        throw error;
+      }
       logErrorToBackend(
         "error",
         "api",
