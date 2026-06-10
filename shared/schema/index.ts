@@ -26,6 +26,7 @@ export * from "./optimizer";
 export * from "./permissions";
 export * from "./logbooks";
 export * from "./admin";
+export * from "./ops-deployment";
 export * from "./costs";
 export * from "./dtc";
 export * from "./scheduling-settings";
@@ -44,6 +45,8 @@ export * from "./safety-alarms";
 export * from "./diagnostic-runs";
 export * from "./import-manifest";
 export * from "./vessel-diagram-registry";
+export * from "./sso";
+export * from "./scheduled-reports";
 
 import * as core from "./core";
 import * as purchasing from "./purchasing";
@@ -70,6 +73,7 @@ import * as optimizer from "./optimizer";
 import * as permissions from "./permissions";
 import * as telemetryMod from "./telemetry";
 import * as agent from "./agent";
+import * as opsDeployment from "./ops-deployment";
 import * as certificates from "./certificates";
 import * as safetyBulletins from "./safety-bulletins";
 import * as crewTasks from "./crew-tasks";
@@ -100,6 +104,7 @@ export const OptimizerSchema = { ...optimizer };
 export const PermissionsSchema = { ...permissions };
 export const PurchasingSchema = { ...purchasing };
 export const AgentSchema = { ...agent };
+export const OpsDeploymentSchema = { ...opsDeployment };
 export const CertificatesSchema = { ...certificates };
 export const SafetyBulletinsSchema = { ...safetyBulletins };
 export const CrewTasksSchema = { ...crewTasks };
@@ -154,6 +159,7 @@ export type DomainName =
   | "purchasing"
   | "digital-twin"
   | "agent"
+  | "ops-deployment"
   | "certificates"
   | "vessel-diagram-registry";
 
@@ -182,6 +188,7 @@ export const SchemaDomains: Record<DomainName, object> = {
   purchasing: PurchasingSchema,
   "digital-twin": DigitalTwinSchema,
   agent: AgentSchema,
+  "ops-deployment": OpsDeploymentSchema,
   certificates: CertificatesSchema,
   "vessel-diagram-registry": VesselDiagramRegistrySchema,
 };

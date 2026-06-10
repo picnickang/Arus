@@ -51,6 +51,7 @@ export default defineConfig({
     "./shared/schema/import-manifest.ts",
     "./shared/schema/external-data-cache.ts",
     "./shared/schema/diagnostic-runs.ts",
+    "./shared/schema/ops-deployment.ts",
   ],
   dialect: "postgresql",
   dbCredentials: {
