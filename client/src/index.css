@@ -412,40 +412,14 @@
   }
 }
 
-.bridge {
-  --background: hsl(0, 0%, 2%);
-  --foreground: hsl(0, 65%, 45%);
-  --card: hsl(0, 0%, 4%);
-  --card-foreground: hsl(0, 65%, 45%);
-  --popover: hsl(0, 0%, 4%);
-  --popover-foreground: hsl(0, 65%, 45%);
-  --primary: hsl(0, 60%, 40%);
-  --primary-foreground: hsl(0, 0%, 2%);
-  --secondary: hsl(0, 0%, 8%);
-  --secondary-foreground: hsl(0, 55%, 40%);
-  --muted: hsl(0, 0%, 6%);
-  --muted-foreground: hsl(0, 40%, 30%);
-  --accent: hsl(0, 55%, 35%);
-  --accent-foreground: hsl(0, 0%, 2%);
-  --destructive: hsl(30, 90%, 50%);
-  --destructive-foreground: hsl(0, 0%, 2%);
-  --border: hsl(0, 30%, 12%);
-  --input: hsl(0, 30%, 12%);
-  --ring: hsl(0, 60%, 40%);
-  --chart-1: hsl(0, 60%, 40%);
-  --chart-2: hsl(30, 80%, 40%);
-  --chart-3: hsl(0, 50%, 30%);
-  --chart-4: hsl(0, 40%, 25%);
-  --chart-5: hsl(15, 70%, 35%);
-  --sidebar: hsl(0, 0%, 3%);
-  --sidebar-foreground: hsl(0, 65%, 45%);
-  --sidebar-primary: hsl(0, 60%, 40%);
-  --sidebar-primary-foreground: hsl(0, 0%, 2%);
-  --sidebar-accent: hsl(0, 40%, 15%);
-  --sidebar-accent-foreground: hsl(0, 65%, 45%);
-  --sidebar-border: hsl(0, 30%, 12%);
-  --sidebar-ring: hsl(0, 60%, 40%);
-}
+/*
+ * Theme token blocks live on `:root[data-theme="…"]` selectors above —
+ * theme-provider sets the data-theme attribute for tokens and a Tailwind
+ * class only for variant compat (bridge mode sets class `dark`, never
+ * `bridge`). Leftover `.bridge` / `.daylight` class token blocks were
+ * removed: the bridge class is never applied, and the daylight class is
+ * always accompanied by the higher-specificity data-theme block.
+ */
 
 /*
  * ARUS Ops command-center theme utilities (UI Align Phase 1).
@@ -550,24 +524,3 @@
   }
 }
 
-.daylight {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(0, 0%, 0%);
-  --card: hsl(0, 0%, 98%);
-  --card-foreground: hsl(0, 0%, 0%);
-  --popover: hsl(0, 0%, 98%);
-  --popover-foreground: hsl(0, 0%, 0%);
-  --primary: hsl(197, 100%, 35%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(0, 0%, 92%);
-  --secondary-foreground: hsl(0, 0%, 0%);
-  --muted: hsl(0, 0%, 95%);
-  --muted-foreground: hsl(0, 0%, 30%);
-  --accent: hsl(197, 100%, 35%);
-  --accent-foreground: hsl(0, 0%, 100%);
-  --destructive: hsl(0, 100%, 45%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(0, 0%, 60%);
-  --input: hsl(0, 0%, 60%);
-  --ring: hsl(197, 100%, 35%);
-}
