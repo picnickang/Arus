@@ -8,6 +8,7 @@
  */
 
 export type {
+  BudgetGuardPort,
   CostMeter,
   CostMeterEvent,
   LLMCallMeta,
@@ -21,8 +22,11 @@ export type {
   LLMToolCall,
   LLMToolDefinition,
   LLMUsage,
+  MessageRedactor,
 } from "./types";
 
 export { OpenAIProvider } from "./openai-provider";
 export { CompositeCostMeter, LoggingCostMeter, NoopCostMeter, estimateCostUsd } from "./cost-meter";
 export { DefaultLLMGateway } from "./gateway";
+export { BudgetGuard, BudgetExceededError, budgetGuard } from "./budget-guard";
+export { redactMessages, redactPII } from "./pii-redactor";

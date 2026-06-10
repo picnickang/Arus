@@ -208,6 +208,8 @@ const defaultTransport: FeedbackTransport = {
     // /api/me/feedback is NOT an offline-queueable prefix (see
     // shared/offline-queue-routes.ts), so offline this rejects and the
     // session-outbox fallback below takes over — no double submission.
+    // Lazy import keeps this module import-safe in the node-env unit
+    // tests (queryClient touches browser APIs at module scope).
     const { apiRequest } = await import("@/lib/queryClient");
     const row = await apiRequest<{ trackingId?: string }>("POST", "/api/me/feedback", draft);
     if (!row?.trackingId) {

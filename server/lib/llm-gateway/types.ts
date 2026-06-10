@@ -127,12 +127,14 @@ export interface LLMStreamChunk {
   /** Incremental content delta (may be empty string). */
   contentDelta: string;
   /** Tool call deltas, if the model is invoking tools. */
-  toolCallDeltas?: Array<{
-    index: number;
-    id?: string | undefined;
-    name?: string | undefined;
-    argumentsDelta?: string | undefined;
-  }> | undefined;
+  toolCallDeltas?:
+    | Array<{
+        index: number;
+        id?: string | undefined;
+        name?: string | undefined;
+        argumentsDelta?: string | undefined;
+      }>
+    | undefined;
   finishReason?: string | null | undefined;
   /** Final usage snapshot, only emitted on the terminal chunk. */
   usage?: LLMUsage | undefined;
@@ -181,6 +183,28 @@ export interface CostMeterEvent {
   latencyMs: number;
   streamed: boolean;
   meta?: LLMCallMeta | undefined;
+}
+
+/**
+ * Pluggable per-tenant token-budget guard. The gateway calls `preflight`
+ * BEFORE issuing a call — which may throw to abort an over-budget request —
+ * and `record` AFTER, with the actual tokens consumed. Both are no-ops when
+ * the tenant has no budget configured. Kept as a narrow port so the gateway
+ * does not depend on the concrete `BudgetGuard` implementation.
+ */
+export interface BudgetGuardPort {
+  /** Throws (e.g. `BudgetExceededError`) if the projected spend is over budget. */
+  preflight(orgId: string, projectedTokens: number): void;
+  /** Records actual tokens consumed after a successful call. */
+  record(orgId: string, model: string, tokens: number): void;
+}
+
+/**
+ * Pluggable outbound message redactor. The gateway runs this over the
+ * messages before they reach the provider so PII never leaves the process.
+ */
+export interface MessageRedactor {
+  redactMessages(messages: readonly LLMMessage[]): { messages: LLMMessage[]; totalHits: number };
 }
 
 /**
