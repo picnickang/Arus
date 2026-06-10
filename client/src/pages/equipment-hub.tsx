@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useEquipmentHub } from "@/hooks/useEquipmentHub";
 import { AssignmentStatusBadge } from "@/components/work-orders";
+import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 
 function riskColor(r: string) {
   if (r === "critical") {
@@ -199,6 +200,7 @@ export default function EquipmentHub() {
   const params = useParams<{ equipmentId: string }>();
   const equipmentId = params.equipmentId || "";
   const [, navigate] = useLocation();
+  const [quickWoOpen, setQuickWoOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Equipment Hub | ARUS";
@@ -338,12 +340,22 @@ export default function EquipmentHub() {
             >
               <Button
                 size="sm"
+                className="text-xs bg-sky-500 text-white hover:bg-sky-400"
+                onClick={() => setQuickWoOpen(true)}
+                data-testid="button-quick-work-order"
+              >
+                <Wrench className="h-3.5 w-3.5 mr-1.5" />
+                Quick Work Order
+              </Button>
+
+              <Button
+                size="sm"
                 className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/25 hover:bg-sky-500/25"
                 onClick={() => navigate(`/work-orders?action=create&equipmentId=${data.id}`)}
                 data-testid="button-create-work-order"
               >
                 <FileText className="h-3.5 w-3.5 mr-1.5" />
-                Create Work Order
+                Full Form
               </Button>
 
               {anomaly && anomaly.acknowledged ? (
@@ -812,6 +824,13 @@ export default function EquipmentHub() {
           </Link>
         </div>
       </div>
+
+      <QuickWorkOrderSheet
+        open={quickWoOpen}
+        onClose={() => setQuickWoOpen(false)}
+        vesselId={data.vesselId ?? undefined}
+        defaultEquipmentId={data.id}
+      />
     </IntelligenceLayout>
   );
 }

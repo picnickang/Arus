@@ -76,7 +76,8 @@ export function usePdmEquipmentDetailData() {
   });
 
   const handleBack = () => setLocation("/equipment-intelligence");
-  const handleCreateWorkOrder = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
+  const handleCreateWorkOrder = () =>
+    setLocation(`/work-orders?action=create&equipmentId=${equipmentId}`);
   const handleViewWorkOrders = () => setLocation(`/work-orders?equipmentId=${equipmentId}`);
   const retryEquipment = () =>
     queryClient.invalidateQueries({ queryKey: [`/api/equipment/${equipmentId}`] });

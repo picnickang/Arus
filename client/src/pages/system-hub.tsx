@@ -6,14 +6,17 @@
  * /diagnostics, etc.) continue to work — this hub only adds the
  * overview layer.
  */
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   Database,
   Cloud,
+  CloudRain,
   Cpu,
   AlertTriangle,
+  ChevronDown,
   ChevronRight,
   Settings,
   Shield,
@@ -25,39 +28,20 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-/**
- * Mirrors `HealthCheckResult` from
- * `server/routes/diagnostics/types.ts`. `checks.{database,telemetry,
- * memory}` carry pass/warn/fail; `checks.services` is an array of
- * `{name, status}` where `status` is running/stopped/error. The
- * endpoint returns HTTP 503 with a populated body when degraded /
- * unhealthy, so we read the body regardless of status (see
- * `healthQueryFn` below) — losing health visibility precisely when
- * services are degraded would be the opposite of what this card is
- * for.
- */
-interface CheckResult {
-  status?: "pass" | "warn" | "fail" | string;
-  message?: string;
-  responseTimeMs?: number;
-}
-
-interface ServiceStatusEntry {
-  name: string;
-  status?: "running" | "stopped" | "error" | string;
-}
-
-interface HealthResponse {
-  status?: "healthy" | "degraded" | "unhealthy" | string;
-  uptime?: number;
-  checks?: {
-    database?: CheckResult;
-    telemetry?: CheckResult;
-    memory?: CheckResult;
-    services?: ServiceStatusEntry[];
-  };
-}
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  type HealthResponse,
+  statusTone,
+  flattenServiceCards,
+  isOperational,
+  formatUptime,
+  formatTimestamp,
+} from "./system-hub-format";
 
 async function healthQueryFn(): Promise<HealthResponse> {
   const res = await fetch("/api/diagnostics/health", { credentials: "include" });
@@ -83,107 +67,6 @@ interface AuditResponse {
   events?: AuditEvent[];
 }
 
-const SERVICE_LABELS: Record<string, string> = {
-  database: "Database",
-  telemetry: "Telemetry",
-  memory: "Memory",
-};
-
-const HEALTHY_STATUSES = new Set([
-  "healthy",
-  "ok",
-  "up",
-  "operational",
-  "pass",
-  "running",
-]);
-const WARN_STATUSES = new Set(["degraded", "warning", "warn"]);
-const FAIL_STATUSES = new Set([
-  "unhealthy",
-  "down",
-  "error",
-  "fail",
-  "stopped",
-]);
-
-function statusTone(status: string | undefined): {
-  dot: string;
-  text: string;
-  label: string;
-} {
-  const s = (status ?? "").toLowerCase();
-  if (HEALTHY_STATUSES.has(s)) {
-    return { dot: "bg-emerald-500", text: "text-emerald-600", label: "Operational" };
-  }
-  if (WARN_STATUSES.has(s)) {
-    return { dot: "bg-amber-500", text: "text-amber-600", label: "Degraded" };
-  }
-  if (FAIL_STATUSES.has(s)) {
-    return { dot: "bg-rose-500", text: "text-rose-600", label: "Down" };
-  }
-  return { dot: "bg-slate-400", text: "text-slate-500", label: status ?? "Unknown" };
-}
-
-interface ServiceCardData {
-  key: string;
-  label: string;
-  status?: string;
-}
-
-function flattenServiceCards(health: HealthResponse | undefined): ServiceCardData[] {
-  const checks = health?.checks;
-  if (!checks) {
-    return [];
-  }
-  const cards: ServiceCardData[] = [];
-  for (const key of ["database", "telemetry", "memory"] as const) {
-    const check = checks[key];
-    if (check) {
-      cards.push({
-        key,
-        label: SERVICE_LABELS[key] ?? key,
-        status: check.status,
-      });
-    }
-  }
-  for (const svc of checks.services ?? []) {
-    cards.push({ key: svc.name, label: svc.name, status: svc.status });
-  }
-  return cards;
-}
-
-function isOperational(status: string | undefined): boolean {
-  return HEALTHY_STATUSES.has((status ?? "").toLowerCase());
-}
-
-function formatUptime(seconds: number | undefined): string {
-  if (!seconds || Number.isNaN(seconds)) {
-    return "—";
-  }
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${mins}m`;
-}
-
-function formatTimestamp(value: string | null | undefined): string {
-  if (!value) {
-    return "—";
-  }
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) {
-    return "—";
-  }
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function SystemHub() {
   const {
@@ -343,15 +226,23 @@ export default function SystemHub() {
         </Card>
       </div>
 
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2">Jump to</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="system-jump-grid">
+      <div className="space-y-4" data-testid="system-jump-grid">
+        <h2 className="text-sm font-semibold text-muted-foreground">Jump to</h2>
+        <SystemGroup id="users-access" label="Users & Access" defaultOpen>
           <JumpCard
             href="/system-administration"
             icon={Shield}
             label="Admin"
             testId="jump-admin"
           />
+          <JumpCard
+            href="/organization-management"
+            icon={Building}
+            label="Organizations"
+            testId="jump-organizations"
+          />
+        </SystemGroup>
+        <SystemGroup id="configuration" label="Configuration">
           <JumpCard
             href="/configuration"
             icon={Settings}
@@ -364,13 +255,23 @@ export default function SystemHub() {
             label="Notifications"
             testId="jump-notifications"
           />
-          <JumpCard
-            href="/organization-management"
-            icon={Building}
-            label="Organizations"
-            testId="jump-organizations"
-          />
+        </SystemGroup>
+        <SystemGroup id="integrations" label="Integrations">
           <JumpCard href="/sensors" icon={Activity} label="Sensors" testId="jump-sensors" />
+          <JumpCard
+            href="/stormgeo-settings"
+            icon={CloudRain}
+            label="StormGeo"
+            testId="jump-stormgeo"
+          />
+          <JumpCard
+            href="/admin/equipment-dependencies"
+            icon={Cloud}
+            label="Dependencies"
+            testId="jump-dependencies"
+          />
+        </SystemGroup>
+        <SystemGroup id="advanced" label="Advanced">
           <JumpCard
             href="/copilot-admin"
             icon={Bot}
@@ -389,12 +290,6 @@ export default function SystemHub() {
             label="Warehouse"
             testId="jump-warehouse"
           />
-          <JumpCard
-            href="/admin/equipment-dependencies"
-            icon={Cloud}
-            label="Dependencies"
-            testId="jump-dependencies"
-          />
           {/* Dev/staging-only diagnostic — the backend endpoint is 404 in
               production, so don't surface a dead link there. */}
           {!import.meta.env.PROD && (
@@ -405,9 +300,53 @@ export default function SystemHub() {
               testId="jump-access-diagnostic"
             />
           )}
-        </div>
+        </SystemGroup>
       </div>
     </div>
+  );
+}
+
+/**
+ * Render-layer grouping only — navigation config stays flat. On desktop
+ * every group is an always-expanded titled section; on mobile each group
+ * collapses (local state only: hub routes must never carry query params).
+ */
+function SystemGroup({
+  id,
+  label,
+  defaultOpen = false,
+  children,
+}: {
+  id: string;
+  label: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(defaultOpen);
+  if (!isMobile) {
+    return (
+      <div data-testid={`system-group-${id}`}>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2">{label}</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{children}</div>
+      </div>
+    );
+  }
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} data-testid={`system-group-${id}`}>
+      <CollapsibleTrigger
+        className="flex w-full items-center gap-2 py-1.5"
+        data-testid={`system-group-toggle-${id}`}
+      >
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+        <ChevronDown
+          className={`ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="grid grid-cols-2 gap-3">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
