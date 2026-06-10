@@ -28,11 +28,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   type HealthResponse,
@@ -66,7 +62,6 @@ interface AuditEvent {
 interface AuditResponse {
   events?: AuditEvent[];
 }
-
 
 export default function SystemHub() {
   const {
@@ -166,10 +161,7 @@ export default function SystemHub() {
               </Link>
             </div>
             {events.length === 0 ? (
-              <div
-                className="p-6 text-sm text-muted-foreground"
-                data-testid="empty-audit-logs"
-              >
+              <div className="p-6 text-sm text-muted-foreground" data-testid="empty-audit-logs">
                 No recent audit events.
               </div>
             ) : (
@@ -184,7 +176,10 @@ export default function SystemHub() {
                       <div className="text-sm font-medium truncate">
                         {evt.action ?? "Unknown action"}
                         {evt.resourceType ? (
-                          <span className="text-muted-foreground font-normal"> · {evt.resourceType}</span>
+                          <span className="text-muted-foreground font-normal">
+                            {" "}
+                            · {evt.resourceType}
+                          </span>
                         ) : null}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -229,12 +224,7 @@ export default function SystemHub() {
       <div className="space-y-4" data-testid="system-jump-grid">
         <h2 className="text-sm font-semibold text-muted-foreground">Jump to</h2>
         <SystemGroup id="users-access" label="Users & Access" defaultOpen>
-          <JumpCard
-            href="/system-administration"
-            icon={Shield}
-            label="Admin"
-            testId="jump-admin"
-          />
+          <JumpCard href="/system-administration" icon={Shield} label="Admin" testId="jump-admin" />
           <JumpCard
             href="/organization-management"
             icon={Building}
@@ -272,18 +262,8 @@ export default function SystemHub() {
           />
         </SystemGroup>
         <SystemGroup id="advanced" label="Advanced">
-          <JumpCard
-            href="/copilot-admin"
-            icon={Bot}
-            label="AI Copilot"
-            testId="jump-copilot"
-          />
-          <JumpCard
-            href="/admin/3d-models"
-            icon={Cpu}
-            label="3D Models"
-            testId="jump-3d-models"
-          />
+          <JumpCard href="/copilot-admin" icon={Bot} label="AI Copilot" testId="jump-copilot" />
+          <JumpCard href="/admin/3d-models" icon={Cpu} label="3D Models" testId="jump-3d-models" />
           <JumpCard
             href="/admin/telemetry-warehouse"
             icon={Database}
@@ -363,10 +343,7 @@ function JumpCard({
 }) {
   return (
     <Link href={href}>
-      <Card
-        className="hover:bg-accent/40 transition-colors cursor-pointer"
-        data-testid={testId}
-      >
+      <Card className="hover:bg-accent/40 transition-colors cursor-pointer" data-testid={testId}>
         <CardContent className="flex items-center gap-2 p-3">
           <Icon className="h-4 w-4 text-primary shrink-0" />
           <span className="text-xs font-medium truncate">{label}</span>

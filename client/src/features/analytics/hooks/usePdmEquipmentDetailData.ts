@@ -116,7 +116,9 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
   const [timeRange, setTimeRange] = useState<"1h" | "6h" | "24h" | "7d">("24h");
   const hoursMap = { "1h": 1, "6h": 6, "24h": 24, "7d": 168 };
 
-  const { data: telemetryHistory, isLoading: isLoadingTelemetry } = useQuery<PdmEquipmentTelemetryReading[]>({
+  const { data: telemetryHistory, isLoading: isLoadingTelemetry } = useQuery<
+    PdmEquipmentTelemetryReading[]
+  >({
     queryKey: ["/api/telemetry/history-multi", equipmentId, timeRange, currentOrgId],
     queryFn: async () => {
       const sensorTypes = ["temperature", "pressure", "vibration", "flow_rate", "oil_quality"];
@@ -188,7 +190,9 @@ export function useSensorsTabData(equipmentId: string) {
     isLoading,
     isFetching,
   } = useQuery<SensorConfig[]>({ queryKey: ["/api/sensor-config", { equipmentId }] });
-  const { data: equipment } = useQuery<EquipmentDetail>({ queryKey: [`/api/equipment/${equipmentId}`] });
+  const { data: equipment } = useQuery<EquipmentDetail>({
+    queryKey: [`/api/equipment/${equipmentId}`],
+  });
 
   useEffect(() => {
     if (!sensorConfigs || selectedSensorIds.length === 0) {

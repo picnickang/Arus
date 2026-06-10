@@ -177,10 +177,7 @@ export default function GlobalCommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        className="overflow-hidden p-0 shadow-lg"
-        data-testid="global-search-dialog"
-      >
+      <DialogContent className="overflow-hidden p-0 shadow-lg" data-testid="global-search-dialog">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command
           shouldFilter={false}

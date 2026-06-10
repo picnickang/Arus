@@ -3,10 +3,7 @@ import { join } from "node:path";
 
 import { deriveHubHealthFields } from "../../server/domains/equipment-intelligence/domain/hub-health";
 
-const PAGE = readFileSync(
-  join(process.cwd(), "client/src/pages/pdm-platform.tsx"),
-  "utf8"
-);
+const PAGE = readFileSync(join(process.cwd(), "client/src/pages/pdm-platform.tsx"), "utf8");
 
 function extractArray(name: string): string[] {
   const match = PAGE.match(new RegExp(`const ${name} = \\[([^\\]]+)\\]`));

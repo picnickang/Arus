@@ -60,7 +60,8 @@ export function useWorkOrdersPageData() {
     });
   };
 
-  const filterVesselId: string | undefined = filters.vesselId !== "all" ? filters.vesselId : undefined;
+  const filterVesselId: string | undefined =
+    filters.vesselId !== "all" ? filters.vesselId : undefined;
   const filterStatus: string | undefined = filters.status !== "all" ? filters.status : undefined;
   const {
     data: workOrders,
@@ -190,7 +191,7 @@ export function useWorkOrdersPageData() {
       predictionFeedback?: Record<string, unknown> | undefined;
     }) => {
       const order = workOrders?.find((wo) => wo.id === orderId);
-      const closeout = predictionFeedback?.['closeout'] as
+      const closeout = predictionFeedback?.["closeout"] as
         | {
             workPerformed?: string;
             causeFound?: string;
@@ -209,13 +210,16 @@ export function useWorkOrdersPageData() {
       }
 
       const sanitizedPredictionFeedback = predictionFeedback
-        ? Object.fromEntries(Object.entries(predictionFeedback).filter(([key]) => key !== "closeout"))
+        ? Object.fromEntries(
+            Object.entries(predictionFeedback).filter(([key]) => key !== "closeout")
+          )
         : undefined;
 
       await apiRequest("POST", `/api/work-orders/${orderId}/complete-with-feedback`, {
         actualHours,
-        actualDowntimeHours: typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
-        completionNotes: predictionFeedback?.['notes'],
+        actualDowntimeHours:
+          typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
+        completionNotes: predictionFeedback?.["notes"],
         closeout,
         predictionFeedback: sanitizedPredictionFeedback,
       });

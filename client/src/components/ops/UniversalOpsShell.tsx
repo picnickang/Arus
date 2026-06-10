@@ -269,9 +269,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
                 <button
                   type="button"
                   className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-                  onClick={() =>
-                    window.dispatchEvent(new CustomEvent("arus:open-command-palette"))
-                  }
+                  onClick={() => window.dispatchEvent(new CustomEvent("arus:open-command-palette"))}
                   aria-label="Search (Ctrl+K)"
                   title="Search (Ctrl+K)"
                   data-testid="button-global-search"

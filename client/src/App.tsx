@@ -2,6 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient, replayQueuedApiRequests } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CommandPaletteMount } from "@/components/search/CommandPaletteMount";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -34,7 +35,6 @@ const PortalLogin = lazy(() => import("@/pages/portal-login"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const MyTasksPage = lazy(() => import("@/pages/my-tasks"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
-const GlobalCommandPalette = lazy(() => import("@/components/search/GlobalCommandPalette"));
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -344,13 +344,8 @@ function Router() {
 
       <ConnectivityBannerWithSync />
 
-      {/* Global quick-switcher: Cmd/Ctrl-K or the shell search button.
-          Admin-portal only — the user portal has four pages and no need. */}
-      {isAdminPortal && (
-        <Suspense fallback={null}>
-          <GlobalCommandPalette />
-        </Suspense>
-      )}
+      {/* Global quick-switcher (Cmd/Ctrl-K / shell search button); admin portal only. */}
+      {isAdminPortal && <CommandPaletteMount />}
 
       <main
         id="main-content"

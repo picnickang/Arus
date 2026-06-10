@@ -36,22 +36,9 @@ const SERVICE_LABELS: Record<string, string> = {
   memory: "Memory",
 };
 
-const HEALTHY_STATUSES = new Set([
-  "healthy",
-  "ok",
-  "up",
-  "operational",
-  "pass",
-  "running",
-]);
+const HEALTHY_STATUSES = new Set(["healthy", "ok", "up", "operational", "pass", "running"]);
 const WARN_STATUSES = new Set(["degraded", "warning", "warn"]);
-const FAIL_STATUSES = new Set([
-  "unhealthy",
-  "down",
-  "error",
-  "fail",
-  "stopped",
-]);
+const FAIL_STATUSES = new Set(["unhealthy", "down", "error", "fail", "stopped"]);
 
 export function statusTone(status: string | undefined): {
   dot: string;

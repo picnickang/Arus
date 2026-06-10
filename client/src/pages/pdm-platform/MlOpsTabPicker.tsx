@@ -91,11 +91,7 @@ export function MlOpsTabPicker({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>ML Ops</DropdownMenuLabel>
         {tabs.map(({ id, label, icon: Icon }) => (
-          <DropdownMenuItem
-            key={id}
-            onSelect={() => onSelect(id)}
-            data-testid={`tab-${id}`}
-          >
+          <DropdownMenuItem key={id} onSelect={() => onSelect(id)} data-testid={`tab-${id}`}>
             <Icon className="mr-2 h-4 w-4 text-muted-foreground" /> {label}
           </DropdownMenuItem>
         ))}
