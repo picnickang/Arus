@@ -58,6 +58,7 @@
     "test:quick": "node client/tests/runner.mjs",
     "test:export": "node client/tests/export.test.mjs",
     "check:schema": "node scripts/validate-dual-schema.mjs",
+    "check:route-contract": "node scripts/check-route-contract.mjs",
     "check:storage-imports": "node scripts/check-storage-imports.mjs",
     "check:schema-imports": "node scripts/check-schema-imports.mjs",
     "check:domain-boundaries": "node scripts/check-domain-boundaries.mjs",

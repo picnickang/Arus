@@ -75,6 +75,20 @@ jobs:
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
 
+      # Guards against client↔server route drift (e.g. /api/pdm/health was
+      # swagger-documented and client-queried but never implemented).
+      # Boots the real registerRoutes() to dump the actual route table;
+      # pre-existing drift is ratcheted in scripts/route-contract-baseline.json.
+      - name: Route contract (client /api refs ↔ server route table)
+        run: node scripts/check-route-contract.mjs
+
+      # Orphaned files/exports ratchet (e.g. PowerSTWChart was built but
+      # never imported by any page until the performance view mounted it).
+      # Reuses the existing knip budget so legacy debt doesn't block, but
+      # NEW orphans past the budget do.
+      - name: Knip — unused files/exports ratchet
+        run: npm run check:dead-code
+
       - name: LR-1B — Tenant-gate audit (requireOrgId)
         run: npx tsx scripts/check-routes-require-orgid.ts
 
@@ -152,7 +166,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
@@ -223,7 +239,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Apply migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
@@ -333,7 +351,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Apply migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
