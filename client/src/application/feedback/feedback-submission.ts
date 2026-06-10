@@ -205,21 +205,12 @@ export interface FeedbackTransport {
 
 const defaultTransport: FeedbackTransport = {
   post: async (draft) => {
-    // Plain fetch (not apiRequest) so this module controls the failure
-    // semantics — a failed POST falls back to the session outbox below
-    // instead of entering the generic offline mutation queue.
-    const { createHeaders } = await import("@/lib/queryClient");
-    const res = await fetch("/api/me/feedback", {
-      method: "POST",
-      headers: createHeaders(true),
-      credentials: "include",
-      body: JSON.stringify(draft),
-    });
-    if (!res.ok) {
-      throw new Error(`Feedback POST failed: ${res.status}`);
-    }
-    const row = (await res.json()) as { trackingId?: string };
-    if (!row.trackingId) {
+    // /api/me/feedback is NOT an offline-queueable prefix (see
+    // shared/offline-queue-routes.ts), so offline this rejects and the
+    // session-outbox fallback below takes over — no double submission.
+    const { apiRequest } = await import("@/lib/queryClient");
+    const row = await apiRequest<{ trackingId?: string }>("POST", "/api/me/feedback", draft);
+    if (!row?.trackingId) {
       throw new Error("Feedback POST returned no tracking id");
     }
     return { trackingId: row.trackingId };

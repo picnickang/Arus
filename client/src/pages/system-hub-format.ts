@@ -8,7 +8,7 @@
  * body when degraded / unhealthy, so the page reads the body regardless
  * of status (see `healthQueryFn` in `system-hub.tsx`).
  */
-export interface CheckResult {
+export interface ServiceCheckResult {
   status?: "pass" | "warn" | "fail" | string;
   message?: string;
   responseTimeMs?: number;
@@ -23,9 +23,9 @@ export interface HealthResponse {
   status?: "healthy" | "degraded" | "unhealthy" | string;
   uptime?: number;
   checks?: {
-    database?: CheckResult;
-    telemetry?: CheckResult;
-    memory?: CheckResult;
+    database?: ServiceCheckResult;
+    telemetry?: ServiceCheckResult;
+    memory?: ServiceCheckResult;
     services?: ServiceStatusEntry[];
   };
 }

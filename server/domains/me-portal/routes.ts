@@ -14,7 +14,7 @@ import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { pilotFeedbackDraftSchema } from "@shared/schema";
+import { pilotFeedbackDraftSchema } from "@shared/schema-runtime";
 import { authenticatedRequest } from "../../middleware/auth";
 import {
   createDevLoginSession,
