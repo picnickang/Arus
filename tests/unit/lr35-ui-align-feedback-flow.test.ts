@@ -28,6 +28,8 @@ import { resolve } from "node:path";
 import {
   FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
+  removeFromOutbox,
+  retrySessionFeedback,
   submitFeedback,
   validateFeedback,
   type FeedbackDraft,
@@ -175,6 +177,70 @@ describe("UI Align Phase 5 — feedback-submission application contract", () => 
       expect(list).toHaveLength(2);
       expect(list[0].subject).toBe("second entry");
       expect(list[1].subject).toBe("first entry");
+    });
+  });
+
+  describe("retrySessionFeedback (offline reports become server rows, never duplicates)", () => {
+    const failingTransport = {
+      post: async () => {
+        throw new Error("offline");
+      },
+    };
+
+    it("re-submits a queued report and removes its outbox entry on success", async () => {
+      const queued = await submitFeedback(VALID_DRAFT, failingTransport);
+      if (!queued.ok) {
+        throw new Error("expected queued submission");
+      }
+      const result = await retrySessionFeedback(queued.trackingId, {
+        post: async () => ({ trackingId: "FB-SERVER-9" }),
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+      expect(result.pendingBackend).toBe(false);
+      expect(result.trackingId).toBe("FB-SERVER-9");
+      expect(listSessionFeedback()).toHaveLength(0);
+    });
+
+    it("keeps the entry queued (same id, no duplicate) when the retry also fails", async () => {
+      const queued = await submitFeedback(VALID_DRAFT, failingTransport);
+      if (!queued.ok) {
+        throw new Error("expected queued submission");
+      }
+      const result = await retrySessionFeedback(queued.trackingId, failingTransport);
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+      expect(result.pendingBackend).toBe(true);
+      expect(result.trackingId).toBe(queued.trackingId);
+      const list = listSessionFeedback();
+      expect(list).toHaveLength(1);
+      expect(list[0].trackingId).toBe(queued.trackingId);
+    });
+
+    it("returns ok=false when the tracking id is no longer queued", async () => {
+      const result = await retrySessionFeedback("FB-GONE", {
+        post: async () => ({ trackingId: "FB-SERVER-X" }),
+      });
+      expect(result.ok).toBe(false);
+    });
+
+    it("removeFromOutbox drops only the matching entry and keeps order", async () => {
+      await submitFeedback({ ...VALID_DRAFT, subject: "first entry" }, failingTransport);
+      const second = await submitFeedback(
+        { ...VALID_DRAFT, subject: "second entry" },
+        failingTransport
+      );
+      if (!second.ok) {
+        throw new Error("expected queued submission");
+      }
+      removeFromOutbox(second.trackingId);
+      const list = listSessionFeedback();
+      expect(list).toHaveLength(1);
+      expect(list[0].subject).toBe("first entry");
     });
   });
 

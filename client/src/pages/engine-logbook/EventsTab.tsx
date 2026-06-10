@@ -25,7 +25,7 @@ export function EventsTab({ e }: { e: EngineLogbookHookReturn }) {
         ) : e.events && e.events.length > 0 ? (
           <ScrollArea className="h-[400px]">
             <div className="space-y-3">
-              {e.events
+              {[...e.events]
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                 .map((event: EngineLogEvent) => (
                   <EngineEventItem key={event.id} event={event} />

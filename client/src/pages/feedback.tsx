@@ -27,6 +27,7 @@ import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import {
   FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
+  retrySessionFeedback,
   submitFeedback,
   type FeedbackCategory,
   type FeedbackDraft,
@@ -36,6 +37,7 @@ import {
   type FeedbackValidationError,
   type ServerFeedbackEntry,
 } from "@/application/feedback/feedback-submission";
+import { StatusChip, type HistoryEntry } from "./feedback/StatusChip";
 
 const EMPTY_DRAFT: FeedbackDraft = {
   category: "suggestion",
@@ -84,40 +86,6 @@ function errorFor(
   field: keyof FeedbackDraft
 ): string | undefined {
   return errors.find((e) => e.field === field)?.message;
-}
-
-type HistoryEntry =
-  | (ServerFeedbackEntry & { pending: false })
-  | (FeedbackOutboxEntry & { pending: true });
-
-const STATUS_TONES: Record<string, string> = {
-  submitted: "bg-muted text-muted-foreground",
-  acknowledged: "bg-amber-500/15 text-amber-600",
-  resolved: "bg-emerald-500/15 text-emerald-600",
-};
-
-function StatusChip({ entry }: { entry: HistoryEntry }) {
-  if (entry.pending) {
-    return (
-      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-500/15 text-amber-600">
-        Pending sync
-      </span>
-    );
-  }
-  const label =
-    entry.status === "resolved" && entry.linkedWorkOrderId
-      ? `Resolved — ${entry.linkedWorkOrderId}`
-      : entry.status;
-  return (
-    <span
-      className={cn(
-        "rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
-        STATUS_TONES[entry.status] ?? STATUS_TONES["submitted"]
-      )}
-    >
-      {label}
-    </span>
-  );
 }
 
 function FeedbackHistory({ entries }: { entries: HistoryEntry[] }) {
@@ -298,9 +266,30 @@ export default function FeedbackPage() {
                 className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                 data-testid="banner-feedback-pending-backend"
               >
-                The server couldn't be reached, so this report is saved on this device for now.
-                Submit it again once you're back online to get it into the review queue.
+                The server couldn't be reached, so this report is saved on this device for now. Use
+                &ldquo;Retry submission&rdquo; once you're back online — your report is kept as you
+                typed it.
               </div>
+            )}
+            {state.pendingBackend && (
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  const result = await retrySessionFeedback(state.trackingId);
+                  setPendingLocal(listSessionFeedback());
+                  if (result.ok && !result.pendingBackend) {
+                    queryClient.invalidateQueries({ queryKey: ["/api/me/feedback"] });
+                    setState({
+                      kind: "success",
+                      trackingId: result.trackingId,
+                      pendingBackend: false,
+                    });
+                  }
+                }}
+                data-testid="button-feedback-retry"
+              >
+                Retry submission
+              </Button>
             )}
             <div className="flex gap-2">
               <Button

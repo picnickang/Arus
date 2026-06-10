@@ -243,6 +243,49 @@ function writeToOutbox(draft: FeedbackDraft, trackingId: string): void {
   }
 }
 
+/** Drop one outbox entry — called after a pending report reaches the server. */
+export function removeFromOutbox(trackingId: string): void {
+  try {
+    const remaining = listSessionFeedback().filter((e) => e.trackingId !== trackingId);
+    sessionStorage.setItem(FEEDBACK_OUTBOX_KEY, JSON.stringify([...remaining].reverse()));
+  } catch {
+    // Storage unavailable — nothing to clean up.
+  }
+}
+
+/**
+ * Re-submit a report that previously fell back to the session outbox.
+ * On success the outbox entry is removed (the server row replaces it),
+ * so no duplicate appears in history. On failure the entry stays queued
+ * under its existing local tracking id — never duplicated.
+ */
+export async function retrySessionFeedback(
+  trackingId: string,
+  transport: FeedbackTransport = defaultTransport
+): Promise<FeedbackSubmissionResult> {
+  const entry = listSessionFeedback().find((e) => e.trackingId === trackingId);
+  if (!entry) {
+    return {
+      ok: false,
+      errors: [{ field: "subject", message: "This report is no longer queued on this device." }],
+    };
+  }
+  const draft: FeedbackDraft = {
+    category: entry.category,
+    severity: entry.severity,
+    location: entry.location,
+    subject: entry.subject,
+    description: entry.description,
+  };
+  try {
+    const { trackingId: serverId } = await transport.post(draft);
+    removeFromOutbox(trackingId);
+    return { ok: true, trackingId: serverId, pendingBackend: false };
+  } catch {
+    return { ok: true, trackingId, pendingBackend: true };
+  }
+}
+
 /**
  * Submit a feedback draft.
  *

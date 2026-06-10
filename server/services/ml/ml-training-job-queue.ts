@@ -289,6 +289,9 @@ export class MlTrainingJobQueue {
     const db = this.db;
     try {
       const { ModelEvaluationGate } = await import("./model-evaluation-gate");
+      // Worker evaluations always use the gate's DEFAULT_CONFIG thresholds.
+      // Request-provided thresholds (as accepted by /api/ml/evaluate-model)
+      // are not threaded through training jobs.
       const gate = new ModelEvaluationGate(db);
       const gateResult = await gate.evaluate(
         orgId,

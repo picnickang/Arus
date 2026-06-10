@@ -14,6 +14,7 @@
 
 import { sql, pgTable, text, varchar, timestamp, createInsertSchema, z } from "./base";
 import { organizations } from "./core";
+import { workOrders } from "./work-orders";
 
 export const PILOT_FEEDBACK_CATEGORIES = ["bug", "suggestion", "flag"] as const;
 export const PILOT_FEEDBACK_SEVERITIES = ["low", "medium", "high"] as const;
@@ -41,7 +42,7 @@ export const pilotFeedback = pgTable(
     // user ids that have no users row.
     userId: varchar("user_id").notNull(),
     /** Human-readable id shown to the crew member (FB-…); server-minted. */
-    trackingId: varchar("tracking_id").notNull(),
+    trackingId: varchar("tracking_id").notNull().unique(),
     category: text("category").notNull(),
     severity: text("severity").notNull(),
     location: text("location").notNull(),
@@ -49,7 +50,11 @@ export const pilotFeedback = pgTable(
     description: text("description").notNull(),
     status: text("status").notNull().default("submitted"),
     resolutionNote: text("resolution_note"),
-    linkedWorkOrderId: varchar("linked_work_order_id"),
+    // Resolving staff may link the WO raised from this report. SET NULL so
+    // deleting a work order never erases the crew member's report.
+    linkedWorkOrderId: varchar("linked_work_order_id").references(() => workOrders.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

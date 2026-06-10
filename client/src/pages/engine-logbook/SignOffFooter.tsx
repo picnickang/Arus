@@ -7,7 +7,7 @@ import { type EngineLogbookHookReturn } from "@/features/engine-logbook";
 import { PermissionGate } from "@/components/PermissionGate";
 
 export function SignOffFooter({ e }: { e: EngineLogbookHookReturn }) {
-  if (!e.selectedVesselId || !e.engineLogComplete) {
+  if (!e.selectedVesselId || !e.engineLogComplete?.daily) {
     return null;
   }
   return (
