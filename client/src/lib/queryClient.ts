@@ -538,7 +538,20 @@ async function doReplayQueuedApiRequests(): Promise<{
       if (response.status === 409 || response.status === 412) {
         let serverVersion: Record<string, unknown> = {};
         try {
-          serverVersion = await response.json();
+          const raw = (await response.json()) as Record<string, unknown> | null;
+          // Enveloped conflicts carry the domain payload in error.details;
+          // store that (or the error object) so the conflict UI keeps showing
+          // server-side fields rather than envelope plumbing.
+          if (raw && raw["success"] === false && raw["error"] && typeof raw["error"] === "object") {
+            const errorDetail = raw["error"] as Record<string, unknown>;
+            const details = errorDetail["details"];
+            serverVersion =
+              details && typeof details === "object" && !Array.isArray(details)
+                ? (details as Record<string, unknown>)
+                : errorDetail;
+          } else {
+            serverVersion = raw ?? {};
+          }
         } catch {
           serverVersion = { status: response.status, message: response.statusText };
         }

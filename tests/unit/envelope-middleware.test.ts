@@ -53,8 +53,9 @@ function buildApp() {
   app.delete("/api/home/gone", (_req, res) => {
     res.status(204).send();
   });
-  app.get("/api/work-orders", (_req, res) => {
-    res.json([{ id: "wo-1" }]);
+  // Fictional prefix: stays outside the manifest no matter how many waves land.
+  app.get("/api/unmigrated-test-domain", (_req, res) => {
+    res.json([{ id: "raw-1" }]);
   });
 
   return app;
@@ -125,8 +126,8 @@ describe("envelopeJson (WS4 wave 0)", () => {
   });
 
   it("does not wrap paths outside the manifest", async () => {
-    const res = await request(buildApp()).get("/api/work-orders");
-    expect(res.body).toEqual([{ id: "wo-1" }]);
+    const res = await request(buildApp()).get("/api/unmigrated-test-domain");
+    expect(res.body).toEqual([{ id: "raw-1" }]);
   });
 
   it("treats /api/v1 spellings the same as unversioned paths", () => {

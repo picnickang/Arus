@@ -24,6 +24,14 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   "/api/vessels",
   "/api/pdm",
   "/api/optimization",
+  // Wave 2: mutation-heavy domains (offline-queueable families)
+  "/api/work-orders",
+  "/api/maintenance-checklist",
+  "/api/parts-inventory",
+  "/api/purchase-orders",
+  "/api/offshore-ops",
+  "/api/service-requests",
+  "/api/service-orders",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
