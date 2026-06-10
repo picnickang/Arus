@@ -50,6 +50,15 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
 
+# Slim the runtime image: drop devDependencies (jest, eslint, prettier, the
+# bundlers, etc.) from the copied node_modules. `npm prune` only removes
+# packages not listed in `dependencies`, so the already-built native modules in
+# `dependencies` (TensorFlow, better-sqlite3, …) are preserved — nothing is
+# reinstalled or rebuilt. The server is bundled with esbuild
+# `--packages=external`, and no dev-only package is imported by runtime code,
+# so pruning cannot remove anything the server needs at runtime.
+RUN npm prune --omit=dev
+
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 

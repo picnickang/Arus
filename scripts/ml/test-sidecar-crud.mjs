@@ -47,7 +47,8 @@ function runPy(scriptOrCode, { input = "", isCode = false } = {}) {
       stdio: ["pipe", "pipe", "pipe"],
       env: process.env,
     });
-    let out = "", err = "";
+    let out = "",
+      err = "";
     child.stdout.on("data", (d) => (out += d.toString()));
     child.stderr.on("data", (d) => (err += d.toString()));
     child.on("exit", (code) => resolve({ code: code ?? -1, stdout: out, stderr: err }));
@@ -75,6 +76,18 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
+    // Seed the organizations the harness references so the org_id foreign
+    // keys on ml_models, equipment, equipment_features, … resolve: the
+    // default org plus the foreign org used by the wrong-org SHAP phase.
+    // Idempotent across re-runs.
+    await pool.query(
+      `INSERT INTO organizations (id, name, slug)
+       VALUES ($1, 'Default Org', 'default'),
+              ('t89-test-org', 'T89 Foreign Org', 't89-test-org')
+       ON CONFLICT DO NOTHING`,
+      [ORG]
+    );
+
     // ---------- CREATE ----------
     step("C — train XGB model and INSERT ml_models row");
     const trainPy = `
@@ -112,17 +125,17 @@ print("trained_ok")
         EQUIP_TYPE,
         JSON.stringify({
           mae: 0.21,
-          productionMae: 0.30,
+          productionMae: 0.3,
           psi: 0.04,
           artifactPath: artifactPath.replace(".ubj", ".onnx"),
           nativeArtifactPath: absArtifact,
         }),
-      ],
+      ]
     );
     const inserted = await pool.query(
       `SELECT id, status, training_metrics->>'nativeArtifactPath' AS native
        FROM ml_models WHERE id=$1`,
-      [modelId],
+      [modelId]
     );
     if (inserted.rowCount !== 1) {
       fail("ml_models row missing after INSERT");
@@ -141,40 +154,67 @@ print("trained_ok")
     }
     const r1Line = r1.stdout.trim().split("\n").pop();
     let r1Parsed;
-    try { r1Parsed = JSON.parse(r1Line); } catch { fail(`bad JSON: ${r1Line}`); return; }
+    try {
+      r1Parsed = JSON.parse(r1Line);
+    } catch {
+      fail(`bad JSON: ${r1Line}`);
+      return;
+    }
     if (r1Parsed.stage !== "shap") {
       fail(`expected stage=shap, got ${JSON.stringify(r1Parsed)}`);
       return;
     }
-    const expectedFeatures = ["meanTemp","meanVibration","rmsVibration","meanPressure","kurtosis","peakToPeak"];
+    const expectedFeatures = [
+      "meanTemp",
+      "meanVibration",
+      "rmsVibration",
+      "meanPressure",
+      "kurtosis",
+      "peakToPeak",
+    ];
     const missing = expectedFeatures.filter((f) => !(f in (r1Parsed.shapValues || {})));
-    if (missing.length) { fail(`shapValues missing features: ${missing.join(",")}`); return; }
-    if (typeof r1Parsed.baseValue !== "number") { fail("baseValue not numeric"); return; }
-    ok(`stage=shap baseValue=${r1Parsed.baseValue.toFixed(4)} features=${Object.keys(r1Parsed.shapValues).length}/6`);
-    ok(`shapValues sample: meanTemp=${r1Parsed.shapValues.meanTemp.toFixed(4)} rmsVibration=${r1Parsed.shapValues.rmsVibration.toFixed(4)}`);
+    if (missing.length) {
+      fail(`shapValues missing features: ${missing.join(",")}`);
+      return;
+    }
+    if (typeof r1Parsed.baseValue !== "number") {
+      fail("baseValue not numeric");
+      return;
+    }
+    ok(
+      `stage=shap baseValue=${r1Parsed.baseValue.toFixed(4)} features=${Object.keys(r1Parsed.shapValues).length}/6`
+    );
+    ok(
+      `shapValues sample: meanTemp=${r1Parsed.shapValues.meanTemp.toFixed(4)} rmsVibration=${r1Parsed.shapValues.rmsVibration.toFixed(4)}`
+    );
 
     // ---------- UPDATE (promote) ----------
     step("U — promote trained -> deployed and re-run SHAP");
-    await pool.query(
-      `UPDATE ml_models SET status='deployed', deployed_on=now() WHERE id=$1`,
-      [modelId],
-    );
-    const promoted = await pool.query(
-      `SELECT status, deployed_on FROM ml_models WHERE id=$1`,
-      [modelId],
-    );
+    await pool.query(`UPDATE ml_models SET status='deployed', deployed_on=now() WHERE id=$1`, [
+      modelId,
+    ]);
+    const promoted = await pool.query(`SELECT status, deployed_on FROM ml_models WHERE id=$1`, [
+      modelId,
+    ]);
     if (promoted.rows[0].status !== "deployed") {
       fail(`status not deployed: ${promoted.rows[0].status}`);
       return;
     }
-    ok(`status=deployed deployed_on=${promoted.rows[0].deployed_on?.toISOString?.() ?? promoted.rows[0].deployed_on}`);
+    ok(
+      `status=deployed deployed_on=${promoted.rows[0].deployed_on?.toISOString?.() ?? promoted.rows[0].deployed_on}`
+    );
     const r2 = await runPy(SHAP, {
       input: JSON.stringify({ modelId, orgId: ORG, features: { ...FEATURES, meanTemp: 95.0 } }),
     });
     const r2Parsed = JSON.parse(r2.stdout.trim().split("\n").pop());
-    if (r2Parsed.stage !== "shap") { fail(`post-promote SHAP failed: ${JSON.stringify(r2Parsed)}`); return; }
+    if (r2Parsed.stage !== "shap") {
+      fail(`post-promote SHAP failed: ${JSON.stringify(r2Parsed)}`);
+      return;
+    }
     // higher meanTemp should push positive contribution given our synthetic label rule
-    ok(`post-promote SHAP still serves (meanTemp shap=${r2Parsed.shapValues.meanTemp.toFixed(4)} for higher input)`);
+    ok(
+      `post-promote SHAP still serves (meanTemp shap=${r2Parsed.shapValues.meanTemp.toFixed(4)} for higher input)`
+    );
 
     // ---------- DELETE ----------
     step("D — delete artifact + ml_models row, expect graceful error");
@@ -190,7 +230,10 @@ print("trained_ok")
       fail(`expected artifact-unavailable error, got ${JSON.stringify(r3Parsed)}`);
     }
     const del = await pool.query(`DELETE FROM ml_models WHERE id=$1 RETURNING id`, [modelId]);
-    if (del.rowCount !== 1) { fail("DELETE did not remove row"); return; }
+    if (del.rowCount !== 1) {
+      fail("DELETE did not remove row");
+      return;
+    }
     ok(`deleted ml_models row`);
 
     // Final wrong-org read should also fail closed even with a fresh row.
@@ -203,7 +246,7 @@ print("trained_ok")
     await pool.query(
       `INSERT INTO ml_models (id, org_id, name, type, status, equipment_type, version, training_metrics)
        VALUES ($1, 't89-test-org', 'foreign', 'xgboost', 'deployed', $2, '1.0', $3::jsonb)`,
-      [otherId, EQUIP_TYPE, JSON.stringify({ nativeArtifactPath: otherArtifact })],
+      [otherId, EQUIP_TYPE, JSON.stringify({ nativeArtifactPath: otherArtifact })]
     );
     const r4 = await runPy(SHAP, {
       input: JSON.stringify({ modelId: otherId, orgId: ORG, features: FEATURES }),
@@ -226,7 +269,9 @@ print("trained_ok")
     await trainerEndToEnd(pool);
   } finally {
     if (existsSync(absArtifact)) {
-      try { unlinkSync(absArtifact); } catch {
+      try {
+        unlinkSync(absArtifact);
+      } catch {
         // Cleanup best-effort only; failing here would hide the test result.
       }
     }
@@ -250,7 +295,7 @@ async function trainerEndToEnd(pool) {
     await pool.query(
       `INSERT INTO equipment (id, org_id, name, type, criticality_level, location, is_active)
        VALUES ($1, $2, 'CRUD harness bearing', 'bearing', 'medium', 'Test', true)`,
-      [eqId, trainerOrg],
+      [eqId, trainerOrg]
     );
     ok(`seeded equipment ${eqId}`);
 
@@ -264,7 +309,7 @@ async function trainerEndToEnd(pool) {
       const featId = randomUUID();
       featIds.push(featId);
       const ts = new Date(now - (N - i) * (oneDay / 12)); // last ~5 days
-      const meanTemp = 40 + Math.random() * 60;          // 40..100
+      const meanTemp = 40 + Math.random() * 60; // 40..100
       const meanVibration = 1 + Math.random() * 6;
       const rmsVibration = 1 + Math.random() * 7;
       const meanPressure = 80 + Math.random() * 40;
@@ -275,8 +320,18 @@ async function trainerEndToEnd(pool) {
            (id, org_id, equipment_id, timestamp, mean_temp, mean_vibration,
             rms_vibration, mean_pressure, kurtosis, peak_to_peak, sample_count)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,60)`,
-        [featId, trainerOrg, eqId, ts, meanTemp, meanVibration,
-         rmsVibration, meanPressure, kurtosis, peakToPeak],
+        [
+          featId,
+          trainerOrg,
+          eqId,
+          ts,
+          meanTemp,
+          meanVibration,
+          rmsVibration,
+          meanPressure,
+          kurtosis,
+          peakToPeak,
+        ]
       );
       const positive = meanTemp > 75 && rmsVibration > 5;
       const predProb = positive ? 0.55 + Math.random() * 0.4 : Math.random() * 0.45;
@@ -287,7 +342,7 @@ async function trainerEndToEnd(pool) {
             feature_snapshot_id, predicted_failure_probability,
             actual_outcome_label, outcome_source, use_for_retraining, observed_at)
          VALUES ($1, $2, 'failure', $3, $4, $5, $6, 'manual', true, $7)`,
-        [trainerOrg, 100000 + i, eqId, featId, predProb, label, ts],
+        [trainerOrg, 100000 + i, eqId, featId, predProb, label, ts]
       );
     }
     ok(`seeded ${N} equipment_features + ${N} prediction_outcomes (labelled)`);
@@ -303,9 +358,10 @@ async function trainerEndToEnd(pool) {
       const child = spawn(
         "node",
         ["scripts/ml/train-model-sidecar.mjs", `--org=${trainerOrg}`, `--type=${trainerType}`],
-        { stdio: ["ignore", "pipe", "pipe"], env },
+        { stdio: ["ignore", "pipe", "pipe"], env }
       );
-      let so = "", se = "";
+      let so = "",
+        se = "";
       child.stdout.on("data", (d) => (so += d.toString()));
       child.stderr.on("data", (d) => (se += d.toString()));
       child.on("exit", (code) => resolve({ code: code ?? -1, stdout: so, stderr: se }));
@@ -314,9 +370,19 @@ async function trainerEndToEnd(pool) {
       fail(`trainer exit=${out.code}; stderr=${out.stderr.slice(-400)}`);
       return;
     }
-    const lines = out.stdout.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    const lines = out.stdout
+      .trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
     const metrics = lines
-      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .map((l) => {
+        try {
+          return JSON.parse(l);
+        } catch {
+          return null;
+        }
+      })
       .filter((x) => x && x.stage === "metrics")
       .pop();
     if (!metrics) {
@@ -324,27 +390,41 @@ async function trainerEndToEnd(pool) {
       return;
     }
     trainedModelId = metrics.modelId;
-    ok(`trainer stage=metrics modelId=${trainedModelId.slice(0, 8)}… framework=${metrics.framework}`);
-    ok(`mae=${metrics.mae?.toFixed?.(4)} productionMae=${metrics.productionMae?.toFixed?.(4)} psi=${metrics.psi?.toFixed?.(4)} train=${metrics.trainSize} eval=${metrics.evalSize}`);
+    ok(
+      `trainer stage=metrics modelId=${trainedModelId.slice(0, 8)}… framework=${metrics.framework}`
+    );
+    ok(
+      `mae=${metrics.mae?.toFixed?.(4)} productionMae=${metrics.productionMae?.toFixed?.(4)} psi=${metrics.psi?.toFixed?.(4)} train=${metrics.trainSize} eval=${metrics.evalSize}`
+    );
 
     // 4) Both artifacts present on disk.
     const onnx = path.join(REPO, metrics.artifactPath);
     const ubj = onnx.replace(/\.onnx$/, ".ubj");
-    if (!existsSync(onnx)) { fail(`ONNX artifact missing: ${onnx}`); return; }
-    if (!existsSync(ubj))  { fail(`UBJ artifact missing: ${ubj}`); return; }
+    if (!existsSync(onnx)) {
+      fail(`ONNX artifact missing: ${onnx}`);
+      return;
+    }
+    if (!existsSync(ubj)) {
+      fail(`UBJ artifact missing: ${ubj}`);
+      return;
+    }
     ok(`artifacts on disk: ${path.basename(onnx)} + ${path.basename(ubj)}`);
 
     // 5) ml_models row exists with the trainer's contract.
     const row = await pool.query(
       `SELECT type, status, equipment_type, training_metrics
          FROM ml_models WHERE id=$1`,
-      [trainedModelId],
+      [trainedModelId]
     );
-    if (row.rowCount !== 1) { fail("ml_models row missing"); return; }
+    if (row.rowCount !== 1) {
+      fail("ml_models row missing");
+      return;
+    }
     const r = row.rows[0];
     if (r.type !== "xgboost") fail(`expected type=xgboost, got ${r.type}`);
     if (r.status !== "trained") fail(`expected status=trained, got ${r.status}`);
-    if (r.equipment_type !== "bearing") fail(`expected equipment_type=bearing, got ${r.equipment_type}`);
+    if (r.equipment_type !== "bearing")
+      fail(`expected equipment_type=bearing, got ${r.equipment_type}`);
     const native = r.training_metrics?.nativeArtifactPath;
     if (!native || !existsSync(native)) {
       fail(`training_metrics.nativeArtifactPath broken: ${native}`);
@@ -365,11 +445,15 @@ async function trainerEndToEnd(pool) {
       fail(`SHAP on freshly-trained model failed: ${JSON.stringify(shapParsed)}`);
       return;
     }
-    ok(`closed loop: SHAP on trainer-produced model returns ${Object.keys(shapParsed.shapValues).length}/6 attributions (baseValue=${shapParsed.baseValue.toFixed(4)})`);
+    ok(
+      `closed loop: SHAP on trainer-produced model returns ${Object.keys(shapParsed.shapValues).length}/6 attributions (baseValue=${shapParsed.baseValue.toFixed(4)})`
+    );
   } finally {
     // Cleanup: ml_models row + artifacts + outcomes + features + equipment.
     if (trainedModelId) {
-      try { await pool.query(`DELETE FROM ml_models WHERE id=$1`, [trainedModelId]); } catch {
+      try {
+        await pool.query(`DELETE FROM ml_models WHERE id=$1`, [trainedModelId]);
+      } catch {
         // Cleanup best-effort only; failing here would hide the test result.
       }
     }
@@ -377,19 +461,27 @@ async function trainerEndToEnd(pool) {
     if (existsSync(MODELS_DIR)) {
       for (const fn of readdirSync(MODELS_DIR)) {
         if (!before.has(fn)) {
-          try { unlinkSync(path.join(MODELS_DIR, fn)); } catch {
+          try {
+            unlinkSync(path.join(MODELS_DIR, fn));
+          } catch {
             // Cleanup best-effort only; failing here would hide the test result.
           }
         }
       }
     }
-    try { await pool.query(`DELETE FROM prediction_outcomes WHERE equipment_id=$1`, [eqId]); } catch {
+    try {
+      await pool.query(`DELETE FROM prediction_outcomes WHERE equipment_id=$1`, [eqId]);
+    } catch {
       // Cleanup best-effort only; failing here would hide the test result.
     }
-    try { await pool.query(`DELETE FROM equipment_features WHERE equipment_id=$1`, [eqId]); } catch {
+    try {
+      await pool.query(`DELETE FROM equipment_features WHERE equipment_id=$1`, [eqId]);
+    } catch {
       // Cleanup best-effort only; failing here would hide the test result.
     }
-    try { await pool.query(`DELETE FROM equipment WHERE id=$1`, [eqId]); } catch {
+    try {
+      await pool.query(`DELETE FROM equipment WHERE id=$1`, [eqId]);
+    } catch {
       // Cleanup best-effort only; failing here would hide the test result.
     }
   }

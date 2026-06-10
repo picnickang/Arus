@@ -21,18 +21,23 @@
  */
 
 import { Router, type Response } from "express";
-import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../db";
 import {
-  equipmentDependencies,
-  equipmentDependencyLayouts,
   equipmentDependencyLayoutPositionsSchema,
-  equipment,
   insertEquipmentDependencySchema,
-  users,
   type EquipmentDependencyLayoutPositions,
 } from "@shared/schema-runtime";
+import {
+  findEquipmentInVessel,
+  listDependenciesWithEditor,
+  insertDependency,
+  insertDependenciesBatch,
+  updateDependencyNotes,
+  getEditorNameEmail,
+  deleteDependency,
+  getDependencyLayout,
+  upsertDependencyLayout,
+} from "../db/equipment-dependencies/queries";
 import { requireRole } from "../middleware/role-auth";
 import { authenticatedRequest } from "../middleware/auth";
 import { createLogger } from "../lib/structured-logger";
@@ -73,56 +78,33 @@ async function validateEquipmentBelongsToVessel(
   vesselId: string,
   equipmentIds: string[]
 ): Promise<{ ok: true } | { ok: false; missingIds: string[] }> {
-  if (equipmentIds.length === 0) {return { ok: true };}
-  const rows = await db
-    .select({ id: equipment.id })
-    .from(equipment)
-    .where(
-      and(
-        eq(equipment.orgId, orgId),
-        eq(equipment.vesselId, vesselId),
-        inArray(equipment.id, equipmentIds)
-      )
-    );
+  if (equipmentIds.length === 0) {
+    return { ok: true };
+  }
+  const rows = await findEquipmentInVessel(orgId, vesselId, equipmentIds);
   const found = new Set(rows.map((r) => r.id));
   const missing = equipmentIds.filter((id) => !found.has(id));
   return missing.length === 0 ? { ok: true } : { ok: false, missingIds: missing };
 }
 
 // ---------- GET list ----------
-router.get(
-  "/vessels/:vesselId/equipment-dependencies",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const { vesselId } = req.params;
-    try {
-      const rows = await db
-        .select({
-          dep: equipmentDependencies,
-          editorName: users.name,
-          editorEmail: users.email,
-        })
-        .from(equipmentDependencies)
-        .leftJoin(users, eq(users.id, equipmentDependencies.notesUpdatedBy))
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.vesselId, vesselId)
-          )
-        );
-      const dependencies = rows.map((r) => ({
-        ...r.dep,
-        notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
-      }));
-      res.json({ dependencies });
-    } catch (err) {
-      logger.error("list failed", {
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load dependencies" });
-    }
+router.get("/vessels/:vesselId/equipment-dependencies", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const { vesselId } = req.params;
+  try {
+    const rows = await listDependenciesWithEditor(authReq.orgId, vesselId ?? "");
+    const dependencies = rows.map((r) => ({
+      ...r.dep,
+      notesUpdatedByName: r.editorName ?? r.editorEmail ?? null,
+    }));
+    res.json({ dependencies });
+  } catch (err) {
+    logger.error("list failed", {
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load dependencies" });
   }
-);
+});
 
 // ---------- POST create ----------
 router.post(
@@ -137,11 +119,10 @@ router.post(
     }
     const body = parsed.data;
 
-    const check = await validateEquipmentBelongsToVessel(
-      authReq.orgId,
-      body.vesselId,
-      [body.upstreamEquipmentId, body.downstreamEquipmentId]
-    );
+    const check = await validateEquipmentBelongsToVessel(authReq.orgId, body.vesselId, [
+      body.upstreamEquipmentId,
+      body.downstreamEquipmentId,
+    ]);
     if (!check.ok) {
       res.status(400).json({
         error: "Equipment not found in this vessel",
@@ -151,23 +132,13 @@ router.post(
     }
 
     try {
-      const [row] = await db
-        .insert(equipmentDependencies)
-        .values({
-          orgId: authReq.orgId,
-          vesselId: body.vesselId,
-          upstreamEquipmentId: body.upstreamEquipmentId,
-          downstreamEquipmentId: body.downstreamEquipmentId,
-          notes: body.notes ?? null,
-        })
-        .onConflictDoNothing({
-          target: [
-            equipmentDependencies.orgId,
-            equipmentDependencies.upstreamEquipmentId,
-            equipmentDependencies.downstreamEquipmentId,
-          ],
-        })
-        .returning();
+      const row = await insertDependency({
+        orgId: authReq.orgId,
+        vesselId: body.vesselId,
+        upstreamEquipmentId: body.upstreamEquipmentId,
+        downstreamEquipmentId: body.downstreamEquipmentId,
+        notes: body.notes ?? null,
+      });
 
       if (!row) {
         res.status(409).json({ error: "Dependency already exists" });
@@ -175,11 +146,7 @@ router.post(
       }
 
       // Best-effort graph projection — never blocks the relational write.
-      void projectDependency(
-        authReq.orgId,
-        row.upstreamEquipmentId,
-        row.downstreamEquipmentId
-      );
+      void projectDependency(authReq.orgId, row.upstreamEquipmentId, row.downstreamEquipmentId);
 
       res.status(201).json({ dependency: row });
     } catch (err) {
@@ -216,21 +183,12 @@ router.patch(
     const editorId = authReq.user?.id ?? null;
     try {
       const now = new Date();
-      const [updated] = await db
-        .update(equipmentDependencies)
-        .set({
-          notes: trimmed,
-          notesUpdatedBy: editorId,
-          notesUpdatedAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id ?? '')
-          )
-        )
-        .returning();
+      const updated = await updateDependencyNotes(authReq.orgId, id ?? "", {
+        notes: trimmed,
+        notesUpdatedBy: editorId,
+        notesUpdatedAt: now,
+        updatedAt: now,
+      });
 
       if (!updated) {
         res.status(404).json({ error: "Dependency not found" });
@@ -238,10 +196,7 @@ router.patch(
       }
       let notesUpdatedByName: string | null = null;
       if (updated.notesUpdatedBy) {
-        const [editor] = await db
-          .select({ name: users.name, email: users.email })
-          .from(users)
-          .where(eq(users.id, updated.notesUpdatedBy));
+        const editor = await getEditorNameEmail(updated.notesUpdatedBy);
         notesUpdatedByName = editor?.name ?? editor?.email ?? null;
       }
       res.json({ dependency: { ...updated, notesUpdatedByName } });
@@ -262,15 +217,7 @@ router.delete(
     const authReq = authenticatedRequest(req);
     const { id } = req.params;
     try {
-      const [removed] = await db
-        .delete(equipmentDependencies)
-        .where(
-          and(
-            eq(equipmentDependencies.orgId, authReq.orgId),
-            eq(equipmentDependencies.id, id ?? '')
-          )
-        )
-        .returning();
+      const removed = await deleteDependency(authReq.orgId, id ?? "");
 
       if (!removed) {
         res.status(404).json({ error: "Dependency not found" });
@@ -309,9 +256,7 @@ router.post(
     const rows = parsed.data.rows;
 
     // Reject self-loops up front so the SQL never sees them.
-    const selfLoops = rows.filter(
-      (r) => r.upstreamEquipmentId === r.downstreamEquipmentId
-    );
+    const selfLoops = rows.filter((r) => r.upstreamEquipmentId === r.downstreamEquipmentId);
     if (selfLoops.length > 0) {
       res.status(400).json({
         error: "Self-loops are not allowed",
@@ -325,7 +270,7 @@ router.post(
     );
     const check = await validateEquipmentBelongsToVessel(
       authReq.orgId,
-      vesselId ?? '',
+      vesselId ?? "",
       allEquipmentIds
     );
     if (!check.ok) {
@@ -337,32 +282,18 @@ router.post(
     }
 
     try {
-      const inserted = await db
-        .insert(equipmentDependencies)
-        .values(
-          rows.map((r) => ({
-            orgId: authReq.orgId,
-            vesselId: vesselId ?? '',
-            upstreamEquipmentId: r.upstreamEquipmentId,
-            downstreamEquipmentId: r.downstreamEquipmentId,
-            notes: r.notes ?? null,
-          }))
-        )
-        .onConflictDoNothing({
-          target: [
-            equipmentDependencies.orgId,
-            equipmentDependencies.upstreamEquipmentId,
-            equipmentDependencies.downstreamEquipmentId,
-          ],
-        })
-        .returning();
+      const inserted = await insertDependenciesBatch(
+        rows.map((r) => ({
+          orgId: authReq.orgId,
+          vesselId: vesselId ?? "",
+          upstreamEquipmentId: r.upstreamEquipmentId,
+          downstreamEquipmentId: r.downstreamEquipmentId,
+          notes: r.notes ?? null,
+        }))
+      );
 
       for (const row of inserted) {
-        void projectDependency(
-          authReq.orgId,
-          row.upstreamEquipmentId,
-          row.downstreamEquipmentId
-        );
+        void projectDependency(authReq.orgId, row.upstreamEquipmentId, row.downstreamEquipmentId);
       }
 
       res.json({
@@ -380,38 +311,25 @@ router.post(
 );
 
 // ---------- GET layout (per-user) ----------
-router.get(
-  "/vessels/:vesselId/equipment-dependency-layout",
-  async (req, res: Response) => {
-    const authReq = authenticatedRequest(req);
-    const userId = authReq.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    const { vesselId } = req.params;
-    try {
-      const [row] = await db
-        .select()
-        .from(equipmentDependencyLayouts)
-        .where(
-          and(
-            eq(equipmentDependencyLayouts.orgId, authReq.orgId),
-            eq(equipmentDependencyLayouts.userId, userId),
-            eq(equipmentDependencyLayouts.vesselId, vesselId)
-          )
-        );
-      const positions: EquipmentDependencyLayoutPositions =
-        row?.positions ?? {};
-      res.json({ positions });
-    } catch (err) {
-      logger.error("layout load failed", {
-        details: err instanceof Error ? err.message : String(err),
-      });
-      res.status(500).json({ error: "Failed to load layout" });
-    }
+router.get("/vessels/:vesselId/equipment-dependency-layout", async (req, res: Response) => {
+  const authReq = authenticatedRequest(req);
+  const userId = authReq.user?.id;
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
-);
+  const { vesselId } = req.params;
+  try {
+    const row = await getDependencyLayout(authReq.orgId, userId, vesselId ?? "");
+    const positions: EquipmentDependencyLayoutPositions = row?.positions ?? {};
+    res.json({ positions });
+  } catch (err) {
+    logger.error("layout load failed", {
+      details: err instanceof Error ? err.message : String(err),
+    });
+    res.status(500).json({ error: "Failed to load layout" });
+  }
+});
 
 // ---------- PUT layout (per-user upsert) ----------
 const layoutBodySchema = z.object({
@@ -432,9 +350,7 @@ router.put(
 
     const parsed = layoutBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({ error: "Invalid body", details: parsed.error.flatten() });
+      res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
       return;
     }
     const { positions } = parsed.data;
@@ -449,24 +365,13 @@ router.put(
     }
 
     try {
-      const [row] = await db
-        .insert(equipmentDependencyLayouts)
-        .values({
-          orgId: authReq.orgId,
-          userId,
-          vesselId: vesselId ?? '',
-          positions,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [
-            equipmentDependencyLayouts.orgId,
-            equipmentDependencyLayouts.userId,
-            equipmentDependencyLayouts.vesselId,
-          ],
-          set: { positions, updatedAt: new Date() },
-        })
-        .returning();
+      const row = await upsertDependencyLayout({
+        orgId: authReq.orgId,
+        userId,
+        vesselId: vesselId ?? "",
+        positions,
+        updatedAt: new Date(),
+      });
       res.json({ ok: true, positions: row?.positions ?? positions });
     } catch (err) {
       logger.error("layout save failed", {

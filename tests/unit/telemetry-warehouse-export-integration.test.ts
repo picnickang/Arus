@@ -103,24 +103,18 @@ const fakeParquetWriter = {
 // Each org gets two rows so we can prove tenant isolation later.
 // ---------------------------------------------------------------------------
 function isStringChunk(c: unknown): c is { value: string[] } {
-  return (
-    typeof c === "object" &&
-    c !== null &&
-    Array.isArray((c as { value?: unknown }).value)
-  );
+  return typeof c === "object" && c !== null && Array.isArray((c as { value?: unknown }).value);
 }
 
 function extractSqlText(q: unknown): string {
   // Drizzle SQL's `queryChunks` interleaves StringChunk objects
   // (`{ value: string[] }`) with raw param values (Date | string | …).
-  const chunks: unknown[] = ((q as { queryChunks?: unknown[] })?.queryChunks) ?? [];
-  return chunks
-    .map((c) => (isStringChunk(c) ? c.value.join("") : ""))
-    .join("");
+  const chunks: unknown[] = (q as { queryChunks?: unknown[] })?.queryChunks ?? [];
+  return chunks.map((c) => (isStringChunk(c) ? c.value.join("") : "")).join("");
 }
 
 function extractDrizzleParams(q: unknown): unknown[] {
-  const chunks: unknown[] = ((q as { queryChunks?: unknown[] })?.queryChunks) ?? [];
+  const chunks: unknown[] = (q as { queryChunks?: unknown[] })?.queryChunks ?? [];
   return chunks.filter((c) => !isStringChunk(c));
 }
 
@@ -200,10 +194,16 @@ jest.unstable_mockModule("../../server/db", () => ({
   libsqlClient: null,
 }));
 
-jest.unstable_mockModule(
-  "../../server/replit_integrations/object_storage",
-  () => ({ objectStorageClient: fakeObjectStorageClient }),
-);
+// The export job acquires its db handle via the storage-layer re-export
+// (server/db/drizzle-handle); mock it directly so the injected db the
+// exporter helpers receive is the test double.
+jest.unstable_mockModule("../../server/db/drizzle-handle", () => ({
+  db: { execute: dbExecute },
+}));
+
+jest.unstable_mockModule("../../server/replit_integrations/object_storage", () => ({
+  objectStorageClient: fakeObjectStorageClient,
+}));
 
 jest.unstable_mockModule("@dsnp/parquetjs", () => fakeParquetWriter);
 
@@ -246,7 +246,7 @@ describe("runTelemetryWarehouseExport (integration)", () => {
     expect(parquetKeys).toHaveLength(2);
     for (const key of parquetKeys) {
       expect(key).toMatch(
-        /\/telemetry-warehouse\/orgId=(org-a|org-b)\/date=2026-05-19\/part-0001\.parquet$/,
+        /\/telemetry-warehouse\/orgId=(org-a|org-b)\/date=2026-05-19\/part-0001\.parquet$/
       );
     }
 
@@ -291,7 +291,7 @@ describe("runTelemetryWarehouseExport (integration)", () => {
     expect(manifestA.exports[0].date).toBe("2026-05-19");
     expect(manifestA.exports[0].rowCount).toBe(2);
     expect(manifestA.exports[0].parquetKey).toMatch(
-      /\/orgId=org-a\/date=2026-05-19\/part-0001\.parquet$/,
+      /\/orgId=org-a\/date=2026-05-19\/part-0001\.parquet$/
     );
 
     const manifestB = await loadManifest("org-b");

@@ -18,7 +18,7 @@ export {
   crossClassPatterns,
   upsertNode,
   upsertEdge,
-} from "./adapter";
+} from "../db/graph-adapter";
 
 export {
   projectEquipment,
@@ -28,10 +28,7 @@ export {
   retractDependency,
 } from "./projector";
 
-export {
-  NodeLabel,
-  EdgeType,
-} from "./types";
+export { NodeLabel, EdgeType } from "./types";
 
 export type {
   EquipmentProjection,

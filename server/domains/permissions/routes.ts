@@ -5,7 +5,12 @@
  */
 
 import type { Express, Request, Response } from "express";
-import { permissionRepository } from "./repository";
+import {
+  permissionRepository,
+  getUserPrimaryRole,
+  getUserDiagnosticRow,
+  getCrewLinkForUser,
+} from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { requirePermission } from "./middleware";
@@ -28,11 +33,7 @@ import {
 } from "./response-schemas";
 import { mapCompiledToContract, type MapperLogger } from "./mapper";
 import { structuredLog, type LogContext } from "../../logging";
-import { db } from "../../db";
-import { users } from "@shared/schema";
-import { crew } from "../../../shared/schema/crew";
 import { isSuperAdminRole } from "@shared/role-dashboard";
-import { and, eq } from "drizzle-orm";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
@@ -156,11 +157,7 @@ export function registerPermissionRoutes(app: Express) {
       // Hub access is resolved in the permissions service from the user's
       // role(s) + any explicit per-user grant (see getEffectiveHubAccess). The
       // primary-role column is still read here for the role-merge below.
-      const [userRow] = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
-        .limit(1);
+      const userRow = await getUserPrimaryRole(orgId, userId);
       const { hubAdmin, hubAccess } = await permissionService.getEffectiveHubAccess(userId, orgId);
 
       // The user's PRIMARY role (`users.role`) is what server-side route
@@ -832,21 +829,7 @@ export function registerPermissionRoutes(app: Express) {
 
       // Canonical DB user row — the source of truth for the primary role and
       // login state that server-side guards authorize against.
-      const [dbUser] = await db
-        .select({
-          id: users.id,
-          email: users.email,
-          name: users.name,
-          role: users.role,
-          isActive: users.isActive,
-          loginEnabled: users.loginEnabled,
-          mustChangePassword: users.mustChangePassword,
-          hubAdmin: users.hubAdmin,
-          hubAccess: users.hubAccess,
-        })
-        .from(users)
-        .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
-        .limit(1);
+      const dbUser = await getUserDiagnosticRow(orgId, userId);
 
       // Assignment-derived roles + compiled permission grants (same resolution
       // path /api/permissions/me uses, so the diagnostic matches what the app
@@ -872,16 +855,7 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       // Crew link (optional 1:1 login-account link, if any).
-      const [crewLink] = await db
-        .select({
-          id: crew.id,
-          name: crew.name,
-          vesselId: crew.vesselId,
-          roleId: crew.roleId,
-        })
-        .from(crew)
-        .where(and(eq(crew.orgId, orgId), eq(crew.userId, userId)))
-        .limit(1);
+      const crewLink = await getCrewLinkForUser(orgId, userId);
 
       return res.json({
         generatedAt: new Date().toISOString(),

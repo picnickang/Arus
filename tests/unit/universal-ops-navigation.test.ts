@@ -28,7 +28,8 @@ describe("universal admin ops navigation", () => {
       ["/crew-management", "crew"],
       ["/crew-scheduler", "crew"],
       ["/logistics?tab=inventory", "logistics"],
-      ["/service-orders", "logistics"],
+      ["/logistics?tab=service-orders", "logistics"],
+      ["/logistics?tab=service-requests", "logistics"],
       ["/logs/deck", "records"],
       ["/rms-monitoring", "records"],
       ["/analytics", "analytics"],
@@ -75,7 +76,12 @@ describe("universal admin ops navigation", () => {
     expect(ids(model.primaryHubs)).toEqual(["fleet", "logistics"]);
     expect(model.activeHub?.id).toBe("logistics");
     expect(model.activeChildren.map((child) => child.href)).toContain("/logistics?tab=inventory");
-    expect(model.activeChildren.map((child) => child.href)).toContain("/service-orders");
+    expect(model.activeChildren.map((child) => child.href)).toContain(
+      "/logistics?tab=service-requests"
+    );
+    expect(model.activeChildren.map((child) => child.href)).toContain(
+      "/logistics?tab=service-orders"
+    );
   });
 
   it("does not expose contextual children for a hub outside explicit hub access", () => {

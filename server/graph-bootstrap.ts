@@ -5,7 +5,7 @@
  * Wave 2.8). The graph is gated behind `GRAPH_ENABLED=true`; if the
  * `age` extension is missing or the executing role lacks permission to
  * install it, we log a warning and continue. Downstream adapters
- * (`server/graph/adapter.ts`) check `isGraphAvailable()` and degrade
+ * (`server/db/graph-adapter.ts`) check `isGraphAvailable()` and degrade
  * to a no-op so the application keeps booting.
  *
  * Tenant isolation: per ADR 001, each tenant gets its own named graph
@@ -36,7 +36,7 @@ const AGE_SCHEMA = "ag_catalog";
 const AGE_LIBRARY = "age";
 
 export function isGraphEnabled(): boolean {
-  return process.env['GRAPH_ENABLED'] === "true";
+  return process.env["GRAPH_ENABLED"] === "true";
 }
 
 /** True iff the AGE extension was successfully installed/verified at boot. */
@@ -52,9 +52,7 @@ function requirePool(): Pool {
 }
 
 async function extensionInstalled(pg: Pool): Promise<boolean> {
-  const res = await pg.query(
-    "SELECT 1 FROM pg_extension WHERE extname = 'age' LIMIT 1"
-  );
+  const res = await pg.query("SELECT 1 FROM pg_extension WHERE extname = 'age' LIMIT 1");
   return res.rowCount !== null && res.rowCount > 0;
 }
 
@@ -68,10 +66,9 @@ async function ensureExtension(pg: Pool): Promise<boolean> {
     logger.info("[Graph] Apache AGE extension installed");
     return true;
   } catch (err) {
-    logger.warn(
-      "[Graph] Apache AGE extension not available — graph features disabled",
-      { details: err instanceof Error ? err.message : String(err) }
-    );
+    logger.warn("[Graph] Apache AGE extension not available — graph features disabled", {
+      details: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }
@@ -95,9 +92,13 @@ export function tenantGraphName(orgId: string): string {
  * common path is a Set lookup.
  */
 export async function ensureTenantGraph(orgId: string): Promise<boolean> {
-  if (!graphAvailable) {return false;}
+  if (!graphAvailable) {
+    return false;
+  }
   const name = tenantGraphName(orgId);
-  if (ensuredTenantGraphs.has(name)) {return true;}
+  if (ensuredTenantGraphs.has(name)) {
+    return true;
+  }
   // LOAD / SET search_path are session-scoped — must run on the SAME
   // physical connection as the create_graph call. Without this, a
   // different pool connection could execute `create_graph` without
@@ -143,7 +144,9 @@ export async function ensureTenantGraph(orgId: string): Promise<boolean> {
  * boot logs without waiting for the first real query.
  */
 async function logGraphSmoke(): Promise<void> {
-  if (!graphAvailable) {return;}
+  if (!graphAvailable) {
+    return;
+  }
   // Use a scratch tenant ('__smoke__') so we exercise the real
   // create_graph + cypher() round-trip — reviewer's eighth-pass
   // comment: a SELECT 1 doesn't validate the graph-query latency
@@ -162,15 +165,14 @@ async function logGraphSmoke(): Promise<void> {
       release: () => void;
     }>;
   };
-  let client: { query: (q: string) => Promise<{ rows: unknown[] }>; release: () => void } | null = null;
+  let client: { query: (q: string) => Promise<{ rows: unknown[] }>; release: () => void } | null =
+    null;
   const started = Date.now();
   try {
     client = await pg.connect();
     await client.query(`LOAD '${AGE_LIBRARY}'`);
     await client.query(`SET search_path = ${AGE_SCHEMA}, "$user", public`);
-    await client.query(
-      `SELECT * FROM cypher('${graph}', $$ RETURN 1 $$) AS (r agtype)`
-    );
+    await client.query(`SELECT * FROM cypher('${graph}', $$ RETURN 1 $$) AS (r agtype)`);
     const ms = Date.now() - started;
     logger.info(`[Graph] availability smoke ok in ${ms}ms (budget <50ms for empty queries)`);
   } catch (err) {

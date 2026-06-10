@@ -25,6 +25,7 @@ import {
 } from "../hooks/useSuppliers";
 import { SupplierCard } from "../components/SupplierCard";
 import { SupplierForm } from "../components/SupplierForm";
+import { formatLogisticsError } from "@/features/logistics/logistics-overview-model";
 import type { SupplierWithStats, SupplierFormData, VendorType } from "../types";
 
 export function VendorsPage() {
@@ -73,7 +74,10 @@ export function VendorsPage() {
         });
         setIsFormOpen(false);
       },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
+      onError: (err) => {
+        const safeError = formatLogisticsError(err);
+        toast({ title: safeError.title, description: safeError.message, variant: "destructive" });
+      },
     });
   };
 
@@ -88,8 +92,10 @@ export function VendorsPage() {
           toast({ title: "Vendor updated successfully" });
           setEditingSupplier(null);
         },
-        onError: (err) =>
-          toast({ title: "Error", description: String(err), variant: "destructive" }),
+        onError: (err) => {
+          const safeError = formatLogisticsError(err);
+          toast({ title: safeError.title, description: safeError.message, variant: "destructive" });
+        },
       }
     );
   };
@@ -103,16 +109,21 @@ export function VendorsPage() {
         toast({ title: "Vendor deleted successfully" });
         setDeletingSupplier(null);
       },
-      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
+      onError: (err) => {
+        const safeError = formatLogisticsError(err);
+        toast({ title: safeError.title, description: safeError.message, variant: "destructive" });
+      },
     });
   };
 
   if (error) {
+    const safeError = formatLogisticsError(error);
     return (
       <div className="p-6">
         <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive">Failed to load vendors: {String(error)}</p>
+          <CardContent className="pt-6" data-testid="logistics-error-state">
+            <p className="font-semibold text-destructive">{safeError.title}</p>
+            <p className="text-sm text-muted-foreground">{safeError.message}</p>
           </CardContent>
         </Card>
       </div>

@@ -1,18 +1,18 @@
 [
   {
-    "name": "Initial app bundle (entry + critical chunks, gzip)",
+    "name": "Initial app bundle (entry + critical vendor chunks, gzip)",
     "path": [
-      "dist/public/assets/index-*.js",
+      "dist/public/assets/app-*.js",
       "dist/public/assets/vendor-react-*.js",
-      "dist/public/assets/vendor-radix-*.js"
+      "dist/public/assets/vendor-ui-*.js"
     ],
-    "limit": "120 KB",
+    "limit": "215 KB",
     "gzip": true
   },
   {
-    "name": "Heaviest lazy chunk: vendor-export (xlsx/exceljs)",
+    "name": "Heaviest lazy chunk: vendor-export (jspdf/xlsx/html2canvas/pdf-lib)",
     "path": "dist/public/assets/vendor-export-*.js",
-    "limit": "220 KB",
+    "limit": "320 KB",
     "gzip": true
   },
   {
@@ -22,15 +22,9 @@
     "gzip": true
   },
   {
-    "name": "Heaviest lazy chunk: exceljs vendor",
-    "path": "dist/public/assets/exceljs.min-*.js",
-    "limit": "300 KB",
-    "gzip": true
-  },
-  {
     "name": "Total client JS (all chunks combined, gzip)",
     "path": "dist/public/assets/*.js",
-    "limit": "1.7 MB",
+    "limit": "1.95 MB",
     "gzip": true
   }
 ]

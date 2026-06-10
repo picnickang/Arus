@@ -29,10 +29,8 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { eq, and } from "drizzle-orm";
-import { db } from "../../../db";
-import { mlModels } from "@shared/schema-runtime";
 import { createLogger } from "../../../lib/structured-logger";
+import { findDeployedModelById } from "../infrastructure/model-lookup-queries";
 import { OnnxInferenceAdapter } from "../../../ml-prediction/onnx-adapter";
 import { serveWithShadowOrCanary } from "../../../ml-prediction/shadow-canary";
 import { HeuristicInferenceRunner } from "./heuristic-inference-runner";
@@ -90,21 +88,7 @@ export class ModelBackedInferenceRunner implements InferenceRunnerPort {
     }
     const lookup = (async (): Promise<ResolvedArtifact | null> => {
       try {
-        const [row] = await db
-          .select({
-            id: mlModels.id,
-            status: mlModels.status,
-            metrics: mlModels.trainingMetrics,
-          })
-          .from(mlModels)
-          .where(
-            and(
-              eq(mlModels.id, modelVersionId),
-              eq(mlModels.orgId, orgId),
-              eq(mlModels.status, "deployed")
-            )
-          )
-          .limit(1);
+        const row = await findDeployedModelById(orgId, modelVersionId);
         if (!row) {
           return null;
         }

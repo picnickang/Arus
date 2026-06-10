@@ -74,6 +74,11 @@ jobs:
     timeout-minutes: 10
     # PR-only: compares the PR's dependency delta against advisories.
     if: github.event_name == 'pull_request'
+    # The action hard-fails ("Dependency review is not supported on this
+    # repository") unless the Dependency Graph feature is enabled in
+    # Settings → Code security. Until that's turned on, keep this advisory
+    # rather than blocking: flip to a hard gate once the graph is enabled.
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
