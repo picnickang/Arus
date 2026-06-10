@@ -77,21 +77,33 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
   const [skillAssignmentCrewId, setSkillAssignmentCrewId] = useState<string>("");
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 
-  const { data: crew = [], isLoading: crewLoading } = useQuery<CrewListItem[]>({
-    queryKey: ["/api/crew"],
+  // One aggregate request replaces the four parallel crew/vessels/crew-roles/
+  // permission-roles queries (server: GET /api/crew/unified). The key keeps
+  // "/api/crew" as its first segment so every existing invalidateQueries on
+  // ["/api/crew"] (mutations here and elsewhere) refreshes the aggregate too.
+  // A failed section arrives as [] — same degraded behavior as the individual
+  // queries had. permissionRoles feed the per-crew-role "suggested app access"
+  // picker; kept separate from the crew-role catalog (the systems aren't merged).
+  const { data: unifiedCrewData, isLoading: unifiedLoading } = useQuery<{
+    crew: CrewListItem[];
+    vessels: VesselListItem[];
+    crewRoles: CrewManagementRole[];
+    permissionRoles: PermissionRoleOption[];
+    sectionErrors?: Record<string, string>;
+  }>({
+    queryKey: ["/api/crew", "unified"],
+    queryFn: async () => {
+      const { apiRequest } = await import("@/lib/queryClient");
+      return apiRequest("GET", "/api/crew/unified");
+    },
   });
-  const { data: vessels = [], isLoading: vesselsLoading } = useQuery<VesselListItem[]>({
-    queryKey: ["/api/vessels"],
-  });
-  const { data: crewRoles = [], isLoading: crewRolesLoading } = useQuery<CrewManagementRole[]>({
-    queryKey: ["/api/crew-roles"],
-  });
-  // RBAC permission roles — used to populate the per-crew-role "suggested app
-  // access" picker and the crew form's app-access field. Kept separate from the
-  // crew-role catalog (the two systems are not merged).
-  const { data: permissionRoles = [] } = useQuery<PermissionRoleOption[]>({
-    queryKey: ["/api/permissions/roles"],
-  });
+  const crew = unifiedCrewData?.crew ?? [];
+  const vessels = unifiedCrewData?.vessels ?? [];
+  const crewRoles = unifiedCrewData?.crewRoles ?? [];
+  const permissionRoles = unifiedCrewData?.permissionRoles ?? [];
+  const crewLoading = unifiedLoading;
+  const vesselsLoading = unifiedLoading;
+  const crewRolesLoading = unifiedLoading;
   const {
     data: accessReadiness = [],
     isLoading: accessReadinessLoading,

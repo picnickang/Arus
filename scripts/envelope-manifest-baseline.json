@@ -1,5 +1,7 @@
 {
   "envelopedPrefixes": [
-    "/api/home"
+    "/api/home",
+    "/api/crew/unified",
+    "/api/optimization/dashboard"
   ]
 }

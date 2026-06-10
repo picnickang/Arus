@@ -16,6 +16,9 @@
 export const ENVELOPED_PREFIXES: readonly string[] = [
   // Wave 0 pilot
   "/api/home",
+  // Aggregate endpoints — born enveloped
+  "/api/crew/unified",
+  "/api/optimization/dashboard",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
