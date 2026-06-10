@@ -125,15 +125,22 @@ describe("envelopeJson (WS4 wave 0)", () => {
     expect(res.body).toEqual([{ id: "task-1" }]);
   });
 
-  it("does not wrap paths outside the manifest", async () => {
+  it("the endgame flip wraps every /api path except exclusions", async () => {
+    // Previously-unlisted prefixes are wrapped now.
+    expect(isEnvelopedPath("/api/users")).toBe(true);
+    expect(isEnvelopedPath("/api/permissions/me")).toBe(true);
+    expect(isEnvelopedPath("/api/unmigrated-test-domain")).toBe(true);
+
     const res = await request(buildApp()).get("/api/unmigrated-test-domain");
-    expect(res.body).toEqual([{ id: "raw-1" }]);
+    expect(res.body).toEqual({ success: true, data: [{ id: "raw-1" }] });
   });
 
   it("treats /api/v1 spellings the same as unversioned paths", () => {
     expect(isEnvelopedPath("/api/v1/home/attention-summary")).toBe(true);
     expect(isEnvelopedPath("/api/home/attention-summary?since=x")).toBe(true);
-    expect(isEnvelopedPath("/api/homeX/other")).toBe(false);
+    // Exclusions hold for the v1 spelling too.
+    expect(isEnvelopedPath("/api/v1/telemetry/readings")).toBe(false);
+    expect(isEnvelopedPath("/api/v1/error-logs")).toBe(false);
   });
 
   it("wave 1 domains are enveloped end to end", async () => {

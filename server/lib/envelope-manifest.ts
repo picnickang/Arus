@@ -94,10 +94,21 @@ function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
+/**
+ * ENDGAME FLIP: every /api/* path is enveloped except the exclusions below.
+ * ENVELOPED_PREFIXES documents the wave history (and feeds the adoption
+ * ratchet); it no longer gates wrapping. Set to false only for emergency
+ * rollback to per-prefix wrapping.
+ */
+export const ENVELOPE_ALL_API = true;
+
 export function isEnvelopedPath(path: string): boolean {
   const normalized = normalizePath(path);
   if (ENVELOPE_EXCLUDED_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
     return false;
+  }
+  if (ENVELOPE_ALL_API) {
+    return normalized === "/api" || normalized.startsWith("/api/");
   }
   return ENVELOPED_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix));
 }

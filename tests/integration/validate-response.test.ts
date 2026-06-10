@@ -113,7 +113,7 @@ describe("validateResponse-wired endpoints", () => {
           .set("x-org-id", TEST_ORG_ID)
           .expect("Content-Type", /json/)
           .expect(200);
-        assert(res.body);
+        assert(unwrap(res.body));
       });
     }
   });
@@ -124,7 +124,7 @@ describe("validateResponse-wired endpoints", () => {
         .get("/api/permissions/resources")
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(unwrap(res.body))).toBe(true);
     });
   });
 });

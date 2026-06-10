@@ -154,11 +154,13 @@ export function useAiInsightsData() {
     }
     setIsLoadingIntelligence(true);
     try {
-      const response = await fetch(
+      // The endpoint answers a legacy {success, intelligence} body; apiRequest
+      // unwraps only the canonical outer envelope, leaving that shape intact.
+      const data = await apiRequest<{ success?: boolean; error?: string; intelligence?: VesselIntelligence }>(
+        "GET",
         `/api/llm/vessel/${selectedVessel}/intelligence?lookbackDays=365`
       );
-      const data = await response.json();
-      if (!data.success) {
+      if (!data.success || !data.intelligence) {
         throw new Error(data.error || "Failed to load vessel intelligence");
       }
       setVesselIntelligence(data.intelligence);
