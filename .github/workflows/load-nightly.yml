@@ -34,6 +34,11 @@ jobs:
       ARUS_DEPLOYMENT_MODE: CLOUD
       REDIS_URL: redis://localhost:6379
       LOAD_TEST_VUS: ${{ github.event.inputs.smoke_vus || '10' }}
+      # The steady scenario drives ~55 req/s from one runner IP; the GENERAL_API
+      # limiter (300 req/min/client) would 429 most of it and fail the
+      # http_req_failed threshold. Limiter behavior is covered by unit tests;
+      # load runs measure capacity with limits off (see docs/qa/load-test-results.md).
+      DISABLE_RATE_LIMITS: "true"
 
     services:
       postgres:
@@ -81,7 +86,13 @@ jobs:
           k6 version
 
       - name: Apply migrations
-        run: npm run db:push
+        # db:push bootstraps drizzle-managed columns/FKs only — it does NOT
+        # create the raw-SQL objects (e.g. uq_equipment_telemetry_natural, the
+        # batch writer's ON CONFLICT target; RLS policies; partitioning).
+        # The SQL migration ledger must run on top or telemetry writes fail.
+        run: |
+          npm run db:push
+          npm run db:migrate
 
       - name: Boot app server
         run: |

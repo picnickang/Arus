@@ -17,6 +17,9 @@ import { processTelemetryProcessing } from "./telemetry-processor";
 import { processModelRetrain } from "./ml-retraining-processor";
 import { processStaleModelCheck } from "./ml-stale-model-processor";
 import { processTelemetryWarehouseExport } from "./telemetry-warehouse-processor";
+import { processTelemetryRollup } from "./telemetry-rollup-processor";
+import { processTelemetryRetention } from "./telemetry-retention-processor";
+import { processTelemetryPartitionMaintenance } from "./telemetry-partition-processor";
 
 export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.AI_EQUIPMENT_ANALYSIS, processEquipmentAnalysis);
@@ -55,6 +58,22 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(
     JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT,
     processTelemetryWarehouseExport,
+    { tenantScope: "fleet-wide" },
+  );
+
+  // Telemetry lifecycle cron sweeps (scheduled with empty payloads by
+  // background-jobs.ts, hence no orgId). The rollup and retention
+  // orchestrators fan out per-org under withTenantContext internally;
+  // partition maintenance is pure DDL and not subject to RLS.
+  jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_ROLLUP_HOURLY, processTelemetryRollup, {
+    tenantScope: "fleet-wide",
+  });
+  jobQueue.registerProcessor(JOB_TYPES.TELEMETRY_RETENTION, processTelemetryRetention, {
+    tenantScope: "fleet-wide",
+  });
+  jobQueue.registerProcessor(
+    JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE,
+    processTelemetryPartitionMaintenance,
     { tenantScope: "fleet-wide" },
   );
 
