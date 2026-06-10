@@ -507,15 +507,20 @@ export const insertCrewEmploymentHistorySchema = createInsertSchema(crewEmployme
 export const insertCrewNotificationSettingsSchema = createInsertSchema(
   crewNotificationSettings
 ).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertCrewAlertSchema = createInsertSchema(crewAlerts).omit({
-  id: true,
-  acknowledged: true,
-  acknowledgedAt: true,
-  acknowledgedBy: true,
-  acknowledgedNotes: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertCrewAlertSchema = createInsertSchema(crewAlerts)
+  .omit({
+    id: true,
+    acknowledged: true,
+    acknowledgedAt: true,
+    acknowledgedBy: true,
+    acknowledgedNotes: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    // Matches the crew_alerts_severity_valid CHECK constraint (0042).
+    severity: z.enum(["critical", "warning", "notice"]).default("notice"),
+  });
 export const insertCrewRoleSchema = createInsertSchema(crewRoles).omit({
   id: true,
   createdAt: true,
