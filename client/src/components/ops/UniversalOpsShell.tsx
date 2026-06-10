@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { LayoutGrid, Menu } from "lucide-react";
+import { LayoutGrid, Menu, Search } from "lucide-react";
 import { pruneOverrideToPolicyIds } from "@/application/navigation/role-navigation-policy";
 import {
   readUserRole,
@@ -295,11 +295,23 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
             }
             subtitle={activeHub?.description ?? "Universal admin hub navigation"}
             trailing={
-              activeHub ? (
-                <Badge variant="outline" data-testid="universal-ops-active-hub">
-                  {activeHub.name}
-                </Badge>
-              ) : null
+              <span className="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                  onClick={() => window.dispatchEvent(new CustomEvent("arus:open-command-palette"))}
+                  aria-label="Search (Ctrl+K)"
+                  title="Search (Ctrl+K)"
+                  data-testid="button-global-search"
+                >
+                  <Search className="h-4 w-4" aria-hidden="true" />
+                </button>
+                {activeHub ? (
+                  <Badge variant="outline" data-testid="universal-ops-active-hub">
+                    {activeHub.name}
+                  </Badge>
+                ) : null}
+              </span>
             }
           />
           <UniversalSubnav currentPath={currentPath} items={navModel.activeChildren} />

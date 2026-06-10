@@ -3,6 +3,7 @@ import { equipment, vessels, failurePredictions, actionableInsights } from "@sha
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
 import type { EquipmentHubRepository } from "../domain/ports.js";
+import { deriveHubHealthFields } from "../domain/hub-health.js";
 import type {
   EquipmentHubAggregate,
   ServiceOrderSummary,
@@ -115,10 +116,15 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       this.getActiveAnomaly(orgId, equipmentId),
     ]);
 
-    const healthScore = pdmScores[0]?.healthIdx ?? 100;
-    const risk = computeRisk(healthScore);
     const pred = predictions[0];
-    const telemetry = telemetryData.length > 0 ? telemetryData : [healthScore];
+    const {
+      health: healthScore,
+      rul,
+      confidence,
+    } = deriveHubHealthFields(pdmScores[0]?.healthIdx ?? null, pred ?? null);
+    const risk = computeRisk(healthScore ?? 100);
+    const telemetry =
+      telemetryData.length > 0 ? telemetryData : healthScore == null ? [] : [healthScore];
     const trend = computeTrend(telemetry);
 
     const signals: string[] = [];
@@ -145,11 +151,11 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       }
     }
 
-    const rul = pred?.remainingUsefulLife ?? 365;
-    const confidence = pred ? Math.round((pred.failureProbability ?? 0.85) * 100) : 85;
     const prediction = pred?.failureMode
-      ? `${pred.failureMode} — ${risk === "critical" ? `replace within ${rul} days` : risk === "warning" ? "monitor closely" : "continue normal operations"}`
-      : "Operating within normal parameters";
+      ? `${pred.failureMode} — ${risk === "critical" ? `replace within ${rul ?? "—"} days` : risk === "warning" ? "monitor closely" : "continue normal operations"}`
+      : healthScore == null
+        ? "No PdM score recorded yet"
+        : "Operating within normal parameters";
 
     const completedWO = workOrders.find((wo) => wo.status === "completed") as
       | (WorkOrderSummary & { actualEndDate?: string | Date | null })
@@ -173,7 +179,13 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
 
     const operationalContext = this.buildOperationalContext(row.vesselStatus);
 
-    const needsAction = this.buildNeedsAction(risk, rul, workOrders, serviceOrders, equipmentId);
+    const needsAction = this.buildNeedsAction(
+      risk,
+      rul ?? 365,
+      workOrders,
+      serviceOrders,
+      equipmentId
+    );
 
     return {
       id: row.eqId,
@@ -181,7 +193,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       vessel: row.vesselName || row.eqVesselName || "Unassigned",
       vesselId: row.eqVesselId || "unassigned",
       type: row.eqType || "General",
-      health: Math.round(healthScore),
+      health: healthScore == null ? null : Math.round(healthScore),
       rul,
       risk,
       confidence,
@@ -192,8 +204,14 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       lastService,
       nextDue,
       dataAvailability,
-      assessment: assessmentText(risk, Math.round(healthScore), rul, prediction),
-      recommendedAction: recommendedActionText(risk, rul),
+      assessment:
+        healthScore == null
+          ? "No live health score for this equipment yet — PdM scoring has not run. Work orders, service history and diagnostics below are real records; health, risk and remaining-life figures will populate once scoring produces data."
+          : assessmentText(risk, Math.round(healthScore), rul ?? 365, prediction),
+      recommendedAction:
+        healthScore == null
+          ? "Verify telemetry/sensor mapping for this equipment so PdM scoring can run, or trigger a diagnostic from the Diagnostics section."
+          : recommendedActionText(risk, rul ?? 365),
       operationalContext,
       needsAction,
       activeAnomaly,
@@ -405,7 +423,9 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         summary: diagnosticRuns.summary,
         createdAt: diagnosticRuns.createdAt,
       });
-    if (!row) {throw new Error("saveDiagnosticRun: no row returned");}
+    if (!row) {
+      throw new Error("saveDiagnosticRun: no row returned");
+    }
 
     return {
       id: row.id,
@@ -771,8 +791,10 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         id: r.id,
         title: r.description || "Work Order",
         status: r.status,
-        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] ?? "" : "",
-        completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] ?? null : null,
+        createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
+        completedAt: r.completedAt
+          ? (new Date(r.completedAt).toISOString().split("T")[0] ?? null)
+          : null,
         assignedCrewId: r.assignedCrewId ?? null,
         assignmentStatus: r.assignmentStatus ?? null,
         assignmentResponseReason: r.assignmentResponseReason ?? null,

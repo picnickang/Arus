@@ -10,6 +10,11 @@ import { useVessels, useEquipmentList } from "@/features/vessels";
 import { useCrewList } from "@/features/crew";
 import type { WorkOrder, InsertWorkOrder } from "@shared/schema";
 import type { WorkOrderFilters } from "@/components/work-orders";
+import {
+  DEFAULT_WORK_ORDER_FILTERS,
+  parseFiltersFromSearch,
+  buildWorkOrdersUrl,
+} from "../lib/filters-url";
 
 interface PartUsageRecord {
   partId: string;
@@ -42,18 +47,21 @@ export function useWorkOrdersPageData() {
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloneOrder, setCloneOrder] = useState<WorkOrder | null>(null);
   const [pendingDeleteOrder, setPendingDeleteOrder] = useState<WorkOrder | null>(null);
-  const [filters, setFilters] = useState<WorkOrderFilters>({
-    search: "",
-    status: "all",
-    priority: "all",
-    vesselId: "all",
-    engineerId: "all",
-    equipmentCategory: "all",
-    dueDateFrom: "",
-    dueDateTo: "",
-  });
+  const [filters, setFiltersState] = useState<WorkOrderFilters>(() =>
+    parseFiltersFromSearch(typeof globalThis === "undefined" ? "" : globalThis.location.search)
+  );
+  const setFilters = (next: WorkOrderFilters | ((prev: WorkOrderFilters) => WorkOrderFilters)) => {
+    setFiltersState((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      if (typeof globalThis !== "undefined") {
+        globalThis.history.replaceState({}, "", buildWorkOrdersUrl(value));
+      }
+      return value;
+    });
+  };
 
-  const filterVesselId: string | undefined = filters.vesselId !== "all" ? filters.vesselId : undefined;
+  const filterVesselId: string | undefined =
+    filters.vesselId !== "all" ? filters.vesselId : undefined;
   const filterStatus: string | undefined = filters.status !== "all" ? filters.status : undefined;
   const {
     data: workOrders,
@@ -87,7 +95,11 @@ export function useWorkOrdersPageData() {
       setFormDialogOpen(true);
       setTimeout(() => {
         if (typeof globalThis !== "undefined") {
-          globalThis.history.replaceState({}, "", "/work-orders");
+          const cleaned = new URLSearchParams(globalThis.location.search);
+          cleaned.delete("action");
+          cleaned.delete("equipmentId");
+          const qs = cleaned.toString();
+          globalThis.history.replaceState({}, "", qs ? `/work-orders?${qs}` : "/work-orders");
         }
       }, 100);
     }
@@ -125,16 +137,7 @@ export function useWorkOrdersPageData() {
     filters.dueDateFrom ||
     filters.dueDateTo;
   const _clearAllFilters = () => {
-    setFilters({
-      search: "",
-      status: "all",
-      priority: "all",
-      vesselId: "all",
-      engineerId: "all",
-      equipmentCategory: "all",
-      dueDateFrom: "",
-      dueDateTo: "",
-    });
+    setFilters({ ...DEFAULT_WORK_ORDER_FILTERS });
   };
   const _filteredEquipmentForCreate = _selectedVesselIdForCreate
     ? equipment.filter((eq) => eq.vesselId === _selectedVesselIdForCreate)
@@ -188,7 +191,7 @@ export function useWorkOrdersPageData() {
       predictionFeedback?: Record<string, unknown> | undefined;
     }) => {
       const order = workOrders?.find((wo) => wo.id === orderId);
-      const closeout = predictionFeedback?.['closeout'] as
+      const closeout = predictionFeedback?.["closeout"] as
         | {
             workPerformed?: string;
             causeFound?: string;
@@ -207,13 +210,16 @@ export function useWorkOrdersPageData() {
       }
 
       const sanitizedPredictionFeedback = predictionFeedback
-        ? Object.fromEntries(Object.entries(predictionFeedback).filter(([key]) => key !== "closeout"))
+        ? Object.fromEntries(
+            Object.entries(predictionFeedback).filter(([key]) => key !== "closeout")
+          )
         : undefined;
 
       await apiRequest("POST", `/api/work-orders/${orderId}/complete-with-feedback`, {
         actualHours,
-        actualDowntimeHours: typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
-        completionNotes: predictionFeedback?.['notes'],
+        actualDowntimeHours:
+          typeof closeout?.downtimeHours === "number" ? closeout.downtimeHours : undefined,
+        completionNotes: predictionFeedback?.["notes"],
         closeout,
         predictionFeedback: sanitizedPredictionFeedback,
       });

@@ -39,10 +39,7 @@ const CREW = [
 type AnomalyState = "none" | "unacknowledged" | "acknowledged";
 
 /** Minimal but schema-faithful EquipmentHubData for the page to render. */
-function hubPayload(opts: {
-  anomaly: AnomalyState;
-  withWorkOrder: boolean;
-}) {
+function hubPayload(opts: { anomaly: AnomalyState; withWorkOrder: boolean }) {
   const activeAnomaly =
     opts.anomaly === "none"
       ? null
@@ -54,8 +51,7 @@ function hubPayload(opts: {
           detectedAt: "2026-06-01T10:00:00.000Z",
           acknowledged: opts.anomaly === "acknowledged",
           acknowledgedBy: opts.anomaly === "acknowledged" ? "Prior User" : null,
-          acknowledgedAt:
-            opts.anomaly === "acknowledged" ? "2026-06-01T11:00:00.000Z" : null,
+          acknowledgedAt: opts.anomaly === "acknowledged" ? "2026-06-01T11:00:00.000Z" : null,
         };
 
   return {
@@ -109,7 +105,7 @@ function hubPayload(opts: {
  */
 async function stubReads(
   page: Page,
-  opts: { anomaly: AnomalyState; withWorkOrder: boolean; crew?: typeof CREW },
+  opts: { anomaly: AnomalyState; withWorkOrder: boolean; crew?: typeof CREW }
 ) {
   await page.route("**/api/equipment-intelligence/hub/**", async (route: Route) => {
     await route.fulfill({
@@ -150,9 +146,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
     });
   });
 
-  test("Acknowledge is disabled when there is no active anomaly", async ({
-    page,
-  }) => {
+  test("Acknowledge is disabled when there is no active anomaly", async ({ page }) => {
     await stubReads(page, { anomaly: "none", withWorkOrder: true });
     await loginAdmin(page);
     await openHub(page);
@@ -160,9 +154,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
     await expect(page.getByTestId("button-acknowledge")).toBeDisabled();
   });
 
-  test("Acknowledge is disabled when the anomaly is already acknowledged", async ({
-    page,
-  }) => {
+  test("Acknowledge is disabled when the anomaly is already acknowledged", async ({ page }) => {
     await stubReads(page, { anomaly: "acknowledged", withWorkOrder: true });
     await loginAdmin(page);
     await openHub(page);
@@ -172,9 +164,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
     await expect(btn).toContainText(/Acknowledged/i);
   });
 
-  test("Acknowledge fires the POST and shows the success toast on settle", async ({
-    page,
-  }) => {
+  test("Acknowledge fires the POST and shows the success toast on settle", async ({ page }) => {
     await stubReads(page, { anomaly: "unacknowledged", withWorkOrder: true });
 
     const ackHits: PlaywrightRequest[] = [];
@@ -196,7 +186,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
             acknowledgedAt: "2026-06-02T08:00:00.000Z",
           }),
         });
-      },
+      }
     );
 
     await loginAdmin(page);
@@ -212,9 +202,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
     expect(ackHits[0]!.url()).toContain(`/anomalies/${EQUIP_ID}/acknowledge`);
   });
 
-  test("Acknowledge shows the error toast when the POST fails", async ({
-    page,
-  }) => {
+  test("Acknowledge shows the error toast when the POST fails", async ({ page }) => {
     await stubReads(page, { anomaly: "unacknowledged", withWorkOrder: true });
     await page.route(
       "**/api/equipment-intelligence/anomalies/**/acknowledge",
@@ -224,7 +212,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
           contentType: "application/json",
           body: JSON.stringify({ error: "No active anomaly to acknowledge" }),
         });
-      },
+      }
     );
 
     await loginAdmin(page);
@@ -235,9 +223,7 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
     await expect(page.getByText("Failed to acknowledge")).toBeVisible();
   });
 
-  test("Assign lists crew and persists assignedCrewId + in_progress status", async ({
-    page,
-  }) => {
+  test("Assign lists crew and persists assignedCrewId + in_progress status", async ({ page }) => {
     await stubReads(page, { anomaly: "none", withWorkOrder: true });
 
     let putBody: Record<string, unknown> | null = null;
@@ -275,5 +261,65 @@ test.describe("Equipment Hub — Acknowledge + Assign", () => {
       assignedCrewId: CREW[0]!.id,
       status: "in_progress",
     });
+  });
+
+  test("Quick Work Order sheet posts to /api/work-orders/quick with the prefilled equipment", async ({
+    page,
+  }) => {
+    await stubReads(page, { anomaly: "none", withWorkOrder: false });
+    // Equipment list for the sheet's selector. RegExp (not glob) so it
+    // cannot shadow the /api/equipment-intelligence/hub stub.
+    await page.route(/\/api\/equipment(\?|$)/, async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          { id: EQUIP_ID, name: "Main Engine #1", equipmentType: "Diesel Engine" },
+        ]),
+      });
+    });
+
+    let quickBody: Record<string, unknown> | null = null;
+    await page.route("**/api/work-orders/quick", async (route: Route) => {
+      quickBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ workOrderNumber: "WO-QUICK-1" }),
+      });
+    });
+
+    await loginAdmin(page);
+    await openHub(page);
+
+    await page.getByTestId("button-quick-work-order").click();
+    await expect(page.getByTestId("quick-wo-sheet")).toBeVisible();
+
+    await page.getByTestId("quick-wo-description").fill("Knocking noise near cyl. 4");
+    await page.getByTestId("quick-wo-submit").click();
+
+    await expect(page.getByText("Work order created")).toBeVisible();
+    expect(quickBody).toMatchObject({
+      equipmentId: EQUIP_ID,
+      description: "Knocking noise near cyl. 4",
+    });
+  });
+
+  test("tabs reveal work orders and operational context without losing the action bar", async ({
+    page,
+  }) => {
+    await stubReads(page, { anomaly: "none", withWorkOrder: true });
+    await loginAdmin(page);
+    await openHub(page);
+
+    // Action bar is above the tabs — visible on load and after switching.
+    await expect(page.getByTestId("action-bar")).toBeVisible();
+
+    await page.getByTestId("tab-work-parts").click();
+    await expect(page.getByTestId(`work-order-${WORK_ORDER_ID}`)).toBeVisible();
+
+    await page.getByTestId("tab-context").click();
+    await expect(page.getByTestId("operational-context")).toBeVisible();
+    await expect(page.getByTestId("action-bar")).toBeVisible();
   });
 });

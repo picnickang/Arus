@@ -2,6 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient, replayQueuedApiRequests } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CommandPaletteMount } from "@/components/search/CommandPaletteMount";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -314,17 +315,13 @@ function Router() {
 
   const isLoginRoute = routerLoc === "/portal-login";
   const usesUniversalOpsShell = resolveCurrentRouteHubId(routerLoc) !== null;
-  // #218: the user portal has no visible BottomNav, so the ~56px
-  // mobile clearance the admin portal needs becomes orphan
-  // padding. Skip the `pb-14` in that case. The BottomNav
-  // component itself is still mounted on non-shell, non-login routes
-  // (see below) — it returns null for user-portal roles but its hooks
-  // still run, so the #194 override self-heal effect keeps pruning
-  // stale admin ids from localStorage even when the bar is invisible.
+  // #218: the user portal has no visible BottomNav, so skip the ~56px
+  // `pb-14` clearance there. BottomNav still mounts on non-shell,
+  // non-login routes — it returns null for user-portal roles but its
+  // hooks run, so the #194 self-heal keeps pruning stale admin ids.
   // Universal admin hub routes render their own shell navigation.
-  // Same `getPortalForRole` policy used by the route guard and the
-  // bar itself; reading localStorage at render is fine because portal
-  // switches do a full reload.
+  // Same `getPortalForRole` policy as the route guard; reading
+  // localStorage at render is fine — portal switches do a full reload.
   const isAdminPortal =
     !isLoginRoute &&
     isAdminPortalAccess(
@@ -343,6 +340,9 @@ function Router() {
       </a>
 
       <ConnectivityBannerWithSync />
+
+      {/* Global quick-switcher (Cmd/Ctrl-K / shell search button); admin portal only. */}
+      {isAdminPortal && <CommandPaletteMount />}
 
       <main
         id="main-content"

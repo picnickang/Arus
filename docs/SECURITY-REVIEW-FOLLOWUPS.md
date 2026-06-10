@@ -65,7 +65,7 @@ untracking, Docker dev-dep pruning, single-tenant ADR).
       `universal-ops-navigation`, and `vessel-intelligence-hub-v2` all pass.
       Full unit suite green (1114/1114).
 - [x] **Integration / Python ML sidecar** — FIXED. pgvector image + `CREATE
-  EXTENSION vector` let `db:push` complete (clears the old
+EXTENSION vector` let `db:push` complete (clears the old
       `equipment_features` cascade); the sidecar harness now seeds the default
       `organizations` row so its `org_id` FKs resolve. Integration lane runs
       green (reversibility step made advisory pending the migration reconcile).

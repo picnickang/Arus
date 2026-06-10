@@ -28,22 +28,10 @@
  * `hub-admin-grant-route.test.ts`.
  */
 
-process.env['NODE_ENV'] = "test";
+process.env["NODE_ENV"] = "test";
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import type {
-  Express,
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import type { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
 
 const ORG = "test-org-permissions-me";
@@ -94,12 +82,12 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 const CREW_ADMIN_ROLES = ["system_admin", "company_admin", "admin"];
 
-function normalizeRoleNames(
-  roles: ReadonlyArray<{ name?: unknown } | string>
-): string[] {
+function normalizeRoleNames(roles: ReadonlyArray<{ name?: unknown } | string>): string[] {
   return roles
     .map((r) => {
-      if (typeof r === "string") {return r;}
+      if (typeof r === "string") {
+        return r;
+      }
       if (r && typeof r === "object" && "name" in r) {
         return String((r as { name: unknown }).name);
       }
@@ -145,7 +133,9 @@ beforeAll(async () => {
       } as Record<string, unknown>,
       {
         get(obj, prop: string) {
-          if (prop in obj) {return obj[prop];}
+          if (prop in obj) {
+            return obj[prop];
+          }
           return async () => {
             throw new Error(`unexpected repo call: ${prop}`);
           };
@@ -224,38 +214,34 @@ describe("GET /api/permissions/me — mounted", () => {
 
 describe("GET /api/permissions/me — primary role merge", () => {
   it("includes the primary users.role even with NO matching assignment row", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Top admin: authority is the primary role only — no assignment-derived roles.
     compiledStub.roles = [];
-    orgRolesStub = [
-      { id: "role-admin", name: "admin", displayName: "Administrator" },
-    ];
+    orgRolesStub = [{ id: "role-admin", name: "admin", displayName: "Administrator" }];
     userRowStub = { role: "admin", hubAdmin: false, hubAccess: null };
 
-    const res = await request(app)
-      .get(PATH)
-      .set("x-test-user", "user-1:admin");
+    const res = await request(app).get(PATH).set("x-test-user", "user-1:admin");
 
     expect(res.status).toBe(200);
     const names = res.body.roles.map((r: { name: string }) => r.name);
     expect(names).toContain("admin");
     // Resolved from org-role metadata, so it carries the real role id/displayName.
     expect(res.body.roles).toEqual(
-      expect.arrayContaining([
-        { id: "role-admin", name: "admin", displayName: "Administrator" },
-      ])
+      expect.arrayContaining([{ id: "role-admin", name: "admin", displayName: "Administrator" }])
     );
   });
 
   it("falls back to a synthetic entry when the primary role is not in org roles", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     compiledStub.roles = [];
     orgRolesStub = []; // primary role has no metadata row
     userRowStub = { role: "system_admin", hubAdmin: false, hubAccess: null };
 
-    const res = await request(app)
-      .get(PATH)
-      .set("x-test-user", "user-1:system_admin");
+    const res = await request(app).get(PATH).set("x-test-user", "user-1:system_admin");
 
     expect(res.status).toBe(200);
     expect(res.body.roles).toEqual([
@@ -268,17 +254,15 @@ describe("GET /api/permissions/me — primary role merge", () => {
   });
 
   it("de-duplicates case-insensitively when an assignment role equals the primary role", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Assignment row resolves to the org role "Admin"; primary column is "admin".
-    orgRolesStub = [
-      { id: "role-admin", name: "Admin", displayName: "Administrator" },
-    ];
+    orgRolesStub = [{ id: "role-admin", name: "Admin", displayName: "Administrator" }];
     compiledStub.roles = ["role-admin"];
     userRowStub = { role: "admin", hubAdmin: false, hubAccess: null };
 
-    const res = await request(app)
-      .get(PATH)
-      .set("x-test-user", "user-1:admin");
+    const res = await request(app).get(PATH).set("x-test-user", "user-1:admin");
 
     expect(res.status).toBe(200);
     const adminEntries = res.body.roles.filter(
@@ -291,16 +275,14 @@ describe("GET /api/permissions/me — primary role merge", () => {
 
 describe("GET /api/permissions/me — client crew-access gate stays open", () => {
   it("keeps hasAnyRole(admin roles) true for a primary-role-only top admin (tab-crew-access visible)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     compiledStub.roles = []; // no assignment-derived roles
-    orgRolesStub = [
-      { id: "role-admin", name: "admin", displayName: "Administrator" },
-    ];
+    orgRolesStub = [{ id: "role-admin", name: "admin", displayName: "Administrator" }];
     userRowStub = { role: "admin", hubAdmin: false, hubAccess: null };
 
-    const res = await request(app)
-      .get(PATH)
-      .set("x-test-user", "user-1:admin");
+    const res = await request(app).get(PATH).set("x-test-user", "user-1:admin");
 
     expect(res.status).toBe(200);
     // This is exactly the gate the crew dialog uses to render `tab-crew-access`.
@@ -308,21 +290,17 @@ describe("GET /api/permissions/me — client crew-access gate stays open", () =>
   });
 
   it("keeps the gate closed for a non-admin (tab-crew-access hidden)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     compiledStub.roles = [];
-    orgRolesStub = [
-      { id: "role-tech", name: "technician", displayName: "Marine Technician" },
-    ];
+    orgRolesStub = [{ id: "role-tech", name: "technician", displayName: "Marine Technician" }];
     userRowStub = { role: "technician", hubAdmin: false, hubAccess: null };
 
-    const res = await request(app)
-      .get(PATH)
-      .set("x-test-user", "user-1:technician");
+    const res = await request(app).get(PATH).set("x-test-user", "user-1:technician");
 
     expect(res.status).toBe(200);
-    expect(res.body.roles.map((r: { name: string }) => r.name)).toContain(
-      "technician"
-    );
+    expect(res.body.roles.map((r: { name: string }) => r.name)).toContain("technician");
     expect(hasAnyRole(res.body.roles, ...CREW_ADMIN_ROLES)).toBe(false);
   });
 });

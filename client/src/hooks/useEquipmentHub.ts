@@ -72,10 +72,13 @@ export interface EquipmentHubData {
   vessel: string;
   vesselId: string;
   type: string;
-  health: number;
-  rul: number;
+  /** null = no PdM score recorded yet (server no longer fakes 100). */
+  health: number | null;
+  /** null = no failure prediction yet (server no longer fakes 365). */
+  rul: number | null;
   risk: "critical" | "warning" | "low";
-  confidence: number;
+  /** null = no prediction to derive confidence from (was a fake 85%). */
+  confidence: number | null;
   prediction: string;
   trend: string;
   signals: string[];
