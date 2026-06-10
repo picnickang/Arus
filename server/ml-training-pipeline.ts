@@ -7,6 +7,8 @@
  * when training is not configured.
  */
 
+import type { ModelEvaluationInputs } from "./services/ml/model-evaluation-gate";
+
 export interface TrainingJobConfig {
   jobId: string;
   orgId: string;
@@ -38,6 +40,13 @@ export interface TrainingResult {
   modelPath: string | null;
   metrics: Record<string, number>;
   trainedAt: Date;
+  /**
+   * Optional held-out evaluation inputs. When a real training run produces a
+   * labelled test set and a callable predictor, it attaches them here so the
+   * job queue can run the ModelEvaluationGate. Absent today (the pipeline is a
+   * stub), in which case the run is recorded as "not_evaluated".
+   */
+  evaluation?: ModelEvaluationInputs;
 }
 
 function emptyResult(): TrainingResult {

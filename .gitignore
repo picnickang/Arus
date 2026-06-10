@@ -17,6 +17,10 @@ code-export/
 installer-review-bundle/
 source-bundle/
 attached_assets/
+# k6 / ingestion load-test output. CI uploads these as workflow artifacts
+# (load-nightly.yml, 14-day retention); results are summarized in
+# docs/qa/load-test-results.md — the raw runs are environment-specific.
+artifacts/load/
 ARUS_DB_CODE.txt
 ARUS_SCHEMA.txt
 ARUS_FIX_SUMMARY.md

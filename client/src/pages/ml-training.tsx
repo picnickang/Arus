@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +56,8 @@ import { useTrainingData } from "@/features/ml-ai";
 
 export default function MLTrainingPage() {
   const t = useTrainingData();
+  const [ackResetKeepModels, setAckResetKeepModels] = useState(false);
+  const [ackResetAll, setAckResetAll] = useState(false);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -667,7 +671,7 @@ export default function MLTrainingPage() {
                 </AlertDescription>
               </Alert>
               <div className="pt-4 space-y-3">
-                <AlertDialog>
+                <AlertDialog onOpenChange={(open) => !open && setAckResetKeepModels(false)}>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
@@ -705,11 +709,23 @@ export default function MLTrainingPage() {
                         </p>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="ack-reset-keep-models"
+                        checked={ackResetKeepModels}
+                        onCheckedChange={(checked) => setAckResetKeepModels(checked === true)}
+                        data-testid="checkbox-ack-reset-keep-models"
+                      />
+                      <Label htmlFor="ack-reset-keep-models" className="text-sm font-normal">
+                        I understand this permanently deletes telemetry, predictions, and anomalies
+                      </Label>
+                    </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel data-testid="button-cancel-reset">
                         Cancel
                       </AlertDialogCancel>
                       <AlertDialogAction
+                        disabled={!ackResetKeepModels}
                         onClick={() => t.resetMLData.mutate({ deleteModels: false })}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         data-testid="button-confirm-reset-keep-models"
@@ -719,7 +735,7 @@ export default function MLTrainingPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                <AlertDialog>
+                <AlertDialog onOpenChange={(open) => !open && setAckResetAll(false)}>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
@@ -763,11 +779,24 @@ export default function MLTrainingPage() {
                         </p>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="ack-reset-all"
+                        checked={ackResetAll}
+                        onCheckedChange={(checked) => setAckResetAll(checked === true)}
+                        data-testid="checkbox-ack-reset-all"
+                      />
+                      <Label htmlFor="ack-reset-all" className="text-sm font-normal">
+                        I understand this permanently deletes telemetry, predictions, anomalies, and
+                        all trained models
+                      </Label>
+                    </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel data-testid="button-cancel-reset-all">
                         Cancel
                       </AlertDialogCancel>
                       <AlertDialogAction
+                        disabled={!ackResetAll}
                         onClick={() => t.resetMLData.mutate({ deleteModels: true })}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         data-testid="button-confirm-reset-all"

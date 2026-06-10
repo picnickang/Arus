@@ -16,10 +16,7 @@ export function useTemplates() {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinTemplateSummary[]>({
     queryKey: ["/api/pdm/twin/def/templates", currentOrgId],
-    queryFn: () =>
-      apiRequest("GET", "/api/pdm/twin/def/templates") as Promise<
-        TwinTemplateSummary[]
-      >,
+    queryFn: () => apiRequest<TwinTemplateSummary[]>("GET", "/api/pdm/twin/def/templates"),
     enabled: !!currentOrgId,
   });
 }
@@ -46,8 +43,7 @@ export function useTwins() {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinSummary[]>({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId],
-    queryFn: () =>
-      apiRequest("GET", "/api/pdm/twin/def/twins") as Promise<TwinSummary[]>,
+    queryFn: () => apiRequest<TwinSummary[]>("GET", "/api/pdm/twin/def/twins"),
     enabled: !!currentOrgId,
   });
 }

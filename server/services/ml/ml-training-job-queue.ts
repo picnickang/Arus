@@ -23,6 +23,7 @@
 
 import PgBoss from "pg-boss";
 import type { db as DbInstance } from "../../db";
+import type { TrainingResult } from "../../ml-training-pipeline";
 import { logger } from "../../utils/logger";
 
 const LOG_CTX = "MlTrainingJobQueue";
@@ -48,7 +49,16 @@ export interface MlTrainingJobResult {
   metrics?: Record<string, number> | undefined;
   error?: string | undefined;
   durationMs: number;
-  evaluationPassed?: boolean | undefined;
+  /**
+   * Outcome of the held-out evaluation gate for this run:
+   *  - "passed"        — ModelEvaluationGate ran and approved the model.
+   *  - "failed"        — gate ran and rejected the model.
+   *  - "not_evaluated" — no held-out test data was available, or the gate
+   *                      itself errored. NEVER reported as "passed".
+   * Replaces the old `evaluationPassed: true` placeholder, which dishonestly
+   * claimed every model passed an evaluation that never actually ran.
+   */
+  evaluationStatus?: "passed" | "not_evaluated" | "failed" | undefined;
 }
 
 export interface MlJobStatus {
@@ -269,6 +279,44 @@ export class MlTrainingJobQueue {
   // Private: Job processing
   // ===========================================================================
 
+  /**
+   * Run the model-evaluation gate for a completed training run.
+   *
+   * Returns "not_evaluated" when the run carried no held-out test data (the
+   * current reality — the training pipeline is a stub) OR when the gate itself
+   * errors. A gate error must never be laundered into a "passed": a model that
+   * was not genuinely evaluated is reported as such so downstream deployment
+   * logic cannot treat it as validated.
+   */
+  private async runEvaluationGate(
+    orgId: string,
+    result: TrainingResult | undefined
+  ): Promise<"passed" | "not_evaluated" | "failed"> {
+    const evaluation = result?.evaluation;
+    if (!evaluation || evaluation.testData.length === 0 || !this.db) {
+      return "not_evaluated";
+    }
+    const db = this.db;
+    try {
+      const { ModelEvaluationGate } = await import("./model-evaluation-gate");
+      const gate = new ModelEvaluationGate(db);
+      const gateResult = await gate.evaluate(
+        orgId,
+        evaluation.modelId,
+        evaluation.testData,
+        evaluation.predict
+      );
+      return gateResult.approved ? "passed" : "failed";
+    } catch (error) {
+      logger.error(
+        LOG_CTX,
+        "Model evaluation gate errored; recording run as not_evaluated",
+        error
+      );
+      return "not_evaluated";
+    }
+  }
+
   private async processTrainingJob(
     job: PgBoss.Job<MlTrainingJobData>
   ): Promise<MlTrainingJobResult> {
@@ -280,7 +328,7 @@ export class MlTrainingJobQueue {
     });
 
     try {
-      let result: { metrics?: Record<string, number> } | undefined;
+      let result: TrainingResult | undefined;
       const equipmentType = data.equipmentType ?? "unknown";
 
       if (data.modelType === "all") {
@@ -318,29 +366,26 @@ export class MlTrainingJobQueue {
 
       const durationMs = Date.now() - startTime;
 
-      // Optionally run evaluation gate before marking as successful
-      const evaluationPassed = true;
-      try {
-        await import("./model-evaluation-gate");
-        // Evaluation would run here if test data is available
-        // For now, mark as passed — the gate can be wired in when test data infra exists
-      } catch {
-        // Evaluation gate not available
-      }
+      // Run the held-out evaluation gate before reporting success. When the
+      // training run surfaced no test data the status is "not_evaluated" —
+      // we never claim a model "passed" an evaluation that did not run.
+      const evaluationStatus = await this.runEvaluationGate(data.orgId, result);
 
       // Notify via WebSocket
       this.notifyCompletion(data.orgId, job.id, data.modelType, true, durationMs);
 
-      logger.info(LOG_CTX, `Training job ${job.id} completed in ${durationMs}ms`, {
-        orgId: data.orgId,
-      });
+      logger.info(
+        LOG_CTX,
+        `Training job ${job.id} completed in ${durationMs}ms (evaluation: ${evaluationStatus})`,
+        { orgId: data.orgId }
+      );
 
       return {
         modelType: data.modelType,
         success: true,
         metrics: result?.metrics,
         durationMs,
-        evaluationPassed,
+        evaluationStatus,
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;

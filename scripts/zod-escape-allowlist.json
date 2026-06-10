@@ -105,6 +105,11 @@
       "file": "server/domains/scheduling/routes.ts",
       "pattern": "z.unknown",
       "reason": "aggregate endpoint section passthrough \u2014 /api/optimization/dashboard reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6)"
+    },
+    {
+      "file": "client/src/components/sensors/useSensorTemplateForm.ts",
+      "pattern": "z.unknown",
+      "reason": "pre-existing class \u2014 sensor template freeform `fields` map mirrors the shared/schema/sensors.ts metadata blob; tighten together in #164 (shared/)"
     }
   ]
 }

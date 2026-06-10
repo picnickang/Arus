@@ -8,7 +8,11 @@
  * body when degraded / unhealthy, so the page reads the body regardless
  * of status (see `healthQueryFn` in `system-hub.tsx`).
  */
-export interface HubCheckResult {
+// Deliberately loose: this parses an untrusted health body (the endpoint returns
+// HTTP 503 with a populated body when degraded), so every field is optional and
+// `status` accepts arbitrary strings. Distinct from the strict server-side
+// DiagnosticsCheckResult; named separately to avoid a false-positive duplicate.
+export interface HealthCheckEntry {
   status?: "pass" | "warn" | "fail" | string;
   message?: string;
   responseTimeMs?: number;
@@ -23,9 +27,9 @@ export interface HealthResponse {
   status?: "healthy" | "degraded" | "unhealthy" | string;
   uptime?: number;
   checks?: {
-    database?: HubCheckResult;
-    telemetry?: HubCheckResult;
-    memory?: HubCheckResult;
+    database?: HealthCheckEntry;
+    telemetry?: HealthCheckEntry;
+    memory?: HealthCheckEntry;
     services?: ServiceStatusEntry[];
   };
 }

@@ -77,6 +77,9 @@ export const JOB_TYPES = {
   MODEL_RETRAIN: "model-retrain-weekly",
   ML_STALE_MODEL_CHECK: "ml-stale-model-check-daily",
   TELEMETRY_WAREHOUSE_EXPORT: "telemetry-warehouse-export-daily",
+  TELEMETRY_ROLLUP_HOURLY: "telemetry-rollup-hourly",
+  TELEMETRY_RETENTION: "telemetry-retention-daily",
+  TELEMETRY_PARTITION_MAINTENANCE: "telemetry-partition-maintenance-daily",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -292,6 +295,52 @@ class BackgroundJobQueue {
       } catch (schedErr) {
         const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
         logger.warn(`Failed to register telemetry warehouse export schedule: ${msg}`);
+      }
+
+      // Hourly telemetry rollups — 5 min past each hour so the previous
+      // hour's raw readings are settled, and the 02:00 warehouse export
+      // always finds finished 1_hour buckets. The aggregator's lookback
+      // windows overlap runs, so a missed hour self-heals.
+      try {
+        await ensureQueue(boss, JOB_TYPES.TELEMETRY_ROLLUP_HOURLY);
+        await boss.schedule(JOB_TYPES.TELEMETRY_ROLLUP_HOURLY, "5 * * * *", {}, { retryLimit: 1 });
+        logger.info(`Scheduled hourly cron: ${JOB_TYPES.TELEMETRY_ROLLUP_HOURLY} @ 5 * * * * UTC`);
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register telemetry rollup schedule: ${msg}`);
+      }
+
+      // Daily partition maintenance — keeps monthly equipment_telemetry
+      // partitions provisioned 3 months ahead (no-op until migration 0038
+      // partitions the table). Runs before retention so the boundary
+      // months retention inspects are always real partitions.
+      try {
+        await ensureQueue(boss, JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE);
+        await boss.schedule(
+          JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE,
+          "15 1 * * *",
+          {},
+          { retryLimit: 1 },
+        );
+        logger.info(
+          `Scheduled daily cron: ${JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE} @ 15 1 * * * UTC`,
+        );
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register telemetry partition maintenance schedule: ${msg}`);
+      }
+
+      // Daily telemetry retention — 03:30 UTC, after the 02:00 warehouse
+      // export (exports never race deletes) and offset from the Sunday
+      // 03:00 retrain. Destructive: also gated per-run by
+      // TELEMETRY_RETENTION_ENABLED inside the processor.
+      try {
+        await ensureQueue(boss, JOB_TYPES.TELEMETRY_RETENTION);
+        await boss.schedule(JOB_TYPES.TELEMETRY_RETENTION, "30 3 * * *", {}, { retryLimit: 1 });
+        logger.info(`Scheduled daily cron: ${JOB_TYPES.TELEMETRY_RETENTION} @ 30 3 * * * UTC`);
+      } catch (schedErr) {
+        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
+        logger.warn(`Failed to register telemetry retention schedule: ${msg}`);
       }
     } catch (err: unknown) {
       this.fallback = true;

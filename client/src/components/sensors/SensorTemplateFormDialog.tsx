@@ -11,6 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,45 +28,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSensorTemplate, useUpdateSensorTemplate } from "@/hooks/useSensorData";
-import { SENSOR_KIND_PRESETS, getDefaultUnit, getDefaultFields } from "@shared/sensorKindPresets";
+import { SENSOR_KIND_PRESETS } from "@shared/sensorKindPresets";
 import { Settings, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { SensorTemplate } from "@shared/schema";
-
-const SENSOR_KINDS = [
-  "vibration",
-  "pressure",
-  "temperature",
-  "flow",
-  "level",
-  "voltage",
-  "current",
-  "frequency",
-  "rpm",
-  "oil_debris",
-  "acoustic",
-  "position",
-];
-
-const EQUIPMENT_TYPES = [
-  "main_engine",
-  "auxiliary_engine",
-  "gearbox",
-  "marine_pump",
-  "compressor",
-  "generator",
-  "boiler",
-  "heat_exchanger",
-  "propeller",
-  "rudder",
-  "thruster",
-  "winch",
-  "crane",
-  "ballast_pump",
-  "fire_pump",
-  "hvac",
-  "navigation_system",
-];
+import {
+  EQUIPMENT_TYPES,
+  SENSOR_KINDS,
+  useSensorTemplateForm,
+  type SensorTemplateFormData,
+} from "./useSensorTemplateForm";
 
 type SensorTemplateFormDialogProps = {
   open: boolean;
@@ -75,39 +54,20 @@ export function SensorTemplateFormDialog({
   const [advancedMode, setAdvancedMode] = useState(false);
   const isCreate = mode === "create";
 
-  const [formData, setFormData] = useState({
-    templateId: "",
-    name: "",
-    kind: "",
-    unit: "",
-    equipmentTypes: [] as string[],
-    fields: {} as Record<string, unknown>,
-    notes: "",
-  });
-  const [fieldsJson, setFieldsJson] = useState("{}");
+  const { form, applyKindPreset, resetForm } = useSensorTemplateForm({ open, mode, template });
 
   useEffect(() => {
-    if (template && mode === "edit") {
-      setFormData({
-        templateId: template.templateId,
-        name: template.name,
-        kind: template.kind,
-        unit: template.unit || "",
-        equipmentTypes: template.equipmentTypes ?? [],
-        fields: template.fields,
-        notes: template.notes || "",
-      });
-      setFieldsJson(JSON.stringify(template.fields, null, 2));
-    } else if (mode === "create" && open) {
-      resetForm();
+    if (mode === "create" && open) {
+      setAdvancedMode(false);
     }
-  }, [template, mode, open]);
+  }, [mode, open]);
 
   const createMutation = useCreateSensorTemplate({
     successMessage: "Template created successfully",
     onSuccess: () => {
       onOpenChange(false);
       resetForm();
+      setAdvancedMode(false);
     },
   });
 
@@ -120,79 +80,42 @@ export function SensorTemplateFormDialog({
 
   const isPending = isCreate ? createMutation.isPending : updateMutation.isPending;
 
-  const resetForm = () => {
-    setFormData({
-      templateId: "",
-      name: "",
-      kind: "",
-      unit: "",
-      equipmentTypes: [],
-      fields: {},
-      notes: "",
-    });
-    setFieldsJson("{}");
-    setAdvancedMode(false);
-  };
-
-  const handleSubmit = () => {
-    try {
-      const fields = JSON.parse(fieldsJson);
-      if (isCreate) {
-        createMutation.mutate({ ...formData, fields });
-      } else if (template) {
-        updateMutation.mutate({
-          id: template.id,
-          data: {
-            name: formData.name,
-            unit: formData.unit,
-            equipmentTypes: formData.equipmentTypes,
-            fields,
-            notes: formData.notes,
-          },
-        });
-      }
-    } catch {
-      toast({
-        title: "Invalid JSON",
-        description: "Please enter valid JSON for fields",
-        variant: "destructive",
+  const onSubmit = (data: SensorTemplateFormData) => {
+    const fields = JSON.parse(data.fieldsJson) as Record<string, unknown>;
+    if (isCreate) {
+      createMutation.mutate({
+        templateId: data.templateId,
+        name: data.name,
+        kind: data.kind,
+        unit: data.unit,
+        equipmentTypes: data.equipmentTypes,
+        fields,
+        notes: data.notes,
+      });
+    } else if (template) {
+      updateMutation.mutate({
+        id: template.id,
+        data: {
+          name: data.name,
+          unit: data.unit,
+          equipmentTypes: data.equipmentTypes,
+          fields,
+          notes: data.notes,
+        },
       });
     }
   };
 
   const handleKindChange = (value: string) => {
-    const defaultUnit = getDefaultUnit(value as keyof typeof SENSOR_KIND_PRESETS);
-    const defaultFields = getDefaultFields(value as keyof typeof SENSOR_KIND_PRESETS);
-    setFormData({
-      ...formData,
-      kind: value,
-      unit: defaultUnit,
-      fields: defaultFields,
-    });
-    setFieldsJson(JSON.stringify(defaultFields, null, 2));
+    applyKindPreset(value);
     toast({
       title: "Defaults Applied",
       description: `Auto-filled with ${SENSOR_KIND_PRESETS[value as keyof typeof SENSOR_KIND_PRESETS]?.label || value} preset defaults`,
     });
   };
 
-  const handleEquipmentTypeToggle = (type: string, checked: boolean) => {
-    if (checked) {
-      setFormData({
-        ...formData,
-        equipmentTypes: [...formData.equipmentTypes, type],
-      });
-    } else {
-      setFormData({
-        ...formData,
-        equipmentTypes: formData.equipmentTypes.filter((t) => t !== type),
-      });
-    }
-  };
-
-  const isFormValid = isCreate
-    ? formData.templateId.trim() !== "" && formData.name.trim() !== "" && formData.kind !== ""
-    : formData.name.trim() !== "";
+  const watchedKind = form.watch("kind");
+  const watchedFields = form.watch("fields");
 
   const testIdPrefix = isCreate ? "create-" : "edit-";
 
@@ -208,233 +131,295 @@ export function SensorTemplateFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="templateId" className="text-right">
-              Template ID {isCreate && "*"}
-            </Label>
-            <Input
-              id="templateId"
-              className={`col-span-3 ${!isCreate ? "bg-muted" : ""}`}
-              value={formData.templateId}
-              onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
-              placeholder="e.g., CUSTOM-PRESSURE-01"
-              disabled={!isCreate}
-              data-testid={`input-${testIdPrefix}templateId`}
-            />
-          </div>
-
-          {isCreate ? (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="kind" className="text-right">
-                Kind *
-              </Label>
-              <div className="col-span-3 space-y-2">
-                <Select value={formData.kind} onValueChange={handleKindChange}>
-                  <SelectTrigger data-testid={`select-${testIdPrefix}kind`}>
-                    <SelectValue placeholder="Select sensor kind" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SENSOR_KINDS.map((kind) => (
-                      <SelectItem key={kind} value={kind}>
-                        <div className="flex items-center gap-2">
-                          {kind}
-                          {SENSOR_KIND_PRESETS[kind as keyof typeof SENSOR_KIND_PRESETS] && (
-                            <span className="text-xs text-muted-foreground">
-                              (
-                              {
-                                SENSOR_KIND_PRESETS[kind as keyof typeof SENSOR_KIND_PRESETS]
-                                  .defaultUnit
-                              }
-                              )
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.kind &&
-                  SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS]
-                    ?.description && (
-                    <p className="text-xs text-muted-foreground">
-                      {
-                        SENSOR_KIND_PRESETS[formData.kind as keyof typeof SENSOR_KIND_PRESETS]
-                          .description
-                      }
-                    </p>
-                  )}
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Kind</Label>
-              <Input
-                className="col-span-3 bg-muted"
-                value={formData.kind}
-                disabled
-                data-testid={`input-${testIdPrefix}kind-readonly`}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="templateId"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
+                    <FormLabel className="text-right" required={isCreate}>
+                      Template ID
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        className={`col-span-3 ${!isCreate ? "bg-muted" : ""}`}
+                        placeholder="e.g., CUSTOM-PRESSURE-01"
+                        disabled={!isCreate}
+                        data-testid={`input-${testIdPrefix}templateId`}
+                      />
+                    </FormControl>
+                    <FormMessage className="col-span-3 col-start-2" />
+                  </FormItem>
+                )}
               />
-            </div>
-          )}
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name *
-            </Label>
-            <Input
-              id="name"
-              className="col-span-3"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Custom Pressure Sensor"
-              data-testid={`input-${testIdPrefix}name`}
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="unit" className="text-right">
-              Unit
-            </Label>
-            <Input
-              id="unit"
-              className="col-span-3"
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              placeholder="e.g., bar, psi, °C"
-              data-testid={`input-${testIdPrefix}unit`}
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label className="text-right pt-2">Equipment Types</Label>
-            <div className="col-span-3">
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
-                {EQUIPMENT_TYPES.map((type) => (
-                  <div key={type} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`equipment-${type}`}
-                      checked={formData.equipmentTypes.includes(type)}
-                      onCheckedChange={(checked) =>
-                        handleEquipmentTypeToggle(type, checked as boolean)
-                      }
-                      data-testid={`checkbox-${testIdPrefix}equipment-${type}`}
-                    />
-                    <label
-                      htmlFor={`equipment-${type}`}
-                      className="text-sm cursor-pointer select-none"
-                    >
-                      {type.replaceAll("_", " ")}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Select applicable equipment types (optional)
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label className="text-right pt-2">Configuration</Label>
-            <div className="col-span-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Fields (JSON) *</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAdvancedMode(!advancedMode)}
-                  className="h-7 text-xs"
-                  data-testid={`button-${testIdPrefix}toggle-advanced`}
-                >
-                  {advancedMode ? (
-                    <>
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Simple Mode
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="h-3 w-3 mr-1" />
-                      Advanced Mode
-                    </>
+              {isCreate ? (
+                <FormField
+                  control={form.control}
+                  name="kind"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
+                      <FormLabel className="text-right" required>
+                        Kind
+                      </FormLabel>
+                      <div className="col-span-3 space-y-2">
+                        <Select value={field.value} onValueChange={handleKindChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid={`select-${testIdPrefix}kind`}>
+                              <SelectValue placeholder="Select sensor kind" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SENSOR_KINDS.map((kind) => (
+                              <SelectItem key={kind} value={kind}>
+                                <div className="flex items-center gap-2">
+                                  {kind}
+                                  {SENSOR_KIND_PRESETS[
+                                    kind as keyof typeof SENSOR_KIND_PRESETS
+                                  ] && (
+                                    <span className="text-xs text-muted-foreground">
+                                      (
+                                      {
+                                        SENSOR_KIND_PRESETS[
+                                          kind as keyof typeof SENSOR_KIND_PRESETS
+                                        ].defaultUnit
+                                      }
+                                      )
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {field.value &&
+                          SENSOR_KIND_PRESETS[field.value as keyof typeof SENSOR_KIND_PRESETS]
+                            ?.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {
+                                SENSOR_KIND_PRESETS[field.value as keyof typeof SENSOR_KIND_PRESETS]
+                                  .description
+                              }
+                            </p>
+                          )}
+                        <FormMessage />
+                      </div>
+                    </FormItem>
                   )}
-                </Button>
-              </div>
-              {advancedMode ? (
-                <Textarea
-                  className="font-mono text-sm"
-                  value={fieldsJson}
-                  onChange={(e) => setFieldsJson(e.target.value)}
-                  placeholder='{"key": "value"}'
-                  rows={8}
-                  data-testid={`input-${testIdPrefix}fields`}
                 />
               ) : (
-                <div className="rounded-md border p-3 bg-muted/30">
-                  {isCreate && !formData.kind ? (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Select a sensor kind above to auto-fill with industry-standard defaults.
-                    </p>
-                  ) : null}
-                  {formData.kind && (
-                    <div className="text-xs font-mono bg-background p-2 rounded border">
-                      <pre>{JSON.stringify(formData.fields, null, 2)}</pre>
-                    </div>
-                  )}
-                  {!isCreate && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Enable Advanced Mode to edit the JSON configuration
-                    </p>
-                  )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Kind</Label>
+                  <Input
+                    className="col-span-3 bg-muted"
+                    value={watchedKind}
+                    disabled
+                    data-testid={`input-${testIdPrefix}kind-readonly`}
+                  />
                 </div>
               )}
+
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
+                    <FormLabel className="text-right" required>
+                      Name
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        className="col-span-3"
+                        placeholder="e.g., Custom Pressure Sensor"
+                        data-testid={`input-${testIdPrefix}name`}
+                      />
+                    </FormControl>
+                    <FormMessage className="col-span-3 col-start-2" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
+                    <FormLabel className="text-right">Unit</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        className="col-span-3"
+                        placeholder="e.g., bar, psi, °C"
+                        data-testid={`input-${testIdPrefix}unit`}
+                      />
+                    </FormControl>
+                    <FormMessage className="col-span-3 col-start-2" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="equipmentTypes"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-start gap-4 space-y-0">
+                    <FormLabel className="text-right pt-2">Equipment Types</FormLabel>
+                    <div className="col-span-3">
+                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+                        {EQUIPMENT_TYPES.map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`equipment-${type}`}
+                              checked={field.value.includes(type)}
+                              onCheckedChange={(checked) =>
+                                field.onChange(
+                                  checked
+                                    ? [...field.value, type]
+                                    : field.value.filter((t) => t !== type)
+                                )
+                              }
+                              data-testid={`checkbox-${testIdPrefix}equipment-${type}`}
+                            />
+                            <label
+                              htmlFor={`equipment-${type}`}
+                              className="text-sm cursor-pointer select-none"
+                            >
+                              {type.replaceAll("_", " ")}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Select applicable equipment types (optional)
+                      </p>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="fieldsJson"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-start gap-4 space-y-0">
+                    <FormLabel className="text-right pt-2">Configuration</FormLabel>
+                    <div className="col-span-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Fields (JSON) *</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAdvancedMode(!advancedMode)}
+                          className="h-7 text-xs"
+                          data-testid={`button-${testIdPrefix}toggle-advanced`}
+                        >
+                          {advancedMode ? (
+                            <>
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Simple Mode
+                            </>
+                          ) : (
+                            <>
+                              <Settings className="h-3 w-3 mr-1" />
+                              Advanced Mode
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {advancedMode ? (
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            className="font-mono text-sm"
+                            placeholder='{"key": "value"}'
+                            rows={8}
+                            data-testid={`input-${testIdPrefix}fields`}
+                          />
+                        </FormControl>
+                      ) : (
+                        <div className="rounded-md border p-3 bg-muted/30">
+                          {isCreate && !watchedKind ? (
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Select a sensor kind above to auto-fill with industry-standard
+                              defaults.
+                            </p>
+                          ) : null}
+                          {watchedKind && (
+                            <div className="text-xs font-mono bg-background p-2 rounded border">
+                              <pre>{JSON.stringify(watchedFields, null, 2)}</pre>
+                            </div>
+                          )}
+                          {!isCreate && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Enable Advanced Mode to edit the JSON configuration
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-start gap-4 space-y-0">
+                    <FormLabel className="text-right pt-2">Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        className="col-span-3"
+                        placeholder="Additional notes about this template"
+                        rows={3}
+                        data-testid={`input-${testIdPrefix}notes`}
+                      />
+                    </FormControl>
+                    <FormMessage className="col-span-3 col-start-2" />
+                  </FormItem>
+                )}
+              />
             </div>
-          </div>
 
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="notes" className="text-right pt-2">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              className="col-span-3"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional notes about this template"
-              rows={3}
-              data-testid={`input-${testIdPrefix}notes`}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              onOpenChange(false);
-              if (isCreate) {
-                resetForm();
-              }
-            }}
-            data-testid={`button-cancel-${isCreate ? "create" : "edit"}`}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!isFormValid || isPending}
-            data-testid={`button-submit-${isCreate ? "create" : "edit"}`}
-          >
-            {isPending
-              ? isCreate
-                ? "Creating..."
-                : "Updating..."
-              : isCreate
-                ? "Create Template"
-                : "Update Template"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  if (isCreate) {
+                    resetForm();
+                    setAdvancedMode(false);
+                  }
+                }}
+                data-testid={`button-cancel-${isCreate ? "create" : "edit"}`}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending}
+                data-testid={`button-submit-${isCreate ? "create" : "edit"}`}
+              >
+                {isPending
+                  ? isCreate
+                    ? "Creating..."
+                    : "Updating..."
+                  : isCreate
+                    ? "Create Template"
+                    : "Update Template"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

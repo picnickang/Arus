@@ -42,7 +42,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Scalability and load balancer health
   app.get(
     "/api/health/scalability",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get scalability health", async (req: Request, res: Response) => {
       const { getLoadBalancerHealth } = await import("../../scalability");
       res.json(getLoadBalancerHealth());
@@ -52,7 +52,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Background jobs health
   app.get(
     "/api/health/background-jobs",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get background job status", async (req: Request, res: Response) => {
       const { jobQueue } = await import("../../background-jobs");
       res.json({
@@ -67,7 +67,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Cache health
   app.get(
     "/api/health/cache",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get cache status", async (req: Request, res: Response) => {
       const { cache } = await import("../../scalability");
       res.json({
@@ -81,7 +81,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Telemetry health - batch writer and ingestion stats
   app.get(
     "/api/health/telemetry",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get telemetry health status", async (req: Request, res: Response) => {
       const { telemetryBatchWriter } = await import("../../telemetry-batch-writer");
       const { getBridgeState } = await import("../../services/sqlite-bridge");
@@ -340,7 +340,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Circuit breaker status for external services
   app.get(
     "/api/health/circuit-breakers",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("fetch circuit breaker status", async (req: Request, res: Response) => {
       const { getAllCircuitBreakerStatuses } = await import(
         "../../services/external-circuit-breakers"
@@ -375,7 +375,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // External dependencies health check
   app.get(
     "/api/health/dependencies",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
       const { mqttReliableSync: mqttReliableSyncService } = await import(

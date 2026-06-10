@@ -180,8 +180,11 @@ function VesselIntelligenceSection() {
     }
     setIsLoadingIntelligence(true);
     try {
-      const data = await apiRequest("GET", `/api/analytics/vessel-intelligence/${selectedVessel}`);
-      setVesselIntelligence(data as Parameters<typeof setVesselIntelligence>[0]);
+      const data = await apiRequest<VesselIntelligenceData | null>(
+        "GET",
+        `/api/analytics/vessel-intelligence/${selectedVessel}`
+      );
+      setVesselIntelligence(data);
     } catch {
       console.error("Failed to load vessel intelligence");
     } finally {

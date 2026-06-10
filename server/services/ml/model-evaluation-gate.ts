@@ -28,10 +28,25 @@ type DbHandle = typeof DbInstance;
 // Types
 // ============================================================================
 
-interface TestDataPoint {
+export interface TestDataPoint {
   features: Record<string, number>; // sensor readings
   label: 0 | 1; // 0 = no failure, 1 = failure
   predictedProbability?: number; // filled in by evaluation
+}
+
+/**
+ * Held-out evaluation inputs a training run can surface so the gate can run
+ * for real. When a training result carries this, the job queue runs the
+ * ModelEvaluationGate; when it does not, the run is honestly recorded as
+ * "not_evaluated" (never an unconditional "passed").
+ */
+export interface ModelEvaluationInputs {
+  /** ID of the freshly trained model being evaluated for deployment. */
+  modelId: string;
+  /** Held-out, labelled test set. */
+  testData: TestDataPoint[];
+  /** Returns a failure probability in [0,1] for a feature vector. */
+  predict: (features: Record<string, number>) => Promise<number>;
 }
 
 interface EvaluationMetrics {

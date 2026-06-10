@@ -17,6 +17,7 @@
 #   server/telemetry-batch-writer.ts
 #   server/observability/warehouse-export-metrics.ts (LR-2)
 #   server/observability/websocket-metrics.ts (LR-3 — this wave)
+#   server/services/sqlite-bridge/index.ts (silent-loss alerts)
 #
 # Severity convention:
 #   critical → pages on-call (PagerDuty)
@@ -170,6 +171,54 @@ groups:
           summary: "Warehouse export failure in the last 26h"
           runbook: docs/operations/runbooks/incident-response.md
 
+      - alert: TelemetryBufferEvictions
+        # `arus_telemetry_batch_evicted_total` (telemetry-batch-writer.ts)
+        # counts readings discarded by ring-buffer overflow BEFORE any DB
+        # write. Every increment is silent, unrecoverable data loss — the
+        # client gets no backpressure signal — so any increase pages.
+        expr: |
+          increase(arus_telemetry_batch_evicted_total[10m]) > 0
+        labels:
+          severity: critical
+          surface: telemetry
+        annotations:
+          summary: "Telemetry readings evicted from the batch-writer buffer (silent data loss)"
+          description: >-
+            {{ $value }} readings evicted in the last 10m: ingest rate is
+            exceeding flush throughput (TELEMETRY_MAX_BUFFER_SIZE /
+            TELEMETRY_BATCH_INTERVAL_MS). Check
+            arus_telemetry_batch_flush_duration_ms and database health.
+          runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: TelemetryReadingsDroppedAfterRetries
+        # `arus_telemetry_batch_dropped_total` counts readings discarded
+        # after exhausting flush retries (TELEMETRY_MAX_RETRIES) — loss on
+        # the database side, equally silent.
+        expr: |
+          increase(arus_telemetry_batch_dropped_total[10m]) > 0
+        labels:
+          severity: critical
+          surface: telemetry
+        annotations:
+          summary: "Telemetry readings dropped after exhausting flush retries (silent data loss)"
+          runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: BridgeBacklogGrowing
+        # `arus_bridge_backlog_frames` (sqlite-bridge gauge): raw frames
+        # waiting in the vessel SQLite buffer behind the bridge cursor.
+        # Sustained backlog above one full batch-writer buffer means the
+        # bridge is not draining; eviction risk follows. Threshold is
+        # provisional pending a production soak — calibrate against the
+        # baseline in docs/qa/load-test-results.md.
+        expr: arus_bridge_backlog_frames > 10000
+        for: 15m
+        labels:
+          severity: warning
+          surface: telemetry
+        annotations:
+          summary: "SQLite-bridge backlog > 10k frames for 15m"
+          runbook: docs/operations/runbooks/incident-response.md
+
   # ---------------------------------------------------------------------
   # DLQ — server/services/dead-letter-queue/index.ts
   # ---------------------------------------------------------------------
@@ -204,6 +253,36 @@ groups:
           surface: queue
         annotations:
           summary: "DLQ add-rate exceeds replay-rate by > 0.1/sec for 30m"
+
+      - alert: DlqDepthHigh
+        # Despite the `_total` suffix, `arus_dlq_entries_total` is a
+        # depth GAUGE labeled by queue (dead-letter-queue/index.ts).
+        # Replay is operator-driven — sustained depth means nobody is
+        # draining the queue.
+        expr: |
+          max by (queue) (arus_dlq_entries_total) > 100
+        for: 15m
+        labels:
+          severity: warning
+          surface: queue
+        annotations:
+          summary: "DLQ {{ $labels.queue }} holding > 100 entries for 15m"
+          runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: DlqNearCapacity
+        # DeadLetterQueue maxEntries defaults to 10000 (5000 for the
+        # sqlite-bridge queue); at capacity, add() discards the OLDEST
+        # entry — DLQ'd readings become unrecoverable. Page at half of
+        # the smaller (bridge) cap.
+        expr: |
+          max by (queue) (arus_dlq_entries_total) > 2500
+        for: 10m
+        labels:
+          severity: critical
+          surface: queue
+        annotations:
+          summary: "DLQ {{ $labels.queue }} above half capacity — oldest entries will be discarded at the cap"
+          runbook: docs/operations/runbooks/incident-response.md
 
   # ---------------------------------------------------------------------
   # API response validation — server/observability/security-metrics.ts
