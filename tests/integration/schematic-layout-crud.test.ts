@@ -13,7 +13,14 @@ async function api(method: string, path: string, body?: unknown) {
     headers: HEADERS,
     body: body ? JSON.stringify(body) : undefined,
   });
-  return { status: res.status, data: await res.json() };
+  const raw: unknown = await res.json();
+  // Unwrap the canonical response envelope on migrated domains.
+  const record = raw as Record<string, unknown> | null;
+  const data =
+    record && typeof record === "object" && record["success"] === true && "data" in record
+      ? record["data"]
+      : raw;
+  return { status: res.status, data: data as never };
 }
 
 const layoutUrl = `/api/vessels/${VESSEL_ID}/schematic-layout`;

@@ -123,18 +123,13 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
     queryFn: async () => {
       const sensorTypes = ["temperature", "pressure", "vibration", "flow_rate", "oil_quality"];
       const hours = hoursMap[timeRange];
-      const orgHeader = currentOrgId || "";
       const results = await Promise.all(
         sensorTypes.map(async (sensorType) => {
           try {
-            const response = await fetch(
-              `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`,
-              { headers: { "x-org-id": orgHeader } }
+            return await apiRequest<PdmEquipmentTelemetryReading[]>(
+              "GET",
+              `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`
             );
-            if (!response.ok) {
-              return [];
-            }
-            return response.json();
           } catch {
             return [];
           }

@@ -43,11 +43,7 @@ export function useKnowledgeBase() {
     enabled: searchQuery.length >= 3,
     queryFn: async () => {
       const params = new URLSearchParams({ q: searchQuery, limit: "10", threshold: "0.5" });
-      const res = await fetch(`/api/kb/search?${params}`);
-      if (!res.ok) {
-        throw new Error("Search failed");
-      }
-      return res.json();
+      return apiRequest(`/api/kb/search?${params}`);
     },
   });
 

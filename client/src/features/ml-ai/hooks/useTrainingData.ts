@@ -59,11 +59,7 @@ export function useTrainingData() {
     queryKey: trainingKeys.models(orgId),
     queryFn: async () => {
       try {
-        const res = await fetch(`/api/analytics/ml-models?orgId=${orgId}`);
-        if (!res.ok) {
-          return [];
-        }
-        const data = await res.json();
+        const data = await apiRequest("GET", `/api/analytics/ml-models?orgId=${orgId}`);
         return Array.isArray(data) ? data : [];
       } catch {
         return [];

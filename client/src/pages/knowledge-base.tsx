@@ -1,3 +1,5 @@
+import { ApiError } from "@/lib/api-error";
+import { apiFormDataRequest, apiRequest } from "@/lib/queryClient";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -382,12 +384,7 @@ export default function KnowledgeBasePage() {
     try {
       const formData = new FormData();
       formData.append("file", job.file);
-      const res = await fetch("/api/kb/upload", { method: "POST", body: formData });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Upload failed");
-      }
-      const data = await res.json();
+      const data = await apiFormDataRequest<{ jobId: string }>("POST", "/api/kb/upload", formData);
       setUploadJobs((prev) =>
         prev.map((j) =>
           j.id === job.id
@@ -416,11 +413,20 @@ export default function KnowledgeBasePage() {
     let backoffMs = 1000;
     while (polling) {
       try {
-        const res = await fetch(`/api/kb/jobs/${jobId}`);
-        if (!res.ok) {
-          break;
+        let status: { status?: string; error?: string };
+        try {
+          status = await apiRequest<{ status?: string; error?: string }>(
+            "GET",
+            `/api/kb/jobs/${jobId}`
+          );
+        } catch (error) {
+          // HTTP errors stop polling (the old !res.ok break); network blips
+          // fall through to the outer retry.
+          if (error instanceof ApiError) {
+            break;
+          }
+          throw error;
         }
-        const status = await res.json();
         if (status.status === "completed") {
           setUploadJobs((prev) =>
             prev.map((j) =>
