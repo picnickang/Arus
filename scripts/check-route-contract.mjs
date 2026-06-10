@@ -20,7 +20,8 @@
  *     `*` matches anything.
  *
  * Pre-existing drift is ratcheted (same pattern as check:cast-burndown):
- * scripts/route-contract-baseline.json holds the known-unmatched set; the
+ * scripts/route-contract-baseline.json holds the known-unmatched set
+ * (per-entry dispositions: docs/qa/route-contract-triage.md); the
  * check fails only on NEW unmatched paths, and reports when baseline
  * entries get fixed so the file can be pruned. Run with --update-baseline
  * to regenerate it (do this only when you've verified the new entries are
@@ -105,10 +106,20 @@ function pathMatches(clientSegs, serverSegs) {
 
 export function findUnmatched(clientPaths, serverPaths) {
   const serverSegLists = [...serverPaths].map(segments);
+  const matches = (clientPath) => {
+    const cSegs = segments(clientPath);
+    return serverSegLists.some((sSegs) => pathMatches(cSegs, sSegs));
+  };
   const unmatched = [];
   for (const [clientPath, file] of clientPaths) {
-    const cSegs = segments(clientPath);
-    const ok = serverSegLists.some((sSegs) => pathMatches(cSegs, sSegs));
+    let ok = matches(clientPath);
+    // server/middleware/api-versioning.ts rewrites /api/v1/* → /api/* and
+    // re-dispatches, so a versioned client path is served whenever its
+    // unversioned form has a route. The rewrite is invisible to the route
+    // table walk — model it here.
+    if (!ok && clientPath.startsWith("/api/v1/")) {
+      ok = matches(clientPath.replace("/api/v1/", "/api/"));
+    }
     if (!ok) unmatched.push({ path: clientPath, file });
   }
   return unmatched.sort((a, b) => a.path.localeCompare(b.path));
@@ -161,7 +172,7 @@ function main() {
       console.error(`  ✗ ${path}   (first seen in ${file})`);
     }
     console.error(
-      "[route-contract] Implement the route, fix the client path, or (only if intentional) run with --update-baseline."
+      "[route-contract] Implement the route, fix the client path, or (only if intentional) run with --update-baseline. Baseline dispositions: docs/qa/route-contract-triage.md"
     );
     process.exit(1);
   }
