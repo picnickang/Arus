@@ -11,7 +11,6 @@ export function deriveHubHealthFields(
   return {
     health: healthIdx,
     rul: pred?.remainingUsefulLife ?? null,
-    confidence:
-      pred?.failureProbability == null ? null : Math.round(pred.failureProbability * 100),
+    confidence: pred?.failureProbability == null ? null : Math.round(pred.failureProbability * 100),
   };
 }

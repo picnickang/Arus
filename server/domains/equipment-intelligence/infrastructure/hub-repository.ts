@@ -117,10 +117,11 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
     ]);
 
     const pred = predictions[0];
-    const { health: healthScore, rul, confidence } = deriveHubHealthFields(
-      pdmScores[0]?.healthIdx ?? null,
-      pred ?? null
-    );
+    const {
+      health: healthScore,
+      rul,
+      confidence,
+    } = deriveHubHealthFields(pdmScores[0]?.healthIdx ?? null, pred ?? null);
     const risk = computeRisk(healthScore ?? 100);
     const telemetry =
       telemetryData.length > 0 ? telemetryData : healthScore == null ? [] : [healthScore];
@@ -422,7 +423,9 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         summary: diagnosticRuns.summary,
         createdAt: diagnosticRuns.createdAt,
       });
-    if (!row) {throw new Error("saveDiagnosticRun: no row returned");}
+    if (!row) {
+      throw new Error("saveDiagnosticRun: no row returned");
+    }
 
     return {
       id: row.id,
@@ -788,8 +791,10 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         id: r.id,
         title: r.description || "Work Order",
         status: r.status,
-        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] ?? "" : "",
-        completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] ?? null : null,
+        createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
+        completedAt: r.completedAt
+          ? (new Date(r.completedAt).toISOString().split("T")[0] ?? null)
+          : null,
         assignedCrewId: r.assignedCrewId ?? null,
         assignmentStatus: r.assignmentStatus ?? null,
         assignmentResponseReason: r.assignmentResponseReason ?? null,

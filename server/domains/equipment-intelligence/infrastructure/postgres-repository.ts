@@ -326,7 +326,9 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
           | { actualEndDate?: Date | string | null }
           | undefined;
         const v = last?.actualEndDate;
-        if (!v) {return null;}
+        if (!v) {
+          return null;
+        }
         return v instanceof Date ? v.toISOString() : v;
       })(),
       nextDue:
@@ -361,8 +363,10 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       id: r.id,
       title: r.description || "Work Order",
       status: r.status,
-      createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] ?? "" : "",
-      completedAt: r.completedAt ? new Date(r.completedAt).toISOString().split("T")[0] ?? null : null,
+      createdAt: r.createdAt ? (new Date(r.createdAt).toISOString().split("T")[0] ?? "") : "",
+      completedAt: r.completedAt
+        ? (new Date(r.completedAt).toISOString().split("T")[0] ?? null)
+        : null,
       assignedCrewId: r.assignedCrewId ?? null,
       assignmentStatus: r.assignmentStatus ?? null,
       assignmentResponseReason: r.assignmentResponseReason ?? null,
