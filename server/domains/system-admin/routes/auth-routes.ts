@@ -129,7 +129,14 @@ async function upsertDatabaseAdminHash(hash: string): Promise<void> {
   await dbSystemAdminStorage.createAdminSystemSetting(payload);
 }
 
-async function getAdminCredential(): Promise<{ hash?: string; legacyPlaintext?: string }> {
+// Warn at most once per process when the legacy plaintext fallback is used,
+// so a dev environment is loudly reminded to migrate without spamming a line
+// on every single auth attempt.
+let warnedLegacyAdminToken = false;
+
+// Exported for unit testing of the production plaintext-token gate. Not part
+// of the route surface — callers within this module use it directly.
+export async function getAdminCredential(): Promise<{ hash?: string; legacyPlaintext?: string }> {
   const databaseHash = await readDatabaseAdminHash();
   if (databaseHash) {
     return { hash: databaseHash };
@@ -140,6 +147,26 @@ async function getAdminCredential(): Promise<{ hash?: string; legacyPlaintext?: 
   }
 
   if (process.env["ADMIN_TOKEN"]) {
+    // Legacy plaintext admin token. A plaintext credential sitting in the
+    // process environment is trivially exfiltrated (crash dumps, /proc, child
+    // process env) and must NEVER be the basis of admin auth in production.
+    // Production requires a bcrypt hash (database `admin_password_hash` or
+    // ADMIN_TOKEN_HASH); the plaintext fallback is honoured in non-production
+    // only, as a developer convenience.
+    if (process.env["NODE_ENV"] === "production") {
+      logger.error(
+        "AdminAuth",
+        "Ignoring plaintext ADMIN_TOKEN in production — provision ADMIN_TOKEN_HASH (bcrypt) or a database admin hash. Admin auth stays disabled until a hash exists."
+      );
+      return {};
+    }
+    if (!warnedLegacyAdminToken) {
+      warnedLegacyAdminToken = true;
+      logger.warn(
+        "AdminAuth",
+        "Honouring legacy plaintext ADMIN_TOKEN (non-production only). Migrate to ADMIN_TOKEN_HASH (bcrypt); this fallback is rejected under NODE_ENV=production."
+      );
+    }
     return { legacyPlaintext: process.env["ADMIN_TOKEN"] };
   }
 

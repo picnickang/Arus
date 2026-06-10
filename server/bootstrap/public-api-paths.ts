@@ -37,6 +37,16 @@ import type { Request } from "express";
 //                          The route itself returns 404 unless the
 //                          ARUS_DEV_LOGIN gate permits it and production
 //                          always denies it.
+//   /health, /healthz, /readyz, /metrics — liveness / readiness /
+//                          Prometheus scraping. Unauthenticated so external
+//                          probes (Kubernetes, load balancer, monitoring)
+//                          can reach them. EXACT match only: the basic
+//                          liveness payload is intentionally public, but the
+//                          `/health/*` sub-paths (background-jobs, cache,
+//                          telemetry, scalability, circuit-breakers,
+//                          dependencies) expose internal operational detail
+//                          and MUST stay behind auth — listing `/health` as a
+//                          prefix would silently expose all of them.
 const EXACT_PUBLIC_API_PATHS = new Set([
   "/admin/auth/status",
   "/admin/auth/setup",
@@ -44,22 +54,18 @@ const EXACT_PUBLIC_API_PATHS = new Set([
   "/setup/complete",
   "/portal/login",
   "/portal/dev-login",
-]);
-
-// PUBLIC_API_PREFIXES — prefix-match (and bare path) is allowed.
-//   /health, /healthz, /readyz, /metrics — liveness / readiness /
-//     Prometheus scraping. Must be unauthenticated so external probes
-//     (Kubernetes, load balancer, monitoring) can reach them.
-//   /observability/web-vitals — Wave 5.9 sendBeacon receipt. The
-//     beacon API cannot always attach session cookies; the payload is
-//     intrinsically untrusted and sanitized server-side.
-const PUBLIC_API_PREFIXES = [
   "/health",
   "/healthz",
   "/readyz",
   "/metrics",
-  "/observability/web-vitals",
-];
+]);
+
+// PUBLIC_API_PREFIXES — prefix-match (and bare path) is allowed.
+//   /observability/web-vitals — Wave 5.9 sendBeacon receipt. The
+//     beacon API cannot always attach session cookies; the payload is
+//     intrinsically untrusted and sanitized server-side. Prefix-matched so
+//     the per-metric sub-paths (eg. /observability/web-vitals/lcp) resolve.
+const PUBLIC_API_PREFIXES = ["/observability/web-vitals"];
 
 const SENSITIVE_API_PREFIXES = [
   "/admin/auth",

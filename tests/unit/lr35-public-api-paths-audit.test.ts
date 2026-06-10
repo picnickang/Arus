@@ -94,6 +94,24 @@ describe("LR-3.5 V3 — public-api allowlist negative pins", () => {
     // Telemetry write paths.
     "/api/telemetry/readings",
     "/api/telemetry/bulk",
+
+    // Detailed health sub-paths — only the bare /api/health liveness probe
+    // is public. These expose internal operational detail (job-queue stats,
+    // cache internals, telemetry buffer state, circuit-breaker states,
+    // dependency connection status) and MUST stay behind requireOrgId. They
+    // are NOT covered by a `/health` prefix any more (exact-match only).
+    "/api/health/background-jobs",
+    "/api/health/cache",
+    "/api/health/telemetry",
+    "/api/health/scalability",
+    "/api/health/circuit-breakers",
+    "/api/health/dependencies",
+    "/api/health/detailed",
+    "/api/health/equipment",
+    "/api/health/fleet",
+    // /metrics is exact-match: a sub-path must not inherit public status.
+    "/api/metrics/internal",
+    "/api/healthz/secret",
   ])("is NOT public: %s", (path) => {
     expect(isPublicApiPath(path)).toBe(false);
   });
