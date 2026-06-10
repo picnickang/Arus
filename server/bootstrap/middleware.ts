@@ -9,6 +9,7 @@ import type { Express } from "express";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 import { additionalSecurityHeaders, sanitizeRequestData, detectAttackPatterns } from "../security";
 import { originAllowed } from "../utils/corsWildcard";
 import { safeStringify } from "../utils/redact-log";
@@ -167,6 +168,20 @@ export function configureMiddleware(app: Express): void {
     })
   );
 
+  // App-level gzip: the Caddy proxy compresses cloud traffic, but desktop
+  // sidecar and direct :5000 access were shipping uncompressed JSON. SSE
+  // streams must not be buffered by compression.
+  app.use(
+    compression({
+      filter: (req, res) => {
+        if (res.getHeader("Content-Type")?.toString().includes("text/event-stream")) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+    })
+  );
+
   app.use(additionalSecurityHeaders);
   app.use(detectAttackPatterns);
   app.use(sanitizeRequestData);
@@ -227,6 +242,12 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   // Deprecation / Sunset / Link headers on legacy unversioned /api/* calls.
   applyApiVersioning(app);
 
+  // Response-envelope wrapping for migrated domains (lib/envelope-manifest).
+  // Mounted before the auth chain so auth failures on migrated prefixes are
+  // enveloped too; the middleware no-ops for paths outside the manifest.
+  const { envelopeJson } = await import("../middleware/envelope");
+  app.use("/api", envelopeJson());
+
   const skipPublicPaths =
     (middleware: import("express").RequestHandler): import("express").RequestHandler =>
     (req, res, next) => {
@@ -241,4 +262,15 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   app.use("/api", skipPublicPaths(requireOrgId));
   app.use("/api", skipPublicPaths(validateOrgIdHeader));
   app.use("/api", skipPublicPaths(withDatabaseContext));
+
+  // Idempotency on every offline-queueable route family (needs orgId, so it
+  // mounts after the auth chain). The shared registry keeps client
+  // queueability and server replay protection in lockstep; older per-route
+  // mounts compose via the claim marker inside the middleware.
+  const { idempotencyMiddleware } = await import("../middleware/idempotency");
+  const { getQueueablePrefixes } = await import("@shared/offline-queue-routes");
+  const queueableIdempotency = idempotencyMiddleware();
+  for (const prefix of getQueueablePrefixes()) {
+    app.use(prefix.replace(/\/$/, ""), queueableIdempotency);
+  }
 }

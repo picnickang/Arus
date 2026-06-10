@@ -23,7 +23,11 @@ import { organizations } from "./core";
 import { equipment, devices } from "./equipment";
 import { vessels } from "./vessels";
 
-// Equipment telemetry data - TimescaleDB hypertable with composite primary key
+// Equipment telemetry data — natively partitioned by RANGE (ts) into monthly
+// children via migrations/0038 (TimescaleDB is not available on the supported
+// Postgres targets). drizzle-kit manages columns + FKs only; the PK, indexes,
+// partitioning, and RLS live in the SQL migration ledger — the raw `sql`
+// entries below are documentation for humans, invisible to `db:push`.
 export const equipmentTelemetry = pgTable(
   "equipment_telemetry",
   {
@@ -53,7 +57,12 @@ export const equipmentTelemetry = pgTable(
     sensorTsIdx: sql`CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_sensor_ts ON equipment_telemetry (sensor_type, ts DESC)`,
     statusTsIdx: sql`CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_status_ts ON equipment_telemetry (status, ts DESC)`,
     idIdx: sql`CREATE INDEX IF NOT EXISTS idx_equipment_telemetry_id ON equipment_telemetry (id)`,
-    idempotencyIdx: sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_telemetry_idempotency ON equipment_telemetry (idempotency_key) WHERE idempotency_key IS NOT NULL`,
+    // The former partial UNIQUE index on idempotency_key was dropped by
+    // migrations/0038: a unique index on a partitioned table must include
+    // the partition key (ts), and no live code path writes or reads this
+    // column — dedup rides uq_equipment_telemetry_natural
+    // (org_id, equipment_id, sensor_type, ts), see migrations/0024. The
+    // column is retained for wire/schema compatibility.
   })
 );
 

@@ -4,9 +4,13 @@
  */
 
 import multer from "multer";
+import { z } from "zod";
 import { insertCrewSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
 import { permissionRepository } from "../../permissions/repository.js";
+import { dbVesselStorage } from "../../../db/vessels/index.js";
+import { loadSections } from "../../../lib/aggregate-helpers.js";
+import { validateResponse } from "../../../lib/api-helpers.js";
 import { authenticatedRequest, requireOrgId,
   requireOrgIdAndValidateBody, } from "../../../middleware/auth";
 import { requirePermission } from "../../../lib/permissions/middleware.js";
@@ -67,6 +71,15 @@ async function deleteCrewPhotoObject(
   }
 }
 
+const aggregateSectionSchema = z.array(z.record(z.unknown()));
+const crewUnifiedResponseSchema = z.object({
+  crew: aggregateSectionSchema,
+  vessels: aggregateSectionSchema,
+  crewRoles: aggregateSectionSchema,
+  permissionRoles: aggregateSectionSchema,
+  sectionErrors: z.record(z.string()).optional(),
+});
+
 export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
@@ -80,6 +93,45 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
       const { vesselId } = req.query;
       const crew = await crewService.listCrew(orgId, vesselId as string | undefined);
       res.json(crew);
+    })
+  );
+
+  // Aggregate for the crew-management page (useUnifiedCrewData): one request
+  // instead of four parallel ones. Gated on the page's primary resource
+  // (crew view); a failed/forbidden section degrades to [] exactly like the
+  // individual queries did client-side. NOTE: must stay registered before the
+  // /api/crew/:id routes below or ":id" swallows "unified".
+  app.get(
+    "/api/crew/unified",
+    requireOrgId,
+    requirePermission("crew_members", "view"),
+    generalApiRateLimit,
+    withErrorHandling("fetch unified crew data", async (req, res) => {
+      const orgId = authenticatedRequest(req).orgId;
+
+      const { sections, sectionErrors } = await loadSections(
+        {
+          crew: () => crewService.listCrew(orgId, undefined),
+          vessels: () => dbVesselStorage.getVessels(orgId),
+          crewRoles: () => crewService.listCrewRoles(orgId),
+          permissionRoles: () => permissionRepository.listRoles(orgId),
+        },
+        "GET /api/crew/unified"
+      );
+
+      res.json(
+        validateResponse(
+          crewUnifiedResponseSchema,
+          {
+            crew: sections.crew ?? [],
+            vessels: sections.vessels ?? [],
+            crewRoles: sections.crewRoles ?? [],
+            permissionRoles: sections.permissionRoles ?? [],
+            ...(Object.keys(sectionErrors).length > 0 ? { sectionErrors } : {}),
+          },
+          "GET /api/crew/unified"
+        )
+      );
     })
   );
 
