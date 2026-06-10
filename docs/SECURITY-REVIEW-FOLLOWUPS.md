@@ -71,6 +71,13 @@ before a second tenant is onboarded.
       **reading untrusted spreadsheets** in document-ingestion / RAG, where
       `exceljs` is a poor substitute. Scoped migration (or hardened reader),
       not a drop-in swap — a partial swap would not drop the dependency.
+      **Surface-mitigated (2026-06):** the sole untrusted-read path
+      (`server/services/document-ingestion/extractors/xlsx.ts`) now caps input
+      size, disables formula/HTML/VBA parsing, and iterates sheets with
+      own-property checks (pinned by
+      `tests/unit/document-ingestion-xlsx-extractor.test.ts`). The other three
+      `xlsx` imports only _generate_ workbooks (not attacker input). The
+      dependency swap itself remains open.
 - [ ] **`@dsnp/parquetjs` → alternative, or drop (HIGH via `thrift`)** —
       7 files = the telemetry-warehouse-export feature. No drop-in replacement;
       evaluate whether parquet export is still needed.
@@ -116,6 +123,42 @@ EXTENSION vector` let `db:push` complete (clears the old
       `equipment_features` cascade); the sidecar harness now seeds the default
       `organizations` row so its `org_id` FKs resolve. Integration lane runs
       green (reversibility step made advisory pending the migration reconcile).
+
+## B2. Residual-risk follow-ups (this round, 2026-06)
+
+- [x] **Duplicate `CheckResult` type — consolidated.** The diagnostics DTO now
+      has one canonical home (`shared/diagnostics-types.ts`,
+      `DiagnosticsCheckResult`); server/client re-export it under the historical
+      name. The unrelated data-integrity result (`server/sync-jobs/`) was renamed
+      `DataIntegrityCheckResult`, and the loose client view-model
+      (`system-hub-format.ts`) renamed `HealthCheckEntry`. `check:dup-types` is
+      green (the `CheckResult` ratchet regression is gone).
+- [x] **xlsx untrusted reader hardened.** See the `xlsx` entry in section A.
+- [ ] **Migration reversibility — reconcile epic (advisory step is correct).**
+      Empirically reproduced (2026-06): `scripts/check-migrations-reversible.sh`
+      run against a real Postgres fails at `0001_add_equipment_columns.sql` with
+      `relation "equipment" does not exist`, because the numbered SQL files are
+      additive deltas on top of the `drizzle-kit push` baseline rather than a
+      from-empty schema. The CI step stays `continue-on-error: true` (flipping it
+      would only break CI). **Real fix:** reconcile the two schema mechanisms —
+      either seed the push baseline inside the reversibility harness before
+      replaying deltas, or regenerate the numbered migrations as a standalone
+      chain. Until then the check provides no protection; validate reverse SQL
+      manually (see `docs/runbooks/migrations.md`).
+- [ ] **ML sidecar — make it a required check (Settings only).** The
+      `python-sidecar` CI job is already job-level blocking and its harness
+      (`scripts/ml/test-sidecar-crud.mjs`) exits non-zero on failure
+      (`process.exitCode = 1` / `main().catch(process.exit(1))`). The only gap is
+      GitHub **branch-protection required status checks** — add `Python ML
+Sidecar` to the required set (repo Settings → Branches). No code change.
+- [x] **CLAUDE.md + runbooks added.** Root `CLAUDE.md` (architecture map, command
+      cheatsheet, security invariants) and `docs/runbooks/` (software-update
+      signing, telemetry-backlog triage, migrations).
+- [x] **Hex-storage baseline tightened 220 → 146.** The burn-down had already
+      reached 146 current violations but the baseline still allowed 220; 74
+      resolved files were removed from `scripts/hex-storage-baseline.json` so they
+      can no longer regress. Remaining 146 (routes/legacy services importing
+      `db/` directly) stay a tracked, ratcheted burn-down — not a defect.
 
 ## C. Cosmetic
 

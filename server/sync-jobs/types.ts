@@ -23,7 +23,7 @@ export interface ReconciliationResult {
   timestamp: Date;
 }
 
-export interface CheckResult {
+export interface DataIntegrityCheckResult {
   issues: DataIssue[];
   entitiesChecked: number;
 }

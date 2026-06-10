@@ -7,13 +7,13 @@ const logger = createLogger("SyncJobs:PartsStock");
 import { db } from "../db.js";
 import { parts, stock } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
-import type { CheckResult } from "./types.js";
+import type { DataIntegrityCheckResult } from "./types.js";
 
 /**
  * Check if parts catalog prices are synchronized with stock unit costs
  */
-export async function checkPartsStockAlignment(orgId: string): Promise<CheckResult> {
-  const issues: CheckResult["issues"] = [];
+export async function checkPartsStockAlignment(orgId: string): Promise<DataIntegrityCheckResult> {
+  const issues: DataIntegrityCheckResult["issues"] = [];
 
   try {
     await db
