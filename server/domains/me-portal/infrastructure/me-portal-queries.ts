@@ -129,6 +129,45 @@ export async function listPilotFeedbackForUser(
     .limit(limit);
 }
 
+export type PilotFeedbackWithSubmitter = PilotFeedback & { submitterName: string | null };
+
+/**
+ * Newest-first feedback across the whole org (office review queue).
+ * Left-joins the submitter's display name — dev-login sessions reference
+ * synthetic user ids with no users row, so the name may be null.
+ */
+export async function listPilotFeedbackForOrg(
+  orgId: string,
+  limit = 200
+): Promise<PilotFeedbackWithSubmitter[]> {
+  const rows = await db
+    .select({ feedback: pilotFeedback, submitterName: users.name })
+    .from(pilotFeedback)
+    .leftJoin(users, and(eq(users.id, pilotFeedback.userId), eq(users.orgId, pilotFeedback.orgId)))
+    .where(eq(pilotFeedback.orgId, orgId))
+    .orderBy(desc(pilotFeedback.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({ ...r.feedback, submitterName: r.submitterName ?? null }));
+}
+
+/** Apply an office review action; returns the updated row or undefined if absent. */
+export async function updatePilotFeedbackReview(
+  orgId: string,
+  id: string,
+  patch: {
+    status: string;
+    resolutionNote?: string | null;
+    linkedWorkOrderId?: string | null;
+  }
+): Promise<PilotFeedback | undefined> {
+  const [row] = await db
+    .update(pilotFeedback)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(pilotFeedback.orgId, orgId), eq(pilotFeedback.id, id)))
+    .returning();
+  return row;
+}
+
 export async function updateUserPassword(
   orgId: string,
   userId: string,

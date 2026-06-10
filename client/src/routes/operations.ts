@@ -6,6 +6,7 @@ const Briefing = lazy(() => import("@/pages/briefing"));
 const AttentionInbox = lazy(() => import("@/features/workflow/pages/AttentionInboxPage"));
 const OfflineOutbox = lazy(() => import("@/pages/offline-outbox"));
 const SafetyBulletins = lazy(() => import("@/pages/safety-bulletins"));
+const FeedbackReview = lazy(() => import("@/pages/feedback-review"));
 
 export const operationsRoutes = [
   { path: "/operations", component: OperationsHub },
@@ -14,4 +15,5 @@ export const operationsRoutes = [
   { path: "/attention-inbox", component: AttentionInbox },
   { path: "/offline-outbox", component: OfflineOutbox },
   { path: "/safety-bulletins", component: SafetyBulletins },
+  { path: "/feedback-review", component: FeedbackReview },
 ];

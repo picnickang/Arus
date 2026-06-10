@@ -34,6 +34,7 @@
     "/api/digital-twins",
     "/api/sensor-bundles",
     "/api/sensor-templates",
-    "/api/me"
+    "/api/me",
+    "/api/feedback-review"
   ]
 }
