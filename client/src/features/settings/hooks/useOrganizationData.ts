@@ -45,11 +45,7 @@ export function useOrganizationData() {
         return [];
       }
       const params = new URLSearchParams({ orgId: selectedOrgId });
-      const response = await fetch(`/api/users?${params}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      return response.json();
+      return apiRequest(`/api/users?${params}`);
     },
     enabled: !!selectedOrgId,
     refetchInterval: 60000,

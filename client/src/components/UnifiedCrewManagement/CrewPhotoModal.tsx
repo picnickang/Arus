@@ -227,8 +227,8 @@ export function CrewPhotoModal({
         body: formData,
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `Upload failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as { error?: unknown; message?: string } | null;
+        throw new Error(payload?.message || (typeof payload?.error === "string" ? payload.error : undefined) || `Upload failed (${res.status}).`);
       }
       afterMutation();
       toast({ title: "Profile photo updated", description: crewName });
@@ -250,8 +250,8 @@ export function CrewPhotoModal({
         credentials: "include",
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `Remove failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as { error?: unknown; message?: string } | null;
+        throw new Error(payload?.message || (typeof payload?.error === "string" ? payload.error : undefined) || `Remove failed (${res.status}).`);
       }
       afterMutation();
       toast({ title: "Profile photo removed", description: crewName });

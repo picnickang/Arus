@@ -94,22 +94,22 @@
     {
       "file": "shared/api-envelope.ts",
       "pattern": "z.unknown",
-      "reason": "introduced by WS4 envelope work on main (generic success/error envelope payload slots \u2014 data/meta/details are by design opaque at the envelope layer; per-endpoint schemas validate the payload); tighten in #164 (shared/)"
+      "reason": "canonical response envelope \u2014 data/details/meta are generic transport fields by design; per-endpoint contracts attach concrete schemas via successEnvelopeOf(dataSchema) (WS4)"
     },
     {
       "file": "server/domains/crew/interfaces/crew-member-routes.ts",
       "pattern": "z.unknown",
-      "reason": "introduced by WS6 aggregate-endpoint work on main (aggregate section rows are pass-through composites of already-validated sub-endpoints); tighten in #165 (server/domains)"
+      "reason": "aggregate endpoint section passthrough \u2014 /api/crew/unified reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6)"
     },
     {
       "file": "server/domains/scheduling/routes.ts",
       "pattern": "z.unknown",
-      "reason": "introduced by WS6 aggregate-endpoint work on main (same aggregate section pattern as crew); tighten in #165 (server/domains)"
+      "reason": "aggregate endpoint section passthrough \u2014 /api/optimization/dashboard reuses the per-resource routes' storage rows whose concrete schemas live with those domains (WS6)"
     },
     {
       "file": "client/src/components/sensors/useSensorTemplateForm.ts",
       "pattern": "z.unknown",
-      "reason": "sensor-template `fields` is a user-authored JSON field map (kind presets, edited as raw JSON, previewed verbatim); parse-validated via fieldsJsonSchema superRefine. Tighten alongside shared/schema/sensors.ts z.any in #164"
+      "reason": "pre-existing class \u2014 sensor template freeform `fields` map mirrors the shared/schema/sensors.ts metadata blob; tighten together in #164 (shared/)"
     }
   ]
 }

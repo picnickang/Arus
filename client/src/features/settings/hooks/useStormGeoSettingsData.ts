@@ -57,13 +57,7 @@ export function useStormGeoSettingsData(vesselId?: string) {
     queryKey: ["/api/stormgeo/settings", vesselId],
     queryFn: async () => {
       const params = vesselId ? `?vesselId=${vesselId}` : "";
-      const response = await fetch(`/api/stormgeo/settings${params}`, {
-        headers: { "X-Org-Id": orgId },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch settings");
-      }
-      return response.json();
+      return apiRequest(`/api/stormgeo/settings${params}`);
     },
   });
   const {
@@ -74,13 +68,7 @@ export function useStormGeoSettingsData(vesselId?: string) {
     queryKey: ["/api/stormgeo/import-history", vesselId],
     queryFn: async () => {
       const params = vesselId ? `?vesselId=${vesselId}&limit=10` : "?limit=10";
-      const response = await fetch(`/api/stormgeo/import-history${params}`, {
-        headers: { "X-Org-Id": orgId },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch import history");
-      }
-      return response.json();
+      return apiRequest(`/api/stormgeo/import-history${params}`);
     },
   });
 

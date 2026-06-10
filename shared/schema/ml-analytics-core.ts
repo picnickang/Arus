@@ -169,8 +169,12 @@ export const anomalyDetections = pgTable(
   "anomaly_detections",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull(),
-    equipmentId: varchar("equipment_id").notNull(),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id, { onDelete: "cascade" }),
     sensorType: varchar("sensor_type").notNull(),
     detectionTimestamp: timestamp("detection_timestamp", { withTimezone: true }).defaultNow(),
     anomalyScore: real("anomaly_score").notNull(),
@@ -179,7 +183,9 @@ export const anomalyDetections = pgTable(
     detectedValue: real("detected_value"),
     expectedValue: real("expected_value"),
     deviation: real("deviation"),
-    modelId: varchar("model_id").references(() => mlModelsLegacy.id),
+    // 0040: retargeted from mlModelsLegacy — active writers populate
+    // modelVersionId (-> mlModels) or leave this NULL.
+    modelId: varchar("model_id").references(() => mlModels.id, { onDelete: "set null" }),
     contributingFactors: jsonb("contributing_factors"),
     recommendedActions: jsonb("recommended_actions"),
     acknowledgedBy: varchar("acknowledged_by"),
@@ -197,6 +203,7 @@ export const anomalyDetections = pgTable(
       table.detectionTimestamp
     ),
     severityIdx: index("idx_anomaly_severity").on(table.severity),
+    orgTimeIdx: index("idx_anomaly_org_time").on(table.orgId, table.detectionTimestamp),
   })
 );
 
@@ -205,8 +212,12 @@ export const failurePredictions = pgTable(
   "failure_predictions",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull(),
-    equipmentId: varchar("equipment_id").notNull(),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    equipmentId: varchar("equipment_id")
+      .notNull()
+      .references(() => equipment.id, { onDelete: "cascade" }),
     equipmentType: varchar("equipment_type"),
     predictionTimestamp: timestamp("prediction_timestamp", { withTimezone: true }).defaultNow(),
     failureProbability: real("failure_probability").notNull(),
@@ -217,7 +228,9 @@ export const failurePredictions = pgTable(
     failureMode: varchar("failure_mode"),
     riskLevel: varchar("risk_level").notNull(),
     modelType: varchar("model_type"),
-    modelId: varchar("model_id").references(() => mlModelsLegacy.id),
+    // 0040: retargeted from mlModelsLegacy — active writers populate
+    // modelVersionId (-> mlModels) or leave this NULL.
+    modelId: varchar("model_id").references(() => mlModels.id, { onDelete: "set null" }),
     inputFeatures: jsonb("input_features"),
     maintenanceRecommendations: jsonb("maintenance_recommendations"),
     costImpact: jsonb("cost_impact"),
@@ -253,6 +266,7 @@ export const failurePredictions = pgTable(
       table.orgId,
       table.featureSnapshotId
     ),
+    orgTimeIdx: index("idx_failure_org_time").on(table.orgId, table.predictionTimestamp),
   })
 );
 

@@ -379,11 +379,7 @@ export function useSchedulePlannerData() {
       const results = await Promise.all(
         crewIdsInAssignments.map(async (crewId) => {
           try {
-            const response = await fetch(`/api/hor/fatigue/${crewId}?days=14`);
-            if (!response.ok) {
-              return null;
-            }
-            const data = await response.json();
+            const data = await apiRequest<FatigueResult>("GET", `/api/hor/fatigue/${crewId}?days=14`);
             return { crewId, data };
           } catch {
             return null;

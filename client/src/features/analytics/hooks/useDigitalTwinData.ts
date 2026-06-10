@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/queryClient";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -132,13 +133,9 @@ export function useDigitalTwinData() {
       };
       try {
         setIsSimulating(true);
-        await fetch(`/api/digital-twins/${selectedTwin}/simulate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            scenarioName: `${scenarioType}_simulation_${Date.now()}`,
-            scenario,
-          }),
+        await apiRequest("POST", `/api/digital-twins/${selectedTwin}/simulate`, {
+          scenarioName: `${scenarioType}_simulation_${Date.now()}`,
+          scenario,
         });
       } catch (error) {
         console.error("Failed to start simulation:", error);

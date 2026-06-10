@@ -86,11 +86,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel !== "all") {
         params.set("vesselId", selectedVessel);
       }
-      const res = await fetch(`/api/rms/alerts?${params}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch alerts");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/alerts?${params}`);
     },
   });
 
@@ -104,11 +100,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel !== "all") {
         params.set("vesselId", selectedVessel);
       }
-      const res = await fetch(`/api/rms/bunkering?${params}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch bunkering events");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/bunkering?${params}`);
     },
   });
 
@@ -122,11 +114,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel !== "all") {
         params.set("vesselId", selectedVessel);
       }
-      const res = await fetch(`/api/rms/alerts/configs?${params}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch alert configs");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/alerts/configs?${params}`);
     },
   });
 
@@ -136,11 +124,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") {
         return [];
       }
-      const res = await fetch(`/api/rms/consumption/hourly/${selectedVessel}?hours=${hours}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch consumption");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/consumption/hourly/${selectedVessel}?hours=${hours}`);
     },
     enabled: selectedVessel !== "all",
   });
@@ -151,11 +135,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") {
         return [];
       }
-      const res = await fetch(`/api/rms/consumption/daily/${selectedVessel}?days=7`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch daily consumption");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/consumption/daily/${selectedVessel}?days=7`);
     },
     enabled: selectedVessel !== "all",
   });
@@ -166,11 +146,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") {
         return [];
       }
-      const res = await fetch(`/api/rms/tanks/${selectedVessel}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch tanks");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/tanks/${selectedVessel}`);
     },
     enabled: selectedVessel !== "all",
   });
@@ -181,11 +157,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") {
         return null;
       }
-      const res = await fetch(`/api/rms/rob/${selectedVessel}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch ROB");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/rob/${selectedVessel}`);
     },
     enabled: selectedVessel !== "all",
   });
@@ -201,11 +173,7 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") {
         return [];
       }
-      const res = await fetch(`/api/rms/vessel-track/${selectedVessel}?hours=${hours}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch vessel track");
-      }
-      return res.json();
+      return apiRequest("GET", `/api/rms/vessel-track/${selectedVessel}?hours=${hours}`);
     },
     enabled: selectedVessel !== "all",
   });

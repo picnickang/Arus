@@ -12,7 +12,17 @@
  * `server/migrations/031-pilot-feedback.sql` (no SQLite mirror).
  */
 
-import { sql, pgTable, text, varchar, timestamp, createInsertSchema, z } from "./base";
+import {
+  sql,
+  pgTable,
+  text,
+  varchar,
+  createInsertSchema,
+  z,
+  uuidPrimaryKey,
+  tenantColumn,
+  timestamps,
+} from "./base";
 import { organizations } from "./core";
 import { workOrders } from "./work-orders";
 
@@ -32,12 +42,8 @@ export const PILOT_FEEDBACK_STATUSES = ["submitted", "acknowledged", "resolved"]
 export const pilotFeedback = pgTable(
   "pilot_feedback",
   {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
+    ...uuidPrimaryKey(),
+    ...tenantColumn(organizations),
     // Submitting portal user. No FK — dev-login sessions reference synthetic
     // user ids that have no users row.
     userId: varchar("user_id").notNull(),
@@ -55,8 +61,7 @@ export const pilotFeedback = pgTable(
     linkedWorkOrderId: varchar("linked_work_order_id").references(() => workOrders.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+    ...timestamps(),
   },
   (table) => ({
     orgUserIdx: sql`CREATE INDEX IF NOT EXISTS idx_pilot_feedback_org_user ON pilot_feedback (${table.orgId}, ${table.userId}, ${table.createdAt})`,

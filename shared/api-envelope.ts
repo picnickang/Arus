@@ -27,6 +27,9 @@ export const errorEnvelopeSchema = z.object({
   success: z.literal(false),
   error: apiErrorDetailSchema,
   message: z.string(),
+  // Top-level mirror of error.code, same transition rationale (and sunset)
+  // as the message mirror: legacy consumers branch on `body.code`.
+  code: z.string().optional(),
 });
 
 export const successEnvelopeSchema = z.object({

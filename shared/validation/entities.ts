@@ -1,7 +1,23 @@
 import { z } from "zod";
 
+// Canonical work-order status set — keep in sync with the
+// work_orders_status_valid CHECK constraint (migration 0042).
+export const WORK_ORDER_STATUS_VALUES = [
+  "open",
+  "planned",
+  "pending_approval",
+  "in_progress",
+  "on_hold",
+  "awaiting_service",
+  "completed",
+  "closed",
+  "cancelled",
+  "overdue",
+  "deferred",
+] as const;
+
 export const updateWorkOrderSchema = z.object({
-  status: z.enum(["open", "in_progress", "completed", "cancelled"]).optional(),
+  status: z.enum(WORK_ORDER_STATUS_VALUES).optional(),
   priority: z.number().int().min(1).max(4).optional(),
   estimatedCompletion: z.string().max(64).optional(),
   actualCompletion: z.string().max(64).optional(),
