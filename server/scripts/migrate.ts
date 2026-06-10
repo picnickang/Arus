@@ -71,6 +71,8 @@ const REQUIRED_INDEXES: ReadonlyArray<{ name: string; from: string }> = [
   { name: "idx_work_orders_org_vessel_status", from: "0021 hot-path indexes" },
   { name: "idx_alert_notifications_org_equipment_type", from: "0021 hot-path indexes" },
   { name: "idx_maintenance_schedules_equipment_date", from: "0021 hot-path indexes" },
+  { name: "uq_users_org_email", from: "0039 identity uniques" },
+  { name: "uq_work_orders_org_wo_number", from: "0039 identity uniques" },
 ];
 
 const REQUIRED_CASCADE_FKS: ReadonlyArray<{ table: string; column: string; from: string }> = [

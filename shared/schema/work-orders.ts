@@ -16,6 +16,7 @@ import {
   jsonb,
   unique,
   index,
+  uniqueIndex,
   createInsertSchema,
   z,
   uuidPrimaryKey,
@@ -32,7 +33,9 @@ export const workOrders = pgTable(
   "work_orders",
   {
     ...uuidPrimaryKey(),
-    woNumber: text("wo_number").unique(),
+    // Unique per org (uq_work_orders_org_wo_number below, 0039) — the old
+    // global .unique() wrongly blocked identical numbers across tenants.
+    woNumber: text("wo_number"),
     ...tenantColumn(organizations),
     equipmentId: varchar("equipment_id")
       .notNull()
@@ -91,6 +94,9 @@ export const workOrders = pgTable(
     assignedCrewIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_crew ON work_orders (assigned_crew_id)`,
     orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_org_status ON work_orders (org_id, status, created_at DESC)`,
     orgVesselStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_work_orders_org_vessel_status ON work_orders (org_id, vessel_id, status)`,
+    orgWoNumberUq: uniqueIndex("uq_work_orders_org_wo_number")
+      .on(table.orgId, table.woNumber)
+      .where(sql`wo_number IS NOT NULL`),
   })
 );
 

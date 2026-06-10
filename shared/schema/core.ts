@@ -15,6 +15,7 @@ import {
   boolean,
   serial,
   index,
+  uniqueIndex,
   createInsertSchema,
   z,
 } from "./base";
@@ -40,7 +41,9 @@ export const organizations = pgTable("organizations", {
 });
 
 // Users with RBAC scaffolding and authentication
-export const users = pgTable("users", {
+export const users = pgTable(
+  "users",
+  {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
@@ -71,7 +74,13 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+  },
+  (table) => ({
+    // Tenant-scoped natural key (0039): the same email may exist in
+    // different orgs, never twice within one.
+    orgEmailUq: uniqueIndex("uq_users_org_email").on(table.orgId, table.email),
+  })
+);
 
 // System settings
 export const systemSettings = pgTable("system_settings", {
