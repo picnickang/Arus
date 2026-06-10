@@ -15,6 +15,7 @@ import { createLogger } from "./structured-logger";
 const logger = createLogger("Lib:ApiHelpers");
 import type { Request, Response } from "express";
 import { z, ZodSchema, ZodError } from "zod";
+import { getCorrelationId } from "../logging";
 
 export interface PaginationParams {
   limit: number;
@@ -192,6 +193,16 @@ export function sendConflict(res: Response, message: string): void {
 
 export function sendServerError(res: Response, error: unknown, operation: string): void {
   logger.error(`Failed to ${operation}:`, undefined, error);
+  if (process.env["NODE_ENV"] === "production") {
+    // Internal messages leak schema/constraint details — log has the truth,
+    // the client gets a correlation id to quote at support.
+    res.status(500).json({
+      message: `Failed to ${operation}`,
+      error: "Internal server error",
+      correlationId: getCorrelationId(),
+    });
+    return;
+  }
   res.status(500).json({
     message: `Failed to ${operation}`,
     error: error instanceof Error ? error.message : String(error),

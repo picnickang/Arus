@@ -9,6 +9,8 @@ import { createLogger } from "./structured-logger";
 const logger = createLogger("Lib:RouteUtils");
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { DomainError } from "./domain-errors";
+import { getCorrelationId } from "../logging";
 
 /**
  * Standard error response format
@@ -17,6 +19,28 @@ export interface ErrorResponse {
   message: string;
   error?: string | undefined;
   errors?: z.ZodIssue[] | undefined;
+  code?: string | undefined;
+  details?: unknown;
+  correlationId?: string | undefined;
+}
+
+/**
+ * 5xx bodies must not echo internal error messages in production — they leak
+ * stack details, table names, and constraint text. The correlation id lets
+ * support match a generic response to the full server-side log line.
+ */
+function serverErrorBody(operation: string, error: unknown): ErrorResponse {
+  if (process.env["NODE_ENV"] === "production") {
+    return {
+      message: `Failed to ${operation}`,
+      error: "Internal server error",
+      correlationId: getCorrelationId(),
+    };
+  }
+  return {
+    message: `Failed to ${operation}`,
+    error: error instanceof Error ? error.message : String(error),
+  };
 }
 
 /**
@@ -51,14 +75,27 @@ export function handleApiError(
     return;
   }
 
+  // Typed domain errors are the canonical path: status and code by instanceof.
+  if (error instanceof DomainError) {
+    res.status(error.status).json({
+      message: `Failed to ${operation}`,
+      error: error.message,
+      code: error.code,
+      ...(error.details !== undefined ? { details: error.details } : {}),
+    } as ErrorResponse);
+    return;
+  }
+
   // Check for domain-specific status codes (e.g., NotFound, Conflict)
   const statusError = error as ErrorWithStatus & { code?: string };
   let statusCode = statusError?.status || statusError?.statusCode;
   const rawMessage = error instanceof Error ? error.message : String(error);
 
-  // Infer status from common error patterns when not explicitly set.
-  // This catches the 40+ `throw new Error("... not found")` sites in services/storage
-  // and turns them into proper 404/409 instead of 500.
+  // DEPRECATED fallback: infer status from common error patterns when not
+  // explicitly set. This catches the 40+ `throw new Error("... not found")`
+  // sites in services/storage and turns them into proper 404/409 instead of
+  // 500. New code should throw lib/domain-errors instead; the log line below
+  // tracks the burn-down of remaining inference hits.
   if (!statusCode) {
     if (/\bnot found\b/i.test(rawMessage)) {
       statusCode = 404;
@@ -79,12 +116,19 @@ export function handleApiError(
     } else if (/version mismatch|stale version|if-match/i.test(rawMessage)) {
       statusCode = 412;
     }
+    if (statusCode) {
+      logger.warn(
+        `[status-inference] Regex-inferred ${statusCode} for "${operation}" — migrate the throw site to lib/domain-errors`
+      );
+    }
   }
 
   if (statusCode && statusCode >= 400 && statusCode < 600) {
     if (statusCode >= 500) {
       const prefix = logPrefix ?? `Failed to ${operation}`;
       logger.error(`${prefix}:`, undefined, error);
+      res.status(statusCode).json(serverErrorBody(operation, error));
+      return;
     }
     res.status(statusCode).json({
       message: `Failed to ${operation}`,
@@ -95,10 +139,7 @@ export function handleApiError(
 
   const prefix = logPrefix ?? `Failed to ${operation}`;
   logger.error(`${prefix}:`, undefined, error);
-  res.status(500).json({
-    message: `Failed to ${operation}`,
-    error: error instanceof Error ? error.message : String(error),
-  } as ErrorResponse);
+  res.status(500).json(serverErrorBody(operation, error));
 }
 
 /**

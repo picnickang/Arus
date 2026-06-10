@@ -1,4 +1,6 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryFunction } from "@tanstack/react-query";
+import { ApiError, apiErrorFromResponse } from "@/lib/api-error";
+import { toast } from "@/hooks/use-toast";
 import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
@@ -61,20 +63,12 @@ export function resolveUrl(url: string): string {
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    const statusPrefix = `${res.status}`;
 
     let errorData: unknown;
     try {
       errorData = JSON.parse(text);
     } catch {
-      if (res.status === 429) {
-        const exceeded = parseQuotaExceeded(res, undefined);
-        if (exceeded) {
-          notifyQuotaExceeded(exceeded);
-          throw new TenantQuotaExceededError(exceeded);
-        }
-      }
-      throw new Error(`${statusPrefix}: ${text || res.statusText}`);
+      errorData = undefined;
     }
 
     if (res.status === 429) {
@@ -85,24 +79,7 @@ async function throwIfResNotOk(res: Response) {
       }
     }
 
-    const errorObj = (errorData ?? {}) as {
-      errors?: { path?: string[]; message: string }[];
-      message?: string;
-      error?: string;
-    };
-
-    if (errorObj.errors && Array.isArray(errorObj.errors)) {
-      const fieldErrors = errorObj.errors
-        .map(
-          (err) =>
-            `${err.path?.join(".") || "Field"}: ${err.message}`
-        )
-        .join(", ");
-      throw new Error(`${statusPrefix}: ${fieldErrors || errorObj.message || text}`);
-    }
-
-    const message = errorObj.message || errorObj.error || text || res.statusText;
-    throw new Error(`${statusPrefix}: ${message}`);
+    throw apiErrorFromResponse(res.status, text, errorData);
   }
 }
 
@@ -350,7 +327,73 @@ export const CACHE_TIMES = {
   EXPENSIVE: 86400000,
 } as const;
 
+const recentErrorToasts = new Map<string, number>();
+const ERROR_TOAST_DEDUPE_MS = 5000;
+
+/**
+ * Last-resort error surface for queries/mutations without their own handling.
+ * Opt out per query/mutation with `meta: { suppressGlobalError: true }`, or
+ * override the text with `meta: { errorMessage: "..." }`.
+ */
+function showGlobalErrorToast(
+  error: unknown,
+  meta: Record<string, unknown> | undefined,
+  kind: "query" | "mutation"
+): void {
+  if (meta?.["suppressGlobalError"] === true) {
+    return;
+  }
+  // Quota errors already notify through tenant-quota-notifications.
+  if (error instanceof TenantQuotaExceededError) {
+    return;
+  }
+  // 401s are handled by auth flows (redirect/login), not toasts.
+  if (error instanceof ApiError && error.status === 401) {
+    return;
+  }
+
+  const description =
+    typeof meta?.["errorMessage"] === "string"
+      ? meta["errorMessage"]
+      : error instanceof Error
+        ? error.message
+        : String(error);
+
+  const now = Date.now();
+  const lastShown = recentErrorToasts.get(description);
+  if (lastShown !== undefined && now - lastShown < ERROR_TOAST_DEDUPE_MS) {
+    return;
+  }
+  for (const [key, shownAt] of recentErrorToasts) {
+    if (now - shownAt > ERROR_TOAST_DEDUPE_MS) {
+      recentErrorToasts.delete(key);
+    }
+  }
+  recentErrorToasts.set(description, now);
+
+  toast({
+    title: kind === "mutation" ? "Action failed" : "Failed to load data",
+    description,
+    variant: "destructive",
+  });
+}
+
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      showGlobalErrorToast(error, query.meta as Record<string, unknown> | undefined, "query");
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      // Mutations with their own onError already surface the failure; the
+      // global toast only covers the silent ones.
+      if (mutation.options.onError) {
+        return;
+      }
+      showGlobalErrorToast(error, mutation.meta as Record<string, unknown> | undefined, "mutation");
+    },
+  }),
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
