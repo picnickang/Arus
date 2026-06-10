@@ -62,7 +62,7 @@ export function SkillFormDialog({ d }: { d: UnifiedCrewData }) {
               name="crewId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Crew Member</FormLabel>
+                  <FormLabel required>Crew Member</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger data-testid="select-skill-crew">
@@ -87,7 +87,7 @@ export function SkillFormDialog({ d }: { d: UnifiedCrewData }) {
             name="skill"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Skill</FormLabel>
+                <FormLabel required>Skill</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger data-testid="select-skill-name">
@@ -111,7 +111,7 @@ export function SkillFormDialog({ d }: { d: UnifiedCrewData }) {
             name="level"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Proficiency Level</FormLabel>
+                <FormLabel required>Proficiency Level</FormLabel>
                 <Select
                   value={field.value?.toString()}
                   onValueChange={(v) => field.onChange(Number.parseInt(v))}
