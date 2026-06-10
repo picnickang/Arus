@@ -204,8 +204,9 @@ export class PatchApplicator {
 
     if (violations.length > 0) {
       throw new Error(
-        `Unsafe patch archive rejected (${violations.length} violation(s)): ` +
-          violations.slice(0, 10).join("; ")
+        `Unsafe patch archive rejected (${violations.length} violation(s)): ${violations
+          .slice(0, 10)
+          .join("; ")}`
       );
     }
   }

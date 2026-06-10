@@ -61,4 +61,8 @@ export default {
   verbose: true,
   forceExit: true,
   detectOpenHandles: true,
+  // The unit lane runs under --experimental-vm-modules, whose per-file ESM
+  // module registries accumulate in workers until the process OOMs (observed
+  // at ~4 GB on CI). Recycle any worker that idles above this threshold.
+  workerIdleMemoryLimit: "1GB",
 };
