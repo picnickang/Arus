@@ -32,6 +32,14 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   "/api/offshore-ops",
   "/api/service-requests",
   "/api/service-orders",
+  // Wave 3: crew & compliance domains
+  "/api/crew",
+  "/api/crew-roles",
+  "/api/crew-extensions",
+  "/api/certificates",
+  "/api/compliance",
+  "/api/stcw",
+  "/api/hr",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [

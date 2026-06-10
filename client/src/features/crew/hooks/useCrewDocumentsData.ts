@@ -183,8 +183,8 @@ export function useCrewDocumentsData(crewId: string) {
         body: formData,
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `File upload failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as { error?: unknown; message?: string } | null;
+        throw new Error(payload?.message || (typeof payload?.error === "string" ? payload.error : undefined) || `File upload failed (${res.status}).`);
       }
     },
     [crewId]

@@ -17,6 +17,16 @@ import type { Express } from "express";
 const TEST_ORG = "lr35-aud-task208-org";
 const TEST_USER_ID = "tester-user-id";
 
+
+/** Unwraps the canonical response envelope on migrated domains. */
+function unwrap<T = Record<string, unknown>>(body: unknown): T {
+  const record = body as Record<string, unknown> | null;
+  if (record && typeof record === "object" && record["success"] === true && "data" in record) {
+    return record["data"] as T;
+  }
+  return body as T;
+}
+
 describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () => {
   let app: Express;
 
@@ -53,7 +63,7 @@ describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () =
         status: "open",
       });
     expect([200, 201]).toContain(create.status);
-    const id: string | undefined = create.body?.id;
+    const id: string | undefined = unwrap<{ id?: string }>(create.body)?.id;
     expect(id).toBeTruthy();
 
     // 2. Sanity: it appears in the default list.
@@ -62,7 +72,7 @@ describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () =
       .set("x-org-id", TEST_ORG)
       .expect(200);
     expect(
-      (listBefore.body as Array<{ id: string }>).some((r) => r.id === id),
+      (unwrap<Array<{ id: string }>>(listBefore.body)).some((r) => r.id === id),
     ).toBe(true);
 
     // 3. DELETE it — must soft-archive, not hard-delete.
@@ -78,7 +88,7 @@ describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () =
       .set("x-org-id", TEST_ORG)
       .expect(200);
     expect(
-      (listAfter.body as Array<{ id: string }>).some((r) => r.id === id),
+      (unwrap<Array<{ id: string }>>(listAfter.body)).some((r) => r.id === id),
     ).toBe(false);
 
     // 5. includeArchived=true MUST reveal it, and the archived
@@ -87,7 +97,7 @@ describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () =
       .get("/api/compliance/findings?includeArchived=true")
       .set("x-org-id", TEST_ORG)
       .expect(200);
-    const archived = (listIncluded.body as Array<{
+    const archived = (unwrap<Array<never>>(listIncluded.body) as Array<{
       id: string;
       status: string;
       archived_at?: string | null;
@@ -113,6 +123,6 @@ describe("LR-3.5 / AUD-1 (Task #208) — compliance findings soft-archive", () =
       .get(`/api/compliance/findings/${id}?includeArchived=true`)
       .set("x-org-id", TEST_ORG)
       .expect(200);
-    expect((byIdIncluded.body as { id: string }).id).toBe(id);
+    expect(unwrap<{ id: string }>(byIdIncluded.body).id).toBe(id);
   });
 });

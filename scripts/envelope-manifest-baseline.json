@@ -13,6 +13,13 @@
     "/api/purchase-orders",
     "/api/offshore-ops",
     "/api/service-requests",
-    "/api/service-orders"
+    "/api/service-orders",
+    "/api/crew",
+    "/api/crew-roles",
+    "/api/crew-extensions",
+    "/api/certificates",
+    "/api/compliance",
+    "/api/stcw",
+    "/api/hr"
   ]
 }

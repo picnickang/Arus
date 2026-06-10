@@ -1,3 +1,4 @@
+import { apiFormDataRequest, apiRequest } from "@/lib/queryClient";
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -77,25 +78,13 @@ export function useHoursOfRestManagement() {
     queryKey: stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),
     enabled: !!selectedCrew,
     refetchInterval: 60000,
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/stcw/rest/${selectedCrew}/${selectedYear}/${selectedMonth}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch rest data");
-      }
-      return response.json();
-    },
+    queryFn: async () =>
+      apiRequest("GET", `/api/stcw/rest/${selectedCrew}/${selectedYear}/${selectedMonth}`),
   });
 
   const importMutation = useCustomMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch("/api/stcw/import", { method: "POST", body: formData });
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      return response.json();
-    },
+    mutationFn: async (formData: FormData) =>
+      apiFormDataRequest<{ sheets: number }>("POST", "/api/stcw/import", formData),
     invalidateKeys: [
       stcwRestKeys.crew,
       stcwRestKeys.rest(selectedCrew, selectedYear, selectedMonth),
@@ -108,15 +97,11 @@ export function useHoursOfRestManagement() {
   });
 
   const complianceMutation = useCustomMutation({
-    mutationFn: async (params: { crewId: string; year: number; month: string }) => {
-      const response = await fetch(
+    mutationFn: async (params: { crewId: string; year: number; month: string }) =>
+      apiRequest<ComplianceResult>(
+        "GET",
         `/api/stcw/compliance/${params.crewId}/${params.year}/${params.month}`
-      );
-      if (!response.ok) {
-        throw new Error("Compliance check failed");
-      }
-      return response.json();
-    },
+      ),
     successMessage: (data) => `${data.compliant ? "Compliant" : "Violations found"}`,
     onSuccess: (data) => setComplianceResult(data),
   });
