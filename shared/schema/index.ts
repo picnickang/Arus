@@ -39,6 +39,7 @@ export * from "./external-data-cache";
 export * from "./certificates";
 export * from "./safety-bulletins";
 export * from "./crew-tasks";
+export * from "./feedback";
 export * from "./role-dashboards";
 export * from "./safety-alarms";
 export * from "./diagnostic-runs";
@@ -73,6 +74,7 @@ import * as agent from "./agent";
 import * as certificates from "./certificates";
 import * as safetyBulletins from "./safety-bulletins";
 import * as crewTasks from "./crew-tasks";
+import * as feedback from "./feedback";
 import * as vesselDiagramRegistry from "./vessel-diagram-registry";
 
 export const CoreSchema = { ...core };
@@ -103,6 +105,7 @@ export const AgentSchema = { ...agent };
 export const CertificatesSchema = { ...certificates };
 export const SafetyBulletinsSchema = { ...safetyBulletins };
 export const CrewTasksSchema = { ...crewTasks };
+export const FeedbackSchema = { ...feedback };
 export const VesselDiagramRegistrySchema = { ...vesselDiagramRegistry };
 
 export const MLSchema = {
