@@ -13,14 +13,7 @@
  */
 
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  Flag,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  Inbox,
-} from "lucide-react";
+import { Flag, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Inbox } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +78,7 @@ const SEVERITY_OPTIONS: Array<{
 
 function errorFor(
   errors: FeedbackValidationError[],
-  field: keyof FeedbackDraft,
+  field: keyof FeedbackDraft
 ): string | undefined {
   return errors.find((e) => e.field === field)?.message;
 }
@@ -166,7 +159,7 @@ function SeverityPills({ value, onChange, disabled }: SeverityPillsProps) {
               "ring-border bg-muted/30 text-muted-foreground",
               "hover:bg-muted/60 hover:text-foreground",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              opt.tone,
+              opt.tone
             )}
           >
             {opt.label}
@@ -181,9 +174,7 @@ export default function FeedbackPage() {
   const [draft, setDraft] = useState<FeedbackDraft>(EMPTY_DRAFT);
   const [fieldErrors, setFieldErrors] = useState<FeedbackValidationError[]>([]);
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
-  const [history, setHistory] = useState<FeedbackOutboxEntry[]>(() =>
-    listSessionFeedback(),
-  );
+  const [history, setHistory] = useState<FeedbackOutboxEntry[]>(() => listSessionFeedback());
 
   useEffect(() => {
     if (state.kind === "idle" || state.kind === "success") {
@@ -251,8 +242,8 @@ export default function FeedbackPage() {
                 className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                 data-testid="banner-feedback-pending-backend"
               >
-                Saved locally for this session. Server-side delivery is wired up in
-                the next pilot update — this reference will be honoured when it ships.
+                Saved locally for this session. Server-side delivery is wired up in the next pilot
+                update — this reference will be honoured when it ships.
               </div>
             )}
             <div className="flex gap-2">
@@ -335,7 +326,13 @@ export default function FeedbackPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fb-location">Location</Label>
+              <Label htmlFor="fb-location">
+                Location
+                <span aria-hidden="true" className="text-destructive">
+                  {" "}
+                  *
+                </span>
+              </Label>
               <select
                 id="fb-location"
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -358,7 +355,13 @@ export default function FeedbackPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fb-subject">Subject</Label>
+              <Label htmlFor="fb-subject">
+                Subject
+                <span aria-hidden="true" className="text-destructive">
+                  {" "}
+                  *
+                </span>
+              </Label>
               <Input
                 id="fb-subject"
                 value={draft.subject}
@@ -376,7 +379,13 @@ export default function FeedbackPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fb-description">Description</Label>
+              <Label htmlFor="fb-description">
+                Description
+                <span aria-hidden="true" className="text-destructive">
+                  {" "}
+                  *
+                </span>
+              </Label>
               <Textarea
                 id="fb-description"
                 value={draft.description}
