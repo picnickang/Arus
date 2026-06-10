@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
@@ -41,20 +42,18 @@ export function usePdmPackData() {
     queryKey: ["/api/pdm/alerts", currentOrgId],
     queryFn: async () => apiRequest<PdmAlert[]>("GET", "/api/pdm/alerts"),
     enabled: !!currentOrgId,
-    refetchInterval: 60000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.SLOW),
     refetchOnWindowFocus: false,
   });
 
   const { data: healthData, isLoading: healthLoading } = useQuery({
     queryKey: ["/api/pdm/health"],
-    queryFn: async () => {
-      const response = await fetch("/api/pdm/health");
-      if (!response.ok) {
-        throw new Error("Failed to fetch PdM service health");
-      }
-      return response.json();
-    },
-    refetchInterval: 60000,
+    queryFn: async () =>
+      apiRequest<{ status?: string; features?: string[]; timestamp?: string }>(
+        "GET",
+        "/api/pdm/health"
+      ),
+    refetchInterval: pollingInterval(POLL_INTERVALS.SLOW),
     refetchOnWindowFocus: false,
   });
 
@@ -68,7 +67,7 @@ export function usePdmPackData() {
       return result.baselines ?? [];
     },
     enabled: !!currentOrgId && !!selectedVessel && !!selectedAsset,
-    refetchInterval: 60000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.SLOW),
     refetchOnWindowFocus: false,
   });
 

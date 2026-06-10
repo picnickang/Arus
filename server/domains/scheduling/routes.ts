@@ -2,11 +2,15 @@ import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
+import { validateResponse } from "../../lib/api-helpers";
+import { loadSections } from "../../lib/aggregate-helpers";
 import { schedulingSettingsService } from "../../services/scheduling-settings/service";
 import { logger } from "../../utils/logger";
 import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
 import type { MaintenanceSchedule } from "@shared/schema";
 import { dbOptimizerStorage } from "../../db/optimizer/index.js";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { dbVesselStorage } from "../../db/vessels/index.js";
 import { authenticatedRequest } from "../../middleware/auth";
 import {
   aiWeightsSchema,
@@ -70,6 +74,16 @@ const optimizationResultsQuerySchema = z.object({
   configId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+});
+
+const aggregateSectionSchema = z.array(z.record(z.unknown()));
+const optimizationDashboardResponseSchema = z.object({
+  configurations: aggregateSectionSchema,
+  results: aggregateSectionSchema,
+  trendInsights: aggregateSectionSchema,
+  equipment: aggregateSectionSchema,
+  vessels: aggregateSectionSchema,
+  sectionErrors: z.record(z.string()).optional(),
 });
 
 const vesselIdOnlyQuerySchema = z.object({
@@ -329,6 +343,44 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         )
       );
       sendCreated(res, results);
+    })
+  );
+
+  app.get(
+    "/api/optimization/dashboard",
+    requireOrgId,
+    withErrorHandling("fetch optimization dashboard", async (req: Request, res: Response) => {
+      const orgId = orgIdFromRequest(req);
+
+      // Aggregate for useOptimizationData: collapses the page's parallel
+      // configurations/results/trend-insights/equipment/vessels fetches into
+      // one request, reusing exactly the storage calls of the individual
+      // routes above/below. trendInsights is reserved — the per-resource
+      // endpoint never existed and the client always fell back to [].
+      const { sections, sectionErrors } = await loadSections(
+        {
+          configurations: () => dbOptimizerStorage.getOptimizerConfigurations(orgId),
+          results: () => dbOptimizerStorage.getOptimizationResults(orgId),
+          equipment: () => dbEquipmentStorage.getEquipmentRegistry(orgId),
+          vessels: () => dbVesselStorage.getVessels(orgId),
+        },
+        "GET /api/optimization/dashboard"
+      );
+
+      res.json(
+        validateResponse(
+          optimizationDashboardResponseSchema,
+          {
+            configurations: sections.configurations ?? [],
+            results: sections.results ?? [],
+            trendInsights: [],
+            equipment: sections.equipment ?? [],
+            vessels: sections.vessels ?? [],
+            ...(Object.keys(sectionErrors).length > 0 ? { sectionErrors } : {}),
+          },
+          "GET /api/optimization/dashboard"
+        )
+      );
     })
   );
 

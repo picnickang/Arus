@@ -112,6 +112,17 @@ describe("envelopeJson (WS4 wave 0)", () => {
     expect(res.body).toEqual({});
   });
 
+  it("never wraps attachment downloads served via res.json", async () => {
+    const app = express();
+    app.use("/api", envelopeJson());
+    app.get("/api/home/export", (_req, res) => {
+      res.setHeader("Content-Disposition", "attachment; filename=export.json");
+      res.json([{ id: "task-1" }]);
+    });
+    const res = await request(app).get("/api/home/export");
+    expect(res.body).toEqual([{ id: "task-1" }]);
+  });
+
   it("does not wrap paths outside the manifest", async () => {
     const res = await request(buildApp()).get("/api/equipment");
     expect(res.body).toEqual([{ id: "eq-1" }]);

@@ -14,6 +14,11 @@ export default {
     "^@shared/(.*)$": "<rootDir>/shared/$1",
     "^@/(.*)$": "<rootDir>/client/src/$1",
     "\\.(css|less|scss)$": "<rootDir>/client/src/test/style-stub.ts",
+    // Browser-only export libs ship untransformed ESM dists; hook tests
+    // never exercise PDF/canvas export paths.
+    "^jspdf$": "<rootDir>/client/src/test/module-stub.ts",
+    "^jspdf-autotable$": "<rootDir>/client/src/test/module-stub.ts",
+    "^html2canvas$": "<rootDir>/client/src/test/module-stub.ts",
   },
   transform: {
     "^.+\\.tsx?$": [

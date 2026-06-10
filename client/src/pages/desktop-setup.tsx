@@ -267,7 +267,14 @@ function VesselStep({
           throw new Error(`Status ${res.status}`);
         }
         const data = await res.json();
-        const vesselList = Array.isArray(data) ? data : data.vessels || [];
+        // Setup probes a candidate backend URL directly (no app plumbing
+        // yet), so tolerate both legacy bodies and the {success, data}
+        // envelope.
+        const body =
+          data && typeof data === "object" && "success" in data && "data" in data
+            ? data.data
+            : data;
+        const vesselList = Array.isArray(body) ? body : body?.vessels || [];
         if (!controller.signal.aborted) {
           setVessels(vesselList.filter((v: Vessel) => v.active !== false));
         }

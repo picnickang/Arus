@@ -59,51 +59,47 @@ export function useOptimizationData() {
     defaultValues: createDefaultOptimizerFormValues(),
   });
 
-  const {
-    data: configurations,
-    isLoading: configurationsLoading,
-    refetch: refetchConfigurations,
-  } = useQuery({
-    queryKey: ["/api/optimization/configurations"],
-    queryFn: async () => {
-      return apiRequest<OptimizerConfiguration[]>("GET", "/api/optimization/configurations");
-    },
-  });
+  interface OptimizationDashboardData {
+    configurations: OptimizerConfiguration[];
+    results: OptimizationResult[];
+    trendInsights: TrendAnalysis[];
+    equipment: OptimizationEquipment[];
+    vessels: Array<{ id: string; name: string; active: boolean }>;
+    sectionErrors?: Record<string, string>;
+  }
 
+  // One aggregate request replaces the five parallel configuration/result/
+  // trend/equipment/vessel queries (server: GET /api/optimization/dashboard,
+  // which previously meant 5 requests polled every 15s). The key keeps
+  // "/api/optimization" as its first segment so mutations can prefix-
+  // invalidate it alongside the legacy per-resource keys.
   const {
-    data: optimizationResults,
-    isLoading: resultsLoading,
-    refetch: refetchResults,
-  } = useQuery({
-    queryKey: ["/api/optimization/results"],
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    refetch: refetchDashboard,
+  } = useQuery<OptimizationDashboardData>({
+    queryKey: ["/api/optimization", "dashboard"],
     queryFn: async () => {
-      return apiRequest<OptimizationResult[]>("GET", "/api/optimization/results");
+      return apiRequest<OptimizationDashboardData>("GET", "/api/optimization/dashboard");
     },
     staleTime: 10000,
     refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
 
-  const { data: trendAnalyses, isLoading: trendsLoading } = useQuery({
-    queryKey: ["/api/optimization/trend-insights"],
-    queryFn: async () => {
-      return apiRequest<TrendAnalysis[]>("GET", "/api/optimization/trend-insights");
-    },
-  });
+  const configurations = dashboardData?.configurations;
+  const optimizationResults = dashboardData?.results;
+  const trendAnalyses = dashboardData?.trendInsights;
+  const equipment = dashboardData?.equipment;
+  const vessels = dashboardData?.vessels;
+  const configurationsLoading = dashboardLoading;
+  const resultsLoading = dashboardLoading;
+  const trendsLoading = dashboardLoading;
+  const equipmentLoading = dashboardLoading;
+  const refetchConfigurations = refetchDashboard;
+  const refetchResults = refetchDashboard;
 
-  const { data: equipment, isLoading: equipmentLoading } = useQuery({
-    queryKey: ["/api/equipment"],
-    queryFn: async () => {
-      return apiRequest<OptimizationEquipment[]>("GET", "/api/equipment");
-    },
-  });
-
-  const { data: vessels } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
-    queryKey: ["/api/vessels"],
-    queryFn: async () => {
-      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/vessels");
-    },
-  });
-
+  // Crew stays a standalone query: it's shared cache with the crew pages and
+  // only feeds the fleet headcount stats here.
   const { data: crew } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/crew"],
     queryFn: async () => {
@@ -134,7 +130,7 @@ export function useOptimizationData() {
   });
 
   const createConfigMutation = useCreateMutation("/api/optimization/configurations", {
-    invalidateKeys: ["/api/optimization/configurations"],
+    invalidateKeys: ["/api/optimization/configurations", "/api/optimization"],
     successMessage: "Optimizer configuration created successfully",
     errorMessage: "Failed to create optimizer configuration",
     onSuccess: () => {
@@ -153,7 +149,7 @@ export function useOptimizationData() {
       equipmentScope?: string[];
       timeHorizon?: number;
     }) => apiRequest("POST", "/api/optimization/run", { configId, equipmentScope, timeHorizon }),
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Optimization run started successfully",
     errorMessage: "Failed to start optimization run",
     onSuccess: () => {
@@ -162,7 +158,7 @@ export function useOptimizationData() {
   });
 
   const deleteConfigMutation = useDeleteMutation("/api/optimization/configurations", {
-    invalidateKeys: ["/api/optimization/configurations"],
+    invalidateKeys: ["/api/optimization/configurations", "/api/optimization"],
     successMessage: "Configuration deleted successfully",
     errorMessage: "Failed to delete configuration",
   });
@@ -170,7 +166,7 @@ export function useOptimizationData() {
   const cancelOptimizationMutation = useCustomMutation({
     mutationFn: async (optimizationId: string) =>
       apiRequest("DELETE", `/api/optimization/cancel/${optimizationId}`),
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Optimization cancelled successfully",
     errorMessage: "Failed to cancel optimization",
   });
@@ -178,7 +174,7 @@ export function useOptimizationData() {
   const applyToProductionMutation = useCustomMutation({
     mutationFn: async (optimizationId: string) =>
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Optimization applied to production successfully",
     errorMessage: (error: unknown) => ((error instanceof Error ? error.message : String(error))),
   });
@@ -204,7 +200,7 @@ export function useOptimizationData() {
   });
 
   const deleteOptimizationMutation = useDeleteMutation("/api/optimization/results", {
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Optimization result deleted successfully",
     errorMessage: "Failed to delete optimization result",
   });
@@ -212,7 +208,7 @@ export function useOptimizationData() {
   const clearAllOptimizationsMutation = useCustomMutation({
     mutationFn: async () =>
       apiRequest("DELETE", "/api/optimization/results"),
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: (data: unknown) =>
       `Successfully cleared ${(data as { deletedCount: number }).deletedCount} optimization result(s)`,
     errorMessage: "Failed to clear optimization results",
@@ -225,7 +221,7 @@ export function useOptimizationData() {
         equipmentScope: [],
         timeHorizon: 30,
       }),
-    invalidateKeys: ["/api/optimization/results"],
+    invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Fleet optimization started successfully",
     errorMessage: "Failed to start fleet optimization",
     onSuccess: () => {

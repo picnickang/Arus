@@ -6,6 +6,7 @@ import {
 } from "../services/sqlite-bridge";
 import { logger } from "../utils/logger";
 import { withErrorHandling } from "../lib/route-utils";
+import { parseIntParam } from "../lib/api-helpers";
 
 export const telemetryDlqRouter = Router();
 
@@ -44,8 +45,9 @@ telemetryDlqRouter.get(
   "/entries",
   withErrorHandling("list DLQ entries", async (req, res) => {
     const dlq = getBridgeDeadLetterQueue();
-    const limit = Number(req.query['limit']) || 100;
-    const offset = Number(req.query['offset']) || 0;
+    // Clamp: an unbounded limit could dump the whole DLQ in one response.
+    const limit = parseIntParam(req.query['limit'], 100, 500);
+    const offset = parseIntParam(req.query['offset'], 0);
     const source = req.query['source'] as string | undefined;
 
     const entries =

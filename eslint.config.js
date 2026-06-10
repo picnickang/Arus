@@ -394,6 +394,10 @@ export default [
   // Enables rules that require TypeScript type information
   {
     files: ['client/src/**/*.ts', 'client/src/**/*.tsx'],
+    // Test files are excluded from tsconfig.eslint.json's project, so the
+    // typed parser can't load them — they keep every non-type-aware rule
+    // from the blocks above (same treatment as tests/unit/**).
+    ignores: ['client/src/**/*.test.ts', 'client/src/**/*.test.tsx'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
