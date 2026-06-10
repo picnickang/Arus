@@ -199,7 +199,11 @@ export default function PdmEquipmentDetail() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-6">
-            <OverviewTab equipmentId={equipmentId} equipment={equipment} {...(healthData !== undefined && { healthData })} />
+            <OverviewTab
+              equipmentId={equipmentId}
+              equipment={equipment}
+              {...(healthData !== undefined && { healthData })}
+            />
           </TabsContent>
           <TabsContent value="sensors" className="space-y-6">
             <SensorsTab equipmentId={equipmentId} />
@@ -225,7 +229,7 @@ function OverviewTab({
   equipment: EquipmentDetail;
   healthData?: PdmHealthData;
 }) {
-  const { timeRange, setTimeRange, sensorData, isLoadingTelemetry, defaultSummary } =
+  const { timeRange, setTimeRange, sensorData, baselines, isLoadingTelemetry, defaultSummary } =
     useOverviewTabData(equipmentId, healthData);
   return (
     <div className="space-y-6">
@@ -235,8 +239,9 @@ function OverviewTab({
       </div>
       <MultiSensorChart
         title="Sensor Correlation Analysis"
-        description="Compare multiple sensor readings to identify correlations and anomalies"
+        description="Live readings against each sensor's 30-day operating baseline (median ± 2σ band)"
         sensors={sensorData}
+        baselines={baselines}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
         isLoading={isLoadingTelemetry}
@@ -300,7 +305,9 @@ function OverviewTab({
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                 {(healthData.pFail30d ?? 0) > 70 && <li>Critical failure risk within 30 days</li>}
-                {(healthData.healthScore ?? 100) < 50 && <li>Low health score indicates degradation</li>}
+                {(healthData.healthScore ?? 100) < 50 && (
+                  <li>Low health score indicates degradation</li>
+                )}
                 {healthData.status === "critical" && (
                   <li>Equipment requires immediate attention</li>
                 )}
@@ -435,8 +442,12 @@ function SensorsTab({ equipmentId }: { equipmentId: string }) {
       <BulkSelectionBar
         selectedCount={selectedSensorIds.length}
         {...(!isBulkOperationDisabled && { onDelete: handleBulkDelete })}
-        {...(!isBulkOperationDisabled && { onEnable: () => enableMutation.mutate(selectedSensorIds) })}
-        {...(!isBulkOperationDisabled && { onDisable: () => disableMutation.mutate(selectedSensorIds) })}
+        {...(!isBulkOperationDisabled && {
+          onEnable: () => enableMutation.mutate(selectedSensorIds),
+        })}
+        {...(!isBulkOperationDisabled && {
+          onDisable: () => disableMutation.mutate(selectedSensorIds),
+        })}
         onClear={() => {}}
       />
       <ConfirmDialog

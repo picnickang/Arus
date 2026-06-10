@@ -832,6 +832,17 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },
   {
+    // The PdM equipment-detail page's health query. Documented in
+    // swagger/paths-pdm.ts long before it was implemented — keep this
+    // mount or the page crashes on Vite's HTML 404 fallback.
+    name: "PdmHealth",
+    importPath: "../domains/pdm-platform/health/routes.js",
+    functionName: "pdmHealthRouter",
+    mountPath: "/api/pdm/health",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
+  {
     name: "PdmFleetAnalytics",
     importPath: "../domains/pdm-platform/fleet-analytics/routes.js",
     functionName: "fleetAnalyticsRouter",

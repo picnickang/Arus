@@ -85,6 +85,61 @@ export function registerTelemetryRoutes(
     })
   );
 
+  // Per-sensor operating baseline for an equipment: median ± stddev over a
+  // trailing window, computed directly on equipment_telemetry (the rollup
+  // table telemetry_aggregated is fed from raw_telemetry, not this table,
+  // so it cannot back these stats; the partitioned table makes the direct
+  // aggregate cheap). Used by MultiSensorChart to draw the expected
+  // envelope behind live series — deviation from this band is the PdM
+  // signal. Fleet-level baselines (/api/pdm/fleet/baselines) are a
+  // different concept: per equipment *type*, from the feature store.
+  app.get(
+    "/api/telemetry/baseline/:equipmentId",
+    generalApiRateLimit,
+    withErrorHandling("fetch telemetry baseline", async (req, res) => {
+      const { equipmentId } = z.object({ equipmentId: z.string().min(1) }).parse(req.params);
+      const { days } = z
+        .object({ days: z.coerce.number().int().positive().max(365).default(30) })
+        .parse(req.query);
+
+      const { db } = await import("../../db.js");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT sensor_type,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS p50,
+               avg(value)    AS avg,
+               stddev(value) AS stddev,
+               min(value)    AS min,
+               max(value)    AS max,
+               count(*)::int AS sample_count
+        FROM equipment_telemetry
+        WHERE equipment_id = ${equipmentId}
+          AND ts > now() - make_interval(days => ${days})
+        GROUP BY sensor_type
+        ORDER BY sensor_type
+      `);
+
+      const baselines = (result.rows as Array<Record<string, unknown>>).map((row) => {
+        const p50 = Number(row["p50"]);
+        const stddev = Number(row["stddev"] ?? 0) || 0;
+        return {
+          sensorType: String(row["sensor_type"]),
+          p50,
+          avg: Number(row["avg"]),
+          stddev,
+          min: Number(row["min"]),
+          max: Number(row["max"]),
+          sampleCount: Number(row["sample_count"]),
+          // Expected operating envelope: median ± 2σ.
+          bandLow: p50 - 2 * stddev,
+          bandHigh: p50 + 2 * stddev,
+        };
+      });
+
+      res.json({ equipmentId, days, baselines });
+    })
+  );
+
   // Get telemetry history for equipment/sensor
   app.get(
     "/api/telemetry/history/:equipmentId/:sensorType",
@@ -93,7 +148,32 @@ export function registerTelemetryRoutes(
       const { equipmentId, sensorType } = telemetryHistoryParamSchema.parse(req.params);
       const { hours: h } = telemetryHistoryQuerySchema.parse(req.query);
       const hours = h ?? 24;
-      const history = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
+      // NOTE: getTelemetryHistory's 3rd parameter is a row LIMIT, not
+      // hours — the old call turned "?hours=24" into "the 24 most recent
+      // rows". Use the date-range query so the window is actually a
+      // time window.
+      const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const history = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
+        equipmentId,
+        since,
+        new Date(),
+        sensorType
+      );
+      // Charts can't usefully render more than ~1k points per series, and
+      // high-rate sensors produce tens of thousands per day — stride-
+      // decimate evenly across the window (always keeping the newest
+      // reading) so the payload and render cost stay bounded.
+      const MAX_POINTS = 1000;
+      if (history.length > MAX_POINTS) {
+        const stride = Math.ceil(history.length / MAX_POINTS);
+        const decimated = history.filter((_, i) => i % stride === 0);
+        const newest = history[0];
+        if (newest && decimated[0] !== newest) {
+          decimated.unshift(newest);
+        }
+        res.json(decimated);
+        return;
+      }
       res.json(history);
     })
   );
