@@ -1,0 +1,130 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css">
+<style>
+  .dim { position: fixed; inset: 0; background: rgb(8 14 26 / .45); backdrop-filter: blur(1.5px); z-index: 20; }
+  .palette {
+    position: fixed; top: 120px; left: 50%; transform: translateX(-50%);
+    width: 640px; background: #fff; border-radius: 14px; box-shadow: var(--shadow-2xl);
+    border: 1px solid var(--border); z-index: 30; overflow: hidden;
+  }
+  .pal-input { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .pal-input svg { width: 17px; height: 17px; color: var(--muted-foreground); stroke-width: 2; }
+  .pal-q { font-size: 15px; font-weight: 500; }
+  .caret { display:inline-block; width:1.5px; height:18px; background: var(--primary); vertical-align: -3px; margin-left:1px; }
+  .pal-hint { margin-left:auto; font-size:11px; color:var(--muted-foreground); background:var(--muted); border-radius:5px; padding:2px 7px; font-weight:600;}
+  .pal-group { padding: 7px 8px 3px; }
+  .pal-group-label { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground); padding: 4px 10px; }
+  .pal-item { display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: 8px; }
+  .pal-item svg { width: 16px; height: 16px; stroke-width: 1.9; color: var(--muted-foreground); flex-shrink: 0; }
+  .pal-item .t { font-weight: 600; font-size: 13.5px; }
+  .pal-item .t b { background: hsl(43 96% 56% / .35); font-weight: 700; border-radius: 3px; padding: 0 1px; }
+  .pal-item .s { font-size: 12px; color: var(--muted-foreground); }
+  .pal-item .right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .pal-item.sel { background: var(--sidebar-accent); }
+  .pal-foot { display: flex; gap: 16px; padding: 9px 16px; border-top: 1px solid var(--border); background: var(--muted); font-size: 11.5px; color: var(--muted-foreground); font-weight: 500;}
+  .kbd { background: #fff; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 10.5px; font-weight: 700; font-family: inherit; }
+  td, th { font-size: 13px; padding: 9px 12px; text-align: left; }
+  th { color: var(--muted-foreground); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--border); }
+  td { border-bottom: 1px solid hsl(220 7% 93%); }
+</style></head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">A</div><div class="brand-name">ARUS</div></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Operations</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg>Fleet</div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Maintenance</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Crew</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Logistics</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Records</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Analytics</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>System</div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="page-title">Work Orders</div><div class="page-sub">Manage corrective, preventive and predictive work across the fleet</div></div>
+        <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Create Work Order</button>
+      </div>
+      <div class="subnav"><a class="active">Work Orders</a><a>Schedules</a><a>Templates</a><a>Equipment Intelligence</a></div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <table style="width:100%; border-collapse:collapse">
+          <tr><th>Work order</th><th>Vessel</th><th>Equipment</th><th>Priority</th><th>Status</th><th>Due</th></tr>
+          <tr><td style="font-weight:600">WO-2841 · Cooling water pump overhaul</td><td>M/V Northern Star</td><td>SW Cooling Pump #1</td><td><span class="badge badge-red">High</span></td><td><span class="badge badge-blue">In progress</span></td><td>Jun 12</td></tr>
+          <tr><td style="font-weight:600">WO-2839 · Purifier bowl cleaning</td><td>M/V Coral Wind</td><td>FO Purifier #2</td><td><span class="badge badge-amber">Medium</span></td><td><span class="badge badge-gray">Open</span></td><td>Jun 14</td></tr>
+          <tr><td style="font-weight:600">WO-2836 · Main engine cyl. 4 exhaust valve</td><td>M/V Northern Star</td><td>Main Engine #2</td><td><span class="badge badge-red">High</span></td><td><span class="badge badge-gray">Open</span></td><td>Jun 11</td></tr>
+          <tr><td style="font-weight:600">WO-2830 · Steering gear oil sample</td><td>M/V Baltic Trader</td><td>Steering Gear</td><td><span class="badge badge-green">Low</span></td><td><span class="badge badge-blue">In progress</span></td><td>Jun 20</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dim"></div>
+<div class="palette">
+  <div class="pal-input">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span class="pal-q">north<span class="caret"></span></span>
+    <span class="pal-hint">esc</span>
+  </div>
+  <div class="pal-group">
+    <div class="pal-group-label">Vessels</div>
+    <div class="pal-item sel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg>
+      <div><span class="t">M/V <b>North</b>ern Star</span> <span class="s">· Vessel intelligence</span></div>
+      <div class="right"><span class="badge badge-amber">2 alerts</span><span class="kbd">↵</span></div>
+    </div>
+  </div>
+  <div class="pal-group">
+    <div class="pal-group-label">Equipment</div>
+    <div class="pal-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></svg>
+      <div><span class="t">Main Engine #2</span> <span class="s">· M/V <b>North</b>ern Star · Health 62</span></div>
+      <div class="right"><span class="badge badge-amber">Warning</span></div>
+    </div>
+    <div class="pal-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></svg>
+      <div><span class="t">SW Cooling Pump #1</span> <span class="s">· M/V <b>North</b>ern Star · Health 84</span></div>
+    </div>
+  </div>
+  <div class="pal-group">
+    <div class="pal-group-label">Work orders</div>
+    <div class="pal-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <div><span class="t">WO-2836 · ME cyl. 4 exhaust valve</span> <span class="s">· <b>North</b>ern Star · Open</span></div>
+    </div>
+  </div>
+  <div class="pal-group" style="padding-bottom:8px">
+    <div class="pal-group-label">Pages &amp; actions</div>
+    <div class="pal-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+      <div><span class="t">Engine Log — M/V <b>North</b>ern Star</span> <span class="s">· Records</span></div>
+    </div>
+    <div class="pal-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      <div><span class="t">Create work order for "<b>north</b>ern star"…</span> <span class="s">· Action</span></div>
+    </div>
+  </div>
+  <div class="pal-foot">
+    <span><span class="kbd">↑</span> <span class="kbd">↓</span> navigate</span>
+    <span><span class="kbd">↵</span> open</span>
+    <span><span class="kbd">tab</span> filter by type</span>
+    <span style="margin-left:auto"><span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span>+<span class="kbd">K</span> from anywhere</span>
+  </div>
+</div>
+
+<div class="anno anno-green" style="top:84px; right:48px;">
+  <div class="anno-pill">1</div>
+  <div style="background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-lg)">Ctrl/Cmd-K opens from any page — the cmdk component already ships in the bundle (components/ui/command.tsx), it's just never mounted</div>
+</div>
+<div class="anno anno-green" style="top:436px; left:120px;">
+  <div class="anno-pill">2</div>
+  <div style="background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-lg)">Vessels, equipment, work orders and pages are first-class results — one jump replaces hub → subnav → list → search</div>
+</div>
+<div class="anno anno-green" style="top:660px; right:84px;">
+  <div class="anno-pill">3</div>
+  <div style="background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-lg)">Verb results ("Create work order for…") give a 0-navigation fast path for the most common actions</div>
+</div>
+</body></html>
