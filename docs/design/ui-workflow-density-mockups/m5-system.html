@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css"><link rel="stylesheet" href="mobile.css">
+<style>
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tile { background:#fff; border:1px solid var(--border); border-radius:11px; padding:13px 13px; box-shadow:var(--shadow-sm); }
+  .tile svg { width:18px; height:18px; stroke-width:1.8; color:var(--muted-foreground); margin-bottom:7px; }
+  .tile .t { font-weight:600; font-size:12.5px; }
+  .tile .d { font-size:10.5px; color:var(--muted-foreground); margin-top:2px; }
+  .group { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm); padding:13px 14px; margin-bottom:10px; }
+  .group .gt { font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:9px; }
+  .group .gt svg { width:17px; height:17px; stroke-width:1.9; color:hsl(197 75% 38%); }
+  .group .gt .cnt { margin-left:auto; font-size:11px; color:var(--muted-foreground); font-weight:600; display:flex; align-items:center; gap:6px; }
+  .gi { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted-foreground); padding:8px 0; border-bottom:1px solid hsl(220 7% 94%); font-weight:500; }
+  .gi:last-child { border-bottom:none; }
+  .gi .chev { margin-left:auto; color:hsl(220 7% 75%); }
+</style></head>
+<body>
+<div class="mcanvas">
+  <div class="compare-title">Mobile — System hub</div>
+  <div class="compare-sub">Eight equal tiles become a two-column guessing grid on a phone. Grouped, collapsible sections give scent and shrink the scan from 8 unknowns to 5 purposes.</div>
+  <div class="phones">
+
+    <!-- BEFORE -->
+    <div class="phone-wrap">
+      <div class="phone-label"><span class="panel-label before">Today — 8 equal tiles</span></div>
+      <div class="phone">
+        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
+        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg><span class="mtitle">System</span></div>
+        <div class="mcontent">
+          <div class="grid2">
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="t">Configuration</div><div class="d">System settings</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><div class="t">Notifications</div><div class="d">Channels &amp; rules</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg><div class="t">Organizations</div><div class="d">Tenants &amp; orgs</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></svg><div class="t">Sensor Templates</div><div class="d">Template library</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg><div class="t">Sensors</div><div class="d">Mapping &amp; optim.</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/><path d="M12 12v9M8 17l4 4 4-4"/></svg><div class="t">StormGeo</div><div class="d">Weather integration</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div class="t">System Admin</div><div class="d">Users, audit, patches</div></div>
+            <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div class="t">System Health</div><div class="d">Diagnostics</div></div>
+          </div>
+        </div>
+        <div class="mbottomnav">
+          <div class="mbn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Hubs</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ndot"></span>Alerts</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>Flags</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+      <div class="anno anno-red" style="top:240px; left:-206px;"><div class="anno-pill">!</div><div class="anno-card">Same 8-way guess as desktop, now with truncated labels and no descriptions to disambiguate</div></div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="phone-wrap">
+      <div class="phone-label"><span class="panel-label after">Proposed — grouped, collapsible</span></div>
+      <div class="phone">
+        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
+        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg><span class="mtitle">System</span></div>
+        <div class="mcontent">
+          <div class="group">
+            <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health &amp; Audit <span class="cnt"><span class="badge badge-green">All OK</span> ⌃</span></div>
+            <div class="gi" style="margin-top:6px">Service status<span class="chev">›</span></div>
+            <div class="gi">Diagnostics &amp; test suites<span class="chev">›</span></div>
+            <div class="gi">Audit log<span class="chev">›</span></div>
+          </div>
+          <div class="group">
+            <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users &amp; Access <span class="cnt">3 ⌄</span></div>
+          </div>
+          <div class="group">
+            <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuration <span class="cnt">4 ⌄</span></div>
+          </div>
+          <div class="group">
+            <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>Integrations <span class="cnt">4 ⌄</span></div>
+          </div>
+          <div class="group">
+            <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Advanced <span class="cnt">4 ⌄</span></div>
+          </div>
+        </div>
+        <div class="mbottomnav">
+          <div class="mbn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Hubs</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ndot"></span>Alerts</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>Flags</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+      <div class="anno anno-green" style="top:180px; right:-206px;"><div class="anno-pill">1</div><div class="anno-card">Health first with an at-a-glance state — the question admins actually open this hub with</div></div>
+      <div class="anno anno-green" style="top:420px; right:-206px;"><div class="anno-pill">2</div><div class="anno-card">Collapsed groups with counts — 5 purposes instead of 8 guesses, one-thumb expandable</div></div>
+    </div>
+  </div>
+</div>
+</body></html>

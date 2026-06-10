@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css"><link rel="stylesheet" href="mobile.css">
+<style>
+  .kpi2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:13px; }
+  .kpi { border:1px solid var(--border); border-radius:10px; padding:10px 12px; background:#fff; box-shadow:var(--shadow-sm); }
+  .kpi .n { font-size:18px; font-weight:800; }
+  .kpi .l { font-size:11px; color:var(--muted-foreground); font-weight:500; }
+  .tabs { display:flex; border-bottom:1px solid var(--border); position:relative; overflow:hidden; }
+  .tab { padding:9px 11px; font-size:12.5px; font-weight:500; color:var(--muted-foreground); white-space:nowrap; flex-shrink:0; }
+  .tab.active { color:var(--primary); border-bottom:2px solid var(--primary); font-weight:600; }
+  .tab .cnt { background:var(--muted); border-radius:99px; font-size:10px; padding:0 5px; font-weight:700; }
+  .fade { position:absolute; right:0; top:0; bottom:0; width:54px; background:linear-gradient(to right, transparent, #fff 70%); display:flex; align-items:center; justify-content:flex-end; color:var(--muted-foreground); }
+  .mi { display:flex; align-items:center; gap:11px; padding:12px 4px; border-bottom:1px solid hsl(220 7% 94%); font-size:13.5px; font-weight:500; }
+  .mi:last-of-type { border-bottom:none; }
+  .mi svg { width:17px; height:17px; stroke-width:1.9; color:var(--muted-foreground); }
+  .mnote { font-size:11px; color:var(--muted-foreground); padding:10px 4px 0; border-top:1px solid var(--border); margin-top:6px; }
+</style></head>
+<body>
+<div class="mcanvas">
+  <div class="compare-title">Mobile — PdM Platform tabs</div>
+  <div class="compare-sub">On a 390px screen only ~4 of the 10 tabs are visible; the rest is horizontal-scroll roulette. Grouping ML tooling fixes desktop and mobile with one change.</div>
+  <div class="phones">
+
+    <!-- BEFORE -->
+    <div class="phone-wrap">
+      <div class="phone-label"><span class="panel-label before">Today — 10 tabs, ~6 hidden</span></div>
+      <div class="phone">
+        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
+        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg><span class="mtitle">PdM Platform</span></div>
+        <div class="mcontent">
+          <div class="kpi2">
+            <div class="kpi"><div class="n">7</div><div class="l">Deployed models</div></div>
+            <div class="kpi"><div class="n" style="color:hsl(35 85% 40%)">2</div><div class="l">Drift alerts</div></div>
+            <div class="kpi"><div class="n" style="color:hsl(0 70% 48%)">4</div><div class="l">Pending reviews</div></div>
+            <div class="kpi"><div class="n">1,284</div><div class="l">Predictions (7d)</div></div>
+          </div>
+          <div class="tabs">
+            <span class="tab active">Schedule</span><span class="tab">Diagnostics</span><span class="tab">Features</span><span class="tab">Fleet</span><span class="tab">Models</span><span class="tab">Training</span>
+            <div class="fade">›</div>
+          </div>
+          <div style="padding:22px 2px; color:var(--muted-foreground); font-size:12px">… active tab content …</div>
+        </div>
+        <div class="mbottomnav">
+          <div class="mbn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Hubs</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ndot"></span>Alerts</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>Flags</div>
+          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+      <div class="anno anno-red" style="top:330px; left:-206px;"><div class="anno-pill">!</div><div class="anno-card">Decisions — the operator's review queue (4 pending) — is 6 swipes off-screen</div></div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="phone-wrap">
+      <div class="phone-label"><span class="panel-label after">Proposed — 4 tabs + ML Ops sheet</span></div>
+      <div class="phone">
+        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
+        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg><span class="mtitle">PdM Platform</span></div>
+        <div class="mcontent">
+          <div class="kpi2">
+            <div class="kpi"><div class="n">7</div><div class="l">Deployed models</div></div>
+            <div class="kpi"><div class="n" style="color:hsl(35 85% 40%)">2</div><div class="l">Drift alerts</div></div>
+            <div class="kpi"><div class="n" style="color:hsl(0 70% 48%)">4</div><div class="l">Pending reviews</div></div>
+            <div class="kpi"><div class="n">1,284</div><div class="l">Predictions (7d)</div></div>
+          </div>
+          <div class="tabs">
+            <span class="tab active" style="padding:9px 8px">Schedule</span><span class="tab" style="padding:9px 8px">Diagnostics</span><span class="tab" style="padding:9px 8px">Fleet</span><span class="tab" style="padding:9px 8px">Decisions <span class="cnt">4</span></span><span class="tab" style="margin-left:auto; padding:9px 8px; color:var(--foreground); font-weight:600">ML ▾</span>
+          </div>
+          <div style="padding:22px 2px; color:var(--muted-foreground); font-size:12px">… schedule content …</div>
+        </div>
+        <div class="dimphone" style="background:rgba(8,14,26,.35)"></div>
+        <div class="msheet light">
+          <div class="grab" style="background:hsl(220 7% 80%)"></div>
+          <div style="font-size:14.5px; font-weight:700">ML Ops</div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></svg>Models &amp; versions</div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Training runs</div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Inference</div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Drift monitoring <span class="badge badge-amber" style="margin-left:auto">2</span></div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Governance</div>
+          <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>Feature store</div>
+          <div class="mnote">Visible with <b>ml:manage</b> permission — hidden for operator roles</div>
+        </div>
+        <div class="homebar" style="z-index:60"></div>
+      </div>
+      <div class="anno anno-green" style="top:300px; right:-206px;"><div class="anno-pill">1</div><div class="anno-card">All 4 operator tabs fit a 390px screen — no horizontal scroll, queue count visible</div></div>
+      <div class="anno anno-green" style="top:560px; right:-206px;"><div class="anno-pill">2</div><div class="anno-card">ML tooling moves to a role-gated bottom sheet — native mobile pattern, nothing lost</div></div>
+    </div>
+  </div>
+</div>
+</body></html>
