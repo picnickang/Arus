@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T22:58:59.549Z
+Generated: 2026-06-11T23:02:54.894Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `109` counted files.
-- The current counted inventory is `109` files.
+- The temporary ceiling is `108` counted files.
+- The current counted inventory is `108` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   109 |
+| Total counted long files  |   108 |
 | Server                    |    36 |
 | Server route-like files   |     9 |
 | Server service-like files |     9 |
-| Client                    |    73 |
+| Client                    |    72 |
 | Client page files         |    28 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -74,6 +74,7 @@ Completed splits:
 - `server/utils/statistics.ts` dropped below the threshold by moving signal-processing, time-series, correlation, forecasting, and error helpers to focused utility modules while preserving the public barrel.
 - `server/services/ml/model-evaluation-gate.ts` dropped below the threshold by moving gate config, types, and metric helpers to a sibling support module while preserving `ModelEvaluationGate`.
 - `server/domains/agent/tools/weather-tools.ts` dropped below the threshold by moving weather schemas, types, and fetch helpers to a sibling support module while preserving registered tool names.
+- `client/src/lib/offline-sync.ts` dropped below the threshold by moving offline sync public types and IndexedDB schema typing to a sibling type module while preserving the public runtime entry point.
 
 ## Top 30 Longest Files
 
@@ -235,7 +236,6 @@ Completed splits:
 530 client/src/features/work-orders/hooks/useWorkOrdersPageData.ts
 528 client/src/pages/work-orders.tsx
 527 client/src/components/engine-logbook/row-components.tsx
-523 client/src/lib/offline-sync.ts
 521 client/src/pages/logs-compliance-hub.tsx
 514 client/src/features/suppliers/components/SupplierForm.tsx
 507 client/src/components/UnifiedCrewManagement/CurrentRoster.tsx
