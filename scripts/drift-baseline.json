@@ -10,9 +10,6 @@
   ],
   "columnDrift": {
     "vessels": {
-      "pgOnly": [
-        "schematicLayout"
-      ],
       "sqliteOnly": [
         "id",
         "orgId"

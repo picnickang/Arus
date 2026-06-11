@@ -74,6 +74,10 @@ const REQUIRED_INDEXES: ReadonlyArray<{ name: string; from: string }> = [
   { name: "idx_maintenance_schedules_equipment_date", from: "0021 hot-path indexes" },
   { name: "uq_users_org_email_lower", from: "0047 email normalization" },
   { name: "uq_work_orders_org_wo_number", from: "0039 identity uniques" },
+  // Belt for the org-scoped telemetry access path: 0038's partitioned
+  // rebuild keys the PK on (org_id, ts, id), which serves every observed
+  // org_id predicate — assert it survives future rebuilds.
+  { name: "equipment_telemetry_pkey", from: "0038 partitioning (org-scoped PK)" },
 ];
 
 // deleteRule matches pg_constraint.confdeltype: "c" = CASCADE, "n" = SET NULL,
@@ -162,6 +166,7 @@ const REQUIRED_COLUMNS: ReadonlyArray<{ table: string; column: string; from: str
   { table: "roles", column: "hub_admin", from: "0033 role hub access" },
   { table: "roles", column: "hub_access", from: "0033 role hub access" },
   { table: "system_settings", column: "openai_api_key_encrypted", from: "0043 secure settings" },
+  { table: "pdm_alerts", column: "created_at", from: "0049 column hygiene" },
 ];
 
 /**

@@ -167,6 +167,7 @@ export const pdmAlertsSqlite = sqliteTable(
     acknowledgedBy: text("acknowledged_by"),
     acknowledgedAt: integer("acknowledged_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentIdx: index("idx_pdma_equipment").on(table.equipmentId),

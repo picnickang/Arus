@@ -158,7 +158,7 @@ export function useVesselManagementData() {
       condition: (vessel.condition || "good") as "excellent" | "good" | "fair" | "poor" | "critical",
       onlineStatus: vessel.onlineStatus || "offline",
       ...({ specifications: v.specifications, operatingParameters: v.operatingParameters } as object),
-      dayRateSgd: vessel.dayRateSgd || "",
+      dayRateSgd: vessel.dayRateSgd ?? null,
     });
     setIsEditDialogOpen(true);
   };

@@ -22,6 +22,7 @@ import {
   index,
   unique,
   sql,
+  createdAtOnly,
 } from "./base";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -112,6 +113,7 @@ export const equipmentDependencyLayouts = pgTable(
       .references(() => vessels.id, { onDelete: "cascade" })
       .notNull(),
     positions: jsonb("positions").$type<Record<string, { x: number; y: number }>>().notNull(),
+    ...createdAtOnly(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({

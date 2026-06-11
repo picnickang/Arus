@@ -29,6 +29,9 @@ export const vesselsSqlite = sqliteTable(
     operationResetAt: integer("operation_reset_at", { mode: "timestamp" }),
     lastDailyUpdateDate: text("last_daily_update_date"),
     commissionDate: integer("commission_date", { mode: "timestamp" }),
+    // JSON-serialized mirror of PG's jsonb schematic_layout (0049
+    // closes this drift-baseline gap).
+    schematicLayout: text("schematic_layout"),
     createdAt: integer("created_at", { mode: "timestamp" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },

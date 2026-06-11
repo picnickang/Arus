@@ -105,10 +105,10 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
       models
         .filter((m) => m.status === "deployed" && m.accuracy)
         .map(async (model) => {
-          const history = await (dbMlAnalyticsStorage as object as { getMlModelAccuracyHistory: (id: string, orgId: string) => Promise<Array<{ recordedAt: Date; accuracy: string | null }>> }).getMlModelAccuracyHistory(model.id, req.orgId);
-          return history.map((h: { recordedAt: Date; accuracy: string | null }) => ({
+          const history = await (dbMlAnalyticsStorage as object as { getMlModelAccuracyHistory: (id: string, orgId: string) => Promise<Array<{ recordedAt: Date; accuracy: number | null }>> }).getMlModelAccuracyHistory(model.id, req.orgId);
+          return history.map((h: { recordedAt: Date; accuracy: number | null }) => ({
             date: h.recordedAt.toISOString().split("T")[0] ?? '',
-            accuracy: Number.parseFloat(h.accuracy || "0"),
+            accuracy: h.accuracy ?? 0,
             modelId: model.id,
             modelName: model.name,
           }));

@@ -55,8 +55,9 @@ export const users = pgTable(
   username: text("username"),
   name: text("name").notNull(),
   passwordHash: text("password_hash"),
-  passwordResetToken: text("password_reset_token"),
-  passwordResetExpires: timestamp("password_reset_expires", { mode: "date" }),
+  // password_reset_token/_expires dropped in 0049: no reset flow ever
+  // shipped (zero readers/writers). If one is added, store only a hash
+  // of the token from day one.
   passwordUpdatedAt: timestamp("password_updated_at", { mode: "date" }),
   role: text("role").notNull().default("viewer"),
   jobTitle: text("job_title"),
@@ -194,8 +195,6 @@ export const insertUserSchema = createInsertSchema(users)
     updatedAt: true,
     lastLoginAt: true,
     passwordHash: true,
-    passwordResetToken: true,
-    passwordResetExpires: true,
     passwordUpdatedAt: true,
     hubAdmin: true,
     hubAccess: true,

@@ -133,7 +133,9 @@ export const maintenanceTemplates = pgTable("maintenance_templates", {
   estimatedDurationMinutes: integer("estimated_duration_minutes"),
   checklistItems: jsonb("checklist_items"),
   intervalDays: integer("interval_days"),
-  intervalHours: numeric("interval_hours"),
+  // Hours stay real() per the 0041 numeric policy (converted from
+  // string-mode numeric in 0049).
+  intervalHours: real("interval_hours"),
 });
 
 // Maintenance checklist items

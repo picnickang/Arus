@@ -225,6 +225,7 @@ describe("Dual-driver query parity — vessels round-trip through real libsql", 
         operation_reset_at INTEGER,
         last_daily_update_date TEXT,
         commission_date INTEGER,
+        schematic_layout TEXT,
         created_at INTEGER,
         updated_at INTEGER
       );

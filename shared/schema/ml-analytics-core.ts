@@ -12,6 +12,7 @@ import {
   varchar,
   integer,
   real,
+  timestamps,
   numeric,
   timestamp,
   boolean,
@@ -67,10 +68,12 @@ export const mlModels = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     type: varchar("type", { length: 50 }).notNull(),
     status: varchar("status", { length: 50 }).notNull().default("training"),
-    accuracy: numeric("accuracy", { precision: 5, scale: 2 }),
-    precision: numeric("precision", { precision: 5, scale: 2 }),
-    recall: numeric("recall", { precision: 5, scale: 2 }),
-    f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
+    // Scores are statistics — real() per the 0041 numeric policy
+    // (converted from string-mode numeric(5,2) in 0049).
+    accuracy: real("accuracy"),
+    precision: real("precision"),
+    recall: real("recall"),
+    f1Score: real("f1_score"),
     trainedOn: timestamp("trained_on", { mode: "date" }),
     deployedOn: timestamp("deployed_on", { mode: "date" }),
     archivedOn: timestamp("archived_on", { mode: "date" }),
@@ -115,10 +118,12 @@ export const modelVersions = pgTable(
     version: varchar("version", { length: 50 }).notNull(),
     artifactPath: varchar("artifact_path", { length: 500 }),
     status: varchar("status", { length: 50 }).notNull().default("staging"),
-    accuracy: numeric("accuracy", { precision: 5, scale: 2 }),
-    precision: numeric("precision", { precision: 5, scale: 2 }),
-    recall: numeric("recall", { precision: 5, scale: 2 }),
-    f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
+    // Scores are statistics — real() per the 0041 numeric policy
+    // (converted from string-mode numeric(5,2) in 0049).
+    accuracy: real("accuracy"),
+    precision: real("precision"),
+    recall: real("recall"),
+    f1Score: real("f1_score"),
     trainingDataPoints: integer("training_data_points"),
     trainingDurationMs: integer("training_duration_ms"),
     hyperparameters: jsonb("hyperparameters"),
@@ -153,6 +158,7 @@ export const modelMetrics = pgTable(
     sampleSize: integer("sample_size"),
     computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
     metadata: jsonb("metadata"),
+    ...timestamps(),
   },
   (table) => ({
     versionIdx: index("idx_model_metrics_version").on(table.modelVersionId),
@@ -196,6 +202,7 @@ export const anomalyDetections = pgTable(
     outcomeVerifiedAt: timestamp("outcome_verified_at", { withTimezone: true }),
     outcomeVerifiedBy: varchar("outcome_verified_by"),
     metadata: jsonb("metadata"),
+    ...timestamps(),
   },
   (table) => ({
     equipmentTimeIdx: index("idx_anomaly_equipment_time").on(

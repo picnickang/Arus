@@ -158,9 +158,10 @@ export class TrainingPipelineService {
       run.metrics && typeof run.metrics === "object"
         ? (run.metrics as Record<string, unknown>)
         : {};
-    const metricStr = (key: string): string | undefined => {
+    const metricNum = (key: string): number | undefined => {
       const v = metrics[key];
-      return typeof v === "number" || typeof v === "string" ? String(v) : undefined;
+      const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+      return Number.isFinite(n) ? n : undefined;
     };
 
     const modelVersion = await this.registry.createVersion({
@@ -168,10 +169,10 @@ export class TrainingPipelineService {
       modelId,
       version,
       status: "staging",
-      accuracy: metricStr("accuracy"),
-      precision: metricStr("precision"),
-      recall: metricStr("recall"),
-      f1Score: metricStr("f1Score"),
+      accuracy: metricNum("accuracy"),
+      precision: metricNum("precision"),
+      recall: metricNum("recall"),
+      f1Score: metricNum("f1Score"),
       hyperparameters: run.hyperparameters as Record<string, unknown>,
       changelog: changelog ?? `Promoted from training run ${runId}`,
     });
