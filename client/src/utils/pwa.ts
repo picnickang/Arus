@@ -58,7 +58,12 @@ class PWAManager {
           scope: "/",
         });
 
-        console.info("✅ Service Worker registered successfully:", registration.scope);
+        if (!registration) {
+          console.warn("⚠️ Service Worker registration unavailable in this browser context");
+          return;
+        }
+
+        console.info("✅ Service Worker registered successfully:", registration.scope ?? "/");
 
         // Check for updates
         registration.addEventListener("updatefound", () => {
@@ -80,8 +85,7 @@ class PWAManager {
 
         return;
       } catch (error) {
-        console.error("❌ Service Worker registration failed:", error);
-        throw error;
+        console.warn("⚠️ Service Worker registration failed:", error);
       }
     } else {
       console.warn("⚠️ Service Workers not supported");

@@ -116,7 +116,7 @@ export function BottomNav() {
       aria-label="Bottom navigation"
       data-testid="bottom-nav"
     >
-      <div className="flex h-14 items-center justify-around px-1">
+      <div className="flex h-16 items-center justify-around px-1">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = isTabActive(tab.href);
@@ -124,7 +124,7 @@ export function BottomNav() {
             <Link key={tab.id} href={tab.href}>
               <div
                 className={cn(
-                  "flex min-w-[56px] cursor-pointer flex-col items-center gap-0.5 rounded-lg px-3 py-1 transition-colors",
+                  "flex h-12 min-w-[64px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1 transition-colors",
                   active
                     ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/30"
                     : "text-muted-foreground hover:text-foreground"
