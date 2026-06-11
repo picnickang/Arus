@@ -10,12 +10,13 @@
 import { pgTable, text, boolean, timestamp, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { organizations } from "./core";
 
 export const ssoConfigs = pgTable(
   "sso_configs",
   {
     id: text("id").primaryKey(),
-    orgId: text("org_id").notNull(),
+    orgId: text("org_id").notNull().references(() => organizations.id),
     protocol: text("protocol").notNull(), // 'saml' | 'oidc'
     displayName: text("display_name").notNull(),
     enabled: boolean("enabled").notNull().default(false),

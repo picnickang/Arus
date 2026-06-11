@@ -18,7 +18,7 @@ import {
   createInsertSchema,
   z,
 } from "./base";
-import { users } from "./core";
+import { organizations, users } from "./core";
 
 // Sync journal for audit trails and change tracking (vessel-aware)
 export const syncJournal = pgTable(
@@ -93,7 +93,7 @@ export const eventOutbox = pgTable(
       .default(sql`gen_random_uuid()`),
     eventId: varchar("event_id").notNull(),
     eventType: text("event_type").notNull(),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     aggregateId: varchar("aggregate_id"),
     aggregateType: text("aggregate_type"),
     payload: jsonb("payload").notNull(),

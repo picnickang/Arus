@@ -1,4 +1,5 @@
 import { sql, pgTable, text, varchar, integer, timestamp, jsonb, index } from "./base";
+import { organizations } from "./core";
 
 /**
  * Cache for external API responses.
@@ -16,7 +17,7 @@ export const externalDataCache = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     /** Source identifier: 'weather', 'regulatory', 'parts', 'ais', etc. */
     provider: text("provider").notNull(),
     /** Scoped lookup key, e.g. vessel-id, part-number, regulation-id. */

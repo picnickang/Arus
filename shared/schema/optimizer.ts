@@ -17,13 +17,14 @@ import {
   createInsertSchema,
   z,
 } from "./base";
+import { organizations } from "./core";
 
 // Optimizer configurations
 export const optimizerConfigurations = pgTable("optimizer_configurations", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
   algorithmType: text("algorithm_type").notNull().default("greedy"),
   enabled: boolean("enabled").default(true),
@@ -42,7 +43,7 @@ export const resourceConstraints = pgTable("resource_constraints", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   resourceType: text("resource_type").notNull(),
   resourceId: text("resource_id").notNull(),
   resourceName: text("resource_name").notNull(),
@@ -62,7 +63,7 @@ export const optimizationResults = pgTable("optimization_results", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   configurationId: text("configuration_id").notNull(),
   runStatus: text("run_status").notNull().default("pending"),
   startTime: timestamp("start_time", { mode: "date" }).defaultNow(),
@@ -88,7 +89,7 @@ export const scheduleOptimizations = pgTable("schedule_optimizations", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   optimizationResultId: text("optimization_result_id").notNull(),
   equipmentId: text("equipment_id").notNull(),
   currentScheduleId: text("current_schedule_id"),
@@ -113,7 +114,7 @@ export const schedulerRuns = pgTable("scheduler_runs", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   vesselId: varchar("vessel_id"),
   startedAt: timestamp("started_at", { mode: "date" }).notNull(),
   finishedAt: timestamp("finished_at", { mode: "date" }),
@@ -142,7 +143,7 @@ export const scheduleAssignments = pgTable("schedule_assignments", {
   runId: varchar("run_id")
     .notNull()
     .references(() => schedulerRuns.id),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   crewId: varchar("crew_id").notNull(),
   shiftId: varchar("shift_id").notNull(),
   date: varchar("date").notNull(),
@@ -162,7 +163,7 @@ export const scheduleUnfilled = pgTable("schedule_unfilled", {
   runId: varchar("run_id")
     .notNull()
     .references(() => schedulerRuns.id),
-  orgId: varchar("org_id").notNull(),
+  orgId: varchar("org_id").notNull().references(() => organizations.id),
   day: varchar("day").notNull(),
   shiftId: varchar("shift_id").notNull(),
   need: integer("need").notNull(),

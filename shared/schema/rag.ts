@@ -26,6 +26,7 @@ import {
   createInsertSchema,
   z,
 } from "./base";
+import { organizations } from "./core";
 
 // =============================================================================
 // DOCUMENT STORAGE
@@ -37,7 +38,7 @@ export const kbDocs = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     equipmentId: varchar("equipment_id"),
     name: text("name").notNull(),
     source: text("source"),
@@ -112,7 +113,7 @@ export const kbEmbeddingCache = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     textHash: varchar("text_hash", { length: 64 }).notNull(),
     embedding: vector("embedding", { dimensions: 384 }).notNull(),
     hitCount: integer("hit_count").notNull().default(1),
@@ -136,7 +137,7 @@ export const ragConversations = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     userId: varchar("user_id"),
     title: text("title"),
     context: jsonb("context").default({}),
@@ -187,7 +188,7 @@ export const ragFeedback = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     messageId: varchar("message_id"),
     chunkId: varchar("chunk_id"),
     userId: varchar("user_id"),
@@ -215,7 +216,7 @@ export const ragSemanticCache = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     queryHash: varchar("query_hash", { length: 64 }).notNull(),
     queryText: text("query_text").notNull(),
     queryEmbedding: vector("query_embedding", { dimensions: 384 }).notNull(),

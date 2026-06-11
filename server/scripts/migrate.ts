@@ -130,6 +130,30 @@ const REQUIRED_FKS: ReadonlyArray<{
     refTable: "ml_models",
     from: "0040 ML FK integrity",
   },
+  // Representatives for the catalog-driven org FK sweep — one early-domain
+  // table, one mid-list, one late-list, so a partially applied 0046 trips
+  // the assertion regardless of where it stopped.
+  {
+    table: "crew_alerts",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
+  {
+    table: "agent_conversations",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
+  {
+    table: "report_schedules",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
 ];
 
 // Columns the application assumes exist post-migration. Asserted after every
