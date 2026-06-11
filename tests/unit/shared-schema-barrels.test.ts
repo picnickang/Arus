@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import * as logbooks from "../../shared/schema/logbooks";
 import * as mlAdvanced from "../../shared/schema/ml-analytics-advanced";
+import * as alerts from "../../shared/schema/alerts";
+import * as schemaRuntime from "../../shared/schema-runtime.ts";
 
 describe("shared schema barrels", () => {
   it("keeps logbook tables, constants, and insert schemas on the public module", () => {
@@ -37,5 +39,41 @@ describe("shared schema barrels", () => {
     expect(typeof mlAdvanced.insertRealTimePredictionSchema.parse).toBe("function");
     expect(typeof mlAdvanced.insertDigitalTwinSchema.parse).toBe("function");
     expect(typeof mlAdvanced.insertPredictionOutcomeSchema.parse).toBe("function");
+  });
+
+  it("keeps alert tables, queues, and insert schemas on the public module", () => {
+    expect(alerts.alertConfigurations).toBeDefined();
+    expect(alerts.alertNotifications).toBeDefined();
+    expect(alerts.alertSuppressions).toBeDefined();
+    expect(alerts.actionableInsights).toBeDefined();
+    expect(alerts.alertSettings).toBeDefined();
+    expect(alerts.alertSettingsVessel).toBeDefined();
+    expect(alerts.alertThresholds).toBeDefined();
+    expect(alerts.alertEmailLog).toBeDefined();
+    expect(alerts.crewAlertSettings).toBeDefined();
+    expect(alerts.alertCooldown).toBeDefined();
+    expect(alerts.emailQueue).toBeDefined();
+    expect(alerts.notificationSettings).toBeDefined();
+    expect(alerts.notificationQueue).toBeDefined();
+    expect(alerts.alertThresholdCategoryEnum).toContain("machinery");
+    expect(typeof alerts.insertAlertConfigSchema.parse).toBe("function");
+    expect(typeof alerts.insertAlertSettingsSchema.parse).toBe("function");
+    expect(typeof alerts.insertEmailQueueSchema.parse).toBe("function");
+    expect(typeof alerts.insertNotificationQueueSchema.parse).toBe("function");
+  });
+
+  it("keeps schema-runtime mode helpers, tables, and validators on the public module", () => {
+    expect(["VESSEL", "CLOUD"]).toContain(schemaRuntime.DEPLOYMENT_MODE);
+    expect(typeof schemaRuntime.IS_SQLITE).toBe("boolean");
+    expect(typeof schemaRuntime.IS_POSTGRES).toBe("boolean");
+    expect(schemaRuntime.organizations).toBeDefined();
+    expect(schemaRuntime.equipment).toBeDefined();
+    expect(schemaRuntime.workOrders).toBeDefined();
+    expect("notificationSettings" in schemaRuntime).toBe(true);
+    expect("notificationQueue" in schemaRuntime).toBe(true);
+    expect("emailQueue" in schemaRuntime).toBe(true);
+    expect(typeof schemaRuntime.insertEquipmentSchema.parse).toBe("function");
+    expect(typeof schemaRuntime.insertAlertNotificationSchema.parse).toBe("function");
+    expect(typeof schemaRuntime.vesselIdSchema.parse).toBe("function");
   });
 });
