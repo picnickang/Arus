@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T22:43:29.205Z
+Generated: 2026-06-11T22:46:59.800Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `115` counted files.
-- The current counted inventory is `115` files.
+- The temporary ceiling is `114` counted files.
+- The current counted inventory is `114` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,14 +20,14 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   115 |
-| Server                    |    42 |
+| Total counted long files  |   114 |
+| Server                    |    41 |
 | Server route-like files   |    10 |
 | Server service-like files |    11 |
 | Client                    |    73 |
 | Client page files         |    28 |
 | Shared                    |     0 |
-| Counted tests             |     1 |
+| Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
 
 Excluded fixture:
@@ -68,6 +68,7 @@ Completed splits:
 - `shared/schema/purchasing.ts` dropped below the threshold by moving procurement and service-order table groups to focused schema modules while preserving the public barrel.
 - `server/lib/domain-event-bus/types.ts` dropped below the threshold by moving event envelopes, payloads, and event map types to internal modules while preserving the public factory/barrel.
 - `server/integrations/fmcc-types.ts` dropped below the threshold by moving FMCC snapshot/polling types and register maps to internal modules while preserving the public barrel.
+- `server/tests/pdm/get-schedule.test.ts` dropped below the threshold by moving local fixture builders to a counted helper module while preserving the test coverage.
 
 ## Top 30 Longest Files
 
@@ -230,7 +231,6 @@ Completed splits:
 530 client/src/features/work-orders/hooks/useWorkOrdersPageData.ts
 528 client/src/pages/work-orders.tsx
 527 client/src/components/engine-logbook/row-components.tsx
-523 server/tests/pdm/get-schedule.test.ts
 523 client/src/lib/offline-sync.ts
 521 client/src/pages/logs-compliance-hub.tsx
 519 server/services/ml/model-evaluation-gate.ts
