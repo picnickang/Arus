@@ -8,8 +8,9 @@ reproducible greps (patterns included where non-obvious).
 
 ## 0. Executive summary
 
-The client is **not** a typical AI-sprawl codebase: design tokens are disciplined (zero raw
-hex/rgb/palette classes in TSX), routes are lazy-split with sensible vendor chunking, and a
+The client is **not** a typical AI-sprawl codebase: design tokens are disciplined (no
+hardcoded palette utilities; raw hex is confined to chart/map/3D fills — see the scorecard
+correction below), routes are lazy-split with sensible vendor chunking, and a
 consolidation effort (hubs, `legacy-redirects`, `embedded` props) is already half-done. The
 problems are concentrated in **the unfinished half of that consolidation**:
 
@@ -347,8 +348,11 @@ redirect, not a 404.
 ### 5.1 Style system: healthy — protect it
 
 - `index.css`: 46 semantic custom properties × 4 themes (light/dark/bridge/daylight);
-  Tailwind config maps them; **zero** raw hex, `rgb()`, or hardcoded palette utilities
-  (`bg-blue-500`-style) in any TSX. This is rare discipline — add the guard in §10 so it stays true.
+  Tailwind config maps them; no hardcoded palette utilities (`bg-blue-500`-style) in any TSX.
+  **Erratum (2026-06-11):** the original "zero raw hex/rgb" claim here was a bad measurement —
+  re-scoring found 119 raw-color occurrences in 31 files, clustered in chart/map/3D fills plus
+  25 arbitrary-value utilities (`bg-[#…]`); see `docs/UI-SCORECARD.md` §3. The §10 token guard
+  should ban `-[#` and introduce `--chart-*` tokens rather than pin zero.
 - All 97 `style={{…}}` occurrences are legitimately dynamic (virtual-table column widths,
   schedule-block geometry, progress transforms). No action.
 - **Duplicated theme blocks**: bridge/daylight are defined 3×:
