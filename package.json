@@ -88,7 +88,7 @@
     "test:validation": "node client/tests/validation.test.mjs",
     "test:stcw": "node client/tests/stcw.test.mjs",
     "test:dates": "node client/tests/dates.test.mjs",
-    "test:dual-db": "npx jest tests/unit/dual-schema-smoke.test.ts tests/unit/dual-driver-query-parity.test.ts --forceExit",
+    "test:dual-db": "npx jest tests/unit/dual-schema-smoke.test.ts tests/unit/dual-driver-query-parity.test.ts tests/unit/idempotency-dual-driver.test.ts --forceExit",
     "test:pdm": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm' --testPathIgnorePatterns='schedule-properties'",
     "test:pdm:tier0": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm' --testPathIgnorePatterns='schedule-properties'",
     "test:pdm:tier1": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns='server/tests/pdm/schedule-properties'",
