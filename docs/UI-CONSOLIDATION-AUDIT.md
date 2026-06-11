@@ -13,17 +13,17 @@ hex/rgb/palette classes in TSX), routes are lazy-split with sensible vendor chun
 consolidation effort (hubs, `legacy-redirects`, `embedded` props) is already half-done. The
 problems are concentrated in **the unfinished half of that consolidation**:
 
-| # | Finding | Severity | Evidence |
-|---|---------|----------|----------|
-| 1 | **9 route registrations are permanently shadowed** by redirects registered earlier in the same `<Switch>` — dead code that *looks* live | High | `App.tsx:365-398` vs `routes/records.ts:22-27`, `routes/logistics.ts`, `routes/analytics.ts` |
-| 2 | **Three URL grammars for the same logbook content** (`/logs/deck`, `/deck-logbook`, `/logs?tab=deck`) render **two different presentations** depending on entry path | High | `navigationConfig.ts:357-368` vs `navigationConfig.ts:518-523` vs `routes/records.ts` |
-| 3 | **6 settings pages exist twice**: as standalone routes *and* as `embedded` tabs inside `configuration-hub` | High | `pages/configuration-hub.tsx:43-83` vs `routes/system.ts:41-47` |
-| 4 | **`PermissionsContext` value is rebuilt every provider render** (9 fresh function identities) → all 38 consumers re-render | High | `contexts/PermissionsContext.tsx:158-168` |
-| 5 | **`AdminAccessContext` ticks a 1 s interval into an unmemoized context value** → 14 consumers re-render every second while admin is unlocked | High | `contexts/AdminAccessContext.tsx:193,226-235` |
-| 6 | **`IconGridLayout` re-creates `lazy()` per tab selection** → revisiting a tab remounts content, refetches, flashes the loader | High | `components/layouts/IconGridLayout.tsx:111-132` |
-| 7 | Header/stat-card/severity-color logic is re-implemented per page: 97 hand-rolled headers in 33 files, 10 `getSeverityColor` implementations, 5+ stat-card variants | Medium | §3, §5 |
-| 8 | 10 god-files (817–1,766 lines), 129 `key={index}` sites, only 10 `React.memo` uses app-wide | Medium | §6 |
-| 9 | Confirmed dead code: 2 components, 2 hooks, 1 CSS file, 1 duplicated theme block, 2 deprecated stub pages, 1 unused layout helper | Low | §5 |
+| #   | Finding                                                                                                                                                              | Severity | Evidence                                                                                     |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| 1   | **9 route registrations are permanently shadowed** by redirects registered earlier in the same `<Switch>` — dead code that _looks_ live                              | High     | `App.tsx:365-398` vs `routes/records.ts:22-27`, `routes/logistics.ts`, `routes/analytics.ts` |
+| 2   | **Three URL grammars for the same logbook content** (`/logs/deck`, `/deck-logbook`, `/logs?tab=deck`) render **two different presentations** depending on entry path | High     | `navigationConfig.ts:357-368` vs `navigationConfig.ts:518-523` vs `routes/records.ts`        |
+| 3   | **6 settings pages exist twice**: as standalone routes _and_ as `embedded` tabs inside `configuration-hub`                                                           | High     | `pages/configuration-hub.tsx:43-83` vs `routes/system.ts:41-47`                              |
+| 4   | **`PermissionsContext` value is rebuilt every provider render** (9 fresh function identities) → all 38 consumers re-render                                           | High     | `contexts/PermissionsContext.tsx:158-168`                                                    |
+| 5   | **`AdminAccessContext` ticks a 1 s interval into an unmemoized context value** → 14 consumers re-render every second while admin is unlocked                         | High     | `contexts/AdminAccessContext.tsx:193,226-235`                                                |
+| 6   | **`IconGridLayout` re-creates `lazy()` per tab selection** → revisiting a tab remounts content, refetches, flashes the loader                                        | High     | `components/layouts/IconGridLayout.tsx:111-132`                                              |
+| 7   | Header/stat-card/severity-color logic is re-implemented per page: 97 hand-rolled headers in 33 files, 10 `getSeverityColor` implementations, 5+ stat-card variants   | Medium   | §3, §5                                                                                       |
+| 8   | 10 god-files (817–1,766 lines), 129 `key={index}` sites, only 10 `React.memo` uses app-wide                                                                          | Medium   | §6                                                                                           |
+| 9   | Confirmed dead code: 2 components, 2 hooks, 1 CSS file, 1 duplicated theme block, 2 deprecated stub pages, 1 unused layout helper                                    | Low      | §5                                                                                           |
 
 Target outcome of this plan: **98 routed surfaces → ~72**, one URL grammar per destination,
 one shell + one header contract, and the three verified re-render bugs fixed (items 4–6 are
@@ -38,18 +38,18 @@ each < 1 hour of work).
 Routes are already centralized in `client/src/routes/*.ts` + `App.tsx` — that is the
 machine-readable page inventory. Counts as of this audit:
 
-| Route group | File | Routes | Notes |
-|---|---|---|---|
-| App-level | `App.tsx:356-363` | 7 | `/`, `/portal-login`, `/feedback`, `/my-tasks`, `/profile`, `/desktop-setup`, 404 |
-| Operations | `routes/operations.ts` | 6 | hub + findings/briefing/attention/outbox/bulletins |
-| Fleet | `routes/fleet.ts` | 11 (+ VI registry) | **two vessel-detail implementations** (see §2.3) |
-| Maintenance | `routes/maintenance.ts` | 8 | **two equipment-detail implementations** (see §2.3) |
-| Crew | `routes/crew.ts` | 4 | `/crew-scheduler` vs `/schedule-planner` overlap (§2.3) |
-| Logistics | `routes/logistics.ts` | 7 | 2 registrations shadowed by redirects |
-| Records | `routes/records.ts` | 16 | **worst area: 6 shadowed + 4 duplicate-grammar + 4 orphan-grammar routes** |
-| Analytics | `routes/analytics.ts` | 15 | 1 shadowed registration |
-| System | `routes/system.ts` | 24 | 6 routes duplicate configuration-hub tabs |
-| Redirects | `routes/legacy-redirects.ts` + `navigationConfig.ts:497-529` | 34 | two registries merged at runtime |
+| Route group | File                                                         | Routes             | Notes                                                                             |
+| ----------- | ------------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------- |
+| App-level   | `App.tsx:356-363`                                            | 7                  | `/`, `/portal-login`, `/feedback`, `/my-tasks`, `/profile`, `/desktop-setup`, 404 |
+| Operations  | `routes/operations.ts`                                       | 6                  | hub + findings/briefing/attention/outbox/bulletins                                |
+| Fleet       | `routes/fleet.ts`                                            | 11 (+ VI registry) | **two vessel-detail implementations** (see §2.3)                                  |
+| Maintenance | `routes/maintenance.ts`                                      | 8                  | **two equipment-detail implementations** (see §2.3)                               |
+| Crew        | `routes/crew.ts`                                             | 4                  | `/crew-scheduler` vs `/schedule-planner` overlap (§2.3)                           |
+| Logistics   | `routes/logistics.ts`                                        | 7                  | 2 registrations shadowed by redirects                                             |
+| Records     | `routes/records.ts`                                          | 16                 | **worst area: 6 shadowed + 4 duplicate-grammar + 4 orphan-grammar routes**        |
+| Analytics   | `routes/analytics.ts`                                        | 15                 | 1 shadowed registration                                                           |
+| System      | `routes/system.ts`                                           | 24                 | 6 routes duplicate configuration-hub tabs                                         |
+| Redirects   | `routes/legacy-redirects.ts` + `navigationConfig.ts:497-529` | 34                 | two registries merged at runtime                                                  |
 
 Positive findings worth protecting:
 
@@ -102,14 +102,14 @@ Repeatable three-pass process (this audit followed it; re-run quarterly or per r
    Playwright), tile them on one board, and circle visually-identical-but-different-code
    regions. The 9 hand-rolled hubs all repeat `IconGridLayout`'s exact visual idiom
    (`rounded-2xl` icon tile, `hover:scale-105`, label-under-icon) with re-implemented markup.
-3. **Decide & record** — each family gets one verdict in this doc: *canonical component,
-   migration list, deletion list*. Anything not migrated gets a tracking entry in the Master
+3. **Decide & record** — each family gets one verdict in this doc: _canonical component,
+   migration list, deletion list_. Anything not migrated gets a tracking entry in the Master
    Checklist (§9).
 
 ### 1.4 Mapping tools
 
 - **Site tree**: generate Mermaid from the script in §1.2; paste into FigJam/Miro only for
-  *target-state* IA workshops (current state should never be hand-drawn — it drifts).
+  _target-state_ IA workshops (current state should never be hand-drawn — it drifts).
 - **Component library**: the de-facto library is `components/ui` (31 shadcn primitives, all
   used, 1,517 imports) + `components/shared` + `components/layouts`. Stand up Storybook (or a
   single `/dev/components` route in dev builds) listing ONLY blessed components:
@@ -130,17 +130,17 @@ Repeatable three-pass process (this audit followed it; re-run quarterly or per r
 appears in both `routeMigrations` (`navigationConfig.ts:497-529`) and a route group is
 therefore a **dead registration** — the component can never render at that path:
 
-| Shadowed registration | File | Redirects to |
-|---|---|---|
-| `/deck-logbook` | `routes/records.ts:22` | `/logs?tab=deck` |
-| `/engine-logbook` | `routes/records.ts:23` | `/logs?tab=engine` |
-| `/logs-compliance` | `routes/records.ts:24` | `/logs?tab=compliance` |
-| `/fuel-emissions-log` | `routes/records.ts:25` | `/logs?tab=engine` |
-| `/vessel-track-log` | `routes/records.ts:26` | `/logs?tab=deck` |
-| `/condition-monitoring-log` | `routes/records.ts:27` | `/logs?tab=equipment` |
-| `/inventory-management` | `routes/logistics.ts` | `/logistics?tab=inventory` |
-| `/vendors` | `routes/logistics.ts` | `/logistics?tab=vendors` |
-| `/governance-dashboard` | `routes/analytics.ts` | `/logs?tab=compliance` |
+| Shadowed registration       | File                   | Redirects to               |
+| --------------------------- | ---------------------- | -------------------------- |
+| `/deck-logbook`             | `routes/records.ts:22` | `/logs?tab=deck`           |
+| `/engine-logbook`           | `routes/records.ts:23` | `/logs?tab=engine`         |
+| `/logs-compliance`          | `routes/records.ts:24` | `/logs?tab=compliance`     |
+| `/fuel-emissions-log`       | `routes/records.ts:25` | `/logs?tab=engine`         |
+| `/vessel-track-log`         | `routes/records.ts:26` | `/logs?tab=deck`           |
+| `/condition-monitoring-log` | `routes/records.ts:27` | `/logs?tab=equipment`      |
+| `/inventory-management`     | `routes/logistics.ts`  | `/logistics?tab=inventory` |
+| `/vendors`                  | `routes/logistics.ts`  | `/logistics?tab=vendors`   |
+| `/governance-dashboard`     | `routes/analytics.ts`  | `/logs?tab=compliance`     |
 
 Action: delete the 9 registrations (and their lazy imports where now unused). Behavior is
 unchanged — that's the proof they're dead. Then add a unit test that asserts
@@ -150,12 +150,12 @@ unchanged — that's the proof they're dead. Then add a unit test that asserts
 
 For "open the deck log", today:
 
-| Entry path | What renders | Source |
-|---|---|---|
-| Nav → Records → "Deck Log" (`/logs/deck`) | `DeckLogbook` standalone — **no** hub chrome, **no** Vessel Track sibling tab | `navigationConfig.ts:357-361`, `routes/records.ts:19` |
-| `/logs` hub → Deck icon (`/logs?tab=deck`) | `IconGridLayout` chrome → `deck-log-consolidated` → inner tabs **Deck + Vessel Track** | `pages/logs-hub.tsx:14-22` |
-| Old bookmark `/deck-logbook` | redirect → `/logs?tab=deck` (the second presentation) | `navigationConfig.ts:518` |
-| Direct `/deck-log-consolidated` | the consolidated page **without** hub chrome | `routes/records.ts:30` |
+| Entry path                                 | What renders                                                                           | Source                                                |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Nav → Records → "Deck Log" (`/logs/deck`)  | `DeckLogbook` standalone — **no** hub chrome, **no** Vessel Track sibling tab          | `navigationConfig.ts:357-361`, `routes/records.ts:19` |
+| `/logs` hub → Deck icon (`/logs?tab=deck`) | `IconGridLayout` chrome → `deck-log-consolidated` → inner tabs **Deck + Vessel Track** | `pages/logs-hub.tsx:14-22`                            |
+| Old bookmark `/deck-logbook`               | redirect → `/logs?tab=deck` (the second presentation)                                  | `navigationConfig.ts:518`                             |
+| Direct `/deck-log-consolidated`            | the consolidated page **without** hub chrome                                           | `routes/records.ts:30`                                |
 
 Same intent, two presentations, four URLs — and the **global nav uses the one that bypasses
 the consolidation**, so nav users never see the Vessel Track tab placement that bookmark
@@ -174,13 +174,13 @@ single most user-visible inconsistency in the app.
 
 ### 2.3 Duplicate intent #2-5 (consolidate via feature-parity audit, §4)
 
-| Intent | Surface A | Surface B | Verdict |
-|---|---|---|---|
-| Vessel detail | `/fleet/:vesselId` → `VesselIntelligence` (canonical, registry-driven) | `/vessels/:id` → `VesselDashboard` + `/vessels/:id/3d` | Parity-audit `VesselDashboard`; fold unique widgets into VI tabs; redirect |
-| Equipment detail | `/equipment/:equipmentId` → `equipment-hub` (Overview/Work/Diagnostics/History/Context tabs) | `/pdm/equipment/:equipmentId` → `pdm-equipment-detail.tsx` | Merge PdM detail into equipment-hub's Diagnostics tab; redirect |
-| Crew scheduling | `/crew-scheduler` (nav-labelled **"Schedule Planner"**, `navigationConfig.ts:291-295`) | `/schedule-planner` → `schedule-planner.tsx` (not in nav) | Naming collision + hidden page. Pick one owner; redirect the other |
-| Sensor tools | `/sensors` hub tabs | `sensor-optimization.tsx` / `sensor-management.tsx` = "this moved" stub pages; `/sensor-templates` ALSO standalone | Delete the two stubs (point hub tabs at real destinations), keep one templates surface |
-| Org gating seam | `/equipment` list lives in **fleet** hub group | `/equipment/:equipmentId` detail lives in **maintenance** group (`routes/maintenance.ts`) | A user whose hub allow-list has fleet-but-not-maintenance can browse the registry but every detail link bounces to `/` (`App.tsx:234-247`). Move the detail route into the fleet group or classify it via nav |
+| Intent           | Surface A                                                                                    | Surface B                                                                                                          | Verdict                                                                                                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vessel detail    | `/fleet/:vesselId` → `VesselIntelligence` (canonical, registry-driven)                       | `/vessels/:id` → `VesselDashboard` + `/vessels/:id/3d`                                                             | Parity-audit `VesselDashboard`; fold unique widgets into VI tabs; redirect                                                                                                                                    |
+| Equipment detail | `/equipment/:equipmentId` → `equipment-hub` (Overview/Work/Diagnostics/History/Context tabs) | `/pdm/equipment/:equipmentId` → `pdm-equipment-detail.tsx`                                                         | Merge PdM detail into equipment-hub's Diagnostics tab; redirect                                                                                                                                               |
+| Crew scheduling  | `/crew-scheduler` (nav-labelled **"Schedule Planner"**, `navigationConfig.ts:291-295`)       | `/schedule-planner` → `schedule-planner.tsx` (not in nav)                                                          | Naming collision + hidden page. Pick one owner; redirect the other                                                                                                                                            |
+| Sensor tools     | `/sensors` hub tabs                                                                          | `sensor-optimization.tsx` / `sensor-management.tsx` = "this moved" stub pages; `/sensor-templates` ALSO standalone | Delete the two stubs (point hub tabs at real destinations), keep one templates surface                                                                                                                        |
+| Org gating seam  | `/equipment` list lives in **fleet** hub group                                               | `/equipment/:equipmentId` detail lives in **maintenance** group (`routes/maintenance.ts`)                          | A user whose hub allow-list has fleet-but-not-maintenance can browse the registry but every detail link bounces to `/` (`App.tsx:234-247`). Move the detail route into the fleet group or classify it via nav |
 
 ### 2.4 Click-tracking strategy (measure before/after)
 
@@ -230,7 +230,7 @@ The app already has exactly the right global skeleton — the issue is partial a
   only by each other. Either they become the blessed hub-card pair or they get deleted;
   currently 9 hubs hand-roll what these were built for.
 - **Double-chrome defect**: `IconGridLayout` renders its own sticky header + breadcrumb
-  (`IconGridLayout.tsx:182-254`) *inside* `UniversalOpsShell`, and embedded pages may render
+  (`IconGridLayout.tsx:182-254`) _inside_ `UniversalOpsShell`, and embedded pages may render
   their own `PageHeader` again unless they honor `embedded` — three stacked headers is
   reachable in the Records flow today.
 
@@ -253,19 +253,32 @@ import { cn } from "@/lib/utils";
 interface AppPageProps {
   title: string;
   subtitle?: string;
-  actions?: ReactNode;        // maps to PageHeader's `action` slot
+  actions?: ReactNode; // maps to PageHeader's `action` slot
   /** Suppress chrome when rendered inside a hub tab (replaces ad-hoc `embedded` props). */
   embedded?: boolean;
   width?: "full" | "7xl" | "5xl";
   children: ReactNode;
 }
 
-export function AppPage({ title, subtitle, actions, embedded, width = "7xl", children }: AppPageProps) {
+export function AppPage({
+  title,
+  subtitle,
+  actions,
+  embedded,
+  width = "7xl",
+  children,
+}: AppPageProps) {
   if (embedded) return <div className="p-4 md:p-6">{children}</div>;
   return (
     <div className="min-h-screen bg-background">
       <PageHeader title={title} subtitle={subtitle} action={actions} />
-      <main className={cn("mx-auto px-4 py-6 md:px-6", width === "7xl" && "max-w-7xl", width === "5xl" && "max-w-5xl")}>
+      <main
+        className={cn(
+          "mx-auto px-4 py-6 md:px-6",
+          width === "7xl" && "max-w-7xl",
+          width === "5xl" && "max-w-5xl"
+        )}
+      >
         {children}
       </main>
     </div>
@@ -299,18 +312,18 @@ down (matches the repo's existing burn-down culture in `scripts/*-baseline.json`
 
 ### 4.2 Concrete merge list (orchestrates §2 findings)
 
-| # | Merge | Routes removed | Effort | Risk |
-|---|---|---|---|---|
-| C1 | Delete 9 shadowed registrations (§2.1) | 9 | XS | None — provably dead |
-| C2 | Records → single `/logs?tab=` grammar (§2.2) | 8 | S | Low — UI already exists both ways; pick one |
-| C3 | Settings: `configuration-hub` already embeds `settings`, `transport-settings`, `storage-settings`, `OperatingParametersPage`, `DiagnosticsDashboard`, `permissions-settings` as tabs (`configuration-hub.tsx:43-83`). Retire 4 standalone routes (`/settings`, `/transport-settings`, `/storage-settings`, `/permissions-settings`) → `/configuration?tab=…`; decide one owner for diagnostics (keep `/diagnostics`, drop the tab embed, since nav links it as "System Health") | 4 | S | Low |
-| C4 | Notifications: fold `/notification-settings`, `/email-alerts-settings`, `/email-templates` into `notifications-hub` tabs — **verify parity first** (hub internals not audited) | 3 | M | Medium |
-| C5 | Sensors: delete `sensor-optimization.tsx` + `sensor-management.tsx` stubs ("this moved" placeholders), point hub tabs at real destinations; single templates surface | 1 (+2 files) | XS | None |
-| C6 | Crew scheduling: one owner for `/crew-scheduler` vs `/schedule-planner` (§2.3) | 1 | M | Medium — needs product call |
-| C7 | Equipment detail: merge `pdm-equipment-detail` into `equipment-hub` Diagnostics tab | 1 | M | Medium |
-| C8 | Vessel detail: parity-audit `VesselDashboard` vs `VesselIntelligence`, fold, redirect `/vessels/:id` | 2 | L | High — biggest pages in app; do last |
-| C9 | Analytics: `scheduled-reports-settings` becomes a Settings tab/dialog of `scheduled-reports` | 1 | S | Low |
-| C10 | Logistics: retire standalone `/service-orders`, `/service-requests` (nav already targets `/logistics?tab=…`) | 2 | S | Low |
+| #   | Merge                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Routes removed | Effort | Risk                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ | ------------------------------------------- |
+| C1  | Delete 9 shadowed registrations (§2.1)                                                                                                                                                                                                                                                                                                                                                                                                                                          | 9              | XS     | None — provably dead                        |
+| C2  | Records → single `/logs?tab=` grammar (§2.2)                                                                                                                                                                                                                                                                                                                                                                                                                                    | 8              | S      | Low — UI already exists both ways; pick one |
+| C3  | Settings: `configuration-hub` already embeds `settings`, `transport-settings`, `storage-settings`, `OperatingParametersPage`, `DiagnosticsDashboard`, `permissions-settings` as tabs (`configuration-hub.tsx:43-83`). Retire 4 standalone routes (`/settings`, `/transport-settings`, `/storage-settings`, `/permissions-settings`) → `/configuration?tab=…`; decide one owner for diagnostics (keep `/diagnostics`, drop the tab embed, since nav links it as "System Health") | 4              | S      | Low                                         |
+| C4  | Notifications: fold `/notification-settings`, `/email-alerts-settings`, `/email-templates` into `notifications-hub` tabs — **verify parity first** (hub internals not audited)                                                                                                                                                                                                                                                                                                  | 3              | M      | Medium                                      |
+| C5  | Sensors: delete `sensor-optimization.tsx` + `sensor-management.tsx` stubs ("this moved" placeholders), point hub tabs at real destinations; single templates surface                                                                                                                                                                                                                                                                                                            | 1 (+2 files)   | XS     | None                                        |
+| C6  | Crew scheduling: one owner for `/crew-scheduler` vs `/schedule-planner` (§2.3)                                                                                                                                                                                                                                                                                                                                                                                                  | 1              | M      | Medium — needs product call                 |
+| C7  | Equipment detail: merge `pdm-equipment-detail` into `equipment-hub` Diagnostics tab                                                                                                                                                                                                                                                                                                                                                                                             | 1              | M      | Medium                                      |
+| C8  | Vessel detail: parity-audit `VesselDashboard` vs `VesselIntelligence`, fold, redirect `/vessels/:id`                                                                                                                                                                                                                                                                                                                                                                            | 2              | L      | High — biggest pages in app; do last        |
+| C9  | Analytics: `scheduled-reports-settings` becomes a Settings tab/dialog of `scheduled-reports`                                                                                                                                                                                                                                                                                                                                                                                    | 1              | S      | Low                                         |
+| C10 | Logistics: retire standalone `/service-orders`, `/service-requests` (nav already targets `/logistics?tab=…`)                                                                                                                                                                                                                                                                                                                                                                    | 2              | S      | Low                                         |
 
 Total: **98 → ~72 routed surfaces (−26)** with zero capability loss; every removal is a
 redirect, not a 404.
@@ -346,16 +359,16 @@ redirect, not a 404.
 
 ### 5.2 Confirmed dead code (zero references — safe to purge)
 
-| Artifact | Lines | Evidence |
-|---|---|---|
-| `components/FairnessViz.tsx` | 72 | no importers |
-| `hooks/use-upload.ts` | 93 | no importers |
-| `hooks/useDashboardPreferences.ts` | 49 | no importers |
-| `styles/bridge-and-daylight.css` | 70 | never imported; content duplicated in `index.css` |
-| `components/navigation/NavigationCard.tsx` + `NavigationGroup.tsx` | ~90 | imported only by each other (decide: bless for §3.2 or delete) |
-| `createIconGridLegacyRedirects` (`IconGridLayout.tsx:288-301`) | 14 | exported, never called; `GridItem.legacyRoutes` metadata it consumes is also inert |
-| `pages/sensor-optimization.tsx`, `pages/sensor-management.tsx` | ~43 | "moved" placeholder stubs (C5) |
-| 9 shadowed route registrations | — | §2.1 |
+| Artifact                                                           | Lines | Evidence                                                                           |
+| ------------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------- |
+| `components/FairnessViz.tsx`                                       | 72    | no importers                                                                       |
+| `hooks/use-upload.ts`                                              | 93    | no importers                                                                       |
+| `hooks/useDashboardPreferences.ts`                                 | 49    | no importers                                                                       |
+| `styles/bridge-and-daylight.css`                                   | 70    | never imported; content duplicated in `index.css`                                  |
+| `components/navigation/NavigationCard.tsx` + `NavigationGroup.tsx` | ~90   | imported only by each other (decide: bless for §3.2 or delete)                     |
+| `createIconGridLegacyRedirects` (`IconGridLayout.tsx:288-301`)     | 14    | exported, never called; `GridItem.legacyRoutes` metadata it consumes is also inert |
+| `pages/sensor-optimization.tsx`, `pages/sensor-management.tsx`     | ~43   | "moved" placeholder stubs (C5)                                                     |
+| 9 shadowed route registrations                                     | —     | §2.1                                                                               |
 
 Near-dead: `components/unified-crew-components.tsx` is **885 lines consumed for one export**
 (`CrewViewDialogContent`, imported once at `UnifiedCrewManagement/index.tsx:8`). Extract that
@@ -445,19 +458,19 @@ it; pause `CopilotFab` polling when the drawer is closed).
 
 ### 6.4 God components (flatten by splitting, not by micro-memoizing)
 
-| File | Lines |
-|---|---|
-| `pages/vessel-intelligence/registry-screens.tsx` | 1,766 |
-| `pages/admin/equipment-dependencies.tsx` | 1,127 |
-| `pages/ml-training.tsx` | 990 |
-| `pages/admin/3d-models.tsx` | 936 |
-| `pages/copilot-admin.tsx` | 872 |
-| `pages/system-administration.tsx` | 862 |
-| `pages/engine-logbook.tsx` | 862 |
-| `pages/findings.tsx` | 841 |
-| `pages/deck-logbook/index.tsx` | 838 |
-| `pages/inventory-management.tsx` | 817 |
-| (crew: `UnifiedCrewManagement/CrewTaskTracker.tsx` ~42 KB, `CrewFormDialog.tsx` ~41 KB) | |
+| File                                                                                                                               | Lines     |
+| ---------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| ~~`pages/vessel-intelligence/registry-screens.tsx`~~ split 2026-06-11 → 111-line dispatcher + `registry-screens/` (8 files ≤430 L) | ~~1,766~~ |
+| `pages/admin/equipment-dependencies.tsx`                                                                                           | 1,127     |
+| `pages/ml-training.tsx`                                                                                                            | 990       |
+| `pages/admin/3d-models.tsx`                                                                                                        | 936       |
+| `pages/copilot-admin.tsx`                                                                                                          | 872       |
+| `pages/system-administration.tsx`                                                                                                  | 862       |
+| `pages/engine-logbook.tsx`                                                                                                         | 862       |
+| `pages/findings.tsx`                                                                                                               | 841       |
+| `pages/deck-logbook/index.tsx`                                                                                                     | 838       |
+| `pages/inventory-management.tsx`                                                                                                   | 817       |
+| (crew: `UnifiedCrewManagement/CrewTaskTracker.tsx` ~42 KB, `CrewFormDialog.tsx` ~41 KB)                                            |           |
 
 Split rule: one file per screen/tab/dialog, colocated `use<Page>Data` hook for queries,
 presentational children take primitives. `registry-screens.tsx` first — it backs ~6 routes
@@ -548,9 +561,9 @@ const value = useMemo<PermissionsContextType>(() => {
 
 ### 8.2 Stop the 1 Hz context cascade in `AdminAccessContext`
 
-Countdown values are *derivable* from `sessionExpiresAt` + last-activity — they don't belong
+Countdown values are _derivable_ from `sessionExpiresAt` + last-activity — they don't belong
 in shared context state. Remove `timeUntilExpiry`/`timeUntilIdleTimeout` from the context
-(keep the auto-lock interval, which only *reads*), memoize the remaining value, and let the
+(keep the auto-lock interval, which only _reads_), memoize the remaining value, and let the
 one component that displays a countdown tick itself:
 
 ```tsx
@@ -569,7 +582,14 @@ export function useAdminCountdown(sessionExpiresAt: number | null) {
 ```tsx
 // AdminAccessContext.tsx — value becomes stable between real auth events
 const value = useMemo<AdminAccessContextType>(
-  () => ({ isAdminUnlocked, sessionToken, sessionExpiresAt, unlockAdminFromUserSession, lockAdmin, logout }),
+  () => ({
+    isAdminUnlocked,
+    sessionToken,
+    sessionExpiresAt,
+    unlockAdminFromUserSession,
+    lockAdmin,
+    logout,
+  }),
   [isAdminUnlocked, sessionToken, sessionExpiresAt, unlockAdminFromUserSession, lockAdmin, logout]
 );
 ```
@@ -603,26 +623,42 @@ function useDeferredComponent(item: GridItem | undefined) {
 ```
 
 Optional second step if tab-local state (filters/scroll) must survive switching: render every
-*visited* item and toggle `hidden` instead of unmounting — trade memory for state retention:
+_visited_ item and toggle `hidden` instead of unmounting — trade memory for state retention:
 
 ```tsx
-{items.filter((i) => visitedIds.has(i.id)).map((i) => (
-  <div key={i.id} hidden={i.id !== selectedId}>{renderItem(i)}</div>
-))}
+{
+  items
+    .filter((i) => visitedIds.has(i.id))
+    .map((i) => (
+      <div key={i.id} hidden={i.id !== selectedId}>
+        {renderItem(i)}
+      </div>
+    ));
+}
 ```
 
 ### 8.4 Stable keys + memoized rows for mutable lists (SchedulePlanner et al.)
 
 ```tsx
 const AssignmentRow = memo(function AssignmentRow({ assignment, onSelect }: RowProps) {
-  return <div role="row" onClick={() => onSelect(assignment.id)}>…</div>;
+  return (
+    <div role="row" onClick={() => onSelect(assignment.id)}>
+      …
+    </div>
+  );
 });
 
 // parent
 const handleSelect = useCallback((id: string) => setSelectedId(id), []);
-{assignments.map((a) => (
-  <AssignmentRow key={a.id /* never the index for reorderable data */} assignment={a} onSelect={handleSelect} />
-))}
+{
+  assignments.map((a) => (
+    <AssignmentRow
+      key={a.id /* never the index for reorderable data */}
+      assignment={a}
+      onSelect={handleSelect}
+    />
+  ));
+}
 ```
 
 ### 8.5 Route canonicalization (Records, C2) — the shape of every merge
@@ -654,8 +690,11 @@ export const recordsRoutes = [
 // pages/fuel-emissions-log.tsx — before: 3 hand-rolled text-3xl headers (:328,336,344)
 export default function FuelEmissionsLog() {
   return (
-    <AppPage title="Fuel & Emissions" subtitle="Engine room fuel consumption and MARPOL emissions"
-             actions={<ExportButton />}>
+    <AppPage
+      title="Fuel & Emissions"
+      subtitle="Engine room fuel consumption and MARPOL emissions"
+      actions={<ExportButton />}
+    >
       <SummaryRow>{/* MetricCard ×3 replaces inline text-2xl card divs (:191-215) */}</SummaryRow>
       <FuelLogTable />
     </AppPage>
@@ -702,7 +741,7 @@ export default function FuelEmissionsLog() {
 
 - [ ] Introduce `POLL` constants; re-base ~115 `refetchInterval` sites; pause `CopilotFab` poll when closed (§6.2)
 - [ ] Replace `key={index}` in SchedulePlanner grids + rms-monitoring tables with entity ids (§8.4)
-- [ ] Split `registry-screens.tsx` (1,766 L) by screen; then `equipment-dependencies.tsx`, `CrewTaskTracker`, `CrewFormDialog` (§6.4)
+- [ ] Split `registry-screens.tsx` (1,766 L) by screen — **done 2026-06-11** (dispatcher + `registry-screens/`, hub-v2 test pins the family); remainder pending: `equipment-dependencies.tsx`, `CrewTaskTracker`, `CrewFormDialog` (§6.4)
 - [ ] Profile `/logs`, `/work-orders`, `/crew-scheduler` before/after; attach flamegraphs (§6.5)
 - [ ] Vessel-detail merge C8 (last; largest)
 
