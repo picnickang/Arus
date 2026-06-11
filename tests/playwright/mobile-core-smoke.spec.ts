@@ -54,7 +54,14 @@ const sectionMap = {
   sections: [],
 };
 
-async function installMobileFixtures(page: Page): Promise<void> {
+interface MobileFixtureOptions {
+  permissionsDelayMs?: number;
+}
+
+async function installMobileFixtures(
+  page: Page,
+  options: MobileFixtureOptions = {}
+): Promise<void> {
   await page.setViewportSize(MOBILE_VIEWPORT);
   const seedStorage = ({ key }: { key: string }) => {
     localStorage.clear();
@@ -91,7 +98,11 @@ async function installMobileFixtures(page: Page): Promise<void> {
 
     const permissions = {
       crew_members: { view: true, create: true, edit: true, delete: true, export: true },
+      crew_schedules: { view: true, create: true, edit: true, delete: true, export: true },
       inventory: { view: true, create: true, edit: true, delete: true, export: true },
+      rest_hours: { view: true, create: true, edit: true, delete: true, export: true },
+      analytics_dashboard: { view: true, export: true },
+      work_orders: { view: true, create: true, edit: true, delete: true, export: true },
       vessels: { view: true, edit: true },
       safety_bulletins: { view: true, create: true },
       "vessel-intelligence": {
@@ -116,6 +127,26 @@ async function installMobileFixtures(page: Page): Promise<void> {
         hubAdmin: true,
         hubAccess: null,
         isDevMode: false,
+      },
+      "/api/port-calls": [],
+      "/api/drydock-windows": [],
+      "/api/crew/certifications": [],
+      "/api/crew/leave": [],
+      "/api/equipment/health": [],
+      "/api/work-orders/summary": { openCount: 0, overdueCount: 0, completionRate: 100 },
+      "/api/pdm/cost-savings/summary": {
+        latestMonthCost: 0,
+        monthlyChange: 0,
+        totalSavings: 0,
+      },
+      "/api/reconciliation/status": {
+        healthPercentage: 100,
+        healthScore: 100,
+        issueCount: 0,
+      },
+      "/api/analytics/failure-predictions": {
+        results: [],
+        metadata: { highRiskCount: 0, criticalRiskCount: 0 },
       },
       "/api/vessels": [vessel],
       "/api/equipment": [],
@@ -170,6 +201,9 @@ async function installMobileFixtures(page: Page): Promise<void> {
     };
 
     const body = Object.hasOwn(responses, path) ? responses[path] : [];
+    if (path === "/api/permissions/me" && options.permissionsDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.permissionsDelayMs));
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -217,6 +251,111 @@ async function expectNoMobileOverflow(page: Page): Promise<void> {
   ).toBe(false);
 }
 
+async function expectMobileShellHasPageBody(page: Page): Promise<void> {
+  const bodyState = await page.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>('[data-testid="universal-ops-shell"]');
+    const main = document.querySelector<HTMLElement>("#main-content");
+    const pageMarkers = [
+      "[data-testid='page-crew-management']",
+      "[data-testid='analytics-hub']",
+      "[data-testid='rest-hours-grid']",
+      "[data-testid='button-generate-schedule']",
+      "[data-testid='button-create-work-order']",
+      "[data-testid='inventory-management-page']",
+      "[data-testid='vessel-intelligence-hub']",
+      "[data-testid='text-page-title']",
+    ];
+    const pageMarker = pageMarkers.find((selector) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element) {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+    return {
+      hasShell: Boolean(shell),
+      hasMain: Boolean(main),
+      pageMarker,
+      bodyText: document.body.innerText.trim().slice(0, 500),
+      permissionLoadingVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-loading"]')
+      ),
+      permissionErrorVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-error"]')
+      ),
+      permissionDeniedVisible: Boolean(
+        document.querySelector('[data-testid="permission-gate-denied"]')
+      ),
+    };
+  });
+
+  expect(
+    bodyState.pageMarker ||
+      bodyState.permissionLoadingVisible ||
+      bodyState.permissionErrorVisible ||
+      bodyState.permissionDeniedVisible,
+    `ops-shell route should render page content or a visible gate state: ${JSON.stringify(bodyState)}`
+  ).toBeTruthy();
+}
+
+async function expectPrimaryMobileTargetsAtLeast(page: Page, min = 44): Promise<void> {
+  const undersized = await page.evaluate((minSize) => {
+    const selectors = [
+      '[data-testid="universal-ops-mobile-menu-trigger"]',
+      '[data-testid="button-global-search"]',
+      '[data-testid^="universal-ops-subnav-"]',
+      '[data-testid^="link-nav-"]',
+      '[data-testid="button-copilot-fab"]',
+    ];
+    return selectors.flatMap((selector) =>
+      Array.from(document.querySelectorAll<HTMLElement>(selector))
+        .filter((element) => element.offsetParent !== null)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            testId: element.dataset.testid,
+            text: element.textContent?.trim().slice(0, 60),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          };
+        })
+        .filter((item) => item.width < minSize || item.height < minSize)
+    );
+  }, min);
+
+  expect(
+    undersized,
+    `primary mobile targets must be at least ${min}x${min}: ${JSON.stringify(undersized)}`
+  ).toEqual([]);
+}
+
+async function expectHorizontalNavAffordance(page: Page): Promise<void> {
+  const missingAffordance = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll<HTMLElement>("[data-mobile-horizontal-nav]"))
+      .map((nav) => {
+        const scrollport = nav.querySelector<HTMLElement>("[data-horizontal-scrollport]");
+        if (!scrollport || scrollport.scrollWidth <= scrollport.clientWidth + 2) {
+          return null;
+        }
+        return nav.dataset.overflowAffordance === "edge-fade"
+          ? null
+          : {
+              testId: nav.dataset.testid,
+              scrollWidth: scrollport.scrollWidth,
+              clientWidth: scrollport.clientWidth,
+              affordance: nav.dataset.overflowAffordance,
+            };
+      })
+      .filter(Boolean);
+  });
+
+  expect(
+    missingAffordance,
+    `horizontally scrollable mobile nav must expose an overflow affordance: ${JSON.stringify(missingAffordance)}`
+  ).toEqual([]);
+}
+
 async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
   await page.evaluate((target) => {
     window.history.pushState({}, "", target);
@@ -237,6 +376,9 @@ test.describe("mobile core operational smokes", () => {
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/overview");
     await expectMobileUniversalShell(page, "Fleet");
     await expect(page.getByTestId("vessel-intelligence-hub")).toBeVisible();
+    await expectMobileShellHasPageBody(page);
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 
@@ -245,7 +387,43 @@ test.describe("mobile core operational smokes", () => {
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
     await expectMobileUniversalShell(page, "Crew");
     await expect(page.getByTestId("page-crew-management")).toBeVisible();
+    await expectMobileShellHasPageBody(page);
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
+  });
+
+  test("Crew Scheduler, Hours of Rest, Analytics, and Work Orders render guarded bodies on mobile", async ({
+    page,
+  }) => {
+    await installMobileFixtures(page);
+
+    const guardedRoutes = [
+      ["/crew-scheduler", "Crew", "button-generate-schedule"],
+      ["/hours-of-rest", "Crew", "rest-hours-grid"],
+      ["/analytics", "Analytics", "analytics-hub"],
+      ["/work-orders", "Maintenance", "button-create-work-order"],
+    ] as const;
+
+    for (const [path, activeHubName, marker] of guardedRoutes) {
+      await navigateWithinAuthenticatedSpa(page, path);
+      await expectMobileUniversalShell(page, activeHubName);
+      await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10_000 });
+      await expectMobileShellHasPageBody(page);
+      await expectPrimaryMobileTargetsAtLeast(page);
+      await expectHorizontalNavAffordance(page);
+      await expectNoMobileOverflow(page);
+    }
+  });
+
+  test("permission-gated mobile routes show a visible loading state while permissions resolve", async ({
+    page,
+  }) => {
+    await installMobileFixtures(page, { permissionsDelayMs: 10_000 });
+    await navigateWithinAuthenticatedSpa(page, "/crew-management");
+    await expectMobileUniversalShell(page, "Crew");
+    await expect(page.getByTestId("permission-gate-loading")).toBeVisible({ timeout: 3_000 });
+    await expectMobileShellHasPageBody(page);
   });
 
   test("Inventory/Logistics renders on mobile", async ({ page }) => {
@@ -253,6 +431,9 @@ test.describe("mobile core operational smokes", () => {
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
     await expectMobileUniversalShell(page, "Logistics");
     await expect(page.getByTestId("inventory-management-page")).toBeVisible();
+    await expectMobileShellHasPageBody(page);
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 
@@ -261,6 +442,9 @@ test.describe("mobile core operational smokes", () => {
     await navigateWithinAuthenticatedSpa(page, "/safety-bulletins");
     await expectMobileUniversalShell(page, "Operations");
     await expect(page.getByTestId("text-page-title")).toBeVisible();
+    await expectMobileShellHasPageBody(page);
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 });

@@ -4,6 +4,7 @@ const INCLUDE_QUARANTINED = process.env.PLAYWRIGHT_INCLUDE_QUARANTINE === "1";
 
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
+  "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
   "**/portal-nav.spec.ts",
@@ -85,6 +86,6 @@ export default defineConfig({
         },
         url: "http://127.0.0.1:5000/api/healthz",
         reuseExistingServer: false,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 });
