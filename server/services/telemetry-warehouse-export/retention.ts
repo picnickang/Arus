@@ -63,7 +63,7 @@ function extractOrgId(objectName: string): string | null {
   return m && m[1] ? decodeURIComponent(m[1]) : null;
 }
 
-export interface RetentionResult {
+export interface ExportRetentionResult {
   enabled: boolean;
   retentionDays: number;
   cutoffDate: string | null;
@@ -72,7 +72,7 @@ export interface RetentionResult {
   orgsTouched: number;
 }
 
-export async function pruneOldExports(now: Date = new Date()): Promise<RetentionResult> {
+export async function pruneOldExports(now: Date = new Date()): Promise<ExportRetentionResult> {
   const retentionDays = resolveRetentionDays();
   if (retentionDays <= 0) {
     return {

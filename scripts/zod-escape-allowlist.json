@@ -18,6 +18,10 @@
     { "file": "server/domains/rms/routes.ts",                                                 "pattern": "z.any",        "reason": "pre-existing — rms route payload; tighten in #165 (server/domains)" },
     { "file": "server/domains/workflow/operator-experience/interfaces/routes.ts",             "pattern": "z.unknown",    "reason": "pre-existing — operator-experience route; tighten in #165 (server/domains)" },
     { "file": "server/pdm/domain/response-schemas.ts",                                        "pattern": "passthrough",  "reason": "pre-existing — pdm response envelope; tighten in #165 (server/domains)" },
-    { "file": "server/shared/validators.ts",                                                  "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in shared validator helpers; tighten in #166 (server services/routes)" }
+    { "file": "server/shared/validators.ts",                                                  "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in shared validator helpers; tighten in #166 (server services/routes)" },
+    { "file": "shared/api-envelope.ts",                                                       "pattern": "z.unknown",    "reason": "generic envelope core — data/details/meta are opaque by design; typed response contracts use successEnvelopeOf(schema) instead (4 instances; landed via PR #15)" },
+    { "file": "server/domains/crew/interfaces/crew-member-routes.ts",                         "pattern": "z.unknown",    "reason": "aggregate endpoint passes through the same rows the per-resource crew endpoints return; tighten by reusing per-resource response schemas in #165 (server/domains)" },
+    { "file": "server/domains/scheduling/routes.ts",                                          "pattern": "z.unknown",    "reason": "aggregate endpoint passes through the same rows the per-resource optimization endpoints return; tighten by reusing per-resource response schemas in #165 (server/domains)" },
+    { "file": "client/src/components/sensors/useSensorTemplateForm.ts",                       "pattern": "z.unknown",    "reason": "freeform sensor-template fields blob (same category as shared/schema/sensors.ts metadata); tighten in #164 alongside the sensors schema" }
   ]
 }
