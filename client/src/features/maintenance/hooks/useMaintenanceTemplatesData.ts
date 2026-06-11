@@ -267,5 +267,11 @@ export function getPriorityBadgeConfig(priority: number | string | null | undefi
       : typeof priority === "string"
         ? Number.parseInt(priority, 10)
         : 3;
-  return priorityMap[numPriority] ?? priorityMap[3];
+  return (
+    priorityMap[numPriority] ?? {
+      label: "Medium",
+      variant: "default",
+      className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    }
+  );
 }

@@ -168,10 +168,12 @@ export default function OperatingParametersPage({ embedded }: OperatingParameter
 
   const groupedParams = params.reduce(
     (acc, param) => {
-      if (!acc[param.category]) {
-        acc[param.category] = [];
+      let bucket = acc[param.category];
+      if (!bucket) {
+        bucket = [];
+        acc[param.category] = bucket;
       }
-      acc[param.category].push(param);
+      bucket.push(param);
       return acc;
     },
     {} as Record<string, OperatingParameter[]>

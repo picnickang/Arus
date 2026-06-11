@@ -130,7 +130,9 @@ function main() {
   const exemptNote = EXEMPT_PATH_FRAGMENTS.length
     ? ` (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`
     : "";
-  console.log(`Scanned: ${SCAN_DIRS.join(", ")}${exemptNote}; test trees: ${TEST_SCAN_DIRS.join(", ")}`);
+  console.log(
+    `Scanned: ${SCAN_DIRS.join(", ")}${exemptNote}; test trees: ${TEST_SCAN_DIRS.join(", ")}`
+  );
 
   if (showReport) {
     for (const [label, files] of [
@@ -162,7 +164,7 @@ function main() {
     };
     writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + "\n");
     console.log(
-      `\n✓ Baseline written: ${relative(ROOT, BASELINE_PATH)} (total=${total}, testsTotal=${testsTotal})`,
+      `\n✓ Baseline written: ${relative(ROOT, BASELINE_PATH)} (total=${total}, testsTotal=${testsTotal})`
     );
     return;
   }
@@ -186,7 +188,9 @@ function main() {
       console.error(`\n❌ ${label} INCREASED: ${base} → ${current} (+${current - base})`);
       failed = true;
     } else if (current < base) {
-      console.log(`\n✓ ${label} reduction: ${base} → ${current} (-${base - current}). Consider regenerating the baseline.`);
+      console.log(
+        `\n✓ ${label} reduction: ${base} → ${current} (-${base - current}). Consider regenerating the baseline.`
+      );
     } else {
       console.log(`\n✓ ${label} at baseline.`);
     }
