@@ -54,7 +54,9 @@ const settingsBodySchema = jsonRecordSchema;
 function redactStormgeoSettings<T extends { apiKey?: string | null; sftpPassword?: string | null }>(
   settings: T | null | undefined
 ) {
-  if (!settings) return null;
+  if (!settings) {
+    return null;
+  }
   const { apiKey, sftpPassword, ...rest } = settings;
   return { ...rest, hasApiKey: Boolean(apiKey), hasSftpPassword: Boolean(sftpPassword) };
 }

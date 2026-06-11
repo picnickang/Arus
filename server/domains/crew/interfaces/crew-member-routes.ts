@@ -79,6 +79,18 @@ const crewUnifiedResponseSchema = z.object({
   permissionRoles: aggregateSectionSchema,
   sectionErrors: z.record(z.string()).optional(),
 });
+const crewListQuerySchema = z.object({ vesselId: z.string().optional() }).strip();
+const crewParamsSchema = z.object({ id: z.string().min(1) });
+const crewMutationBodySchema = z.record(z.unknown());
+
+function normalizeCrewDateFields(body: Record<string, unknown>): void {
+  for (const field of ["startDate", "contractEndDate", "terminationDate"] as const) {
+    const value = body[field];
+    if (typeof value === "string") {
+      body[field] = value ? new Date(value) : undefined;
+    }
+  }
+}
 
 export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
@@ -90,8 +102,8 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     generalApiRateLimit,
     withErrorHandling("fetch crew", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { vesselId } = req.query;
-      const crew = await crewService.listCrew(orgId, vesselId as string | undefined);
+      const { vesselId } = crewListQuerySchema.parse(req.query);
+      const crew = await crewService.listCrew(orgId, vesselId);
       res.json(crew);
     })
   );
@@ -141,16 +153,8 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "create"),
     writeOperationRateLimit,
     withErrorHandling("create crew member", async (req, res) => {
-      const body = { ...req.body };
-      if (typeof body.startDate === "string") {
-        body.startDate = body.startDate ? new Date(body.startDate) : undefined;
-      }
-      if (typeof body.contractEndDate === "string") {
-        body.contractEndDate = body.contractEndDate ? new Date(body.contractEndDate) : undefined;
-      }
-      if (typeof body.terminationDate === "string") {
-        body.terminationDate = body.terminationDate ? new Date(body.terminationDate) : undefined;
-      }
+      const body = { ...crewMutationBodySchema.parse(req.body) };
+      normalizeCrewDateFields(body);
       // photoPath is managed exclusively by the dedicated photo routes.
       const crewData = insertCrewSchema.omit({ photoPath: true }).parse(body);
       const crew = await crewService.createCrew(crewData, req.user?.id);
@@ -197,7 +201,8 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     generalApiRateLimit,
     withErrorHandling("fetch crew member", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const crew = await crewService.getCrewById(req.params["id"] ?? "", orgId);
+      const { id } = crewParamsSchema.parse(req.params);
+      const crew = await crewService.getCrewById(id, orgId);
 
       if (!crew) {
         sendNotFound(res, "Crew member");
@@ -214,26 +219,14 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     requirePermission("crew_members", "edit"),
     writeOperationRateLimit,
     withErrorHandling("update crew member", async (req, res) => {
-      const body = { ...req.body };
-      if (typeof body.startDate === "string") {
-        body.startDate = body.startDate ? new Date(body.startDate) : undefined;
-      }
-      if (typeof body.contractEndDate === "string") {
-        body.contractEndDate = body.contractEndDate ? new Date(body.contractEndDate) : undefined;
-      }
-      if (typeof body.terminationDate === "string") {
-        body.terminationDate = body.terminationDate ? new Date(body.terminationDate) : undefined;
-      }
+      const { id } = crewParamsSchema.parse(req.params);
+      const body = { ...crewMutationBodySchema.parse(req.body) };
+      normalizeCrewDateFields(body);
       // photoPath is managed exclusively by the dedicated photo routes,
       // so the generic CRUD path cannot set or clear it.
       const crewData = insertCrewSchema.omit({ photoPath: true }).partial().parse(body);
       const orgId = authenticatedRequest(req).orgId;
-      const crew = await crewService.updateCrew(
-        req.params["id"] ?? "",
-        crewData,
-        req.user?.id,
-        orgId
-      );
+      const crew = await crewService.updateCrew(id, crewData, req.user?.id, orgId);
       res.json(crew);
     })
   );
@@ -245,7 +238,8 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      await crewService.deleteCrew(req.params["id"] ?? "", req.user?.id, orgId);
+      const { id } = crewParamsSchema.parse(req.params);
+      await crewService.deleteCrew(id, req.user?.id, orgId);
       sendDeleted(res);
     })
   );
@@ -273,7 +267,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
         res.status(400).json({ error: "File contents do not match a valid PNG or JPEG image." });
         return;
       }
-      const id = req.params["id"] ?? "";
+      const { id } = crewParamsSchema.parse(req.params);
       const existing = await crewService.getCrewById(id, orgId);
       if (!existing) {
         sendNotFound(res, "Crew member");
@@ -327,7 +321,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     withErrorHandling("delete crew photo", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const userId = req.user?.id;
-      const id = req.params["id"] ?? "";
+      const { id } = crewParamsSchema.parse(req.params);
       const existing = await crewService.getCrewById(id, orgId);
       if (!existing) {
         sendNotFound(res, "Crew member");

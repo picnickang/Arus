@@ -30,9 +30,7 @@ export function PermissionGateLoading() {
     >
       <div className="space-y-2">
         <p className="text-sm font-medium text-foreground">Loading access...</p>
-        <p className="text-xs text-muted-foreground">
-          Checking your permissions for this page.
-        </p>
+        <p className="text-xs text-muted-foreground">Checking your permissions for this page.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Skeleton className="h-24 rounded-lg" />

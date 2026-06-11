@@ -37,7 +37,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getRoleColor } from "./schedule-planner-utils";
 import { AssignmentDrawerContent } from "./schedule-planner-components";
-
 export function AssignmentDrawer({
   assignment,
   isOpen,
@@ -64,7 +63,6 @@ export function AssignmentDrawer({
   isSaving: boolean;
 }) {
   const [isMobile, setIsMobile] = useState(false);
-
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -75,7 +73,6 @@ export function AssignmentDrawer({
   if (!assignment) {
     return null;
   }
-
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -128,7 +125,6 @@ export function AssignmentDrawer({
     </Sheet>
   );
 }
-
 export function VesselFilter({
   vessels,
   selectedId,
@@ -167,7 +163,6 @@ export function VesselFilter({
     </ScrollArea>
   );
 }
-
 export interface CreateAssignmentData {
   vesselId?: string;
   vesselName?: string;
@@ -207,7 +202,6 @@ export function CreateAssignmentSheet({
   const [showRosterWarning, setShowRosterWarning] = useState(false);
   const [pendingCrewSelection, setPendingCrewSelection] = useState<CrewMember | null>(null);
   const [isReassigning, setIsReassigning] = useState(false);
-
   useEffect(() => {
     if (prefillData) {
       if (prefillData.startDate) {
@@ -217,7 +211,6 @@ export function CreateAssignmentSheet({
       setSelectedRole("");
     }
   }, [prefillData]);
-
   const availableCrew = crew.filter((c) => c.active && !c.onLeave);
   const selectedCrewMember = crew.find((c) => c.id === selectedCrewId);
 

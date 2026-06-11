@@ -40,8 +40,6 @@ declare global {
 const API_HISTORY_LIMIT = 20;
 const ROUTE_HISTORY_LIMIT = 10;
 
-const WRAPPER_SYMBOL = Symbol.for("__devPerfFetchWrapper");
-
 const apiLatenciesRef: { current: ApiLatency[] } = { current: [] };
 let apiLatencyListeners: ((latencies: ApiLatency[]) => void)[] = [];
 

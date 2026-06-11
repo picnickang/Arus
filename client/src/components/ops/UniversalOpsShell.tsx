@@ -334,5 +334,3 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
     </OpsShell>
   );
 }
-
-export default UniversalOpsShell;
