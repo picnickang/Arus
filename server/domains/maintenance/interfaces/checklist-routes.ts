@@ -20,7 +20,7 @@ import {
   insertMaintenanceChecklistItemSchema,
   insertWorkOrderWorklogSchema,
 } from "@shared/schema-runtime";
-import { dbChecklistsStorage, dbWorkOrderStorage } from "../../../repositories";
+import { dbChecklistsStorage, dbWorkOrderStorage } from "../infrastructure/checklist-storage";
 import {
   authenticatedRequest,
   requireOrgId,

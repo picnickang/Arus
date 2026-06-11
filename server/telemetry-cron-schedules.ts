@@ -15,6 +15,7 @@ interface TelemetryCronJobTypes {
   TELEMETRY_ROLLUP_HOURLY: string;
   TELEMETRY_PARTITION_MAINTENANCE: string;
   TELEMETRY_RETENTION: string;
+  DLQ_REPLAY: string;
 }
 
 interface TelemetryCronSpec {
@@ -25,18 +26,27 @@ interface TelemetryCronSpec {
 }
 
 // Ordering rationale, end to end: rollups land 5 min past each hour so the
-// 02:00 warehouse export always reads finished 1_hour buckets; partition
-// maintenance (01:15) runs before retention so the boundary months
-// retention inspects are real partitions; retention (03:30) runs after the
-// export so deletes can never race it, and offset from the Sunday 03:00
-// model retrain. Retention is additionally gated per-run by
-// TELEMETRY_RETENTION_ENABLED inside its processor (destructive job).
+// 02:00 warehouse export always reads finished 1_hour buckets; the DLQ
+// auto-replay sweep (:20) runs after each rollup so readings it recovers
+// into equipment_telemetry are picked up by the NEXT rollup's overlapping
+// lookback rather than racing the current one; partition maintenance
+// (01:15) runs before retention so the boundary months retention inspects
+// are real partitions; retention (03:30) runs after the export so deletes
+// can never race it, and offset from the Sunday 03:00 model retrain.
+// Retention is additionally gated per-run by TELEMETRY_RETENTION_ENABLED
+// inside its processor (destructive job).
 const TELEMETRY_CRON_SCHEDULES: TelemetryCronSpec[] = [
   {
     type: "TELEMETRY_ROLLUP_HOURLY",
     cron: "5 * * * *",
     cadence: "hourly",
     rationale: "rollup",
+  },
+  {
+    type: "DLQ_REPLAY",
+    cron: "20 * * * *",
+    cadence: "hourly",
+    rationale: "DLQ auto-replay",
   },
   {
     type: "TELEMETRY_PARTITION_MAINTENANCE",

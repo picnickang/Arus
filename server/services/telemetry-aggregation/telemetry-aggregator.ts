@@ -167,8 +167,13 @@ export class TelemetryAggregator {
   }
 
   /**
-   * Aggregate raw telemetry into pre-computed buckets for a time range.
-   * Designed to be called by a scheduled job (e.g., every hour for hourly rollups).
+   * Aggregate telemetry into pre-computed buckets for a time range, reading
+   * BOTH sources: `raw_telemetry` (manual imports) and `equipment_telemetry`
+   * (the batch-writer's live ingest table — previously never aggregated, so
+   * ingested data was invisible to rollups and the warehouse export).
+   * Designed to be called by a scheduled job (e.g., every hour for hourly
+   * rollups). Both tables carry FORCE RLS — callers must run this under the
+   * org's tenant context or the reads silently return zero rows in prod.
    *
    * Uses INSERT ... ON CONFLICT UPDATE so it's idempotent — safe to re-run.
    */
@@ -189,6 +194,13 @@ export class TelemetryAggregator {
 
     try {
       const { sql } = await import("drizzle-orm");
+      // The trunc unit must be inlined, not bound: a bound `date_trunc($1, ts)`
+      // in SELECT and `date_trunc($9, ts)` in GROUP BY are *different* parse
+      // nodes to PostgreSQL, which rejects the statement with `column "ts"
+      // must appear in the GROUP BY clause` — every sweep failed this way
+      // until now. Safe to inline: truncFn is the closed getBucketTruncSQL
+      // enum ('minute' | 'hour' | 'day'), never caller input.
+      const truncUnit = sql.raw(`'${truncFn}'`);
       const result = await this.db.execute(sql`
         INSERT INTO telemetry_aggregated (
           org_id, equipment_id, sensor_type, bucket_start, bucket_size,
@@ -197,9 +209,9 @@ export class TelemetryAggregator {
         )
         SELECT
           org_id,
-          vessel AS equipment_id,
-          sig AS sensor_type,
-          date_trunc(${truncFn}, ts) AS bucket_start,
+          equipment_id,
+          sensor_type,
+          date_trunc(${truncUnit}, ts) AS bucket_start,
           ${bucketSize} AS bucket_size,
           COUNT(*) AS count,
           MIN(value) AS min_value,
@@ -211,12 +223,28 @@ export class TelemetryAggregator {
           PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY value) AS p99_value,
           (ARRAY_AGG(value ORDER BY ts ASC))[1] AS first_value,
           (ARRAY_AGG(value ORDER BY ts DESC))[1] AS last_value
-        FROM raw_telemetry
-        WHERE org_id = ${orgId}
-          AND ts >= ${startDate}
-          AND ts < ${endDate}
-          AND value IS NOT NULL
-        GROUP BY org_id, vessel, sig, date_trunc(${truncFn}, ts)
+        FROM (
+          -- Disjoint sources, so UNION ALL cannot double-count a reading:
+          -- raw_telemetry holds manual imports (vessel/sig naming);
+          -- equipment_telemetry is the batch-writer's live ingest table.
+          -- Filters are pushed into each branch so the hot table's scan
+          -- stays partition-pruned (RANGE(ts), migrations/0038) and both
+          -- reads stay on their (org_id, ts) indexes.
+          SELECT org_id, vessel AS equipment_id, sig AS sensor_type, ts, value
+          FROM raw_telemetry
+          WHERE org_id = ${orgId}
+            AND ts >= ${startDate}
+            AND ts < ${endDate}
+            AND value IS NOT NULL
+          UNION ALL
+          SELECT org_id, equipment_id, sensor_type, ts, value
+          FROM equipment_telemetry
+          WHERE org_id = ${orgId}
+            AND ts >= ${startDate}
+            AND ts < ${endDate}
+            AND value IS NOT NULL
+        ) AS telemetry_sources
+        GROUP BY org_id, equipment_id, sensor_type, date_trunc(${truncUnit}, ts)
         ON CONFLICT (org_id, equipment_id, sensor_type, bucket_start, bucket_size)
         DO UPDATE SET
           count = EXCLUDED.count,

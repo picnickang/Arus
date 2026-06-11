@@ -6,6 +6,13 @@ means the request fell through Express to Vite's SPA fallback — no API route e
 
 ## Resolution log
 
+**2026-06-11 (pass 4)** — 2 entries resolved, baseline 130 → 128:
+
+- **Deleted dead client code** — `useTestIntegration`/`useSyncIntegration` in
+  `client/src/features/settings/hooks/useSettings.ts` (`/api/integrations/*/test`, `*/sync`).
+  No server route ever existed and no component consumed the hooks; the live surface is the
+  `/api/admin/integrations` CRUD (see pass-2 repointing note below).
+
 **2026-06-10 (pass 2)** — 14 entries resolved, baseline 153 → 139:
 
 - **Implemented (9 routes)** — `server/domains/maintenance/interfaces/checklist-routes.ts` over the

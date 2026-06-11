@@ -33,6 +33,24 @@ const DEFAULT_CONFIG: DeadLetterQueueConfig = {
   name: "default",
 };
 
+/**
+ * Instance registry so cross-cutting sweeps (the hourly auto-replay job in
+ * server/job-processors/dlq-replay-processor.ts) can enumerate every live
+ * queue without each owner having to export its instance. Keyed by queue
+ * name — two instances sharing a name already share the same repository
+ * storage, so last-constructed-wins matches existing semantics.
+ */
+const registeredQueues = new Map<string, DeadLetterQueue<unknown>>();
+
+export function getRegisteredQueues(): Array<DeadLetterQueue<unknown>> {
+  return Array.from(registeredQueues.values());
+}
+
+/** Test hook: drop registrations leaked by previously constructed queues. */
+export function clearRegisteredQueuesForTests(): void {
+  registeredQueues.clear();
+}
+
 export class DeadLetterQueue<T = unknown> extends EventEmitter {
   private readonly config: DeadLetterQueueConfig;
   private replayHandler: ((entry: DeadLetterEntry<T>) => Promise<void>) | null = null;
@@ -40,10 +58,19 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
   constructor(config: Partial<DeadLetterQueueConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
+    registeredQueues.set(this.config.name, this as DeadLetterQueue<unknown>);
+  }
+
+  get name(): string {
+    return this.config.name;
   }
 
   setReplayHandler(handler: (entry: DeadLetterEntry<T>) => Promise<void>): void {
     this.replayHandler = handler;
+  }
+
+  hasReplayHandler(): boolean {
+    return this.replayHandler !== null;
   }
 
   add(
@@ -76,7 +103,13 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
     return repository.getEntry(this.config.name, id) as DeadLetterEntry<T> | undefined;
   }
 
-  list(options: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined } = {}): DeadLetterEntry<T>[] {
+  list(
+    options: {
+      limit?: number | undefined;
+      offset?: number | undefined;
+      source?: string | undefined;
+    } = {}
+  ): DeadLetterEntry<T>[] {
     return repository.listEntries(this.config.name, options) as DeadLetterEntry<T>[];
   }
 
@@ -117,7 +150,9 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
     }
   }
 
-  async replayAll(options: { source?: string | undefined; limit?: number | undefined } = {}): Promise<ReplayResult[]> {
+  async replayAll(
+    options: { source?: string | undefined; limit?: number | undefined } = {}
+  ): Promise<ReplayResult[]> {
     const entries = this.list({ source: options.source, limit: options.limit });
     const results: ReplayResult[] = [];
 
