@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:48:05.590Z
+Generated: 2026-06-11T23:52:43.578Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `94` counted files.
-- The current counted inventory is `94` files.
+- The temporary ceiling is `93` counted files.
+- The current counted inventory is `93` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    94 |
-| Server                    |    32 |
+| Total counted long files  |    93 |
+| Server                    |    31 |
 | Server route-like files   |     9 |
 | Server service-like files |     6 |
 | Client                    |    62 |
@@ -89,6 +89,7 @@ Completed splits:
 - `server/integrations/fmcc-polling-service.ts` dropped below the threshold by moving FMCC raw poll normalization to a pure snapshot builder while preserving the polling service exports.
 - `server/services/anomaly-correlation/anomaly-correlator.ts` dropped below the threshold by moving sensor normalization and failure-signature matching to a pure helper module while preserving `AnomalyCorrelator`.
 - `server/services/ml/prediction-outcome-tracker.ts` dropped below the threshold by moving tracker config and payload/data-shape types to a sibling type module while preserving `PredictionOutcomeTracker`.
+- `server/db/equipment/db-equipment.ts` dropped below the threshold by moving graph projection/retraction side effects to a sibling helper while preserving `DatabaseEquipmentStorage`.
 
 ## Top 30 Longest Files
 
@@ -238,5 +239,4 @@ Completed splits:
 564 client/src/components/scheduling/crew-scheduler-cards.tsx
 561 client/src/pages/analytics-hub.tsx
 559 server/scripts/migrate.ts
-532 server/db/equipment/db-equipment.ts
 ```

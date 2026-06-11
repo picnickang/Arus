@@ -33,4 +33,16 @@ describe("server tail extractions", () => {
     expect(types).toContain("export interface OutcomeEvaluationReport");
     expect(types).toContain("export interface EligiblePrediction");
   });
+
+  it("keeps equipment graph side effects in a storage helper", () => {
+    const storage = read("server/db/equipment/db-equipment.ts");
+    const graphSync = read("server/db/equipment/equipment-graph-sync.ts");
+
+    expect(storage).toContain('from "./equipment-graph-sync.js"');
+    expect(storage).toContain("await projectCreatedEquipment(newEquipment)");
+    expect(storage).toContain("await syncUpdatedEquipment(updated, priorVesselId)");
+    expect(graphSync).toContain("export async function projectCreatedEquipment");
+    expect(graphSync).toContain("export async function syncAssociatedEquipment");
+    expect(graphSync).toContain("export async function retractDisassociatedEquipment");
+  });
 });
