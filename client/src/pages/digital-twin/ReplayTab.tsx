@@ -54,10 +54,10 @@ export function ReplayTab() {
         </div>
       )}
 
-      {timeline?.length > 0 ? (
+      {(timeline?.length ?? 0) > 0 ? (
         <Card data-testid="card-timeline">
           <CardHeader>
-            <CardTitle className="text-base">Event Timeline ({timeline.length} events)</CardTitle>
+            <CardTitle className="text-base">Event Timeline ({timeline?.length ?? 0} events)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">

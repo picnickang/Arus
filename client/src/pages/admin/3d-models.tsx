@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, lazy, Suspense } from "react";
+import { ApiError } from "@/lib/api-error";
 import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import { apiRequest, queryClient, createHeaders, resolveUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -73,13 +74,15 @@ export default function Admin3DModelsPage() {
       queryKey: ["/api/v1/vessels", v.id, "3d-model"] as const,
       enabled: !isForbidden,
       queryFn: async () => {
-        const res = await fetch(
-          resolveUrl(`/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`),
-          { credentials: "include", headers: createHeaders() }
-        );
-        if (res.status === 404) {return null;}
-        if (!res.ok) {throw new Error(`${res.status}: ${await res.text().catch(() => res.statusText)}`);}
-        return (await res.json()) as ModelMetadata;
+        try {
+          return await apiRequest<ModelMetadata>(
+            "GET",
+            `/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`
+          );
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 404) {return null;}
+          throw error;
+        }
       },
     })),
   });
@@ -186,9 +189,11 @@ function VesselModelCard({
         try {
           const body = await res.json();
           msg =
-            typeof body?.error === "string"
-              ? body.error
-              : JSON.stringify(body?.error ?? body);
+            typeof body?.message === "string"
+              ? body.message
+              : typeof body?.error === "string"
+                ? body.error
+                : JSON.stringify(body?.error ?? body);
         } catch {
           /* ignore */
         }

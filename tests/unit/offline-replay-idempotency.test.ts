@@ -167,6 +167,54 @@ describe("offline replay idempotency (WS1)", () => {
     });
   });
 
+  it("enveloped 409s store the domain payload from error.details, not envelope plumbing", async () => {
+    const op = await offlineSync.queueApiOperation("PATCH", "/api/work-orders/wo-10", {
+      id: "wo-10",
+      status: "completed",
+    });
+
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, {
+        success: false,
+        error: {
+          code: "CONFLICT",
+          message: "stale version",
+          details: { id: "wo-10", status: "in_progress", version: 7 },
+        },
+        message: "stale version",
+        code: "CONFLICT",
+      })
+    );
+
+    await replayQueuedApiRequests();
+    const conflicts = await offlineSync.getConflicts();
+    const stored = conflicts.find((c) => c.operationId === op.id)?.serverVersion;
+    expect(stored).toEqual({ id: "wo-10", status: "in_progress", version: 7 });
+  });
+
+  it("enveloped 409s without details fall back to the error object", async () => {
+    const op = await offlineSync.queueApiOperation("PATCH", "/api/work-orders/wo-11", {
+      id: "wo-11",
+      status: "completed",
+    });
+
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, {
+        success: false,
+        error: { code: "CONFLICT", message: "version conflict" },
+        message: "version conflict",
+        code: "CONFLICT",
+      })
+    );
+
+    await replayQueuedApiRequests();
+    const conflicts = await offlineSync.getConflicts();
+    expect(conflicts.find((c) => c.operationId === op.id)?.serverVersion).toMatchObject({
+      code: "CONFLICT",
+      message: "version conflict",
+    });
+  });
+
   it("apiRequest attaches the Idempotency-Key on the first live attempt of queueable mutations", async () => {
     fetchMock.mockResolvedValue(jsonResponse(201, { id: "wo-1" }));
 

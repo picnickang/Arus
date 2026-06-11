@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/queryClient";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -212,18 +213,14 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
     setSaveStatus("saving");
     try {
       const csvData = toCSV(rows);
-      const response = await fetch("/api/stcw/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          csv: csvData,
-          crewId: meta.crew_id,
-          vessel: meta.vessel_id,
-          year: meta.year,
-          month: meta.month,
-        }),
+      await apiRequest("POST", "/api/stcw/import", {
+        csv: csvData,
+        crewId: meta.crew_id,
+        vessel: meta.vessel_id,
+        year: meta.year,
+        month: meta.month,
       });
-      setSaveStatus(response.ok ? "saved" : "unsaved");
+      setSaveStatus("saved");
     } catch {
       setSaveStatus("unsaved");
     }
@@ -267,19 +264,12 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
         return;
       }
       try {
-        const response = await fetch(`/api/stcw/rest/${meta.crew_id}/${meta.year}/${meta.month}`);
-        if (response.status === 404) {
-          const emptyRows = emptyMonth(meta.year, meta.month);
-          setRows(emptyRows);
-          setHistory([JSON.parse(JSON.stringify(emptyRows))]);
-          setHistoryIndex(0);
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to load rest data");
-        }
-        const data = await response.json();
+        // A 404 (no sheet yet) throws and lands in the catch below, which
+        // seeds the same empty month the dedicated branch used to.
+        const data = await apiRequest<{ days?: DayRow[] }>(
+          "GET",
+          `/api/stcw/rest/${meta.crew_id}/${meta.year}/${meta.month}`
+        );
         if (data.days && Array.isArray(data.days) && data.days.length > 0) {
           const loadedRows = emptyMonth(meta.year, meta.month);
           data.days.forEach((day: DayRow) => {
@@ -494,18 +484,16 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
           }
           return targetRow;
         });
-        const response = await fetch("/api/stcw/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        try {
+          await apiRequest("POST", "/api/stcw/import", {
             data: copiedRows,
             crewId: meta.crew_id,
             year: meta.year,
             month: targetMonth,
-          }),
-        });
-        if (response.ok) {
+          });
           successCount++;
+        } catch {
+          /* only successful copies count */
         }
       }
       toast({
@@ -544,18 +532,16 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
       let successCount = 0;
       for (const targetMonth of monthsToRemove) {
         const emptyMonthData = emptyMonth(meta.year, targetMonth);
-        const response = await fetch("/api/stcw/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        try {
+          await apiRequest("POST", "/api/stcw/import", {
             data: emptyMonthData,
             crewId: meta.crew_id,
             year: meta.year,
             month: targetMonth,
-          }),
-        });
-        if (response.ok) {
+          });
           successCount++;
+        } catch {
+          /* only successful clears count */
         }
       }
       toast({
@@ -603,16 +589,26 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
         }),
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || "Upload failed");
+        const errorData = (await response.json().catch(() => null)) as {
+          message?: string;
+          error?: unknown;
+        } | null;
+        throw new Error(
+          errorData?.message ||
+            (typeof errorData?.error === "string" ? errorData.error : undefined) ||
+            "Upload failed"
+        );
       }
-      let result;
+      let result: ComplianceResult;
       const contentType = response.headers.get("content-type");
       if (contentType?.includes("application/json")) {
-        result = await response.json();
+        const parsed = (await response.json()) as Record<string, unknown> | null;
+        result = (
+          parsed && parsed["success"] === true && "data" in parsed ? parsed["data"] : parsed
+        ) as ComplianceResult;
       } else {
         const text = await response.text();
-        result = { message: text || "Upload successful", success: true };
+        result = { message: text || "Upload successful", success: true } as ComplianceResult;
       }
       setResult(result);
       setSaveStatus("saved");
@@ -635,13 +631,10 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
       return;
     }
     try {
-      const response = await fetch(
+      const result = await apiRequest<{ compliant?: boolean }>(
+        "GET",
         `/api/stcw/compliance/${meta.crew_id}/${meta.year}/${meta.month}`
       );
-      if (!response.ok) {
-        throw new Error("Compliance check failed");
-      }
-      const result = await response.json();
       setResult(result);
       toast({
         title: "Compliance check completed",

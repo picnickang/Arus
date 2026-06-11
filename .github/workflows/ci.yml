@@ -114,9 +114,6 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
         env:
-          # Headroom for the --experimental-vm-modules module-registry leak;
-          # propagates to Jest workers. Pairs with workerIdleMemoryLimit in
-          # jest.config.mjs, which recycles leaky workers before they get here.
           NODE_OPTIONS: --max-old-space-size=6144
 
   integration-tests:

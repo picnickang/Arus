@@ -23,11 +23,7 @@ type RawTelemetry = {
 };
 
 async function fetchRawTelemetry(): Promise<RawTelemetry[]> {
-  const response = await fetch("/api/raw-telemetry");
-  if (!response.ok) {
-    throw new Error("Failed to fetch raw telemetry data");
-  }
-  return response.json();
+  return apiRequest<RawTelemetry[]>("GET", "/api/raw-telemetry");
 }
 
 export function useManualTelemetryUpload() {

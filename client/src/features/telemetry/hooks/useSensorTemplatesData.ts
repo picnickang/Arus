@@ -84,13 +84,7 @@ export function useSensorTemplatesData() {
 
   const { data: templates = [], isLoading } = useQuery<SensorTemplate[]>({
     queryKey: sensorTemplateKeys.lists(),
-    queryFn: async () => {
-      const response = await fetch("/api/sensor-templates");
-      if (!response.ok) {
-        throw new Error("Failed to fetch templates");
-      }
-      return response.json();
-    },
+    queryFn: async () => apiRequest("GET", "/api/sensor-templates"),
   });
 
   const resetForm = useCallback(() => {

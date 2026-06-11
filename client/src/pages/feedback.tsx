@@ -4,8 +4,9 @@
  * Re-skinned per preview-panel 3 (desktop) and the mobile row-9 sub-
  * flow (Report Issue → Submit Report).
  *
- * Component owns rendering only. ALL validation rules + the
- * sessionStorage write live in
+ * Component owns rendering only. ALL validation rules + the submission
+ * transport (POST /api/me/feedback, with a sessionStorage outbox as the
+ * offline fallback) live in
  * `client/src/application/feedback/feedback-submission.ts`. If a new
  * rule is needed it goes there, never inline. There is no real
  * server-backed media endpoint for this workflow yet, so the page
@@ -13,6 +14,7 @@
  */
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Flag, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Inbox } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import {
   FEEDBACK_LOCATION_OPTIONS,
   listSessionFeedback,
+  retrySessionFeedback,
   submitFeedback,
   type FeedbackCategory,
   type FeedbackDraft,
@@ -32,7 +35,9 @@ import {
   type FeedbackOutboxEntry,
   type FeedbackSeverity,
   type FeedbackValidationError,
+  type ServerFeedbackEntry,
 } from "@/application/feedback/feedback-submission";
+import { StatusChip, type HistoryEntry } from "./feedback/StatusChip";
 
 const EMPTY_DRAFT: FeedbackDraft = {
   category: "suggestion",
@@ -83,7 +88,7 @@ function errorFor(
   return errors.find((e) => e.field === field)?.message;
 }
 
-function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
+function FeedbackHistory({ entries }: { entries: HistoryEntry[] }) {
   if (entries.length === 0) {
     return (
       <div
@@ -92,9 +97,9 @@ function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
       >
         <Inbox className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div>
-          <div className="text-sm font-medium">No submissions yet</div>
+          <div className="text-sm font-medium">No reports yet</div>
           <div className="text-xs text-muted-foreground">
-            Anything you send in this session will appear here.
+            Reports you submit appear here with their review status.
           </div>
         </div>
       </div>
@@ -104,7 +109,7 @@ function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
   return (
     <div className="mt-6" data-testid="list-feedback-history">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-        Submitted this session
+        My reports
       </h3>
       <ul className="space-y-2">
         {entries.map((entry) => (
@@ -115,7 +120,10 @@ function FeedbackHistory({ entries }: { entries: FeedbackOutboxEntry[] }) {
           >
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
               <code className="rounded bg-muted px-1.5 py-0.5">{entry.trackingId}</code>
-              <span>{new Date(entry.createdAt).toLocaleString()}</span>
+              <span className="flex items-center gap-2">
+                <StatusChip entry={entry} />
+                {new Date(entry.createdAt).toLocaleString()}
+              </span>
             </div>
             <div className="mt-1 text-sm font-medium truncate">{entry.subject}</div>
             <div className="mt-0.5 text-xs text-muted-foreground capitalize">
@@ -174,13 +182,26 @@ export default function FeedbackPage() {
   const [draft, setDraft] = useState<FeedbackDraft>(EMPTY_DRAFT);
   const [fieldErrors, setFieldErrors] = useState<FeedbackValidationError[]>([]);
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
-  const [history, setHistory] = useState<FeedbackOutboxEntry[]>(() => listSessionFeedback());
+  const [pendingLocal, setPendingLocal] = useState<FeedbackOutboxEntry[]>(() =>
+    listSessionFeedback()
+  );
+  const queryClient = useQueryClient();
+
+  const serverHistory = useQuery<ServerFeedbackEntry[]>({
+    queryKey: ["/api/me/feedback"],
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (state.kind === "idle" || state.kind === "success") {
-      setHistory(listSessionFeedback());
+      setPendingLocal(listSessionFeedback());
     }
   }, [state.kind]);
+
+  const history: HistoryEntry[] = [
+    ...pendingLocal.map((e) => ({ ...e, pending: true as const })),
+    ...(serverHistory.data ?? []).map((e) => ({ ...e, pending: false as const })),
+  ];
 
   function update<K extends keyof FeedbackDraft>(key: K, value: FeedbackDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -205,6 +226,9 @@ export default function FeedbackPage() {
         trackingId: result.trackingId,
         pendingBackend: result.pendingBackend,
       });
+      if (!result.pendingBackend) {
+        queryClient.invalidateQueries({ queryKey: ["/api/me/feedback"] });
+      }
       setDraft(EMPTY_DRAFT);
     } catch (err) {
       setState({
@@ -242,9 +266,30 @@ export default function FeedbackPage() {
                 className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
                 data-testid="banner-feedback-pending-backend"
               >
-                Saved locally for this session. Server-side delivery is wired up in the next pilot
-                update — this reference will be honoured when it ships.
+                The server couldn't be reached, so this report is saved on this device for now. Use
+                &ldquo;Retry submission&rdquo; once you're back online — your report is kept as you
+                typed it.
               </div>
+            )}
+            {state.pendingBackend && (
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  const result = await retrySessionFeedback(state.trackingId);
+                  setPendingLocal(listSessionFeedback());
+                  if (result.ok && !result.pendingBackend) {
+                    queryClient.invalidateQueries({ queryKey: ["/api/me/feedback"] });
+                    setState({
+                      kind: "success",
+                      trackingId: result.trackingId,
+                      pendingBackend: false,
+                    });
+                  }
+                }}
+                data-testid="button-feedback-retry"
+              >
+                Retry submission
+              </Button>
             )}
             <div className="flex gap-2">
               <Button

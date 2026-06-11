@@ -11,10 +11,12 @@ import {
   varchar,
   integer,
   real,
+  numeric,
   timestamp,
   boolean,
   serial,
   index,
+  uniqueIndex,
   createInsertSchema,
   z,
 } from "./base";
@@ -32,15 +34,17 @@ export const organizations = pgTable("organizations", {
   maxEquipment: integer("max_equipment").default(1000),
   subscriptionTier: text("subscription_tier").notNull().default("basic"),
   isActive: boolean("is_active").default(true),
-  emergencyLaborMultiplier: real("emergency_labor_multiplier").default(3),
-  emergencyPartsMultiplier: real("emergency_parts_multiplier").default(1.5),
-  emergencyDowntimeMultiplier: real("emergency_downtime_multiplier").default(3),
+  emergencyLaborMultiplier: numeric("emergency_labor_multiplier", { precision: 6, scale: 3, mode: "number" }).default(3),
+  emergencyPartsMultiplier: numeric("emergency_parts_multiplier", { precision: 6, scale: 3, mode: "number" }).default(1.5),
+  emergencyDowntimeMultiplier: numeric("emergency_downtime_multiplier", { precision: 6, scale: 3, mode: "number" }).default(3),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
 
 // Users with RBAC scaffolding and authentication
-export const users = pgTable("users", {
+export const users = pgTable(
+  "users",
+  {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
@@ -71,7 +75,13 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+  },
+  (table) => ({
+    // Tenant-scoped natural key (0039): the same email may exist in
+    // different orgs, never twice within one.
+    orgEmailUq: uniqueIndex("uq_users_org_email").on(table.orgId, table.email),
+  })
+);
 
 // System settings
 export const systemSettings = pgTable("system_settings", {

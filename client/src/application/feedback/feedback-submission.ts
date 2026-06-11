@@ -2,14 +2,13 @@
  * Feedback submission — application layer.
  *
  * Typed, framework-agnostic submission service used by the pilot
- * Feedback / Flags form. No React, no I/O implementation — only the
- * shape and the orchestration around the (currently stubbed) backend
- * write.
+ * Feedback / Flags form. Server-first: reports persist via
+ * POST /api/me/feedback; if the server is unreachable they fall back
+ * to a per-session outbox so nothing the crew typed is lost silently.
  *
  * Why a separate module: the React form must not embed the "what is
  * a valid feedback payload" rules. The component renders state and
- * fires submit; this module owns validation, dispatch, and the
- * pending-backend stub.
+ * fires submit; this module owns validation and dispatch.
  */
 
 export type FeedbackSeverity = "low" | "medium" | "high";
@@ -60,7 +59,7 @@ export type FeedbackSubmissionResult =
   | { ok: false; errors: FeedbackValidationError[] };
 
 const ALLOWED_LOCATIONS: ReadonlySet<FeedbackLocation> = new Set(
-  FEEDBACK_LOCATION_OPTIONS.map((o) => o.value),
+  FEEDBACK_LOCATION_OPTIONS.map((o) => o.value)
 );
 
 export function validateFeedback(draft: FeedbackDraft): FeedbackValidationError[] {
@@ -93,10 +92,10 @@ export function validateFeedback(draft: FeedbackDraft): FeedbackValidationError[
 }
 
 /**
- * Per-session outbox: list of drafts the user submitted during this
- * tab's lifetime. Used by the Feedback page to render a "Submitted
- * this session" history list. Persisted only to sessionStorage so it
- * disappears with the tab — there is no real backend yet.
+ * Per-session outbox: reports that could NOT reach the server (offline /
+ * POST failed). The Feedback page shows these as "pending sync" alongside
+ * the server-persisted history from GET /api/me/feedback. Successful
+ * submissions are never written here — the server row is the record.
  */
 export interface FeedbackOutboxEntry extends FeedbackDraft {
   trackingId: string;
@@ -134,9 +133,10 @@ function normaliseOutboxEntry(value: unknown): FeedbackOutboxEntry | null {
   if (!isFeedbackOutboxEntryShape(value)) {
     return null;
   }
-  const raw = value as Record<string, unknown> & Omit<FeedbackOutboxEntry, "location"> & {
-    location?: unknown;
-  };
+  const raw = value as Record<string, unknown> &
+    Omit<FeedbackOutboxEntry, "location"> & {
+      location?: unknown;
+    };
   const candidateLocation =
     typeof raw.location === "string" ? (raw.location as FeedbackLocation) : undefined;
   const location: FeedbackLocation =
@@ -191,30 +191,35 @@ function mintLocalTrackingId(): string {
   return `FB-${stamp}-${random}`;
 }
 
-/**
- * Submit a feedback draft.
- *
- * Currently there is no dedicated backend endpoint for pilot user
- * feedback (the only "/feedback" route on the server lives under the
- * RAG/Knowledge-Base namespace and is not the right target). Until
- * that endpoint exists, we mint a local tracking id, persist the
- * draft to sessionStorage so the user can see "what they sent", and
- * return `pendingBackend: true`. The form surfaces that state in the
- * success toast.
- *
- * When the backend lands, only this function changes — the React
- * form stays as-is.
- */
-export async function submitFeedback(
-  draft: FeedbackDraft,
-): Promise<FeedbackSubmissionResult> {
-  const errors = validateFeedback(draft);
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
+/** Server-persisted feedback row as returned by GET /api/me/feedback. */
+export interface ServerFeedbackEntry extends FeedbackOutboxEntry {
+  status: "submitted" | "acknowledged" | "resolved";
+  resolutionNote?: string | null;
+  linkedWorkOrderId?: string | null;
+}
 
-  const trackingId = mintLocalTrackingId();
+/** Pluggable transport so tests can exercise both paths deterministically. */
+export interface FeedbackTransport {
+  post: (draft: FeedbackDraft) => Promise<{ trackingId: string }>;
+}
 
+const defaultTransport: FeedbackTransport = {
+  post: async (draft) => {
+    // /api/me/feedback is NOT an offline-queueable prefix (see
+    // shared/offline-queue-routes.ts), so offline this rejects and the
+    // session-outbox fallback below takes over — no double submission.
+    // Lazy import keeps this module import-safe in the node-env unit
+    // tests (queryClient touches browser APIs at module scope).
+    const { apiRequest } = await import("@/lib/queryClient");
+    const row = await apiRequest<{ trackingId?: string }>("POST", "/api/me/feedback", draft);
+    if (!row?.trackingId) {
+      throw new Error("Feedback POST returned no tracking id");
+    }
+    return { trackingId: row.trackingId };
+  },
+};
+
+function writeToOutbox(draft: FeedbackDraft, trackingId: string): void {
   try {
     const existing = sessionStorage.getItem(FEEDBACK_OUTBOX_KEY);
     const parsed: unknown = existing ? JSON.parse(existing) : [];
@@ -234,9 +239,77 @@ export async function submitFeedback(
     sessionStorage.setItem(FEEDBACK_OUTBOX_KEY, JSON.stringify(queue));
   } catch {
     // Storage unavailable (private mode, SSR). Submission is still
-    // considered successful from the form's perspective — the
-    // pending-backend stub does not depend on persistence.
+    // considered successful from the form's perspective.
+  }
+}
+
+/** Drop one outbox entry — called after a pending report reaches the server. */
+export function removeFromOutbox(trackingId: string): void {
+  try {
+    const remaining = listSessionFeedback().filter((e) => e.trackingId !== trackingId);
+    sessionStorage.setItem(FEEDBACK_OUTBOX_KEY, JSON.stringify([...remaining].reverse()));
+  } catch {
+    // Storage unavailable — nothing to clean up.
+  }
+}
+
+/**
+ * Re-submit a report that previously fell back to the session outbox.
+ * On success the outbox entry is removed (the server row replaces it),
+ * so no duplicate appears in history. On failure the entry stays queued
+ * under its existing local tracking id — never duplicated.
+ */
+export async function retrySessionFeedback(
+  trackingId: string,
+  transport: FeedbackTransport = defaultTransport
+): Promise<FeedbackSubmissionResult> {
+  const entry = listSessionFeedback().find((e) => e.trackingId === trackingId);
+  if (!entry) {
+    return {
+      ok: false,
+      errors: [{ field: "subject", message: "This report is no longer queued on this device." }],
+    };
+  }
+  const draft: FeedbackDraft = {
+    category: entry.category,
+    severity: entry.severity,
+    location: entry.location,
+    subject: entry.subject,
+    description: entry.description,
+  };
+  try {
+    const { trackingId: serverId } = await transport.post(draft);
+    removeFromOutbox(trackingId);
+    return { ok: true, trackingId: serverId, pendingBackend: false };
+  } catch {
+    return { ok: true, trackingId, pendingBackend: true };
+  }
+}
+
+/**
+ * Submit a feedback draft.
+ *
+ * Online-first: the report is persisted via POST /api/me/feedback and the
+ * server mints the tracking id (`pendingBackend: false`). If the request
+ * fails — offline at sea, server unreachable — the report is kept in the
+ * per-session outbox with a locally minted id and `pendingBackend: true`,
+ * which the form surfaces in the success toast.
+ */
+export async function submitFeedback(
+  draft: FeedbackDraft,
+  transport: FeedbackTransport = defaultTransport
+): Promise<FeedbackSubmissionResult> {
+  const errors = validateFeedback(draft);
+  if (errors.length > 0) {
+    return { ok: false, errors };
   }
 
-  return { ok: true, trackingId, pendingBackend: true };
+  try {
+    const { trackingId } = await transport.post(draft);
+    return { ok: true, trackingId, pendingBackend: false };
+  } catch {
+    const trackingId = mintLocalTrackingId();
+    writeToOutbox(draft, trackingId);
+    return { ok: true, trackingId, pendingBackend: true };
+  }
 }

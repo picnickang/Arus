@@ -1,6 +1,9 @@
 /** @type {import('jest').Config} */
 export default {
   testEnvironment: "node",
+  // The suite now spans 120+ files; swc-transpiled modules accumulate in
+  // long-lived workers until the CI runner OOMs. Recycle workers instead.
+  workerIdleMemoryLimit: "1GB",
   extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
@@ -61,8 +64,4 @@ export default {
   verbose: true,
   forceExit: true,
   detectOpenHandles: true,
-  // The unit lane runs under --experimental-vm-modules, whose per-file ESM
-  // module registries accumulate in workers until the process OOMs (observed
-  // at ~4 GB on CI). Recycle any worker that idles above this threshold.
-  workerIdleMemoryLimit: "1GB",
 };

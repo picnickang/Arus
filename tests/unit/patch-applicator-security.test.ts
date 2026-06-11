@@ -124,10 +124,7 @@ describe("PatchApplicator — tar-slip protection", () => {
   }
 
   it("accepts a clean archive of regular files and directories", async () => {
-    const archive = await makeArchive([
-      { name: "server/index.ts" },
-      { name: "package.json" },
-    ]);
+    const archive = await makeArchive([{ name: "server/index.ts" }, { name: "package.json" }]);
     const extractDir = fs.mkdtempSync(path.join(tmpRoot, "extract-"));
     await expect(internals().assertSafeArchive(archive, extractDir)).resolves.toBeUndefined();
   });

@@ -160,12 +160,7 @@ export default function EquipmentDependenciesPage() {
   const equipmentQuery = useQuery<Equipment[]>({
     queryKey: ["/api/equipment", { vesselId: selectedVesselId }],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/equipment?vesselId=${encodeURIComponent(selectedVesselId)}`,
-        { credentials: "include" }
-      );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
+      return apiRequest("GET", `/api/equipment?vesselId=${encodeURIComponent(selectedVesselId)}`);
     },
     enabled: !!selectedVesselId,
   });
@@ -190,12 +185,7 @@ export default function EquipmentDependenciesPage() {
   const depsQuery = useQuery<DependenciesResponse>({
     queryKey: depsQueryKey,
     queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`,
-        { credentials: "include" }
-      );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
+      return apiRequest("GET", `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`);
     },
     enabled: !!selectedVesselId,
   });
@@ -389,12 +379,7 @@ export default function EquipmentDependenciesPage() {
   const layoutQuery = useQuery<LayoutResponse>({
     queryKey: layoutQueryKey,
     queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`,
-        { credentials: "include" }
-      );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
+      return apiRequest("GET", `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`);
     },
     enabled: !!selectedVesselId,
   });

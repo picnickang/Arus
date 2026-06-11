@@ -92,7 +92,7 @@ export const maintenanceCosts = pgTable(
       .notNull()
       .references(() => equipment.id),
     costType: text("cost_type").notNull(),
-    amount: real("amount").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2, mode: "number" }).notNull(),
     currency: text("currency").default("SGD"),
     description: text("description"),
     workOrderId: varchar("work_order_id"),

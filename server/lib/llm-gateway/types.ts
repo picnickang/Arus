@@ -127,12 +127,14 @@ export interface LLMStreamChunk {
   /** Incremental content delta (may be empty string). */
   contentDelta: string;
   /** Tool call deltas, if the model is invoking tools. */
-  toolCallDeltas?: Array<{
-    index: number;
-    id?: string | undefined;
-    name?: string | undefined;
-    argumentsDelta?: string | undefined;
-  }> | undefined;
+  toolCallDeltas?:
+    | Array<{
+        index: number;
+        id?: string | undefined;
+        name?: string | undefined;
+        argumentsDelta?: string | undefined;
+      }>
+    | undefined;
   finishReason?: string | null | undefined;
   /** Final usage snapshot, only emitted on the terminal chunk. */
   usage?: LLMUsage | undefined;

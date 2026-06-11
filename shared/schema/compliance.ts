@@ -19,7 +19,7 @@ import {
   uuidPrimaryKey,
   tenantColumn,
 } from "./base";
-import { organizations } from "./core";
+import { organizations, users } from "./core";
 import { vessels } from "./vessels";
 
 // Compliance audit trail table for regulatory tracking - uses shared column builders
@@ -264,3 +264,99 @@ export type ComplianceFinding = typeof complianceFindings.$inferSelect;
 export type InsertComplianceFinding = z.infer<typeof insertComplianceFindingSchema>;
 export type ComplianceRule = typeof complianceRules.$inferSelect;
 export type InsertComplianceRule = z.infer<typeof insertComplianceRuleSchema>;
+
+// ============================================================================
+// DATA SUBJECT REQUESTS (GDPR/PDPA)
+// ============================================================================
+
+export const dataSubjectRequests = pgTable(
+  "data_subject_requests",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    requesterId: varchar("requester_id"),
+    requesterEmail: varchar("requester_email", { length: 255 }).notNull(),
+    requesterName: text("requester_name"),
+    requesterType: text("requester_type").notNull(),
+    requestType: text("request_type").notNull(),
+    requestDescription: text("request_description"),
+    dataCategories: text("data_categories").array(),
+    status: text("status").notNull().default("pending"),
+    priority: text("priority").default("normal"),
+    receivedAt: timestamp("received_at", { mode: "date" }).defaultNow(),
+    acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
+    dueDate: timestamp("due_date", { mode: "date" }).notNull(),
+    completedAt: timestamp("completed_at", { mode: "date" }),
+    assignedTo: varchar("assigned_to").references(() => users.id),
+    processingNotes: text("processing_notes"),
+    verificationMethod: text("verification_method"),
+    verifiedAt: timestamp("verified_at", { mode: "date" }),
+    responseType: text("response_type"),
+    responseNotes: text("response_notes"),
+    rejectionReason: text("rejection_reason"),
+    exportPath: text("export_path"),
+    deletionConfirmation: jsonb("deletion_confirmation"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index("idx_dsar_org_id").on(table.orgId),
+    statusIdx: index("idx_dsar_status").on(table.status),
+    dueDateIdx: index("idx_dsar_due_date").on(table.dueDate),
+    requesterIdx: index("idx_dsar_requester").on(table.requesterEmail),
+  })
+);
+
+export const insertDataSubjectRequestSchema = createInsertSchema(dataSubjectRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DataSubjectRequest = typeof dataSubjectRequests.$inferSelect;
+export type InsertDataSubjectRequest = z.infer<typeof insertDataSubjectRequestSchema>;
+
+// ============================================================================
+// CROSS-BORDER TRANSFERS
+// ============================================================================
+
+export const crossBorderTransfers = pgTable(
+  "cross_border_transfers",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    transferType: text("transfer_type").notNull(),
+    sourceRegion: varchar("source_region", { length: 50 }).notNull(),
+    destinationRegion: varchar("destination_region", { length: 50 }).notNull(),
+    dataCategories: text("data_categories").array().notNull(),
+    containsPersonalData: boolean("contains_personal_data").default(false),
+    containsSensitiveData: boolean("contains_sensitive_data").default(false),
+    legalBasis: text("legal_basis").notNull(),
+    safeguardReference: text("safeguard_reference"),
+    recordCount: integer("record_count"),
+    dataSizeBytes: integer("data_size_bytes"),
+    transferredAt: timestamp("transferred_at", { mode: "date" }).defaultNow(),
+    initiatedBy: varchar("initiated_by"),
+    approvedBy: varchar("approved_by"),
+  },
+  (table) => ({
+    orgIdIdx: index("idx_cross_border_org_id").on(table.orgId),
+    transferredAtIdx: index("idx_cross_border_timestamp").on(table.transferredAt),
+    regionsIdx: index("idx_cross_border_regions").on(table.sourceRegion, table.destinationRegion),
+  })
+);
+
+export const insertCrossBorderTransferSchema = createInsertSchema(crossBorderTransfers).omit({
+  id: true,
+});
+
+export type CrossBorderTransfer = typeof crossBorderTransfers.$inferSelect;
+export type InsertCrossBorderTransfer = z.infer<typeof insertCrossBorderTransferSchema>;

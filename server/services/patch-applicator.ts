@@ -300,10 +300,11 @@ export class PatchApplicator {
       // never point `db.execute` / `node` at an arbitrary extracted file.
       const migrationPath = validatePath(extractDir, migration.file);
       const migrationsRoot = path.resolve(extractDir, "migrations");
-      if (migrationPath !== migrationsRoot && !migrationPath.startsWith(migrationsRoot + path.sep)) {
-        throw new Error(
-          `Migration file must live under migrations/: ${migration.file}`
-        );
+      if (
+        migrationPath !== migrationsRoot &&
+        !migrationPath.startsWith(migrationsRoot + path.sep)
+      ) {
+        throw new Error(`Migration file must live under migrations/: ${migration.file}`);
       }
 
       if (!fs.existsSync(migrationPath)) {
@@ -402,9 +403,7 @@ export class PatchApplicator {
     const checker = await getUpdateChecker();
     const verified = await checker.verifySignature(manifest, publicKeyHex);
     if (!verified) {
-      throw new Error(
-        "Patch signature verification failed. Refusing to apply untrusted patch."
-      );
+      throw new Error("Patch signature verification failed. Refusing to apply untrusted patch.");
     }
 
     logger.info("[PatchApplicator] Patch signature verified.");

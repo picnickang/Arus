@@ -70,6 +70,17 @@ export async function api<T = unknown>(
       data = text;
     }
   }
+  // Migrated domains wrap success bodies in the canonical envelope
+  // (shared/api-envelope.ts); unwrap so assertions keep targeting the
+  // payload regardless of a domain's migration status.
+  if (
+    data !== null &&
+    typeof data === "object" &&
+    (data as Record<string, unknown>)["success"] === true &&
+    "data" in (data as Record<string, unknown>)
+  ) {
+    data = (data as Record<string, unknown>)["data"];
+  }
   return { status: res.status, data: data as T, ok: res.ok };
 }
 

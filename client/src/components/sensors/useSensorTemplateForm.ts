@@ -2,7 +2,16 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getDefaultFields, getDefaultUnit, type SensorKind } from "@shared/sensorKindPresets";
+import {
+  getDefaultFields,
+  getDefaultUnit,
+  SENSOR_KIND_PRESETS,
+  type SensorKind,
+} from "@shared/sensorKindPresets";
+
+function isSensorKind(kind: string): kind is SensorKind {
+  return kind in SENSOR_KIND_PRESETS;
+}
 import type { SensorTemplate } from "@shared/schema";
 
 export const SENSOR_KINDS = [
@@ -121,9 +130,12 @@ export function useSensorTemplateForm({
 
   /** Kind-preset autofill: marks the form dirty so guards see the change. */
   const applyKindPreset = (kind: string) => {
-    const defaultFields = getDefaultFields(kind as SensorKind);
     form.setValue("kind", kind, { shouldDirty: true });
-    form.setValue("unit", getDefaultUnit(kind as SensorKind), { shouldDirty: true });
+    if (!isSensorKind(kind)) {
+      return;
+    }
+    const defaultFields = getDefaultFields(kind);
+    form.setValue("unit", getDefaultUnit(kind), { shouldDirty: true });
     form.setValue("fields", defaultFields, { shouldDirty: true });
     form.setValue("fieldsJson", JSON.stringify(defaultFields, null, 2), { shouldDirty: true });
   };
