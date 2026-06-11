@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { PowerSTWChart } from "@/components/analytics/PowerSTWChart";
 import { SectionedVesselMap } from "./SectionedVesselMap";
 import { SECTION_MAP } from "./registry";
 import {
@@ -411,6 +412,17 @@ export default function VesselIntelligencePage({
           testId="metric-alert-count"
         />
       </section>
+
+      {/* Performance mode: baseline-vs-actual propulsion analysis. The
+          chart plots measured shaft power against speed-through-water on
+          top of the reference cubic (propeller-law) baseline curve from
+          /api/vessels/:id/power-stw-analysis — deviation above the curve
+          indicates hull fouling / propulsion degradation. */}
+      {mode === "performance" && selectedVesselId && (
+        <section className="min-w-0" data-testid="vessel-performance-power-stw">
+          <PowerSTWChart vesselId={selectedVesselId} />
+        </section>
+      )}
 
       <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
         <div className="min-w-0 rounded-md border p-4">

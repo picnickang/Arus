@@ -25,40 +25,9 @@ import { createLogger } from "./lib/structured-logger";
 import { withTenantContext } from "./middleware/db-context";
 import { requireTenantAuth } from "@shared/config/tenant";
 import { supportsPinnedConnection } from "./db-config";
+import { ensureQueue, extractOrgId } from "./lib/pg-boss-utils";
 
 const logger = createLogger("BackgroundJobs");
-
-/**
- * Task #88: pull the tenant `orgId` out of a job payload if present.
- * Convention: every tenant-scoped job packs `{ orgId: "...", ... }` into
- * its data (matches the `pgboss-trace` shape). Returns `undefined` for
- * fleet-wide jobs that intentionally have no tenant scope.
- */
-function extractOrgId(data: unknown): string | undefined {
-  if (!data || typeof data !== "object") {return undefined;}
-  const candidate = (data as Record<string, unknown>)['orgId'];
-  if (typeof candidate === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) {
-    return candidate;
-  }
-  return undefined;
-}
-
-/**
- * pg-boss v10 requires queues to be created explicitly before
- * `schedule()` or `send()` will accept them. `createQueue` is
- * idempotent in normal cases but throws on a true race; we treat
- * any "already exists" surface as success so a restart never
- * surfaces a spurious warning.
- */
-async function ensureQueue(boss: PgBoss, queueName: string): Promise<void> {
-  try {
-    await boss.createQueue(queueName);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-    if (msg.includes("already exists") || msg.includes("duplicate")) {return;}
-    throw err;
-  }
-}
 
 export const JOB_TYPES = {
   PROCESS_TELEMETRY: "process-telemetry",
@@ -171,7 +140,7 @@ class BackgroundJobQueue {
   registerProcessor<T = unknown>(
     type: string,
     handler: JobHandler<T>,
-    options?: RegisterProcessorOptions,
+    options?: RegisterProcessorOptions
   ): void {
     if (!type) {
       logger.warn("registerProcessor called with empty type — ignored");
@@ -197,14 +166,18 @@ class BackgroundJobQueue {
   process<T = unknown>(
     type: string,
     handler: JobHandler<T>,
-    options?: RegisterProcessorOptions,
+    options?: RegisterProcessorOptions
   ): void {
     this.registerProcessor(type, handler, options);
   }
 
   async start(): Promise<void> {
-    if (this.started) {return;}
-    if (this.initPromise) {return this.initPromise;}
+    if (this.started) {
+      return;
+    }
+    if (this.initPromise) {
+      return this.initPromise;
+    }
 
     this.initPromise = this.initialize();
     try {
@@ -215,11 +188,11 @@ class BackgroundJobQueue {
   }
 
   private async initialize(): Promise<void> {
-    const connectionString = process.env['DATABASE_URL'];
+    const connectionString = process.env["DATABASE_URL"];
     if (!connectionString) {
       this.fallback = true;
       logger.warn(
-        "DATABASE_URL not set — background jobs running in fallback mode (no persistence, no execution)",
+        "DATABASE_URL not set — background jobs running in fallback mode (no persistence, no execution)"
       );
       return;
     }
@@ -247,7 +220,7 @@ class BackgroundJobQueue {
       }
 
       logger.info(
-        `Background job queue started (schema=${BACKGROUND_JOBS_SCHEMA}, processors=${this.pendingHandlers.size})`,
+        `Background job queue started (schema=${BACKGROUND_JOBS_SCHEMA}, processors=${this.pendingHandlers.size})`
       );
 
       // Push A1 — register the weekly model-retrain cron once boss is
@@ -287,61 +260,21 @@ class BackgroundJobQueue {
           JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT,
           "0 2 * * *",
           {},
-          { retryLimit: 1 },
+          { retryLimit: 1 }
         );
         logger.info(
-          `Scheduled daily cron: ${JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT} @ 0 2 * * * UTC`,
+          `Scheduled daily cron: ${JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT} @ 0 2 * * * UTC`
         );
       } catch (schedErr) {
         const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
         logger.warn(`Failed to register telemetry warehouse export schedule: ${msg}`);
       }
 
-      // Hourly telemetry rollups — 5 min past each hour so the previous
-      // hour's raw readings are settled, and the 02:00 warehouse export
-      // always finds finished 1_hour buckets. The aggregator's lookback
-      // windows overlap runs, so a missed hour self-heals.
-      try {
-        await ensureQueue(boss, JOB_TYPES.TELEMETRY_ROLLUP_HOURLY);
-        await boss.schedule(JOB_TYPES.TELEMETRY_ROLLUP_HOURLY, "5 * * * *", {}, { retryLimit: 1 });
-        logger.info(`Scheduled hourly cron: ${JOB_TYPES.TELEMETRY_ROLLUP_HOURLY} @ 5 * * * * UTC`);
-      } catch (schedErr) {
-        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
-        logger.warn(`Failed to register telemetry rollup schedule: ${msg}`);
-      }
-
-      // Daily partition maintenance — keeps monthly equipment_telemetry
-      // partitions provisioned 3 months ahead (no-op until migration 0038
-      // partitions the table). Runs before retention so the boundary
-      // months retention inspects are always real partitions.
-      try {
-        await ensureQueue(boss, JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE);
-        await boss.schedule(
-          JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE,
-          "15 1 * * *",
-          {},
-          { retryLimit: 1 },
-        );
-        logger.info(
-          `Scheduled daily cron: ${JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE} @ 15 1 * * * UTC`,
-        );
-      } catch (schedErr) {
-        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
-        logger.warn(`Failed to register telemetry partition maintenance schedule: ${msg}`);
-      }
-
-      // Daily telemetry retention — 03:30 UTC, after the 02:00 warehouse
-      // export (exports never race deletes) and offset from the Sunday
-      // 03:00 retrain. Destructive: also gated per-run by
-      // TELEMETRY_RETENTION_ENABLED inside the processor.
-      try {
-        await ensureQueue(boss, JOB_TYPES.TELEMETRY_RETENTION);
-        await boss.schedule(JOB_TYPES.TELEMETRY_RETENTION, "30 3 * * *", {}, { retryLimit: 1 });
-        logger.info(`Scheduled daily cron: ${JOB_TYPES.TELEMETRY_RETENTION} @ 30 3 * * * UTC`);
-      } catch (schedErr) {
-        const msg = schedErr instanceof Error ? schedErr.message : String(schedErr);
-        logger.warn(`Failed to register telemetry retention schedule: ${msg}`);
-      }
+      // Telemetry lifecycle crons (rollup / partition maintenance /
+      // retention) — schedules and ordering rationale live in
+      // telemetry-cron-schedules.ts.
+      const { scheduleTelemetryLifecycleJobs } = await import("./telemetry-cron-schedules.js");
+      await scheduleTelemetryLifecycleJobs(boss, JOB_TYPES, ensureQueue);
     } catch (err: unknown) {
       this.fallback = true;
       this.boss = null;
@@ -351,23 +284,21 @@ class BackgroundJobQueue {
   }
 
   private async wireHandler(type: string, handler: JobHandler<unknown>): Promise<void> {
-    if (!this.boss) {return;}
+    if (!this.boss) {
+      return;
+    }
     try {
       // pg-boss v10 uses `batchSize` for parallelism; the legacy v9
       // `teamSize`/`teamConcurrency` keys are no longer in WorkOptions.
-      await this.boss.work<unknown>(
-        type,
-        { batchSize: DEFAULT_BATCH_SIZE },
-        async (jobs) => {
-          // v10 hands the worker an array of jobs (one element per batch slot).
-          // Process them sequentially within the slot so handler signatures
-          // stay simple (one job → one handler call).
-          const jobList = Array.isArray(jobs) ? jobs : [jobs];
-          for (const job of jobList) {
-            await this.runOne(type, handler, job as { id: string; data: unknown });
-          }
-        },
-      );
+      await this.boss.work<unknown>(type, { batchSize: DEFAULT_BATCH_SIZE }, async (jobs) => {
+        // v10 hands the worker an array of jobs (one element per batch slot).
+        // Process them sequentially within the slot so handler signatures
+        // stay simple (one job → one handler call).
+        const jobList = Array.isArray(jobs) ? jobs : [jobs];
+        for (const job of jobList) {
+          await this.runOne(type, handler, job as { id: string; data: unknown });
+        }
+      });
       this.wiredHandlers.add(type);
       this.wireFailures.delete(type);
     } catch (err: unknown) {
@@ -380,11 +311,13 @@ class BackgroundJobQueue {
   private async runOne(
     type: string,
     handler: JobHandler<unknown>,
-    job: { id: string; data: unknown },
+    job: { id: string; data: unknown }
   ): Promise<void> {
     const { id: jobId, data } = job;
     this.counters.processing += 1;
-    if (this.counters.queued > 0) {this.counters.queued -= 1;}
+    if (this.counters.queued > 0) {
+      this.counters.queued -= 1;
+    }
     const start = Date.now();
     const recentEntry: RecentJob = {
       id: jobId,
@@ -450,7 +383,7 @@ class BackgroundJobQueue {
   async add<T = unknown>(
     type: string,
     data: T,
-    options?: { retryLimit?: number; retryBackoff?: boolean; expireInHours?: number },
+    options?: { retryLimit?: number; retryBackoff?: boolean; expireInHours?: number }
   ): Promise<string | null> {
     // Eliminate the startup-race window: if init is in flight, await it
     // before deciding fallback vs send. If start() hasn't been called yet
@@ -507,7 +440,9 @@ class BackgroundJobQueue {
   }
 
   async stop(): Promise<void> {
-    if (!this.boss) {return;}
+    if (!this.boss) {
+      return;
+    }
     try {
       await this.boss.stop({ graceful: true, timeout: 5000 });
       logger.info("Background job queue stopped");
