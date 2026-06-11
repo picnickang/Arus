@@ -32,6 +32,6 @@ test.describe("Crew compliance report journey", () => {
       // Click "Export PDF" → wait for downloadEvent → assert .pdf.
 
       throw new Error("LR-3 crew-cert seed not yet wired");
-    },
+    }
   );
 });

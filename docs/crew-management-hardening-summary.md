@@ -34,7 +34,6 @@
 - Skip Login for Now is a UI onboarding choice for the current checklist flow; it is not persisted as a crew profile field.
 - Typecheck could not run in this extracted workspace because `tsc` is not installed.
 
-
 ## Follow-up Patch Applied Here
 
 - Vessel readiness now separates **Crew Assignment**, **Access Ready**, **Documents Not Assessed**, and **Deployment Pending** instead of marking every vessel permanently as simply `Not ready` because document readiness is not yet implemented.

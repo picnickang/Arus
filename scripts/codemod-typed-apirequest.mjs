@@ -9,7 +9,7 @@ import { execSync } from "node:child_process";
 
 const files = execSync(
   "rg -l -g '*.ts' -g '*.tsx' 'queryFn: \\(\\) => apiRequest\\(\"GET\"' client/src",
-  { encoding: "utf8" },
+  { encoding: "utf8" }
 )
   .split("\n")
   .filter(Boolean);
@@ -19,7 +19,8 @@ for (const file of files) {
   const src = readFileSync(file, "utf8");
   // Find useQuery<TYPE>({ ... queryFn: () => apiRequest("GET", X ...) ... })
   // Capture the TYPE generic and the immediately-following apiRequest call's args.
-  const re = /useQuery<([A-Za-z0-9_$.<>,\s\[\]?|&]+?)>\s*\(\s*\{([^{}]*?queryFn:\s*\(\)\s*=>\s*apiRequest)\(("GET",\s*[^)]+)\)/gs;
+  const re =
+    /useQuery<([A-Za-z0-9_$.<>,\s\[\]?|&]+?)>\s*\(\s*\{([^{}]*?queryFn:\s*\(\)\s*=>\s*apiRequest)\(("GET",\s*[^)]+)\)/gs;
   let count = 0;
   const next = src.replace(re, (_match, type, pre, args) => {
     count += 1;

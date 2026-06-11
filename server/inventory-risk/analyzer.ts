@@ -40,11 +40,20 @@ export interface InventoryRiskWorkOrder {
 
 export interface InventoryRiskDeps {
   getPartsInventory(orgId: string, includeInactive?: boolean): Promise<InventoryRiskPart[]>;
-  getEquipment(orgId: string, equipmentId: string): Promise<InventoryRiskEquipment | undefined | null>;
-  getWorkOrderPartsByEquipment(orgId: string, equipmentId: string): Promise<InventoryRiskWorkOrderPart[]>;
+  getEquipment(
+    orgId: string,
+    equipmentId: string
+  ): Promise<InventoryRiskEquipment | undefined | null>;
+  getWorkOrderPartsByEquipment(
+    orgId: string,
+    equipmentId: string
+  ): Promise<InventoryRiskWorkOrderPart[]>;
   getPartById(orgId: string, partId: string): Promise<InventoryRiskPart | undefined | null>;
   getWorkOrderPartsByPartId(orgId: string, partId: string): Promise<InventoryRiskWorkOrderPart[]>;
-  getWorkOrder(orgId: string, workOrderId: string): Promise<InventoryRiskWorkOrder | undefined | null>;
+  getWorkOrder(
+    orgId: string,
+    workOrderId: string
+  ): Promise<InventoryRiskWorkOrder | undefined | null>;
 }
 import {
   calculateSupplierRisk,
@@ -73,7 +82,9 @@ export class InventoryRiskAnalyzer {
     const supplierConcentration = calculateSupplierRisk(partRisks);
     const summary = buildRiskSummary(partRisks, supplierConcentration);
 
-    logger.info(`[Inventory Risk] Analysis complete - ${partRisks.length} parts, ${summary.riskDistribution.critical} critical`);
+    logger.info(
+      `[Inventory Risk] Analysis complete - ${partRisks.length} parts, ${summary.riskDistribution.critical} critical`
+    );
     return summary;
   }
 
@@ -186,7 +197,10 @@ export class InventoryRiskAnalyzer {
     }
   }
 
-  private buildEquipmentRisk(equipment: InventoryRiskEquipment, partRisks: PartRiskScore[]): EquipmentPartsRisk {
+  private buildEquipmentRisk(
+    equipment: InventoryRiskEquipment,
+    partRisks: PartRiskScore[]
+  ): EquipmentPartsRisk {
     const criticalParts = partRisks.filter(
       (p) => p.riskCategory === "critical" || p.riskCategory === "high"
     ).length;

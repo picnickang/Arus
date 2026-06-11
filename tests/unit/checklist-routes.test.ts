@@ -43,7 +43,11 @@ const updateWorkOrderMock = jest.fn(async (id: string, updates: Record<string, u
 let app: express.Express;
 
 beforeAll(async () => {
-  jest.unstable_mockModule("../../server/repositories", () => ({
+  // checklist-routes imports the storage singletons from their canonical
+  // homes (not the repositories barrel — that import is forbidden from a
+  // domain interfaces file by check:domain-repositories-imports), so the
+  // mocks target those modules directly.
+  jest.unstable_mockModule("../../server/db/checklists/index", () => ({
     __esModule: true,
     dbChecklistsStorage: {
       getMaintenanceTemplate: jest.fn(async (id: string) =>
@@ -62,6 +66,9 @@ beforeAll(async () => {
       createChecklistCompletion: createCompletionMock,
       updateChecklistCompletion: updateCompletionMock,
     },
+  }));
+  jest.unstable_mockModule("../../server/db/workorders/index", () => ({
+    __esModule: true,
     dbWorkOrderStorage: {
       getWorkOrder: jest.fn(async (_orgId: string, id: string) =>
         id === "wo-1" ? state.workOrder : undefined

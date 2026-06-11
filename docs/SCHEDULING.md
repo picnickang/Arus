@@ -33,22 +33,22 @@ The scheduling window defines when maintenance can be performed:
 Buffer days provide safety margin based on uncertainty factors:
 
 ```typescript
-bufferDays = BASE(1) + confidenceFactor + telemetryFactor + severityFactor
+bufferDays = BASE(1) + confidenceFactor + telemetryFactor + severityFactor;
 ```
 
 ### Factors
 
-| Factor | Condition | Additional Days |
-|--------|-----------|-----------------|
-| **Confidence** | null | +1 |
-| | < 50% | +2 |
-| | < 80% | +1 |
-| | >= 80% | +0 |
-| **Telemetry** | online | +0 |
-| | delayed | +1 |
-| | offline | +1 |
-| **Severity** | critical | +1 |
-| | other | +0 |
+| Factor         | Condition | Additional Days |
+| -------------- | --------- | --------------- |
+| **Confidence** | null      | +1              |
+|                | < 50%     | +2              |
+|                | < 80%     | +1              |
+|                | >= 80%    | +0              |
+| **Telemetry**  | online    | +0              |
+|                | delayed   | +1              |
+|                | offline   | +1              |
+| **Severity**   | critical  | +1              |
+|                | other     | +0              |
 
 **Maximum cap**: 5 days
 
@@ -63,13 +63,13 @@ bufferDays = BASE(1) + confidenceFactor + telemetryFactor + severityFactor
 
 Tasks can be blocked from scheduling for several reasons:
 
-| Block Reason | Condition |
-|--------------|-----------|
-| `low_confidence` | ML confidence < 50% |
-| `capacity_exceeded` | Daily vessel capacity full |
-| `lead_time` | Prep time exceeds RUL window (`earliestStart > latestFinish`) |
-| `scheduling_conflict` | Cannot fit in any available slot |
-| `telemetry_stale` | Equipment telemetry offline/delayed |
+| Block Reason          | Condition                                                     |
+| --------------------- | ------------------------------------------------------------- |
+| `low_confidence`      | ML confidence < 50%                                           |
+| `capacity_exceeded`   | Daily vessel capacity full                                    |
+| `lead_time`           | Prep time exceeds RUL window (`earliestStart > latestFinish`) |
+| `scheduling_conflict` | Cannot fit in any available slot                              |
+| `telemetry_stale`     | Equipment telemetry offline/delayed                           |
 
 ## Capacity Model
 
@@ -104,23 +104,23 @@ The system uses hours-based capacity per vessel per day:
 ```typescript
 interface GetScheduleInput {
   orgId: string;
-  vesselIds?: string[];           // Filter by vessels
-  equipmentTypes?: string[];      // Filter by equipment type
-  startDate?: Date;               // Schedule range start
-  endDate?: Date;                 // Schedule range end
+  vesselIds?: string[]; // Filter by vessels
+  equipmentTypes?: string[]; // Filter by equipment type
+  startDate?: Date; // Schedule range start
+  endDate?: Date; // Schedule range end
   maxTasksPerVesselPerDay?: number; // Capacity limit (1-5)
-  autoPopulate?: boolean;         // Enable priority-based sorting
+  autoPopulate?: boolean; // Enable priority-based sorting
 }
 ```
 
 ### URL Parameters (UI)
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `vessels` | string[] | all | Vessel filter |
-| `equipment` | string[] | all | Equipment type filter |
-| `maxTasks` | number | 3 | Max concurrent tasks per vessel |
-| `autoPopulate` | boolean | true | Priority-based scheduling |
+| Parameter      | Type     | Default | Description                     |
+| -------------- | -------- | ------- | ------------------------------- |
+| `vessels`      | string[] | all     | Vessel filter                   |
+| `equipment`    | string[] | all     | Equipment type filter           |
+| `maxTasks`     | number   | 3       | Max concurrent tasks per vessel |
+| `autoPopulate` | boolean  | true    | Priority-based scheduling       |
 
 ## KPI Metrics
 

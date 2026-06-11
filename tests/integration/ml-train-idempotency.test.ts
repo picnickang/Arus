@@ -28,7 +28,7 @@ const ORG = "task201-org";
 
 let createdModelIds: string[] = [];
 const enqueueMock = jest.fn(async (job: Record<string, unknown>) => ({
-  id: `job-${(job['modelId'] as string) ?? "x"}`,
+  id: `job-${(job["modelId"] as string) ?? "x"}`,
 }));
 
 jest.unstable_mockModule("../../server/repositories", () => ({
@@ -93,7 +93,9 @@ const trainBody = {
 
 function unwrap(body: unknown): { modelId: string; jobId: string } {
   const b = body as { data?: { modelId: string; jobId: string }; modelId?: string; jobId?: string };
-  if (b.data && typeof b.data.modelId === "string") {return b.data;}
+  if (b.data && typeof b.data.modelId === "string") {
+    return b.data;
+  }
   return { modelId: b.modelId as string, jobId: b.jobId as string };
 }
 

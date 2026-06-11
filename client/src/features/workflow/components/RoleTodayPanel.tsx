@@ -1,5 +1,12 @@
 import type { ComponentType } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Clock, ShipWheel, Wrench } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  ShipWheel,
+  Wrench,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +63,7 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
   // button AND strip any role action whose href targets
   // /attention-inbox so a user can't deep-link in.
   const isAdminPortal = getPortalForRole(roleId) === "admin";
-  const rawActions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS['default'];
+  const rawActions = ROLE_PRIMARY_ACTIONS[roleKey] ?? ROLE_PRIMARY_ACTIONS["default"];
   const actions = isAdminPortal
     ? rawActions
     : (rawActions ?? []).filter((a) => !a.href.startsWith("/attention-inbox"));
@@ -68,9 +75,11 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShipWheel className="h-5 w-5 text-primary" />
-              {ROLE_TITLES[roleKey] ?? ROLE_TITLES['default']}
+              {ROLE_TITLES[roleKey] ?? ROLE_TITLES["default"]}
             </CardTitle>
-            <CardDescription>Start with risk, blockers, closeout, and handover before opening modules.</CardDescription>
+            <CardDescription>
+              Start with risk, blockers, closeout, and handover before opening modules.
+            </CardDescription>
           </div>
           {isAdminPortal && (
             <Button
@@ -85,14 +94,29 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Metric icon={AlertTriangle} label="Critical" value={critical} variant={critical > 0 ? "destructive" : "secondary"} />
-          <Metric icon={Wrench} label="Blocked" value={blocked} variant={blocked > 0 ? "destructive" : "secondary"} />
+          <Metric
+            icon={AlertTriangle}
+            label="Critical"
+            value={critical}
+            variant={critical > 0 ? "destructive" : "secondary"}
+          />
+          <Metric
+            icon={Wrench}
+            label="Blocked"
+            value={blocked}
+            variant={blocked > 0 ? "destructive" : "secondary"}
+          />
           <Metric icon={ClipboardCheck} label="Ready closeout" value={readyToClose} />
           <Metric icon={Clock} label="Waiting parts" value={waitingParts} />
         </div>
         <div className="grid gap-2 md:grid-cols-3">
           {(actions ?? []).map((action) => (
-            <Button key={action.href} variant="secondary" className="justify-between" onClick={() => setLocation(action.href)}>
+            <Button
+              key={action.href}
+              variant="secondary"
+              className="justify-between"
+              onClick={() => setLocation(action.href)}
+            >
               {action.label}
               <CheckCircle2 className="h-4 w-4" />
             </Button>
@@ -103,7 +127,17 @@ export function RoleTodayPanel({ roleId }: { roleId: string | null }) {
   );
 }
 
-function Metric({ icon: Icon, label, value, variant = "outline" }: { icon: ComponentType<{ className?: string | undefined }>; label: string; value: number; variant?: "outline" | "secondary" | "destructive" }) {
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  variant = "outline",
+}: {
+  icon: ComponentType<{ className?: string | undefined }>;
+  label: string;
+  value: number;
+  variant?: "outline" | "secondary" | "destructive";
+}) {
   return (
     <div className="rounded-lg border p-3">
       <div className="mb-2 flex items-center justify-between gap-2">

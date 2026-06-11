@@ -1,19 +1,5 @@
-
-
-import {
-  CheckCircle2,
-  RefreshCw,
-  CloudOff,
-  AlertCircle,
-} from "lucide-react";
-import {
-  type SyncStatus,
-} from "@/features/crew/hooks/useSchedulePlannerData";
-
-
-
-
-
+import { CheckCircle2, RefreshCw, CloudOff, AlertCircle } from "lucide-react";
+import { type SyncStatus } from "@/features/crew/hooks/useSchedulePlannerData";
 
 export function SyncStatusIndicator({
   status,
@@ -69,4 +55,3 @@ export function SyncStatusIndicator({
       );
   }
 }
-

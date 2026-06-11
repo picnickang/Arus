@@ -21,28 +21,12 @@
  * not invoked — same pattern as `role-crud-workflow.test.ts`.
  */
 
-process.env['NODE_ENV'] = "test";
+process.env["NODE_ENV"] = "test";
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import type {
-  Express,
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import type { Express, NextFunction, Request, Response } from "express";
 import request from "supertest";
-import type {
-  Role,
-  PermissionGrant,
-  UserRoleAssignment,
-} from "../../shared/schema/permissions";
+import type { Role, PermissionGrant, UserRoleAssignment } from "../../shared/schema/permissions";
 
 const ORG = "test-org-lockout";
 const MANAGE_RESOURCE = "permission_management";
@@ -75,6 +59,8 @@ function seedRole(overrides: Partial<Role> = {}): Role {
     permissions: overrides.permissions ?? null,
     isSystemRole: overrides.isSystemRole ?? false,
     isActive: overrides.isActive ?? true,
+    hubAdmin: overrides.hubAdmin ?? false,
+    hubAccess: overrides.hubAccess ?? null,
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
   };
@@ -156,10 +142,7 @@ const fakeRepository = new Proxy(
       }
       grantsStore.set(roleId, existing);
     },
-    async listUserRoleAssignments(
-      userId: string,
-      orgId: string
-    ): Promise<UserRoleAssignment[]> {
+    async listUserRoleAssignments(userId: string, orgId: string): Promise<UserRoleAssignment[]> {
       return assignmentsStore.filter(
         (a) => a.userId === userId && a.orgId === orgId && a.isActive === true
       );
@@ -170,7 +153,9 @@ const fakeRepository = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) {return obj[prop];}
+      if (prop in obj) {
+        return obj[prop];
+      }
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
@@ -184,6 +169,12 @@ let mountError: string | undefined;
 beforeAll(async () => {
   jest.unstable_mockModule("../../server/domains/permissions/repository", () => ({
     permissionRepository: fakeRepository,
+    // routes.ts imports these named queries at module load (hex-storage
+    // refactor moved the inline db reads into the repository). The lockout
+    // paths under test never call them.
+    getUserPrimaryRole: async () => undefined,
+    getUserDiagnosticRow: async () => undefined,
+    getCrewLinkForUser: async () => undefined,
   }));
 
   jest.unstable_mockModule("../../server/domains/permissions/service", () => ({
@@ -265,7 +256,9 @@ describe("Permission-grant lockout guard — mounted", () => {
 
 describe("Org-wide lockout", () => {
   it("rejects revoking manage from the org's last manage-capable role (400)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const onlyRole = seedRole({ name: "access_admin" });
     seedManageGrant(onlyRole.id, true);
 
@@ -285,7 +278,9 @@ describe("Org-wide lockout", () => {
 
 describe("Acting-admin self lockout", () => {
   it("rejects an admin revoking manage from their own only manage role (400)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Two roles can manage; org-wide check passes, but the actor only holds roleA.
     const roleA = seedRole({ name: "access_admin" });
     const roleB = seedRole({ name: "ops_admin" });
@@ -306,7 +301,9 @@ describe("Acting-admin self lockout", () => {
 
 describe("Allowed revoke", () => {
   it("allows revoking manage from one role when the actor keeps it via another (200)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const roleA = seedRole({ name: "access_admin" });
     const roleB = seedRole({ name: "ops_admin" });
     seedManageGrant(roleA.id, true);
@@ -335,7 +332,9 @@ describe("Allowed revoke", () => {
   });
 
   it("does not engage the guard for non-manage grant changes (200)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const role = seedRole({ name: "engineer" });
 
     const res = await request(app)

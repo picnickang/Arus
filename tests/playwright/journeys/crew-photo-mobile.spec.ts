@@ -25,7 +25,7 @@ const PHOTO_PATH = "/objects/uploads/test-crew-photo";
 // Minimal 1x1 PNG (the avatar loader only needs a decodable image blob).
 const PNG_1X1 = Buffer.from(
   "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000002000154a24f5f0000000049454e44ae426082",
-  "hex",
+  "hex"
 );
 
 const WITH_PHOTO_ID = "crew-with-photo";
@@ -62,7 +62,7 @@ test.describe("Crew profile photo — mobile roster", () => {
   test.beforeEach(async ({ page }) => {
     // Serve the crew roster from a fixture (active list + empty former list).
     await page.route("**/api/crew/former*", (route: Route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
+      route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
     );
     await page.route("**/api/crew*", (route: Route) => {
       if (route.request().method() !== "GET") {
@@ -76,7 +76,7 @@ test.describe("Crew profile photo — mobile roster", () => {
     });
     // The avatar loader fetches the object path with credentials; return the PNG.
     await page.route(`**${PHOTO_PATH}`, (route: Route) =>
-      route.fulfill({ status: 200, contentType: "image/png", body: PNG_1X1 }),
+      route.fulfill({ status: 200, contentType: "image/png", body: PNG_1X1 })
     );
   });
 

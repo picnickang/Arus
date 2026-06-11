@@ -41,14 +41,21 @@ export function WorkflowQueueStrip({ queues }: { queues: WorkflowQueue[] }) {
             className="text-left"
             data-testid={`workflow-queue-${queue.id}`}
           >
-            <Card className={cn("h-full transition-colors hover:border-primary", severityClasses[queue.severity])}>
+            <Card
+              className={cn(
+                "h-full transition-colors hover:border-primary",
+                severityClasses[queue.severity]
+              )}
+            >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <Badge variant={queue.count > 0 ? "default" : "outline"}>{queue.count}</Badge>
                 </div>
                 <div className="mt-3 text-sm font-semibold">{queue.label}</div>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{queue.description}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  {queue.description}
+                </p>
               </CardContent>
             </Card>
           </button>

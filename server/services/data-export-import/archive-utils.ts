@@ -33,11 +33,13 @@ export async function createArchive(sourceDir: string, outputPath: string): Prom
 
 function isWithinDirectory(candidatePath: string, basePath: string): boolean {
   const relative = path.relative(basePath, candidatePath);
-  return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
 function maxExtractedBytes(): number {
-  const configured = Number.parseInt(process.env['MAX_IMPORT_EXTRACTED_BYTES'] ?? "", 10);
+  const configured = Number.parseInt(process.env["MAX_IMPORT_EXTRACTED_BYTES"] ?? "", 10);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_EXTRACTED_BYTES;
 }
 

@@ -38,6 +38,15 @@ import client from "prom-client";
 import { logger } from "./utils/logger";
 import { quotaService } from "./tenancy/quota-service";
 import { getWebSocketServer } from "./websocket-server";
+import { applyConfigsToReadings, getOrgConfigMap } from "./telemetry-ingest-config";
+
+const batchWriterNaturalKeyConflicts = new client.Counter({
+  name: "arus_telemetry_natural_key_conflicts_total",
+  help:
+    "Readings conflict-skipped by the (org_id, equipment_id, sensor_type, ts) " +
+    "unique index during bulk insert — same-millisecond collisions collapse " +
+    "to one stored row.",
+});
 
 /** Latest reading per (equipmentId, sensorType) in a flushed batch.
  *  Exported for unit tests. */
@@ -491,6 +500,17 @@ export class TelemetryBatchWriter extends EventEmitter {
       return;
     }
 
+    // Apply sensor configurations (gain/offset, disabled-drop, bounds
+    // flags) before the insert. applySensorConfiguration defined these
+    // semantics per-reading but nothing on the bulk path ever invoked it,
+    // so configured gain/offset were silently ignored at ingest. Configs
+    // are fetched once per org on a 30s TTL; readings without a config
+    // pass through untouched.
+    readings = await this.applyIngestConfigs(readings);
+    if (readings.length === 0) {
+      return;
+    }
+
     // One multi-row INSERT per chunk (conflict-skip on the 0024 natural key)
     // instead of `batch.length` concurrent single-row inserts. Chunk size is
     // configurable because each row contributes several bind parameters and a
@@ -512,7 +532,19 @@ export class TelemetryBatchWriter extends EventEmitter {
       // Skipped duplicates are not fatal and are excluded from the return value;
       // quota/stats counters intentionally stay on the attempted (accepted)
       // count in writeBatch, preserving their current accepted-vs-dropped meaning.
-      await dbTelemetryStorage.createTelemetryReadingsBulk(rows);
+      const insertedCount = await dbTelemetryStorage.createTelemetryReadingsBulk(rows);
+
+      // Natural-key conflict visibility: the bulk insert conflict-skips on
+      // (org_id, equipment_id, sensor_type, ts), so two genuine samples in
+      // the same millisecond for one sensor silently collapse. Fine at the
+      // documented 10 Hz target; a hazard for future high-rate sources —
+      // surface the collapse rate so it can be alerted/calibrated. The
+      // escalation path is µs timestamps or a sequence component from the
+      // agent (see docs/qa/load-test-results.md, dedup note).
+      const conflicts = rows.length - insertedCount;
+      if (conflicts > 0) {
+        batchWriterNaturalKeyConflicts.inc(conflicts);
+      }
     }
 
     // Post-commit enrichment on the deduped latest-per-(equipment, sensor)
@@ -528,6 +560,49 @@ export class TelemetryBatchWriter extends EventEmitter {
     const latest = latestPerEquipmentSensor(readings);
     this.broadcastFlushedReadings(latest);
     void this.evaluateAlertsForFlushedReadings(latest);
+  }
+
+  /**
+   * Bulk sensor-config application (gain/offset/disabled) before insert.
+   * One config-map fetch per org on a 30s TTL; fails open to pass-through
+   * so a config-store hiccup can never halt ingestion.
+   */
+  private async applyIngestConfigs(
+    readings: TelemetryBatchReading[]
+  ): Promise<TelemetryBatchReading[]> {
+    try {
+      const byOrg = new Map<string, TelemetryBatchReading[]>();
+      for (const reading of readings) {
+        const orgId = reading.orgId || "default-org-id";
+        const bucket = byOrg.get(orgId);
+        if (bucket) {
+          bucket.push(reading);
+        } else {
+          byOrg.set(orgId, [reading]);
+        }
+      }
+
+      const out: TelemetryBatchReading[] = [];
+      let totalDroppedDisabled = 0;
+      for (const [orgId, orgReadings] of byOrg) {
+        const configs = await getOrgConfigMap(orgId);
+        const { kept, droppedDisabled } = applyConfigsToReadings(orgReadings, configs);
+        totalDroppedDisabled += droppedDisabled;
+        out.push(...kept);
+      }
+      if (totalDroppedDisabled > 0) {
+        logger.debug(
+          "TelemetryBatchWriter",
+          `Dropped ${totalDroppedDisabled} readings from disabled sensors`
+        );
+      }
+      return out;
+    } catch (err) {
+      logger.warn("TelemetryBatchWriter", "Ingest-config application failed (pass-through)", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return readings;
+    }
   }
 
   /**

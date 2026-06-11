@@ -34,8 +34,8 @@ beforeEach(() => {
   originalLog = console.log;
   originalWarn = console.warn;
   originalError = console.error;
-  originalLogLevel = process.env.LOG_LEVEL;
-  process.env.LOG_LEVEL = "debug";
+  originalLogLevel = process.env["LOG_LEVEL"];
+  process.env["LOG_LEVEL"] = "debug";
   console.log = (...args: unknown[]) => {
     captured.push({ fn: "log", args });
   };
@@ -52,15 +52,16 @@ afterEach(() => {
   console.warn = originalWarn;
   console.error = originalError;
   if (originalLogLevel === undefined) {
-    delete process.env.LOG_LEVEL;
+    delete process.env["LOG_LEVEL"];
   } else {
-    process.env.LOG_LEVEL = originalLogLevel;
+    process.env["LOG_LEVEL"] = originalLogLevel;
   }
 });
 
-const provider = (
-  ctx: ReturnType<CorrelationProvider> | undefined
-): CorrelationProvider => () => ctx;
+const provider =
+  (ctx: ReturnType<CorrelationProvider> | undefined): CorrelationProvider =>
+  () =>
+    ctx;
 
 // Stand-alone block at the top of the file; we re-import crypto-service inside
 // the test to keep this self-contained and avoid touching module-level state
@@ -122,7 +123,7 @@ describe("structured-logger correlation enrichment", () => {
       correlationId: "11111111-2222-3333-4444-555555555555",
     });
     // requestId equals correlationId, so it should NOT be duplicated
-    expect(meta.requestId).toBeUndefined();
+    expect(meta["requestId"]).toBeUndefined();
   });
 
   it("surfaces orgId and userId when present in context", () => {
@@ -159,8 +160,8 @@ describe("structured-logger correlation enrichment", () => {
     logger.info("sync chunk");
 
     const [, meta] = captured[0].args as [string, Record<string, unknown>];
-    expect(meta.correlationId).toBe("corr-aaaa-1111");
-    expect(meta.requestId).toBe("req-bbbb-2222");
+    expect(meta["correlationId"]).toBe("corr-aaaa-1111");
+    expect(meta["requestId"]).toBe("req-bbbb-2222");
   });
 
   it("includes error object when provided to error()", () => {
@@ -177,7 +178,7 @@ describe("structured-logger correlation enrichment", () => {
       correlationId: "cccc1111-2222-3333-4444-555555555555",
       stage: "commit",
     });
-    expect(meta.error).toMatchObject({
+    expect(meta["error"]).toMatchObject({
       name: "Error",
       message: "kaboom",
     });
@@ -214,11 +215,11 @@ describe("structured-logger correlation enrichment", () => {
     });
 
     const [, meta] = captured[0].args as [string, Record<string, unknown>];
-    expect(meta.correlationId).toBe("real-corr-id-aaaa");
-    expect(meta.orgId).toBe("real-org");
-    expect(meta.userId).toBe("real-user");
+    expect(meta["correlationId"]).toBe("real-corr-id-aaaa");
+    expect(meta["orgId"]).toBe("real-org");
+    expect(meta["userId"]).toBe("real-user");
     // Non-conflicting context still flows through
-    expect(meta.extraField).toBe("preserved");
+    expect(meta["extraField"]).toBe("preserved");
   });
 
   it("child logger inherits correlation fields and merges its own context", () => {

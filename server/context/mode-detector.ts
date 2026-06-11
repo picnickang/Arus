@@ -194,16 +194,16 @@ export class ModeDetector {
   toTelemetryWindow(telemetry: EquipmentTelemetry): TelemetryWindow {
     const t = telemetry as object as Record<string, number | undefined>;
     return {
-      rpm: t['rpm'] || undefined,
-      stw: t['stw'] || undefined,
-      sog: t['sog'] || undefined,
-      heading: t['heading'] || undefined,
-      thrusterLoad: t['thrusterLoad'] || undefined,
-      hydraulicPressure: t['hydraulicPressure'] || undefined,
-      fuelRate: t['fuelRate'] || undefined,
-      loadPercent: t['loadPercent'] || undefined,
-      latitude: t['latitude'] || undefined,
-      longitude: t['longitude'] || undefined,
+      rpm: t["rpm"] || undefined,
+      stw: t["stw"] || undefined,
+      sog: t["sog"] || undefined,
+      heading: t["heading"] || undefined,
+      thrusterLoad: t["thrusterLoad"] || undefined,
+      hydraulicPressure: t["hydraulicPressure"] || undefined,
+      fuelRate: t["fuelRate"] || undefined,
+      loadPercent: t["loadPercent"] || undefined,
+      latitude: t["latitude"] || undefined,
+      longitude: t["longitude"] || undefined,
       timestamp: new Date(telemetry.ts),
     };
   }

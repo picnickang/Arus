@@ -21,10 +21,10 @@ export class FmccPollingService extends EventEmitter {
     super();
 
     this.config = {
-      enabled: process.env['FMCC_ENABLED'] === "true",
-      vesselId: config.vesselId || process.env['FMCC_VESSEL_ID'] || "default-vessel",
-      orgId: config.orgId || process.env['FMCC_ORG_ID'] || "default-org-id",
-      pollIntervalMs: Number.parseInt(process.env['FMCC_POLLING_INTERVAL_MS'] || "60000", 10),
+      enabled: process.env["FMCC_ENABLED"] === "true",
+      vesselId: config.vesselId || process.env["FMCC_VESSEL_ID"] || "default-vessel",
+      orgId: config.orgId || process.env["FMCC_ORG_ID"] || "default-org-id",
+      pollIntervalMs: Number.parseInt(process.env["FMCC_POLLING_INTERVAL_MS"] || "60000", 10),
       enableTrackLogging: config.enableTrackLogging ?? true,
       enableTelemetryLogging: config.enableTelemetryLogging ?? true,
       minPositionChangeNm: config.minPositionChangeNm ?? 0.05,
@@ -264,7 +264,9 @@ export class FmccPollingService extends EventEmitter {
       const logId = await trackLogService.logPosition(snapshot.orgId, snapshot.vesselId, position);
 
       if (logId) {
-        logger.info(`[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`);
+        logger.info(
+          `[FMCC Polling] Track point logged: ${logId} (${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)})`
+        );
         this.lastPosition = {
           lat: position.latitude,
           lon: position.longitude,
@@ -456,9 +458,15 @@ export class FmccPollingService extends EventEmitter {
     this.health.connected = false;
 
     if (this.health.consecutiveFailures <= 3) {
-      logger.warn(`[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`, { details: message });
+      logger.warn(`[FMCC Polling] Poll failed (attempt ${this.health.consecutiveFailures}):`, {
+        details: message,
+      });
     } else if (this.health.consecutiveFailures % 10 === 0) {
-      logger.error(`[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`, undefined, message);
+      logger.error(
+        `[FMCC Polling] ${this.health.consecutiveFailures} consecutive failures:`,
+        undefined,
+        message
+      );
     }
 
     this.emit("poll_error", {

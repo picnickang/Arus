@@ -2,11 +2,7 @@
  * Telemetry - Types
  */
 
-import type {
-  equipmentTelemetry,
-  pdmScoreLogs,
-  edgeHeartbeats,
-} from "@shared/schema-runtime";
+import type { equipmentTelemetry, pdmScoreLogs, edgeHeartbeats } from "@shared/schema-runtime";
 
 export type EquipmentTelemetry = typeof equipmentTelemetry.$inferSelect;
 export type InsertTelemetry = typeof equipmentTelemetry.$inferInsert;

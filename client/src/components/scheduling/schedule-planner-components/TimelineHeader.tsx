@@ -1,16 +1,6 @@
-
-
-
-
 import { format, isToday } from "date-fns";
 
-
 import { cn } from "@/lib/utils";
-
-
-
-
-
 
 export function TimelineHeader({ days, isMobile = false }: { days: Date[]; isMobile?: boolean }) {
   return (
@@ -50,4 +40,3 @@ export function TimelineHeader({ days, isMobile = false }: { days: Date[]; isMob
     </div>
   );
 }
-

@@ -38,7 +38,7 @@ const GRACE_MS = parseInt(__ENV.CHAOS_GRACE_MS || "1500", 10);
 if (!DOWN_AT_MS || !UP_AT_MS || UP_AT_MS <= DOWN_AT_MS) {
   throw new Error(
     "ws_fanout_chaos.js requires CHAOS_DOWN_AT_MS and CHAOS_UP_AT_MS (UP > DOWN). " +
-      "Run via tests/load/ws-fanout/run-chaos.mjs.",
+      "Run via tests/load/ws-fanout/run-chaos.mjs."
   );
 }
 
@@ -172,7 +172,7 @@ export default function () {
     eventsMissedStrict.add(preGaps);
     console.error(
       `[vu ${__VU}] PRE-OUTAGE gap: ${preGaps} missing tag(s) in pre window ` +
-        `(seen ${preTags.length} tags between ${preTags[0]}..${preTags[preTags.length - 1]})`,
+        `(seen ${preTags.length} tags between ${preTags[0]}..${preTags[preTags.length - 1]})`
     );
   }
   if (postGaps > 0) {
@@ -180,14 +180,14 @@ export default function () {
     eventsMissedStrict.add(postGaps);
     console.error(
       `[vu ${__VU}] POST-OUTAGE gap: ${postGaps} missing tag(s) in post window ` +
-        `(seen ${postTags.length} tags between ${postTags[0]}..${postTags[postTags.length - 1]})`,
+        `(seen ${postTags.length} tags between ${postTags[0]}..${postTags[postTags.length - 1]})`
     );
   }
   if (outageObservedLoss > 0) {
     outageEventsLost.add(outageObservedLoss);
     console.log(
       `[vu ${__VU}] outage-window loss tolerated: ${outageObservedLoss} tag(s) ` +
-        `(seen ${outageTags.length} of ${outageTags.length + outageObservedLoss} observable)`,
+        `(seen ${outageTags.length} of ${outageTags.length + outageObservedLoss} observable)`
     );
   }
 }

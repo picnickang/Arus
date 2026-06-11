@@ -1,20 +1,20 @@
 import { jest } from "@jest/globals";
 
 type RedisMock = {
-  get: jest.Mock;
-  setex: jest.Mock;
-  del: jest.Mock;
-  keys: jest.Mock;
-  ping: jest.Mock;
+  get: jest.Mock<(key: string) => Promise<string | null>>;
+  setex: jest.Mock<(key: string, seconds: number, value: string) => Promise<unknown>>;
+  del: jest.Mock<(...keys: string[]) => Promise<number>>;
+  keys: jest.Mock<(pattern: string) => Promise<string[]>>;
+  ping: jest.Mock<() => Promise<string>>;
 };
 
 let redisEnabled = true;
 const redisMock: RedisMock = {
-  get: jest.fn(),
-  setex: jest.fn(),
-  del: jest.fn(),
-  keys: jest.fn(),
-  ping: jest.fn(),
+  get: jest.fn<(key: string) => Promise<string | null>>(),
+  setex: jest.fn<(key: string, seconds: number, value: string) => Promise<unknown>>(),
+  del: jest.fn<(...keys: string[]) => Promise<number>>(),
+  keys: jest.fn<(pattern: string) => Promise<string[]>>(),
+  ping: jest.fn<() => Promise<string>>(),
 };
 
 jest.unstable_mockModule("../../server/lib/redis-client.js", () => ({

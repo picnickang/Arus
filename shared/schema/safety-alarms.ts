@@ -52,7 +52,7 @@ export const safetyAlarmTypes = pgTable(
   (table) => ({
     orgKeyUnique: unique("uq_safety_alarm_type_org_key").on(table.orgId, table.key),
     orgActiveIdx: index("idx_safety_alarm_type_org_active").on(table.orgId, table.isActive),
-  }),
+  })
 );
 
 export const vesselSafetyAlarms = pgTable(
@@ -89,10 +89,10 @@ export const vesselSafetyAlarms = pgTable(
     orgStatusIdx: index("idx_vessel_safety_alarm_org_status").on(
       table.orgId,
       table.status,
-      table.triggeredAt,
+      table.triggeredAt
     ),
     orgVesselIdx: index("idx_vessel_safety_alarm_org_vessel").on(table.orgId, table.vesselId),
-  }),
+  })
 );
 
 export const vesselSafetyAlarmAcknowledgements = pgTable(
@@ -116,7 +116,7 @@ export const vesselSafetyAlarmAcknowledgements = pgTable(
   (table) => ({
     alarmUserUnique: unique("uq_alarm_ack_alarm_user").on(table.alarmId, table.userId),
     alarmIdx: index("idx_alarm_ack_alarm").on(table.alarmId),
-  }),
+  })
 );
 
 export const insertSafetyAlarmTypeSchema = createInsertSchema(safetyAlarmTypes).omit({
@@ -132,7 +132,7 @@ export const insertVesselSafetyAlarmSchema = createInsertSchema(vesselSafetyAlar
 });
 
 export const insertVesselSafetyAlarmAcknowledgementSchema = createInsertSchema(
-  vesselSafetyAlarmAcknowledgements,
+  vesselSafetyAlarmAcknowledgements
 ).omit({ id: true });
 
 export type SafetyAlarmType = typeof safetyAlarmTypes.$inferSelect;

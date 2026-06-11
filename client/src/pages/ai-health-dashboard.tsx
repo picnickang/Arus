@@ -96,9 +96,7 @@ export default function AIHealthDashboard() {
     queryKey: ["/api/ml/models"],
   });
 
-  type PredictionItem = Awaited<
-    ReturnType<typeof fetchFailurePredictions>
-  >["results"][number] & {
+  type PredictionItem = Awaited<ReturnType<typeof fetchFailurePredictions>>["results"][number] & {
     confidence?: number;
     daysUntilFailure?: number;
     recommendedAction?: string;
@@ -112,8 +110,7 @@ export default function AIHealthDashboard() {
     .map((p) => ({
       equipment: p.equipmentName || p.equipmentId,
       action: p.recommendedAction || `Schedule maintenance within ${p.daysUntilFailure ?? 30} days`,
-      urgency:
-        (p.confidence ?? 0) >= 0.8 ? "high" : (p.confidence ?? 0) >= 0.6 ? "medium" : "low",
+      urgency: (p.confidence ?? 0) >= 0.8 ? "high" : (p.confidence ?? 0) >= 0.6 ? "medium" : "low",
     }));
 
   const avgConfidence =

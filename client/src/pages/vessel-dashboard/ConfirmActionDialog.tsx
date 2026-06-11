@@ -47,7 +47,11 @@ export function ConfirmActionDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onCancel} className="border-slate-700/30 text-slate-300">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="border-slate-700/30 text-slate-300"
+          >
             Cancel
           </Button>
           <Button

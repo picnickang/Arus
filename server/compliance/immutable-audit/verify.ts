@@ -43,7 +43,9 @@ export async function verifyAuditChain(
 
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
-    if (!record) {continue;}
+    if (!record) {
+      continue;
+    }
 
     if (record.prevHash !== expectedPrevHash) {
       return {

@@ -92,18 +92,18 @@ ARUS Platform (Monorepo)
 
 ### Total HTTP Endpoints: ~650+
 
-| Module | Routes | Key Endpoints |
-|--------|--------|---------------|
-| **Main Router** | 569 | Dashboard, Fleet, Equipment, Telemetry |
-| **Alerts** | 14 | Alert management, acknowledgement |
-| **Crew** | 23 | Scheduling, STCW compliance |
-| **Devices** | 5 | Device registry, status |
-| **Equipment** | 15 | Health, RUL, degradation |
-| **Inventory** | 11 | Parts tracking, procurement |
-| **Maintenance** | 12 | Work orders, scheduling |
-| **Vessels** | 13 | Performance, VPS charts |
-| **Work Orders** | 8 | Creation, assignment, tracking |
-| **Governance** | 7 | Lineage, provenance, verification |
+| Module          | Routes | Key Endpoints                          |
+| --------------- | ------ | -------------------------------------- |
+| **Main Router** | 569    | Dashboard, Fleet, Equipment, Telemetry |
+| **Alerts**      | 14     | Alert management, acknowledgement      |
+| **Crew**        | 23     | Scheduling, STCW compliance            |
+| **Devices**     | 5      | Device registry, status                |
+| **Equipment**   | 15     | Health, RUL, degradation               |
+| **Inventory**   | 11     | Parts tracking, procurement            |
+| **Maintenance** | 12     | Work orders, scheduling                |
+| **Vessels**     | 13     | Performance, VPS charts                |
+| **Work Orders** | 8      | Creation, assignment, tracking         |
+| **Governance**  | 7      | Lineage, provenance, verification      |
 
 ### Critical Entry Points
 
@@ -118,11 +118,13 @@ ARUS Platform (Monorepo)
 ## Data Flow Patterns
 
 ### 1. Telemetry Ingestion
+
 ```
 Edge Device → MQTT/HTTP → J1939 Collector → Sensor Fusion → Storage → ML Prediction
 ```
 
 ### 2. Predictive Maintenance Flow
+
 ```
 Equipment Telemetry → ML Prediction Service → RUL Engine → Alert Generation → Work Order
                                             ↓
@@ -130,6 +132,7 @@ Equipment Telemetry → ML Prediction Service → RUL Engine → Alert Generatio
 ```
 
 ### 3. ML Training Pipeline
+
 ```
 Dataset Mixer → Feature Engineering → Model Training (LSTM/RF/XGBoost) → Registry
                                                                          ↓
@@ -137,26 +140,28 @@ Dataset Mixer → Feature Engineering → Model Training (LSTM/RF/XGBoost) → R
 ```
 
 ### 4. Governance Flow
+
 ```
 Prediction/Alert → Record Provenance → SHA-256 Chain → Verification Script → Audit Report
 ```
 
 ## Cross-Cutting Concerns
 
-| Concern | Implementation | Files |
-|---------|----------------|-------|
-| **Authentication** | Session + RBAC | `middleware/auth.ts` |
-| **Multi-tenancy** | Tenant-scoped repos | `infrastructure/TenantScopedRepository.ts` |
-| **Rate Limiting** | Express middleware | `config/rate-limits.ts` |
-| **Observability** | Prometheus metrics | `observability.ts`, `structured-logging.ts` |
-| **Error Handling** | Global handlers | `error-handling.ts`, `error-logger.ts` |
-| **Validation** | Zod schemas | Throughout routes |
-| **Caching** | LRU caches | `ml-lru-cache.ts`, in-memory |
-| **Background Jobs** | Queue processor | `background-jobs.ts`, `job-processors.ts` |
+| Concern             | Implementation      | Files                                       |
+| ------------------- | ------------------- | ------------------------------------------- |
+| **Authentication**  | Session + RBAC      | `middleware/auth.ts`                        |
+| **Multi-tenancy**   | Tenant-scoped repos | `infrastructure/TenantScopedRepository.ts`  |
+| **Rate Limiting**   | Express middleware  | `config/rate-limits.ts`                     |
+| **Observability**   | Prometheus metrics  | `observability.ts`, `structured-logging.ts` |
+| **Error Handling**  | Global handlers     | `error-handling.ts`, `error-logger.ts`      |
+| **Validation**      | Zod schemas         | Throughout routes                           |
+| **Caching**         | LRU caches          | `ml-lru-cache.ts`, in-memory                |
+| **Background Jobs** | Queue processor     | `background-jobs.ts`, `job-processors.ts`   |
 
 ## Technology Stack
 
 ### Frontend
+
 - **Framework**: React 18 + TypeScript
 - **Routing**: Wouter
 - **State**: TanStack Query v5
@@ -165,6 +170,7 @@ Prediction/Alert → Record Provenance → SHA-256 Chain → Verification Script
 - **PWA**: Service Worker + Offline support
 
 ### Backend
+
 - **Runtime**: Node.js 20+ with TypeScript
 - **Framework**: Express.js
 - **Database**: PostgreSQL (Neon) / SQLite (Turso)
@@ -173,6 +179,7 @@ Prediction/Alert → Record Provenance → SHA-256 Chain → Verification Script
 - **ML**: TensorFlow.js, XGBoost
 
 ### Infrastructure
+
 - **Hosting**: Replit (development), Render (production)
 - **Database**: Neon PostgreSQL (cloud), Turso (edge)
 - **Storage**: Replit Object Storage (GCS)
@@ -182,6 +189,7 @@ Prediction/Alert → Record Provenance → SHA-256 Chain → Verification Script
 ## Dead Code Candidates
 
 Based on quick analysis, potential dead code:
+
 - ❓ `server/standalone-simple.ts` (duplicate of minimal-server?)
 - ❓ `server/sqlite-init.ts.backup` (backup file)
 - ❓ Multiple standalone server files (minimal, production, standalone)
@@ -192,18 +200,21 @@ Based on quick analysis, potential dead code:
 ## Security Architecture
 
 ### Authentication Layers
+
 1. **Admin Routes**: `ADMIN_TOKEN` verification
 2. **Edge Devices**: HMAC SHA-256 validation
 3. **Session Management**: Express sessions + PostgreSQL store
 4. **RBAC**: Role-based access control (Technician, Manager, Admin)
 
 ### Multi-Tenant Isolation
+
 - **Database Level**: `orgId` column on all tables
 - **Repository Pattern**: Tenant-scoped queries enforced
 - **API Level**: Session context extraction (`req.user.orgId`)
 - **Governance**: Delta validation prevents cross-tenant tampering
 
 ### Rate Limiting
+
 - **General API**: 100 req/15min per IP
 - **Telemetry**: 1000 req/15min (high-volume)
 - **Write Operations**: 50 req/15min (stricter)
@@ -211,6 +222,7 @@ Based on quick analysis, potential dead code:
 ## Performance Considerations
 
 ### Optimizations in Place
+
 - ✅ LRU model caching (6 models max)
 - ✅ Inference semaphore (2 concurrent max)
 - ✅ Circuit breakers on ML models
@@ -220,6 +232,7 @@ Based on quick analysis, potential dead code:
 - ✅ Connection pooling (Drizzle)
 
 ### Known Bottlenecks
+
 - ⚠️ LSTM inference latency (p95 ~800ms)
 - ⚠️ Large telemetry window queries
 - ⚠️ Real-time WebSocket broadcasts
@@ -234,6 +247,7 @@ Based on quick analysis, potential dead code:
 ---
 
 **Next Steps**:
+
 1. Run `npx depcheck` for unused dependencies
 2. Generate full API documentation with OpenAPI/Swagger
 3. Create dependency graph visualization with Madge

@@ -7,9 +7,7 @@
  */
 
 function notImplemented(name: string): never {
-  throw new Error(
-    `[sync-manager] '${name}' is no longer available. Use the domains/sync service.`
-  );
+  throw new Error(`[sync-manager] '${name}' is no longer available. Use the domains/sync service.`);
 }
 
 export const syncManager = {

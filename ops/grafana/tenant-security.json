@@ -8,7 +8,13 @@
   "templating": {
     "list": [
       { "name": "datasource", "type": "datasource", "query": "prometheus" },
-      { "name": "org", "type": "query", "datasource": "${datasource}", "query": "label_values(arus_websocket_connections_active_per_org, org_id)", "includeAll": true }
+      {
+        "name": "org",
+        "type": "query",
+        "datasource": "${datasource}",
+        "query": "label_values(arus_websocket_connections_active_per_org, org_id)",
+        "includeAll": true
+      }
     ]
   },
   "panels": [
@@ -18,7 +24,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "arus_websocket_connections_active_per_org{org_id=~\"$org\"}", "legendFormat": "{{org_id}}" }
+        {
+          "expr": "arus_websocket_connections_active_per_org{org_id=~\"$org\"}",
+          "legendFormat": "{{org_id}}"
+        }
       ]
     },
     {
@@ -27,7 +36,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum by (org_id, reason) (rate(arus_websocket_connections_rejected_total{org_id=~\"$org\"}[5m]))", "legendFormat": "{{org_id}}::{{reason}}" }
+        {
+          "expr": "sum by (org_id, reason) (rate(arus_websocket_connections_rejected_total{org_id=~\"$org\"}[5m]))",
+          "legendFormat": "{{org_id}}::{{reason}}"
+        }
       ]
     },
     {
@@ -36,7 +48,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total{org_id=~\"$org\"}[5m]))", "legendFormat": "{{org_id}}" }
+        {
+          "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total{org_id=~\"$org\"}[5m]))",
+          "legendFormat": "{{org_id}}"
+        }
       ]
     },
     {
@@ -45,7 +60,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum(rate(arus_http_requests_total{code=\"429\"}[5m]))", "legendFormat": "429/sec" }
+        {
+          "expr": "sum(rate(arus_http_requests_total{code=\"429\"}[5m]))",
+          "legendFormat": "429/sec"
+        }
       ]
     },
     {
@@ -54,7 +72,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
       "targets": [
-        { "expr": "sum by (route) (rate(arus_api_response_validation_failures_total[15m]))", "legendFormat": "{{route}}" }
+        {
+          "expr": "sum by (route) (rate(arus_api_response_validation_failures_total[15m]))",
+          "legendFormat": "{{route}}"
+        }
       ]
     }
   ]

@@ -57,6 +57,7 @@ logTelemetryIngestion("warn", "Invalid telemetry data rejected", {
 ```
 
 **Output Example:**
+
 ```json
 {
   "timestamp": "2025-11-25T10:30:45.123Z",
@@ -218,17 +219,14 @@ const result = await withPerformanceLogging(
 // Success: Logs INFO with duration
 
 // Failures are logged as ERROR with error details
-await withPerformanceLogging(
-  "failure-prediction",
-  "generate-prediction",
-  async () => {
-    throw new Error("Model execution failed");
-  }
-);
+await withPerformanceLogging("failure-prediction", "generate-prediction", async () => {
+  throw new Error("Model execution failed");
+});
 // Logs ERROR: "generate-prediction_FAILED" with duration and error stack
 ```
 
 **Error Log Example:**
+
 ```json
 {
   "timestamp": "2025-11-25T10:45:30.123Z",
@@ -249,25 +247,35 @@ await withPerformanceLogging(
 
 ```typescript
 // Log training metrics
-logMLMetrics("lstm-hybrid-v2", "training", {
-  accuracy: 0.92,
-  precision: 0.89,
-  recall: 0.94,
-  f1Score: 0.91,
-  trainingTimeMs: 45000,
-}, {
-  orgId: "org-123",
-  batchSize: 256,
-});
+logMLMetrics(
+  "lstm-hybrid-v2",
+  "training",
+  {
+    accuracy: 0.92,
+    precision: 0.89,
+    recall: 0.94,
+    f1Score: 0.91,
+    trainingTimeMs: 45000,
+  },
+  {
+    orgId: "org-123",
+    batchSize: 256,
+  }
+);
 
 // Log prediction metrics
-logMLMetrics("xgboost-v1", "prediction", {
-  accuracy: 0.88,
-  predictionTimeMs: 12,
-}, {
-  orgId: "org-123",
-  equipmentId: "main-engine-1",
-});
+logMLMetrics(
+  "xgboost-v1",
+  "prediction",
+  {
+    accuracy: 0.88,
+    predictionTimeMs: 12,
+  },
+  {
+    orgId: "org-123",
+    equipmentId: "main-engine-1",
+  }
+);
 ```
 
 ## Express Request Context
@@ -283,7 +291,7 @@ app.post("/api/telemetry", async (req, res) => {
   });
 
   logTelemetryIngestion("info", "Processing telemetry request", context);
-  
+
   // Your handler logic...
 });
 ```
@@ -291,12 +299,14 @@ app.post("/api/telemetry", async (req, res) => {
 ## Context Fields Reference
 
 ### Core Fields (automatically included)
+
 - `timestamp`: ISO 8601 timestamp
 - `level`: INFO, WARN, or ERROR
 - `message`: Human-readable log message
 - `service`: Service name (auto-populated)
 
 ### Marine PdM Context Fields
+
 - `correlationId`: Request correlation ID
 - `orgId`: Organization identifier
 - `userId`: User identifier (if applicable)
@@ -317,28 +327,33 @@ app.post("/api/telemetry", async (req, res) => {
 ## Query Examples (Log Analysis)
 
 ### Find all critical alerts
+
 ```bash
 grep '"alertLevel":"critical"' application.log | jq .
 ```
 
 ### Find slow operations (>5000ms)
+
 ```bash
 grep '"processingTimeMs"' application.log | jq 'select(.processingTimeMs > 5000)'
 ```
 
 ### Find telemetry errors by equipment
+
 ```bash
 grep '"service":"telemetry-ingestion"' application.log | \
   jq 'select(.level == "ERROR") | {equipmentId, message}'
 ```
 
 ### Analyze ML model performance
+
 ```bash
 grep '"modelId":"lstm-hybrid-v2"' application.log | \
   jq '{accuracy: .predictionAccuracy, timeMs: .processingTimeMs}'
 ```
 
 ### Track cache hit rates
+
 ```bash
 grep '"cacheHit"' application.log | \
   jq -s 'group_by(.operation) | map({operation: .[0].operation, hits: map(select(.cacheHit == true)) | length, total: length})'
@@ -384,7 +399,7 @@ app.post("/api/telemetry/batch", async (req, res) => {
       async () => {
         // Validate data
         const validatedData = validateTelemetryBatch(req.body);
-        
+
         // Insert to database
         return await db.insert(equipmentTelemetry).values(validatedData);
       },
@@ -409,6 +424,7 @@ app.post("/api/telemetry/batch", async (req, res) => {
 ## Log Aggregation
 
 For production deployments, integrate with:
+
 - **CloudWatch Logs** (AWS)
 - **Cloud Logging** (GCP)
 - **Elasticsearch/Kibana** (ELK Stack)

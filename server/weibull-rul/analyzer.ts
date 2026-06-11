@@ -31,7 +31,9 @@ export class WeibullRULAnalyzer {
       const lifeData = await getEquipmentLifeData(equipmentId, orgId);
 
       if (lifeData.length < 3) {
-        logger.info(`[Weibull RUL] Insufficient data for ${equipmentId} (${lifeData.length} samples, need ≥3)`);
+        logger.info(
+          `[Weibull RUL] Insufficient data for ${equipmentId} (${lifeData.length} samples, need ≥3)`
+        );
         throw new Error(
           "Insufficient historical data for Weibull analysis (minimum 3 data points required)"
         );
@@ -70,7 +72,9 @@ export class WeibullRULAnalyzer {
 
       await this.storeRULAnalysis(prediction, orgId);
 
-      logger.info(`[Weibull RUL] Analysis completed for ${equipmentId}: RUL=${Math.round(predictedRUL)}h, Reliability=${(currentReliability * 100).toFixed(1)}%`);
+      logger.info(
+        `[Weibull RUL] Analysis completed for ${equipmentId}: RUL=${Math.round(predictedRUL)}h, Reliability=${(currentReliability * 100).toFixed(1)}%`
+      );
 
       return prediction;
     } catch (error: unknown) {
@@ -82,7 +86,11 @@ export class WeibullRULAnalyzer {
 
   private async storeRULAnalysis(prediction: RULPrediction, orgId: string): Promise<void> {
     try {
-      await (db.insert(weibullEstimates).values as object as (v: Record<string, unknown>) => Promise<unknown>)({
+      await (
+        db.insert(weibullEstimates).values as object as (
+          v: Record<string, unknown>
+        ) => Promise<unknown>
+      )({
         id: randomUUID(),
         orgId,
         equipmentId: prediction.equipmentId,
@@ -108,7 +116,11 @@ export class WeibullRULAnalyzer {
         createdAt: new Date(),
       });
     } catch (error) {
-      logger.error(`[Weibull RUL] Error storing analysis for ${prediction.equipmentId}:`, undefined, error);
+      logger.error(
+        `[Weibull RUL] Error storing analysis for ${prediction.equipmentId}:`,
+        undefined,
+        error
+      );
     }
   }
 
@@ -149,7 +161,9 @@ export class WeibullRULAnalyzer {
       }
     }
 
-    logger.info(`[Weibull RUL] Batch analysis completed: ${results.success.length} success, ${results.failed.length} failed`);
+    logger.info(
+      `[Weibull RUL] Batch analysis completed: ${results.success.length} success, ${results.failed.length} failed`
+    );
     return results;
   }
 }

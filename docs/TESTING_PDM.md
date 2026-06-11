@@ -2,26 +2,28 @@
 
 ## Test Map
 
-| Feature | Endpoint/Table | Test File | Tier |
-|---------|---------------|-----------|------|
-| Risk Queue | GET /api/pdm/risk-queue | server/tests/pdm/get-dashboard.test.ts | 0 |
-| Dashboard | GET /api/pdm/dashboard | server/tests/pdm/get-dashboard.test.ts | 0 |
-| Schedule | GET /api/pdm/schedule | server/tests/pdm/get-schedule.test.ts | 0 |
-| Schedule API Contract | GET /api/pdm/schedule | server/tests/pdm/schedule-contract.test.ts | 0 |
-| Golden Scenarios | pdm_alerts seeding | server/tests/pdm/schedule-scenarios.test.ts | 0 |
-| Scheduling Math | computeBufferDays, etc | server/tests/pdm/get-schedule.test.ts | 0 |
-| Property-Based | fast-check invariants | server/tests/pdm/schedule-properties.test.ts | 1 |
-| Data Integrity | DB invariants | server/tests/pdm/data-integrity.test.ts | 0 |
+| Feature               | Endpoint/Table          | Test File                                    | Tier |
+| --------------------- | ----------------------- | -------------------------------------------- | ---- |
+| Risk Queue            | GET /api/pdm/risk-queue | server/tests/pdm/get-dashboard.test.ts       | 0    |
+| Dashboard             | GET /api/pdm/dashboard  | server/tests/pdm/get-dashboard.test.ts       | 0    |
+| Schedule              | GET /api/pdm/schedule   | server/tests/pdm/get-schedule.test.ts        | 0    |
+| Schedule API Contract | GET /api/pdm/schedule   | server/tests/pdm/schedule-contract.test.ts   | 0    |
+| Golden Scenarios      | pdm_alerts seeding      | server/tests/pdm/schedule-scenarios.test.ts  | 0    |
+| Scheduling Math       | computeBufferDays, etc  | server/tests/pdm/get-schedule.test.ts        | 0    |
+| Property-Based        | fast-check invariants   | server/tests/pdm/schedule-properties.test.ts | 1    |
+| Data Integrity        | DB invariants           | server/tests/pdm/data-integrity.test.ts      | 0    |
 
 ## Test Tiers
 
 ### Tier 0 (Every PR - Fast)
+
 - API contract regression (schema snapshots)
 - Golden scenario integration tests (seeded fixtures)
 - Data integrity tests (DB invariants)
 - Scheduling math unit tests
 
 ### Tier 1 (Nightly - Optional)
+
 - Property-based tests (fast-check)
 - Timezone + clock skew tests
 - Performance tests
@@ -54,22 +56,26 @@ Tests use mocked repositories by default. For integration tests requiring a data
 ## Seeding
 
 Test fixtures are defined in:
+
 - `server/tests/pdm/fixtures.ts` - Canonical PdM alert cases
 
 ### Golden Scenarios
 
 **Case A: Schedulable High Risk**
+
 - severity: high
 - RUL: P10=6, P50=8, P90=10
 - Expected: Scheduled within week
 
 **Case B: Blocked by Lead Time**
+
 - severity: critical
 - RUL: P10=2, P50=3, P90=4
 - prep_days: 3
 - Expected: blocked, reason=scheduling_conflict
 
 **Case C: Blocked by Capacity**
+
 - Two critical tasks on same vessel/day
 - capacity: 8h/day, each task: 6h
 - Expected: One scheduled, one blocked reason=capacity

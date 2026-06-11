@@ -57,9 +57,7 @@ export function CertificatesTable({
           {paginatedCerts.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                {hasActiveFilters
-                  ? "No certificates match your filters"
-                  : "No certificates found"}
+                {hasActiveFilters ? "No certificates match your filters" : "No certificates found"}
               </TableCell>
             </TableRow>
           ) : (
@@ -75,9 +73,7 @@ export function CertificatesTable({
                   <TableCell>
                     <div className="font-medium">{cert.certificateName}</div>
                     {cert.certificateNumber && (
-                      <div className="text-xs text-muted-foreground">
-                        #{cert.certificateNumber}
-                      </div>
+                      <div className="text-xs text-muted-foreground">#{cert.certificateNumber}</div>
                     )}
                   </TableCell>
                   <TableCell>

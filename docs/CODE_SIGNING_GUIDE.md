@@ -46,11 +46,13 @@ This guide covers code signing and distributing the ARUS Marine Tauri v2 desktop
 ### Step 3: Configure Notarization
 
 Create an app-specific password:
+
 1. Go to [Apple ID account](https://appleid.apple.com/)
 2. Go to **Security > App-Specific Passwords** → Generate
 3. Name it "ARUS Marine Notarization"
 
 Store credentials:
+
 ```bash
 export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAM_ID)"
 export APPLE_ID="your-apple-id@example.com"
@@ -98,6 +100,7 @@ spctl -a -t exec -vv "src-tauri/target/release/bundle/macos/ARUS Marine.app"
 ### Step 2: Configure Signing
 
 Set environment variables:
+
 ```bash
 export TAURI_SIGNING_PRIVATE_KEY="path/to/certificate.pfx"
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="YOUR_PASSWORD"
@@ -145,6 +148,7 @@ The public key is configured in `src-tauri/tauri.conf.json` under `plugins.updat
 ### macOS
 
 Unsigned builds will show a Gatekeeper warning. Workaround:
+
 ```bash
 xattr -cr "/Applications/ARUS Marine.app"
 ```
@@ -162,11 +166,13 @@ Unsigned builds will show SmartScreen warning. Click **More info > Run anyway**.
 ### macOS
 
 **"No identity found":**
+
 ```bash
 security find-identity -v -p codesigning
 ```
 
 **Notarization fails:**
+
 ```bash
 xcrun notarytool log <submission-id> --keychain-profile "ARUS-Marine-Profile"
 ```
@@ -174,17 +180,20 @@ xcrun notarytool log <submission-id> --keychain-profile "ARUS-Marine-Profile"
 ### Windows
 
 **Certificate not trusted:**
+
 - Ensure certificate chain is complete
 - CA certificate must be from a trusted authority
 
 ### General
 
 **Build fails — missing Rust:**
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 **Build fails — missing system dependencies (Linux):**
+
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev
 ```
@@ -193,17 +202,17 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev
 
 ## Cost Summary
 
-| Item | Cost | Frequency |
-|------|------|-----------|
-| **macOS** | | |
-| Apple Developer Program | $99 | Annual |
-| Code signing certificate | Included | - |
-| Notarization | Free | - |
-| **Windows** | | |
-| Standard Code Signing | $200-300 | Annual |
-| EV Code Signing | $300-500 | Annual |
-| **TOTAL (Standard)** | **$299-399/year** | |
-| **TOTAL (with EV)** | **$399-599/year** | |
+| Item                     | Cost              | Frequency |
+| ------------------------ | ----------------- | --------- |
+| **macOS**                |                   |           |
+| Apple Developer Program  | $99               | Annual    |
+| Code signing certificate | Included          | -         |
+| Notarization             | Free              | -         |
+| **Windows**              |                   |           |
+| Standard Code Signing    | $200-300          | Annual    |
+| EV Code Signing          | $300-500          | Annual    |
+| **TOTAL (Standard)**     | **$299-399/year** |           |
+| **TOTAL (with EV)**      | **$399-599/year** |           |
 
 ---
 

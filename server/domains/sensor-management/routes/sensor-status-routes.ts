@@ -31,16 +31,15 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
         getLatestTelemetryForSensors?: (
           s: Array<{ equipmentId: string; sensorType: string }>,
           orgId: string
-        ) => Promise<Array<{ equipmentId: string; sensorType: string; ts?: string | Date; value?: number }>>;
+        ) => Promise<
+          Array<{ equipmentId: string; sensorType: string; ts?: string | Date; value?: number }>
+        >;
       };
       const telemetryResults = telemetrySource.getLatestTelemetryForSensors
         ? await telemetrySource.getLatestTelemetryForSensors(sensors, orgId)
         : [];
       const telemetryMap = new Map<string, { ts?: string | Date; value?: number }>(
-        telemetryResults.map((result) => [
-          `${result.equipmentId}:${result.sensorType}`,
-          result,
-        ])
+        telemetryResults.map((result) => [`${result.equipmentId}:${result.sensorType}`, result])
       );
 
       const sensorStatus = sensorConfigs.map((config) => {
@@ -78,7 +77,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     "/api/sensor-states/:equipmentId/:sensorType",
     requireOrgId,
     withErrorHandling("fetch sensor state", async (req, res) => {
-      const { equipmentId = '', sensorType = '' } = req.params;
+      const { equipmentId = "", sensorType = "" } = req.params;
       const orgId = authenticatedRequest(req).orgId;
       const state = await dbSensorsStorage.getSensorState(equipmentId, sensorType, orgId);
       if (!state) {

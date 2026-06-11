@@ -149,10 +149,7 @@ export function handleApiError(
  * @param operation - Description of the operation
  * @param handler - The async handler function
  */
-export function withErrorHandling<
-  Req extends Request = Request,
-  Res extends Response = Response,
->(
+export function withErrorHandling<Req extends Request = Request, Res extends Response = Response>(
   operation: string,
   handler: (req: Req, res: Res) => Promise<void | Response>
 ): (req: Req, res: Res) => Promise<void> {

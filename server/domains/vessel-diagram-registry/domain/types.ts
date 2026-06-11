@@ -49,7 +49,7 @@ export function normalizeSectionMapImageTransform(
 }
 
 export interface RegistryActor {
-  userId?: string;
+  userId?: string | undefined;
 }
 
 export interface RegistryContext extends RegistryActor {
@@ -176,7 +176,7 @@ export interface VesselRegistryMediaStore {
 export interface CreateDiagramInput {
   diagramType: VesselDiagramType;
   title: string;
-  description?: string;
+  description?: string | undefined;
 }
 
 export interface DiagramUploadInput {
@@ -192,68 +192,70 @@ export interface CreateSectionInput {
   color: string;
   polygonNormalized: NormalizedPoint[];
   labelNormalized: NormalizedPoint;
-  equipment?: Array<{
-    equipmentId?: string;
-    equipmentName: string;
-    assetCode?: string;
-    system?: string;
-  }>;
-  thumbnailFallback?: string;
+  equipment?:
+    | Array<{
+        equipmentId?: string | undefined;
+        equipmentName: string;
+        assetCode?: string | undefined;
+        system?: string | undefined;
+      }>
+    | undefined;
+  thumbnailFallback?: string | undefined;
 }
 
 export interface CreateSectionMapInput {
   name: string;
-  diagramId?: string;
-  diagramVersionId?: string;
-  sourceMapId?: string;
-  diagramWidth?: number;
-  diagramHeight?: number;
-  diagramKind?: VesselDiagramType;
-  imageTransform?: SectionMapImageTransform;
-  sections?: CreateSectionInput[];
+  diagramId?: string | undefined;
+  diagramVersionId?: string | undefined;
+  sourceMapId?: string | undefined;
+  diagramWidth?: number | undefined;
+  diagramHeight?: number | undefined;
+  diagramKind?: VesselDiagramType | undefined;
+  imageTransform?: SectionMapImageTransform | undefined;
+  sections?: CreateSectionInput[] | undefined;
 }
 
 export interface UpdateDiagramInput {
-  title?: string;
-  description?: string | null;
-  status?: VesselDiagramStatus;
-  activeVersionId?: string | null;
-  currentSectionMapId?: string | null;
+  title?: string | undefined;
+  description?: string | null | undefined;
+  status?: VesselDiagramStatus | undefined;
+  activeVersionId?: string | null | undefined;
+  currentSectionMapId?: string | null | undefined;
 }
 
 export interface UpdateSectionMapInput {
-  name?: string;
-  diagramId?: string | null;
-  diagramVersionId?: string | null;
-  sourceMapId?: string | null;
-  diagramWidth?: number;
-  diagramHeight?: number;
-  diagramKind?: VesselDiagramType;
-  imageTransform?: SectionMapImageTransform;
-  status?: VesselSectionMapStatus;
+  name?: string | undefined;
+  diagramId?: string | null | undefined;
+  diagramVersionId?: string | null | undefined;
+  sourceMapId?: string | null | undefined;
+  diagramWidth?: number | undefined;
+  diagramHeight?: number | undefined;
+  diagramKind?: VesselDiagramType | undefined;
+  imageTransform?: SectionMapImageTransform | undefined;
+  status?: VesselSectionMapStatus | undefined;
 }
 
 export interface UpdateSectionInput {
-  sectionKey?: string;
-  sectionNo?: number;
-  name?: string;
-  color?: string;
-  thumbnailFallback?: string | null;
-  labelNormalized?: NormalizedPoint;
-  polygonNormalized?: NormalizedPoint[];
+  sectionKey?: string | undefined;
+  sectionNo?: number | undefined;
+  name?: string | undefined;
+  color?: string | undefined;
+  thumbnailFallback?: string | null | undefined;
+  labelNormalized?: NormalizedPoint | undefined;
+  polygonNormalized?: NormalizedPoint[] | undefined;
 }
 
 export interface UpdateAssignmentInput {
-  equipmentId?: string | null;
-  equipmentName?: string;
-  assetCode?: string | null;
-  system?: string | null;
+  equipmentId?: string | null | undefined;
+  equipmentName?: string | undefined;
+  assetCode?: string | null | undefined;
+  system?: string | null | undefined;
 }
 
 export interface ThumbnailUploadInput {
   ownerType: "section" | "equipment";
   ownerId: string;
-  mapId?: string;
+  mapId?: string | undefined;
   originalFileName: string;
   mimeType: string;
   content: Buffer;
@@ -327,7 +329,7 @@ export interface VesselDiagramRegistryStore {
   cloneSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    input: { name: string; diagramId?: string; diagramVersionId?: string }
+    input: { name: string; diagramId?: string | undefined; diagramVersionId?: string | undefined }
   ): Promise<SectionMapRecord>;
   addSection(
     ctx: RegistryContext,
@@ -362,10 +364,10 @@ export interface VesselDiagramRegistryStore {
     mapId: string,
     sectionId: string,
     input: {
-      equipmentId?: string;
+      equipmentId?: string | undefined;
       equipmentName: string;
-      assetCode?: string;
-      system?: string;
+      assetCode?: string | undefined;
+      system?: string | undefined;
     }
   ): Promise<EquipmentAssignmentRecord>;
   listEquipmentAssignments(

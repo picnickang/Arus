@@ -23,13 +23,7 @@ import { describe, it, expect, jest, beforeAll } from "@jest/globals";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SEMANTIC_CACHE_PATH = join(
-  process.cwd(),
-  "server",
-  "services",
-  "rag",
-  "semantic-cache.ts"
-);
+const SEMANTIC_CACHE_PATH = join(process.cwd(), "server", "services", "rag", "semantic-cache.ts");
 function readSource(): string {
   return readFileSync(SEMANTIC_CACHE_PATH, "utf8");
 }
@@ -85,7 +79,9 @@ const SEED_ROWS: SeedRow[] = [
 
 function extractOrgIdFromSql(sqlObj: unknown): string | null {
   const obj = sqlObj as { queryChunks?: unknown[] } | null;
-  if (!obj || !Array.isArray(obj.queryChunks)) {return null;}
+  if (!obj || !Array.isArray(obj.queryChunks)) {
+    return null;
+  }
   for (const chunk of obj.queryChunks) {
     // Param values may appear directly as strings/numbers, or wrapped
     // in a `{ value: ... }` object depending on drizzle's chunk class.
@@ -94,7 +90,9 @@ function extractOrgIdFromSql(sqlObj: unknown): string | null {
     }
     if (chunk && typeof chunk === "object" && "value" in chunk) {
       const v = (chunk as { value?: unknown }).value;
-      if (typeof v === "string" && (v === ORG_A || v === ORG_B)) {return v;}
+      if (typeof v === "string" && (v === ORG_A || v === ORG_B)) {
+        return v;
+      }
     }
   }
   return null;
@@ -111,9 +109,10 @@ jest.unstable_mockModule("../../server/db", () => ({
     execute: async (sqlObj: unknown) => {
       const orgIdParam = extractOrgIdFromSql(sqlObj);
       executeCalls.push({ orgIdParam });
-      if (!orgIdParam) {return { rows: [] };}
-      const rows = SEED_ROWS
-        .filter((r) => r.org_id === orgIdParam)
+      if (!orgIdParam) {
+        return { rows: [] };
+      }
+      const rows = SEED_ROWS.filter((r) => r.org_id === orgIdParam)
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 1);
       return { rows };
@@ -137,7 +136,10 @@ jest.unstable_mockModule("../../server/utils/logger", () => ({
 }));
 
 interface SemanticCacheLike {
-  semanticLookup: (orgId: string, query: string) => Promise<{
+  semanticLookup: (
+    orgId: string,
+    query: string
+  ) => Promise<{
     response: string;
     queryText: string;
   } | null>;
@@ -152,12 +154,18 @@ beforeAll(async () => {
 function invokeSemanticLookup(
   instance: object,
   orgId: string,
-  query: string,
+  query: string
 ): Promise<{ response: string; queryText: string } | null> {
   const fn = (instance as Record<string, unknown>)["semanticLookup"] as
-    | ((this: object, o: string, q: string) => Promise<{ response: string; queryText: string } | null>)
+    | ((
+        this: object,
+        o: string,
+        q: string
+      ) => Promise<{ response: string; queryText: string } | null>)
     | undefined;
-  if (typeof fn !== "function") {throw new Error("semanticLookup not found on instance");}
+  if (typeof fn !== "function") {
+    throw new Error("semanticLookup not found on instance");
+  }
   return fn.call(instance, orgId, query);
 }
 
@@ -196,10 +204,7 @@ describe("LR-3.5 V2 — RAG vector pre-filter contract (behavioural)", () => {
 
   it("source: no JS-side .filter(... orgId ...) post-pass", () => {
     const src = readSource();
-    const body = src.slice(
-      src.indexOf("private async semanticLookup"),
-      src.indexOf("async set(")
-    );
+    const body = src.slice(src.indexOf("private async semanticLookup"), src.indexOf("async set("));
     expect(body).not.toMatch(/\.filter\(\s*\(?[\w$]+\)?\s*=>[^}]*org_?[Ii]d/);
   });
 

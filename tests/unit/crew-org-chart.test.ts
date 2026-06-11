@@ -32,7 +32,7 @@ import {
 import {
   buildRoleLookup,
   type CrewListItem,
-  type CrewRole,
+  type CrewManagementRole,
 } from "@/features/crew/lib/crewManagementUtils";
 
 function member(partial: Partial<CrewListItem> & { id: string }): CrewListItem {
@@ -87,16 +87,13 @@ describe("buildReportingTree — root detection", () => {
 
 describe("buildReportingTree — cycle breaking (finite tree)", () => {
   it("breaks a 2-node circular link into a finite tree", () => {
-    const members = [
-      member({ id: "a", reportsToId: "b" }),
-      member({ id: "b", reportsToId: "a" }),
-    ];
+    const members = [member({ id: "a", reportsToId: "b" }), member({ id: "b", reportsToId: "a" })];
     const { roots, childrenByParent } = buildReportingTree(members);
     // Exactly one of the two is promoted to a root; the other nests under it.
     expect(roots).toHaveLength(1);
     const totalChildren = Array.from(childrenByParent.values()).reduce(
       (n, list) => n + list.length,
-      0,
+      0
     );
     expect(totalChildren).toBe(1);
     // No node is ever its own child.
@@ -129,23 +126,37 @@ describe("buildReportingTree — cycle breaking (finite tree)", () => {
   it("does not recurse infinitely when walking a fully cyclic set", () => {
     // A deliberately nasty shape: a long cycle. The builder must return.
     const members = Array.from({ length: 50 }, (_, i) =>
-      member({ id: `n${i}`, reportsToId: `n${(i + 1) % 50}` }),
+      member({ id: `n${i}`, reportsToId: `n${(i + 1) % 50}` })
     );
     // If cycle breaking failed this would hang; the test timeout would catch it.
     const { roots, childrenByParent } = buildReportingTree(members);
     const childCount = Array.from(childrenByParent.values()).reduce(
       (n, list) => n + list.length,
-      0,
+      0
     );
     expect(roots.length + childCount).toBe(50);
   });
 });
 
 describe("makeMemberComparator — children render in role order", () => {
-  const roles: CrewRole[] = [
+  const roles: CrewManagementRole[] = [
     { id: "r1", orgId: "o", name: "Captain", category: "Captains", sortOrder: 10, active: true },
-    { id: "r2", orgId: "o", name: "Chief Officer", category: "Officers", sortOrder: 20, active: true },
-    { id: "r3", orgId: "o", name: "Able Seaman", category: "Deck Crew", sortOrder: 30, active: true },
+    {
+      id: "r2",
+      orgId: "o",
+      name: "Chief Officer",
+      category: "Officers",
+      sortOrder: 20,
+      active: true,
+    },
+    {
+      id: "r3",
+      orgId: "o",
+      name: "Able Seaman",
+      category: "Deck Crew",
+      sortOrder: 30,
+      active: true,
+    },
   ];
   const sortMembers = makeMemberComparator(buildRoleLookup(roles).sortIndex);
 
@@ -181,7 +192,7 @@ describe("makeMemberComparator — children render in role order", () => {
 describe("CrewOrgChart wiring source-scan", () => {
   const src = readFileSync(
     resolve(process.cwd(), "client/src/components/UnifiedCrewManagement/CrewOrgChart.tsx"),
-    "utf8",
+    "utf8"
   );
 
   it("builds the tree and orders children through the extracted helpers", () => {

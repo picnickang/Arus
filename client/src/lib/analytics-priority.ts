@@ -82,7 +82,8 @@ export function generateEquipmentAlerts(equipmentHealth: EquipmentHealthInput[])
   return equipmentHealth
     .filter((eq) => eq.healthIndex < 50)
     .map((eq) => {
-      const severity: "critical" | "warning" | "info" = eq.healthIndex < 30 ? "critical" : "warning";
+      const severity: "critical" | "warning" | "info" =
+        eq.healthIndex < 30 ? "critical" : "warning";
       const estimatedDowntimeCost = eq.healthIndex < 30 ? 5000 : 2000;
 
       return {
@@ -207,7 +208,8 @@ export function generateMaintenanceAlerts(workOrders: WorkOrderInput[]): Priorit
       );
     })
     .map((order) => {
-      const severity: "critical" | "warning" | "info" = order.priority === 1 ? "critical" : "warning";
+      const severity: "critical" | "warning" | "info" =
+        order.priority === 1 ? "critical" : "warning";
       const estimatedCost = order.estimatedDowntimeHours
         ? order.estimatedDowntimeHours * 1000
         : 3000;

@@ -38,7 +38,9 @@ export class EventSpineWorker {
   constructor(private readonly opts: EventSpineWorkerOptions) {}
 
   start(): void {
-    if (this.running) {return;}
+    if (this.running) {
+      return;
+    }
     this.running = true;
     this.stopping = false;
     this.scheduleNext(0);
@@ -50,7 +52,9 @@ export class EventSpineWorker {
         });
       });
     }, reapEvery);
-    if (typeof this.reaperTimer.unref === "function") {this.reaperTimer.unref();}
+    if (typeof this.reaperTimer.unref === "function") {
+      this.reaperTimer.unref();
+    }
     logger.info("Event-spine worker started", {
       batchSize: this.opts.batchSize ?? 32,
       busyPollMs: this.opts.busyPollMs ?? 50,
@@ -73,7 +77,9 @@ export class EventSpineWorker {
   }
 
   private scheduleNext(delay: number): void {
-    if (this.stopping) {return;}
+    if (this.stopping) {
+      return;
+    }
     this.timer = setTimeout(() => {
       this.tick().catch((err) => {
         logger.warn("Worker tick threw", {
@@ -82,7 +88,9 @@ export class EventSpineWorker {
         this.scheduleNext(this.opts.idlePollMs ?? 500);
       });
     }, delay);
-    if (this.timer && typeof this.timer.unref === "function") {this.timer.unref();}
+    if (this.timer && typeof this.timer.unref === "function") {
+      this.timer.unref();
+    }
   }
 
   async tick(): Promise<number> {

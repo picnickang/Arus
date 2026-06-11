@@ -19,7 +19,11 @@ export class VesselRepositoryAdapter implements VesselRepositoryPort {
   create(data: InsertVessel) {
     return dbVesselStorage.createVessel(data);
   }
-  update(id: string, updates: import("../../../lib/widen-partial").WidenPartial<InsertVessel>, orgId?: string) {
+  update(
+    id: string,
+    updates: import("../../../lib/widen-partial").WidenPartial<InsertVessel>,
+    orgId?: string
+  ) {
     return dbVesselStorage.updateVessel(id, updates, orgId);
   }
   delete(id: string, orgId?: string) {

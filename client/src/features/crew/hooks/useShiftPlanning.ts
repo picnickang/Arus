@@ -272,7 +272,10 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     },
   });
 
-  const enhancedScheduleMutation = useCustomMutation<EnhancedSchedulePayload, EnhancedSchedulePlanResponse>({
+  const enhancedScheduleMutation = useCustomMutation<
+    EnhancedSchedulePayload,
+    EnhancedSchedulePlanResponse
+  >({
     mutationFn: async (data: EnhancedSchedulePayload) =>
       apiRequest("POST", "/api/crew/schedule/plan-enhanced", data),
     invalidateKeys: ["/api/crew/assignments"],
@@ -514,7 +517,9 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     updateShiftMutation,
     deleteShiftMutation,
     planScheduleMutation: planScheduleMutation as object as ReturnType<typeof useCustomMutation>,
-    enhancedScheduleMutation: enhancedScheduleMutation as object as ReturnType<typeof useCustomMutation>,
+    enhancedScheduleMutation: enhancedScheduleMutation as object as ReturnType<
+      typeof useCustomMutation
+    >,
     addPortCallMutation,
     addDrydockMutation,
     onSubmitShift,

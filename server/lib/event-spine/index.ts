@@ -45,7 +45,9 @@ export interface StartEventSpineOptions {
 let handle: EventSpineHandle | null = null as EventSpineHandle | null;
 
 function attachCdc(bridge: PgNotifyCdcBridge | PgWalCdcBridge): void {
-  if (handle) {handle.cdc = bridge;}
+  if (handle) {
+    handle.cdc = bridge;
+  }
 }
 
 /**
@@ -62,21 +64,23 @@ function attachCdc(bridge: PgNotifyCdcBridge | PgWalCdcBridge): void {
  *   EVENT_SPINE_BROKERS=...     → reserved for Kafka/Redpanda adapter (follow-up)
  */
 export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHandle | null {
-  if (process.env['EVENT_SPINE_DISABLED'] === "1") {
+  if (process.env["EVENT_SPINE_DISABLED"] === "1") {
     logger.info("Event spine disabled by EVENT_SPINE_DISABLED=1");
     return null;
   }
-  if (handle) {return handle;}
+  if (handle) {
+    return handle;
+  }
 
   const provided = opts.producer;
-  const brokers = process.env['EVENT_SPINE_BROKERS'];
+  const brokers = process.env["EVENT_SPINE_BROKERS"];
   let producer: EventSpineProducer | EventSpineFanout;
   if (provided) {
     producer = provided;
   } else if (brokers) {
-    const saslUser = process.env['EVENT_SPINE_SASL_USERNAME'];
-    const saslPass = process.env['EVENT_SPINE_SASL_PASSWORD'];
-    const saslMech = (process.env['EVENT_SPINE_SASL_MECHANISM'] ?? "plain") as
+    const saslUser = process.env["EVENT_SPINE_SASL_USERNAME"];
+    const saslPass = process.env["EVENT_SPINE_SASL_PASSWORD"];
+    const saslMech = (process.env["EVENT_SPINE_SASL_MECHANISM"] ?? "plain") as
       | "plain"
       | "scram-sha-256"
       | "scram-sha-512";
@@ -92,8 +96,8 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     }
     producer = new KafkaEventSpineProducer({
       brokers,
-      topicPrefix: process.env['EVENT_SPINE_TOPIC_PREFIX'] ?? "arus.",
-      clientId: process.env['EVENT_SPINE_CLIENT_ID'],
+      topicPrefix: process.env["EVENT_SPINE_TOPIC_PREFIX"] ?? "arus.",
+      clientId: process.env["EVENT_SPINE_CLIENT_ID"],
       sasl,
     });
     logger.info("Event spine producer = Kafka", { brokers });
@@ -102,12 +106,14 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
   }
   const fanout = "onMessage" in producer ? (producer as EventSpineFanout) : null;
 
-  const workerEnabled = opts.workerEnabled ?? process.env['EVENT_SPINE_WORKER'] !== "0";
+  const workerEnabled = opts.workerEnabled ?? process.env["EVENT_SPINE_WORKER"] !== "0";
   const analyticsEnabled =
-    opts.analyticsSinkEnabled ?? process.env['EVENT_SPINE_ANALYTICS'] !== "0";
+    opts.analyticsSinkEnabled ?? process.env["EVENT_SPINE_ANALYTICS"] !== "0";
   const bridgeEnabled = opts.bridgeEnabled ?? true;
 
-  if (bridgeEnabled) {initEventSpineOutboxBridge();}
+  if (bridgeEnabled) {
+    initEventSpineOutboxBridge();
+  }
 
   let analyticsSink: TelemetryAnalyticsSink | null = null;
   if (analyticsEnabled && fanout) {
@@ -129,18 +135,18 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
 
   let cdc: PgNotifyCdcBridge | PgWalCdcBridge | null = null;
   let cdcModeActive: "wal" | "notify" | "off" = "off";
-  const cdcEnabled = process.env['EVENT_SPINE_CDC'] === "1";
+  const cdcEnabled = process.env["EVENT_SPINE_CDC"] === "1";
   // Default to the WAL/logical-replication adapter (true rebuildable
   // CDC stream); fall back to trigger+NOTIFY only when explicitly asked
   // for via EVENT_SPINE_CDC_MODE=notify (e.g. managed PG without
   // REPLICATION privilege). Both adapters land into the same outbox so
   // downstream consumers are mode-agnostic.
-  const cdcMode = (process.env['EVENT_SPINE_CDC_MODE'] ?? "wal").toLowerCase();
+  const cdcMode = (process.env["EVENT_SPINE_CDC_MODE"] ?? "wal").toLowerCase();
   // Strict policy: with EVENT_SPINE_CDC_STRICT=1 a WAL-start failure is
   // treated as a hard error rather than auto-falling-back to NOTIFY.
   // Useful in environments where silent degradation would mask the
   // missing rebuildable-stream guarantee.
-  const cdcStrict = process.env['EVENT_SPINE_CDC_STRICT'] === "1";
+  const cdcStrict = process.env["EVENT_SPINE_CDC_STRICT"] === "1";
   if (cdcEnabled) {
     const tableDefs = [
       { table: "work_orders", eventTypePrefix: "cdc.work_order", aggregateType: "WorkOrder" },
@@ -149,7 +155,11 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
         eventTypePrefix: "cdc.maintenance",
         aggregateType: "MaintenanceSchedule",
       },
-      { table: "inventory_items", eventTypePrefix: "cdc.inventory", aggregateType: "InventoryItem" },
+      {
+        table: "inventory_items",
+        eventTypePrefix: "cdc.inventory",
+        aggregateType: "InventoryItem",
+      },
     ];
     const startNotify = async (): Promise<PgNotifyCdcBridge> => {
       const { pool } = await import("../../db.js");
@@ -163,13 +173,13 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     };
     void (async () => {
       try {
-        if (cdcMode === "wal" && process.env['DATABASE_URL']) {
+        if (cdcMode === "wal" && process.env["DATABASE_URL"]) {
           const walTables: WalCdcTableConfig[] = tableDefs;
           const bridge = new PgWalCdcBridge({
-            connectionString: process.env['DATABASE_URL'],
+            connectionString: process.env["DATABASE_URL"],
             tables: walTables,
-            slotName: process.env['EVENT_SPINE_CDC_SLOT'],
-            publicationName: process.env['EVENT_SPINE_CDC_PUBLICATION'],
+            slotName: process.env["EVENT_SPINE_CDC_SLOT"],
+            publicationName: process.env["EVENT_SPINE_CDC_PUBLICATION"],
           });
           try {
             await bridge.start();
@@ -215,9 +225,14 @@ export function startEventSpine(opts: StartEventSpineOptions = {}): EventSpineHa
     analyticsSink,
     cdc,
     async stop() {
-      if (cdc) {await cdc.stop().catch(() => {});}
-      if (worker) {await worker.stop();}
-      else {await producer.close().catch(() => {});}
+      if (cdc) {
+        await cdc.stop().catch(() => {});
+      }
+      if (worker) {
+        await worker.stop();
+      } else {
+        await producer.close().catch(() => {});
+      }
       handle = null;
     },
   };
@@ -245,7 +260,9 @@ export function getEventSpine(): EventSpineHandle | null {
 
 /** Test-only: tear down the singleton between tests. */
 export async function __resetEventSpineForTests(): Promise<void> {
-  if (handle) {await handle.stop();}
+  if (handle) {
+    await handle.stop();
+  }
   handle = null;
 }
 

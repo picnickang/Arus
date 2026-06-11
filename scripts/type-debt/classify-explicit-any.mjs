@@ -204,7 +204,9 @@ function readSourceLine(filePath, line) {
 
 function buildInventory() {
   if (!existsSync(LINT_PATH)) {
-    console.error(`Missing lint JSON at ${LINT_PATH}. Run: npx eslint . --format json -o ${LINT_PATH}`);
+    console.error(
+      `Missing lint JSON at ${LINT_PATH}. Run: npx eslint . --format json -o ${LINT_PATH}`
+    );
     process.exit(1);
   }
   const lintResults = JSON.parse(readFileSync(LINT_PATH, "utf8"));
@@ -321,7 +323,9 @@ function renderMarkdown(inventory) {
   lines.push(
     `- ~${fmtPct((redesign / t) * 100)} schema / generic redesign (dynamic JSON parses + legacy DTOs)`
   );
-  lines.push(`- ~${fmtPct((residual / t) * 100)} truly unsafe / residual (drives Phase 3 domain work)`);
+  lines.push(
+    `- ~${fmtPct((residual / t) * 100)} truly unsafe / residual (drives Phase 3 domain work)`
+  );
   lines.push("");
   lines.push("**Bucket totals:**");
   lines.push("");

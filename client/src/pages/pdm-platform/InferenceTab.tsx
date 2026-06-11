@@ -3,16 +3,9 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  CheckCircle2,
-  Wrench,
-} from "lucide-react";
+import { Loader2, Zap, TrendingUp, TrendingDown, Minus, CheckCircle2, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { riskLevelBadgeVariant } from "@/lib/status-colors";
 import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks/use-inference";
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
 import { EquipmentLink, TimestampBadge } from "./_shared";
@@ -47,9 +40,6 @@ export function InferenceTab() {
       toast({ title: "Inference failed", variant: "destructive" });
     }
   };
-
-  const riskColor = (level: string) =>
-    level === "critical" ? "destructive" : level === "high" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
@@ -109,7 +99,7 @@ export function InferenceTab() {
               <div className="p-3 rounded-lg border bg-muted/50">
                 <div className="text-xs text-muted-foreground">Risk Level</div>
                 <Badge
-                  variant={riskColor(lastResult.prediction.riskLevel)}
+                  variant={riskLevelBadgeVariant(lastResult.prediction.riskLevel)}
                   data-testid="text-risk-level"
                   className="mt-1"
                 >
@@ -141,16 +131,17 @@ export function InferenceTab() {
               </Button>
             </div>
 
-            {lastResult.prediction.recommendations && lastResult.prediction.recommendations.length > 0 && (
-              <div className="mt-4">
-                <div className="text-sm font-medium mb-2">Recommendations:</div>
-                <ul className="list-disc list-inside text-sm text-muted-foreground">
-                  {lastResult.prediction.recommendations.map((r, i: number) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {lastResult.prediction.recommendations &&
+              lastResult.prediction.recommendations.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-sm font-medium mb-2">Recommendations:</div>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground">
+                    {lastResult.prediction.recommendations.map((r, i: number) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </CardContent>
         </Card>
       )}

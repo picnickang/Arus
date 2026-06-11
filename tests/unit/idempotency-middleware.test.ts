@@ -106,14 +106,8 @@ describe("idempotencyMiddleware (WS1)", () => {
   it("accepts the key from body.clientMutationId", async () => {
     const { app, handler } = buildApp();
     const payload = { part: "seal", clientMutationId: "client-mutation:abc" };
-    await request(app)
-      .post("/api/work-orders/1/parts")
-      .set("x-org-id", "org-1")
-      .send(payload);
-    await request(app)
-      .post("/api/work-orders/1/parts")
-      .set("x-org-id", "org-1")
-      .send(payload);
+    await request(app).post("/api/work-orders/1/parts").set("x-org-id", "org-1").send(payload);
+    await request(app).post("/api/work-orders/1/parts").set("x-org-id", "org-1").send(payload);
     expect(handler).toHaveBeenCalledTimes(1);
   });
 

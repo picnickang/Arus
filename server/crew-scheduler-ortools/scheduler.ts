@@ -43,7 +43,9 @@ function scheduleWithORTools(
       preferences
     );
   } catch (error) {
-    logger.warn("Constraint scheduling failed, falling back to greedy scheduler:", { details: error instanceof Error ? error.message : String(error) });
+    logger.warn("Constraint scheduling failed, falling back to greedy scheduler:", {
+      details: error instanceof Error ? error.message : String(error),
+    });
     return scheduleWithGreedy(
       days,
       shifts,
@@ -79,7 +81,13 @@ function scheduleWithGreedy(
     certifications: certifications[crewMember.id] ?? [],
   }));
 
-  return greedyPlan(days, availableShifts, enhancedCrew as object as Parameters<typeof greedyPlan>[2], leaves, []);
+  return greedyPlan(
+    days,
+    availableShifts,
+    enhancedCrew as object as Parameters<typeof greedyPlan>[2],
+    leaves,
+    []
+  );
 }
 
 export function planWithEngine(request: ConstraintScheduleRequest): ScheduleResult {

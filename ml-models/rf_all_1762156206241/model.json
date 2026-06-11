@@ -1144,8 +1144,5 @@
     "maintenanceAge",
     "failureHistory"
   ],
-  "classLabels": [
-    "critical",
-    "healthy"
-  ]
+  "classLabels": ["critical", "healthy"]
 }

@@ -19,7 +19,9 @@ export class LocalDiskArtifactStorage implements ArtifactStoragePort {
   readonly backend: ArtifactBackend = "local";
 
   private resolveLocal(key: string): string {
-    if (path.isAbsolute(key)) {return key;}
+    if (path.isAbsolute(key)) {
+      return key;
+    }
     return path.resolve(process.cwd(), key);
   }
 

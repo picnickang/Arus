@@ -167,17 +167,15 @@ function main() {
         "Monotonic-decrease ratchet for duplicate exported type names. Counts may only decrease unless --update is run. The HARD_GATE_TARGETS list in scripts/check-duplicate-domain-types.mjs (mirrored here as `hardGateTargets`) records the canonical names whose count MUST reach 1 by the end of the type-debt burndown (tasks #163–#167).",
       generatedAt: new Date().toISOString(),
       hardGateTargets: targets,
-      counts: Object.fromEntries(
-        Object.entries(trackedNow).sort(([a], [b]) => a.localeCompare(b)),
-      ),
+      counts: Object.fromEntries(Object.entries(trackedNow).sort(([a], [b]) => a.localeCompare(b))),
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(next, null, 2) + "\n");
     console.log(
-      `[check-dup-types] baseline updated: ${Object.keys(next.counts).length} tracked entries (${hardGateViolations.length} hard-gate violations)`,
+      `[check-dup-types] baseline updated: ${Object.keys(next.counts).length} tracked entries (${hardGateViolations.length} hard-gate violations)`
     );
     if (hardGateViolations.length) {
       console.error(
-        `[check-dup-types] WARNING: --update wrote a baseline while ${hardGateViolations.length} hard-gate canonical(s) still have count != 1. The next non-update run will fail.`,
+        `[check-dup-types] WARNING: --update wrote a baseline while ${hardGateViolations.length} hard-gate canonical(s) still have count != 1. The next non-update run will fail.`
       );
     }
     return;
@@ -192,8 +190,8 @@ function main() {
           duplicateCount: Object.keys(duplicates).length,
         },
         null,
-        2,
-      ),
+        2
+      )
     );
   }
 
@@ -203,7 +201,7 @@ function main() {
     failed = true;
     console.error("");
     console.error(
-      "HARD-GATE FAILURE: each canonical domain entity MUST resolve to exactly one definition.",
+      "HARD-GATE FAILURE: each canonical domain entity MUST resolve to exactly one definition."
     );
     for (const v of hardGateViolations) {
       console.error(`  ${v.name} (${v.count} definitions):`);
@@ -211,7 +209,7 @@ function main() {
     }
     console.error("");
     console.error(
-      'Designate a single canonical (drizzle $inferSelect in shared/schema/* preferred) and convert every other declaration to a rename (`export interface XListItem { … }`) or a re-export (`export { type SelectX as X } from "@shared/schema"`). The re-export form is not matched by the duplicate-types regex.',
+      'Designate a single canonical (drizzle $inferSelect in shared/schema/* preferred) and convert every other declaration to a rename (`export interface XListItem { … }`) or a re-export (`export { type SelectX as X } from "@shared/schema"`). The re-export form is not matched by the duplicate-types regex.'
     );
   }
 
@@ -219,7 +217,7 @@ function main() {
     failed = true;
     console.error("");
     console.error(
-      "RATCHET REGRESSION: duplicate-type count exceeds baseline for the following names.",
+      "RATCHET REGRESSION: duplicate-type count exceeds baseline for the following names."
     );
     for (const r of ratchetRegressions) {
       console.error(`  ${r.name}: baseline=${r.baseline}, current=${r.current}`);
@@ -227,7 +225,7 @@ function main() {
     }
     console.error("");
     console.error(
-      "Either consolidate (preferred) or, if you legitimately removed duplicates elsewhere, run with --update to refresh the baseline downward.",
+      "Either consolidate (preferred) or, if you legitimately removed duplicates elsewhere, run with --update to refresh the baseline downward."
     );
   }
 
@@ -237,7 +235,7 @@ function main() {
     const tracked = Object.keys(trackedNow).length;
     const targets = HARD_GATE_TARGETS.size;
     console.log(
-      `[check-dup-types] OK — ${targets}/${targets} hard-gate canonicals at exactly 1 definition; ${tracked} tracked duplicates within baseline.`,
+      `[check-dup-types] OK — ${targets}/${targets} hard-gate canonicals at exactly 1 definition; ${tracked} tracked duplicates within baseline.`
     );
   }
 }

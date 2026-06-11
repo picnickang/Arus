@@ -181,7 +181,9 @@ function redactSensitiveData(obj: unknown, sensitiveFields: string[]): unknown {
 function getClientIP(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
-    return Array.isArray(forwarded) ? (forwarded[0] ?? "unknown") : (forwarded.split(",")[0] ?? "").trim();
+    return Array.isArray(forwarded)
+      ? (forwarded[0] ?? "unknown")
+      : (forwarded.split(",")[0] ?? "").trim();
   }
   return req.ip || req.socket.remoteAddress || "unknown";
 }
@@ -219,9 +221,12 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
     const { entityType, entityId } = parseEntityFromPath(path);
 
     // Extract user information
-    const userId = (req.headers["x-user-id"] as string) || authenticatedRequest(req).user?.id || "anonymous";
+    const userId =
+      (req.headers["x-user-id"] as string) || authenticatedRequest(req).user?.id || "anonymous";
     const userName =
-      (req.headers["x-user-name"] as string) || authenticatedRequest(req).user?.name || "Anonymous User";
+      (req.headers["x-user-name"] as string) ||
+      authenticatedRequest(req).user?.name ||
+      "Anonymous User";
 
     // Get request metadata
     const requestId =
@@ -269,7 +274,9 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
             (responseBody as { data?: { id?: string } } | undefined)?.data?.id ||
             "new",
           newState: requestBody as Record<string, unknown> | undefined,
-          changedFields: requestBody ? Object.keys(requestBody as Record<string, unknown>) : undefined,
+          changedFields: requestBody
+            ? Object.keys(requestBody as Record<string, unknown>)
+            : undefined,
           performedBy: userId,
           performedByType: "user",
           performedByName: userName,
@@ -285,7 +292,9 @@ export function createAuditMiddleware(customConfig?: Partial<AuditMiddlewareConf
           },
         });
 
-        logger.info(`[Audit] ${req.method} ${path} -> ${res.statusCode} (${duration}ms) [${orgId}/${userId}]`);
+        logger.info(
+          `[Audit] ${req.method} ${path} -> ${res.statusCode} (${duration}ms) [${orgId}/${userId}]`
+        );
       } catch (error) {
         // Log error but don't fail the request
         logger.error("[Audit] Failed to log audit event:", undefined, error);
@@ -318,7 +327,7 @@ export function sensitiveOperationAudit(entityType: string) {
       eventCategory: "security_event",
       eventType: getEventType(req.method),
       entityType,
-      entityId: req.params['id'] || "unknown",
+      entityId: req.params["id"] || "unknown",
       newState: redactSensitiveData(req.body, config.sensitiveFields) as
         | Record<string, unknown>
         | undefined,

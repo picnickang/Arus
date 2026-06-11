@@ -76,7 +76,7 @@ const EMPTY_ARRAY = (route: Route) =>
  */
 async function stubCrewApis(
   page: Page,
-  onCertExpiring?: (route: Route) => Promise<void> | void,
+  onCertExpiring?: (route: Route) => Promise<void> | void
 ): Promise<void> {
   // Order matters: Playwright checks the most recently registered route first,
   // so register the broad `/api/crew*` glob BEFORE the narrower globs.
@@ -99,7 +99,7 @@ async function stubCrewApis(
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ documents: [] }),
-    }),
+    })
   );
   await page.route("**/api/crew-certifications/expiring*", async (route: Route) => {
     // The alert-log feed (daysAhead=365) can be held by a test; the landing's
@@ -114,7 +114,7 @@ async function stubCrewApis(
     });
   });
   await page.route("**/api/permissions/me*", (route: Route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: permissionsBody() }),
+    route.fulfill({ status: 200, contentType: "application/json", body: permissionsBody() })
   );
 }
 
@@ -181,7 +181,9 @@ test.describe("Crew profile + Add/Edit wizard", () => {
     await expect(page.getByText("On leave")).toBeVisible();
   });
 
-  test("alert log does not flash 'No active alerts' while certifications load", async ({ page }) => {
+  test("alert log does not flash 'No active alerts' while certifications load", async ({
+    page,
+  }) => {
     let releaseCert: () => void = () => {};
     const certHeld = new Promise<void>((resolve) => {
       releaseCert = resolve;

@@ -8,7 +8,7 @@ const { Pool } = pg;
 import { isLocalMode } from "../db-config.js";
 import type { DatabaseHealth } from "./types.js";
 
-const DATABASE_URL = process.env['DATABASE_URL'];
+const DATABASE_URL = process.env["DATABASE_URL"];
 
 export async function getDatabaseHealth(): Promise<DatabaseHealth> {
   if (isLocalMode || !DATABASE_URL) {

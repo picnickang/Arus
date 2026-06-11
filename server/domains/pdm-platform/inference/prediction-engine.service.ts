@@ -63,7 +63,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         status: "running",
       })
       .returning();
-    if (!run) {throw new Error("predictionEngine: inferenceRuns insert returned no row");}
+    if (!run) {
+      throw new Error("predictionEngine: inferenceRuns insert returned no row");
+    }
 
     try {
       const features = await this.fetchLatestFeatures(orgId, equipmentId);
@@ -85,7 +87,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           failureProbability: prediction.failureProbability,
           remainingUsefulLife: prediction.remainingUsefulLife,
           riskLevel: prediction.riskLevel,
-          predictedFailureDate: new Date(Date.now() + prediction.remainingUsefulLife * 24 * 60 * 60 * 1000),
+          predictedFailureDate: new Date(
+            Date.now() + prediction.remainingUsefulLife * 24 * 60 * 60 * 1000
+          ),
           maintenanceRecommendations: recommendations,
           inputFeatures: features
             ? {
@@ -101,7 +105,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           featureSnapshotId: features?.id ?? null,
         })
         .returning();
-      if (!predictionRecord) {throw new Error("predictionEngine: failurePredictions insert returned no row");}
+      if (!predictionRecord) {
+        throw new Error("predictionEngine: failurePredictions insert returned no row");
+      }
 
       const explanationRows = await this.generateExplanations(
         predictionRecord.id,
@@ -125,7 +131,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         })
         .where(eq(inferenceRuns.id, run.id))
         .returning();
-      if (!updatedRun) {throw new Error("predictionEngine: inferenceRuns update returned no row");}
+      if (!updatedRun) {
+        throw new Error("predictionEngine: inferenceRuns update returned no row");
+      }
 
       logger.info("[PredictionEngine] Inference completed", undefined, {
         orgId,
@@ -144,8 +152,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           recommendations,
           method: prediction.method ?? "heuristic-baseline",
           caveat:
-            prediction.caveat ??
-            "Baseline deterministic risk scoring; not a trained PdM model.",
+            prediction.caveat ?? "Baseline deterministic risk scoring; not a trained PdM model.",
         },
         explanations: explanationRows,
       };
@@ -293,7 +300,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
         )
         .orderBy(desc(mlModels.deployedOn))
         .limit(1);
-      if (deployed?.id) {return deployed.id;}
+      if (deployed?.id) {
+        return deployed.id;
+      }
     }
     const [anyDeployed] = await db
       .select({ id: mlModels.id })
@@ -340,13 +349,14 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       remainingUsefulLife,
       riskLevel,
       method: prediction.method ?? "heuristic-baseline",
-      caveat:
-        prediction.caveat ??
-        "Baseline deterministic risk scoring; not a trained PdM model.",
+      caveat: prediction.caveat ?? "Baseline deterministic risk scoring; not a trained PdM model.",
     };
   }
 
-  private generateRecommendations(failureProbability: number, features: FeatureVector | null): string[] {
+  private generateRecommendations(
+    failureProbability: number,
+    features: FeatureVector | null
+  ): string[] {
     const recs: string[] = [];
     if (failureProbability > 0.5) {
       recs.push("Schedule preventive maintenance within 2 weeks");
@@ -391,16 +401,22 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     }
     const featureMap: Record<string, number> = {};
     for (const [k, v] of Object.entries(features)) {
-      if (typeof v === "number" && Number.isFinite(v)) {featureMap[k] = v;}
+      if (typeof v === "number" && Number.isFinite(v)) {
+        featureMap[k] = v;
+      }
     }
-    if (Object.keys(featureMap).length === 0) {return [];}
+    if (Object.keys(featureMap).length === 0) {
+      return [];
+    }
 
     // Prefer real TreeSHAP via the Python sidecar when enabled and the
     // deployed model is an xgboost tree ensemble. Falls back silently
     // to the TS permutation-importance path on any failure.
     if (orgId && modelVersionId) {
       try {
-        const { isPythonShapEnabled, shapAttribute } = await import("../../../ml-explainability-python-shap");
+        const { isPythonShapEnabled, shapAttribute } = await import(
+          "../../../ml-explainability-python-shap"
+        );
         if (isPythonShapEnabled()) {
           const shap = await shapAttribute(modelVersionId, orgId, featureMap);
           if (shap && Object.keys(shap.shapValues).length > 0) {

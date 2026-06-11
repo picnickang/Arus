@@ -13,7 +13,7 @@ const organizationsSqlite = sqliteTable("organizations", {
   emergencyPartsMultiplier: real("emergency_parts_multiplier").default(1.5),
   emergencyDowntimeMultiplier: integer("emergency_downtime_multiplier").default(3),
   createdAt: integer("created_at", { mode: "timestamp" }),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 const syncJournalSqlite = sqliteTable("sync_journal", {
   id: text("id").primaryKey(),
@@ -24,7 +24,7 @@ const syncJournalSqlite = sqliteTable("sync_journal", {
   // JSON stored as text
   userId: text("user_id"),
   syncStatus: text("sync_status").default("pending"),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at", { mode: "timestamp" }),
 });
 const syncOutboxSqlite = sqliteTable("sync_outbox", {
   id: text("id").primaryKey(),
@@ -34,7 +34,7 @@ const syncOutboxSqlite = sqliteTable("sync_outbox", {
   processed: integer("processed", { mode: "boolean" }).default(false),
   processingAttempts: integer("processing_attempts").default(0),
   createdAt: integer("created_at", { mode: "timestamp" }),
-  processedAt: integer("processed_at", { mode: "timestamp" })
+  processedAt: integer("processed_at", { mode: "timestamp" }),
 });
 const usersSqlite = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -45,11 +45,11 @@ const usersSqlite = sqliteTable("users", {
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 const sqliteJsonHelpers = {
   // Convert object to JSON string for storage
-  stringify: (obj) => obj ? JSON.stringify(obj) : null,
+  stringify: (obj) => (obj ? JSON.stringify(obj) : null),
   // Parse JSON string from storage
   parse: (str) => {
     if (!str) return null;
@@ -58,12 +58,6 @@ const sqliteJsonHelpers = {
     } catch {
       return null;
     }
-  }
+  },
 };
-export {
-  organizationsSqlite,
-  sqliteJsonHelpers,
-  syncJournalSqlite,
-  syncOutboxSqlite,
-  usersSqlite
-};
+export { organizationsSqlite, sqliteJsonHelpers, syncJournalSqlite, syncOutboxSqlite, usersSqlite };

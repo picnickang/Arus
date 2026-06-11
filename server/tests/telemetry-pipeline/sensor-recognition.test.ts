@@ -149,7 +149,7 @@ describe("Sensor Recognition - All Sensor Types", () => {
         if (expectedUnit) {
           expect(readings[0].unit).toBe(expectedUnit);
         }
-        expect(readings[0].metadata?.pgn).toBeDefined();
+        expect(readings[0].metadata?.["pgn"]).toBeDefined();
       }
     );
 
@@ -170,7 +170,7 @@ describe("Sensor Recognition - All Sensor Types", () => {
       readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
         expect(r.equipmentId).toBe(TEST_EQUIPMENT_ID);
-        expect(r.metadata?.idempotencyKey).toBeDefined();
+        expect(r.metadata?.["idempotencyKey"]).toBeDefined();
       });
     });
   });
@@ -293,8 +293,8 @@ describe("Sensor Recognition - All Sensor Types", () => {
         expect(readings.length).toBe(1);
         expect(readings[0].sensorType).toBe(expectedSensorType);
         expect(readings[0].value).toBeCloseTo(expectedValue, -Math.log10(tolerance));
-        expect(readings[0].metadata?.protocol).toBe("J1587");
-        expect(readings[0].metadata?.pid).toBe(expectedPid);
+        expect(readings[0].metadata?.["protocol"]).toBe("J1587");
+        expect(readings[0].metadata?.["pid"]).toBe(expectedPid);
         if (expectedUnit) {
           expect(readings[0].unit).toBe(expectedUnit);
         }
@@ -317,8 +317,8 @@ describe("Sensor Recognition - All Sensor Types", () => {
 
       readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
-        expect(r.metadata?.protocol).toBe("J1587");
-        expect(r.metadata?.idempotencyKey).toBeDefined();
+        expect(r.metadata?.["protocol"]).toBe("J1587");
+        expect(r.metadata?.["idempotencyKey"]).toBeDefined();
       });
     });
   });
@@ -350,8 +350,8 @@ describe("Sensor Recognition - All Sensor Types", () => {
 
       expect(readings.length).toBe(6);
 
-      const j1939Readings = readings.filter((r) => r.metadata?.pgn !== undefined);
-      const j1587Readings = readings.filter((r) => r.metadata?.protocol === "J1587");
+      const j1939Readings = readings.filter((r) => r.metadata?.["pgn"] !== undefined);
+      const j1587Readings = readings.filter((r) => r.metadata?.["protocol"] === "J1587");
 
       expect(j1939Readings.length).toBe(3);
       expect(j1587Readings.length).toBe(3);

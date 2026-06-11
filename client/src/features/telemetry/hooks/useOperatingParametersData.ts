@@ -4,10 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
-import {
-  OperatingParameter,
-  InsertOperatingParameter,
-} from "@shared/schema";
+import { OperatingParameter, InsertOperatingParameter } from "@shared/schema";
 import { z } from "zod";
 
 export const equipmentTypes = [
@@ -149,8 +146,7 @@ export function useOperatingParametersData() {
     { id: string; data: Partial<InsertOperatingParameter> },
     void
   >({
-    mutationFn: ({ id, data }) =>
-      apiRequest("PUT", `/api/operating-parameters/${id}`, data),
+    mutationFn: ({ id, data }) => apiRequest("PUT", `/api/operating-parameters/${id}`, data),
     invalidateKeys: ["/api/operating-parameters"],
     successMessage: "Operating parameter updated successfully",
     onSuccess: () => {
@@ -160,8 +156,7 @@ export function useOperatingParametersData() {
     },
   });
   const deleteMutation = useCustomMutation<string, void>({
-    mutationFn: (id: string) =>
-      apiRequest("DELETE", `/api/operating-parameters/${id}`),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/operating-parameters/${id}`),
     invalidateKeys: ["/api/operating-parameters"],
     successMessage: "Operating parameter deleted successfully",
     onSuccess: () => {

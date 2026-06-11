@@ -52,7 +52,9 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     .limit(4);
 
   if (vesselEquipment.length < 4) {
-    logger.info(`[SeedPdM] Only ${vesselEquipment.length} equipment on vessel. Creating test equipment...`);
+    logger.info(
+      `[SeedPdM] Only ${vesselEquipment.length} equipment on vessel. Creating test equipment...`
+    );
 
     const needed = 4 - vesselEquipment.length;
     const testEquipmentTypes = ["Pump", "Generator", "Engine", "Compressor"];
@@ -61,7 +63,9 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
       const eqId = uuid();
       const eqType = testEquipmentTypes[(vesselEquipment.length + i) % testEquipmentTypes.length];
       try {
-        await (db.insert(equipment).values as object as (v: Record<string, unknown>) => Promise<unknown>)({
+        await (
+          db.insert(equipment).values as object as (v: Record<string, unknown>) => Promise<unknown>
+        )({
           id: eqId,
           orgId: DEFAULT_ORG_ID,
           vesselId: testVesselId,
@@ -98,7 +102,9 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
     return;
   }
 
-  logger.info(`[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`);
+  logger.info(
+    `[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`
+  );
 
   const testCases = [
     {
@@ -175,7 +181,9 @@ export async function seedPdMTestCases(options: SeedOptions = {}) {
   logger.info("\n[SeedPdM] Completed seeding test cases");
   logger.info("\n=== Expected Results ===");
   logger.info("Case A: SCHEDULED (failureProb=0.25 -> confidence=75%, good RUL window)");
-  logger.info("Case B: BLOCKED scheduling_conflict (failureProb=0.40 -> confidence=60%, P10=6 > P90=3)");
+  logger.info(
+    "Case B: BLOCKED scheduling_conflict (failureProb=0.40 -> confidence=60%, P10=6 > P90=3)"
+  );
   logger.info("Case C1: SCHEDULED (failureProb=0.35 -> confidence=65%, first on vessel)");
   logger.info("Case C2: BLOCKED capacity (failureProb=0.40 -> confidence=60%, same vessel/date)");
   logger.info("Case D: BLOCKED insufficient_confidence (failureProb=0.75 -> confidence=25% < 50%)");

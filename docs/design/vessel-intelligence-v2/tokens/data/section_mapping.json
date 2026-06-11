@@ -35,11 +35,7 @@
         "x": 0.1508,
         "y": 0.7619
       },
-      "equipment": [
-        "Stern Thruster",
-        "Propeller Shaft",
-        "Rudder Gear"
-      ],
+      "equipment": ["Stern Thruster", "Propeller Shaft", "Rudder Gear"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -69,11 +65,7 @@
         "x": 0.2793,
         "y": 0.7619
       },
-      "equipment": [
-        "Steering Gear",
-        "Hydraulic Pack",
-        "Aft Bilge Pump"
-      ],
+      "equipment": ["Steering Gear", "Hydraulic Pack", "Aft Bilge Pump"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -142,12 +134,7 @@
         "x": 0.6391,
         "y": 0.7619
       },
-      "equipment": [
-        "Aux Generator 1",
-        "Aux Generator 2",
-        "Main Switchboard",
-        "Battery Charger"
-      ],
+      "equipment": ["Aux Generator 1", "Aux Generator 2", "Main Switchboard", "Battery Charger"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -177,13 +164,7 @@
         "x": 0.7877,
         "y": 0.7619
       },
-      "equipment": [
-        "Fuel Transfer Pumps",
-        "Fuel Tanks",
-        "Lube Oil Pumps",
-        "Coolers",
-        "Separators"
-      ],
+      "equipment": ["Fuel Transfer Pumps", "Fuel Tanks", "Lube Oil Pumps", "Coolers", "Separators"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -213,12 +194,7 @@
         "x": 0.6257,
         "y": 0.5619
       },
-      "equipment": [
-        "Deck Crane",
-        "Hydraulic Winch",
-        "Capstan",
-        "Crane HPU"
-      ],
+      "equipment": ["Deck Crane", "Hydraulic Winch", "Capstan", "Crane HPU"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -248,12 +224,7 @@
         "x": 0.2905,
         "y": 0.5357
       },
-      "equipment": [
-        "Cargo Deck",
-        "Deck Sockets",
-        "Tie-down Points",
-        "Cargo Rails"
-      ],
+      "equipment": ["Cargo Deck", "Deck Sockets", "Tie-down Points", "Cargo Rails"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -283,13 +254,7 @@
         "x": 0.8101,
         "y": 0.4286
       },
-      "equipment": [
-        "Bridge",
-        "Accommodation",
-        "Galley",
-        "HVAC",
-        "Control Room"
-      ],
+      "equipment": ["Bridge", "Accommodation", "Galley", "HVAC", "Control Room"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -319,13 +284,7 @@
         "x": 0.8156,
         "y": 0.119
       },
-      "equipment": [
-        "Radar Mast",
-        "AIS",
-        "GPS",
-        "VHF",
-        "Satellite Comms"
-      ],
+      "equipment": ["Radar Mast", "AIS", "GPS", "VHF", "Satellite Comms"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     },
     {
@@ -355,12 +314,7 @@
         "x": 0.9363,
         "y": 0.619
       },
-      "equipment": [
-        "Bow Thruster",
-        "Anchor Windlass",
-        "Forward Bilge",
-        "Fire Pump"
-      ],
+      "equipment": ["Bow Thruster", "Anchor Windlass", "Forward Bilge", "Fire Pump"],
       "thumbnailFallback": "manual -> crop_from_diagram -> generated_placeholder -> section_icon"
     }
   ]

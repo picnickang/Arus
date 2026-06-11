@@ -92,7 +92,8 @@ export class WorkOrderWorkflowService {
           .filter(Boolean)
           .join("\n")
       : undefined;
-    const structuredCompletionNotes = [completionNotes, closeoutNotes].filter(Boolean).join("\n\n") || undefined;
+    const structuredCompletionNotes =
+      [completionNotes, closeoutNotes].filter(Boolean).join("\n\n") || undefined;
     const laborHours = typeof closeout?.laborHours === "number" ? closeout.laborHours : actualHours;
     const downtimeHours =
       typeof closeout?.downtimeHours === "number"
@@ -121,7 +122,11 @@ export class WorkOrderWorkflowService {
         userId
       );
     } catch (err) {
-      logger.error(`[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
+      logger.error(
+        `[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`,
+        undefined,
+        err instanceof Error ? err.message : "unknown"
+      );
       return {
         workOrderId,
         completed: false,
@@ -141,7 +146,12 @@ export class WorkOrderWorkflowService {
     // Task #80 — capture a failure_history row when the closeout
     // carries a cause. Best-effort: the port itself swallows errors
     // so a graph/db issue here cannot fail the completion.
-    if (this.failureHistory && closeout?.causeFound && closeout.causeFound.trim() && wo.equipmentId) {
+    if (
+      this.failureHistory &&
+      closeout?.causeFound &&
+      closeout.causeFound.trim() &&
+      wo.equipmentId
+    ) {
       await this.failureHistory.recordFailure({
         workOrderId,
         orgId,
@@ -156,7 +166,11 @@ export class WorkOrderWorkflowService {
     try {
       await this.legacyCompletion.aggregateProcurementCosts(workOrderId, orgId);
     } catch (err) {
-      logger.error(`[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
+      logger.error(
+        `[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`,
+        undefined,
+        err instanceof Error ? err.message : "unknown"
+      );
     }
 
     let feedbackRecorded = false;
@@ -165,7 +179,11 @@ export class WorkOrderWorkflowService {
         await this.predictionFeedback.recordFeedback(feedback, orgId, userId);
         feedbackRecorded = true;
       } catch (err) {
-        logger.error(`[WOWorkflow] Failed to record prediction feedback for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
+        logger.error(
+          `[WOWorkflow] Failed to record prediction feedback for WO ${workOrderId}:`,
+          undefined,
+          err instanceof Error ? err.message : "unknown"
+        );
       }
     }
 
@@ -188,7 +206,11 @@ export class WorkOrderWorkflowService {
         savingsValidationStatus = mapOutcomeToValidation(feedback?.outcome ?? "confirmed");
       }
     } catch (err) {
-      logger.error(`[WOWorkflow] Savings calculation failed for WO ${workOrderId}:`, undefined, err instanceof Error ? err.message : "unknown");
+      logger.error(
+        `[WOWorkflow] Savings calculation failed for WO ${workOrderId}:`,
+        undefined,
+        err instanceof Error ? err.message : "unknown"
+      );
     }
 
     return {
@@ -233,7 +255,9 @@ export class WorkOrderWorkflowService {
     );
 
     if (voided > 0) {
-      logger.info(`[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`);
+      logger.info(
+        `[WOWorkflow] Voided ${voided} savings record(s) for cancelled WO ${workOrderId}`
+      );
     }
 
     return { cancelled: true, savingsVoided: voided };

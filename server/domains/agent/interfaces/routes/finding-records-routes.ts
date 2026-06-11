@@ -70,14 +70,20 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         if (q.status && (FINDING_STATUSES as readonly string[]).includes(q.status)) {
           filter.status = q.status as AgentFindingFilter["status"];
         }
-        if (q.taskId) {filter.taskId = q.taskId;}
-        if (q.equipmentId) {filter.equipmentId = q.equipmentId;}
+        if (q.taskId) {
+          filter.taskId = q.taskId;
+        }
+        if (q.equipmentId) {
+          filter.equipmentId = q.equipmentId;
+        }
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const findings = await findingService.list(orgId, filter);
         return res.json(findings);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -98,7 +104,9 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         const finding = await findingService.create({ ...parsed.data, orgId });
         return res.status(201).json(finding);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -117,7 +125,9 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         }
         return res.json(finding);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -133,13 +143,13 @@ export function registerFindingRecordsRoutes(app: Express, deps: FindingRecordsR
         const { status, severity, recommendedAction } = updateSchema.parse(req.body);
         const updateData: Record<string, unknown> = {};
         if (status && (FINDING_STATUSES as readonly string[]).includes(status)) {
-          updateData['status'] = status;
+          updateData["status"] = status;
         }
         if (severity && (FINDING_SEVERITIES as readonly string[]).includes(severity)) {
-          updateData['severity'] = severity;
+          updateData["severity"] = severity;
         }
         if (recommendedAction !== undefined) {
-          updateData['recommendedAction'] = recommendedAction;
+          updateData["recommendedAction"] = recommendedAction;
         }
         const finding = await findingService.update(id, orgId, updateData);
         return res.json(finding);

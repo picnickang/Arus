@@ -26,10 +26,10 @@ const vesselsSqlite = sqliteTable(
     lastDailyUpdateDate: text("last_daily_update_date"),
     commissionDate: integer("commission_date", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_vessels_org").on(table.orgId)
+    orgIdx: index("idx_vessels_org").on(table.orgId),
   })
 );
 const equipmentSqlite = sqliteTable(
@@ -63,11 +63,11 @@ const equipmentSqlite = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }),
     version: integer("version").default(1),
     lastModifiedBy: text("last_modified_by"),
-    lastModifiedDevice: text("last_modified_device")
+    lastModifiedDevice: text("last_modified_device"),
   },
   (table) => ({
     orgIdx: index("idx_equipment_org").on(table.orgId),
-    vesselIdx: index("idx_equipment_vessel").on(table.vesselId)
+    vesselIdx: index("idx_equipment_vessel").on(table.vesselId),
   })
 );
 const devicesSqlite = sqliteTable(
@@ -86,11 +86,11 @@ const devicesSqlite = sqliteTable(
     j1939Config: text("j1939_config"),
     // jsonb → text
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_devices_org").on(table.orgId),
-    equipmentIdx: index("idx_devices_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_devices_equipment").on(table.equipmentId),
   })
 );
 const equipmentTelemetrySqlite = sqliteTable(
@@ -104,13 +104,13 @@ const equipmentTelemetrySqlite = sqliteTable(
     value: real("value").notNull(),
     unit: text("unit").notNull(),
     threshold: real("threshold"),
-    status: text("status").notNull().default("normal")
+    status: text("status").notNull().default("normal"),
   },
   (table) => ({
     orgIdx: index("idx_telemetry_org").on(table.orgId),
     equipmentTsIdx: index("idx_telemetry_equipment_ts").on(table.equipmentId, table.ts),
     sensorTsIdx: index("idx_telemetry_sensor_ts").on(table.sensorType, table.ts),
-    statusIdx: index("idx_telemetry_status").on(table.status)
+    statusIdx: index("idx_telemetry_status").on(table.status),
   })
 );
 const downtimeEventsSqlite = sqliteTable(
@@ -133,14 +133,14 @@ const downtimeEventsSqlite = sqliteTable(
     preventable: integer("preventable", { mode: "boolean" }),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_downtime_org").on(table.orgId),
     workOrderIdx: index("idx_downtime_work_order").on(table.workOrderId),
     equipmentIdx: index("idx_downtime_equipment").on(table.equipmentId),
     vesselIdx: index("idx_downtime_vessel").on(table.vesselId),
-    timeIdx: index("idx_downtime_time").on(table.startTime)
+    timeIdx: index("idx_downtime_time").on(table.startTime),
   })
 );
 const workOrdersSqlite = sqliteTable(
@@ -194,14 +194,14 @@ const workOrdersSqlite = sqliteTable(
     // Optimistic locking
     version: integer("version").default(1),
     lastModifiedBy: text("last_modified_by"),
-    lastModifiedDevice: text("last_modified_device")
+    lastModifiedDevice: text("last_modified_device"),
   },
   (table) => ({
     orgIdx: index("idx_wo_org").on(table.orgId),
     equipmentStatusIdx: index("idx_wo_equipment_status").on(table.equipmentId, table.status),
     vesselIdx: index("idx_wo_vessel").on(table.vesselId),
     scheduleIdx: index("idx_wo_schedule").on(table.scheduleId),
-    statusIdx: index("idx_wo_status").on(table.status)
+    statusIdx: index("idx_wo_status").on(table.status),
   })
 );
 const workOrderCompletionsSqlite = sqliteTable(
@@ -251,14 +251,14 @@ const workOrderCompletionsSqlite = sqliteTable(
     onTimeCompletion: integer("on_time_completion", { mode: "boolean" }),
     durationVariancePercent: real("duration_variance_percent"),
     costVariancePercent: real("cost_variance_percent"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_woc_org").on(table.orgId),
     completedAtIdx: index("idx_woc_completed_at").on(table.completedAt),
     equipmentIdx: index("idx_woc_equipment").on(table.equipmentId),
     vesselIdx: index("idx_woc_vessel").on(table.vesselId),
-    workOrderIdx: index("idx_woc_work_order").on(table.workOrderId)
+    workOrderIdx: index("idx_woc_work_order").on(table.workOrderId),
   })
 );
 const workOrderPartsSqlite = sqliteTable(
@@ -281,11 +281,11 @@ const workOrderPartsSqlite = sqliteTable(
     actualCost: real("actual_cost"),
     deliveryStatus: text("delivery_status").default("pending"),
     inventoryMovementId: text("inventory_movement_id"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     workOrderIdx: index("idx_wop_work_order").on(table.workOrderId),
-    partIdx: index("idx_wop_part").on(table.partId)
+    partIdx: index("idx_wop_part").on(table.partId),
   })
 );
 const maintenanceSchedulesSqlite = sqliteTable(
@@ -306,13 +306,13 @@ const maintenanceSchedulesSqlite = sqliteTable(
     autoGenerated: integer("auto_generated", { mode: "boolean" }).default(false),
     workOrderId: text("work_order_id"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentIdx: index("idx_ms_equipment").on(table.equipmentId),
     vesselIdx: index("idx_ms_vessel").on(table.vesselId),
     scheduledDateIdx: index("idx_ms_scheduled_date").on(table.scheduledDate),
-    statusIdx: index("idx_ms_status").on(table.status)
+    statusIdx: index("idx_ms_status").on(table.status),
   })
 );
 const maintenanceRecordsSqlite = sqliteTable(
@@ -334,11 +334,11 @@ const maintenanceRecordsSqlite = sqliteTable(
     downtimeMinutes: integer("downtime_minutes"),
     completionStatus: text("completion_status").notNull().default("completed"),
     followUpRequired: integer("follow_up_required", { mode: "boolean" }).default(false),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     scheduleIdx: index("idx_mr_schedule").on(table.scheduleId),
-    equipmentIdx: index("idx_mr_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_mr_equipment").on(table.equipmentId),
   })
 );
 const maintenanceCostsSqlite = sqliteTable(
@@ -354,11 +354,11 @@ const maintenanceCostsSqlite = sqliteTable(
     currency: text("currency").notNull().default("USD"),
     description: text("description"),
     incurredAt: integer("incurred_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentIdx: index("idx_mc_equipment").on(table.equipmentId),
-    workOrderIdx: index("idx_mc_work_order").on(table.workOrderId)
+    workOrderIdx: index("idx_mc_work_order").on(table.workOrderId),
   })
 );
 const maintenanceTemplatesSqlite = sqliteTable(
@@ -383,11 +383,11 @@ const maintenanceTemplatesSqlite = sqliteTable(
     safetyNotes: text("safety_notes"),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     typeIdx: index("idx_mt_type").on(table.equipmentType),
-    activeIdx: index("idx_mt_active").on(table.isActive)
+    activeIdx: index("idx_mt_active").on(table.isActive),
   })
 );
 const maintenanceChecklistItemsSqlite = sqliteTable(
@@ -404,10 +404,10 @@ const maintenanceChecklistItemsSqlite = sqliteTable(
     estimatedMinutes: integer("estimated_minutes"),
     safetyWarning: text("safety_warning"),
     expectedResult: text("expected_result"),
-    acceptanceCriteria: text("acceptance_criteria")
+    acceptanceCriteria: text("acceptance_criteria"),
   },
   (table) => ({
-    templateIdx: index("idx_mci_template").on(table.templateId, table.stepNumber)
+    templateIdx: index("idx_mci_template").on(table.templateId, table.stepNumber),
   })
 );
 const maintenanceChecklistCompletionsSqlite = sqliteTable(
@@ -423,12 +423,12 @@ const maintenanceChecklistCompletionsSqlite = sqliteTable(
     passed: integer("passed", { mode: "boolean" }),
     actualValue: text("actual_value"),
     notes: text("notes"),
-    photoUrls: text("photo_urls")
+    photoUrls: text("photo_urls"),
     // array → text
   },
   (table) => ({
     workOrderIdx: index("idx_mcc_work_order").on(table.workOrderId),
-    itemIdx: index("idx_mcc_item").on(table.itemId)
+    itemIdx: index("idx_mcc_item").on(table.itemId),
   })
 );
 const equipmentLifecycleSqlite = sqliteTable(
@@ -450,10 +450,10 @@ const equipmentLifecycleSqlite = sqliteTable(
     condition: text("condition").notNull().default("good"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    equipmentIdx: index("idx_el_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_el_equipment").on(table.equipmentId),
   })
 );
 const performanceMetricsSqlite = sqliteTable(
@@ -474,11 +474,11 @@ const performanceMetricsSqlite = sqliteTable(
     energyConsumption: real("energy_consumption"),
     performanceScore: real("performance_score"),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentIdx: index("idx_pm_equipment").on(table.equipmentId),
-    dateIdx: index("idx_pm_date").on(table.metricDate)
+    dateIdx: index("idx_pm_date").on(table.metricDate),
   })
 );
 const maintenanceWindowsSqlite = sqliteTable(
@@ -507,11 +507,11 @@ const maintenanceWindowsSqlite = sqliteTable(
     notifyUsers: text("notify_users"),
     // array → text
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_mw_org").on(table.orgId),
-    statusIdx: index("idx_mw_status").on(table.status)
+    statusIdx: index("idx_mw_status").on(table.status),
   })
 );
 const portCallSqlite = sqliteTable(
@@ -523,11 +523,11 @@ const portCallSqlite = sqliteTable(
     start: integer("start", { mode: "timestamp" }).notNull(),
     end: integer("end", { mode: "timestamp" }).notNull(),
     status: text("status").default("scheduled"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     vesselIdx: index("idx_pc_vessel").on(table.vesselId),
-    startIdx: index("idx_pc_start").on(table.start)
+    startIdx: index("idx_pc_start").on(table.start),
   })
 );
 const drydockWindowSqlite = sqliteTable(
@@ -540,11 +540,11 @@ const drydockWindowSqlite = sqliteTable(
     end: integer("end", { mode: "timestamp" }).notNull(),
     workType: text("work_type"),
     status: text("status").default("scheduled"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     vesselIdx: index("idx_dw_vessel").on(table.vesselId),
-    startIdx: index("idx_dw_start").on(table.start)
+    startIdx: index("idx_dw_start").on(table.start),
   })
 );
 const expensesSqlite = sqliteTable(
@@ -567,12 +567,12 @@ const expensesSqlite = sqliteTable(
     receipt: text("receipt"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_exp_org").on(table.orgId),
     workOrderIdx: index("idx_exp_work_order").on(table.workOrderId),
-    dateIdx: index("idx_exp_date").on(table.expenseDate)
+    dateIdx: index("idx_exp_date").on(table.expenseDate),
   })
 );
 const laborRatesSqlite = sqliteTable(
@@ -590,11 +590,11 @@ const laborRatesSqlite = sqliteTable(
     effectiveDate: integer("effective_date", { mode: "timestamp" }),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_lr_org").on(table.orgId),
-    activeIdx: index("idx_lr_active").on(table.isActive)
+    activeIdx: index("idx_lr_active").on(table.isActive),
   })
 );
 const partsInventorySqlite = sqliteTable(
@@ -618,12 +618,12 @@ const partsInventorySqlite = sqliteTable(
     leadTimeDays: integer("lead_time_days").default(7),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_pi_org").on(table.orgId),
     partNumberIdx: index("idx_pi_part_number").on(table.partNumber),
-    categoryIdx: index("idx_pi_category").on(table.category)
+    categoryIdx: index("idx_pi_category").on(table.category),
   })
 );
 const stockSqlite = sqliteTable(
@@ -644,7 +644,7 @@ const stockSqlite = sqliteTable(
     reorderPoint: real("reorder_point"),
     maxQuantity: real("max_quantity"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgPartLocationIdx: index("idx_stock_org_part_location").on(
@@ -653,7 +653,7 @@ const stockSqlite = sqliteTable(
       table.location
     ),
     partNoIdx: index("idx_stock_part_no").on(table.partNo),
-    supplierIdx: index("idx_stock_supplier").on(table.supplierId)
+    supplierIdx: index("idx_stock_supplier").on(table.supplierId),
   })
 );
 const inventoryMovementsSqlite = sqliteTable(
@@ -671,12 +671,12 @@ const inventoryMovementsSqlite = sqliteTable(
     reservedAfter: integer("reserved_after").notNull().default(0),
     performedBy: text("performed_by").notNull(),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     partIdx: index("idx_im_part").on(table.partId),
     workOrderIdx: index("idx_im_work_order").on(table.workOrderId),
-    typeIdx: index("idx_im_type").on(table.movementType)
+    typeIdx: index("idx_im_type").on(table.movementType),
   })
 );
 const suppliersSqlite = sqliteTable(
@@ -709,11 +709,11 @@ const suppliersSqlite = sqliteTable(
     minimumOrderValue: real("minimum_order_value"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgCodeIdx: index("idx_suppliers_org_code").on(table.orgId, table.code),
-    nameIdx: index("idx_suppliers_name").on(table.name)
+    nameIdx: index("idx_suppliers_name").on(table.name),
   })
 );
 const purchaseOrdersSqlite = sqliteTable(
@@ -730,12 +730,12 @@ const purchaseOrdersSqlite = sqliteTable(
     notes: text("notes"),
     createdBy: text("created_by").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     supplierIdx: index("idx_po_supplier").on(table.supplierId),
     statusIdx: index("idx_po_status").on(table.status),
-    orderNumberIdx: index("idx_po_order_number").on(table.orderNumber)
+    orderNumberIdx: index("idx_po_order_number").on(table.orderNumber),
   })
 );
 const purchaseOrderItemsSqlite = sqliteTable(
@@ -749,11 +749,11 @@ const purchaseOrderItemsSqlite = sqliteTable(
     totalPrice: real("total_price").notNull(),
     receivedQuantity: real("received_quantity").default(0),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     poIdx: index("idx_poi_po").on(table.poId),
-    partIdx: index("idx_poi_part").on(table.partId)
+    partIdx: index("idx_poi_part").on(table.partId),
   })
 );
 const crewSqlite = sqliteTable(
@@ -770,12 +770,12 @@ const crewSqlite = sqliteTable(
     onDuty: integer("on_duty", { mode: "boolean" }).default(false),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_crew_org").on(table.orgId),
     vesselIdx: index("idx_crew_vessel").on(table.vesselId),
-    activeIdx: index("idx_crew_active").on(table.active)
+    activeIdx: index("idx_crew_active").on(table.active),
   })
 );
 const skillsSqlite = sqliteTable(
@@ -789,11 +789,11 @@ const skillsSqlite = sqliteTable(
     maxLevel: integer("max_level").default(5),
     active: integer("active", { mode: "boolean" }).default(true),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_skills_org").on(table.orgId),
-    nameIdx: index("idx_skills_name").on(table.name)
+    nameIdx: index("idx_skills_name").on(table.name),
   })
 );
 const crewSkillSqlite = sqliteTable(
@@ -801,11 +801,11 @@ const crewSkillSqlite = sqliteTable(
   {
     crewId: text("crew_id").notNull(),
     skill: text("skill").notNull(),
-    level: integer("level").default(1)
+    level: integer("level").default(1),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.crewId, table.skill] }),
-    crewIdx: index("idx_crew_skill_crew").on(table.crewId)
+    crewIdx: index("idx_crew_skill_crew").on(table.crewId),
   })
 );
 const crewLeaveSqlite = sqliteTable(
@@ -816,11 +816,11 @@ const crewLeaveSqlite = sqliteTable(
     start: integer("start", { mode: "timestamp" }).notNull(),
     end: integer("end", { mode: "timestamp" }).notNull(),
     reason: text("reason"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     crewIdx: index("idx_crew_leave_crew").on(table.crewId),
-    dateIdx: index("idx_crew_leave_dates").on(table.start, table.end)
+    dateIdx: index("idx_crew_leave_dates").on(table.start, table.end),
   })
 );
 const shiftTemplateSqlite = sqliteTable(
@@ -836,11 +836,11 @@ const shiftTemplateSqlite = sqliteTable(
     requiredSkills: text("required_skills"),
     rankMin: text("rank_min"),
     certRequired: text("cert_required"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     vesselIdx: index("idx_shift_template_vessel").on(table.vesselId),
-    roleIdx: index("idx_shift_template_role").on(table.role)
+    roleIdx: index("idx_shift_template_role").on(table.role),
   })
 );
 const crewAssignmentSqlite = sqliteTable(
@@ -858,13 +858,13 @@ const crewAssignmentSqlite = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }),
     version: integer("version").default(1),
     lastModifiedBy: text("last_modified_by"),
-    lastModifiedDevice: text("last_modified_device")
+    lastModifiedDevice: text("last_modified_device"),
   },
   (table) => ({
     crewDateIdx: index("idx_crew_assignment_crew_date").on(table.crewId, table.date),
     vesselIdx: index("idx_crew_assignment_vessel").on(table.vesselId),
     shiftIdx: index("idx_crew_assignment_shift").on(table.shiftId),
-    statusIdx: index("idx_crew_assignment_status").on(table.status)
+    statusIdx: index("idx_crew_assignment_status").on(table.status),
   })
 );
 const crewCertificationSqlite = sqliteTable(
@@ -875,11 +875,11 @@ const crewCertificationSqlite = sqliteTable(
     cert: text("cert").notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
     issuedBy: text("issued_by"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     crewIdx: index("idx_crew_cert_crew").on(table.crewId),
-    expiryIdx: index("idx_crew_cert_expiry").on(table.expiresAt)
+    expiryIdx: index("idx_crew_cert_expiry").on(table.expiresAt),
   })
 );
 const crewRestSheetSqlite = sqliteTable(
@@ -891,11 +891,11 @@ const crewRestSheetSqlite = sqliteTable(
     vesselId: text("vessel_id"),
     signedBy: text("signed_by"),
     signedAt: integer("signed_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     crewMonthIdx: index("idx_crew_rest_sheet_crew_month").on(table.crewId, table.month),
-    vesselIdx: index("idx_crew_rest_sheet_vessel").on(table.vesselId)
+    vesselIdx: index("idx_crew_rest_sheet_vessel").on(table.vesselId),
   })
 );
 const crewRestDaySqlite = sqliteTable(
@@ -926,11 +926,11 @@ const crewRestDaySqlite = sqliteTable(
     h20: integer("h20").default(0),
     h21: integer("h21").default(0),
     h22: integer("h22").default(0),
-    h23: integer("h23").default(0)
+    h23: integer("h23").default(0),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.sheetId, table.date] }),
-    sheetIdx: index("idx_crew_rest_day_sheet").on(table.sheetId)
+    sheetIdx: index("idx_crew_rest_day_sheet").on(table.sheetId),
   })
 );
 const mlModelsSqlite = sqliteTable(
@@ -969,11 +969,11 @@ const mlModelsSqlite = sqliteTable(
     errorMessage: text("error_message"),
     // Error details if training failed
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgStatusIdx: index("idx_ml_models_org_status").on(table.orgId, table.status),
-    orgTypeIdx: index("idx_ml_models_org_type").on(table.orgId, table.type)
+    orgTypeIdx: index("idx_ml_models_org_type").on(table.orgId, table.type),
   })
 );
 const failurePredictionsSqlite = sqliteTable(
@@ -1005,12 +1005,12 @@ const failurePredictionsSqlite = sqliteTable(
     outcomeLabel: text("outcome_label"),
     outcomeVerifiedAt: integer("outcome_verified_at", { mode: "timestamp" }),
     outcomeVerifiedBy: text("outcome_verified_by"),
-    metadata: text("metadata")
+    metadata: text("metadata"),
     // jsonb → text
   },
   (table) => ({
     equipmentRiskIdx: index("idx_failure_equipment_risk").on(table.equipmentId, table.riskLevel),
-    predictionTimeIdx: index("idx_failure_prediction_time").on(table.predictionTimestamp)
+    predictionTimeIdx: index("idx_failure_prediction_time").on(table.predictionTimestamp),
   })
 );
 const anomalyDetectionsSqlite = sqliteTable(
@@ -1039,7 +1039,7 @@ const anomalyDetectionsSqlite = sqliteTable(
     outcomeLabel: text("outcome_label"),
     outcomeVerifiedAt: integer("outcome_verified_at", { mode: "timestamp" }),
     outcomeVerifiedBy: text("outcome_verified_by"),
-    metadata: text("metadata")
+    metadata: text("metadata"),
     // jsonb → text
   },
   (table) => ({
@@ -1047,7 +1047,7 @@ const anomalyDetectionsSqlite = sqliteTable(
       table.equipmentId,
       table.detectionTimestamp
     ),
-    severityIdx: index("idx_anomaly_severity").on(table.severity)
+    severityIdx: index("idx_anomaly_severity").on(table.severity),
   })
 );
 const predictionFeedbackSqlite = sqliteTable(
@@ -1073,13 +1073,13 @@ const predictionFeedbackSqlite = sqliteTable(
     reviewedBy: text("reviewed_by"),
     reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
     reviewNotes: text("review_notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     predictionIdx: index("idx_feedback_prediction").on(table.predictionId, table.predictionType),
     equipmentIdx: index("idx_feedback_equipment").on(table.equipmentId),
     userIdx: index("idx_feedback_user").on(table.userId),
-    statusIdx: index("idx_feedback_status").on(table.feedbackStatus)
+    statusIdx: index("idx_feedback_status").on(table.feedbackStatus),
   })
 );
 const componentDegradationSqlite = sqliteTable(
@@ -1106,7 +1106,7 @@ const componentDegradationSqlite = sqliteTable(
     // jsonb → text
     predictedFailureDate: integer("predicted_failure_date", { mode: "timestamp" }),
     confidenceScore: real("confidence_score"),
-    metadata: text("metadata")
+    metadata: text("metadata"),
     // jsonb → text
   },
   (table) => ({
@@ -1114,7 +1114,7 @@ const componentDegradationSqlite = sqliteTable(
       table.equipmentId,
       table.measurementTimestamp
     ),
-    componentIdx: index("idx_component_deg_component").on(table.componentType)
+    componentIdx: index("idx_component_deg_component").on(table.componentType),
   })
 );
 const failureHistorySqlite = sqliteTable(
@@ -1150,7 +1150,7 @@ const failureHistorySqlite = sqliteTable(
     verifiedAt: integer("verified_at", { mode: "timestamp" }),
     metadata: text("metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentFailureIdx: index("idx_failure_history_equipment").on(
@@ -1158,7 +1158,7 @@ const failureHistorySqlite = sqliteTable(
       table.failureTimestamp
     ),
     failureModeIdx: index("idx_failure_history_mode").on(table.failureMode),
-    severityIdx: index("idx_failure_history_severity").on(table.failureSeverity)
+    severityIdx: index("idx_failure_history_severity").on(table.failureSeverity),
   })
 );
 const dtcDefinitionsSqlite = sqliteTable(
@@ -1172,12 +1172,12 @@ const dtcDefinitionsSqlite = sqliteTable(
     description: text("description").notNull(),
     severity: integer("severity").notNull().default(3),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.spn, table.fmi, table.manufacturer] }),
     spnIdx: index("idx_dtc_definitions_spn").on(table.spn),
-    severityIdx: index("idx_dtc_definitions_severity").on(table.severity)
+    severityIdx: index("idx_dtc_definitions_severity").on(table.severity),
   })
 );
 const dtcFaultsSqlite = sqliteTable(
@@ -1200,7 +1200,7 @@ const dtcFaultsSqlite = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }),
     version: integer("version").default(1),
     lastModifiedBy: text("last_modified_by"),
-    lastModifiedDevice: text("last_modified_device")
+    lastModifiedDevice: text("last_modified_device"),
   },
   (table) => ({
     orgEquipmentActiveIdx: index("idx_dtc_faults_org_eq_active").on(
@@ -1209,7 +1209,7 @@ const dtcFaultsSqlite = sqliteTable(
       table.active
     ),
     deviceActiveIdx: index("idx_dtc_faults_device_active").on(table.deviceId, table.active),
-    lastSeenIdx: index("idx_dtc_faults_last_seen").on(table.orgId, table.lastSeen)
+    lastSeenIdx: index("idx_dtc_faults_last_seen").on(table.orgId, table.lastSeen),
   })
 );
 const modelPerformanceValidationsSqlite = sqliteTable(
@@ -1234,7 +1234,7 @@ const modelPerformanceValidationsSqlite = sqliteTable(
     modelVersion: text("model_version"),
     performanceMetrics: text("performance_metrics"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     modelIdIdx: index("idx_perf_val_model").on(table.modelId),
@@ -1245,7 +1245,7 @@ const modelPerformanceValidationsSqlite = sqliteTable(
     predictionLookupIdx: index("idx_perf_val_prediction_lookup").on(
       table.predictionType,
       table.predictionId
-    )
+    ),
   })
 );
 const retrainingTriggersSqlite = sqliteTable(
@@ -1279,14 +1279,14 @@ const retrainingTriggersSqlite = sqliteTable(
     triggeredBy: text("triggered_by"),
     reviewedBy: text("reviewed_by"),
     reviewNotes: text("review_notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     modelIdIdx: index("idx_retrain_model").on(table.modelId),
     statusIdx: index("idx_retrain_status").on(table.status),
     priorityIdx: index("idx_retrain_priority").on(table.priority),
     scheduledIdx: index("idx_retrain_scheduled").on(table.scheduledFor),
-    triggerTypeIdx: index("idx_retrain_trigger_type").on(table.triggerType)
+    triggerTypeIdx: index("idx_retrain_trigger_type").on(table.triggerType),
   })
 );
 const sensorConfigurationsSqlite = sqliteTable(
@@ -1317,7 +1317,7 @@ const sensorConfigurationsSqlite = sqliteTable(
     lastModifiedBy: text("last_modified_by"),
     lastModifiedDevice: text("last_modified_device"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentSensorIdx: index("idx_sensor_config_equipment_sensor").on(
@@ -1325,7 +1325,7 @@ const sensorConfigurationsSqlite = sqliteTable(
       table.sensorType,
       table.orgId
     ),
-    orgIdx: index("idx_sensor_config_org").on(table.orgId)
+    orgIdx: index("idx_sensor_config_org").on(table.orgId),
   })
 );
 const sensorStatesSqlite = sqliteTable(
@@ -1338,7 +1338,7 @@ const sensorStatesSqlite = sqliteTable(
     lastValue: real("last_value"),
     ema: real("ema"),
     lastTs: integer("last_ts", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentSensorIdx: index("idx_sensor_state_equipment_sensor").on(
@@ -1346,7 +1346,7 @@ const sensorStatesSqlite = sqliteTable(
       table.sensorType,
       table.orgId
     ),
-    orgIdx: index("idx_sensor_state_org").on(table.orgId)
+    orgIdx: index("idx_sensor_state_org").on(table.orgId),
   })
 );
 const thresholdOptimizationsSqlite = sqliteTable(
@@ -1370,7 +1370,7 @@ const thresholdOptimizationsSqlite = sqliteTable(
     status: text("status").default("pending"),
     performance: text("performance"),
     // jsonb → text
-    metadata: text("metadata")
+    metadata: text("metadata"),
     // jsonb → text
   },
   (table) => ({
@@ -1379,7 +1379,7 @@ const thresholdOptimizationsSqlite = sqliteTable(
       table.optimizationTimestamp
     ),
     orgIdx: index("idx_threshold_opt_org").on(table.orgId),
-    statusIdx: index("idx_threshold_opt_status").on(table.status)
+    statusIdx: index("idx_threshold_opt_status").on(table.status),
   })
 );
 const vibrationFeaturesSqlite = sqliteTable(
@@ -1403,12 +1403,12 @@ const vibrationFeaturesSqlite = sqliteTable(
     sampleRate: real("sample_rate"),
     analysisMetadata: text("analysis_metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     equipmentTimeIdx: index("idx_vibration_equipment_time").on(table.equipmentId, table.timestamp),
     vesselIdx: index("idx_vibration_vessel").on(table.vesselId),
-    orgIdx: index("idx_vibration_org").on(table.orgId)
+    orgIdx: index("idx_vibration_org").on(table.orgId),
   })
 );
 const modelRegistrySqlite = sqliteTable(
@@ -1429,12 +1429,12 @@ const modelRegistrySqlite = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     deployedAt: integer("deployed_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     componentIdx: index("idx_model_registry_component").on(table.componentClass, table.modelType),
     activeIdx: index("idx_model_registry_active").on(table.isActive, table.deployedAt),
-    orgIdx: index("idx_model_registry_org").on(table.orgId)
+    orgIdx: index("idx_model_registry_org").on(table.orgId),
   })
 );
 const sensorTypesSqlite = sqliteTable(
@@ -1450,15 +1450,15 @@ const sensorTypesSqlite = sqliteTable(
     minValue: real("min_value"),
     maxValue: real("max_value"),
     isActive: integer("is_active", { mode: "boolean" }).default(1),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     categoryIdx: index("idx_sensor_types_category").on(table.category),
-    activeIdx: index("idx_sensor_types_active").on(table.isActive)
+    activeIdx: index("idx_sensor_types_active").on(table.isActive),
   })
 );
 const sqliteJsonHelpers = {
-  stringify: (obj) => obj ? JSON.stringify(obj) : null,
+  stringify: (obj) => (obj ? JSON.stringify(obj) : null),
   parse: (str) => {
     if (!str) return null;
     try {
@@ -1466,7 +1466,7 @@ const sqliteJsonHelpers = {
     } catch {
       return null;
     }
-  }
+  },
 };
 const alertConfigurationsSqlite = sqliteTable(
   "alert_configurations",
@@ -1484,12 +1484,12 @@ const alertConfigurationsSqlite = sqliteTable(
     lastModifiedBy: text("last_modified_by"),
     lastModifiedDevice: text("last_modified_device"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_alert_config_org").on(table.orgId),
     equipmentIdx: index("idx_alert_config_equipment").on(table.equipmentId),
-    sensorIdx: index("idx_alert_config_sensor").on(table.sensorType)
+    sensorIdx: index("idx_alert_config_sensor").on(table.sensorType),
   })
 );
 const alertNotificationsSqlite = sqliteTable(
@@ -1506,13 +1506,13 @@ const alertNotificationsSqlite = sqliteTable(
     acknowledged: integer("acknowledged", { mode: "boolean" }).default(0),
     acknowledgedAt: integer("acknowledged_at", { mode: "timestamp" }),
     acknowledgedBy: text("acknowledged_by"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_alert_notif_org").on(table.orgId),
     equipmentIdx: index("idx_alert_notif_equipment").on(table.equipmentId),
     acknowledgedIdx: index("idx_alert_notif_ack").on(table.acknowledged),
-    createdIdx: index("idx_alert_notif_created").on(table.createdAt)
+    createdIdx: index("idx_alert_notif_created").on(table.createdAt),
   })
 );
 const alertSuppressionsSqlite = sqliteTable(
@@ -1525,12 +1525,12 @@ const alertSuppressionsSqlite = sqliteTable(
     suppressUntil: integer("suppress_until", { mode: "timestamp" }).notNull(),
     reason: text("reason"),
     createdBy: text("created_by").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_alert_supp_org").on(table.orgId),
     equipmentIdx: index("idx_alert_supp_equipment").on(table.equipmentId),
-    untilIdx: index("idx_alert_supp_until").on(table.suppressUntil)
+    untilIdx: index("idx_alert_supp_until").on(table.suppressUntil),
   })
 );
 const alertCommentsSqlite = sqliteTable(
@@ -1541,11 +1541,11 @@ const alertCommentsSqlite = sqliteTable(
     alertId: text("alert_id").notNull(),
     comment: text("comment").notNull(),
     createdBy: text("created_by").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_alert_comment_org").on(table.orgId),
-    alertIdx: index("idx_alert_comment_alert").on(table.alertId)
+    alertIdx: index("idx_alert_comment_alert").on(table.alertId),
   })
 );
 const operatingConditionAlertsSqlite = sqliteTable(
@@ -1562,12 +1562,12 @@ const operatingConditionAlertsSqlite = sqliteTable(
     message: text("message").notNull(),
     detectedAt: integer("detected_at", { mode: "timestamp" }).notNull(),
     resolvedAt: integer("resolved_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_op_cond_alert_org").on(table.orgId),
     equipmentIdx: index("idx_op_cond_alert_equipment").on(table.equipmentId),
-    severityIdx: index("idx_op_cond_alert_severity").on(table.severity)
+    severityIdx: index("idx_op_cond_alert_severity").on(table.severity),
   })
 );
 const pdmAlertsSqlite = sqliteTable(
@@ -1583,13 +1583,13 @@ const pdmAlertsSqlite = sqliteTable(
     acknowledged: integer("acknowledged", { mode: "boolean" }).default(0),
     acknowledgedBy: text("acknowledged_by"),
     acknowledgedAt: integer("acknowledged_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_pdm_alert_org").on(table.orgId),
     equipmentIdx: index("idx_pdm_alert_equipment").on(table.equipmentId),
     severityIdx: index("idx_pdm_alert_severity").on(table.severity),
-    acknowledgedIdx: index("idx_pdm_alert_ack").on(table.acknowledged)
+    acknowledgedIdx: index("idx_pdm_alert_ack").on(table.acknowledged),
   })
 );
 const partsSqlite = sqliteTable(
@@ -1619,12 +1619,12 @@ const partsSqlite = sqliteTable(
     averageLeadTime: integer("average_lead_time"),
     demandVariability: real("demand_variability"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgPartNoIdx: index("idx_parts_org_partno").on(table.orgId, table.partNo),
     categoryIdx: index("idx_parts_category").on(table.category),
-    criticalityIdx: index("idx_parts_criticality").on(table.criticality)
+    criticalityIdx: index("idx_parts_criticality").on(table.criticality),
   })
 );
 const inventoryPartsSqlite = sqliteTable(
@@ -1643,11 +1643,11 @@ const inventoryPartsSqlite = sqliteTable(
     lastUsage30d: integer("last_usage_30d").default(0),
     riskLevel: text("risk_level").notNull().default("low"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_inv_parts_org").on(table.orgId),
-    partNumberIdx: index("idx_inv_parts_partnum").on(table.partNumber)
+    partNumberIdx: index("idx_inv_parts_partnum").on(table.partNumber),
   })
 );
 const partSubstitutionsSqlite = sqliteTable(
@@ -1659,11 +1659,11 @@ const partSubstitutionsSqlite = sqliteTable(
     substitutePartId: text("substitute_part_id").notNull(),
     substitutionType: text("substitution_type").notNull(),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_part_sub_org").on(table.orgId),
-    originalIdx: index("idx_part_sub_original").on(table.originalPartId)
+    originalIdx: index("idx_part_sub_original").on(table.originalPartId),
   })
 );
 const partFailureHistorySqlite = sqliteTable(
@@ -1679,12 +1679,12 @@ const partFailureHistorySqlite = sqliteTable(
     replacementCost: real("replacement_cost"),
     downtimeHours: real("downtime_hours"),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_part_fail_org").on(table.orgId),
     partIdx: index("idx_part_fail_part").on(table.partId),
-    equipmentIdx: index("idx_part_fail_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_part_fail_equipment").on(table.equipmentId),
   })
 );
 const reservationsSqlite = sqliteTable(
@@ -1699,12 +1699,12 @@ const reservationsSqlite = sqliteTable(
     reservedAt: integer("reserved_at", { mode: "timestamp" }).notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
     status: text("status").notNull().default("active"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_reservations_org").on(table.orgId),
     partIdx: index("idx_reservations_part").on(table.partId),
-    workOrderIdx: index("idx_reservations_wo").on(table.workOrderId)
+    workOrderIdx: index("idx_reservations_wo").on(table.workOrderId),
   })
 );
 const storageConfigSqlite = sqliteTable(
@@ -1719,11 +1719,11 @@ const storageConfigSqlite = sqliteTable(
     currentUtilization: real("current_utilization").default(0),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_storage_config_org").on(table.orgId),
-    vesselIdx: index("idx_storage_config_vessel").on(table.vesselId)
+    vesselIdx: index("idx_storage_config_vessel").on(table.vesselId),
   })
 );
 const workOrderChecklistsSqlite = sqliteTable(
@@ -1740,11 +1740,11 @@ const workOrderChecklistsSqlite = sqliteTable(
     completionRate: real("completion_rate").default(0),
     completedBy: text("completed_by"),
     completedAt: integer("completed_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_wo_checklist_org").on(table.orgId),
-    woIdx: index("idx_wo_checklist_wo").on(table.workOrderId)
+    woIdx: index("idx_wo_checklist_wo").on(table.workOrderId),
   })
 );
 const workOrderWorklogsSqlite = sqliteTable(
@@ -1764,11 +1764,11 @@ const workOrderWorklogsSqlite = sqliteTable(
     status: text("status").notNull().default("in_progress"),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_wo_worklog_org").on(table.orgId),
-    woIdx: index("idx_wo_worklog_wo").on(table.workOrderId)
+    woIdx: index("idx_wo_worklog_wo").on(table.workOrderId),
   })
 );
 const llmBudgetConfigsSqlite = sqliteTable(
@@ -1787,10 +1787,10 @@ const llmBudgetConfigsSqlite = sqliteTable(
     notifyEmail: text("notify_email"),
     blockWhenExceeded: integer("block_when_exceeded", { mode: "boolean" }).default(0),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_llm_budget_org").on(table.orgId)
+    orgIdx: index("idx_llm_budget_org").on(table.orgId),
   })
 );
 const llmCostTrackingSqlite = sqliteTable(
@@ -1819,12 +1819,12 @@ const llmCostTrackingSqlite = sqliteTable(
     userId: text("user_id"),
     metadata: text("metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgDateIdx: index("idx_llm_cost_org_date").on(table.orgId, table.createdAt),
     providerModelIdx: index("idx_llm_cost_provider_model").on(table.provider, table.model),
-    requestTypeIdx: index("idx_llm_cost_request_type").on(table.requestType)
+    requestTypeIdx: index("idx_llm_cost_request_type").on(table.requestType),
   })
 );
 const insightReportsSqlite = sqliteTable(
@@ -1842,12 +1842,12 @@ const insightReportsSqlite = sqliteTable(
     validUntil: integer("valid_until", { mode: "timestamp" }),
     metadata: text("metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_insight_reports_org").on(table.orgId),
     typeIdx: index("idx_insight_reports_type").on(table.reportType),
-    vesselIdx: index("idx_insight_reports_vessel").on(table.vesselId)
+    vesselIdx: index("idx_insight_reports_vessel").on(table.vesselId),
   })
 );
 const insightSnapshotsSqlite = sqliteTable(
@@ -1862,11 +1862,11 @@ const insightSnapshotsSqlite = sqliteTable(
     snapshotData: text("snapshot_data").notNull(),
     // jsonb → text
     capturedAt: integer("captured_at", { mode: "timestamp" }).notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_insight_snapshots_org").on(table.orgId),
-    typeIdx: index("idx_insight_snapshots_type").on(table.snapshotType)
+    typeIdx: index("idx_insight_snapshots_type").on(table.snapshotType),
   })
 );
 const visualizationAssetsSqlite = sqliteTable(
@@ -1881,11 +1881,11 @@ const visualizationAssetsSqlite = sqliteTable(
     // jsonb → text (chart config, image URL, etc.)
     generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_viz_assets_org").on(table.orgId),
-    typeIdx: index("idx_viz_assets_type").on(table.assetType)
+    typeIdx: index("idx_viz_assets_type").on(table.assetType),
   })
 );
 const costSavingsSqlite = sqliteTable(
@@ -1908,13 +1908,13 @@ const costSavingsSqlite = sqliteTable(
     verifiedAt: integer("verified_at", { mode: "timestamp" }),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_cost_savings_org").on(table.orgId),
     vesselIdx: index("idx_cost_savings_vessel").on(table.vesselId),
     equipmentIdx: index("idx_cost_savings_equipment").on(table.equipmentId),
-    typeIdx: index("idx_cost_savings_type").on(table.savingsType)
+    typeIdx: index("idx_cost_savings_type").on(table.savingsType),
   })
 );
 const rawTelemetrySqlite = sqliteTable(
@@ -1927,11 +1927,11 @@ const rawTelemetrySqlite = sqliteTable(
     deviceId: text("device_id"),
     payload: text("payload").notNull(),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgTsIdx: index("idx_raw_telem_org_ts").on(table.orgId, table.ts),
-    equipmentTsIdx: index("idx_raw_telem_equipment_ts").on(table.equipmentId, table.ts)
+    equipmentTsIdx: index("idx_raw_telem_equipment_ts").on(table.equipmentId, table.ts),
   })
 );
 const telemetryAggregatesSqlite = sqliteTable(
@@ -1950,11 +1950,11 @@ const telemetryAggregatesSqlite = sqliteTable(
     sumValue: real("sum_value"),
     count: integer("count").notNull(),
     stdDev: real("std_dev"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgPeriodIdx: index("idx_telem_agg_org_period").on(table.orgId, table.periodStart),
-    equipmentSensorIdx: index("idx_telem_agg_equip_sensor").on(table.equipmentId, table.sensorType)
+    equipmentSensorIdx: index("idx_telem_agg_equip_sensor").on(table.equipmentId, table.sensorType),
   })
 );
 const telemetryRollupsSqlite = sqliteTable(
@@ -1967,11 +1967,11 @@ const telemetryRollupsSqlite = sqliteTable(
     periodStart: integer("period_start", { mode: "timestamp" }).notNull(),
     rollupData: text("rollup_data").notNull(),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgPeriodIdx: index("idx_telem_rollup_org_period").on(table.orgId, table.periodStart),
-    equipmentIdx: index("idx_telem_rollup_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_telem_rollup_equipment").on(table.equipmentId),
   })
 );
 const telemetryRetentionPoliciesSqlite = sqliteTable(
@@ -1985,10 +1985,10 @@ const telemetryRetentionPoliciesSqlite = sqliteTable(
     compressionEnabled: integer("compression_enabled", { mode: "boolean" }).default(1),
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_telem_retention_org").on(table.orgId)
+    orgIdx: index("idx_telem_retention_org").on(table.orgId),
   })
 );
 const metricsHistorySqlite = sqliteTable(
@@ -2004,10 +2004,10 @@ const metricsHistorySqlite = sqliteTable(
     totalEquipment: integer("total_equipment").notNull().default(0),
     healthyEquipment: integer("healthy_equipment").notNull().default(0),
     warningEquipment: integer("warning_equipment").notNull().default(0),
-    criticalEquipment: integer("critical_equipment").notNull().default(0)
+    criticalEquipment: integer("critical_equipment").notNull().default(0),
   },
   (table) => ({
-    orgTimeIdx: index("idx_metrics_history_org_time").on(table.orgId, table.recordedAt)
+    orgTimeIdx: index("idx_metrics_history_org_time").on(table.orgId, table.recordedAt),
   })
 );
 const dailyMetricRollupsSqlite = sqliteTable(
@@ -2019,10 +2019,10 @@ const dailyMetricRollupsSqlite = sqliteTable(
     metricType: text("metric_type").notNull(),
     metricData: text("metric_data").notNull(),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgDateIdx: index("idx_daily_metrics_org_date").on(table.orgId, table.date)
+    orgDateIdx: index("idx_daily_metrics_org_date").on(table.orgId, table.date),
   })
 );
 const pdmScoreLogsSqlite = sqliteTable(
@@ -2036,11 +2036,11 @@ const pdmScoreLogsSqlite = sqliteTable(
     trend: text("trend"),
     factors: text("factors"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_pdm_score_org").on(table.orgId),
-    equipmentTsIdx: index("idx_pdm_score_equip_ts").on(table.equipmentId, table.timestamp)
+    equipmentTsIdx: index("idx_pdm_score_equip_ts").on(table.equipmentId, table.timestamp),
   })
 );
 const edgeHeartbeatsSqlite = sqliteTable(
@@ -2058,11 +2058,11 @@ const edgeHeartbeatsSqlite = sqliteTable(
     diskUsage: real("disk_usage"),
     metadata: text("metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_edge_hb_org").on(table.orgId),
-    deviceTsIdx: index("idx_edge_hb_device_ts").on(table.deviceId, table.timestamp)
+    deviceTsIdx: index("idx_edge_hb_device_ts").on(table.deviceId, table.timestamp),
   })
 );
 const edgeDiagnosticLogsSqlite = sqliteTable(
@@ -2076,12 +2076,12 @@ const edgeDiagnosticLogsSqlite = sqliteTable(
     message: text("message").notNull(),
     context: text("context"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_edge_diag_org").on(table.orgId),
     deviceTsIdx: index("idx_edge_diag_device_ts").on(table.deviceId, table.timestamp),
-    levelIdx: index("idx_edge_diag_level").on(table.logLevel)
+    levelIdx: index("idx_edge_diag_level").on(table.logLevel),
   })
 );
 const systemHealthChecksSqlite = sqliteTable(
@@ -2097,12 +2097,12 @@ const systemHealthChecksSqlite = sqliteTable(
     errorMessage: text("error_message"),
     metadata: text("metadata"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_sys_health_org").on(table.orgId),
     typeIdx: index("idx_sys_health_type").on(table.checkType),
-    statusIdx: index("idx_sys_health_status").on(table.status)
+    statusIdx: index("idx_sys_health_status").on(table.status),
   })
 );
 const systemPerformanceMetricsSqlite = sqliteTable(
@@ -2116,11 +2116,11 @@ const systemPerformanceMetricsSqlite = sqliteTable(
     timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
     tags: text("tags"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgTsIdx: index("idx_sys_perf_org_ts").on(table.orgId, table.timestamp),
-    nameIdx: index("idx_sys_perf_name").on(table.metricName)
+    nameIdx: index("idx_sys_perf_name").on(table.metricName),
   })
 );
 const systemSettingsSqlite = sqliteTable("system_settings", {
@@ -2132,7 +2132,7 @@ const systemSettingsSqlite = sqliteTable("system_settings", {
   llmModel: text("llm_model").default("gpt-4o-mini"),
   openaiApiKey: text("openai_api_key"),
   aiInsightsThrottleMinutes: integer("ai_insights_throttle_minutes").default(2),
-  timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5)
+  timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5),
 });
 const adminSystemSettingsSqlite = sqliteTable(
   "admin_system_settings",
@@ -2144,10 +2144,10 @@ const adminSystemSettingsSqlite = sqliteTable(
     description: text("description"),
     updatedBy: text("updated_by"),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
-    keyIdx: index("idx_admin_settings_key").on(table.settingKey)
+    keyIdx: index("idx_admin_settings_key").on(table.settingKey),
   })
 );
 const adminAuditEventsSqlite = sqliteTable(
@@ -2164,13 +2164,13 @@ const adminAuditEventsSqlite = sqliteTable(
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_admin_audit_org").on(table.orgId),
     adminIdx: index("idx_admin_audit_admin").on(table.adminId),
     typeIdx: index("idx_admin_audit_type").on(table.eventType),
-    timestampIdx: index("idx_admin_audit_ts").on(table.timestamp)
+    timestampIdx: index("idx_admin_audit_ts").on(table.timestamp),
   })
 );
 const integrationConfigsSqlite = sqliteTable(
@@ -2185,11 +2185,11 @@ const integrationConfigsSqlite = sqliteTable(
     isEnabled: integer("is_enabled", { mode: "boolean" }).default(1),
     lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_integration_config_org").on(table.orgId),
-    typeIdx: index("idx_integration_config_type").on(table.integrationType)
+    typeIdx: index("idx_integration_config_type").on(table.integrationType),
   })
 );
 const errorLogsSqlite = sqliteTable(
@@ -2210,14 +2210,14 @@ const errorLogsSqlite = sqliteTable(
     resolved: integer("resolved", { mode: "boolean" }).default(0),
     resolvedAt: integer("resolved_at", { mode: "timestamp" }),
     resolvedBy: text("resolved_by"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_error_logs_org").on(table.orgId),
     timestampIdx: index("idx_error_logs_timestamp").on(table.timestamp),
     severityIdx: index("idx_error_logs_severity").on(table.severity),
     categoryIdx: index("idx_error_logs_category").on(table.category),
-    resolvedIdx: index("idx_error_logs_resolved").on(table.resolved)
+    resolvedIdx: index("idx_error_logs_resolved").on(table.resolved),
   })
 );
 const opsDbStagedSqlite = sqliteTable(
@@ -2231,11 +2231,11 @@ const opsDbStagedSqlite = sqliteTable(
     status: text("status").notNull().default("pending"),
     processedAt: integer("processed_at", { mode: "timestamp" }),
     errorMessage: text("error_message"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_ops_staged_org").on(table.orgId),
-    statusIdx: index("idx_ops_staged_status").on(table.status)
+    statusIdx: index("idx_ops_staged_status").on(table.status),
   })
 );
 const conditionMonitoringSqlite = sqliteTable(
@@ -2252,11 +2252,11 @@ const conditionMonitoringSqlite = sqliteTable(
     anomaliesDetected: text("anomalies_detected"),
     // jsonb → text
     recommendations: text("recommendations"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_cond_mon_org").on(table.orgId),
-    equipmentTsIdx: index("idx_cond_mon_equip_ts").on(table.equipmentId, table.timestamp)
+    equipmentTsIdx: index("idx_cond_mon_equip_ts").on(table.equipmentId, table.timestamp),
   })
 );
 const oilAnalysisSqlite = sqliteTable(
@@ -2277,12 +2277,12 @@ const oilAnalysisSqlite = sqliteTable(
     condition: text("condition").notNull(),
     recommendations: text("recommendations"),
     labReportUrl: text("lab_report_url"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_oil_analysis_org").on(table.orgId),
     equipmentIdx: index("idx_oil_analysis_equipment").on(table.equipmentId),
-    dateIdx: index("idx_oil_analysis_date").on(table.sampleDate)
+    dateIdx: index("idx_oil_analysis_date").on(table.sampleDate),
   })
 );
 const oilChangeRecordsSqlite = sqliteTable(
@@ -2298,11 +2298,11 @@ const oilChangeRecordsSqlite = sqliteTable(
     cost: real("cost"),
     performedBy: text("performed_by"),
     notes: text("notes"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_oil_change_org").on(table.orgId),
-    equipmentIdx: index("idx_oil_change_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_oil_change_equipment").on(table.equipmentId),
   })
 );
 const wearParticleAnalysisSqlite = sqliteTable(
@@ -2319,11 +2319,11 @@ const wearParticleAnalysisSqlite = sqliteTable(
     severity: text("severity").notNull(),
     interpretation: text("interpretation"),
     recommendations: text("recommendations"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_wear_part_org").on(table.orgId),
-    equipmentIdx: index("idx_wear_part_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_wear_part_equipment").on(table.equipmentId),
   })
 );
 const vibrationAnalysisSqlite = sqliteTable(
@@ -2341,11 +2341,11 @@ const vibrationAnalysisSqlite = sqliteTable(
     imbalanceDetected: integer("imbalance_detected", { mode: "boolean" }),
     misalignmentDetected: integer("misalignment_detected", { mode: "boolean" }),
     status: text("status").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_vib_analysis_org").on(table.orgId),
-    equipmentTsIdx: index("idx_vib_analysis_equip_ts").on(table.equipmentId, table.timestamp)
+    equipmentTsIdx: index("idx_vib_analysis_equip_ts").on(table.equipmentId, table.timestamp),
   })
 );
 const calibrationCacheSqlite = sqliteTable(
@@ -2361,11 +2361,11 @@ const calibrationCacheSqlite = sqliteTable(
     nextCalibrationDue: integer("next_calibration_due", { mode: "timestamp" }),
     calibratedBy: text("calibrated_by"),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_calib_cache_org").on(table.orgId),
-    deviceIdx: index("idx_calib_cache_device").on(table.deviceId)
+    deviceIdx: index("idx_calib_cache_device").on(table.deviceId),
   })
 );
 const sensorMappingSqlite = sqliteTable(
@@ -2382,12 +2382,12 @@ const sensorMappingSqlite = sqliteTable(
     // jsonb → text
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_sensor_map_org").on(table.orgId),
     deviceIdx: index("idx_sensor_map_device").on(table.deviceId),
-    equipmentIdx: index("idx_sensor_map_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_sensor_map_equipment").on(table.equipmentId),
   })
 );
 const sensorThresholdsSqlite = sqliteTable(
@@ -2404,14 +2404,14 @@ const sensorThresholdsSqlite = sqliteTable(
     unit: text("unit").notNull(),
     autoAdjust: integer("auto_adjust", { mode: "boolean" }).default(0),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_sensor_thresh_org").on(table.orgId),
     equipmentSensorIdx: index("idx_sensor_thresh_equip_sensor").on(
       table.equipmentId,
       table.sensorType
-    )
+    ),
   })
 );
 const operatingParametersSqlite = sqliteTable(
@@ -2428,11 +2428,11 @@ const operatingParametersSqlite = sqliteTable(
     deviation: real("deviation"),
     unit: text("unit").notNull(),
     lastUpdated: integer("last_updated", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_op_params_org").on(table.orgId),
-    equipmentIdx: index("idx_op_params_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_op_params_equipment").on(table.equipmentId),
   })
 );
 const discoveredSignalsSqlite = sqliteTable(
@@ -2448,11 +2448,11 @@ const discoveredSignalsSqlite = sqliteTable(
     sampleData: text("sample_data"),
     // jsonb → text
     mapped: integer("mapped", { mode: "boolean" }).default(0),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_disc_signals_org").on(table.orgId),
-    deviceIdx: index("idx_disc_signals_device").on(table.deviceId)
+    deviceIdx: index("idx_disc_signals_device").on(table.deviceId),
   })
 );
 const rulModelsSqlite = sqliteTable(
@@ -2473,11 +2473,11 @@ const rulModelsSqlite = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     trainedAt: integer("trained_at", { mode: "timestamp" }),
     deployedAt: integer("deployed_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_rul_models_org").on(table.orgId),
-    typeIdx: index("idx_rul_models_type").on(table.equipmentType)
+    typeIdx: index("idx_rul_models_type").on(table.equipmentType),
   })
 );
 const rulFitHistorySqlite = sqliteTable(
@@ -2493,12 +2493,12 @@ const rulFitHistorySqlite = sqliteTable(
     // jsonb → text
     actualRul: real("actual_rul"),
     accuracy: real("accuracy"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_rul_fit_org").on(table.orgId),
     modelIdx: index("idx_rul_fit_model").on(table.modelId),
-    equipmentIdx: index("idx_rul_fit_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_rul_fit_equipment").on(table.equipmentId),
   })
 );
 const weibullEstimatesSqlite = sqliteTable(
@@ -2514,11 +2514,11 @@ const weibullEstimatesSqlite = sqliteTable(
     confidence: real("confidence").notNull(),
     sampleSize: integer("sample_size").notNull(),
     calculatedAt: integer("calculated_at", { mode: "timestamp" }).notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_weibull_org").on(table.orgId),
-    typeIdx: index("idx_weibull_type").on(table.equipmentType, table.componentType)
+    typeIdx: index("idx_weibull_type").on(table.equipmentType, table.componentType),
   })
 );
 const pdmBaselineSqlite = sqliteTable(
@@ -2534,11 +2534,11 @@ const pdmBaselineSqlite = sqliteTable(
     calculatedTo: integer("calculated_to", { mode: "timestamp" }).notNull(),
     sampleCount: integer("sample_count").notNull(),
     isActive: integer("is_active", { mode: "boolean" }).default(1),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_pdm_baseline_org").on(table.orgId),
-    typeIdx: index("idx_pdm_baseline_type").on(table.equipmentType, table.sensorType)
+    typeIdx: index("idx_pdm_baseline_type").on(table.equipmentType, table.sensorType),
   })
 );
 const digitalTwinsSqlite = sqliteTable(
@@ -2555,11 +2555,11 @@ const digitalTwinsSqlite = sqliteTable(
     accuracy: real("accuracy"),
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_digital_twins_org").on(table.orgId),
-    equipmentIdx: index("idx_digital_twins_equipment").on(table.equipmentId)
+    equipmentIdx: index("idx_digital_twins_equipment").on(table.equipmentId),
   })
 );
 const twinSimulationsSqlite = sqliteTable(
@@ -2575,11 +2575,11 @@ const twinSimulationsSqlite = sqliteTable(
     // jsonb → text
     executedAt: integer("executed_at", { mode: "timestamp" }).notNull(),
     durationMs: integer("duration_ms"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_twin_sim_org").on(table.orgId),
-    twinIdx: index("idx_twin_sim_twin").on(table.twinId)
+    twinIdx: index("idx_twin_sim_twin").on(table.twinId),
   })
 );
 const industryBenchmarksSqlite = sqliteTable(
@@ -2594,11 +2594,11 @@ const industryBenchmarksSqlite = sqliteTable(
     source: text("source"),
     validFrom: integer("valid_from", { mode: "timestamp" }),
     validTo: integer("valid_to", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     typeIdx: index("idx_benchmark_type").on(table.equipmentType),
-    metricIdx: index("idx_benchmark_metric").on(table.metricName)
+    metricIdx: index("idx_benchmark_metric").on(table.metricName),
   })
 );
 const costModelSqlite = sqliteTable(
@@ -2613,11 +2613,11 @@ const costModelSqlite = sqliteTable(
     // jsonb → text
     modelVersion: text("model_version").notNull(),
     lastUpdated: integer("last_updated", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_cost_model_org").on(table.orgId),
-    typeIdx: index("idx_cost_model_type").on(table.equipmentType)
+    typeIdx: index("idx_cost_model_type").on(table.equipmentType),
   })
 );
 const dataQualityMetricsSqlite = sqliteTable(
@@ -2633,12 +2633,12 @@ const dataQualityMetricsSqlite = sqliteTable(
     measuredAt: integer("measured_at", { mode: "timestamp" }).notNull(),
     details: text("details"),
     // jsonb → text
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_data_quality_org").on(table.orgId),
     sourceIdx: index("idx_data_quality_source").on(table.dataSource),
-    statusIdx: index("idx_data_quality_status").on(table.status)
+    statusIdx: index("idx_data_quality_status").on(table.status),
   })
 );
 const deviceRegistrySqlite = sqliteTable(
@@ -2658,12 +2658,12 @@ const deviceRegistrySqlite = sqliteTable(
     metadata: text("metadata"),
     // jsonb → text
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_device_reg_org").on(table.orgId),
     vesselIdx: index("idx_device_reg_vessel").on(table.vesselId),
-    serialIdx: index("idx_device_reg_serial").on(table.serialNumber)
+    serialIdx: index("idx_device_reg_serial").on(table.serialNumber),
   })
 );
 const mqttDevicesSqlite = sqliteTable(
@@ -2679,11 +2679,11 @@ const mqttDevicesSqlite = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     lastConnectedAt: integer("last_connected_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_mqtt_devices_org").on(table.orgId),
-    deviceIdx: index("idx_mqtt_devices_device").on(table.deviceId)
+    deviceIdx: index("idx_mqtt_devices_device").on(table.deviceId),
   })
 );
 const serialPortStatesSqlite = sqliteTable(
@@ -2701,11 +2701,11 @@ const serialPortStatesSqlite = sqliteTable(
     lastActivity: integer("last_activity", { mode: "timestamp" }),
     errorCount: integer("error_count").default(0),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_serial_port_org").on(table.orgId),
-    deviceIdx: index("idx_serial_port_device").on(table.deviceId)
+    deviceIdx: index("idx_serial_port_device").on(table.deviceId),
   })
 );
 const transportSettingsSqlite = sqliteTable(
@@ -2719,11 +2719,11 @@ const transportSettingsSqlite = sqliteTable(
     priority: integer("priority").default(100),
     isEnabled: integer("is_enabled", { mode: "boolean" }).default(1),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_transport_settings_org").on(table.orgId),
-    typeIdx: index("idx_transport_settings_type").on(table.transportType)
+    typeIdx: index("idx_transport_settings_type").on(table.transportType),
   })
 );
 const transportFailoversSqlite = sqliteTable(
@@ -2737,10 +2737,10 @@ const transportFailoversSqlite = sqliteTable(
     failoverCount: integer("failover_count").default(0),
     currentlyActive: text("currently_active").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_transport_failover_org").on(table.orgId)
+    orgIdx: index("idx_transport_failover_org").on(table.orgId),
   })
 );
 const complianceAuditLogSqlite = sqliteTable(
@@ -2760,12 +2760,12 @@ const complianceAuditLogSqlite = sqliteTable(
     // jsonb → text
     status: text("status").notNull(),
     reportUrl: text("report_url"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_comp_audit_org").on(table.orgId),
     vesselIdx: index("idx_comp_audit_vessel").on(table.vesselId),
-    dateIdx: index("idx_comp_audit_date").on(table.auditDate)
+    dateIdx: index("idx_comp_audit_date").on(table.auditDate),
   })
 );
 const complianceBundlesSqlite = sqliteTable(
@@ -2782,10 +2782,10 @@ const complianceBundlesSqlite = sqliteTable(
     validFrom: integer("valid_from", { mode: "timestamp" }),
     validTo: integer("valid_to", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_comp_bundle_org").on(table.orgId)
+    orgIdx: index("idx_comp_bundle_org").on(table.orgId),
   })
 );
 const complianceDocsSqlite = sqliteTable(
@@ -2803,12 +2803,12 @@ const complianceDocsSqlite = sqliteTable(
     status: text("status").notNull(),
     renewalRequired: integer("renewal_required", { mode: "boolean" }).default(0),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_comp_docs_org").on(table.orgId),
     vesselIdx: index("idx_comp_docs_vessel").on(table.vesselId),
-    expiryIdx: index("idx_comp_docs_expiry").on(table.expiryDate)
+    expiryIdx: index("idx_comp_docs_expiry").on(table.expiryDate),
   })
 );
 const arMaintenanceProceduresSqlite = sqliteTable(
@@ -2826,11 +2826,11 @@ const arMaintenanceProceduresSqlite = sqliteTable(
     difficulty: text("difficulty"),
     isPublished: integer("is_published", { mode: "boolean" }).default(0),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_ar_proc_org").on(table.orgId),
-    typeIdx: index("idx_ar_proc_type").on(table.equipmentType)
+    typeIdx: index("idx_ar_proc_type").on(table.equipmentType),
   })
 );
 const optimizerConfigurationsSqlite = sqliteTable(
@@ -2846,11 +2846,11 @@ const optimizerConfigurationsSqlite = sqliteTable(
     // jsonb → text
     isActive: integer("is_active", { mode: "boolean" }).default(1),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_opt_config_org").on(table.orgId),
-    typeIdx: index("idx_opt_config_type").on(table.optimizationType)
+    typeIdx: index("idx_opt_config_type").on(table.optimizationType),
   })
 );
 const optimizationResultsSqlite = sqliteTable(
@@ -2867,12 +2867,12 @@ const optimizationResultsSqlite = sqliteTable(
     objectiveValue: real("objective_value").notNull(),
     solutionQuality: text("solution_quality"),
     executionTimeMs: integer("execution_time_ms"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_opt_results_org").on(table.orgId),
     configIdx: index("idx_opt_results_config").on(table.configId),
-    runAtIdx: index("idx_opt_results_run_at").on(table.runAt)
+    runAtIdx: index("idx_opt_results_run_at").on(table.runAt),
   })
 );
 const resourceConstraintsSqlite = sqliteTable(
@@ -2888,11 +2888,11 @@ const resourceConstraintsSqlite = sqliteTable(
     // jsonb → text
     validFrom: integer("valid_from", { mode: "timestamp" }),
     validTo: integer("valid_to", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_res_constraints_org").on(table.orgId),
-    vesselIdx: index("idx_res_constraints_vessel").on(table.vesselId)
+    vesselIdx: index("idx_res_constraints_vessel").on(table.vesselId),
   })
 );
 const scheduleOptimizationsSqlite = sqliteTable(
@@ -2909,11 +2909,11 @@ const scheduleOptimizationsSqlite = sqliteTable(
     // jsonb → text
     appliedAt: integer("applied_at", { mode: "timestamp" }),
     status: text("status").notNull().default("pending"),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_sched_opt_org").on(table.orgId),
-    statusIdx: index("idx_sched_opt_status").on(table.status)
+    statusIdx: index("idx_sched_opt_status").on(table.status),
   })
 );
 const beastModeConfigSqlite = sqliteTable(
@@ -2928,10 +2928,10 @@ const beastModeConfigSqlite = sqliteTable(
     enabledBy: text("enabled_by"),
     enabledAt: integer("enabled_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (table) => ({
-    orgIdx: index("idx_beast_mode_org").on(table.orgId)
+    orgIdx: index("idx_beast_mode_org").on(table.orgId),
   })
 );
 const replayIncomingSqlite = sqliteTable(
@@ -2945,12 +2945,12 @@ const replayIncomingSqlite = sqliteTable(
     // jsonb → text
     processed: integer("processed", { mode: "boolean" }).default(0),
     processedAt: integer("processed_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_replay_org").on(table.orgId),
     timestampIdx: index("idx_replay_timestamp").on(table.timestamp),
-    processedIdx: index("idx_replay_processed").on(table.processed)
+    processedIdx: index("idx_replay_processed").on(table.processed),
   })
 );
 const requestIdempotencySqlite = sqliteTable(
@@ -2963,12 +2963,12 @@ const requestIdempotencySqlite = sqliteTable(
     responseCode: integer("response_code"),
     responseBody: text("response_body"),
     expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
     orgIdx: index("idx_req_idemp_org").on(table.orgId),
     requestIdx: index("idx_req_idemp_request").on(table.requestId),
-    expiresIdx: index("idx_req_idemp_expires").on(table.expiresAt)
+    expiresIdx: index("idx_req_idemp_expires").on(table.expiresAt),
   })
 );
 const idempotencyLogSqlite = sqliteTable(
@@ -2980,18 +2980,18 @@ const idempotencyLogSqlite = sqliteTable(
     response: text("response"),
     // jsonb → text
     createdAt: integer("created_at", { mode: "timestamp" }),
-    expiresAt: integer("expires_at", { mode: "timestamp" })
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
   },
   (table) => ({
     keyIdx: index("idx_idemp_log_key").on(table.requestKey),
-    expiresIdx: index("idx_idemp_log_expires").on(table.expiresAt)
+    expiresIdx: index("idx_idemp_log_expires").on(table.expiresAt),
   })
 );
 const dbSchemaVersionSqlite = sqliteTable("db_schema_version", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   version: integer("version").notNull().unique(),
   description: text("description"),
-  appliedAt: integer("applied_at", { mode: "timestamp" }).notNull()
+  appliedAt: integer("applied_at", { mode: "timestamp" }).notNull(),
 });
 const sheetLockSqlite = sqliteTable(
   "sheet_lock",
@@ -3000,11 +3000,11 @@ const sheetLockSqlite = sqliteTable(
     sheetId: text("sheet_id").notNull().unique(),
     lockedBy: text("locked_by").notNull(),
     lockedAt: integer("locked_at", { mode: "timestamp" }).notNull(),
-    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull()
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   },
   (table) => ({
     sheetIdx: index("idx_sheet_lock_sheet").on(table.sheetId),
-    expiresIdx: index("idx_sheet_lock_expires").on(table.expiresAt)
+    expiresIdx: index("idx_sheet_lock_expires").on(table.expiresAt),
   })
 );
 const sheetVersionSqlite = sqliteTable(
@@ -3016,10 +3016,10 @@ const sheetVersionSqlite = sqliteTable(
     data: text("data").notNull(),
     // jsonb → text
     createdBy: text("created_by").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull()
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => ({
-    sheetVersionIdx: index("idx_sheet_version_sheet_ver").on(table.sheetId, table.version)
+    sheetVersionIdx: index("idx_sheet_version_sheet_ver").on(table.sheetId, table.version),
   })
 );
 const contentSourcesSqlite = sqliteTable("content_sources", {
@@ -3036,7 +3036,7 @@ const contentSourcesSqlite = sqliteTable("content_sources", {
   relatedSources: text("related_sources"),
   // JSON array
   createdAt: integer("created_at", { mode: "timestamp" }),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 const j1939ConfigurationsSqlite = sqliteTable("j1939_configurations", {
   id: text("id").primaryKey(),
@@ -3050,7 +3050,7 @@ const j1939ConfigurationsSqlite = sqliteTable("j1939_configurations", {
   // JSON string
   isActive: integer("is_active", { mode: "boolean" }).default(1),
   createdAt: integer("created_at", { mode: "timestamp" }),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 const knowledgeBaseItemsSqlite = sqliteTable("knowledge_base_items", {
   id: text("id").primaryKey(),
@@ -3067,7 +3067,7 @@ const knowledgeBaseItemsSqlite = sqliteTable("knowledge_base_items", {
   relevanceScore: real("relevance_score").default(1),
   isActive: integer("is_active", { mode: "boolean" }).default(1),
   lastUpdated: integer("last_updated", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at", { mode: "timestamp" }),
 });
 const ragSearchQueriesSqlite = sqliteTable("rag_search_queries", {
   id: text("id").primaryKey(),
@@ -3085,7 +3085,7 @@ const ragSearchQueriesSqlite = sqliteTable("rag_search_queries", {
   reportContext: text("report_context"),
   aiModelUsed: text("ai_model_used"),
   successful: integer("successful", { mode: "boolean" }).default(1),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at", { mode: "timestamp" }),
 });
 const syncConflictsSqlite = sqliteTable("sync_conflicts", {
   id: text("id").primaryKey(),
@@ -3109,7 +3109,7 @@ const syncConflictsSqlite = sqliteTable("sync_conflicts", {
   resolvedBy: text("resolved_by"),
   resolvedAt: integer("resolved_at", { mode: "timestamp" }),
   isSafetyCritical: integer("is_safety_critical", { mode: "boolean" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
+  createdAt: integer("created_at", { mode: "timestamp" }),
 });
 const updateSettingsSqlite = sqliteTable("update_settings", {
   id: text("id").primaryKey(),
@@ -3131,7 +3131,7 @@ const updateSettingsSqlite = sqliteTable("update_settings", {
   lastUpdateAt: integer("last_update_at", { mode: "timestamp" }),
   currentVersion: text("current_version"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 export {
   adminAuditEventsSqlite,
@@ -3268,5 +3268,5 @@ export {
   workOrderCompletionsSqlite,
   workOrderPartsSqlite,
   workOrderWorklogsSqlite,
-  workOrdersSqlite
+  workOrdersSqlite,
 };

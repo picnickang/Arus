@@ -90,13 +90,13 @@ function toOpenAIMessages(params: LLMChatParams): unknown[] {
     // OpenAI wire shape, so we can pass arrays straight through.
     const base: Record<string, unknown> = { role: m.role, content: m.content };
     if (m.name) {
-      base['name'] = m.name;
+      base["name"] = m.name;
     }
     if (m.toolCallId) {
-      base['tool_call_id'] = m.toolCallId;
+      base["tool_call_id"] = m.toolCallId;
     }
     if (m.toolCalls && m.toolCalls.length > 0) {
-      base['tool_calls'] = m.toolCalls.map((tc) => ({
+      base["tool_calls"] = m.toolCalls.map((tc) => ({
         id: tc.id,
         type: tc.type,
         function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -122,20 +122,20 @@ function buildOpenAIParams(params: LLMChatParams): Record<string, unknown> {
     messages: toOpenAIMessages(params),
   };
   if (params.maxCompletionTokens !== undefined) {
-    out['max_completion_tokens'] = params.maxCompletionTokens;
+    out["max_completion_tokens"] = params.maxCompletionTokens;
   }
   if (params.temperature !== undefined) {
-    out['temperature'] = params.temperature;
+    out["temperature"] = params.temperature;
   }
   if (params.jsonMode) {
-    out['response_format'] = { type: "json_object" };
+    out["response_format"] = { type: "json_object" };
   }
   if (params.tools && params.tools.length > 0) {
-    out['tools'] = params.tools;
+    out["tools"] = params.tools;
   }
   const tc = toOpenAIToolChoice(params.toolChoice);
   if (tc !== undefined) {
-    out['tool_choice'] = tc;
+    out["tool_choice"] = tc;
   }
   return out;
 }
@@ -146,7 +146,9 @@ function extractToolCalls(message: OpenAIChatMessageShape | undefined): LLMToolC
     return [];
   }
   return (tc as OpenAIToolCallShape[])
-    .filter((t) => t?.type === "function" && isRecord(t.function) && typeof t.function.name === "string")
+    .filter(
+      (t) => t?.type === "function" && isRecord(t.function) && typeof t.function.name === "string"
+    )
     .map((t) => ({
       id: String(t.id),
       type: "function" as const,
@@ -191,7 +193,9 @@ export class OpenAIProvider implements LLMProviderPort {
       const client = await this.clientFactory();
       return client !== null;
     } catch (err) {
-      logger.warn("OpenAI availability check failed", { err: err instanceof Error ? err.message : String(err) });
+      logger.warn("OpenAI availability check failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
       return false;
     }
   }
@@ -242,14 +246,12 @@ export class OpenAIProvider implements LLMProviderPort {
     const createClient = client as OpenAICreateClient;
     let stream: unknown;
     try {
-      stream = await retryWithBackoff(() =>
-        createClient.chat.completions.create(oaiParams)
-      );
+      stream = await retryWithBackoff(() => createClient.chat.completions.create(oaiParams));
     } catch (error: unknown) {
       const analysis = analyzeErrorType(error);
-      if (analysis.fallbackModel && oaiParams['model'] !== analysis.fallbackModel) {
+      if (analysis.fallbackModel && oaiParams["model"] !== analysis.fallbackModel) {
         logger.warn(
-          `Streaming: falling back from ${oaiParams['model']} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
+          `Streaming: falling back from ${oaiParams["model"]} to ${analysis.fallbackModel} due to: ${analysis.recommendation}`
         );
         stream = await retryWithBackoff(() =>
           createClient.chat.completions.create({
@@ -277,7 +279,8 @@ export class OpenAIProvider implements LLMProviderPort {
           index: Number(t.index ?? 0),
           id: typeof t.id === "string" ? t.id : undefined,
           name: typeof t.function?.name === "string" ? t.function.name : undefined,
-          argumentsDelta: typeof t.function?.arguments === "string" ? t.function.arguments : undefined,
+          argumentsDelta:
+            typeof t.function?.arguments === "string" ? t.function.arguments : undefined,
         }));
       }
       if (chunk.usage) {

@@ -80,7 +80,7 @@ describe("Permissions Mapper", () => {
         }),
         orgRoles
       );
-      expect(result.permissions.equipment).toEqual({
+      expect(result.permissions["equipment"]).toEqual({
         view: true,
         edit: false,
         delete: false,
@@ -97,7 +97,10 @@ describe("Permissions Mapper", () => {
       );
       expect(result.roles.map((r) => r.id)).toEqual(["role-admin"]);
       expect(warn).toHaveBeenCalledTimes(1);
-      const [message, context] = warn.mock.calls[0] as [string, Record<string, unknown>];
+      const [message, context] = warn.mock.calls[0] as [
+        string,
+        { metadata: { missingRoleIds: string[]; userId: string; orgId: string } },
+      ];
       expect(message).toMatch(/possible data drift/i);
       expect(context.metadata.missingRoleIds).toEqual(["role-ghost", "role-missing"]);
       expect(context.metadata.userId).toBe("user-1");

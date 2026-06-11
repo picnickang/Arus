@@ -1,13 +1,5 @@
 import type { RefObject } from "react";
-import {
-  Paperclip,
-  Mic,
-  MicOff,
-  Send,
-  Loader2,
-  X,
-  FileText,
-} from "lucide-react";
+import { Paperclip, Mic, MicOff, Send, Loader2, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_ATTACHMENTS } from "./constants";
@@ -51,18 +43,10 @@ export function MessageInputBar({
             const previewKey = `${f.name}-${f.size}`;
             const previewUrl = filePreviews.get(previewKey);
             return (
-              <div
-                key={i}
-                className="relative group"
-                data-testid={`badge-attached-file-${i}`}
-              >
+              <div key={i} className="relative group" data-testid={`badge-attached-file-${i}`}>
                 {previewUrl ? (
                   <div className="w-16 h-16 rounded border overflow-hidden bg-muted">
-                    <img
-                      src={previewUrl}
-                      alt={f.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={previewUrl} alt={f.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 bg-muted rounded px-2 py-1.5 text-xs">

@@ -43,7 +43,12 @@ const SCAN_DIRS = ["client/src/types", "server/types", "shared/types"];
 function loadDeps() {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const all = new Set();
-  for (const section of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+  for (const section of [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+  ]) {
     for (const name of Object.keys(pkg[section] ?? {})) all.add(name);
   }
   return all;
@@ -101,8 +106,7 @@ function shimSatisfied(file, body, deps) {
     };
     for (const ns of augmentedNamespaces) {
       const pkg = NAMESPACE_TO_PKG[ns];
-      const ok =
-        pkg && (deps.has(pkg) || deps.has(`@types/${pkg}`));
+      const ok = pkg && (deps.has(pkg) || deps.has(`@types/${pkg}`));
       if (!ok) {
         return {
           ok: false,
@@ -110,7 +114,10 @@ function shimSatisfied(file, body, deps) {
         };
       }
     }
-    return { ok: true, reason: `augments published package namespace(s): ${augmentedNamespaces.join(", ")}` };
+    return {
+      ok: true,
+      reason: `augments published package namespace(s): ${augmentedNamespaces.join(", ")}`,
+    };
   }
 
   // (a3) Ambient declarations for browser/standard APIs not yet in
@@ -197,7 +204,7 @@ function main() {
     for (const v of violations) console.error(`  ${v.file} — ${v.reason}`);
     console.error("");
     console.error(
-      "Every shim must either (a) declare a module already present in package.json deps, or (b) sit next to a paired Zod schema that asserts the shape at runtime.",
+      "Every shim must either (a) declare a module already present in package.json deps, or (b) sit next to a paired Zod schema that asserts the shape at runtime."
     );
     process.exit(1);
   }

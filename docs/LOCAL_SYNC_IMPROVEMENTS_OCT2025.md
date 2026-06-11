@@ -1,4 +1,5 @@
 # Local Sync Architecture Improvements
+
 **Date:** October 18, 2025  
 **Status:** ✅ IMPLEMENTED  
 **Impact:** Critical reliability and performance improvements for vessel deployments
@@ -26,6 +27,7 @@ Based on architectural review, we identified and resolved **5 critical issues** 
 **Problem:** SQLite could saturate I/O with 100+ concurrent devices writing telemetry
 
 **Solution:** Added production-grade PRAGMAs:
+
 ```typescript
 // Enable Write-Ahead Logging for better concurrency
 await localClient.execute("PRAGMA journal_mode=WAL");
@@ -47,12 +49,14 @@ await localClient.execute("PRAGMA busy_timeout=5000");
 ```
 
 **Benefits:**
+
 - ✅ WAL mode enables concurrent reads during writes
 - ✅ 64MB cache reduces disk I/O
 - ✅ 5-second busy timeout prevents lock contention
 - ✅ Memory temp storage improves query performance
 
 **Performance Impact:**
+
 - **Before:** ~10ms average write latency, lock contention under load
 - **After:** <1ms average write latency, scales to 100+ concurrent clients
 
@@ -65,6 +69,7 @@ await localClient.execute("PRAGMA busy_timeout=5000");
 **Problem:** Telemetry data grows indefinitely, causing database bloat and slow queries
 
 **Solution:** Automatic daily pruning with configurable retention:
+
 ```typescript
 const retentionDays = {
   rawTelemetry: 90 days,    // ENV: TELEMETRY_RETENTION_DAYS
@@ -74,6 +79,7 @@ const retentionDays = {
 ```
 
 **Features:**
+
 - Runs daily (configurable schedule)
 - Automatic VACUUM after large deletions
 - Statistics tracking
@@ -81,6 +87,7 @@ const retentionDays = {
 - Graceful error handling
 
 **Database Size Impact:**
+
 - **Before:** Unlimited growth (10GB+ in 3 months for active vessel)
 - **After:** Stable ~2-5GB (depends on activity and retention settings)
 
@@ -93,18 +100,20 @@ const retentionDays = {
 **Problem:** Two sync mechanisms (Turso auto-sync + Sync Manager) duplicated effort
 
 **Solution:** Disabled Turso auto-sync, Sync Manager now controls all sync:
+
 ```typescript
 // db-config.ts - Turso auto-sync disabled
 localClient = createClient({
   url: `file:${localDbPath}`,
   syncUrl: process.env.TURSO_SYNC_URL,
   authToken: process.env.TURSO_AUTH_TOKEN,
-  syncInterval: 0,  // ← Disabled - Sync Manager controls sync
+  syncInterval: 0, // ← Disabled - Sync Manager controls sync
   encryptionKey: process.env.LOCAL_DB_KEY,
 });
 ```
 
 **Benefits:**
+
 - ✅ Single source of truth for sync operations
 - ✅ Better control over conflict resolution
 - ✅ Reduced bandwidth usage
@@ -112,6 +121,7 @@ localClient = createClient({
 - ✅ Tracks offline duration for special handling
 
 **Sync Behavior:**
+
 - **Frequency:** Every 5 minutes (configurable)
 - **Long offline handling:** Automatic conflict checks after 24+ hours offline
 - **Graceful degradation:** Continues operating if sync fails
@@ -128,12 +138,12 @@ localClient = createClient({
 
 #### Policy Options
 
-| Policy | Behavior | Use Case |
-|--------|----------|----------|
+| Policy            | Behavior                   | Use Case                    |
+| ----------------- | -------------------------- | --------------------------- |
 | `last_write_wins` | Most recent timestamp wins | Default - balanced approach |
-| `shore_wins` | Shore office always wins | Shore has authority |
-| `vessel_wins` | Vessel always wins | Vessel has authority |
-| `manual` | Requires human resolution | Critical data |
+| `shore_wins`      | Shore office always wins   | Shore has authority         |
+| `vessel_wins`     | Vessel always wins         | Vessel has authority        |
+| `manual`          | Requires human resolution  | Critical data               |
 
 #### Implementation
 
@@ -141,14 +151,15 @@ localClient = createClient({
 // Automatic conflict detection after long offline periods
 if (offlineDuration > 24 * 60 * 60 * 1000) {
   await this.detectAndResolveConflicts({
-    policy: 'last_write_wins',  // Configurable
+    policy: "last_write_wins", // Configurable
     notifyUsers: true,
-    maxConflictsToResolve: 100
+    maxConflictsToResolve: 100,
   });
 }
 ```
 
 **Features:**
+
 - Automatic detection after sync
 - Conflict tracking in `sync_conflicts` table
 - Resolution audit trail in `sync_journal`
@@ -156,6 +167,7 @@ if (offlineDuration > 24 * 60 * 60 * 1000) {
 - Manual override capability
 
 **Conflict Types Handled:**
+
 - Update-Update conflicts (both sides modified)
 - Update-Delete conflicts (one deleted, one modified)
 - Delete-Update conflicts (opposite of above)
@@ -172,13 +184,13 @@ if (offlineDuration > 24 * 60 * 60 * 1000) {
 
 #### Why MQTT Instead of WebSocket?
 
-| Feature | WebSocket | MQTT |
-|---------|-----------|------|
-| Message Persistence | ❌ None | ✅ Retained messages |
-| Guaranteed Delivery | ❌ No | ✅ QoS levels 0-2 |
-| Reconnect Catchup | ❌ Manual | ✅ Automatic |
-| Durable Subscriptions | ❌ No | ✅ Yes |
-| Unreliable Networks | ⚠️ Poor | ✅ Excellent |
+| Feature               | WebSocket | MQTT                 |
+| --------------------- | --------- | -------------------- |
+| Message Persistence   | ❌ None   | ✅ Retained messages |
+| Guaranteed Delivery   | ❌ No     | ✅ QoS levels 0-2    |
+| Reconnect Catchup     | ❌ Manual | ✅ Automatic         |
+| Durable Subscriptions | ❌ No     | ✅ Yes               |
+| Unreliable Networks   | ⚠️ Poor   | ✅ Excellent         |
 
 #### Architecture
 
@@ -224,6 +236,7 @@ await mqttReliableSync.subscribe('work_orders', (payload) => {
 ```
 
 **QoS Levels Used:**
+
 - **QoS 0:** Dashboard updates (best effort)
 - **QoS 1:** Work orders, equipment, crew (at least once)
 - **QoS 2:** Alerts (exactly once - critical!)
@@ -276,6 +289,7 @@ async publishCatchupMessages(
 ```
 
 **Features:**
+
 - Automatic on reconnect
 - Configurable limit (prevent overwhelming client)
 - Timestamp-based querying
@@ -294,10 +308,10 @@ async publishCatchupMessages(
 if (isLocalMode) {
   // Sync Manager (every 5 min, with conflict resolution)
   await syncManager.start();
-  
+
   // Telemetry Pruning (daily, prevents bloat)
   await telemetryPruningService.start();
-  
+
   // MQTT Reliable Sync (guaranteed delivery for critical data)
   await mqttReliableSync.start();
 }
@@ -311,13 +325,13 @@ Routes should now use MQTT for critical data:
 // Example: Work order creation
 app.post("/api/work-orders", async (req, res) => {
   const workOrder = await storage.createWorkOrder(data);
-  
+
   // Use MQTT for critical sync (guaranteed delivery)
-  await mqttReliableSync.publishWorkOrderChange('create', workOrder);
-  
+  await mqttReliableSync.publishWorkOrderChange("create", workOrder);
+
   // Optionally still broadcast via WebSocket for instant UI update
-  wss.broadcastWorkOrderChange('create', workOrder);
-  
+  wss.broadcastWorkOrderChange("create", workOrder);
+
   res.json(workOrder);
 });
 ```
@@ -354,30 +368,35 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
 ## Testing Performed
 
 ### 1. SQLite Performance ✅
+
 - ✅ WAL mode enabled successfully
 - ✅ Cache optimizations applied
 - ✅ Foreign keys enforced
 - ✅ Busy timeout set correctly
 
 ### 2. Telemetry Pruning ✅
+
 - ✅ Service initializes successfully
 - ✅ Retention periods configurable via ENV
 - ✅ Manual trigger available
 - ✅ Statistics tracking functional
 
 ### 3. Sync Consolidation ✅
+
 - ✅ Turso auto-sync disabled
 - ✅ Sync Manager controls sync
 - ✅ Offline duration tracked
 - ✅ Sync journal logging active
 
 ### 4. Conflict Resolution ✅
+
 - ✅ Conflict detection implemented
 - ✅ 4 policies available
 - ✅ Audit trail in sync_journal
 - ✅ Long offline handling functional
 
 ### 5. MQTT Reliable Sync ✅
+
 - ✅ Service initializes
 - ✅ Topic structure defined
 - ✅ QoS levels configured
@@ -389,12 +408,14 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
 ## Production Readiness
 
 ### Ready for Production ✅
+
 1. ✅ SQLite performance hardening
 2. ✅ Telemetry data pruning
 3. ✅ Consolidated sync (Sync Manager only)
 4. ✅ Conflict resolution policies
 
 ### Requires Additional Work ⚠️
+
 5. ⚠️ **MQTT Client Integration** - Need to install `mqtt` package and connect to broker
 6. ⚠️ **Load Testing** - Test 100+ concurrent devices writing telemetry
 7. ⚠️ **Long Offline Test** - Test multi-week offline scenarios
@@ -407,15 +428,17 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
 ### Immediate (Required for Production)
 
 1. **Install MQTT Client Library**
+
    ```bash
    npm install mqtt
    ```
 
 2. **Configure MQTT Broker**
+
    ```bash
    # Option 1: Local broker on vessel
    docker run -p 1883:1883 eclipse-mosquitto
-   
+
    # Option 2: Cloud MQTT broker
    export MQTT_BROKER_URL=mqtt://cloud-broker:1883
    ```
@@ -461,11 +484,13 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
 ### Upgrading Existing Vessels
 
 1. **Backup Database**
+
    ```bash
    cp data/vessel-local.db data/vessel-local.db.backup
    ```
 
 2. **Update Environment**
+
    ```bash
    # Add new variables
    TELEMETRY_RETENTION_DAYS=90
@@ -478,10 +503,11 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
    - Sync Manager takes over from Turso
 
 4. **Verify Health**
+
    ```bash
    # Check sync status
    curl http://vessel:5000/api/sync/health
-   
+
    # Check MQTT status
    curl http://vessel:5000/api/mqtt/health
    ```
@@ -492,23 +518,23 @@ CONFLICT_POLICY=last_write_wins   # Options: last_write_wins, shore_wins, vessel
 
 ### Before Improvements
 
-| Metric | Value | Issue |
-|--------|-------|-------|
-| SQLite write latency | ~10ms | Lock contention |
-| Database size (3 months) | 10GB+ | No pruning |
-| Sync mechanisms | 2 (redundant) | Wasted bandwidth |
-| Conflict handling | None | Data corruption risk |
-| WebSocket reliability | Poor | Data loss on disconnect |
+| Metric                   | Value         | Issue                   |
+| ------------------------ | ------------- | ----------------------- |
+| SQLite write latency     | ~10ms         | Lock contention         |
+| Database size (3 months) | 10GB+         | No pruning              |
+| Sync mechanisms          | 2 (redundant) | Wasted bandwidth        |
+| Conflict handling        | None          | Data corruption risk    |
+| WebSocket reliability    | Poor          | Data loss on disconnect |
 
 ### After Improvements
 
-| Metric | Value | Improvement |
-|--------|-------|-------------|
-| SQLite write latency | <1ms | ✅ 10x faster |
-| Database size (stable) | 2-5GB | ✅ 50-75% reduction |
-| Sync mechanisms | 1 | ✅ Consolidated |
-| Conflict handling | 4 policies | ✅ Production-ready |
-| MQTT reliability | High | ✅ Guaranteed delivery |
+| Metric                 | Value      | Improvement            |
+| ---------------------- | ---------- | ---------------------- |
+| SQLite write latency   | <1ms       | ✅ 10x faster          |
+| Database size (stable) | 2-5GB      | ✅ 50-75% reduction    |
+| Sync mechanisms        | 1          | ✅ Consolidated        |
+| Conflict handling      | 4 policies | ✅ Production-ready    |
+| MQTT reliability       | High       | ✅ Guaranteed delivery |
 
 ---
 
@@ -541,6 +567,7 @@ Response: { status: 'connected', broker: 'mqtt://...', queuedMessages: 0 }
 
 **Symptom:** Slow writes, lock contention  
 **Solution:**
+
 ```sql
 -- Verify WAL mode
 PRAGMA journal_mode;  -- Should return 'wal'
@@ -556,6 +583,7 @@ PRAGMA busy_timeout;  -- Should return 5000 (5 seconds)
 
 **Symptom:** Database keeps growing  
 **Check:**
+
 1. Service started? `telemetryPruningService.start()` called
 2. Retention period? Check `TELEMETRY_RETENTION_DAYS`
 3. Manual trigger: `POST /api/telemetry/prune`
@@ -564,6 +592,7 @@ PRAGMA busy_timeout;  -- Should return 5000 (5 seconds)
 
 **Symptom:** Conflicts accumulating  
 **Check:**
+
 1. Conflict policy set? `CONFLICT_POLICY` environment variable
 2. Long offline? Conflicts only auto-resolve after 24h offline
 3. Manual check: `GET /api/sync/pending-conflicts`
@@ -572,6 +601,7 @@ PRAGMA busy_timeout;  -- Should return 5000 (5 seconds)
 
 **Symptom:** Messages not delivered  
 **Check:**
+
 1. MQTT broker running? `mqtt://localhost:1883`
 2. Client connected? `GET /api/mqtt/health`
 3. Stub code? Actual MQTT client requires `mqtt` package
@@ -580,13 +610,13 @@ PRAGMA busy_timeout;  -- Should return 5000 (5 seconds)
 
 ## Files Modified
 
-| File | Changes | Impact |
-|------|---------|--------|
-| `server/db-config.ts` | SQLite PRAGMAs, disable Turso auto-sync | Performance, sync control |
-| `server/sync-manager.ts` | Conflict resolution, offline tracking | Reliability |
-| `server/telemetry-pruning-service.ts` | NEW - Automatic cleanup | Database size |
-| `server/mqtt-reliable-sync.ts` | NEW - Guaranteed delivery | Data integrity |
-| `server/index.ts` | Start new services | Integration |
+| File                                  | Changes                                 | Impact                    |
+| ------------------------------------- | --------------------------------------- | ------------------------- |
+| `server/db-config.ts`                 | SQLite PRAGMAs, disable Turso auto-sync | Performance, sync control |
+| `server/sync-manager.ts`              | Conflict resolution, offline tracking   | Reliability               |
+| `server/telemetry-pruning-service.ts` | NEW - Automatic cleanup                 | Database size             |
+| `server/mqtt-reliable-sync.ts`        | NEW - Guaranteed delivery               | Data integrity            |
+| `server/index.ts`                     | Start new services                      | Integration               |
 
 ---
 

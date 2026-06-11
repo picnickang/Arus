@@ -20,9 +20,7 @@ function OrgNode({
   const [collapsed, setCollapsed] = useState(false);
   // `ancestors` is an extra runtime guard: even if a cycle slipped through, a
   // node never renders itself as its own descendant.
-  const rawChildren = ancestors.has(member.id)
-    ? []
-    : childrenByParent.get(member.id) ?? [];
+  const rawChildren = ancestors.has(member.id) ? [] : (childrenByParent.get(member.id) ?? []);
   const children = useMemo(() => sortMembers(rawChildren), [rawChildren, sortMembers]);
   const hasChildren = children.length > 0;
   const vesselName = d.getVesselName(member.vesselId ?? "") || "Unassigned";
@@ -42,11 +40,7 @@ function OrgNode({
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand reports" : "Collapse reports"}
           >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         ) : (
           <span className="h-6 w-6 shrink-0" aria-hidden="true" />
@@ -96,15 +90,9 @@ function OrgNode({
 export function CrewOrgChart({ d }: { d: UnifiedCrewData }) {
   const activeCrew = useMemo(() => d.crew.filter((c) => c.active), [d.crew]);
 
-  const sortMembers = useMemo(
-    () => makeMemberComparator(d.roleLookup.sortIndex),
-    [d.roleLookup],
-  );
+  const sortMembers = useMemo(() => makeMemberComparator(d.roleLookup.sortIndex), [d.roleLookup]);
 
-  const { roots, childrenByParent } = useMemo(
-    () => buildReportingTree(activeCrew),
-    [activeCrew],
-  );
+  const { roots, childrenByParent } = useMemo(() => buildReportingTree(activeCrew), [activeCrew]);
   const sortedRoots = useMemo(() => sortMembers(roots), [roots, sortMembers]);
 
   return (

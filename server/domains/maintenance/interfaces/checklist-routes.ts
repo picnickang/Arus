@@ -8,10 +8,11 @@
  * full persistence layer — but no routes were ever registered, so every
  * call fell through to Vite's SPA fallback.
  *
- * Kept beside the hexagonal maintenance routes as a thin repositories-barrel
- * adapter (the telemetry domain's pattern) rather than threading checklist
- * ports/events through the application layer — these are CRUD pass-throughs
- * with org scoping, not domain workflows.
+ * Kept beside the hexagonal maintenance routes as a thin storage adapter
+ * over the canonical `db…Storage` homes (the telemetry domain's pattern)
+ * rather than threading checklist ports/events through the application
+ * layer — these are CRUD pass-throughs with org scoping, not domain
+ * workflows.
  */
 
 import type { Express, Request, Response } from "express";
@@ -20,10 +21,7 @@ import {
   insertMaintenanceChecklistItemSchema,
   insertWorkOrderWorklogSchema,
 } from "@shared/schema-runtime";
-import {
-  checklistsPort,
-  checklistWorkOrdersPort,
-} from "../../../composition/maintenance-checklists.js";
+import { checklistsPort, checklistWorkOrdersPort } from "../infrastructure/checklist-storage";
 import {
   authenticatedRequest,
   requireOrgId,

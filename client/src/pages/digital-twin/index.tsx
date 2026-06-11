@@ -1,17 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
-import {
-  Box,
-  Activity,
-  BarChart3,
-  FlaskConical,
-  Clock,
-} from "lucide-react";
-
-
-
-
-
+import { Box, Activity, BarChart3, FlaskConical, Clock } from "lucide-react";
 
 import { OverviewTab } from "./OverviewTab";
 import { StateTab } from "./StateTab";

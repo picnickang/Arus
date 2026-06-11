@@ -27,10 +27,14 @@ describe("Maintenance forms — templates + schedules", () => {
 
   afterAll(async () => {
     if (scheduleId) {
-      await pool.query("DELETE FROM maintenance_schedules WHERE id=$1", [scheduleId]).catch(() => {});
+      await pool
+        .query("DELETE FROM maintenance_schedules WHERE id=$1", [scheduleId])
+        .catch(() => {});
     }
     if (templateId) {
-      await pool.query("DELETE FROM maintenance_templates WHERE id=$1", [templateId]).catch(() => {});
+      await pool
+        .query("DELETE FROM maintenance_templates WHERE id=$1", [templateId])
+        .catch(() => {});
     }
     await cleanupByRunId(RUN_ID, ["maintenance_templates", "maintenance_schedules"]);
   });
@@ -77,9 +81,9 @@ describe("Maintenance forms — templates + schedules", () => {
     const items = Array.isArray(list.data)
       ? list.data
       : ((list.data as { items?: Array<{ id: string }> }).items ?? []);
-    const updated = (items as Array<{ id: string; intervalDays?: number; interval_days?: number }>).find(
-      (t) => t.id === templateId
-    );
+    const updated = (
+      items as Array<{ id: string; intervalDays?: number; interval_days?: number }>
+    ).find((t) => t.id === templateId);
     expect(updated).toBeTruthy();
     const interval = updated?.intervalDays ?? updated?.interval_days;
     expect(interval).toBe(30);
@@ -98,7 +102,11 @@ describe("Maintenance forms — templates + schedules", () => {
     // Some builds require additional fields; surface that in the assertion
     if (status >= 400) {
       // eslint-disable-next-line no-console
-      console.log("maintenance schedule create returned", status, JSON.stringify(data).slice(0, 200));
+      console.log(
+        "maintenance schedule create returned",
+        status,
+        JSON.stringify(data).slice(0, 200)
+      );
     }
     expect([200, 201, 400, 422]).toContain(status);
     if (status === 200 || status === 201) {
@@ -118,7 +126,9 @@ describe("Maintenance forms — templates + schedules", () => {
   });
 
   it("FK to equipment is asserted via SQL join (when create succeeded)", async () => {
-    if (!scheduleId) {return;}
+    if (!scheduleId) {
+      return;
+    }
     const { rows } = await pool.query(
       `SELECT m.id, m.equipment_id, e.id AS e_id
          FROM maintenance_schedules m

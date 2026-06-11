@@ -57,9 +57,7 @@ function readDockerignoreEntries() {
 
 function dockerignoreExcludes(entries, dirName) {
   // Treat `dir`, `dir/`, `/dir`, `/dir/` as excluding the directory.
-  const normalized = new Set(
-    entries.map((e) => e.replace(/^\//, "").replace(/\/$/, "")),
-  );
+  const normalized = new Set(entries.map((e) => e.replace(/^\//, "").replace(/\/$/, "")));
   return normalized.has(dirName);
 }
 
@@ -153,10 +151,10 @@ let fatal = false;
 if (assetsIgnored && assetImports.length > 0) {
   fatal = true;
   console.error(
-    `\n✗ FATAL: client/src imports ${ASSET_ALIAS}/* but ${ASSET_DIR}/ is excluded in .dockerignore.`,
+    `\n✗ FATAL: client/src imports ${ASSET_ALIAS}/* but ${ASSET_DIR}/ is excluded in .dockerignore.`
   );
   console.error(
-    `  The in-container \`vite build\` will fail — the ${ASSET_DIR}/ folder is not in the Docker build context.`,
+    `  The in-container \`vite build\` will fail — the ${ASSET_DIR}/ folder is not in the Docker build context.`
   );
   console.error(`  ${assetImports.length} offending import(s):`);
   for (const hit of assetImports.slice(0, 20)) {
@@ -166,19 +164,17 @@ if (assetsIgnored && assetImports.length > 0) {
     console.error(`    … and ${assetImports.length - 20} more`);
   }
   console.error(
-    `\n  Fix: remove \`${ASSET_DIR}/\` from .dockerignore so the asset ships in the build context,`,
+    `\n  Fix: remove \`${ASSET_DIR}/\` from .dockerignore so the asset ships in the build context,`
   );
   console.error(
-    `  or move the imported asset into a directory already in the build context (e.g. client/src/assets).`,
+    `  or move the imported asset into a directory already in the build context (e.g. client/src/assets).`
   );
 } else if (assetsIgnored) {
   console.log(
-    `✓ ${ASSET_DIR}/ excluded from build context and no ${ASSET_ALIAS}/* imports in client/src — safe.`,
+    `✓ ${ASSET_DIR}/ excluded from build context and no ${ASSET_ALIAS}/* imports in client/src — safe.`
   );
 } else {
-  console.log(
-    `✓ ${ASSET_DIR}/ is in the build context — ${ASSET_ALIAS}/* imports are safe.`,
-  );
+  console.log(`✓ ${ASSET_DIR}/ is in the build context — ${ASSET_ALIAS}/* imports are safe.`);
 }
 
 // --- Check 2: deployable footprint (warn-only) ----------------------------
@@ -206,7 +202,7 @@ for (const entry of topEntries) {
 
 breakdown.sort((a, b) => b.size - a.size);
 console.log(
-  `\nEstimated build-context footprint (excluding .dockerignore dirs + node_modules): ${fmtBytes(footprint)}`,
+  `\nEstimated build-context footprint (excluding .dockerignore dirs + node_modules): ${fmtBytes(footprint)}`
 );
 for (const { name, size } of breakdown.slice(0, 5)) {
   console.log(`  - ${name}/: ${fmtBytes(size)}`);
@@ -215,11 +211,11 @@ for (const { name, size } of breakdown.slice(0, 5)) {
 if (footprint > FOOTPRINT_WARN_BYTES) {
   console.warn(
     `\n⚠ WARNING: build-context footprint ${fmtBytes(footprint)} exceeds soft threshold ${fmtBytes(
-      FOOTPRINT_WARN_BYTES,
-    )}.`,
+      FOOTPRINT_WARN_BYTES
+    )}.`
   );
   console.warn(
-    "  The hard Cloud Run image limit is 8 GiB. Consider excluding large non-runtime dirs in .dockerignore.",
+    "  The hard Cloud Run image limit is 8 GiB. Consider excluding large non-runtime dirs in .dockerignore."
   );
 }
 

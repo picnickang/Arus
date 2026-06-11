@@ -170,7 +170,8 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
   {
     name: "super_admin",
     displayName: "Super Administrator",
-    description: "Unrestricted system-level administrator for all hubs, roles, access, and safety controls",
+    description:
+      "Unrestricted system-level administrator for all hubs, roles, access, and safety controls",
     department: "admin",
     hierarchyLevel: 1,
     permissions: [
@@ -629,7 +630,8 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
   {
     name: "technician",
     displayName: "Technician",
-    description: "Maintenance technician focused on assigned work, equipment checks, and task closeout",
+    description:
+      "Maintenance technician focused on assigned work, equipment checks, and task closeout",
     department: "engine",
     hierarchyLevel: 55,
     permissions: [
@@ -648,7 +650,8 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
   {
     name: "supervisor",
     displayName: "Supervisor",
-    description: "Department supervisor for crew coordination, assigned work, and readiness follow-up",
+    description:
+      "Department supervisor for crew coordination, assigned work, and readiness follow-up",
     department: "deck",
     hierarchyLevel: 45,
     permissions: [
@@ -694,7 +697,8 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
   {
     name: "logistics_user",
     displayName: "Logistics User",
-    description: "Logistics and procurement user for inventory, purchase requests, and vessel supplies",
+    description:
+      "Logistics and procurement user for inventory, purchase requests, and vessel supplies",
     department: "admin",
     hierarchyLevel: 60,
     permissions: [
@@ -716,7 +720,8 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplateConfig[] = [
   {
     name: "crew_member",
     displayName: "Crew Member",
-    description: "Standard crew portal user for vessel assignment, watch status, safety, and assigned tasks",
+    description:
+      "Standard crew portal user for vessel assignment, watch status, safety, and assigned tasks",
     department: "deck",
     hierarchyLevel: 80,
     permissions: [

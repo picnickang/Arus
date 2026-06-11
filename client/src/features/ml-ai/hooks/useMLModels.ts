@@ -15,7 +15,8 @@ export const mlKeys = {
 export function useMLModels(orgId?: string) {
   return useQuery<MLModel[]>({
     queryKey: mlKeys.models(orgId ?? "all"),
-    queryFn: () => apiRequest<MLModel[]>("GET", `/api/analytics/ml-models${orgId ? `?orgId=${orgId}` : ""}`),
+    queryFn: () =>
+      apiRequest<MLModel[]>("GET", `/api/analytics/ml-models${orgId ? `?orgId=${orgId}` : ""}`),
   });
 }
 
@@ -38,7 +39,8 @@ export function useTrainingJobs() {
 export function useInsightReports(limit?: number) {
   return useQuery<InsightReport[]>({
     queryKey: [...mlKeys.reports(), limit ?? "all"],
-    queryFn: () => apiRequest<InsightReport[]>("GET", `/api/insight-reports${limit ? `?limit=${limit}` : ""}`),
+    queryFn: () =>
+      apiRequest<InsightReport[]>("GET", `/api/insight-reports${limit ? `?limit=${limit}` : ""}`),
   });
 }
 

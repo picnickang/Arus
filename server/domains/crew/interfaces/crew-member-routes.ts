@@ -11,8 +11,11 @@ import { permissionRepository } from "../../permissions/repository.js";
 import { listVesselsDirectory } from "../infrastructure/vessel-directory.js";
 import { loadSections } from "../../../lib/aggregate-helpers.js";
 import { validateResponse } from "../../../lib/api-helpers.js";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import { requirePermission } from "../../../lib/permissions/middleware.js";
 import {
   withErrorHandling,
@@ -23,10 +26,7 @@ import {
 import { enforceQuota } from "../../../middleware/tenant-quota.js";
 import { quotaService } from "../../../tenancy/quota-service.js";
 import { ObjectStorageService } from "../../../replit_integrations/object_storage/objectStorage.js";
-import {
-  validateImageMagicBytes,
-  isAllowedImageMimeType,
-} from "../../../lib/image-magic-bytes.js";
+import { validateImageMagicBytes, isAllowedImageMimeType } from "../../../lib/image-magic-bytes.js";
 import type { CrewRouteDeps } from "./types.js";
 
 // In-memory multer for crew profile photos. The buffer is magic-byte
@@ -56,7 +56,7 @@ async function deleteCrewPhotoObject(
   objectStorage: ObjectStorageService,
   photoPath: string,
   orgId: string,
-  reclaimQuota: boolean,
+  reclaimQuota: boolean
 ): Promise<void> {
   try {
     const objectFile = await objectStorage.getObjectEntityFile(photoPath);
@@ -197,7 +197,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     generalApiRateLimit,
     withErrorHandling("fetch crew member", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const crew = await crewService.getCrewById(req.params['id'] ?? '', orgId);
+      const crew = await crewService.getCrewById(req.params["id"] ?? "", orgId);
 
       if (!crew) {
         sendNotFound(res, "Crew member");
@@ -228,7 +228,12 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
       // so the generic CRUD path cannot set or clear it.
       const crewData = insertCrewSchema.omit({ photoPath: true }).partial().parse(body);
       const orgId = authenticatedRequest(req).orgId;
-      const crew = await crewService.updateCrew(req.params['id'] ?? '', crewData, req.user?.id, orgId);
+      const crew = await crewService.updateCrew(
+        req.params["id"] ?? "",
+        crewData,
+        req.user?.id,
+        orgId
+      );
       res.json(crew);
     })
   );
@@ -240,7 +245,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      await crewService.deleteCrew(req.params['id'] ?? '', req.user?.id, orgId);
+      await crewService.deleteCrew(req.params["id"] ?? "", req.user?.id, orgId);
       sendDeleted(res);
     })
   );
@@ -265,12 +270,10 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
         return;
       }
       if (!validateImageMagicBytes(file.buffer, file.mimetype)) {
-        res
-          .status(400)
-          .json({ error: "File contents do not match a valid PNG or JPEG image." });
+        res.status(400).json({ error: "File contents do not match a valid PNG or JPEG image." });
         return;
       }
-      const id = req.params['id'] ?? '';
+      const id = req.params["id"] ?? "";
       const existing = await crewService.getCrewById(id, orgId);
       if (!existing) {
         sendNotFound(res, "Crew member");
@@ -324,7 +327,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
     withErrorHandling("delete crew photo", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const userId = req.user?.id;
-      const id = req.params['id'] ?? '';
+      const id = req.params["id"] ?? "";
       const existing = await crewService.getCrewById(id, orgId);
       if (!existing) {
         sendNotFound(res, "Crew member");

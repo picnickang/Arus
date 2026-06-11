@@ -42,7 +42,9 @@ export async function getEquipmentDataRange(
   let oldestDate: Date | null = null;
 
   try {
-    logger.info("[Adaptive Training Window] Querying telemetry for equipment IDs:", { details: equipmentIds });
+    logger.info("[Adaptive Training Window] Querying telemetry for equipment IDs:", {
+      details: equipmentIds,
+    });
 
     const result = await db
       .select({ oldestTimestamp: sql<Date>`MIN(${equipmentTelemetry.ts})` })

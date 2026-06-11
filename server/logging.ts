@@ -25,11 +25,13 @@ export interface LogContext {
   operation?: string | undefined;
   duration?: number | undefined;
   statusCode?: number | undefined;
-  error?: {
-    message: string;
-    stack?: string | undefined;
-    code?: string | undefined;
-  } | undefined;
+  error?:
+    | {
+        message: string;
+        stack?: string | undefined;
+        code?: string | undefined;
+      }
+    | undefined;
   metadata?: Record<string, unknown> | undefined;
 }
 
@@ -255,7 +257,7 @@ export function structuredLog(
     timestamp: new Date().toISOString(),
     level,
     service: "arus-api",
-    version: process.env['npm_package_version'] || "1.0",
+    version: process.env["npm_package_version"] || "1.0",
     ...enrichedContext,
   };
 
@@ -264,7 +266,7 @@ export function structuredLog(
     logEntry.metadata = redactSensitiveFields(logEntry.metadata);
   }
 
-  if (process.env['NODE_ENV'] === "production") {
+  if (process.env["NODE_ENV"] === "production") {
     // JSON logging for production (easier to parse by log aggregators)
     console.log(JSON.stringify({ message, ...logEntry }));
   } else {
@@ -335,7 +337,8 @@ export function trackError(error: Error, context: Partial<LogContext> = {}) {
 export function loggingContextMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     const correlationId = (req.headers["x-correlation-id"] as string) || generateCorrelationId();
-    const requestId = authenticatedRequest(req).requestId || `req_${Date.now()}_${randomUUID().slice(0, 7)}`;
+    const requestId =
+      authenticatedRequest(req).requestId || `req_${Date.now()}_${randomUUID().slice(0, 7)}`;
     const orgId = authenticatedRequest(req).orgId;
 
     // Add correlation ID to response headers for client tracing

@@ -5,8 +5,12 @@ import { organizations } from "./schema";
 const syncConflicts = pgTable(
   "sync_conflicts",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     // Conflict identification
     tableName: varchar("table_name", { length: 255 }).notNull(),
     recordId: varchar("record_id", { length: 255 }).notNull(),
@@ -32,18 +36,19 @@ const syncConflicts = pgTable(
     resolvedAt: timestamp("resolved_at", { mode: "date" }),
     // Safety classification
     isSafetyCritical: boolean("is_safety_critical").default(false),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow()
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    unresolvedIdx: index("idx_sync_conflicts_unresolved").on(table.orgId, table.resolved).where(sql`${table.resolved} = false`),
-    safetyIdx: index("idx_sync_conflicts_safety").on(table.orgId, table.isSafetyCritical, table.resolved).where(sql`${table.isSafetyCritical} = true AND ${table.resolved} = false`)
+    unresolvedIdx: index("idx_sync_conflicts_unresolved")
+      .on(table.orgId, table.resolved)
+      .where(sql`${table.resolved} = false`),
+    safetyIdx: index("idx_sync_conflicts_safety")
+      .on(table.orgId, table.isSafetyCritical, table.resolved)
+      .where(sql`${table.isSafetyCritical} = true AND ${table.resolved} = false`),
   })
 );
 const insertSyncConflictSchema = createInsertSchema(syncConflicts).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
-export {
-  insertSyncConflictSchema,
-  syncConflicts
-};
+export { insertSyncConflictSchema, syncConflicts };

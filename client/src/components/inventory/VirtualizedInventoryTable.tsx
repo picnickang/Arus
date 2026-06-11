@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
+import { getStockStatus } from "@/features/inventory/lib/stockUtils";
 
 export interface PartsInventoryItem {
   id: string;
@@ -94,33 +95,6 @@ const COLUMNS = [
   { key: "actions", label: "", width: 60, sortable: false },
 ];
 
-function getStockStatus(item: PartsInventoryItem): string {
-  if (!item.stock) {
-    return "unknown";
-  }
-  const { quantityOnHand, quantityReserved } = item.stock;
-  const available = Math.max(0, quantityOnHand - quantityReserved);
-  const minStock = item.minStockLevel;
-  const maxStock = item.maxStockLevel;
-
-  if (quantityOnHand <= 0) {
-    return "out_of_stock";
-  }
-  if (available <= 0) {
-    return "critical";
-  }
-  if (available < minStock * 0.5) {
-    return "critical";
-  }
-  if (available < minStock) {
-    return "low_stock";
-  }
-  if (available > maxStock) {
-    return "excess_stock";
-  }
-  return "adequate";
-}
-
 function getStatusBadge(status: string) {
   const statusConfig: Record<
     string,
@@ -138,11 +112,12 @@ function getStatusBadge(status: string) {
     unknown: { variant: "outline", label: "Unknown", icon: Package },
   };
 
-  const config = statusConfig[status] || statusConfig['unknown'] || {
-    variant: "outline" as const,
-    label: "Unknown",
-    icon: Package,
-  };
+  const config = statusConfig[status] ||
+    statusConfig["unknown"] || {
+      variant: "outline" as const,
+      label: "Unknown",
+      icon: Package,
+    };
   const Icon = config.icon;
 
   return (
@@ -151,13 +126,6 @@ function getStatusBadge(status: string) {
       <span className="hidden sm:inline">{config.label}</span>
     </Badge>
   );
-}
-
-function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return formatCurrency(value);
 }
 
 function SortableHeader({
@@ -327,7 +295,9 @@ export function VirtualizedInventoryTable({
         >
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
-            if (!item) {return null;}
+            if (!item) {
+              return null;
+            }
             const status = getStockStatus(item);
             const available = item.stock
               ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved)
@@ -423,10 +393,10 @@ export function VirtualizedInventoryTable({
                   {item.stock?.quantityReserved ?? 0}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(unitCost)}
+                  {formatCurrency(unitCost, { fallback: "-" })}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(totalValue)}
+                  {formatCurrency(totalValue, { fallback: "-" })}
                 </div>
                 <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}
@@ -434,7 +404,11 @@ export function VirtualizedInventoryTable({
                     status === "low_stock" ||
                     status === "out_of_stock") && (
                     <span onClick={(e) => e.stopPropagation()}>
-                      <QuickReorderButton part={item as object as Parameters<typeof QuickReorderButton>[0]["part"]} variant="icon" onReorderCreated={() => {}} />
+                      <QuickReorderButton
+                        part={item as object as Parameters<typeof QuickReorderButton>[0]["part"]}
+                        variant="icon"
+                        onReorderCreated={() => {}}
+                      />
                     </span>
                   )}
                 </div>

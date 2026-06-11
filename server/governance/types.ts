@@ -138,10 +138,12 @@ export interface ProvenanceVerificationResult {
   ok: boolean;
   totalEvents: number;
   brokenAt?: number | undefined;
-  errors?: Array<{
-    index: number;
-    eventId: string;
-    reason: string;
-  }> | undefined;
+  errors?:
+    | Array<{
+        index: number;
+        eventId: string;
+        reason: string;
+      }>
+    | undefined;
   lastHash?: string | undefined;
 }

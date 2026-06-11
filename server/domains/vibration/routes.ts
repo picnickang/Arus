@@ -125,7 +125,9 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/enhanced-analysis",
     requireOrgId,
     withErrorHandling("perform enhanced analysis", async (req: Request, res: Response) => {
-      const { equipmentId, data, sampleRate, equipmentType } = enhancedBodySchema.parse(req.body ?? {});
+      const { equipmentId, data, sampleRate, equipmentType } = enhancedBodySchema.parse(
+        req.body ?? {}
+      );
 
       if (!data || !Array.isArray(data)) {
         return res.status(400).json({ message: "Vibration data array is required" });
@@ -142,7 +144,8 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         default: { warning: 4.5, critical: 7.1 },
       };
 
-      const limits = thresholds[equipmentType] ?? thresholds['default'] ?? { warning: 4.5, critical: 7.1 };
+      const limits = thresholds[equipmentType] ??
+        thresholds["default"] ?? { warning: 4.5, critical: 7.1 };
       let severity = "normal";
       if (rmsValue > limits.critical) {
         severity = "critical";
@@ -193,7 +196,8 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
         class4: { A: 2.8, B: 7.1, C: 18, D: 45 },
       };
 
-      const limits = isoLimits[machineClass] ?? isoLimits['class2'] ?? { A: 1.12, B: 2.8, C: 7.1, D: 18 };
+      const limits = isoLimits[machineClass] ??
+        isoLimits["class2"] ?? { A: 1.12, B: 2.8, C: 7.1, D: 18 };
       let zone = "A";
       if (rmsVelocity > limits.D) {
         zone = "D";
@@ -226,7 +230,9 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/bearing-fault-detection",
     requireOrgId,
     withErrorHandling("detect bearing faults", async (req: Request, res: Response) => {
-      const { equipmentId, frequencies, amplitudes, bearingSpec } = bearingFaultBodySchema.parse(req.body ?? {});
+      const { equipmentId, frequencies, amplitudes, bearingSpec } = bearingFaultBodySchema.parse(
+        req.body ?? {}
+      );
 
       const faultFrequencies = {
         BPFO: bearingSpec?.bpfo || 0,
@@ -288,7 +294,8 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     "/api/vibration/bearing-frequencies",
     requireOrgId,
     withErrorHandling("calculate bearing frequencies", async (req: Request, res: Response) => {
-      const { ballCount, ballDiameter, pitchDiameter, contactAngle, shaftRpm } = bearingFreqBodySchema.parse(req.body ?? {});
+      const { ballCount, ballDiameter, pitchDiameter, contactAngle, shaftRpm } =
+        bearingFreqBodySchema.parse(req.body ?? {});
 
       const n = ballCount || 8;
       const Bd = ballDiameter || 10;

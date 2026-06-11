@@ -35,7 +35,9 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
 
   async create(command: CreateTemplateCommand): Promise<MaintenanceTemplateEntity> {
     const template = await dbMaintenanceTemplatesStorage.createMaintenanceTemplate(
-      command as object as Parameters<typeof dbMaintenanceTemplatesStorage.createMaintenanceTemplate>[0]
+      command as object as Parameters<
+        typeof dbMaintenanceTemplatesStorage.createMaintenanceTemplate
+      >[0]
     );
     return this.mapToEntity(template);
   }
@@ -47,7 +49,9 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
   ): Promise<MaintenanceTemplateEntity> {
     const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(
       id,
-      updates as object as Parameters<typeof dbMaintenanceTemplatesStorage.updateMaintenanceTemplate>[1],
+      updates as object as Parameters<
+        typeof dbMaintenanceTemplatesStorage.updateMaintenanceTemplate
+      >[1],
       orgId
     );
     return this.mapToEntity(template);
@@ -59,13 +63,20 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
 
   private mapToEntity(template: Record<string, unknown>): MaintenanceTemplateEntity {
     const t = template as {
-      id: string; orgId?: string; name: string; equipmentType: string;
-      maintenanceType: string; description?: string | null;
+      id: string;
+      orgId?: string;
+      name: string;
+      equipmentType: string;
+      maintenanceType: string;
+      description?: string | null;
       estimatedDurationHours?: number | null;
-      requiredParts?: unknown; checklistItems?: unknown;
-      intervalDays?: number | null; intervalHours?: number | null;
+      requiredParts?: unknown;
+      checklistItems?: unknown;
+      intervalDays?: number | null;
+      intervalHours?: number | null;
       isActive?: boolean | null;
-      createdAt?: Date | null; updatedAt?: Date | null;
+      createdAt?: Date | null;
+      updatedAt?: Date | null;
     };
     return {
       id: t.id,

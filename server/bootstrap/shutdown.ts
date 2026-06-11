@@ -94,9 +94,11 @@ async function shutdown(sig: string): Promise<void> {
     }
 
     try {
-      const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
-      await withTimeout(telemetryBatchWriter.stop(), 5000);
-      logger.info("  ✓ Telemetry batch writer flushed");
+      // stopIngestion() stops the SQLite bridge first (no new frames are
+      // queued mid-drain), then stops + final-flushes the batch writer.
+      const { stopIngestion } = await import("../ingestion/startIngestion");
+      await withTimeout(stopIngestion(), 5000);
+      logger.info("  ✓ Ingestion stopped (bridge + batch writer flushed)");
     } catch {
       /* module not loaded or already stopped */
     }

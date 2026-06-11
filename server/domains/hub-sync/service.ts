@@ -36,9 +36,9 @@ export const hubSyncService = {
       sql`SELECT sheet_key, holder, token, expires_at, created_at FROM sheet_lock WHERE sheet_key = ${sheetKey} LIMIT 1`
     );
     const existingRow = existing.rows?.[0];
-    if (existingRow && new Date(existingRow['expires_at'] as string) > new Date()) {
-      if (existingRow['holder'] !== holder) {
-        throw new Error(`Sheet ${sheetKey} is already locked by ${existingRow['holder']}`);
+    if (existingRow && new Date(existingRow["expires_at"] as string) > new Date()) {
+      if (existingRow["holder"] !== holder) {
+        throw new Error(`Sheet ${sheetKey} is already locked by ${existingRow["holder"]}`);
       }
     }
     const result = await db.execute(
@@ -52,7 +52,7 @@ export const hubSyncService = {
 
   async releaseSheetLock(sheetKey: string, token: string) {
     const lock = await this.getSheetLock(sheetKey);
-    if (lock && lock['token'] !== token) {
+    if (lock && lock["token"] !== token) {
       throw new Error(`Cannot release lock on ${sheetKey}: invalid token`);
     }
     await db.execute(
@@ -72,7 +72,7 @@ export const hubSyncService = {
     if (!lock) {
       return false;
     }
-    return new Date(lock['expires_at'] as string) > new Date();
+    return new Date(lock["expires_at"] as string) > new Date();
   },
 
   async getSheetVersion(sheetKey: string) {
@@ -85,7 +85,7 @@ export const hubSyncService = {
   async incrementSheetVersion(sheetKey: string, modifiedBy: string) {
     const existing = await this.getSheetVersion(sheetKey);
     if (existing) {
-      const newVersion = (existing['version'] as number) + 1;
+      const newVersion = (existing["version"] as number) + 1;
       const result = await db.execute(
         sql`UPDATE sheet_version SET version = ${newVersion}, last_modified = NOW(), last_modified_by = ${modifiedBy}
             WHERE sheet_key = ${sheetKey} RETURNING *`
@@ -100,9 +100,9 @@ export const hubSyncService = {
   },
 
   async setSheetVersion(data: Record<string, unknown>) {
-    const sheetKey = (data['sheetId'] as string) || (data['sheetKey'] as string);
-    const modifiedBy = (data['lastModifiedBy'] as string) || (data['modifiedBy'] as string) || "";
-    const version = data['version'] as number | undefined;
+    const sheetKey = (data["sheetId"] as string) || (data["sheetKey"] as string);
+    const modifiedBy = (data["lastModifiedBy"] as string) || (data["modifiedBy"] as string) || "";
+    const version = data["version"] as number | undefined;
     if (version !== undefined) {
       const result = await db.execute(
         sql`INSERT INTO sheet_version (sheet_key, version, last_modified, last_modified_by)

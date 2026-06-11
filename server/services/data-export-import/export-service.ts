@@ -57,12 +57,14 @@ export async function exportOrg(
   const anonymizationResults: Record<string, AnonymizationResult> = {};
 
   try {
-    logger.info(`[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`);
+    logger.info(
+      `[DataExport] Starting export for org: ${orgId}${fullOptions.anonymize !== "none" ? ` (anonymization: ${fullOptions.anonymize})` : ""}`
+    );
     fs.mkdirSync(exportPath, { recursive: true });
 
     const manifest: ExportManifest = {
       exportVersion: CURRENT_EXPORT_VERSION,
-      appVersion: process.env['npm_package_version'] || "1.0",
+      appVersion: process.env["npm_package_version"] || "1.0",
       schemaVersion: CURRENT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
       exportedBy,
@@ -131,7 +133,9 @@ export async function exportOrg(
 
       const reportPath = path.join(exportPath, "anonymization-report.json");
       fs.writeFileSync(reportPath, JSON.stringify(anonymizationReport, null, 2));
-      logger.info(`[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`);
+      logger.info(
+        `[DataExport] Anonymization report: ${anonymizationReport.summary.anonymizationRate} of fields anonymized`
+      );
     }
 
     const manifestPath = path.join(exportPath, "manifest.json");

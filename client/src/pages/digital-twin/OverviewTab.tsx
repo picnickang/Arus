@@ -2,11 +2,7 @@ import { useState } from "react";
 import { TwinOverviewCard } from "./TwinOverviewCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Loader2,
-  RefreshCw,
-  Plus,
-} from "lucide-react";
+import { Loader2, RefreshCw, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useTwins,
@@ -20,8 +16,6 @@ import {
   useRefreshAllTwins,
   type TwinFreshnessInfo,
 } from "@/features/digital-twin/hooks/useTwinFreshness";
-
-
 
 export function OverviewTab() {
   const { data: twins, isLoading: twinsLoading } = useTwins();
@@ -299,4 +293,3 @@ export function OverviewTab() {
     </div>
   );
 }
-

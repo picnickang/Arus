@@ -44,9 +44,7 @@ describe("UI Align Phase 3B — home.tsx dark ops-shell", () => {
     // Admin branch lives inside HomePage()'s final return — everything
     // from the "Admin portal" derivation comment through the hub-list
     // footer testid.
-    const adminMatch = homeSrc.match(
-      /\/\/ Admin portal:[\s\S]*?data-testid="text-hubs-footer"/,
-    );
+    const adminMatch = homeSrc.match(/\/\/ Admin portal:[\s\S]*?data-testid="text-hubs-footer"/);
     expect(adminMatch).not.toBeNull();
     adminBranch = adminMatch![0];
   });

@@ -185,7 +185,9 @@ export const vessel3dModels = pgTable(
     sizeBytes: integer("size_bytes").notNull(),
     storedPath: text("stored_path").notNull(),
     // Array of { equipmentId: string; x: number; y: number; z: number; label?: string }
-    equipmentPins: jsonb("equipment_pins").notNull().default(sql`'[]'::jsonb`),
+    equipmentPins: jsonb("equipment_pins")
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },

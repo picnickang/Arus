@@ -23,7 +23,8 @@ export function ActiveDtcsPanel({ equipmentId, equipmentName }: ActiveDtcsPanelP
     isError,
   } = useQuery<EnrichedDtcFault[]>({
     queryKey: ["/api/equipment", equipmentId, "dtc", "active"],
-    queryFn: () => apiRequest<EnrichedDtcFault[]>("GET", `/api/equipment/${equipmentId}/dtc/active`),
+    queryFn: () =>
+      apiRequest<EnrichedDtcFault[]>("GET", `/api/equipment/${equipmentId}/dtc/active`),
     refetchInterval: 30000,
   });
 

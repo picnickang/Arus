@@ -3,6 +3,7 @@
 ## Routes.ts Import Dependencies
 
 ### Core Framework
+
 ```
 express (Express, Request)
 http (createServer, Server)
@@ -12,6 +13,7 @@ multer
 ```
 
 ### Internal Modules
+
 ```
 ./storage → storage interface
 ./sensor-routes → mountSensorRoutes
@@ -42,6 +44,7 @@ multer
 ```
 
 ### Schema Dependencies
+
 ```
 @shared/schema-runtime → EquipmentTelemetry, equipmentTelemetry, etc.
 drizzle-orm → eq, desc, and, isNull
@@ -84,34 +87,37 @@ drizzle-orm → eq, desc, and, isNull
 ## Storage Method Usage in Routes.ts
 
 ### High-Frequency Methods (>5 calls)
-| Method | Calls | Domain |
-|--------|-------|--------|
-| storage.clearTable | 25 | admin/dev |
-| storage.getCrewRestMonth | 9 | crew |
-| storage.getTelemetryTrends | 7 | telemetry |
-| storage.getEquipmentHealth | 7 | equipment |
-| storage.getSchedulerRun | 6 | scheduling |
-| storage.getEquipmentRegistry | 6 | equipment |
-| storage.getSettings | 5 | settings |
-| storage.getLatestTelemetryReadings | 5 | telemetry |
+
+| Method                             | Calls | Domain     |
+| ---------------------------------- | ----- | ---------- |
+| storage.clearTable                 | 25    | admin/dev  |
+| storage.getCrewRestMonth           | 9     | crew       |
+| storage.getTelemetryTrends         | 7     | telemetry  |
+| storage.getEquipmentHealth         | 7     | equipment  |
+| storage.getSchedulerRun            | 6     | scheduling |
+| storage.getEquipmentRegistry       | 6     | equipment  |
+| storage.getSettings                | 5     | settings   |
+| storage.getLatestTelemetryReadings | 5     | telemetry  |
 
 ### Medium-Frequency Methods (2-4 calls)
-| Method | Calls | Domain |
-|--------|-------|--------|
-| storage.getVessel | 4 | vessels |
-| storage.getDevice | 4 | devices |
-| storage.getCrewRestRange | 4 | crew |
-| storage.getCrewMember | 4 | crew |
-| storage.getAlertNotifications | 4 | alerts |
-| storage.getWorkOrders | 3 | work-orders |
-| storage.getVessels | 3 | vessels |
-| storage.getMaintenanceSchedules | 3 | maintenance |
+
+| Method                          | Calls | Domain      |
+| ------------------------------- | ----- | ----------- |
+| storage.getVessel               | 4     | vessels     |
+| storage.getDevice               | 4     | devices     |
+| storage.getCrewRestRange        | 4     | crew        |
+| storage.getCrewMember           | 4     | crew        |
+| storage.getAlertNotifications   | 4     | alerts      |
+| storage.getWorkOrders           | 3     | work-orders |
+| storage.getVessels              | 3     | vessels     |
+| storage.getMaintenanceSchedules | 3     | maintenance |
 
 ---
 
 ## Cross-Domain Dependencies
 
 ### Equipment Domain
+
 ```
 equipment
 ├── telemetry (health calculation)
@@ -122,6 +128,7 @@ equipment
 ```
 
 ### Work Orders Domain
+
 ```
 work-orders
 ├── equipment (asset reference)
@@ -132,6 +139,7 @@ work-orders
 ```
 
 ### Crew Domain
+
 ```
 crew
 ├── vessels (assignment)
@@ -141,6 +149,7 @@ crew
 ```
 
 ### Telemetry Domain
+
 ```
 telemetry
 ├── equipment (source reference)
@@ -151,6 +160,7 @@ telemetry
 ```
 
 ### Logbook Domain
+
 ```
 logbook
 ├── vessels (context)
@@ -165,6 +175,7 @@ logbook
 ## Cyclic Dependencies (Need Breaking)
 
 ### 1. Work Orders ↔ Inventory
+
 ```
 Problem:
 - Work orders reserve parts from inventory
@@ -176,6 +187,7 @@ Solution:
 ```
 
 ### 2. Equipment ↔ Telemetry
+
 ```
 Problem:
 - Equipment health depends on telemetry
@@ -187,6 +199,7 @@ Solution:
 ```
 
 ### 3. Maintenance ↔ Work Orders
+
 ```
 Problem:
 - Maintenance schedules generate work orders
@@ -198,6 +211,7 @@ Solution:
 ```
 
 ### 4. Crew ↔ Vessels
+
 ```
 Problem:
 - Crew assigned to vessels
@@ -213,24 +227,27 @@ Solution:
 ## Shared Utilities
 
 ### Rate Limiters
+
 ```typescript
 // Available in routes.ts
-generalApiRateLimit      // 100 req/min
-writeOperationRateLimit  // 30 req/min
-criticalOperationRateLimit // 10 req/min
-crewOperationRateLimit   // 20 req/min
-reportGenerationRateLimit // 5 req/min
+generalApiRateLimit; // 100 req/min
+writeOperationRateLimit; // 30 req/min
+criticalOperationRateLimit; // 10 req/min
+crewOperationRateLimit; // 20 req/min
+reportGenerationRateLimit; // 5 req/min
 ```
 
 ### Middleware
+
 ```typescript
-requireOrgId           // Tenant isolation
-requireAdminAuth       // Admin verification
-auditMiddleware        // Compliance logging
-loggingContextMiddleware // Request tracking
+requireOrgId; // Tenant isolation
+requireAdminAuth; // Admin verification
+auditMiddleware; // Compliance logging
+loggingContextMiddleware; // Request tracking
 ```
 
 ### Error Handling
+
 ```typescript
 // Standard error response pattern
 try {
@@ -247,12 +264,14 @@ try {
 ## Storage Interface Categories
 
 ### Category 1: Organizations & Users (~400 lines)
+
 ```
 getOrganizations, getOrganization, createOrganization, updateOrganization, deleteOrganization
 getUsers, getUser, getUserByEmail, createUser, updateUser, deleteUser
 ```
 
 ### Category 2: Equipment & Sensors (~1,200 lines)
+
 ```
 getEquipment, getEquipmentRegistry, createEquipment, updateEquipment, deleteEquipment
 getSensorConfigurations, getSensorConfiguration, createSensorConfiguration, updateSensorConfiguration
@@ -260,6 +279,7 @@ getSensorState, upsertSensorState, getLatestTelemetryForSensor
 ```
 
 ### Category 3: Work Orders (~1,500 lines)
+
 ```
 getWorkOrders, getWorkOrdersPaginated, createWorkOrder, updateWorkOrder, deleteWorkOrder
 getWorkOrderTasks, createWorkOrderTask, updateWorkOrderTask, deleteWorkOrderTask
@@ -268,6 +288,7 @@ getWorkOrderHistory, addWorkOrderHistoryEntry
 ```
 
 ### Category 4: Telemetry (~800 lines)
+
 ```
 getTelemetryTrends, createTelemetryReading, getTelemetryHistory
 getTelemetryByEquipmentAndDateRange, getLatestTelemetryReadings
@@ -275,6 +296,7 @@ batchInsertTelemetry, getTelemetryStats
 ```
 
 ### Category 5: Crew & STCW (~1,500 lines)
+
 ```
 getCrew, getCrewMember, createCrewMember, updateCrew, deleteCrew
 getCrewCertifications, createCrewCertification, updateCrewCertification
@@ -283,6 +305,7 @@ checkMonthCompliance, getSTCWViolations
 ```
 
 ### Category 6: Inventory (~1,000 lines)
+
 ```
 getPartsInventory, getPartById, createPart, updatePart, deletePart
 getWorkOrderParts, addPartToWorkOrder, reservePart
@@ -290,6 +313,7 @@ getInventoryMovements, recordInventoryMovement
 ```
 
 ### Category 7: Maintenance (~800 lines)
+
 ```
 getMaintenanceSchedules, createMaintenanceSchedule, updateMaintenanceSchedule
 getUpcomingSchedules, autoScheduleMaintenance
@@ -297,6 +321,7 @@ getMaintenanceRecords, createMaintenanceRecord
 ```
 
 ### Category 8: Alerts (~600 lines)
+
 ```
 getAlertConfigurations, createAlertConfiguration, updateAlertConfiguration
 getAlertNotifications, createAlertNotification, acknowledgeAlert
@@ -304,6 +329,7 @@ getAlertSuppressions, createAlertSuppression
 ```
 
 ### Category 9: Logbook (~2,000 lines)
+
 ```
 getDeckLogEntries, createDeckLogEntry, updateDeckLogEntry
 getEngineLogEntries, createEngineLogEntry, updateEngineLogEntry
@@ -311,6 +337,7 @@ getFuelEmissionsLog, getVesselTrackLog, getConditionMonitoringLog
 ```
 
 ### Category 10: Analytics & ML (~1,000 lines)
+
 ```
 getPdmScores, createPdmScore, getLatestPdmScore
 getMLModels, createMLModel, updateMLModel
@@ -322,6 +349,7 @@ getInsightsSnapshots, createInsightsSnapshot
 ## Extraction Strategy
 
 ### Step 1: Create Storage Sub-Interfaces
+
 ```typescript
 // server/storage/interfaces/equipment.ts
 export interface IEquipmentStorage {
@@ -332,11 +360,12 @@ export interface IEquipmentStorage {
 ```
 
 ### Step 2: Implement Storage Modules
+
 ```typescript
 // server/storage/modules/equipment-storage.ts
 export class EquipmentStorage implements IEquipmentStorage {
   constructor(private db: DbClient) {}
-  
+
   async getEquipment(orgId: string, equipmentId: string) {
     // Implementation
   }
@@ -344,6 +373,7 @@ export class EquipmentStorage implements IEquipmentStorage {
 ```
 
 ### Step 3: Compose in Main Storage
+
 ```typescript
 // server/storage.ts (reduced)
 export class Storage implements IStorage {
@@ -351,7 +381,7 @@ export class Storage implements IStorage {
   telemetry: ITelemetryStorage;
   workOrders: IWorkOrderStorage;
   // ... etc
-  
+
   constructor(db: DbClient) {
     this.equipment = new EquipmentStorage(db);
     this.telemetry = new TelemetryStorage(db);
@@ -361,6 +391,7 @@ export class Storage implements IStorage {
 ```
 
 ### Step 4: Update Domain Routes
+
 ```typescript
 // Domain routes access storage via interface
 const equipment = await storage.equipment.getEquipment(orgId, id);
@@ -371,18 +402,21 @@ const equipment = await storage.equipment.getEquipment(orgId, id);
 ## Risk Assessment
 
 ### Low Risk Extractions
+
 - Settings (isolated, simple CRUD)
 - Port Operations (isolated, simple CRUD)
 - Error Logs (isolated, simple CRUD)
 - Context Events (isolated, simple CRUD)
 
 ### Medium Risk Extractions
+
 - Crew (cross-references vessels, compliance)
 - Inventory (cross-references work orders)
 - Scheduling (cross-references crew, maintenance)
 - Stormgeo (cross-references logbook)
 
 ### High Risk Extractions
+
 - Admin (large section, auth logic, org management)
 - ML Training (complex algorithms, external services)
 - Telemetry Ingestion (high-throughput, performance-critical)

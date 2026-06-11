@@ -167,12 +167,16 @@ export class SyntheticTelemetryAdapter implements SyntheticTelemetryPort {
       const rpm = 650 + effectiveLoad * 1050 + noise() * 40;
       const oilTemp = 55 + effectiveLoad * 28 + profile.tempSlope * progress * 100 + noise() * 2.5;
       const coolantTemp = 50 + effectiveLoad * 20 + profile.tempSlope * progress * 75 + noise() * 2;
-      const vibrationRms = 1.2 + effectiveLoad * 2.2 + profile.vibSlope * progress * 80 + noise() * 0.35;
+      const vibrationRms =
+        1.2 + effectiveLoad * 2.2 + profile.vibSlope * progress * 80 + noise() * 0.35;
       const fuelFlow = 16 + effectiveLoad * 60 + profile.fuelSlope * progress * 160 + noise() * 3;
-      const pressure = 210 - profile.tempSlope * progress * 35 - profile.vibSlope * progress * 20 + noise() * 4;
+      const pressure =
+        210 - profile.tempSlope * progress * 35 - profile.vibSlope * progress * 20 + noise() * 4;
 
       samples.push({
-        timestamp: new Date(now - (sampleCount - 1 - i) * intervalMinutes * 60 * 1000).toISOString(),
+        timestamp: new Date(
+          now - (sampleCount - 1 - i) * intervalMinutes * 60 * 1000
+        ).toISOString(),
         rpm: round(sensorHealthy ? rpm : 0),
         loadFactor: round(effectiveLoad, 3),
         oilTemp: round(sensorHealthy ? oilTemp : 0),
@@ -217,4 +221,3 @@ export class SyntheticTelemetryAdapter implements SyntheticTelemetryPort {
     };
   }
 }
-

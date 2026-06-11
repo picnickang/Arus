@@ -196,10 +196,10 @@ function main() {
   if (total > allowed) {
     console.error("");
     console.error(
-      `RATCHET REGRESSION: typed casts increased from baseline ${allowed} to ${total}.`,
+      `RATCHET REGRESSION: typed casts increased from baseline ${allowed} to ${total}.`
     );
     console.error(
-      "New `as <Type>` assertions were added. Replace with a Zod parse, type guard, or fix the underlying signature so the cast is unnecessary.",
+      "New `as <Type>` assertions were added. Replace with a Zod parse, type guard, or fix the underlying signature so the cast is unnecessary."
     );
     console.error("Top files:");
     const top = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
@@ -208,7 +208,7 @@ function main() {
   }
 
   console.log(
-    `[check-typed-casts] OK — ${total} typed casts (baseline ${allowed === Number.POSITIVE_INFINITY ? "n/a" : allowed}).`,
+    `[check-typed-casts] OK — ${total} typed casts (baseline ${allowed === Number.POSITIVE_INFINITY ? "n/a" : allowed}).`
   );
 }
 

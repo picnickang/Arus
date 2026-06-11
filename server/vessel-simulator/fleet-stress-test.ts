@@ -164,7 +164,10 @@ export class FleetStressTest {
                   sensorType: reading.sensorType,
                   value: reading.value,
                   ts: reading.timestamp,
-                  ...({ metadata: reading.metadata, orgId: reading.orgId } as object as { metadata: unknown; orgId: string }),
+                  ...({ metadata: reading.metadata, orgId: reading.orgId } as object as {
+                    metadata: unknown;
+                    orgId: string;
+                  }),
                 } as object as Parameters<typeof this.storage.createTelemetryReading>[0]);
               }
 
@@ -248,7 +251,9 @@ export class FleetStressTest {
       logger.info(`  Total messages: ${result.totalMessages}`);
       logger.info(`  Actual throughput: ${result.actualMsgPerSec} msg/sec`);
       logger.info(`  Target throughput: ${result.targetMsgPerSec} msg/sec`);
-      logger.info(`  Efficiency: ${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`);
+      logger.info(
+        `  Efficiency: ${Math.round((result.actualMsgPerSec / result.targetMsgPerSec) * 100)}%`
+      );
       logger.info(`  Errors: ${result.errors}`);
       logger.info(`  Dropped: ${result.dropped}`);
       logger.info(`  Memory delta: ${result.memoryUsageMB} MB`);

@@ -42,8 +42,7 @@ export class TelemetryAnalyticsSink {
   private writes = 0;
 
   constructor(opts: TelemetryAnalyticsSinkOptions = {}) {
-    this.baseDir =
-      opts.baseDir ?? path.resolve(process.cwd(), "data", "analytics", "telemetry");
+    this.baseDir = opts.baseDir ?? path.resolve(process.cwd(), "data", "analytics", "telemetry");
     this.prefixes = opts.eventTypePrefixes ?? DEFAULT_PREFIXES;
   }
 
@@ -54,7 +53,9 @@ export class TelemetryAnalyticsSink {
   /** Subscribe to a fanout-capable producer (in-process default). */
   subscribe(fanout: EventSpineSubscriber): void {
     fanout.onMessage(async (msg) => {
-      if (!this.matches(msg.eventType)) {return;}
+      if (!this.matches(msg.eventType)) {
+        return;
+      }
       await this.write(msg);
     });
     logger.info("Telemetry analytics sink subscribed", {
@@ -68,16 +69,15 @@ export class TelemetryAnalyticsSink {
       const dir = path.join(this.baseDir, sanitizeOrgId(msg.orgId));
       await mkdir(dir, { recursive: true });
       const file = path.join(dir, `${dayStamp(msg.occurredAt)}.ndjson`);
-      const line =
-        `${JSON.stringify({
-          eventId: msg.eventId,
-          eventType: msg.eventType,
-          orgId: msg.orgId,
-          aggregateId: msg.aggregateId,
-          aggregateType: msg.aggregateType,
-          occurredAt: msg.occurredAt.toISOString(),
-          payload: msg.payload,
-        })  }\n`;
+      const line = `${JSON.stringify({
+        eventId: msg.eventId,
+        eventType: msg.eventType,
+        orgId: msg.orgId,
+        aggregateId: msg.aggregateId,
+        aggregateType: msg.aggregateType,
+        occurredAt: msg.occurredAt.toISOString(),
+        payload: msg.payload,
+      })}\n`;
       await appendFile(file, line, "utf8");
       this.writes += 1;
     } catch (err) {

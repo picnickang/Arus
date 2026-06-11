@@ -132,14 +132,21 @@ export class PdmDecisionSupportService {
     const requiredSequenceLength = Math.max(3, Math.min(input.minSequenceLength ?? 8, 96));
     const [equipment, features] = await Promise.all([
       this.contextPort.getEquipmentContext(input.orgId, input.equipmentId),
-      this.contextPort.getRecentFeatureSnapshots(input.orgId, input.equipmentId, requiredSequenceLength),
+      this.contextPort.getRecentFeatureSnapshots(
+        input.orgId,
+        input.equipmentId,
+        requiredSequenceLength
+      ),
     ]);
 
     if (!equipment) {
       throw new EquipmentNotFoundError(input.equipmentId);
     }
 
-    const operatingContext = this.operationalContextPort.normalize(equipment, input.contextOverride);
+    const operatingContext = this.operationalContextPort.normalize(
+      equipment,
+      input.contextOverride
+    );
     const calibration = this.calibrationPort
       ? await this.calibrationPort.getCalibrationSnapshot({
           orgId: input.orgId,
@@ -147,13 +154,20 @@ export class PdmDecisionSupportService {
           equipmentType: equipment.type,
         })
       : null;
-    const indicators = computePerformanceIndicators(features, operatingContext, requiredSequenceLength);
+    const indicators = computePerformanceIndicators(
+      features,
+      operatingContext,
+      requiredSequenceLength
+    );
     const rawDecisionScore = computeDecisionScore(features, operatingContext, indicators);
     const decisionScore = applyOutcomeCalibration(rawDecisionScore, calibration);
     const predictedStatus = statusFromScore(decisionScore);
     const probabilities = probabilitiesFromScore(decisionScore);
     const rulHours = predictedRulHours(decisionScore, indicators);
-    const confidence = confidenceFromCalibration(confidenceFromData(decisionScore, indicators), calibration);
+    const confidence = confidenceFromCalibration(
+      confidenceFromData(decisionScore, indicators),
+      calibration
+    );
     const alertNeeded = shouldAlert(input.previousStatus, predictedStatus);
     const recommendations = generateRecommendations({
       status: predictedStatus,
@@ -212,12 +226,7 @@ export class PdmDecisionSupportService {
     return this.syntheticTelemetryPort.generate(input);
   }
 
-  reviewRecommendation(input: {
-    recommendation: string;
-    riskLevel: string;
-    equipmentId?: string;
-  }) {
+  reviewRecommendation(input: { recommendation: string; riskLevel: string; equipmentId?: string }) {
     return this.safetyPort.reviewRecommendation(input);
   }
 }
-

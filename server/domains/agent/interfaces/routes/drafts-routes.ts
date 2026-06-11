@@ -30,7 +30,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         const drafts = await agentRepo.drafts.list(orgId, status);
         return res.json(drafts);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -72,7 +74,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
         }
 
         if (execResult.partialFailures && execResult.partialFailures.length > 0) {
-          logger.warn(`[Agent] Draft execution partial failure:`, { details: execResult.partialFailures });
+          logger.warn(`[Agent] Draft execution partial failure:`, {
+            details: execResult.partialFailures,
+          });
         }
 
         const resultId = execResult.resultId;
@@ -109,7 +113,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
 
         return res.json({ draft: updated, resultId });
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -161,7 +167,9 @@ export function registerDraftsRoutes(app: Express, deps: DraftsRouteDeps) {
 
         return res.json(updated);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

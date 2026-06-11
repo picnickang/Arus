@@ -1,4 +1,5 @@
 import express, { type RequestHandler } from "express";
+import type { RateLimitRequestHandler } from "express-rate-limit";
 import request from "supertest";
 import { describe, expect, it, beforeAll, beforeEach, jest } from "@jest/globals";
 import type { registerVesselDiagramRegistryRoutes as registerVesselDiagramRegistryRoutesType } from "../../server/domains/vessel-diagram-registry/interfaces/routes";
@@ -22,7 +23,13 @@ let registerVesselDiagramRegistryRoutes: typeof registerVesselDiagramRegistryRou
 const ORG_ID = "org-test";
 const VESSEL_ID = "vessel-test";
 const OTHER_VESSEL_ID = "vessel-other";
-const limit: RequestHandler = (_req, _res, next) => next();
+const passthrough: RequestHandler = (_req, _res, next) => next();
+// The route deps type the rate limiters as RateLimitRequestHandler, which is a
+// RequestHandler carrying express-rate-limit's resetKey/getKey API — stub both.
+const limit: RateLimitRequestHandler = Object.assign(passthrough, {
+  resetKey: () => undefined,
+  getKey: () => undefined,
+});
 const auth: RequestHandler = (req, _res, next) => {
   req.user = {
     id: "user-test",

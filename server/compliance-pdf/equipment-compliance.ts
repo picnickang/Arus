@@ -26,7 +26,9 @@ export async function generateEquipmentCompliancePDF(
   reportingPeriod: ReportingPeriod,
   options: EquipmentComplianceOptions
 ): Promise<Uint8Array> {
-  logger.info(`[Compliance PDF] Generating equipment compliance report for ${equipmentIds.length} units`);
+  logger.info(
+    `[Compliance PDF] Generating equipment compliance report for ${equipmentIds.length} units`
+  );
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =

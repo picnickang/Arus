@@ -101,4 +101,6 @@ export function getAllCircuitBreakerStatuses(): Record<
 }
 
 export { circuitBreaker, safeExternalOperation };
-logger.info("[External Circuit Breakers] Wrappers available: OpenAI, StormGeo, WeatherAPI, MQTT, Redis, GitHub, Aquametro");
+logger.info(
+  "[External Circuit Breakers] Wrappers available: OpenAI, StormGeo, WeatherAPI, MQTT, Redis, GitHub, Aquametro"
+);

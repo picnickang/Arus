@@ -446,8 +446,8 @@ describe("Error Recovery Scenarios", () => {
       expect(readings2.length).toBe(50);
 
       const allKeys = new Set([
-        ...readings1.map((r) => r.metadata?.idempotencyKey),
-        ...readings2.map((r) => r.metadata?.idempotencyKey),
+        ...readings1.map((r) => r.metadata?.["idempotencyKey"]),
+        ...readings2.map((r) => r.metadata?.["idempotencyKey"]),
       ]);
       expect(allKeys.size).toBe(100);
     });

@@ -54,14 +54,13 @@ jest.unstable_mockModule("../../server/repositories", () => ({
 
 // Force tenant-auth mode so resolveUpgradeOrg honours the token path
 // instead of dropping every connection into DEFAULT_ORG_ID.
-process.env.REQUIRE_TENANT_AUTH = "true";
-process.env.NODE_ENV = "production";
+process.env["REQUIRE_TENANT_AUTH"] = "true";
+process.env["NODE_ENV"] = "production";
 
 // Imports must be after env + unstable_mockModule setup.
 type TelemetryWebSocketServerType =
   typeof import("../../server/websocket").TelemetryWebSocketServer;
-type InProcessFanoutBusType =
-  typeof import("../../server/websocket-fanout").InProcessFanoutBus;
+type InProcessFanoutBusType = typeof import("../../server/websocket-fanout").InProcessFanoutBus;
 
 let TelemetryWebSocketServer: TelemetryWebSocketServerType;
 let InProcessFanoutBus: InProcessFanoutBusType;
@@ -122,7 +121,9 @@ function collectFrames(ws: WebSocket): { frames: Array<Record<string, unknown>> 
   ws.on("message", (data) => {
     try {
       const parsed = JSON.parse(data.toString());
-      if (parsed.type === "connection" || parsed.type === "pong") {return;}
+      if (parsed.type === "connection" || parsed.type === "pong") {
+        return;
+      }
       frames.push(parsed);
     } catch {
       /* ignore non-json frames */
@@ -136,7 +137,9 @@ async function settle(ms = 60): Promise<void> {
 }
 
 async function closeSocket(ws: WebSocket): Promise<void> {
-  if (ws.readyState === WebSocket.CLOSED) {return;}
+  if (ws.readyState === WebSocket.CLOSED) {
+    return;
+  }
   await new Promise<void>((resolve) => {
     ws.once("close", () => resolve());
     ws.close();
@@ -151,12 +154,12 @@ describe("websocket strict mode / cross-tenant isolation", () => {
   });
 
   afterEach(async () => {
-    delete process.env.WS_TENANT_STRICT_MODE;
+    delete process.env["WS_TENANT_STRICT_MODE"];
     await teardown(h);
   });
 
   test("production default drops SYSTEM_ORG_ID broadcasts unless strict mode is explicitly disabled", async () => {
-    delete process.env.WS_TENANT_STRICT_MODE;
+    delete process.env["WS_TENANT_STRICT_MODE"];
     const a = await connect(h.port, TOKEN_A);
     const b = await connect(h.port, TOKEN_B);
     const aCap = collectFrames(a);
@@ -169,14 +172,14 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     h.wsServer.broadcast("updates", { type: "ping", data: { hello: "world" } });
     await settle();
 
-    expect(aCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(false);
-    expect(bCap.frames.some((f) => f.orgId === SYSTEM_ORG_ID)).toBe(false);
+    expect(aCap.frames.some((f) => f["orgId"] === SYSTEM_ORG_ID)).toBe(false);
+    expect(bCap.frames.some((f) => f["orgId"] === SYSTEM_ORG_ID)).toBe(false);
 
     await Promise.all([closeSocket(a), closeSocket(b)]);
   });
 
   test("strict mode drops SYSTEM_ORG_ID broadcasts — neither tenant receives them", async () => {
-    process.env.WS_TENANT_STRICT_MODE = "true";
+    process.env["WS_TENANT_STRICT_MODE"] = "true";
     const a = await connect(h.port, TOKEN_A);
     const b = await connect(h.port, TOKEN_B);
     const aCap = collectFrames(a);
@@ -200,7 +203,7 @@ describe("websocket strict mode / cross-tenant isolation", () => {
   });
 
   test("strict mode: a tenant-scoped event reaches only that tenant's client", async () => {
-    process.env.WS_TENANT_STRICT_MODE = "true";
+    process.env["WS_TENANT_STRICT_MODE"] = "true";
     const a = await connect(h.port, TOKEN_A);
     const b = await connect(h.port, TOKEN_B);
     const aCap = collectFrames(a);
@@ -213,10 +216,8 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     h.wsServer.broadcast("updates", { type: "alert_for_a", data: { id: "a-1" } }, ORG_A);
     await settle();
 
-    const aGotIt = aCap.frames.some(
-      (f) => f.orgId === ORG_A && f.type === "alert_for_a",
-    );
-    const bSawA = bCap.frames.some((f) => f.orgId === ORG_A);
+    const aGotIt = aCap.frames.some((f) => f["orgId"] === ORG_A && f["type"] === "alert_for_a");
+    const bSawA = bCap.frames.some((f) => f["orgId"] === ORG_A);
     expect(aGotIt).toBe(true);
     expect(bSawA).toBe(false);
     expect(bCap.frames).toEqual([]);

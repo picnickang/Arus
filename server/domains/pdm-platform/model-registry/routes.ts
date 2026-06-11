@@ -41,7 +41,7 @@ router.get("/", async (req: AuthenticatedRequest, res: Response) => {
 router.get("/:modelId", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
-    const result = await registry.getModel(orgId, req.params['modelId'] ?? '');
+    const result = await registry.getModel(orgId, req.params["modelId"] ?? "");
     if (!result) {
       return res.status(404).json({ error: "Model not found" });
     }
@@ -55,7 +55,7 @@ router.get("/:modelId", async (req: AuthenticatedRequest, res: Response) => {
 router.get("/:modelId/versions", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
-    const result = await registry.listVersions(orgId, req.params['modelId'] ?? '');
+    const result = await registry.listVersions(orgId, req.params["modelId"] ?? "");
     return res.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -72,7 +72,7 @@ router.post("/:modelId/versions", async (req: AuthenticatedRequest, res: Respons
     }
     const result = await registry.createVersion({
       orgId,
-      modelId: req.params['modelId'] ?? '',
+      modelId: req.params["modelId"] ?? "",
       ...parsed.data,
     });
     return res.status(201).json(result);
@@ -85,7 +85,7 @@ router.post("/:modelId/versions", async (req: AuthenticatedRequest, res: Respons
 router.get("/:modelId/deployment", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orgId = getOrgId(req);
-    const result = await registry.getActiveDeployment(orgId, req.params['modelId'] ?? '');
+    const result = await registry.getActiveDeployment(orgId, req.params["modelId"] ?? "");
     return res.json(result ?? { message: "No active deployment" });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -97,31 +97,44 @@ router.get("/:modelId/deployment", async (req: AuthenticatedRequest, res: Respon
 // org; gate behind the `predictive_maintenance:manage_config` permission
 // grant, consistent with /api/ml/models/:id/promote and the frontend
 // `predictive_maintenance` resource gate (no hardcoded role list).
-router.post("/:modelId/deploy", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orgId = getOrgId(req);
-    const parsed = deploySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+router.post(
+  "/:modelId/deploy",
+  requirePermission("predictive_maintenance", "manage_config"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const orgId = getOrgId(req);
+      const parsed = deploySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+      }
+      const { modelVersionId, target } = parsed.data;
+      const result = await registry.deploy(
+        orgId,
+        req.params["modelId"] ?? "",
+        modelVersionId,
+        target
+      );
+      return res.status(201).json(result);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({ error: message });
     }
-    const { modelVersionId, target } = parsed.data;
-    const result = await registry.deploy(orgId, req.params['modelId'] ?? '', modelVersionId, target);
-    return res.status(201).json(result);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    return res.status(500).json({ error: message });
   }
-});
+);
 
-router.post("/deployments/:deploymentId/rollback", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orgId = getOrgId(req);
-    const result = await registry.rollback(orgId, parseInt(req.params['deploymentId'] ?? '0'));
-    return res.json(result);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    return res.status(500).json({ error: message });
+router.post(
+  "/deployments/:deploymentId/rollback",
+  requirePermission("predictive_maintenance", "manage_config"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const orgId = getOrgId(req);
+      const result = await registry.rollback(orgId, parseInt(req.params["deploymentId"] ?? "0"));
+      return res.json(result);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({ error: message });
+    }
   }
-});
+);
 
 export { router as modelRegistryRouter };

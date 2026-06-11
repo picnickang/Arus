@@ -101,7 +101,9 @@ export function optimizeInventoryLevels(
     const dailyDemand = monthlyDemand / 30;
 
     if (annualDemand <= 0 || dailyDemand <= 0) {
-      logger.warn(`[Inventory] Skipping ${part.partNo}: zero or negative demand (annual: ${annualDemand})`);
+      logger.warn(
+        `[Inventory] Skipping ${part.partNo}: zero or negative demand (annual: ${annualDemand})`
+      );
       inventoryCalculationErrors.inc({
         org_id: "system",
         error_type: "zero_demand",
@@ -132,7 +134,9 @@ export function optimizeInventoryLevels(
     const optimalStock = Math.max(eoq, reorderPoint * 1.2);
 
     if (!Number.isFinite(eoq) || !Number.isFinite(reorderPoint) || !Number.isFinite(optimalStock)) {
-      logger.warn(`[Inventory] Skipping ${part.partNo}: invalid calculations (EOQ: ${eoq}, ROP: ${reorderPoint})`);
+      logger.warn(
+        `[Inventory] Skipping ${part.partNo}: invalid calculations (EOQ: ${eoq}, ROP: ${reorderPoint})`
+      );
       inventoryCalculationErrors.inc({
         org_id: "system",
         error_type: "nan_infinity",

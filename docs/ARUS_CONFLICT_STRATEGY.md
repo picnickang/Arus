@@ -3,8 +3,9 @@
 ## 📊 System Analysis
 
 ### Critical Safety Tables Identified:
+
 1. **sensor_configurations** - Safety thresholds (critLo, critHi, warnLo, warnHi)
-2. **alert_configurations** - Warning/critical thresholds  
+2. **alert_configurations** - Warning/critical thresholds
 3. **operating_parameters** - Critical operating limits
 4. **work_orders** - Maintenance priority, status
 5. **equipment** - isActive status
@@ -12,6 +13,7 @@
 7. **dtc_faults** - Diagnostic fault severity
 
 ### Existing Strengths:
+
 ✅ `syncJournal` table - Audit trail infrastructure
 ✅ `syncOutbox` table - Event publishing system
 ✅ WebSocket real-time sync
@@ -56,12 +58,12 @@
 
 ```sql
 -- sensor_configurations
-ALTER TABLE sensor_configurations 
+ALTER TABLE sensor_configurations
   ADD COLUMN version INTEGER DEFAULT 1,
   ADD COLUMN last_modified_by VARCHAR(255),
   ADD COLUMN last_modified_device VARCHAR(255);
 
--- alert_configurations  
+-- alert_configurations
 ALTER TABLE alert_configurations
   ADD COLUMN version INTEGER DEFAULT 1,
   ADD COLUMN last_modified_by VARCHAR(255),
@@ -104,40 +106,40 @@ ALTER TABLE dtc_faults
 CREATE TABLE sync_conflicts (
   id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id VARCHAR NOT NULL REFERENCES organizations(id),
-  
+
   -- Conflict identification
   table_name VARCHAR(255) NOT NULL,
   record_id VARCHAR(255) NOT NULL,
   field_name VARCHAR(255),
-  
+
   -- Local (device) values
   local_value TEXT,
   local_version INTEGER,
   local_timestamp TIMESTAMP,
   local_user VARCHAR(255),
   local_device VARCHAR(255),
-  
+
   -- Server values
   server_value TEXT,
   server_version INTEGER,
   server_timestamp TIMESTAMP,
   server_user VARCHAR(255),
   server_device VARCHAR(255),
-  
+
   -- Resolution
   resolution_strategy VARCHAR(50), -- 'manual', 'max', 'append', 'lww', 'priority'
   resolved BOOLEAN DEFAULT FALSE,
   resolved_value TEXT,
   resolved_by VARCHAR(255),
   resolved_at TIMESTAMP,
-  
+
   -- Safety classification
   is_safety_critical BOOLEAN DEFAULT FALSE,
-  
+
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_sync_conflicts_unresolved 
+CREATE INDEX idx_sync_conflicts_unresolved
   ON sync_conflicts(org_id, resolved) WHERE resolved = FALSE;
 ```
 
@@ -153,7 +155,7 @@ ALTER TABLE sync_journal
   ADD COLUMN version_before INTEGER,
   ADD COLUMN version_after INTEGER;
 
-CREATE INDEX idx_sync_journal_field_changes 
+CREATE INDEX idx_sync_journal_field_changes
   ON sync_journal(entity_type, entity_id, field_name, created_at);
 ```
 
@@ -163,20 +165,20 @@ CREATE INDEX idx_sync_journal_field_changes
 
 ### Safety-First Resolution Matrix
 
-| Table | Field | Conflict Strategy | Reason |
-|-------|-------|------------------|--------|
-| **sensor_configurations** | critLo, critHi | **MANUAL** | Safety-critical thresholds |
-| **sensor_configurations** | warnLo, warnHi | **MANUAL** | Safety warning levels |
-| **alert_configurations** | warningThreshold | **MANUAL** | Alert system integrity |
-| **alert_configurations** | criticalThreshold | **MANUAL** | Safety-critical alerts |
-| **operating_parameters** | criticalMin, criticalMax | **MANUAL** | Equipment safety limits |
-| **work_orders** | status | **PRIORITY** | Most progressed wins |
-| **work_orders** | priority | **MAX** | Higher priority wins |
-| **work_orders** | description | **APPEND** | Preserve all info |
-| **equipment** | isActive | **MANUAL** | Operational safety |
-| **crew_assignment** | All fields | **MANUAL** | Manning safety |
-| **dtc_faults** | severity | **MAX** | Higher severity wins |
-| **dtc_faults** | active | **OR** | If either says active, it's active |
+| Table                     | Field                    | Conflict Strategy | Reason                             |
+| ------------------------- | ------------------------ | ----------------- | ---------------------------------- |
+| **sensor_configurations** | critLo, critHi           | **MANUAL**        | Safety-critical thresholds         |
+| **sensor_configurations** | warnLo, warnHi           | **MANUAL**        | Safety warning levels              |
+| **alert_configurations**  | warningThreshold         | **MANUAL**        | Alert system integrity             |
+| **alert_configurations**  | criticalThreshold        | **MANUAL**        | Safety-critical alerts             |
+| **operating_parameters**  | criticalMin, criticalMax | **MANUAL**        | Equipment safety limits            |
+| **work_orders**           | status                   | **PRIORITY**      | Most progressed wins               |
+| **work_orders**           | priority                 | **MAX**           | Higher priority wins               |
+| **work_orders**           | description              | **APPEND**        | Preserve all info                  |
+| **equipment**             | isActive                 | **MANUAL**        | Operational safety                 |
+| **crew_assignment**       | All fields               | **MANUAL**        | Manning safety                     |
+| **dtc_faults**            | severity                 | **MAX**           | Higher severity wins               |
+| **dtc_faults**            | active                   | **OR**            | If either says active, it's active |
 
 ### Implementation Example
 
@@ -184,49 +186,71 @@ CREATE INDEX idx_sync_journal_field_changes
 interface ConflictResolutionRule {
   table: string;
   field: string;
-  strategy: 'manual' | 'max' | 'append' | 'lww' | 'priority' | 'or';
+  strategy: "manual" | "max" | "append" | "lww" | "priority" | "or";
   isSafetyCritical: boolean;
 }
 
 const RESOLUTION_RULES: ConflictResolutionRule[] = [
   // Safety-critical thresholds - ALWAYS manual
-  { table: 'sensor_configurations', field: 'critLo', strategy: 'manual', isSafetyCritical: true },
-  { table: 'sensor_configurations', field: 'critHi', strategy: 'manual', isSafetyCritical: true },
-  { table: 'sensor_configurations', field: 'warnLo', strategy: 'manual', isSafetyCritical: true },
-  { table: 'sensor_configurations', field: 'warnHi', strategy: 'manual', isSafetyCritical: true },
-  { table: 'alert_configurations', field: 'warningThreshold', strategy: 'manual', isSafetyCritical: true },
-  { table: 'alert_configurations', field: 'criticalThreshold', strategy: 'manual', isSafetyCritical: true },
-  { table: 'operating_parameters', field: 'criticalMin', strategy: 'manual', isSafetyCritical: true },
-  { table: 'operating_parameters', field: 'criticalMax', strategy: 'manual', isSafetyCritical: true },
-  
+  { table: "sensor_configurations", field: "critLo", strategy: "manual", isSafetyCritical: true },
+  { table: "sensor_configurations", field: "critHi", strategy: "manual", isSafetyCritical: true },
+  { table: "sensor_configurations", field: "warnLo", strategy: "manual", isSafetyCritical: true },
+  { table: "sensor_configurations", field: "warnHi", strategy: "manual", isSafetyCritical: true },
+  {
+    table: "alert_configurations",
+    field: "warningThreshold",
+    strategy: "manual",
+    isSafetyCritical: true,
+  },
+  {
+    table: "alert_configurations",
+    field: "criticalThreshold",
+    strategy: "manual",
+    isSafetyCritical: true,
+  },
+  {
+    table: "operating_parameters",
+    field: "criticalMin",
+    strategy: "manual",
+    isSafetyCritical: true,
+  },
+  {
+    table: "operating_parameters",
+    field: "criticalMax",
+    strategy: "manual",
+    isSafetyCritical: true,
+  },
+
   // Work orders - priority based
-  { table: 'work_orders', field: 'status', strategy: 'priority', isSafetyCritical: false },
-  { table: 'work_orders', field: 'priority', strategy: 'max', isSafetyCritical: false },
-  { table: 'work_orders', field: 'description', strategy: 'append', isSafetyCritical: false },
-  
+  { table: "work_orders", field: "status", strategy: "priority", isSafetyCritical: false },
+  { table: "work_orders", field: "priority", strategy: "max", isSafetyCritical: false },
+  { table: "work_orders", field: "description", strategy: "append", isSafetyCritical: false },
+
   // Equipment status - manual (safety)
-  { table: 'equipment', field: 'isActive', strategy: 'manual', isSafetyCritical: true },
-  
+  { table: "equipment", field: "isActive", strategy: "manual", isSafetyCritical: true },
+
   // DTC faults - safety priority
-  { table: 'dtc_faults', field: 'severity', strategy: 'max', isSafetyCritical: true },
-  { table: 'dtc_faults', field: 'active', strategy: 'or', isSafetyCritical: true },
-  
+  { table: "dtc_faults", field: "severity", strategy: "max", isSafetyCritical: true },
+  { table: "dtc_faults", field: "active", strategy: "or", isSafetyCritical: true },
+
   // Crew assignments - manual (safety)
-  { table: 'crew_assignment', field: '*', strategy: 'manual', isSafetyCritical: true },
+  { table: "crew_assignment", field: "*", strategy: "manual", isSafetyCritical: true },
 ];
 
 function getResolutionStrategy(table: string, field: string): ConflictResolutionRule {
-  const rule = RESOLUTION_RULES.find(r => 
-    r.table === table && (r.field === field || r.field === '*')
+  const rule = RESOLUTION_RULES.find(
+    (r) => r.table === table && (r.field === field || r.field === "*")
   );
-  
+
   // Default: safety-critical fields require manual resolution
-  return rule || { 
-    table, 
-    field, 
-    strategy: 'manual', 
-    isSafetyCritical: true 
-  };
+  return (
+    rule || {
+      table,
+      field,
+      strategy: "manual",
+      isSafetyCritical: true,
+    }
+  );
 }
 ```
 
@@ -235,6 +259,7 @@ function getResolutionStrategy(table: string, field: string): ConflictResolution
 ## 🔄 API Endpoints
 
 ### 1. Check for Conflicts
+
 ```typescript
 POST /api/sync/check-conflicts
 {
@@ -282,6 +307,7 @@ Response:
 ```
 
 ### 2. Resolve Conflict
+
 ```typescript
 POST /api/sync/resolve-conflict
 {
@@ -293,6 +319,7 @@ POST /api/sync/resolve-conflict
 ```
 
 ### 3. Get Pending Conflicts
+
 ```typescript
 GET /api/sync/pending-conflicts?orgId=xxx
 
@@ -328,7 +355,7 @@ interface ConflictModalProps {
 
 function ConflictResolutionModal({ conflicts, onResolve }: ConflictModalProps) {
   const criticalConflicts = conflicts.filter(c => c.isSafetyCritical);
-  
+
   return (
     <Dialog open={conflicts.length > 0}>
       <DialogHeader className="border-b border-red-200 bg-red-50">
@@ -344,17 +371,17 @@ function ConflictResolutionModal({ conflicts, onResolve }: ConflictModalProps) {
           </div>
         </div>
       </DialogHeader>
-      
+
       <div className="max-h-[600px] overflow-y-auto p-6 space-y-6">
         {conflicts.map(conflict => (
-          <ConflictCard 
-            key={conflict.id} 
+          <ConflictCard
+            key={conflict.id}
             conflict={conflict}
             onResolve={(resolution) => handleResolve(conflict.id, resolution)}
           />
         ))}
       </div>
-      
+
       <DialogFooter className="border-t bg-gray-50">
         <Button variant="outline" onClick={onCancel}>
           Cancel Sync
@@ -369,7 +396,7 @@ function ConflictResolutionModal({ conflicts, onResolve }: ConflictModalProps) {
 
 function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
   const isCritical = conflict.isSafetyCritical;
-  
+
   return (
     <Card className={isCritical ? 'border-red-300 bg-red-50' : 'border-yellow-300 bg-yellow-50'}>
       <CardHeader>
@@ -381,7 +408,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
           )}
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           {/* Your Change */}
@@ -394,7 +421,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
             <div className="text-xs text-gray-500">
               {formatDistanceToNow(conflict.localTimestamp, { addSuffix: true })}
             </div>
-            <Button 
+            <Button
               onClick={() => onResolve('local')}
               className="mt-3 w-full"
               variant={isCritical ? "default" : "outline"}
@@ -402,7 +429,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
               Keep Your Change
             </Button>
           </div>
-          
+
           {/* Server Change */}
           <div className="border rounded p-4 bg-white">
             <h4 className="font-medium mb-2">Other Change</h4>
@@ -413,7 +440,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
             <div className="text-xs text-gray-500">
               {formatDistanceToNow(conflict.serverTimestamp, { addSuffix: true })}
             </div>
-            <Button 
+            <Button
               onClick={() => onResolve('server')}
               className="mt-3 w-full"
               variant="outline"
@@ -422,7 +449,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
             </Button>
           </div>
         </div>
-        
+
         {/* Custom Resolution */}
         {isCritical && (
           <div className="border-t pt-4">
@@ -436,7 +463,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
                 placeholder="Enter custom value"
                 onChange={(e) => setCustomValue(e.target.value)}
               />
-              <Button 
+              <Button
                 onClick={() => onResolve('custom', customValue)}
                 disabled={!customValue}
               >
@@ -445,7 +472,7 @@ function ConflictCard({ conflict, onResolve }: ConflictCardProps) {
             </div>
           </div>
         )}
-        
+
         {/* Conflict History */}
         <details className="text-sm">
           <summary className="cursor-pointer text-blue-600">
@@ -484,7 +511,7 @@ function broadcastConflict(conflict: SyncConflict) {
       affectedUsers: [conflict.localUser, conflict.serverUser]
     }
   };
-  
+
   // Broadcast to affected users
   wss.clients.forEach(client => {
     if (message.payload.affectedUsers.includes(client.userId)) {
@@ -496,10 +523,10 @@ function broadcastConflict(conflict: SyncConflict) {
 // Client: Handle conflict notification
 useEffect(() => {
   if (!ws) return;
-  
+
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
-    
+
     if (message.type === 'SYNC_CONFLICT') {
       // Show toast notification
       toast({
@@ -512,7 +539,7 @@ useEffect(() => {
           </Button>
         )
       });
-      
+
       // Refresh pending conflicts
       queryClient.invalidateQueries(['pending-conflicts']);
     }
@@ -525,29 +552,34 @@ useEffect(() => {
 ## 📊 Implementation Phases
 
 ### Phase 1: Database Schema (Week 1)
+
 - ✅ Add version columns to 7 critical tables
 - ✅ Create sync_conflicts table
 - ✅ Enhance syncJournal for field tracking
 - ✅ Run migrations with `npm run db:push --force`
 
 ### Phase 2: Conflict Detection API (Week 2)
+
 - ✅ Implement /api/sync/check-conflicts
 - ✅ Build resolution rules engine
 - ✅ Add conflict logging to syncJournal
 - ✅ Create /api/sync/resolve-conflict endpoint
 
 ### Phase 3: UI Components (Week 3)
+
 - ✅ Build ConflictResolutionModal
 - ✅ Create ConflictCard component
 - ✅ Add conflict badge to navigation
 - ✅ Implement toast notifications
 
 ### Phase 4: WebSocket Integration (Week 4)
+
 - ✅ Add conflict broadcasting
 - ✅ Real-time UI updates
 - ✅ Conflict resolution sync
 
 ### Phase 5: Testing & Monitoring (Week 5)
+
 - ✅ Test maritime scenarios
 - ✅ Conflict analytics dashboard
 - ✅ Performance optimization
@@ -566,4 +598,4 @@ useEffect(() => {
 
 ---
 
-*Ready to implement Phase 1: Database Schema*
+_Ready to implement Phase 1: Database Schema_

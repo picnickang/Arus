@@ -25,7 +25,7 @@ export type SafetyAlarmRealtimeEventType =
 export function broadcastSafetyAlarmEvent(
   orgId: string,
   type: SafetyAlarmRealtimeEventType,
-  data: Record<string, unknown>,
+  data: Record<string, unknown>
 ): void {
   try {
     getWebSocketServer()?.broadcast(SAFETY_ALARM_WS_CHANNEL, { type, ...data }, orgId);

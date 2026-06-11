@@ -110,7 +110,7 @@ describe("composeOffboardingNote", () => {
         "Final vessel: MV Aurora",
         "Checklist: Handed over documents; Final payroll settled",
         "Exit notes: Settled and signed off.",
-      ].join("\n"),
+      ].join("\n")
     );
   });
 
@@ -211,11 +211,16 @@ describe("decideRenewalTask", () => {
   it("does not raise for a missing or invalid expiry", () => {
     expect(
       decideRenewalTask({ docId: "doc-1", expiresAt: null, leadDays: 90, openTasks: [], now })
-        .shouldRaise,
+        .shouldRaise
     ).toBe(false);
     expect(
-      decideRenewalTask({ docId: "doc-1", expiresAt: "not-a-date", leadDays: 90, openTasks: [], now })
-        .shouldRaise,
+      decideRenewalTask({
+        docId: "doc-1",
+        expiresAt: "not-a-date",
+        leadDays: 90,
+        openTasks: [],
+        now,
+      }).shouldRaise
     ).toBe(false);
   });
 });
@@ -244,8 +249,7 @@ describe("new crew field helpers + schema", () => {
 });
 
 describe("source-scan: redesign controls are wired", () => {
-  const read = (rel: string) =>
-    readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
   it("offboarding dialog exposes the new fields + rehire preview", () => {
     const src = read("client/src/components/UnifiedCrewManagement/LifecycleDialog.tsx");

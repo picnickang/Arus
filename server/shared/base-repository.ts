@@ -114,9 +114,13 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) {continue;}
+        if (value === undefined || value === null) {
+          continue;
+        }
         const column = this.columns()[key];
-        if (!column) {continue;}
+        if (!column) {
+          continue;
+        }
         if (typeof value === "string" && key.toLowerCase().includes("search")) {
           conditions.push(ilike(column, `%${value}%`));
         } else {
@@ -147,9 +151,13 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) {continue;}
+        if (value === undefined || value === null) {
+          continue;
+        }
         const column = this.columns()[key];
-        if (!column) {continue;}
+        if (!column) {
+          continue;
+        }
         if (typeof value === "string" && key.toLowerCase().includes("search")) {
           conditions.push(ilike(column, `%${value}%`));
         } else {
@@ -194,10 +202,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .select()
       .from(this.table)
       .where(
-        and(
-          eq(this.requireCol(this.idColumn), id),
-          eq(this.requireCol(this.orgIdColumn), orgId)
-        )
+        and(eq(this.requireCol(this.idColumn), id), eq(this.requireCol(this.orgIdColumn), orgId))
       )
       .limit(1);
 
@@ -205,10 +210,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async create(data: InsertT): Promise<T> {
-    const result = await db
-      .insert(this.table)
-      .values(insertValues(data))
-      .returning();
+    const result = await db.insert(this.table).values(insertValues(data)).returning();
 
     return result[0] as T;
   }
@@ -224,10 +226,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .update(this.table)
       .set(setValues(updateData))
       .where(
-        and(
-          eq(this.requireCol(this.idColumn), id),
-          eq(this.requireCol(this.orgIdColumn), orgId)
-        )
+        and(eq(this.requireCol(this.idColumn), id), eq(this.requireCol(this.orgIdColumn), orgId))
       )
       .returning();
 
@@ -242,10 +241,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     const result = await db
       .delete(this.table)
       .where(
-        and(
-          eq(this.requireCol(this.idColumn), id),
-          eq(this.requireCol(this.orgIdColumn), orgId)
-        )
+        and(eq(this.requireCol(this.idColumn), id), eq(this.requireCol(this.orgIdColumn), orgId))
       )
       .returning();
 
@@ -257,10 +253,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .select({ count: sql<number>`1` })
       .from(this.table)
       .where(
-        and(
-          eq(this.requireCol(this.idColumn), id),
-          eq(this.requireCol(this.orgIdColumn), orgId)
-        )
+        and(eq(this.requireCol(this.idColumn), id), eq(this.requireCol(this.orgIdColumn), orgId))
       )
       .limit(1);
 
@@ -272,9 +265,13 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) {continue;}
+        if (value === undefined || value === null) {
+          continue;
+        }
         const column = this.columns()[key];
-        if (!column) {continue;}
+        if (!column) {
+          continue;
+        }
         conditions.push(eq(column, value));
       }
     }
@@ -292,10 +289,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       return [];
     }
 
-    const result = await db
-      .insert(this.table)
-      .values(insertValues(items))
-      .returning();
+    const result = await db.insert(this.table).values(insertValues(items)).returning();
 
     return result as T[];
   }

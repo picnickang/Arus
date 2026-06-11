@@ -62,7 +62,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] Chat error:", undefined, error);
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
   );
@@ -127,7 +129,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] Multimodal chat error:", undefined, error);
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Agent error" });
       }
     }
   );
@@ -142,7 +146,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
       try {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
-        const conversationId = req.params['id'] ?? '';
+        const conversationId = req.params["id"] ?? "";
 
         const existing = await agentRepo.conversations.get(conversationId, orgId);
         if (!existing) {
@@ -181,7 +185,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
               content: systemContent,
             });
           } catch (err) {
-            logger.warn("[Agent] Failed to create KB ingestion system message:", { details: err instanceof Error ? err.message : "unknown" });
+            logger.warn("[Agent] Failed to create KB ingestion system message:", {
+              details: err instanceof Error ? err.message : "unknown",
+            });
           }
         }
 
@@ -204,7 +210,9 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         });
       } catch (error: unknown) {
         logger.error("[Agent] File upload error:", undefined, error);
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Upload failed" });
       }
     }
   );
@@ -215,7 +223,7 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
     async (req: Request, res: Response) => {
       try {
         const orgId = authenticatedRequest(req).orgId;
-        const conversationId = req.params['id'] ?? '';
+        const conversationId = req.params["id"] ?? "";
         const files = await listConversationFiles(conversationId, orgId);
         return res.json({
           files: files.map((f) => ({
@@ -241,8 +249,8 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
         const orgId = authenticatedRequest(req).orgId;
         const userId = authenticatedRequest(req).user?.id;
         const userRole = authenticatedRequest(req).user?.role;
-        const message = req.query['message'] as string;
-        const conversationId = req.query['conversationId'] as string | undefined;
+        const message = req.query["message"] as string;
+        const conversationId = req.query["conversationId"] as string | undefined;
 
         if (!message) {
           return res.status(400).json({ error: "Message query parameter is required" });
@@ -274,11 +282,10 @@ export function registerChatRoutes(app: Express, deps: ChatRouteDeps) {
             .status(500)
             .json({ error: error instanceof Error ? error.message : "Agent stream error" });
         }
-          res.write(
-            `data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`
-          );
-          return res.end();
-
+        res.write(
+          `data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`
+        );
+        return res.end();
       }
     }
   );

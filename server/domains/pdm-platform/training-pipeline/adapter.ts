@@ -21,7 +21,9 @@ import type {
 export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
   async create(data: InsertTrainingDataset): Promise<TrainingDataset> {
     const [result] = await db.insert(trainingDatasets).values(data).returning();
-    if (!result) {throw new Error("Failed to create training dataset");}
+    if (!result) {
+      throw new Error("Failed to create training dataset");
+    }
     return result;
   }
 
@@ -58,7 +60,9 @@ export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
 export class TrainingRunAdapter implements ITrainingRunStorage {
   async create(data: InsertTrainingRun): Promise<TrainingRun> {
     const [result] = await db.insert(trainingRuns).values(data).returning();
-    if (!result) {throw new Error("Failed to create training run");}
+    if (!result) {
+      throw new Error("Failed to create training run");
+    }
     return result;
   }
 
@@ -101,7 +105,9 @@ export class TrainingRunAdapter implements ITrainingRunStorage {
 export class ModelArtifactAdapter implements IModelArtifactStorage {
   async create(data: InsertModelArtifact): Promise<ModelArtifact> {
     const [result] = await db.insert(modelArtifacts).values(data).returning();
-    if (!result) {throw new Error("Failed to create model artifact");}
+    if (!result) {
+      throw new Error("Failed to create model artifact");
+    }
     return result;
   }
 
@@ -136,7 +142,9 @@ export class ModelArtifactAdapter implements IModelArtifactStorage {
 }
 
 function allowPdmDemoFallbacks(): boolean {
-  return process.env['NODE_ENV'] !== "production" || process.env['ALLOW_PDM_DEMO_FALLBACKS'] === "true";
+  return (
+    process.env["NODE_ENV"] !== "production" || process.env["ALLOW_PDM_DEMO_FALLBACKS"] === "true"
+  );
 }
 
 export class StubTrainingRunner implements ITrainingRunnerPort {
@@ -146,12 +154,14 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
     hyperparameters: Record<string, unknown>
   ) {
     if (!allowPdmDemoFallbacks()) {
-      throw new Error("Demo training runner is disabled in production. Configure a real training runner.");
+      throw new Error(
+        "Demo training runner is disabled in production. Configure a real training runner."
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const lr = (hyperparameters['learningRate'] as number) ?? 0.001;
-    const epochs = (hyperparameters['epochs'] as number) ?? 10;
+    const lr = (hyperparameters["learningRate"] as number) ?? 0.001;
+    const epochs = (hyperparameters["epochs"] as number) ?? 10;
 
     return {
       metrics: {
@@ -163,9 +173,8 @@ export class StubTrainingRunner implements ITrainingRunnerPort {
         trainingDurationMs: 500 + Math.floor(Math.random() * 2000),
       },
       artifactUri: `artifacts/demo-fallback/${datasetId}/${Date.now()}/model.bin`,
-      framework: (config['framework'] as string) ?? "demo-fallback-framework",
+      framework: (config["framework"] as string) ?? "demo-fallback-framework",
       format: "binary",
     };
   }
 }
-

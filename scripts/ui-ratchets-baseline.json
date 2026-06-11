@@ -2,6 +2,6 @@
   "_comment": "UI drift ratchets — counts may only decrease. Regenerate after intentional reductions: node scripts/check-ui-ratchets.mjs --update",
   "handRolledHeaders": 107,
   "arbitraryColorUtilities": 28,
-  "rawPollLiterals": 115,
+  "rawPollLiterals": 114,
   "indexKeys": 88
 }

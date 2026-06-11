@@ -2,10 +2,7 @@
  * GDPR - Types
  */
 
-import type {
-  dataSubjectRequests,
-  engineerOverrides,
-} from "@shared/schema-runtime";
+import type { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
 
 export type DataSubjectRequest = typeof dataSubjectRequests.$inferSelect;
 export type InsertDataSubjectRequest = typeof dataSubjectRequests.$inferInsert;

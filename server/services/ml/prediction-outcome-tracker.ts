@@ -301,7 +301,10 @@ export class PredictionOutcomeTracker {
    * 2. Alert notifications with critical/high severity
    * 3. Equipment status changes to "critical" or "down"
    */
-  private async determineOutcome(prediction: EligiblePrediction, orgId: string): Promise<PredictionOutcome> {
+  private async determineOutcome(
+    prediction: EligiblePrediction,
+    orgId: string
+  ): Promise<PredictionOutcome> {
     if (!prediction.predictedFailureDate) {
       // Without a predicted date we can't bracket a verification window;
       // surface as a true_negative so the row is still accounted for.
@@ -333,7 +336,9 @@ export class PredictionOutcomeTracker {
       // Check work orders (most reliable signal)
       const workOrders = await this.deps.getWorkOrders(prediction.equipmentId, orgId);
       const relevantWOs = (workOrders || []).filter((wo: TrackerWorkOrder) => {
-        if (!wo.createdAt) {return false;}
+        if (!wo.createdAt) {
+          return false;
+        }
         const woDate = new Date(wo.createdAt);
         return (
           woDate >= windowStart &&
@@ -354,7 +359,9 @@ export class PredictionOutcomeTracker {
         // Check alerts
         const alerts = await this.deps.getAlertNotifications(false, orgId);
         const relevantAlerts = (alerts || []).filter((alert: TrackerAlert) => {
-          if (!alert.createdAt) {return false;}
+          if (!alert.createdAt) {
+            return false;
+          }
           const alertDate = new Date(alert.createdAt);
           // alert_notifications has no `severity` column; alertType is the
           // severity discriminator. Treat critical/high alertTypes as failure

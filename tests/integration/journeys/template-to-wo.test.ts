@@ -23,8 +23,14 @@ describe("Journey — Maintenance template → WO with FK", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (woId) {await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});}
-    if (templateId) {await pool.query("DELETE FROM maintenance_templates WHERE id=$1", [templateId]).catch(() => {});}
+    if (woId) {
+      await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
+    }
+    if (templateId) {
+      await pool
+        .query("DELETE FROM maintenance_templates WHERE id=$1", [templateId])
+        .catch(() => {});
+    }
     await cleanupByRunId(RUN_ID, ["maintenance_templates", "work_orders"]);
   });
 

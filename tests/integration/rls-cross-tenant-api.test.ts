@@ -30,8 +30,8 @@
 // modules — `withDatabaseContext` caches `ENABLE_PG_RLS_CONTEXT` at
 // module load, and `db-config` runs its boot gate against
 // `REQUIRE_TENANT_AUTH` the first time it's imported.
-process.env.REQUIRE_TENANT_AUTH = "true";
-process.env.ENABLE_PG_RLS_CONTEXT = "true";
+process.env["REQUIRE_TENANT_AUTH"] = "true";
+process.env["ENABLE_PG_RLS_CONTEXT"] = "true";
 
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool, type PoolClient } from "pg";
@@ -39,7 +39,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 
 const ORG_A = `t104-a-${Date.now().toString(36)}`;
 const ORG_B = `t104-b-${Date.now().toString(36)}`;
@@ -52,16 +52,12 @@ let app: Express | null = null;
 async function tableHasRls(client: PoolClient, table: string): Promise<boolean> {
   const r = await client.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
     `SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE relname = $1`,
-    [table],
+    [table]
   );
   return r.rows[0]?.relrowsecurity === true && r.rows[0]?.relforcerowsecurity === true;
 }
 
-async function insertAsSuperuser(
-  client: PoolClient,
-  orgId: string,
-  name: string,
-): Promise<void> {
+async function insertAsSuperuser(client: PoolClient, orgId: string, name: string): Promise<void> {
   await client.query("BEGIN");
   try {
     await client.query("SELECT set_config('app.current_org_id', $1, true)", [orgId]);
@@ -69,7 +65,7 @@ async function insertAsSuperuser(
       `INSERT INTO equipment (id, name, org_id, type, status, criticality)
          VALUES ($1, $2, $3, 'pump', 'operational', 'medium')
          ON CONFLICT (id) DO NOTHING`,
-      [`${TAG}-${orgId}`, name, orgId],
+      [`${TAG}-${orgId}`, name, orgId]
     );
     await client.query("COMMIT");
   } catch (err) {
@@ -79,16 +75,22 @@ async function insertAsSuperuser(
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) {return;}
+  if (!databaseUrl) {
+    return;
+  }
   pool = new Pool({ connectionString: databaseUrl, max: 4 });
   const probe = await pool.connect();
   try {
     const r = await probe.query<{ exists: boolean }>(
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables
-         WHERE table_schema = current_schema() AND table_name = 'equipment') AS exists`,
+         WHERE table_schema = current_schema() AND table_name = 'equipment') AS exists`
     );
-    if (!r.rows[0]?.exists) {return;}
-    if (!(await tableHasRls(probe, "equipment"))) {return;}
+    if (!r.rows[0]?.exists) {
+      return;
+    }
+    if (!(await tableHasRls(probe, "equipment"))) {
+      return;
+    }
     rlsReady = true;
     await insertAsSuperuser(probe, ORG_A, "T104 A pump");
     await insertAsSuperuser(probe, ORG_B, "T104 B pump");
@@ -96,7 +98,9 @@ beforeAll(async () => {
     probe.release();
   }
 
-  if (!rlsReady) {return;}
+  if (!rlsReady) {
+    return;
+  }
 
   // Build the minimal Express app that exercises the production path
   // we actually care about: requireOrgId → withDatabaseContext (which
@@ -155,7 +159,9 @@ beforeAll(async () => {
 }, 60000);
 
 afterAll(async () => {
-  if (!pool) {return;}
+  if (!pool) {
+    return;
+  }
   if (rlsReady) {
     const cleanup = await pool.connect();
     try {
@@ -186,7 +192,9 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
   });
 
   it("tenant A only sees tenant A's equipment", async () => {
-    if (!databaseUrl || !rlsReady || !app) {return;}
+    if (!databaseUrl || !rlsReady || !app) {
+      return;
+    }
 
     const res = await request(app)
       .get("/api/equipment")
@@ -194,9 +202,9 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
       .send();
 
     expect(res.status).toBe(200);
-    const body = Array.isArray(res.body) ? res.body : res.body?.items ?? [];
+    const body = Array.isArray(res.body) ? res.body : (res.body?.items ?? []);
     const fixtureRows = (body as Array<{ id: string; orgId: string }>).filter((row) =>
-      row.id?.startsWith(`${TAG}-`),
+      row.id?.startsWith(`${TAG}-`)
     );
     const orgIds = fixtureRows.map((r) => r.orgId);
     expect(orgIds).toContain(ORG_A);
@@ -204,7 +212,9 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
   });
 
   it("tenant B only sees tenant B's equipment", async () => {
-    if (!databaseUrl || !rlsReady || !app) {return;}
+    if (!databaseUrl || !rlsReady || !app) {
+      return;
+    }
 
     const res = await request(app)
       .get("/api/equipment")
@@ -212,9 +222,9 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
       .send();
 
     expect(res.status).toBe(200);
-    const body = Array.isArray(res.body) ? res.body : res.body?.items ?? [];
+    const body = Array.isArray(res.body) ? res.body : (res.body?.items ?? []);
     const fixtureRows = (body as Array<{ id: string; orgId: string }>).filter((row) =>
-      row.id?.startsWith(`${TAG}-`),
+      row.id?.startsWith(`${TAG}-`)
     );
     const orgIds = fixtureRows.map((r) => r.orgId);
     expect(orgIds).toContain(ORG_B);
@@ -225,7 +235,9 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
     // Fires both tenants in parallel so AsyncLocalStorage actually has
     // to keep their contexts separated across the await boundaries
     // inside `withDatabaseContext` + the equipment service.
-    if (!databaseUrl || !rlsReady || !app) {return;}
+    if (!databaseUrl || !rlsReady || !app) {
+      return;
+    }
 
     const [aRes, bRes] = await Promise.all([
       request(app).get("/api/equipment").set("x-test-token", "tenant-a-token").send(),
@@ -235,14 +247,14 @@ describe("Task #104 — RLS cross-tenant isolation through the live API", () => 
     expect(aRes.status).toBe(200);
     expect(bRes.status).toBe(200);
 
-    const aBody = Array.isArray(aRes.body) ? aRes.body : aRes.body?.items ?? [];
-    const bBody = Array.isArray(bRes.body) ? bRes.body : bRes.body?.items ?? [];
+    const aBody = Array.isArray(aRes.body) ? aRes.body : (aRes.body?.items ?? []);
+    const bBody = Array.isArray(bRes.body) ? bRes.body : (bRes.body?.items ?? []);
 
     const aFixture = (aBody as Array<{ id: string; orgId: string }>).filter((r) =>
-      r.id?.startsWith(`${TAG}-`),
+      r.id?.startsWith(`${TAG}-`)
     );
     const bFixture = (bBody as Array<{ id: string; orgId: string }>).filter((r) =>
-      r.id?.startsWith(`${TAG}-`),
+      r.id?.startsWith(`${TAG}-`)
     );
 
     expect(aFixture.map((r) => r.orgId)).toEqual([ORG_A]);

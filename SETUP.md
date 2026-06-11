@@ -31,10 +31,10 @@ node scripts/setup-signing.mjs --repo YOUR_ORG/YOUR_REPO
 This creates `~/.tauri/arus.key` and updates the `pubkey` field in all three
 `tauri.*.conf.json` files. Add the private key as a GitHub Actions secret:
 
-| Secret name                          | Value                          |
-| ------------------------------------ | ------------------------------ |
-| `TAURI_SIGNING_PRIVATE_KEY`          | Contents of `~/.tauri/arus.key`|
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password entered during keygen |
+| Secret name                          | Value                           |
+| ------------------------------------ | ------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`          | Contents of `~/.tauri/arus.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password entered during keygen  |
 
 ## Icon Generation
 
@@ -71,6 +71,7 @@ npm run build:sidecar:notest    # skip smoke test
 ## Windows Installer Variants
 
 ### Vessel (Air-Gapped, ~145 MB)
+
 - WebView2 bundled offline (`offlineInstaller`)
 - NSSM service registration via WiX custom actions
 - Dedicated `ARUS_svc` service account
@@ -81,6 +82,7 @@ npm run tauri:build:vessel
 ```
 
 ### Cloud (~25 MB)
+
 - WebView2 downloaded at install time (`downloadBootstrapper`)
 - Same service setup, connects to remote backend
 
@@ -124,15 +126,16 @@ npm uninstall bcrypt            # remove native addon
 The GitHub Actions workflow (`.github/workflows/tauri-build.yml`) builds on push
 to `v*` tags:
 
-| Job                     | Runner          | Config                |
-| ----------------------- | --------------- | --------------------- |
-| macOS Apple Silicon      | macos-latest    | tauri.vessel.conf.json|
-| macOS Intel              | macos-latest    | tauri.vessel.conf.json|
-| Linux x64                | ubuntu-22.04    | tauri.vessel.conf.json|
-| Windows Vessel           | windows-latest  | tauri.vessel.conf.json|
-| Windows Cloud            | windows-latest  | tauri.cloud.conf.json |
+| Job                 | Runner         | Config                 |
+| ------------------- | -------------- | ---------------------- |
+| macOS Apple Silicon | macos-latest   | tauri.vessel.conf.json |
+| macOS Intel         | macos-latest   | tauri.vessel.conf.json |
+| Linux x64           | ubuntu-22.04   | tauri.vessel.conf.json |
+| Windows Vessel      | windows-latest | tauri.vessel.conf.json |
+| Windows Cloud       | windows-latest | tauri.cloud.conf.json  |
 
 Required GitHub Actions secrets:
+
 - `TAURI_SIGNING_PRIVATE_KEY`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 - `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` (macOS only)

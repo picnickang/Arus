@@ -167,11 +167,9 @@ export function registerTestsRoutes(router: Router) {
       return;
     }
     if (!suite.runnable) {
-      res
-        .status(400)
-        .json({
-          error: `Test suite '${name}' requires too much memory to run in-app. Use CI/CD pipeline or run locally with: npx jest ${suite.file} --forceExit`,
-        });
+      res.status(400).json({
+        error: `Test suite '${name}' requires too much memory to run in-app. Use CI/CD pipeline or run locally with: npx jest ${suite.file} --forceExit`,
+      });
       return;
     }
     if (testResults.get(name)?.status === "running") {
@@ -190,7 +188,20 @@ export function registerTestsRoutes(router: Router) {
     });
     try {
       const { smokeTestSuites } = await import("../../diagnostics-smoke-tests.js");
-      const runner = (smokeTestSuites as object as Record<string, () => Promise<{ suite: string; passed: number; failed: number; total: number; duration: number; tests: Array<{ name: string; passed: boolean; duration: number; error?: string }>; timestamp: string }>>)[name];
+      const runner = (
+        smokeTestSuites as object as Record<
+          string,
+          () => Promise<{
+            suite: string;
+            passed: number;
+            failed: number;
+            total: number;
+            duration: number;
+            tests: Array<{ name: string; passed: boolean; duration: number; error?: string }>;
+            timestamp: string;
+          }>
+        >
+      )[name];
       if (runner) {
         const result = await runner();
         const output = formatSmokeTestOutput(result);

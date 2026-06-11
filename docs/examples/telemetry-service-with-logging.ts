@@ -104,7 +104,9 @@ export async function ingestTelemetryBatch(req: Request, res: Response) {
       "telemetry-ingestion",
       "batch-insert",
       async () => {
-        if (validReadings.length === 0) {return [];}
+        if (validReadings.length === 0) {
+          return [];
+        }
         return await db.insert(equipmentTelemetry).values(validReadings).returning();
       },
       { ...context, dataPointCount: validReadings.length }
@@ -113,12 +115,16 @@ export async function ingestTelemetryBatch(req: Request, res: Response) {
     // Check for critical alerts
     const criticalReadings = validReadings.filter((r) => r.status === "critical");
     if (criticalReadings.length > 0) {
-      logTelemetryIngestion("error", `${criticalReadings.length} critical threshold breaches detected`, {
-        ...context,
-        alertLevel: "critical",
-        dataPointCount: criticalReadings.length,
-        sensorTypes: [...new Set(criticalReadings.map((r) => r.sensorType))].join(", "),
-      });
+      logTelemetryIngestion(
+        "error",
+        `${criticalReadings.length} critical threshold breaches detected`,
+        {
+          ...context,
+          alertLevel: "critical",
+          dataPointCount: criticalReadings.length,
+          sensorTypes: [...new Set(criticalReadings.map((r) => r.sensorType))].join(", "),
+        }
+      );
     }
 
     // Log successful completion
@@ -258,9 +264,15 @@ function determineStatus(sensorType: string, value: number): "normal" | "warning
   };
 
   const threshold = thresholds[sensorType];
-  if (!threshold) {return "normal";}
+  if (!threshold) {
+    return "normal";
+  }
 
-  if (value >= threshold.critical) {return "critical";}
-  if (value >= threshold.warning) {return "warning";}
+  if (value >= threshold.critical) {
+    return "critical";
+  }
+  if (value >= threshold.warning) {
+    return "warning";
+  }
   return "normal";
 }

@@ -9,8 +9,8 @@ import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
 // (ShipServ, MarineTraffic Parts, OEM direct APIs, internal ERP, etc.)
 // ---------------------------------------------------------------------------
 
-const PARTS_API_BASE = process.env['PARTS_SUPPLIER_API_URL'] || "";
-const PARTS_API_KEY = process.env['PARTS_SUPPLIER_API_KEY'] || "";
+const PARTS_API_BASE = process.env["PARTS_SUPPLIER_API_URL"] || "";
+const PARTS_API_KEY = process.env["PARTS_SUPPLIER_API_KEY"] || "";
 const PARTS_CACHE_TTL_SEC = 43200; // 12 hours
 
 // ---------------------------------------------------------------------------
@@ -127,8 +127,8 @@ registerTool({
   }),
   requiresApproval: false,
   async execute(input, ctx) {
-    const partNumber = input['partNumber'] as string;
-    const manufacturer = input['manufacturer'] as string | undefined;
+    const partNumber = input["partNumber"] as string;
+    const manufacturer = input["manufacturer"] as string | undefined;
 
     const cacheKey = `part_${partNumber}${manufacturer ? `_${manufacturer}` : ""}`;
 
@@ -141,10 +141,12 @@ registerTool({
     );
 
     const data = result.data;
-    if (!data || (data as object as Record<string, unknown>)['error']) {
+    if (!data || (data as object as Record<string, unknown>)["error"]) {
       return {
         partNumber,
-        error: (data as object as Record<string, unknown>)?.['error'] || "Part availability data unavailable",
+        error:
+          (data as object as Record<string, unknown>)?.["error"] ||
+          "Part availability data unavailable",
         _meta: {
           fromCache: result.fromCache,
           stale: result.stale,
@@ -196,8 +198,8 @@ registerTool({
   }),
   requiresApproval: false,
   async execute(input, ctx) {
-    const limit = (input['limit'] as number) || 10;
-    const includeSupplier = (input['includeSupplierData'] as boolean) !== false;
+    const limit = (input["limit"] as number) || 10;
+    const includeSupplier = (input["includeSupplierData"] as boolean) !== false;
 
     // Fetch low-stock items from local inventory
     let lowStockParts: Array<Record<string, unknown>> = [];
@@ -230,18 +232,18 @@ registerTool({
     // Enrich with external supplier data
     const enriched = await Promise.all(
       lowStockParts.map(async (part) => {
-        const partNumber = part['part_number'] as string;
+        const partNumber = part["part_number"] as string;
         const base = {
-          id: part['id'],
+          id: part["id"],
           partNumber,
-          partName: part['part_name'],
-          manufacturer: part['manufacturer'],
-          category: part['category'],
-          quantityOnHand: Number(part['quantity_on_hand']),
-          minStockLevel: Number(part['min_stock_level']),
-          deficit: Number(part['min_stock_level']) - Number(part['quantity_on_hand']),
-          lastUnitCost: part['unit_cost'] ? Number(part['unit_cost']) : null,
-          lastOrderedDate: part['last_ordered_date'],
+          partName: part["part_name"],
+          manufacturer: part["manufacturer"],
+          category: part["category"],
+          quantityOnHand: Number(part["quantity_on_hand"]),
+          minStockLevel: Number(part["min_stock_level"]),
+          deficit: Number(part["min_stock_level"]) - Number(part["quantity_on_hand"]),
+          lastUnitCost: part["unit_cost"] ? Number(part["unit_cost"]) : null,
+          lastOrderedDate: part["last_ordered_date"],
         };
 
         if (!includeSupplier || !partNumber) {
@@ -249,16 +251,16 @@ registerTool({
         }
 
         // Try cache first for speed, fall back to live fetch
-        const cacheKey = `part_${partNumber}${part['manufacturer'] ? `_${part['manufacturer']}` : ""}`;
+        const cacheKey = `part_${partNumber}${part["manufacturer"] ? `_${part["manufacturer"]}` : ""}`;
         const cached = await fetchWithCacheFallback<PartAvailability>(
           ctx.orgId,
           "parts",
           cacheKey,
-          () => fetchPartAvailability(partNumber, part['manufacturer'] as string | undefined),
+          () => fetchPartAvailability(partNumber, part["manufacturer"] as string | undefined),
           PARTS_CACHE_TTL_SEC
         ).catch(() => null);
 
-        if (!cached || (cached.data as object as Record<string, unknown>)?.['error']) {
+        if (!cached || (cached.data as object as Record<string, unknown>)?.["error"]) {
           return { ...base, supplierData: null, supplierError: "External data unavailable" };
         }
 

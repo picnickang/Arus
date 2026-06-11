@@ -101,7 +101,7 @@ export function useSensorTemplateForm({
 }: {
   open: boolean;
   mode: "create" | "edit";
-  template?: SensorTemplate;
+  template?: SensorTemplate | undefined;
 }) {
   const form = useForm<SensorTemplateFormData, unknown, SensorTemplateFormData>({
     resolver: zodResolver(

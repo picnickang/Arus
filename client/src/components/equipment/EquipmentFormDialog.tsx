@@ -68,12 +68,11 @@ export function EquipmentFormDialog({
   const dialogOpen = open ?? isOpen ?? false;
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertEquipment) =>
-      apiRequest<Equipment>("POST", "/api/equipment", data),
+    mutationFn: (data: InsertEquipment) => apiRequest<Equipment>("POST", "/api/equipment", data),
     onSuccess: async (created) => {
-      if (created && (created).id) {
+      if (created && created.id) {
         queryClient.setQueryData<Equipment[]>(equipmentKeys.list(), (old) =>
-          old ? [...old, created] : [created],
+          old ? [...old, created] : [created]
         );
       }
       await queryClient.invalidateQueries({ queryKey: equipmentKeys.list() });

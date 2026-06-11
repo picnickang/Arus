@@ -1,80 +1,104 @@
 import React from "react";
-import { 
-  ClipboardCheck, 
-  BookOpen, 
-  AlertTriangle, 
-  Activity, 
-  Wrench, 
-  Settings, 
-  Calendar, 
-  Package, 
-  Users, 
-  LayoutDashboard, 
-  Radio, 
-  Bell, 
-  Zap, 
-  CloudRain, 
-  Ship, 
-  ShieldCheck, 
-  BarChart3, 
+import {
+  ClipboardCheck,
+  BookOpen,
+  AlertTriangle,
+  Activity,
+  Wrench,
+  Settings,
+  Calendar,
+  Package,
+  Users,
+  LayoutDashboard,
+  Radio,
+  Bell,
+  Zap,
+  CloudRain,
+  Ship,
+  ShieldCheck,
+  BarChart3,
   MonitorPlay,
   MoreHorizontal,
   ChevronDown,
   LogOut,
-  Menu
+  Menu,
 } from "lucide-react";
 
 // Helper components to simulate shadcn/ui and keep the file self-contained
 const Card = ({ className, children }: { className?: string; children: React.ReactNode }) => (
-  <div className={`rounded-xl border border-slate-800 bg-slate-900/50 text-slate-100 shadow-sm ${className || ''}`}>
+  <div
+    className={`rounded-xl border border-slate-800 bg-slate-900/50 text-slate-100 shadow-sm ${className || ""}`}
+  >
     {children}
   </div>
 );
 
-const Badge = ({ children, variant = 'default', className = '' }: { children: React.ReactNode, variant?: 'default'|'destructive'|'warning'|'outline', className?: string }) => {
+const Badge = ({
+  children,
+  variant = "default",
+  className = "",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "destructive" | "warning" | "outline";
+  className?: string;
+}) => {
   const variants = {
     default: "bg-slate-800 text-slate-100 hover:bg-slate-700 border-transparent",
     destructive: "bg-red-900/50 text-red-200 border-red-800 hover:bg-red-900/70",
     warning: "bg-amber-900/50 text-amber-200 border-amber-800 hover:bg-amber-900/70",
-    outline: "border-slate-700 text-slate-300"
+    outline: "border-slate-700 text-slate-300",
   };
   return (
-    <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 ${variants[variant]} ${className}`}>
+    <div
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 ${variants[variant]} ${className}`}
+    >
       {children}
     </div>
   );
 };
 
-const Button = ({ children, variant = 'default', size = 'default', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'; size?: 'default' | 'sm' | 'lg' | 'icon' }) => {
+const Button = ({
+  children,
+  variant = "default",
+  size = "default",
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
+}) => {
   const variants = {
     default: "bg-cyan-600 text-white hover:bg-cyan-700",
     destructive: "bg-red-600 text-white hover:bg-red-700",
     outline: "border border-slate-700 bg-transparent hover:bg-slate-800 text-slate-100",
     secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700",
     ghost: "hover:bg-slate-800 hover:text-slate-100 text-slate-300",
-    link: "text-slate-300 underline-offset-4 hover:underline"
+    link: "text-slate-300 underline-offset-4 hover:underline",
   };
   const sizes = {
     default: "h-10 px-4 py-2",
     sm: "h-9 rounded-md px-3",
     lg: "h-11 rounded-md px-8",
-    icon: "h-10 w-10"
+    icon: "h-10 w-10",
   };
   return (
-    <button className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variants[variant as keyof typeof variants]} ${sizes[size as keyof typeof sizes]} ${className}`} {...props}>
+    <button
+      className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variants[variant as keyof typeof variants]} ${sizes[size as keyof typeof sizes]} ${className}`}
+      {...props}
+    >
       {children}
     </button>
   );
 };
 
-const Separator = ({ className = '' }: { className?: string }) => (
+const Separator = ({ className = "" }: { className?: string }) => (
   <div className={`h-[1px] w-full bg-slate-800 ${className}`} />
 );
 
 export function SidebarSplit() {
   // Mock Data
   const role = "Chief Engineer";
-  
+
   const navGroups = [
     {
       title: "Maintenance",
@@ -85,7 +109,7 @@ export function SidebarSplit() {
         { label: "Schedule Planner", icon: Calendar },
         { label: "Spare Parts", icon: Package },
         { label: "Vendors", icon: Users },
-      ]
+      ],
     },
     {
       title: "Operations",
@@ -95,7 +119,7 @@ export function SidebarSplit() {
         { label: "Alerts", icon: Bell },
         { label: "Actionable Insights", icon: Zap },
         { label: "Weather", icon: CloudRain },
-      ]
+      ],
     },
     {
       title: "Fleet",
@@ -104,8 +128,8 @@ export function SidebarSplit() {
         { label: "CII Compliance", icon: ShieldCheck },
         { label: "Fleet Analytics", icon: BarChart3 },
         { label: "Digital Twin", icon: MonitorPlay },
-      ]
-    }
+      ],
+    },
   ];
 
   const quickActions = [
@@ -116,15 +140,34 @@ export function SidebarSplit() {
   ];
 
   const tasks = [
-    { title: "Replace fuel injector #3", equipment: "Main Engine", due: "Jan 15", priority: "high" },
-    { title: "Inspect cooling pump seals", equipment: "Aux Engine 1", due: "Jan 18", priority: "medium" },
-    { title: "Calibrate exhaust gas temp sensor", equipment: "Boiler System", due: "Jan 20", priority: "low" },
-    { title: "Torque cylinder head bolts", equipment: "Main Engine", due: "Jan 22", priority: "high" },
+    {
+      title: "Replace fuel injector #3",
+      equipment: "Main Engine",
+      due: "Jan 15",
+      priority: "high",
+    },
+    {
+      title: "Inspect cooling pump seals",
+      equipment: "Aux Engine 1",
+      due: "Jan 18",
+      priority: "medium",
+    },
+    {
+      title: "Calibrate exhaust gas temp sensor",
+      equipment: "Boiler System",
+      due: "Jan 20",
+      priority: "low",
+    },
+    {
+      title: "Torque cylinder head bolts",
+      equipment: "Main Engine",
+      due: "Jan 22",
+      priority: "high",
+    },
   ];
 
   return (
     <div className="flex h-screen w-full bg-slate-950 text-slate-200 overflow-hidden font-sans">
-      
       {/* LEFT SIDEBAR */}
       <aside className="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col hidden md:flex">
         {/* Role & User Section */}
@@ -156,9 +199,9 @@ export function SidebarSplit() {
                       <button
                         key={i}
                         className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                          item.active 
-                            ? 'bg-cyan-900/30 text-cyan-400 font-medium' 
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                          item.active
+                            ? "bg-cyan-900/30 text-cyan-400 font-medium"
+                            : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                         }`}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
@@ -169,7 +212,7 @@ export function SidebarSplit() {
                 </div>
               </div>
             ))}
-            
+
             <div>
               <h3 className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 More
@@ -181,9 +224,12 @@ export function SidebarSplit() {
             </div>
           </div>
         </div>
-        
+
         <div className="p-4 border-t border-slate-800">
-          <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-slate-100">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-400 hover:text-slate-100"
+          >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>
@@ -192,7 +238,6 @@ export function SidebarSplit() {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col overflow-hidden relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-slate-950 to-slate-950">
-        
         {/* Header Bar */}
         <header className="h-16 flex-shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center space-x-3 md:hidden">
@@ -216,7 +261,6 @@ export function SidebarSplit() {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-8">
-            
             {/* Attention Banner */}
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h2 className="text-sm font-medium text-slate-400 mb-3 flex items-center">
@@ -229,18 +273,22 @@ export function SidebarSplit() {
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="text-3xl font-light text-red-400 mb-1">3</div>
-                      <div className="text-sm font-medium text-red-200 group-hover:text-red-100 transition-colors">Overdue Work Orders</div>
+                      <div className="text-sm font-medium text-red-200 group-hover:text-red-100 transition-colors">
+                        Overdue Work Orders
+                      </div>
                     </div>
                     <Badge variant="destructive">Critical</Badge>
                   </div>
                 </div>
-                
+
                 <div className="bg-amber-950/20 border border-amber-900/50 rounded-xl p-4 cursor-pointer hover:bg-amber-950/40 transition-colors group relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="text-3xl font-light text-amber-400 mb-1">5</div>
-                      <div className="text-sm font-medium text-amber-200 group-hover:text-amber-100 transition-colors">Unacknowledged Alerts</div>
+                      <div className="text-sm font-medium text-amber-200 group-hover:text-amber-100 transition-colors">
+                        Unacknowledged Alerts
+                      </div>
                     </div>
                     <Badge variant="warning">Warning</Badge>
                   </div>
@@ -251,7 +299,9 @@ export function SidebarSplit() {
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="text-3xl font-light text-amber-400 mb-1">2</div>
-                      <div className="text-sm font-medium text-amber-200 group-hover:text-amber-100 transition-colors">High-Risk Equipment</div>
+                      <div className="text-sm font-medium text-amber-200 group-hover:text-amber-100 transition-colors">
+                        High-Risk Equipment
+                      </div>
                     </div>
                     <Badge variant="warning">Warning</Badge>
                   </div>
@@ -269,14 +319,16 @@ export function SidebarSplit() {
                 {quickActions.map((action, idx) => {
                   const Icon = action.icon;
                   return (
-                    <button 
-                      key={idx} 
+                    <button
+                      key={idx}
                       className="flex flex-col items-center justify-center p-6 bg-slate-900/60 border border-slate-800 rounded-xl hover:bg-slate-800 hover:border-slate-700 transition-all group"
                     >
                       <div className="w-12 h-12 rounded-full bg-slate-800 group-hover:bg-cyan-900/30 flex items-center justify-center mb-3 transition-colors">
                         <Icon className="h-5 w-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
                       </div>
-                      <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100">{action.label}</span>
+                      <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100">
+                        {action.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -285,7 +337,6 @@ export function SidebarSplit() {
 
             {/* Main Content Grid: Tasks and Secondary Info */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-              
               {/* My Tasks */}
               <section className="xl:col-span-2">
                 <div className="flex items-center justify-between mb-4">
@@ -293,20 +344,32 @@ export function SidebarSplit() {
                     <ClipboardCheck className="h-5 w-5 mr-2 text-cyan-500" />
                     My Tasks
                   </h2>
-                  <Button variant="link" size="sm" className="text-cyan-400">View All</Button>
+                  <Button variant="link" size="sm" className="text-cyan-400">
+                    View All
+                  </Button>
                 </div>
-                
+
                 <Card className="overflow-hidden border-slate-800/60 bg-slate-900/40">
                   <div className="divide-y divide-slate-800/60">
                     {tasks.map((task, idx) => (
-                      <div key={idx} className="p-4 hover:bg-slate-800/40 transition-colors flex items-center justify-between group">
+                      <div
+                        key={idx}
+                        className="p-4 hover:bg-slate-800/40 transition-colors flex items-center justify-between group"
+                      >
                         <div className="flex items-start space-x-4">
-                          <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
-                            task.priority === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                            task.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-500'
-                          }`} />
+                          <div
+                            className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
+                              task.priority === "high"
+                                ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                : task.priority === "medium"
+                                  ? "bg-amber-500"
+                                  : "bg-slate-500"
+                            }`}
+                          />
                           <div>
-                            <h4 className="text-sm font-medium text-slate-200 group-hover:text-cyan-400 transition-colors mb-1">{task.title}</h4>
+                            <h4 className="text-sm font-medium text-slate-200 group-hover:text-cyan-400 transition-colors mb-1">
+                              {task.title}
+                            </h4>
                             <div className="flex items-center text-xs text-slate-500 space-x-3">
                               <span className="flex items-center">
                                 <Settings className="h-3 w-3 mr-1" />
@@ -316,8 +379,14 @@ export function SidebarSplit() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end space-y-2">
-                          <Badge variant="outline" className="bg-slate-950">Due {task.due}</Badge>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Badge variant="outline" className="bg-slate-950">
+                            Due {task.due}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
                             Start
                           </Button>
                         </div>
@@ -337,8 +406,26 @@ export function SidebarSplit() {
                   <Card className="p-5 border-slate-800/60 bg-slate-900/40 flex flex-col justify-center items-center text-center space-y-4">
                     <div className="relative w-32 h-32 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-800" />
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset="28.27" className="text-cyan-500" />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="45"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          className="text-slate-800"
+                        />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="45"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          strokeDasharray="282.7"
+                          strokeDashoffset="28.27"
+                          className="text-cyan-500"
+                        />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-3xl font-bold text-slate-100">90%</span>
@@ -346,13 +433,16 @@ export function SidebarSplit() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-300">All primary systems operating within normal parameters.</p>
-                      <Button variant="outline" size="sm" className="mt-4 w-full">View Telemetry</Button>
+                      <p className="text-sm text-slate-300">
+                        All primary systems operating within normal parameters.
+                      </p>
+                      <Button variant="outline" size="sm" className="mt-4 w-full">
+                        View Telemetry
+                      </Button>
                     </div>
                   </Card>
                 </div>
               </section>
-
             </div>
           </div>
         </div>

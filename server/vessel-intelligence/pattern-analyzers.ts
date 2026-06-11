@@ -15,13 +15,21 @@ import {
 
 export function analyzeFailurePatterns(
   workOrders: WorkOrder[],
-  equipment: Array<{ id: string; name?: string; type?: string | null; equipmentType?: string | null }>,
+  equipment: Array<{
+    id: string;
+    name?: string;
+    type?: string | null;
+    equipmentType?: string | null;
+  }>,
   telemetry: EquipmentTelemetry[]
 ): VesselPattern[] {
   const patterns: VesselPattern[] = [];
 
   const failureOrders = workOrders.filter(
-    (wo) => (wo.workOrderType) === "corrective" || String(wo.priority) === "critical" || String(wo.priority) === "urgent"
+    (wo) =>
+      wo.workOrderType === "corrective" ||
+      String(wo.priority) === "critical" ||
+      String(wo.priority) === "urgent"
   );
 
   const equipmentFailures = new Map<string, WorkOrder[]>();
@@ -36,7 +44,9 @@ export function analyzeFailurePatterns(
     if (orders.length >= 2) {
       const firstOrder = orders[0];
       const lastOrder = orders[orders.length - 1];
-      if (!firstOrder || !lastOrder) {return;}
+      if (!firstOrder || !lastOrder) {
+        return;
+      }
       const eq = equipment.find((e) => e.id === equipmentId);
       const avgDaysBetween = calculateAverageDaysBetween(orders);
 
@@ -53,7 +63,11 @@ export function analyzeFailurePatterns(
         lastObserved: new Date(firstOrder.createdAt ?? 0),
         affectedEquipment: [equipmentId],
         correlatedMetrics,
-        recommendedActions: generateFailureRecommendations(eq?.type ?? undefined, orders.length, avgDaysBetween),
+        recommendedActions: generateFailureRecommendations(
+          eq?.type ?? undefined,
+          orders.length,
+          avgDaysBetween
+        ),
       });
     }
   });

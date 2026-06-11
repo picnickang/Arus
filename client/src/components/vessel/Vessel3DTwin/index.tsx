@@ -45,10 +45,18 @@ export interface Vessel3DTwinProps {
 }
 
 function healthToColor(h: number | undefined, highlighted: boolean): string {
-  if (highlighted) {return "#f59e0b";} // amber (downstream impact)
-  if (h === undefined) {return "#94a3b8";} // slate (unknown)
-  if (h >= 70) {return "#22c55e";} // green
-  if (h >= 40) {return "#eab308";} // yellow
+  if (highlighted) {
+    return "#f59e0b";
+  } // amber (downstream impact)
+  if (h === undefined) {
+    return "#94a3b8";
+  } // slate (unknown)
+  if (h >= 70) {
+    return "#22c55e";
+  } // green
+  if (h >= 40) {
+    return "#eab308";
+  } // yellow
   return "#ef4444"; // red
 }
 
@@ -126,7 +134,9 @@ export default function Vessel3DTwin({
   // Boot scene exactly once per modelUrl change.
   useEffect(() => {
     const mount: HTMLDivElement | null = mountRef.current;
-    if (!mount) {return;}
+    if (!mount) {
+      return;
+    }
     const mountEl: HTMLDivElement = mount;
     // Reset to loading so a stale "ready" from the previous model is not
     // shown while the new GLTF is fetched.
@@ -177,7 +187,9 @@ export default function Vessel3DTwin({
       if (placementModeRef.current) {
         const root = loadedRootRef.current;
         const cb = onPlaceAtRef.current;
-        if (!root || !cb) {return;}
+        if (!root || !cb) {
+          return;
+        }
         const meshHits = raycaster.intersectObject(root, true);
         const firstHit = meshHits[0];
         if (firstHit) {
@@ -192,7 +204,9 @@ export default function Vessel3DTwin({
       if (firstHit) {
         const data = firstHit.object.userData as { equipmentId?: string };
         const cb = onSelectRef.current;
-        if (data.equipmentId && cb) {cb(data.equipmentId);}
+        if (data.equipmentId && cb) {
+          cb(data.equipmentId);
+        }
       }
     }
     renderer.domElement.addEventListener("click", handleClick);
@@ -203,7 +217,9 @@ export default function Vessel3DTwin({
     loader.load(
       modelUrl,
       (gltf) => {
-        if (disposed) {return;}
+        if (disposed) {
+          return;
+        }
         loadedRoot = gltf.scene;
         loadedRootRef.current = gltf.scene;
         scene.add(gltf.scene);
@@ -220,7 +236,7 @@ export default function Vessel3DTwin({
       },
       undefined,
       (err) => {
-        setError(((err instanceof Error ? err.message : String(err))) || "Failed to load model");
+        setError((err instanceof Error ? err.message : String(err)) || "Failed to load model");
         setStatus("error");
       }
     );
@@ -254,7 +270,9 @@ export default function Vessel3DTwin({
       if (loadedRoot) {
         loadedRoot.traverse((obj) => {
           const mesh = obj as THREE.Mesh;
-          if (mesh.geometry) {mesh.geometry.dispose();}
+          if (mesh.geometry) {
+            mesh.geometry.dispose();
+          }
           const mat = mesh.material;
           if (Array.isArray(mat)) {
             mat.forEach((m) => disposeMaterial(m));
@@ -282,7 +300,9 @@ export default function Vessel3DTwin({
   // Re-render pins whenever inputs change.
   useEffect(() => {
     const group = pinGroupRef.current;
-    if (!group) {return;}
+    if (!group) {
+      return;
+    }
     // Clear existing. Use group.remove() (not pop()) so Three.js detaches
     // the parent reference cleanly, then dispose texture + material to free
     // GPU memory.
@@ -294,10 +314,13 @@ export default function Vessel3DTwin({
     }
     const highlighted = new Set(highlightedEquipmentIds);
     for (const pin of pins) {
-      const colour = healthToColor(healthByEquipmentId[pin.equipmentId], highlighted.has(pin.equipmentId));
+      const colour = healthToColor(
+        healthByEquipmentId[pin.equipmentId],
+        highlighted.has(pin.equipmentId)
+      );
       const sprite = makePinSprite(colour);
       sprite.position.set(pin.x, pin.y, pin.z);
-      sprite.userData['equipmentId'] = pin.equipmentId;
+      sprite.userData["equipmentId"] = pin.equipmentId;
       group.add(sprite);
     }
   }, [pins, healthByEquipmentId, highlightedEquipmentIds]);
@@ -315,7 +338,10 @@ export default function Vessel3DTwin({
         </div>
       )}
       {status === "error" && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-red-500" data-testid="text-vessel-3d-error">
+        <div
+          className="absolute inset-0 flex items-center justify-center text-sm text-red-500"
+          data-testid="text-vessel-3d-error"
+        >
           {error ?? "Failed to load model"}
         </div>
       )}

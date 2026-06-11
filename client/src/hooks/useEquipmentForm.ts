@@ -38,9 +38,7 @@ export function useEquipmentForm(
   });
 }
 
-export function useEquipmentEditForm(
-  equipment?: Equipment | null
-): UseFormReturn<InsertEquipment> {
+export function useEquipmentEditForm(equipment?: Equipment | null): UseFormReturn<InsertEquipment> {
   const { currentOrgId } = useOrganization();
   const form = useForm<InsertEquipment, unknown, InsertEquipment>({
     resolver: zodResolver(insertEquipmentSchema),
@@ -84,11 +82,7 @@ export function useEquipmentEditForm(
         vesselName: equipment.vesselName || "",
         isActive: equipment.isActive,
         purchaseValue: equipment.purchaseValue ?? undefined,
-        purchaseDate: equipment.purchaseDate
-          ? (((typeof equipment.purchaseDate === "string"
-            ? equipment.purchaseDate
-            : new Date(equipment.purchaseDate).toISOString()) as unknown) as Date)
-          : undefined,
+        purchaseDate: equipment.purchaseDate ? new Date(equipment.purchaseDate) : undefined,
         purchaseCurrency: equipment.purchaseCurrency || "USD",
         serviceLifeHours: equipment.serviceLifeHours ?? undefined,
         serviceLifeYears: equipment.serviceLifeYears ?? undefined,

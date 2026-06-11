@@ -17,14 +17,14 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 
 **Bucket totals:**
 
-| Bucket | Occurrences | % | Files |
-|---|---:|---:|---:|
-| External library typing gaps | 0 | 0.0% | 0 |
-| Test mocks / stubs | 0 | 0.0% | 0 |
-| Legacy DTOs (route handlers, request/response shapes) | 0 | 0.0% | 0 |
-| Dynamic JSON payloads | 0 | 0.0% | 0 |
-| Generic inference failures | 0 | 0.0% | 0 |
-| Truly unsafe / untyped logic | 0 | 0.0% | 0 |
+| Bucket                                                | Occurrences |    % | Files |
+| ----------------------------------------------------- | ----------: | ---: | ----: |
+| External library typing gaps                          |           0 | 0.0% |     0 |
+| Test mocks / stubs                                    |           0 | 0.0% |     0 |
+| Legacy DTOs (route handlers, request/response shapes) |           0 | 0.0% |     0 |
+| Dynamic JSON payloads                                 |           0 | 0.0% |     0 |
+| Generic inference failures                            |           0 | 0.0% |     0 |
+| Truly unsafe / untyped logic                          |           0 | 0.0% |     0 |
 
 ## External library typing gaps
 
@@ -80,4 +80,3 @@ Source: `npx eslint . --format json` filtered to `@typescript-eslint/no-explicit
 - **Legacy DTOs** below the route layer is the bucket most likely to motivate branded IDs and discriminated unions for workflow states — the same DTOs are often the ones losing identity-type information across service boundaries.
 - **Truly unsafe / untyped logic** is the smallest bucket but the highest-leverage. Each occurrence should be inspected by hand and either converted into a typed-pattern task (Result/Either, typed domain error hierarchy) or kept under a tracked exception with a comment explaining why no type fits.
 - **Bucket fuzziness.** The classifier prefers path-based rules first (tests/, external-integrations/, adapters/) and then snippet heuristics. Files that look like routes but parse JSON payloads will land in _Dynamic JSON payloads_ rather than _Legacy DTOs_. When triaging follow-ups, re-read the snippet rather than trusting the bucket label blindly.
-

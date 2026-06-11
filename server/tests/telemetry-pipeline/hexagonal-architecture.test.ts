@@ -10,13 +10,15 @@ import type {
 import { IngestTelemetryBatch } from "../../telemetry/application/ingest-batch";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 
+type DlqPayload = { readings: TelemetryBatchReading[]; frameIds: number[] };
+
 describe("Telemetry Hexagonal Architecture", () => {
   let mockPersistence: ITelemetryPersistence;
-  let mockDLQ: IDeadLetterQueue<{ readings: TelemetryBatchReading[]; frameIds: number[] }>;
+  let mockDLQ: IDeadLetterQueue<DlqPayload>;
   let mockMetrics: IMetricsEmitter;
   let processor: BridgeProcessor;
   let idempotencyStore: Set<string>;
-  let dlqEntries: DeadLetterEntry<{ readings: TelemetryBatchReading[]; frameIds: number[] }>[];
+  let dlqEntries: DeadLetterEntry<DlqPayload>[];
 
   beforeEach(() => {
     idempotencyStore = new Set();
@@ -41,9 +43,16 @@ describe("Telemetry Hexagonal Architecture", () => {
 
     mockDLQ = {
       add: jest
-        .fn<(payload: unknown, error: string, source: string) => DeadLetterEntry<unknown>>()
+        .fn<
+          (
+            payload: DlqPayload,
+            error: string,
+            source: string,
+            metadata?: Record<string, unknown>
+          ) => DeadLetterEntry<DlqPayload>
+        >()
         .mockImplementation((payload, error, source) => {
-          const entry: DeadLetterEntry<unknown> = {
+          const entry: DeadLetterEntry<DlqPayload> = {
             id: `dlq-${Date.now()}`,
             payload,
             error,
@@ -55,11 +64,11 @@ describe("Telemetry Hexagonal Architecture", () => {
           return entry;
         }),
       get: jest
-        .fn<(id: string) => DeadLetterEntry<unknown> | undefined>()
+        .fn<(id: string) => DeadLetterEntry<DlqPayload> | undefined>()
         .mockImplementation((id: string) => {
           return dlqEntries.find((e) => e.id === id);
         }),
-      list: jest.fn<() => DeadLetterEntry<unknown>[]>().mockImplementation(() => dlqEntries),
+      list: jest.fn<() => DeadLetterEntry<DlqPayload>[]>().mockImplementation(() => dlqEntries),
       replay: jest
         .fn<(id: string) => Promise<{ success: boolean; entryId: string; error?: string }>>()
         .mockResolvedValue({ success: true, entryId: "test" }),
@@ -255,8 +264,8 @@ describe("Telemetry Hexagonal Architecture", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBeGreaterThan(0);
-      expect(readings[0].metadata?.idempotencyKey).toBeDefined();
-      expect(readings[0].metadata?.idempotencyKey).toContain("raw:");
+      expect(readings[0].metadata?.["idempotencyKey"]).toBeDefined();
+      expect(readings[0].metadata?.["idempotencyKey"]).toContain("raw:");
     });
 
     it("should process J1939 frames correctly", () => {

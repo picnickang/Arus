@@ -93,7 +93,9 @@ export function analyzeAcoustic(
   for (let i = 0; i < frequencies.length; i++) {
     const freq = frequencies[i];
     const energy = magnitudes[i];
-    if (freq === undefined || energy === undefined) {continue;}
+    if (freq === undefined || energy === undefined) {
+      continue;
+    }
     if (freq < 500) {
       frequencyBands.lowFreq += energy;
     } else if (freq < 2000) {

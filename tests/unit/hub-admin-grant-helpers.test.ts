@@ -26,7 +26,14 @@ describe("isSuperAdminRole", () => {
   });
 
   it("is false for grant-eligible-but-not-super roles (incl. demoted admin)", () => {
-    for (const role of ["admin", "fleet_manager", "captain", "chief_engineer", "manager", "vessel_master"]) {
+    for (const role of [
+      "admin",
+      "fleet_manager",
+      "captain",
+      "chief_engineer",
+      "manager",
+      "vessel_master",
+    ]) {
       expect(isSuperAdminRole(role)).toBe(false);
     }
   });
@@ -153,9 +160,7 @@ describe("resolveHubAccess", () => {
   });
 
   it("non-admin allow-list with unknown ids is cleaned", () => {
-    expect(resolveHubAccess(["fleet_manager"], ["maintenance", "bogus"])).toEqual([
-      "maintenance",
-    ]);
+    expect(resolveHubAccess(["fleet_manager"], ["maintenance", "bogus"])).toEqual(["maintenance"]);
   });
 
   it("non-admin full allow-list collapses to null (= all hubs)", () => {

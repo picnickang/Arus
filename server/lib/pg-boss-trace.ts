@@ -23,14 +23,16 @@ export interface TraceCarrier {
 export function injectTraceContext<T extends object>(data: T): T & TraceCarrier {
   const carrier: Record<string, string> = {};
   propagation.inject(context.active(), carrier);
-  if (Object.keys(carrier).length === 0) {return data as T & TraceCarrier;}
+  if (Object.keys(carrier).length === 0) {
+    return data as T & TraceCarrier;
+  }
   return { ...data, [CARRIER_KEY]: carrier } as T & TraceCarrier;
 }
 
 export async function withTraceContext<T>(
   data: TraceCarrier | undefined | null,
   spanName: string,
-  fn: (span: Span) => Promise<T> | T,
+  fn: (span: Span) => Promise<T> | T
 ): Promise<T> {
   const carrier = data?.[CARRIER_KEY];
   const parent = carrier ? propagation.extract(context.active(), carrier) : context.active();
@@ -45,6 +47,6 @@ export async function withTraceContext<T>(
       } finally {
         span.end();
       }
-    }),
+    })
   );
 }

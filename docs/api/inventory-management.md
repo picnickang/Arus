@@ -19,6 +19,7 @@ Find approved substitutes for unavailable or critical parts.
 **Endpoint**: `GET /api/inventory/substitutions/:partNo`
 
 **Parameters**:
+
 - `partNo` (path, required): Part number to find substitutes for
 
 **Response**: Array of substitute parts with availability and pricing
@@ -31,7 +32,7 @@ Find approved substitutes for unavailable or critical parts.
     "substitutionType": "equivalent",
     "stockStatus": "critical",
     "quantityAvailable": 2,
-    "priceDifference": 50.00,
+    "priceDifference": 50.0,
     "priceImpact": "higher",
     "primarySupplier": {
       "id": "uuid",
@@ -43,6 +44,7 @@ Find approved substitutes for unavailable or critical parts.
 ```
 
 **Use Cases**:
+
 - Emergency part replacement during vessel downtime
 - Cost optimization by finding cheaper equivalents
 - Supply chain risk mitigation
@@ -56,6 +58,7 @@ Calculate optimal order quantities and reorder points using Economic Order Quant
 **Endpoint**: `POST /api/inventory/optimize`
 
 **Request Body**:
+
 ```json
 {
   "partNumbers": ["PUMP-100", "FILTER-500"],
@@ -81,6 +84,7 @@ Calculate optimal order quantities and reorder points using Economic Order Quant
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -90,13 +94,14 @@ Calculate optimal order quantities and reorder points using Economic Order Quant
     "economicOrderQuantity": 4,
     "reorderPoint": 2,
     "recommendation": "increase",
-    "potentialSavings": 64.00,
+    "potentialSavings": 64.0,
     "rationale": "Current stock below optimal level"
   }
 ]
 ```
 
 **EOQ Calculation**:
+
 ```
 EOQ = √((2 × Annual Demand × Ordering Cost) / Holding Cost)
 ROP = (Average Daily Usage × Lead Time) + Safety Stock
@@ -111,6 +116,7 @@ Evaluate suppliers based on delivery performance, quality, and reliability.
 **Endpoint**: `POST /api/inventory/suppliers/performance`
 
 **Request Body**:
+
 ```json
 {
   "supplierIds": ["uuid1", "uuid2"],
@@ -130,6 +136,7 @@ Evaluate suppliers based on delivery performance, quality, and reliability.
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -146,6 +153,7 @@ Evaluate suppliers based on delivery performance, quality, and reliability.
 ```
 
 **Performance Score Calculation**:
+
 ```
 Score = (On-Time Rate × 0.4) + (Quality Rate × 0.4) + (Lead Time Score × 0.2)
 ```
@@ -159,6 +167,7 @@ Batch check stock availability for multiple parts.
 **Endpoint**: `POST /api/parts/availability`
 
 **Request Body**:
+
 ```json
 {
   "partNumbers": ["PUMP-100", "FILTER-500", "BEARING-200"]
@@ -166,6 +175,7 @@ Batch check stock availability for multiple parts.
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -193,6 +203,7 @@ Calculate total costs for maintenance jobs including substitution opportunities.
 **Endpoint**: `POST /api/inventory/cost-planning`
 
 **Request Body**:
+
 ```json
 {
   "jobs": [
@@ -210,21 +221,22 @@ Calculate total costs for maintenance jobs including substitution opportunities.
 ```
 
 **Response**:
+
 ```json
 [
   {
     "jobId": "JOB-001",
-    "totalCost": 1250.00,
-    "partsCost": 850.00,
-    "laborCost": 400.00,
+    "totalCost": 1250.0,
+    "partsCost": 850.0,
+    "laborCost": 400.0,
     "breakdown": [
       {
         "partNo": "PUMP-100",
         "quantity": 2,
-        "unitCost": 200.00,
-        "subtotal": 400.00,
+        "unitCost": 200.0,
+        "subtotal": 400.0,
         "substituteAvailable": true,
-        "substituteSavings": 100.00
+        "substituteSavings": 100.0
       }
     ]
   }
@@ -248,6 +260,7 @@ All endpoints return consistent error responses:
 ```
 
 **Common Error Codes**:
+
 - `VALIDATION_ERROR` (400): Invalid request data
 - `NOT_FOUND` (404): Resource not found
 - `INTERNAL_ERROR` (500): Server error
@@ -260,6 +273,7 @@ All endpoints return consistent error responses:
 - **Burst Limit**: 20 requests per second
 
 Headers returned:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -271,11 +285,13 @@ X-RateLimit-Reset: 1699564800
 ## Performance Considerations
 
 **Caching**:
+
 - Part substitutions: 15-minute cache TTL
 - Supplier data: 5-minute cache TTL
 - Inventory levels: Real-time (no cache)
 
 **Batch Limits**:
+
 - Parts availability: Max 100 parts per request
 - Optimization: Max 50 parts per request
 - Supplier evaluation: Max 20 suppliers per request
@@ -328,6 +344,7 @@ curl -X POST \
 ## Changelog
 
 ### Version 1.0.0 (2025-11-06)
+
 - Initial release with 5 core endpoints
 - EOQ-based inventory optimization
 - Multi-supplier performance evaluation
@@ -340,6 +357,7 @@ curl -X POST \
 ## Support
 
 For API issues or feature requests:
+
 - GitHub Issues: https://github.com/your-org/arus/issues
 - Email: api-support@arus.com
 - Documentation: https://docs.arus.com/api

@@ -26,12 +26,10 @@ describe("task-source parity", () => {
   it("sanitizeTaskSources strips unimplemented sources and preserves canonical order", () => {
     const all = [...TASK_SOURCES] as TaskSourceKey[];
     expect(sanitizeTaskSources(all)).toEqual([...IMPLEMENTED_TASK_SOURCES]);
-    expect(
-      sanitizeTaskSources(["insights", "purchase_requests"] as TaskSourceKey[]),
-    ).toEqual([]);
-    expect(
-      sanitizeTaskSources(["work_orders", "insights"] as TaskSourceKey[]),
-    ).toEqual(["work_orders"]);
+    expect(sanitizeTaskSources(["insights", "purchase_requests"] as TaskSourceKey[])).toEqual([]);
+    expect(sanitizeTaskSources(["work_orders", "insights"] as TaskSourceKey[])).toEqual([
+      "work_orders",
+    ]);
   });
 
   it("the config schema parse strips sources without a serving adapter", () => {

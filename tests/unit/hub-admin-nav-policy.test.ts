@@ -81,9 +81,7 @@ describe("filterCategoriesByHubAccess", () => {
   });
 
   it("an allow-list of unknown ids yields no categories (fail-closed)", () => {
-    expect(
-      filterCategoriesByHubAccess(adminCategories, ["definitely-not-a-hub"]),
-    ).toHaveLength(0);
+    expect(filterCategoriesByHubAccess(adminCategories, ["definitely-not-a-hub"])).toHaveLength(0);
   });
 
   it("an empty allow-list yields no categories", () => {

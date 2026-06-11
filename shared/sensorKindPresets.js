@@ -9,8 +9,8 @@ const SENSOR_KIND_PRESETS = {
       band_low_hz: 10,
       band_high_hz: 1e3,
       sample_rate_hz: 100,
-      ema_alpha: 0.1
-    }
+      ema_alpha: 0.1,
+    },
   },
   pressure: {
     label: "Pressure",
@@ -22,8 +22,8 @@ const SENSOR_KIND_PRESETS = {
       crit_low: 1,
       crit_high: 10,
       sample_rate_sec: 10,
-      hysteresis: 0.2
-    }
+      hysteresis: 0.2,
+    },
   },
   temperature: {
     label: "Temperature",
@@ -34,8 +34,8 @@ const SENSOR_KIND_PRESETS = {
       crit_high: 95,
       sample_rate_sec: 30,
       thermal_inertia_sec: 120,
-      hysteresis: 2
-    }
+      hysteresis: 2,
+    },
   },
   flow: {
     label: "Flow",
@@ -47,8 +47,8 @@ const SENSOR_KIND_PRESETS = {
       crit_low: 25,
       crit_high: 250,
       sample_rate_sec: 30,
-      hysteresis: 5
-    }
+      hysteresis: 5,
+    },
   },
   level: {
     label: "Level",
@@ -60,8 +60,8 @@ const SENSOR_KIND_PRESETS = {
       warn_high: 80,
       crit_high: 90,
       sample_rate_sec: 60,
-      hysteresis: 2
-    }
+      hysteresis: 2,
+    },
   },
   voltage: {
     label: "Voltage",
@@ -73,8 +73,8 @@ const SENSOR_KIND_PRESETS = {
       warn_high: 430,
       crit_high: 440,
       sample_rate_sec: 10,
-      hysteresis: 5
-    }
+      hysteresis: 5,
+    },
   },
   current: {
     label: "Current",
@@ -87,8 +87,8 @@ const SENSOR_KIND_PRESETS = {
       imbalance_pct: 10,
       // Phase imbalance warning threshold
       sample_rate_sec: 10,
-      hysteresis: 0.05
-    }
+      hysteresis: 0.05,
+    },
   },
   frequency: {
     label: "Frequency",
@@ -99,8 +99,8 @@ const SENSOR_KIND_PRESETS = {
       tolerance: 0.5,
       warn_deviation: 1,
       crit_deviation: 2,
-      sample_rate_sec: 5
-    }
+      sample_rate_sec: 5,
+    },
   },
   rpm: {
     label: "RPM",
@@ -113,8 +113,8 @@ const SENSOR_KIND_PRESETS = {
       crit_low: 1600,
       crit_high: 2e3,
       sample_rate_sec: 5,
-      hysteresis: 50
-    }
+      hysteresis: 50,
+    },
   },
   oil_debris: {
     label: "Oil Debris",
@@ -128,8 +128,8 @@ const SENSOR_KIND_PRESETS = {
       sample_interval_min: 10,
       // Slow sampling for oil analysis
       iso_4406_warn: 19,
-      iso_4406_crit: 21
-    }
+      iso_4406_crit: 21,
+    },
   },
   acoustic: {
     label: "Acoustic",
@@ -141,8 +141,8 @@ const SENSOR_KIND_PRESETS = {
       band_low_hz: 1e3,
       band_high_hz: 1e4,
       sample_rate_hz: 100,
-      ema_alpha: 0.1
-    }
+      ema_alpha: 0.1,
+    },
   },
   position: {
     label: "Position",
@@ -152,9 +152,9 @@ const SENSOR_KIND_PRESETS = {
       warn_deviation: 2,
       crit_deviation: 5,
       sample_rate_sec: 5,
-      hysteresis: 0.5
-    }
-  }
+      hysteresis: 0.5,
+    },
+  },
 };
 function getAllSensorKinds() {
   return Object.keys(SENSOR_KIND_PRESETS);
@@ -178,5 +178,5 @@ export {
   getDefaultFields,
   getDefaultUnit,
   getPresetForKind,
-  isValidSensorKind
+  isValidSensorKind,
 };

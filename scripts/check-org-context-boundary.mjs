@@ -11,10 +11,7 @@ import { join, relative } from "node:path";
 
 const root = process.cwd();
 const serverDir = join(root, "server");
-const allowed = new Set([
-  "server/orgIdValidation.ts",
-  "server/utils/orgIdValidation.ts",
-]);
+const allowed = new Set(["server/orgIdValidation.ts", "server/utils/orgIdValidation.ts"]);
 
 const forbiddenPatterns = [
   /req\.headers\[['"]x-org-id['"]\]/,

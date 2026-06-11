@@ -89,12 +89,10 @@ router.get("/audit", requireComplianceAccess, async (req: Request, res: Response
     });
   } catch (error) {
     logger.error("[Compliance] Audit query error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to query audit trail",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to query audit trail",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -126,24 +124,20 @@ router.post("/audit", requireComplianceAccess, async (req: Request, res: Respons
           : undefined,
       },
     } as object as Parameters<typeof auditService.logEvent>[0]);
-    return res
-      .status(201)
-      .json({
-        success: true,
-        data: {
-          id: event.id,
-          hash: event.hash,
-          timestamp: (event as { timestamp?: Date }).timestamp,
-        },
-      });
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: event.id,
+        hash: event.hash,
+        timestamp: (event as { timestamp?: Date }).timestamp,
+      },
+    });
   } catch (error) {
     logger.error("[Compliance] Log event error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to log audit event",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to log audit event",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -162,12 +156,10 @@ router.post("/audit/verify", requireComplianceAccess, async (req: Request, res: 
     return res.json({ success: true, data: result });
   } catch (error) {
     logger.error("[Compliance] Chain verification error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to verify audit chain",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to verify audit chain",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -186,12 +178,10 @@ router.get("/audit/stats", requireComplianceAccess, async (req: Request, res: Re
     return res.json({ success: true, data: stats });
   } catch (error) {
     logger.error("[Compliance] Stats error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to get audit statistics",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to get audit statistics",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -223,12 +213,10 @@ router.get(
       });
     } catch (error) {
       logger.error("[Compliance] Entity audit query error:", undefined, error);
-      return res
-        .status(500)
-        .json({
-          error: "Failed to query entity audit history",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
+      return res.status(500).json({
+        error: "Failed to query entity audit history",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 );
@@ -309,12 +297,10 @@ router.get("/reports/ism", requireComplianceAccess, async (req: Request, res: Re
     });
   } catch (error) {
     logger.error("[Compliance] ISM report error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to generate ISM compliance report",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to generate ISM compliance report",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -387,12 +373,10 @@ router.get("/reports/cyber", requireComplianceAccess, async (req: Request, res: 
     });
   } catch (error) {
     logger.error("[Compliance] Cyber report error:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to generate cybersecurity compliance report",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      error: "Failed to generate cybersecurity compliance report",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 

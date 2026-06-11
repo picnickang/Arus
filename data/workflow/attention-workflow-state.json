@@ -116,9 +116,7 @@
       "note": "smoke handover",
       "watchLabel": "00:00 / 04:00",
       "generatedSummary": "All quiet",
-      "itemIds": [
-        "alerts-unacknowledged"
-      ],
+      "itemIds": ["alerts-unacknowledged"],
       "authorId": "dev-admin-user",
       "status": "draft",
       "savedAt": "2026-04-27T07:33:16.777Z"

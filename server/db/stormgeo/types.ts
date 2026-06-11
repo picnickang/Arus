@@ -2,10 +2,7 @@
  * StormGeo - Types
  */
 
-import type {
-  weatherCache,
-  stormgeoSettings,
-} from "@shared/schema-runtime";
+import type { weatherCache, stormgeoSettings } from "@shared/schema-runtime";
 
 export type StormgeoSetting = typeof stormgeoSettings.$inferSelect;
 export type InsertStormgeoSetting = typeof stormgeoSettings.$inferInsert;

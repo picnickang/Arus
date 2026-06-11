@@ -169,9 +169,7 @@ export interface IMaintenanceStorage {
       notes?: string;
     }>
   ): Promise<MaintenanceChecklistCompletion[]>;
-  getChecklistCompletionProgress(
-    workOrderId: string
-  ): Promise<{
+  getChecklistCompletionProgress(workOrderId: string): Promise<{
     totalItems: number;
     completedItems: number;
     pendingItems: number;

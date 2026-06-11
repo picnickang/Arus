@@ -13,14 +13,14 @@ The default role templates (`server/config/default-role-templates.ts`) grant the
 `predictive_maintenance` resource (`view`, `manage_config`, `override`) to the
 admin-capable roles:
 
-| Role | `view` | `manage_config` | `override` |
-|---|---|---|---|
-| `super_admin` | ✅ | ✅ | ✅ |
-| `admin` | ✅ | ✅ | ✅ |
-| `company_admin` | ✅ | ✅ | ✅ |
-| `chief_engineer` | ✅ | ✅ | — |
-| `captain` | ✅ | — | ✅ |
-| `chief_officer` | ✅ | — | — |
+| Role             | `view` | `manage_config` | `override` |
+| ---------------- | ------ | --------------- | ---------- |
+| `super_admin`    | ✅     | ✅              | ✅         |
+| `admin`          | ✅     | ✅              | ✅         |
+| `company_admin`  | ✅     | ✅              | ✅         |
+| `chief_engineer` | ✅     | ✅              | —          |
+| `captain`        | ✅     | —               | ✅         |
+| `chief_officer`  | ✅     | —               | —          |
 
 The PdM lifecycle routes (model deploy/archive/promote/rollback) were converted
 from hardcoded role-name checks to the permission grant
@@ -28,9 +28,9 @@ from hardcoded role-name checks to the permission grant
 gates the same surface on the `predictive_maintenance` resource. Both sides now
 agree.
 
-**The gap:** `provisionTemplatesForOrg()` only *creates missing roles* — it
+**The gap:** `provisionTemplatesForOrg()` only _creates missing roles_ — it
 **never adds grants to roles that already exist**. Any organization seeded
-*before* `predictive_maintenance` was added to those templates still has
+_before_ `predictive_maintenance` was added to those templates still has
 admin/super_admin roles **without** the grant. Those admins are silently blocked
 from PdM lifecycle actions even though the current template says they should have
 them. There is no admin wildcard bypass in the permission service, so the only
@@ -70,15 +70,18 @@ never grant more than the template already defines (e.g. `chief_engineer` gets
 The script defaults to a **dry-run** (no writes). Follow these steps in order.
 
 **1. Dry-run command.**
+
 ```bash
 npx tsx server/scripts/backfill-pdm-permissions.ts
 ```
+
 > No `package.json` script was added (per project policy of not editing
 > `package.json` without sign-off). If you want a named script later, add
 > `"backfill:pdm": "tsx server/scripts/backfill-pdm-permissions.ts"`.
 
 **2. Expected output.** A per-org plan, ending with a "Would grant N" summary.
 Nothing is written.
+
 ```
 [backfill-pdm] mode=DRY-RUN | organizations=2
 [backfill-pdm] No writes will be made. Re-run with --apply to write.
@@ -97,9 +100,11 @@ each listed role is one of the four admin-capable roles (`super_admin`, `admin`,
 does not exist in that org — nothing is created.
 
 **4. Apply command.**
+
 ```bash
 npx tsx server/scripts/backfill-pdm-permissions.ts --apply
 ```
+
 The output mirrors the dry-run but reads `granted` instead of `would grant`.
 
 **5. Confirm inserted grants.** Re-run the **dry-run** (step 1): every org that
@@ -112,6 +117,7 @@ WHERE resource_code = 'predictive_maintenance';`)
 (check-then-write), and the planner only ever lists grants with **no row at
 all** — so a second `--apply` is a no-op. Verify there is at most one row per
 `(role_id, resource_code, action_code)`:
+
 ```sql
 SELECT role_id, action_code, COUNT(*)
 FROM permission_grants
@@ -137,10 +143,12 @@ waiting for the cache TTL.
 grants — it never deletes or revokes. To undo, revoke the specific grants you
 added (set `is_granted = false`, which the backfill will then respect as a
 deliberate revocation), e.g.:
+
 ```sql
 UPDATE permission_grants SET is_granted = false
 WHERE resource_code = 'predictive_maintenance' AND role_id = '<role-id>';
 ```
+
 Then refresh the cache (step 8). Because each apply is reported, you have an exact
 list of what was added to scope the rollback.
 
@@ -148,16 +156,16 @@ list of what was added to scope the rollback.
 
 ## 3a. Required permission behavior (verified)
 
-| Persona / role | Outcome of backfill |
-|---|---|
-| `super_admin` | Retains full PdM access (template: view + manage_config + override). |
-| `admin` | Receives only the template defaults (view + manage_config + override) — nothing more. |
-| `company_admin` | Receives intended PdM access (view + manage_config + override). |
-| `chief_engineer` | Receives view + manage_config (no `override`, matching template). |
-| Normal users (technician, crew_member, deck_officer, …) | **Never touched** — not in `PDM_BACKFILL_ROLE_NAMES`, so no PdM lifecycle grants. |
-| Viewer / Auditor | **Never touched** — receives no mutation permissions. |
-| Existing orgs | Safely handled — only missing grants are inserted; up-to-date orgs are no-ops. |
-| Re-run | Idempotent — a second apply grants nothing. |
+| Persona / role                                          | Outcome of backfill                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `super_admin`                                           | Retains full PdM access (template: view + manage_config + override).                  |
+| `admin`                                                 | Receives only the template defaults (view + manage_config + override) — nothing more. |
+| `company_admin`                                         | Receives intended PdM access (view + manage_config + override).                       |
+| `chief_engineer`                                        | Receives view + manage_config (no `override`, matching template).                     |
+| Normal users (technician, crew_member, deck_officer, …) | **Never touched** — not in `PDM_BACKFILL_ROLE_NAMES`, so no PdM lifecycle grants.     |
+| Viewer / Auditor                                        | **Never touched** — receives no mutation permissions.                                 |
+| Existing orgs                                           | Safely handled — only missing grants are inserted; up-to-date orgs are no-ops.        |
+| Re-run                                                  | Idempotent — a second apply grants nothing.                                           |
 
 These properties are enforced in the db-free planner
 (`server/domains/permissions/pdm-backfill-planner.ts`) and pinned by tests
@@ -177,15 +185,15 @@ npx jest tests/unit/pdm-backfill-planner.test.ts --forceExit
 
 Coverage (`tests/unit/pdm-backfill-planner.test.ts`):
 
-| Property | Test |
-|---|---|
-| Dry-run plan | lists missing grants, `applied=false` |
-| Apply | `applied=true` on every result |
-| Idempotency | all grants present → empty plan (no-op) |
-| No duplicate grants | an already-granted row is never re-added |
-| No re-enabling revocations | `is_granted=false` row → `skippedRevoked`, never added |
-| Missing org role | `roleId=null`, nothing added |
-| Scope | only the four admin roles and only `predictive_maintenance` |
+| Property                   | Test                                                        |
+| -------------------------- | ----------------------------------------------------------- |
+| Dry-run plan               | lists missing grants, `applied=false`                       |
+| Apply                      | `applied=true` on every result                              |
+| Idempotency                | all grants present → empty plan (no-op)                     |
+| No duplicate grants        | an already-granted row is never re-added                    |
+| No re-enabling revocations | `is_granted=false` row → `skippedRevoked`, never added      |
+| Missing org role           | `roleId=null`, nothing added                                |
+| Scope                      | only the four admin roles and only `predictive_maintenance` |
 
 > The end-to-end DB path (`backfillPdmTemplateGrantsForOrg`) is exercised against
 > a real database in CI / staging via the dry-run command above — it cannot run

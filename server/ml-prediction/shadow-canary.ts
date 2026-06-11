@@ -79,7 +79,9 @@ const DEFAULT_THRESHOLD = 0.25;
  * Errors in the candidate path NEVER propagate — shadow / canary is a
  * background experiment and must not regress production.
  */
-export async function serveWithShadowOrCanary<T>(opts: ShadowCanaryOptions<T>): Promise<ShadowCanaryResult<T>> {
+export async function serveWithShadowOrCanary<T>(
+  opts: ShadowCanaryOptions<T>
+): Promise<ShadowCanaryResult<T>> {
   const {
     productionModelId,
     candidateModelId,
@@ -162,7 +164,11 @@ export async function serveWithShadowOrCanary<T>(opts: ShadowCanaryOptions<T>): 
         return { result: production, servedBy: "production", candidateRan: true, divergence: div };
       }
     }
-    return { result: production, servedBy: "production", candidateRan: candRes.status === "fulfilled" };
+    return {
+      result: production,
+      servedBy: "production",
+      candidateRan: candRes.status === "fulfilled",
+    };
   }
 
   // PURE PRODUCTION — no candidate configured.

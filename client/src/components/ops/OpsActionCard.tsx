@@ -29,10 +29,7 @@ export function OpsActionCard({
   testId,
 }: OpsActionCardProps) {
   return (
-    <Card
-      className={cn("ops-card", className)}
-      data-testid={testId ?? "ops-action-card"}
-    >
+    <Card className={cn("ops-card", className)} data-testid={testId ?? "ops-action-card"}>
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -50,12 +47,10 @@ export function OpsActionCard({
               ) : null}
             </div>
           </div>
-          {confidenceLabel ? (
-            <OpsStatusPill label={confidenceLabel} severity={severity} />
-          ) : null}
+          {confidenceLabel ? <OpsStatusPill label={confidenceLabel} severity={severity} /> : null}
         </div>
         {meta ? <div className="text-xs text-muted-foreground">{meta}</div> : null}
-        {(primaryAction || secondaryAction) ? (
+        {primaryAction || secondaryAction ? (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {primaryAction}
             {secondaryAction}

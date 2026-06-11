@@ -7,11 +7,11 @@ between them at runtime.
 
 ## Entry points — which import to use
 
-| You are writing…                       | Import from                                  |
-| -------------------------------------- | -------------------------------------------- |
+| You are writing…                       | Import from                                                   |
+| -------------------------------------- | ------------------------------------------------------------- |
 | Server runtime code (queries, inserts) | `@shared/schema-runtime` (enforced by `check:schema-imports`) |
-| Types, zod insert schemas, validation  | `@shared/schema`                             |
-| Schema definition files themselves     | sibling modules (`./core`, `./base`, …)      |
+| Types, zod insert schemas, validation  | `@shared/schema`                                              |
+| Schema definition files themselves     | sibling modules (`./core`, `./base`, …)                       |
 
 Direct imports of `@shared/schema/<module>` from app code are
 discouraged — they bypass the dual-DB mode switch.

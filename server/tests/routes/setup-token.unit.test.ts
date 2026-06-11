@@ -8,16 +8,19 @@ import { verifySetupToken } from "../../routes/setup-token";
  * route-level token check regresses.
  */
 describe("verifySetupToken — constant-time digest compare (P2 #2)", () => {
-  const ORIGINAL = process.env['SETUP_TOKEN'];
+  const ORIGINAL = process.env["SETUP_TOKEN"];
   const VALID = "correct-horse-battery-staple-32chars!!";
 
   beforeEach(() => {
-    process.env['SETUP_TOKEN'] = VALID;
+    process.env["SETUP_TOKEN"] = VALID;
   });
 
   afterEach(() => {
-    if (ORIGINAL === undefined) {delete process.env['SETUP_TOKEN'];}
-    else {process.env['SETUP_TOKEN'] = ORIGINAL;}
+    if (ORIGINAL === undefined) {
+      delete process.env["SETUP_TOKEN"];
+    } else {
+      process.env["SETUP_TOKEN"] = ORIGINAL;
+    }
   });
 
   it("returns true when token matches exactly", () => {
@@ -36,7 +39,7 @@ describe("verifySetupToken — constant-time digest compare (P2 #2)", () => {
   });
 
   it("returns false when token is longer than configured (no throw)", () => {
-    const longer = `${VALID  }EXTRA-SUFFIX-PADDING`;
+    const longer = `${VALID}EXTRA-SUFFIX-PADDING`;
     expect(() => verifySetupToken(VALID, longer)).not.toThrow();
     expect(verifySetupToken(VALID, longer)).toBe(false);
   });

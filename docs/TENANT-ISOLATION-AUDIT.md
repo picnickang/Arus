@@ -1,4 +1,5 @@
 # Tenant Isolation Security Audit
+
 **Date**: October 27, 2025  
 **Status**: Phase 0 - Discovery  
 **Severity**: CRITICAL
@@ -8,12 +9,13 @@
 Comprehensive audit of multi-tenant security issues in ARUS platform. Identified **476+ instances** requiring remediation across 17 files.
 
 ### Risk Summary
-| Issue Type | Count | Severity | Files Affected |
-|------------|-------|----------|----------------|
-| Hard-coded `default-org-id` | 17 files | 🔴 CRITICAL | Core services |
-| `getOrgIdFromRequest()` calls | 145 uses | 🟠 HIGH | Route handlers |
-| Optional `orgId` parameters | 314 instances | 🟠 HIGH | Storage layer |
-| **TOTAL REMEDIATION NEEDED** | **476+** | 🔴 CRITICAL | - |
+
+| Issue Type                    | Count         | Severity    | Files Affected |
+| ----------------------------- | ------------- | ----------- | -------------- |
+| Hard-coded `default-org-id`   | 17 files      | 🔴 CRITICAL | Core services  |
+| `getOrgIdFromRequest()` calls | 145 uses      | 🟠 HIGH     | Route handlers |
+| Optional `orgId` parameters   | 314 instances | 🟠 HIGH     | Storage layer  |
+| **TOTAL REMEDIATION NEEDED**  | **476+**      | 🔴 CRITICAL | -              |
 
 ## Critical Findings
 
@@ -23,7 +25,7 @@ Files with `default-org-id` hard-coding:
 
 ```
 server/index.ts
-server/storage.ts  
+server/storage.ts
 server/routes.ts
 server/insights-scheduler.ts
 server/services/config-manager.ts
@@ -43,7 +45,8 @@ server/ml-training-data.ts
 
 **Risk**: Direct tenant bypass - services can access any organization's data by using hard-coded default.
 
-**Impact**: 
+**Impact**:
+
 - GDPR violation potential
 - SOC 2 compliance failure
 - Cross-tenant data leakage
@@ -51,12 +54,14 @@ server/ml-training-data.ts
 ### 2. Helper Function Proliferation (145 uses)
 
 `getOrgIdFromRequest()` usage:
+
 - `server/routes.ts`: 138 instances
 - `server/domains/vessels/routes.ts`: 7 instances
 
 **Risk**: Scattered tenant validation logic, inconsistent enforcement, easy to forget.
 
 **Pattern Example**:
+
 ```typescript
 // CURRENT (UNSAFE):
 const orgId = getOrgIdFromRequest(req); // Returns default if missing
@@ -74,6 +79,7 @@ Storage interface has 314 methods with optional `orgId?` parameters.
 **Risk**: Methods can be called without org context, leading to unscoped queries.
 
 **Example Issues**:
+
 ```typescript
 // UNSAFE: Optional orgId allows bypass
 interface IStorage {
@@ -84,7 +90,7 @@ interface IStorage {
 // SAFE: Mandatory tenant context
 class TenantScopedRepository {
   constructor(private readonly orgId: string) {} // Immutable
-  
+
   async getEquipment(): Promise<Equipment[]> {
     // orgId ALWAYS available and enforced
     return db.select().from(equipment).where(eq(equipment.orgId, this.orgId));
@@ -144,6 +150,7 @@ These domains handle sensitive customer data and require immediate remediation:
 ## Implementation Strategy
 
 ### Phase 0: Readiness (Current)
+
 - [x] Complete security audit
 - [ ] Design `TenantScopedRepository` base class
 - [ ] Create repository factory pattern
@@ -151,6 +158,7 @@ These domains handle sensitive customer data and require immediate remediation:
 - [ ] Set up metrics and monitoring
 
 ### Phase 1: Foundation (Week 1-2)
+
 - [ ] Implement `TenantScopedRepository` base class
 - [ ] Create `TenantRepositoryFactory` with org context injection
 - [ ] Strengthen `validateOrgIdHeader` middleware
@@ -158,6 +166,7 @@ These domains handle sensitive customer data and require immediate remediation:
 - [ ] Establish rollback procedures
 
 ### Phase 2: Domain Migration (Week 3-6)
+
 - [ ] Migrate Equipment domain (dual-write pattern)
 - [ ] Migrate Work Orders domain
 - [ ] Migrate Telemetry domain
@@ -165,6 +174,7 @@ These domains handle sensitive customer data and require immediate remediation:
 - [ ] Continuous validation and monitoring
 
 ### Phase 3: Cleanup & Hardening (Week 7-8)
+
 - [ ] Remove all hard-coded `default-org-id`
 - [ ] Eliminate `getOrgIdFromRequest()` helper
 - [ ] Make all storage orgId parameters mandatory
@@ -174,18 +184,21 @@ These domains handle sensitive customer data and require immediate remediation:
 ## Success Criteria
 
 ### Phase 1 Success
+
 - ✅ Zero hard-coded org IDs in new code
 - ✅ Repository factory covers 3+ domains
 - ✅ 100% contract test coverage for migrated domains
 - ✅ Rollback tested and documented
 
 ### Phase 2 Success
+
 - ✅ 80%+ of high-risk domains migrated
 - ✅ Zero cross-tenant data leakage incidents
 - ✅ Performance metrics within 5% baseline
 - ✅ All feature flags tested
 
 ### Phase 3 Success
+
 - ✅ 100% tenant-scoped repository adoption
 - ✅ Zero optional orgId parameters
 - ✅ CI blocks tenant isolation violations
@@ -194,16 +207,19 @@ These domains handle sensitive customer data and require immediate remediation:
 ## Risk Mitigation
 
 ### Backward Compatibility
+
 - Use **dual-write adapters** during migration
 - Feature flags for gradual rollout
 - Shadow mode for testing before cutover
 
 ### Performance Impact
+
 - Benchmark before/after migration
 - Monitor query performance
 - Cache org context where appropriate
 
 ### Production Safety
+
 - Canary deployments per domain
 - Automated rollback triggers
 - Real-time monitoring dashboards

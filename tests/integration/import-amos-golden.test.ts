@@ -33,11 +33,11 @@ describe("AMOS import — golden fixtures", () => {
     const { amosImportService } = await import(
       "../../server/import-adapters/amos/import-service.js"
     );
-    const result = await amosImportService.importFile(
-      `amos-test-${randomUUID()}`,
-      VALID,
-      { type: "equipment", filename: "amos-equipment-valid.csv", dryRun: true },
-    );
+    const result = await amosImportService.importFile(`amos-test-${randomUUID()}`, VALID, {
+      type: "equipment",
+      filename: "amos-equipment-valid.csv",
+      dryRun: true,
+    });
 
     expect(result.totalRows).toBe(5);
     expect(result.imported).toBe(5);
@@ -49,11 +49,11 @@ describe("AMOS import — golden fixtures", () => {
     const { amosImportService } = await import(
       "../../server/import-adapters/amos/import-service.js"
     );
-    const result = await amosImportService.importFile(
-      `amos-test-${randomUUID()}`,
-      MALFORMED,
-      { type: "equipment", filename: "amos-equipment-malformed.csv", dryRun: true },
-    );
+    const result = await amosImportService.importFile(`amos-test-${randomUUID()}`, MALFORMED, {
+      type: "equipment",
+      filename: "amos-equipment-malformed.csv",
+      dryRun: true,
+    });
 
     // 4 rows, 3 broken (missing EQUIPMENT_NO or DESCRIPTION) + 1 valid.
     expect(result.totalRows).toBe(4);
@@ -68,42 +68,38 @@ describe("AMOS import — golden fixtures", () => {
     }
   }, 30_000);
 
-  it(
-    "re-importing the same fixture is idempotent (upsert, not duplicate)",
-    async () => {
-      // Real DB writes — use a tenant id that no real tenant uses, and
-      // tear the data down at the end so we never leak.
-      const orgId = `amos-idem-${randomUUID()}`;
-      const { amosImportService } = await import(
-        "../../server/import-adapters/amos/import-service.js"
-      );
-      const { db } = await import("../../server/db.js");
-      const { equipment } = await import("../../shared/schema.js");
-      const { eq } = await import("drizzle-orm");
+  it("re-importing the same fixture is idempotent (upsert, not duplicate)", async () => {
+    // Real DB writes — use a tenant id that no real tenant uses, and
+    // tear the data down at the end so we never leak.
+    const orgId = `amos-idem-${randomUUID()}`;
+    const { amosImportService } = await import(
+      "../../server/import-adapters/amos/import-service.js"
+    );
+    const { db } = await import("../../server/db.js");
+    const { equipment } = await import("../../shared/schema.js");
+    const { eq } = await import("drizzle-orm");
 
-      try {
-        const first = await amosImportService.importFile(orgId, VALID, {
-          type: "equipment",
-          filename: "amos-equipment-valid.csv",
-          dryRun: false,
-        });
-        expect(first.errors).toHaveLength(0);
-        expect(first.imported + first.updated).toBe(5);
+    try {
+      const first = await amosImportService.importFile(orgId, VALID, {
+        type: "equipment",
+        filename: "amos-equipment-valid.csv",
+        dryRun: false,
+      });
+      expect(first.errors).toHaveLength(0);
+      expect(first.imported + first.updated).toBe(5);
 
-        const second = await amosImportService.importFile(orgId, VALID, {
-          type: "equipment",
-          filename: "amos-equipment-valid.csv",
-          dryRun: false,
-        });
-        expect(second.errors).toHaveLength(0);
-        // The second pass must NOT insert again — every row should be
-        // a no-op update against the same primary key.
-        expect(second.imported).toBe(0);
-        expect(second.updated).toBe(5);
-      } finally {
-        await db.delete(equipment).where(eq(equipment.orgId, orgId));
-      }
-    },
-    60_000,
-  );
+      const second = await amosImportService.importFile(orgId, VALID, {
+        type: "equipment",
+        filename: "amos-equipment-valid.csv",
+        dryRun: false,
+      });
+      expect(second.errors).toHaveLength(0);
+      // The second pass must NOT insert again — every row should be
+      // a no-op update against the same primary key.
+      expect(second.imported).toBe(0);
+      expect(second.updated).toBe(5);
+    } finally {
+      await db.delete(equipment).where(eq(equipment.orgId, orgId));
+    }
+  }, 60_000);
 });

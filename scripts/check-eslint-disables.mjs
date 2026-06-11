@@ -115,7 +115,7 @@ function main() {
     for (const h of hits) console.error(`  ${h.file}:${h.line}  ${h.directive}`);
     console.error("");
     console.error(
-      "These rules are part of the type-debt burndown and may not be silenced. Fix the underlying code and remove the directive — no exceptions.",
+      "These rules are part of the type-debt burndown and may not be silenced. Fix the underlying code and remove the directive — no exceptions."
     );
     process.exit(1);
   }

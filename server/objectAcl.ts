@@ -20,10 +20,7 @@ export async function getObjectAclPolicy(_file: unknown): Promise<ObjectAclPolic
   return null;
 }
 
-export async function setObjectAclPolicy(
-  _file: unknown,
-  _policy: ObjectAclPolicy
-): Promise<void> {
+export async function setObjectAclPolicy(_file: unknown, _policy: ObjectAclPolicy): Promise<void> {
   // no-op
 }
 

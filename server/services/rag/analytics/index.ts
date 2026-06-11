@@ -109,10 +109,11 @@ export class AnalyticsAggregator {
           .where(and(baseCondition, gte(ragConversations.createdAt, sevenDaysAgo))),
       ]);
 
-      const latencyData =
-        (ragMetrics as { getLatencyStats?: () => { averageMs: number } }).getLatencyStats?.() ?? {
-          averageMs: 0,
-        };
+      const latencyData = (
+        ragMetrics as { getLatencyStats?: () => { averageMs: number } }
+      ).getLatencyStats?.() ?? {
+        averageMs: 0,
+      };
 
       return {
         total: totalResult[0]?.count || 0,
@@ -128,12 +129,11 @@ export class AnalyticsAggregator {
 
   private async getCacheStats(orgId: string | undefined): Promise<AnalyticsSummary["cache"]> {
     try {
-      const metricsData =
-        (
-          ragMetrics as {
-            getCacheStats?: () => { hits: number; misses: number; entriesCount: number };
-          }
-        ).getCacheStats?.() ?? { hits: 0, misses: 0, entriesCount: 0 };
+      const metricsData = (
+        ragMetrics as {
+          getCacheStats?: () => { hits: number; misses: number; entriesCount: number };
+        }
+      ).getCacheStats?.() ?? { hits: 0, misses: 0, entriesCount: 0 };
 
       const totalHits = metricsData.hits;
       const totalMisses = metricsData.misses;

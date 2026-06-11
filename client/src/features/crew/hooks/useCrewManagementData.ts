@@ -171,7 +171,9 @@ export function useCrewManagementData() {
   const onSubmitSkill = useCallback(
     (data: SkillFormData) => {
       if (editingSkillId) {
-        updateSkillMutation.mutate({ id: editingSkillId, data } as object as Parameters<typeof updateSkillMutation.mutate>[0]);
+        updateSkillMutation.mutate({ id: editingSkillId, data } as object as Parameters<
+          typeof updateSkillMutation.mutate
+        >[0]);
       } else {
         createSkillMutation.mutate(data);
       }

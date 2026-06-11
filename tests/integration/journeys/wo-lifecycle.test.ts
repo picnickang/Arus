@@ -11,13 +11,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
-import {
-  api,
-  getRefIds,
-  makeRunId,
-  pool,
-  cleanupByRunId,
-} from "../forms/_helpers";
+import { api, getRefIds, makeRunId, pool, cleanupByRunId } from "../forms/_helpers";
 
 const RUN_ID = makeRunId("j-wo-lifecycle");
 
@@ -33,18 +27,18 @@ describe("Journey — WO lifecycle (create → complete-with-feedback → propag
 
   afterAll(async () => {
     if (woId) {
-      await pool.query("DELETE FROM work_order_completions WHERE work_order_id=$1", [woId]).catch(() => {});
+      await pool
+        .query("DELETE FROM work_order_completions WHERE work_order_id=$1", [woId])
+        .catch(() => {});
       await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
     }
     if (equipmentId) {
-      await pool.query("DELETE FROM equipment_decommission_events WHERE equipment_id=$1", [equipmentId]).catch(() => {});
+      await pool
+        .query("DELETE FROM equipment_decommission_events WHERE equipment_id=$1", [equipmentId])
+        .catch(() => {});
       await pool.query("DELETE FROM equipment WHERE id=$1", [equipmentId]).catch(() => {});
     }
-    await cleanupByRunId(RUN_ID, [
-      "equipment",
-      "work_orders",
-      "work_order_completions",
-    ]);
+    await cleanupByRunId(RUN_ID, ["equipment", "work_orders", "work_order_completions"]);
   });
 
   it("creates equipment for the journey", async () => {
@@ -84,16 +78,12 @@ describe("Journey — WO lifecycle (create → complete-with-feedback → propag
       checklistVerified: true,
       supervisorVerified: true,
     };
-    const r = await api(
-      "POST",
-      `/api/work-orders/${woId}/complete-with-feedback`,
-      {
-        completionNotes: `journey closeout ${RUN_ID}`,
-        actualHours: 2.5,
-        actualDowntimeHours: 1.0,
-        closeout,
-      }
-    );
+    const r = await api("POST", `/api/work-orders/${woId}/complete-with-feedback`, {
+      completionNotes: `journey closeout ${RUN_ID}`,
+      actualHours: 2.5,
+      actualDowntimeHours: 1.0,
+      closeout,
+    });
     expect(r.status).toBe(200);
 
     // 1) work_order_completions captured the structured payload

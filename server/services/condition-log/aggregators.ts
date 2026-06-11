@@ -73,7 +73,12 @@ export async function aggregateConditionData(
   periodStart: Date,
   periodEnd: Date
 ): Promise<ConditionAggregation> {
-  const cm = conditionMonitoring as typeof conditionMonitoring & Record<"mlAnomalyScore" | "healthIndex" | "temperature", typeof conditionMonitoring.equipmentId> & Record<"timestamp", typeof conditionMonitoring.assessmentDate>;
+  const cm = conditionMonitoring as typeof conditionMonitoring &
+    Record<
+      "mlAnomalyScore" | "healthIndex" | "temperature",
+      typeof conditionMonitoring.equipmentId
+    > &
+    Record<"timestamp", typeof conditionMonitoring.assessmentDate>;
   const data = await db
     .select({
       anomalyScoreAvg: sql<number>`avg(${cm.mlAnomalyScore})`,
@@ -130,8 +135,8 @@ export async function getMonitoredEquipment(vesselId: string) {
     .where(
       and(
         eq(equipment.vesselId, vesselId),
-        eq((equipment as object as Record<string, never>)['status']!, "operational"),
-        sql`${(equipment as object as Record<string, never>)['category']} IN ('propulsion', 'auxiliary', 'deck_machinery')`
+        eq((equipment as object as Record<string, never>)["status"]!, "operational"),
+        sql`${(equipment as object as Record<string, never>)["category"]} IN ('propulsion', 'auxiliary', 'deck_machinery')`
       )
     );
 }

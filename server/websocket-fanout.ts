@@ -56,19 +56,29 @@ export const REPLAY_WINDOW_MS = 5 * 60 * 1000;
  *  (`true`/`false`). The env var is read at call time rather than at
  *  module load so tests can toggle it. */
 export function isTenantStrictModeEnabled(): boolean {
-  const raw = process.env['WS_TENANT_STRICT_MODE'];
+  const raw = process.env["WS_TENANT_STRICT_MODE"];
   if (raw && raw.trim().length > 0) {
     const normalised = raw.trim().toLowerCase();
-    if (normalised === "1" || normalised === "true" || normalised === "yes" || normalised === "on") {
+    if (
+      normalised === "1" ||
+      normalised === "true" ||
+      normalised === "yes" ||
+      normalised === "on"
+    ) {
       return true;
     }
-    if (normalised === "0" || normalised === "false" || normalised === "no" || normalised === "off") {
+    if (
+      normalised === "0" ||
+      normalised === "false" ||
+      normalised === "no" ||
+      normalised === "off"
+    ) {
       return false;
     }
   }
   // Production-safe default: tenant-isolated fan-out unless explicitly
   // disabled. Dev/test keep historical behaviour.
-  return process.env['NODE_ENV'] === "production";
+  return process.env["NODE_ENV"] === "production";
 }
 
 export interface FanoutEvent {
@@ -106,7 +116,7 @@ export interface FanoutBus {
     channel: string,
     payload: unknown,
     orgId?: string,
-    options?: FanoutPublishOptions,
+    options?: FanoutPublishOptions
   ): Promise<FanoutEvent>;
   subscribe(channel: string, orgId: string, handler: FanoutHandler): () => void;
   replaySince(channel: string, orgId: string, lastEventId: string | null): Promise<FanoutEvent[]>;
@@ -123,7 +133,9 @@ export function makeEventId(timestampMs: number, seq: number): string {
 export function compareEventIds(a: string, b: string): number {
   const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
   const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
-  if (aMs !== bMs) {return aMs - bMs;}
+  if (aMs !== bMs) {
+    return aMs - bMs;
+  }
   return aSeq - bSeq;
 }
 
@@ -189,8 +201,8 @@ class ReplayRing {
     private readonly maxPerBucket: number = 10_000,
     maxBytesPerBucket: number = envBytes(
       "WS_REPLAY_RING_BYTES_PER_BUCKET",
-      DEFAULT_REPLAY_BYTES_PER_BUCKET,
-    ),
+      DEFAULT_REPLAY_BYTES_PER_BUCKET
+    )
   ) {
     this.maxBytesPerBucket = maxBytesPerBucket;
   }
@@ -232,7 +244,9 @@ class ReplayRing {
   since(orgId: string, channel: string, lastEventId: string | null): FanoutEvent[] {
     const key = this.key(orgId, channel);
     const bucket = this.buckets.get(key);
-    if (!bucket) {return [];}
+    if (!bucket) {
+      return [];
+    }
 
     this.trimExpired(bucket);
     if (bucket.events.length === 0) {
@@ -240,7 +254,9 @@ class ReplayRing {
       return [];
     }
 
-    if (!lastEventId) {return bucket.events.slice();}
+    if (!lastEventId) {
+      return bucket.events.slice();
+    }
     return bucket.events.filter((e) => compareEventIds(e.eventId, lastEventId) > 0);
   }
 
@@ -257,7 +273,9 @@ class ReplayRing {
   trimAll(): void {
     for (const [key, bucket] of this.buckets) {
       this.trimExpired(bucket);
-      if (bucket.events.length === 0) {this.buckets.delete(key);}
+      if (bucket.events.length === 0) {
+        this.buckets.delete(key);
+      }
     }
   }
 
@@ -303,7 +321,9 @@ export class InProcessFanoutBus implements FanoutBus {
     // Trim the buckets periodically so memory tracks the window even
     // when readers never query (e.g. orphaned channels).
     this.trimTimer = setInterval(() => this.ring.trimAll(), Math.min(windowMs, 60_000));
-    if (typeof this.trimTimer.unref === "function") {this.trimTimer.unref();}
+    if (typeof this.trimTimer.unref === "function") {
+      this.trimTimer.unref();
+    }
   }
 
   protected handlerKey(orgId: string, channel: string): string {
@@ -325,7 +345,7 @@ export class InProcessFanoutBus implements FanoutBus {
     channel: string,
     payload: unknown,
     orgId: string = SYSTEM_ORG_ID,
-    options?: FanoutPublishOptions,
+    options?: FanoutPublishOptions
   ): Promise<FanoutEvent> {
     const event: FanoutEvent = {
       eventId: this.nextEventId(orgId, channel),
@@ -344,7 +364,9 @@ export class InProcessFanoutBus implements FanoutBus {
    *  through the same local handler set as locally-published events. */
   protected dispatch(event: FanoutEvent): void {
     const handlers = this.handlers.get(this.handlerKey(event.orgId, event.channel));
-    if (!handlers) {return;}
+    if (!handlers) {
+      return;
+    }
     for (const handler of handlers) {
       try {
         handler(event);
@@ -364,16 +386,20 @@ export class InProcessFanoutBus implements FanoutBus {
     set.add(handler);
     return () => {
       const s = this.handlers.get(key);
-      if (!s) {return;}
+      if (!s) {
+        return;
+      }
       s.delete(handler);
-      if (s.size === 0) {this.handlers.delete(key);}
+      if (s.size === 0) {
+        this.handlers.delete(key);
+      }
     };
   }
 
   async replaySince(
     channel: string,
     orgId: string,
-    lastEventId: string | null,
+    lastEventId: string | null
   ): Promise<FanoutEvent[]> {
     return this.ring.since(orgId, channel, lastEventId);
   }

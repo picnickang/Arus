@@ -43,15 +43,15 @@ existing visual language (shadcn, mobile-first ops shell) but:
 
 ## 3. Current architecture (source of truth)
 
-| Concern | File | Mechanism |
-|---|---|---|
-| Hub/route definitions | `client/src/config/navigationConfig.ts` | `navigationCategories`, `ROUTE_HUB_MAP` |
-| Role → portal | `client/src/application/navigation/role-navigation-policy.ts` | `getPortalForRole` ("admin" vs "user") |
-| Role → visible items | same file | `getPrimaryCategoriesForRole`, `getAdminPrimaryCategories`, `filterCategoriesByHubAccess` |
-| Admin portal access | same file | `isAdminPortalAccess` (explicit `hubAdmin` grant, not role name) |
-| Hub URL gating | `client/src/App.tsx` | `AdminPortalRouteGuard` wraps every hub route-group; non-admins redirect to `/` |
-| Admin hub launcher | `client/src/components/BottomNav.tsx` | renders nothing without admin access (#218 render gate) |
-| User portal shell | `client/src/pages/home.tsx` → `UserPortalHome` | sidebar built from `getPrimaryCategoriesForRole(role)` |
+| Concern               | File                                                          | Mechanism                                                                                 |
+| --------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Hub/route definitions | `client/src/config/navigationConfig.ts`                       | `navigationCategories`, `ROUTE_HUB_MAP`                                                   |
+| Role → portal         | `client/src/application/navigation/role-navigation-policy.ts` | `getPortalForRole` ("admin" vs "user")                                                    |
+| Role → visible items  | same file                                                     | `getPrimaryCategoriesForRole`, `getAdminPrimaryCategories`, `filterCategoriesByHubAccess` |
+| Admin portal access   | same file                                                     | `isAdminPortalAccess` (explicit `hubAdmin` grant, not role name)                          |
+| Hub URL gating        | `client/src/App.tsx`                                          | `AdminPortalRouteGuard` wraps every hub route-group; non-admins redirect to `/`           |
+| Admin hub launcher    | `client/src/components/BottomNav.tsx`                         | renders nothing without admin access (#218 render gate)                                   |
+| User portal shell     | `client/src/pages/home.tsx` → `UserPortalHome`                | sidebar built from `getPrimaryCategoriesForRole(role)`                                    |
 
 ### Admin hub projection
 
@@ -67,28 +67,28 @@ with label overrides `system → "System Admin"`, `crew → "Crew Management"`,
 
 `USER_PRIMARY_CATEGORIES` (in policy order):
 
-| id | label | route | backend |
-|---|---|---|---|
-| `user-dashboard` | Dashboard | `/` | `GET /api/me/dashboard` |
-| `user-tasks` | Assigned Tasks | `/my-tasks` | `GET /api/me/tasks` |
-| `user-feedback` | Feedback / Flags (sidebar: "Report / Flag Issue") | `/feedback` | feedback page (client-tracked) |
-| `user-profile` | Profile | `/profile` | `POST /api/me/change-password`, `POST /api/me/logout` |
+| id               | label                                             | route       | backend                                               |
+| ---------------- | ------------------------------------------------- | ----------- | ----------------------------------------------------- |
+| `user-dashboard` | Dashboard                                         | `/`         | `GET /api/me/dashboard`                               |
+| `user-tasks`     | Assigned Tasks                                    | `/my-tasks` | `GET /api/me/tasks`                                   |
+| `user-feedback`  | Feedback / Flags (sidebar: "Report / Flag Issue") | `/feedback` | feedback page (client-tracked)                        |
+| `user-profile`   | Profile                                           | `/profile`  | `POST /api/me/change-password`, `POST /api/me/logout` |
 
 ## 4. Per-route disposition
 
-| Route | Disposition |
-|---|---|
-| `/portal-login` | Public — split landing (Admin / User). |
-| `/` | Dashboard. Renders `UserPortalHome` for user roles, admin command center for admins. |
-| `/my-tasks` | Normal-user accessible, **not** hub-gated. Read-only list of the caller's own tasks. |
-| `/profile` | Normal-user accessible, **not** hub-gated. Identity + change-password + logout. |
-| `/feedback` | Normal-user accessible, **not** hub-gated. |
-| Maintenance hub routes (e.g. `/work-orders`) | Admin-hub-gated (`maintenance`). |
-| System Admin hub routes | Admin-hub-gated (`system`); some sub-features Super-Admin-only. |
-| Crew Management hub routes | Admin-hub-gated (`crew`). |
-| Logistics hub routes | Admin-hub-gated (`logistics`). |
-| AI Analytics hub routes | Admin-hub-gated (`analytics`). |
-| Legacy paths | Redirected to canonical routes via `buildRedirectTarget` in `App.tsx`. |
+| Route                                        | Disposition                                                                          |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `/portal-login`                              | Public — split landing (Admin / User).                                               |
+| `/`                                          | Dashboard. Renders `UserPortalHome` for user roles, admin command center for admins. |
+| `/my-tasks`                                  | Normal-user accessible, **not** hub-gated. Read-only list of the caller's own tasks. |
+| `/profile`                                   | Normal-user accessible, **not** hub-gated. Identity + change-password + logout.      |
+| `/feedback`                                  | Normal-user accessible, **not** hub-gated.                                           |
+| Maintenance hub routes (e.g. `/work-orders`) | Admin-hub-gated (`maintenance`).                                                     |
+| System Admin hub routes                      | Admin-hub-gated (`system`); some sub-features Super-Admin-only.                      |
+| Crew Management hub routes                   | Admin-hub-gated (`crew`).                                                            |
+| Logistics hub routes                         | Admin-hub-gated (`logistics`).                                                       |
+| AI Analytics hub routes                      | Admin-hub-gated (`analytics`).                                                       |
+| Legacy paths                                 | Redirected to canonical routes via `buildRedirectTarget` in `App.tsx`.               |
 
 The four non-gated routes (`/feedback`, `/my-tasks`, `/profile`, plus `/` and
 `/portal-login`) are the only routes outside `AdminPortalRouteGuard`. Every hub

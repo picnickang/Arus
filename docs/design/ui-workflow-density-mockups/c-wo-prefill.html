@@ -1,120 +1,406 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css">
-<style>
-  body { background: hsl(222 25% 12%); }
-  .panel { position: relative; margin-bottom: 30px; }
-  .browser { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-2xl); margin-top: 12px; border:1px solid rgba(51,65,85,.6); }
-  .urlbar { display:flex; align-items:center; gap:8px; background:hsl(220 14% 96%); padding:8px 14px; border-bottom:1px solid var(--border); }
-  .urlbar .dots { display:flex; gap:5px; }
-  .urlbar .dots i { width:10px; height:10px; border-radius:99px; display:block; }
-  .url { flex:1; background:#fff; border:1px solid var(--border); border-radius:99px; padding:5px 14px; font-size:12px; color:var(--muted-foreground); font-family: Menlo, monospace; }
-  .url b { color: var(--foreground); font-weight:600; }
-  .url s { color: hsl(0 72% 48%); text-decoration: line-through; }
-  .pagebody { padding: 18px 22px; min-height: 240px; position: relative; }
-  .flow-arrow { display:flex; align-items:center; gap:10px; color:#94a3b8; font-size:12.5px; font-weight:600; margin:10px 4px; }
-  .flow-arrow svg { width:18px; height:18px; stroke-width:2; }
-  .source-chip { display:inline-flex; align-items:center; gap:9px; background:#0c1424; border:1px solid rgba(234,179,8,.3); color:#e2e8f0; border-radius:10px; padding:9px 14px; font-size:12.5px; font-weight:600; }
-  .dialog { background:#fff; border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow-2xl); width: 530px; }
-  .dlg-h { padding:15px 18px 0; font-size:15px; font-weight:700; }
-  .dlg-c { padding: 12px 18px 18px; }
-  .frow { display:flex; gap:12px; margin-bottom:11px; }
-  .frow > div { flex:1; }
-  .prefill { border-color: hsl(142 71% 38% / .55) !important; background: hsl(142 71% 38% / .05) !important; }
-  .check { color: hsl(142 71% 32%); font-weight:700; }
-  .ctx-banner { display:flex; align-items:center; gap:9px; background:hsl(197 71% 52% / .09); border:1px solid hsl(197 71% 52% / .3); border-radius:9px; padding:8px 12px; font-size:12.5px; font-weight:600; color:hsl(197 75% 30%); margin-bottom:13px; }
-  .more { display:flex; align-items:center; justify-content:space-between; border:1px dashed var(--border); border-radius:9px; padding:9px 12px; font-size:12.5px; color:var(--muted-foreground); font-weight:600; margin-top:3px; }
-  td, th { font-size:12.5px; padding:8px 11px; text-align:left; }
-  th { color:var(--muted-foreground); font-weight:600; font-size:11.5px; border-bottom:1px solid var(--border); }
-  td { border-bottom:1px solid hsl(220 7% 93%); }
-  .anno-card { background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-2xl); }
-</style></head>
-<body>
-<div class="compare-wrap">
-  <div class="compare-title">Equipment → Work order — carry the context (confirmed gap)</div>
-  <div class="compare-sub">usePdmEquipmentDetailData.ts:79 navigates to /work-orders?equipmentId=… but work-orders.tsx never reads the param. The dialog already supports defaultVesselId / defaultEquipmentId props — they're just never fed.</div>
-
-  <!-- BEFORE -->
-  <div class="panel">
-    <span class="panel-label before">Today — context dropped at the door</span>
-    <div class="flow-arrow" style="margin-top:12px">
-      <span class="source-chip">⚙ Main Engine #2 · Health 62 <span style="color:#94a3b8; font-weight:500">— user clicks</span> <span style="background:hsl(197,71%,45%); color:#fff; border-radius:7px; padding:4px 10px">Create Work Order</span></span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      <span>lands here:</span>
-    </div>
-    <div class="browser">
-      <div class="urlbar"><div class="dots"><i style="background:#f87171"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
-        <div class="url">arus.app<b>/work-orders</b>?<s>equipmentId=eq-204</s> &nbsp;← parameter silently ignored</div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <style>
+      body {
+        background: hsl(222 25% 12%);
+      }
+      .panel {
+        position: relative;
+        margin-bottom: 30px;
+      }
+      .browser {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-2xl);
+        margin-top: 12px;
+        border: 1px solid rgba(51, 65, 85, 0.6);
+      }
+      .urlbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: hsl(220 14% 96%);
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .urlbar .dots {
+        display: flex;
+        gap: 5px;
+      }
+      .urlbar .dots i {
+        width: 10px;
+        height: 10px;
+        border-radius: 99px;
+        display: block;
+      }
+      .url {
+        flex: 1;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 99px;
+        padding: 5px 14px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        font-family: Menlo, monospace;
+      }
+      .url b {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .url s {
+        color: hsl(0 72% 48%);
+        text-decoration: line-through;
+      }
+      .pagebody {
+        padding: 18px 22px;
+        min-height: 240px;
+        position: relative;
+      }
+      .flow-arrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #94a3b8;
+        font-size: 12.5px;
+        font-weight: 600;
+        margin: 10px 4px;
+      }
+      .flow-arrow svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+      }
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        background: #0c1424;
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        color: #e2e8f0;
+        border-radius: 10px;
+        padding: 9px 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .dialog {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        box-shadow: var(--shadow-2xl);
+        width: 530px;
+      }
+      .dlg-h {
+        padding: 15px 18px 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .dlg-c {
+        padding: 12px 18px 18px;
+      }
+      .frow {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 11px;
+      }
+      .frow > div {
+        flex: 1;
+      }
+      .prefill {
+        border-color: hsl(142 71% 38% / 0.55) !important;
+        background: hsl(142 71% 38% / 0.05) !important;
+      }
+      .check {
+        color: hsl(142 71% 32%);
+        font-weight: 700;
+      }
+      .ctx-banner {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: hsl(197 71% 52% / 0.09);
+        border: 1px solid hsl(197 71% 52% / 0.3);
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: hsl(197 75% 30%);
+        margin-bottom: 13px;
+      }
+      .more {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px dashed var(--border);
+        border-radius: 9px;
+        padding: 9px 12px;
+        font-size: 12.5px;
+        color: var(--muted-foreground);
+        font-weight: 600;
+        margin-top: 3px;
+      }
+      td,
+      th {
+        font-size: 12.5px;
+        padding: 8px 11px;
+        text-align: left;
+      }
+      th {
+        color: var(--muted-foreground);
+        font-weight: 600;
+        font-size: 11.5px;
+        border-bottom: 1px solid var(--border);
+      }
+      td {
+        border-bottom: 1px solid hsl(220 7% 93%);
+      }
+      .anno-card {
+        background: #fff;
+        border-radius: 9px;
+        padding: 8px 11px;
+        box-shadow: var(--shadow-2xl);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="compare-wrap">
+      <div class="compare-title">Equipment → Work order — carry the context (confirmed gap)</div>
+      <div class="compare-sub">
+        usePdmEquipmentDetailData.ts:79 navigates to /work-orders?equipmentId=… but work-orders.tsx
+        never reads the param. The dialog already supports defaultVesselId / defaultEquipmentId
+        props — they're just never fed.
       </div>
-      <div class="pagebody">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
-          <div><div style="font-size:16px; font-weight:700">Work Orders</div><div style="font-size:12px; color:var(--muted-foreground)">412 work orders · unfiltered</div></div>
-          <button class="btn btn-primary">+ Create Work Order</button>
+
+      <!-- BEFORE -->
+      <div class="panel">
+        <span class="panel-label before">Today — context dropped at the door</span>
+        <div class="flow-arrow" style="margin-top: 12px">
+          <span class="source-chip"
+            >⚙ Main Engine #2 · Health 62
+            <span style="color: #94a3b8; font-weight: 500">— user clicks</span>
+            <span
+              style="
+                background: hsl(197, 71%, 45%);
+                color: #fff;
+                border-radius: 7px;
+                padding: 4px 10px;
+              "
+              >Create Work Order</span
+            ></span
+          >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
+          <span>lands here:</span>
         </div>
-        <div class="card"><table style="width:100%; border-collapse:collapse">
-          <tr><th>Work order</th><th>Vessel</th><th>Equipment</th><th>Status</th></tr>
-          <tr><td>WO-2841 · Cooling water pump overhaul</td><td>M/V Northern Star</td><td>SW Cooling Pump #1</td><td><span class="badge badge-blue">In progress</span></td></tr>
-          <tr><td>WO-2839 · Purifier bowl cleaning</td><td>M/V Coral Wind</td><td>FO Purifier #2</td><td><span class="badge badge-gray">Open</span></td></tr>
-          <tr><td>WO-2838 · Bow thruster megger test</td><td>M/V Baltic Trader</td><td>Bow Thruster</td><td><span class="badge badge-gray">Open</span></td></tr>
-        </table></div>
+        <div class="browser">
+          <div class="urlbar">
+            <div class="dots">
+              <i style="background: #f87171"></i><i style="background: #fbbf24"></i
+              ><i style="background: #34d399"></i>
+            </div>
+            <div class="url">
+              arus.app<b>/work-orders</b>?<s>equipmentId=eq-204</s> &nbsp;← parameter silently
+              ignored
+            </div>
+          </div>
+          <div class="pagebody">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              "
+            >
+              <div>
+                <div style="font-size: 16px; font-weight: 700">Work Orders</div>
+                <div style="font-size: 12px; color: var(--muted-foreground)">
+                  412 work orders · unfiltered
+                </div>
+              </div>
+              <button class="btn btn-primary">+ Create Work Order</button>
+            </div>
+            <div class="card">
+              <table style="width: 100%; border-collapse: collapse">
+                <tr>
+                  <th>Work order</th>
+                  <th>Vessel</th>
+                  <th>Equipment</th>
+                  <th>Status</th>
+                </tr>
+                <tr>
+                  <td>WO-2841 · Cooling water pump overhaul</td>
+                  <td>M/V Northern Star</td>
+                  <td>SW Cooling Pump #1</td>
+                  <td><span class="badge badge-blue">In progress</span></td>
+                </tr>
+                <tr>
+                  <td>WO-2839 · Purifier bowl cleaning</td>
+                  <td>M/V Coral Wind</td>
+                  <td>FO Purifier #2</td>
+                  <td><span class="badge badge-gray">Open</span></td>
+                </tr>
+                <tr>
+                  <td>WO-2838 · Bow thruster megger test</td>
+                  <td>M/V Baltic Trader</td>
+                  <td>Bow Thruster</td>
+                  <td><span class="badge badge-gray">Open</span></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno-red" style="top: 118px; right: 18px">
+          <div class="anno-pill">!</div>
+          <div class="anno-card">
+            Full unfiltered list — the equipment they came from isn't even highlighted
+          </div>
+        </div>
+        <div class="anno anno-red" style="top: 226px; right: 300px">
+          <div class="anno-pill">!</div>
+          <div class="anno-card">
+            User must click Create, then re-select vessel AND equipment in a 16-field dialog —
+            context they were just looking at
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="anno anno-red" style="top:118px; right:18px;"><div class="anno-pill">!</div><div class="anno-card">Full unfiltered list — the equipment they came from isn't even highlighted</div></div>
-    <div class="anno anno-red" style="top:226px; right:300px;"><div class="anno-pill">!</div><div class="anno-card">User must click Create, then re-select vessel AND equipment in a 16-field dialog — context they were just looking at</div></div>
-  </div>
 
-  <!-- AFTER -->
-  <div class="panel">
-    <span class="panel-label after">Proposed — dialog opens prefilled, required-only</span>
-    <div class="browser" style="margin-top:12px">
-      <div class="urlbar"><div class="dots"><i style="background:#f87171"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
-        <div class="url">arus.app<b>/work-orders</b>?equipmentId=eq-204&amp;<b>create=1</b></div>
+      <!-- AFTER -->
+      <div class="panel">
+        <span class="panel-label after">Proposed — dialog opens prefilled, required-only</span>
+        <div class="browser" style="margin-top: 12px">
+          <div class="urlbar">
+            <div class="dots">
+              <i style="background: #f87171"></i><i style="background: #fbbf24"></i
+              ><i style="background: #34d399"></i>
+            </div>
+            <div class="url">
+              arus.app<b>/work-orders</b>?equipmentId=eq-204&amp;<b>create=1</b>
+            </div>
+          </div>
+          <div
+            class="pagebody"
+            style="
+              background: hsl(220 14% 97%);
+              display: flex;
+              justify-content: center;
+              padding-top: 22px;
+              padding-bottom: 26px;
+            "
+          >
+            <div class="dialog">
+              <div class="dlg-h">Create work order</div>
+              <div class="dlg-c">
+                <div class="ctx-banner">
+                  ⚙ From equipment: <b>Main Engine #2 · M/V Northern Star</b>
+                  <span style="margin-left: auto; font-weight: 500; color: var(--muted-foreground)"
+                    >change</span
+                  >
+                </div>
+                <div class="frow">
+                  <div>
+                    <label class="label">Vessel <span class="req">*</span></label>
+                    <div class="select prefill">M/V Northern Star <span class="check">✓</span></div>
+                  </div>
+                  <div>
+                    <label class="label">Equipment <span class="req">*</span></label>
+                    <div class="select prefill">Main Engine #2 <span class="check">✓</span></div>
+                  </div>
+                </div>
+                <div class="frow">
+                  <div>
+                    <label class="label">Apply template</label>
+                    <div class="select" style="color: hsl(197 75% 34%); font-weight: 600">
+                      ★ ME exhaust valve inspection (suggested) ▾
+                    </div>
+                  </div>
+                  <div>
+                    <label class="label">Priority</label>
+                    <div class="select">High ▾</div>
+                  </div>
+                </div>
+                <div style="margin-bottom: 11px">
+                  <label class="label">Reason <span class="req">*</span></label>
+                  <div
+                    class="textarea"
+                    style="height: 58px; align-items: flex-start; color: var(--muted-foreground)"
+                  >
+                    EGT cyl. 4 +18 °C vs baseline — borescope exhaust valve
+                    <span class="caret"></span>
+                  </div>
+                </div>
+                <div class="more">
+                  More options — schedule, crew, hours, costs (10 fields) <span>▾</span>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 9px; margin-top: 15px">
+                  <button class="btn btn-outline">Cancel</button>
+                  <button class="btn btn-primary">Create work order</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 118px; left: 26px">
+          <div class="anno-pill">1</div>
+          <div class="anno-card">
+            Same URL the button already produces — the page just reads it now and opens the dialog
+            via the existing defaultVesselId / defaultEquipmentId props
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 240px; right: 26px">
+          <div class="anno-pill">2</div>
+          <div class="anno-card">
+            Suggested template (already matched per-equipment in code) + reason prefilled from the
+            active finding
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 392px; right: 26px">
+          <div class="anno-pill">3</div>
+          <div class="anno-card">
+            3 required fields visible; the other 10 collapse behind "More options" — planner detail
+            without deckhand cost
+          </div>
+        </div>
       </div>
-      <div class="pagebody" style="background:hsl(220 14% 97%); display:flex; justify-content:center; padding-top:22px; padding-bottom:26px;">
-        <div class="dialog">
-          <div class="dlg-h">Create work order</div>
-          <div class="dlg-c">
-            <div class="ctx-banner">⚙ From equipment: <b>Main Engine #2 · M/V Northern Star</b> <span style="margin-left:auto; font-weight:500; color:var(--muted-foreground)">change</span></div>
-            <div class="frow">
-              <div><label class="label">Vessel <span class="req">*</span></label><div class="select prefill">M/V Northern Star <span class="check">✓</span></div></div>
-              <div><label class="label">Equipment <span class="req">*</span></label><div class="select prefill">Main Engine #2 <span class="check">✓</span></div></div>
+
+      <!-- URL persistence strip -->
+      <div class="panel" style="margin-bottom: 6px">
+        <span class="panel-label after">Same principle for list filters</span>
+        <div class="browser" style="margin-top: 12px">
+          <div class="urlbar">
+            <div class="dots">
+              <i style="background: #f87171"></i><i style="background: #fbbf24"></i
+              ><i style="background: #34d399"></i>
             </div>
-            <div class="frow">
-              <div><label class="label">Apply template</label><div class="select" style="color:hsl(197 75% 34%); font-weight:600">★ ME exhaust valve inspection (suggested) ▾</div></div>
-              <div><label class="label">Priority</label><div class="select">High ▾</div></div>
+            <div class="url">
+              arus.app<b>/work-orders</b>?vessel=northern-star&amp;status=open&amp;priority=high
             </div>
-            <div style="margin-bottom:11px">
-              <label class="label">Reason <span class="req">*</span></label>
-              <div class="textarea" style="height:58px; align-items:flex-start; color:var(--muted-foreground)">EGT cyl. 4 +18 °C vs baseline — borescope exhaust valve <span class="caret"></span></div>
-            </div>
-            <div class="more">More options — schedule, crew, hours, costs (10 fields) <span>▾</span></div>
-            <div style="display:flex; justify-content:flex-end; gap:9px; margin-top:15px">
-              <button class="btn btn-outline">Cancel</button>
-              <button class="btn btn-primary">Create work order</button>
-            </div>
+          </div>
+          <div
+            class="pagebody"
+            style="min-height: 0; padding: 13px 22px; display: flex; gap: 8px; align-items: center"
+          >
+            <span class="badge badge-blue">Vessel: Northern Star ✕</span>
+            <span class="badge badge-blue">Status: Open ✕</span>
+            <span class="badge badge-blue">Priority: High ✕</span>
+            <span style="font-size: 12px; color: var(--muted-foreground); margin-left: 8px"
+              >3 filters · 14 of 412 work orders</span
+            >
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 56px; right: 26px">
+          <div class="anno-pill">4</div>
+          <div class="anno-card">
+            Filters live in the URL — survive navigation, shareable in handover notes. (Write to
+            /work-orders, not /maint — the trap that killed the last attempt)
           </div>
         </div>
       </div>
     </div>
-    <div class="anno anno-green" style="top:118px; left:26px;"><div class="anno-pill">1</div><div class="anno-card">Same URL the button already produces — the page just reads it now and opens the dialog via the existing defaultVesselId / defaultEquipmentId props</div></div>
-    <div class="anno anno-green" style="top:240px; right:26px;"><div class="anno-pill">2</div><div class="anno-card">Suggested template (already matched per-equipment in code) + reason prefilled from the active finding</div></div>
-    <div class="anno anno-green" style="top:392px; right:26px;"><div class="anno-pill">3</div><div class="anno-card">3 required fields visible; the other 10 collapse behind "More options" — planner detail without deckhand cost</div></div>
-  </div>
-
-  <!-- URL persistence strip -->
-  <div class="panel" style="margin-bottom:6px">
-    <span class="panel-label after">Same principle for list filters</span>
-    <div class="browser" style="margin-top:12px">
-      <div class="urlbar"><div class="dots"><i style="background:#f87171"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
-        <div class="url">arus.app<b>/work-orders</b>?vessel=northern-star&amp;status=open&amp;priority=high</div>
-      </div>
-      <div class="pagebody" style="min-height:0; padding:13px 22px; display:flex; gap:8px; align-items:center">
-        <span class="badge badge-blue">Vessel: Northern Star ✕</span>
-        <span class="badge badge-blue">Status: Open ✕</span>
-        <span class="badge badge-blue">Priority: High ✕</span>
-        <span style="font-size:12px; color:var(--muted-foreground); margin-left:8px">3 filters · 14 of 412 work orders</span>
-      </div>
-    </div>
-    <div class="anno anno-green" style="top:56px; right:26px;"><div class="anno-pill">4</div><div class="anno-card">Filters live in the URL — survive navigation, shareable in handover notes. (Write to /work-orders, not /maint — the trap that killed the last attempt)</div></div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

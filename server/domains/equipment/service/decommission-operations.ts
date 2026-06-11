@@ -68,7 +68,9 @@ export async function decommissionEquipment(
       documentationRefs: data.documentationRefs,
     })
     .returning();
-  if (!decommissionEvent) {throw new Error("decommissionEquipment: event insert returned no row");}
+  if (!decommissionEvent) {
+    throw new Error("decommissionEquipment: event insert returned no row");
+  }
 
   const [updatedEquipment] = await db
     .update(equipment)
@@ -81,7 +83,9 @@ export async function decommissionEquipment(
     })
     .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
     .returning();
-  if (!updatedEquipment) {throw new Error(`decommissionEquipment: equipment ${equipmentId} update returned no row`);}
+  if (!updatedEquipment) {
+    throw new Error(`decommissionEquipment: equipment ${equipmentId} update returned no row`);
+  }
 
   logger.info("EquipmentDecommission", `Equipment ${equipmentId} decommissioned: ${data.reason}`);
 
@@ -209,8 +213,8 @@ export async function getEquipmentFinancialSummary(orgId: string): Promise<{
   for (const event of decommissionEvents) {
     if (event.saleDetails && typeof event.saleDetails === "object") {
       const saleDetails = event.saleDetails as Record<string, unknown>;
-      if (typeof saleDetails['salePrice'] === "number") {
-        totalCapitalRecovered += saleDetails['salePrice'];
+      if (typeof saleDetails["salePrice"] === "number") {
+        totalCapitalRecovered += saleDetails["salePrice"];
       }
     }
   }

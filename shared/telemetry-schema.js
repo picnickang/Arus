@@ -33,7 +33,7 @@ const SENSOR_TYPES = {
   // Position/Motion sensors
   POSITION: "position",
   SPEED: "speed",
-  ACCELERATION: "acceleration"
+  ACCELERATION: "acceleration",
 };
 const SENSOR_VALIDATION_RANGES = {
   // Temperature ranges (Celsius)
@@ -69,7 +69,7 @@ const SENSOR_VALIDATION_RANGES = {
   // Motion ranges
   position: { min: -1e3, max: 1e3, unit: "mm" },
   speed: { min: 0, max: 100, unit: "km/h" },
-  acceleration: { min: -50, max: 50, unit: "m/s\xB2" }
+  acceleration: { min: -50, max: 50, unit: "m/s\xB2" },
 };
 const SENSOR_OPERATIONAL_RANGES = {
   temperature: { min: 10, max: 120 },
@@ -97,44 +97,54 @@ const SENSOR_OPERATIONAL_RANGES = {
   humidity: { min: 20, max: 80 },
   position: { min: -500, max: 500 },
   speed: { min: 0, max: 50 },
-  acceleration: { min: -10, max: 10 }
+  acceleration: { min: -10, max: 10 },
 };
-const telemetryPointSchema = z.object({
-  orgId: z.string().uuid("Invalid organization ID"),
-  equipmentId: z.string().uuid("Invalid equipment ID"),
-  sensorType: z.enum(Object.values(SENSOR_TYPES)),
-  value: z.number().finite("Value must be a finite number"),
-  unit: z.string().optional(),
-  timestamp: z.coerce.date()
-}).strict();
-const telemetryBatchSchema = z.object({
-  orgId: z.string().uuid("Invalid organization ID"),
-  data: z.array(telemetryPointSchema).min(1, "Batch must contain at least one data point").max(1e3, "Batch size exceeds maximum of 1000 points")
-}).strict().refine(
-  (batch) => {
-    return batch.data.every((point) => point.orgId === batch.orgId);
-  },
-  {
-    message: "All telemetry points must belong to the same organization as the batch",
-    path: ["data"]
-  }
-);
-const telemetryQuerySchema = z.object({
-  equipmentId: z.string().uuid().optional(),
-  sensorType: z.enum(Object.values(SENSOR_TYPES)).optional(),
-  startTime: z.coerce.date().optional(),
-  endTime: z.coerce.date().optional(),
-  limit: z.coerce.number().int().min(1).max(1e4).default(1e3),
-  offset: z.coerce.number().int().min(0).default(0)
-}).refine(
-  (data) => {
-    if (data.startTime && data.endTime) {
-      return data.startTime < data.endTime;
+const telemetryPointSchema = z
+  .object({
+    orgId: z.string().uuid("Invalid organization ID"),
+    equipmentId: z.string().uuid("Invalid equipment ID"),
+    sensorType: z.enum(Object.values(SENSOR_TYPES)),
+    value: z.number().finite("Value must be a finite number"),
+    unit: z.string().optional(),
+    timestamp: z.coerce.date(),
+  })
+  .strict();
+const telemetryBatchSchema = z
+  .object({
+    orgId: z.string().uuid("Invalid organization ID"),
+    data: z
+      .array(telemetryPointSchema)
+      .min(1, "Batch must contain at least one data point")
+      .max(1e3, "Batch size exceeds maximum of 1000 points"),
+  })
+  .strict()
+  .refine(
+    (batch) => {
+      return batch.data.every((point) => point.orgId === batch.orgId);
+    },
+    {
+      message: "All telemetry points must belong to the same organization as the batch",
+      path: ["data"],
     }
-    return true;
-  },
-  { message: "startTime must be before endTime" }
-);
+  );
+const telemetryQuerySchema = z
+  .object({
+    equipmentId: z.string().uuid().optional(),
+    sensorType: z.enum(Object.values(SENSOR_TYPES)).optional(),
+    startTime: z.coerce.date().optional(),
+    endTime: z.coerce.date().optional(),
+    limit: z.coerce.number().int().min(1).max(1e4).default(1e3),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .refine(
+    (data) => {
+      if (data.startTime && data.endTime) {
+        return data.startTime < data.endTime;
+      }
+      return true;
+    },
+    { message: "startTime must be before endTime" }
+  );
 var DataQualityIssue = /* @__PURE__ */ ((DataQualityIssue2) => {
   DataQualityIssue2["OUT_OF_VALIDATION_RANGE"] = "out_of_validation_range";
   DataQualityIssue2["OUT_OF_OPERATIONAL_RANGE"] = "out_of_operational_range";
@@ -155,7 +165,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "out_of_validation_range" /* OUT_OF_VALIDATION_RANGE */,
       severity: "critical",
       message: `Value ${point.value} is outside physical range [${validationRange.min}, ${validationRange.max}] ${validationRange.unit}`,
-      field: "value"
+      field: "value",
     });
     qualityScore -= 0.5;
   }
@@ -165,7 +175,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "out_of_operational_range" /* OUT_OF_OPERATIONAL_RANGE */,
       severity: "medium",
       message: `Value ${point.value} is outside typical operational range [${operationalRange.min}, ${operationalRange.max}]`,
-      field: "value"
+      field: "value",
     });
     qualityScore -= 0.2;
   }
@@ -174,7 +184,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "missing_unit" /* MISSING_UNIT */,
       severity: "low",
       message: "Unit is missing",
-      field: "unit"
+      field: "unit",
     });
     qualityScore -= 0.05;
   } else if (point.unit !== validationRange.unit) {
@@ -182,7 +192,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "sensor_type_mismatch" /* SENSOR_TYPE_MISMATCH */,
       severity: "medium",
       message: `Unit '${point.unit}' does not match expected '${validationRange.unit}'`,
-      field: "unit"
+      field: "unit",
     });
     qualityScore -= 0.1;
   }
@@ -193,7 +203,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "future_timestamp" /* FUTURE_TIMESTAMP */,
       severity: "high",
       message: `Timestamp is ${Math.round(timestampDiff / 6e4)} minutes in the future`,
-      field: "timestamp"
+      field: "timestamp",
     });
     qualityScore -= 0.3;
   }
@@ -202,7 +212,7 @@ function validateTelemetryQuality(point, previousPoint) {
       type: "stale_timestamp" /* STALE_TIMESTAMP */,
       severity: "medium",
       message: `Timestamp is more than 7 days old`,
-      field: "timestamp"
+      field: "timestamp",
     });
     qualityScore -= 0.15;
   }
@@ -238,14 +248,14 @@ function validateTelemetryQuality(point, previousPoint) {
         humidity: 10,
         position: 100,
         speed: 20,
-        acceleration: 100
+        acceleration: 100,
       };
       if (rateOfChange > maxRateOfChange[point.sensorType]) {
         issues.push({
           type: "rapid_change" /* RAPID_CHANGE */,
           severity: "medium",
           message: `Rapid change detected: ${rateOfChange.toFixed(2)} ${validationRange.unit}/s (max: ${maxRateOfChange[point.sensorType]})`,
-          field: "value"
+          field: "value",
         });
         qualityScore -= 0.1;
       }
@@ -255,7 +265,7 @@ function validateTelemetryQuality(point, previousPoint) {
         type: "duplicate_timestamp" /* DUPLICATE_TIMESTAMP */,
         severity: "low",
         message: "Duplicate timestamp detected",
-        field: "timestamp"
+        field: "timestamp",
       });
       qualityScore -= 0.05;
     }
@@ -269,8 +279,8 @@ function validateTelemetryQuality(point, previousPoint) {
     metadata: {
       validatedAt: /* @__PURE__ */ new Date(),
       sensorType: point.sensorType,
-      value: point.value
-    }
+      value: point.value,
+    },
   };
 }
 function validateTelemetryBatch(points) {
@@ -294,7 +304,7 @@ function validateTelemetryBatch(points) {
     overallQualityScore: points.length > 0 ? totalQualityScore / points.length : 0,
     validCount,
     invalidCount,
-    results
+    results,
   };
 }
 var telemetry_schema_default = {
@@ -306,7 +316,7 @@ var telemetry_schema_default = {
   telemetryQuerySchema,
   DataQualityIssue,
   validateTelemetryQuality,
-  validateTelemetryBatch
+  validateTelemetryBatch,
 };
 export {
   DataQualityIssue,
@@ -318,5 +328,5 @@ export {
   telemetryPointSchema,
   telemetryQuerySchema,
   validateTelemetryBatch,
-  validateTelemetryQuality
+  validateTelemetryQuality,
 };

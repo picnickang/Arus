@@ -210,8 +210,10 @@ export class AgentOrchestrator {
       // Non-critical
     }
 
-    logger.info(`[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
-        `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`);
+    logger.info(
+      `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
+        `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`
+    );
 
     return result;
   }
@@ -778,7 +780,9 @@ export class AgentOrchestrator {
   ): Promise<void> {
     try {
       const meta = (conversation.metadata as Record<string, unknown>) || {};
-      const existing = Array.isArray(meta['activatedTools']) ? (meta['activatedTools'] as string[]) : [];
+      const existing = Array.isArray(meta["activatedTools"])
+        ? (meta["activatedTools"] as string[])
+        : [];
       const merged = [...new Set([...existing, ...activatedTools])];
       await this.repo.conversations.update(conversation.id, {
         metadata: { ...meta, activatedTools: merged },

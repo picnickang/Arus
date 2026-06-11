@@ -60,16 +60,16 @@ const BATCH_SIZE = 10;
  *
  * Override via env: EMAIL_QUEUE_MAX_AGE_HOURS=48 (etc).
  */
-const MAX_QUEUE_AGE_HOURS = Number.parseInt(process.env['EMAIL_QUEUE_MAX_AGE_HOURS'] ?? "24", 10);
+const MAX_QUEUE_AGE_HOURS = Number.parseInt(process.env["EMAIL_QUEUE_MAX_AGE_HOURS"] ?? "24", 10);
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
 function createTransport() {
-  const host = process.env['SMTP_HOST'];
-  const port = Number.parseInt(process.env['SMTP_PORT'] ?? "587", 10);
-  const user = process.env['SMTP_USER'];
-  const pass = process.env['SMTP_PASS'];
-  const from = process.env['SMTP_FROM'] ?? "noreply@arus.io";
+  const host = process.env["SMTP_HOST"];
+  const port = Number.parseInt(process.env["SMTP_PORT"] ?? "587", 10);
+  const user = process.env["SMTP_USER"];
+  const pass = process.env["SMTP_PASS"];
+  const from = process.env["SMTP_FROM"] ?? "noreply@arus.io";
 
   if (!host || !user || !pass) {
     return null;

@@ -1,8 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
-import {
-  classifyOfflineEntityPath,
-  isQueueableMutationPath,
-} from "@shared/offline-queue-routes";
+import { classifyOfflineEntityPath, isQueueableMutationPath } from "@shared/offline-queue-routes";
 
 export type OperationType = "create" | "update" | "delete";
 export type EntityType =
@@ -34,11 +31,13 @@ export interface PendingOperation {
   lastModifiedAt?: string | undefined;
   clientMutationId?: string | undefined;
   conflictPaused?: boolean | undefined;
-  request?: {
-    method: string;
-    url: string;
-    contentType?: string | undefined;
-  } | undefined;
+  request?:
+    | {
+        method: string;
+        url: string;
+        contentType?: string | undefined;
+      }
+    | undefined;
 }
 
 export interface SyncConflict {
@@ -117,9 +116,10 @@ function generateId(): string {
 }
 
 export function generateClientMutationId(prefix = "client-mutation"): string {
-  const randomPart = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const randomPart =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   return `${prefix}:${randomPart}`;
 }
 
@@ -150,7 +150,7 @@ export async function queueOperation(
 ): Promise<string> {
   const db = await getDB();
 
-  const shouldDedupe = operationType !== "create" || payload['__allowOfflineCreateDedupe'] === true;
+  const shouldDedupe = operationType !== "create" || payload["__allowOfflineCreateDedupe"] === true;
 
   // Dedup lookup, cap check, and write share one readwrite transaction so two
   // concurrent queue calls for the same entity cannot both miss the lookup and
@@ -305,7 +305,9 @@ export async function resolveConflict(
 
 export async function getUnresolvedConflictOperationIds(): Promise<Set<string>> {
   const conflicts = await getConflicts();
-  return new Set(conflicts.filter((conflict) => !conflict.resolvedAt).map((conflict) => conflict.operationId));
+  return new Set(
+    conflicts.filter((conflict) => !conflict.resolvedAt).map((conflict) => conflict.operationId)
+  );
 }
 
 export async function clearResolvedConflicts(): Promise<void> {
@@ -436,7 +438,6 @@ export async function hasConflicts(): Promise<boolean> {
   return conflicts.some((c) => !c.resolvedAt);
 }
 
-
 const MUTATION_TO_OPERATION: Record<string, OperationType> = {
   POST: "create",
   PUT: "update",
@@ -465,15 +466,15 @@ export async function queueApiOperation(
   const operationType = MUTATION_TO_OPERATION[verb] || "update";
   const routeEntityId = (url.split("?")[0] ?? "").split("/").filter(Boolean).slice(-1)[0];
   const clientMutationId =
-    (payload?.['clientMutationId'] as string | undefined) ||
-    (payload?.['__clientMutationId'] as string | undefined) ||
+    (payload?.["clientMutationId"] as string | undefined) ||
+    (payload?.["__clientMutationId"] as string | undefined) ||
     (operationType === "create" ? generateClientMutationId(entityType) : undefined);
   const entityId =
     operationType === "create"
       ? `client:${clientMutationId}`
-      : (payload?.['id'] as string | undefined) ||
-        (payload?.['workOrderId'] as string | undefined) ||
-        (payload?.['equipmentId'] as string | undefined) ||
+      : (payload?.["id"] as string | undefined) ||
+        (payload?.["workOrderId"] as string | undefined) ||
+        (payload?.["equipmentId"] as string | undefined) ||
         routeEntityId ||
         "pending";
 

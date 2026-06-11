@@ -50,15 +50,31 @@ export const workOrders = pgTable(
     description: text("description"),
     estimatedHours: real("estimated_hours"),
     actualHours: real("actual_hours"),
-    estimatedCostPerHour: numeric("estimated_cost_per_hour", { precision: 12, scale: 2, mode: "number" }),
+    estimatedCostPerHour: numeric("estimated_cost_per_hour", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }),
     actualCostPerHour: numeric("actual_cost_per_hour", { precision: 12, scale: 2, mode: "number" }),
     estimatedDowntimeHours: real("estimated_downtime_hours"),
     actualDowntimeHours: real("actual_downtime_hours"),
-    totalPartsCost: numeric("total_parts_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
-    totalLaborCost: numeric("total_labor_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
+    totalPartsCost: numeric("total_parts_cost", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
+    totalLaborCost: numeric("total_labor_cost", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
     totalCost: numeric("total_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
     roi: real("roi"),
-    downtimeCostPerHour: numeric("downtime_cost_per_hour", { precision: 12, scale: 2, mode: "number" }),
+    downtimeCostPerHour: numeric("downtime_cost_per_hour", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }),
     affectsVesselDowntime: boolean("affects_vessel_downtime").default(false),
     vesselDowntimeStartedAt: timestamp("vessel_downtime_started_at", { mode: "date" }),
     assignedCrewId: varchar("assigned_crew_id"),
@@ -130,7 +146,11 @@ export const workOrderWorklogs = pgTable("work_order_worklogs", {
   durationMinutes: integer("duration_minutes"),
   description: text("description").notNull(),
   laborType: text("labor_type").notNull().default("standard"),
-  laborCostPerHour: numeric("labor_cost_per_hour", { precision: 12, scale: 2, mode: "number" }).default(75),
+  laborCostPerHour: numeric("labor_cost_per_hour", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  }).default(75),
   totalLaborCost: numeric("total_labor_cost", { precision: 12, scale: 2, mode: "number" }),
   status: text("status").notNull().default("in_progress"),
   notes: text("notes"),
@@ -280,8 +300,16 @@ export const workOrderCompletions = pgTable(
     actualStartDate: timestamp("actual_start_date", { mode: "date" }),
     actualEndDate: timestamp("actual_end_date", { mode: "date" }),
     totalCost: numeric("total_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
-    totalPartsCost: numeric("total_parts_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
-    totalLaborCost: numeric("total_labor_cost", { precision: 12, scale: 2, mode: "number" }).default(0),
+    totalPartsCost: numeric("total_parts_cost", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
+    totalLaborCost: numeric("total_labor_cost", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
     estimatedDowntimeHours: real("estimated_downtime_hours"),
     actualDowntimeHours: real("actual_downtime_hours"),
     affectsVesselDowntime: boolean("affects_vessel_downtime").default(false),
@@ -367,13 +395,12 @@ export const insertWorkOrderCompletionSchema = createInsertSchema(workOrderCompl
  * migration) cannot poison downstream consumers. Unknown extra keys
  * are passthrough'd — only the contract fields are guaranteed.
  */
-export const partsUsedEntrySchema = z
-  .object({
-    partId: z.string().min(1),
-    quantity: z.number().nonnegative(),
-    unitCost: z.number().nonnegative().optional(),
-    description: z.string().optional(),
-  });
+export const partsUsedEntrySchema = z.object({
+  partId: z.string().min(1),
+  quantity: z.number().nonnegative(),
+  unitCost: z.number().nonnegative().optional(),
+  description: z.string().optional(),
+});
 export const partsUsedSchema = z.array(partsUsedEntrySchema);
 export type PartsUsedEntry = z.infer<typeof partsUsedEntrySchema>;
 

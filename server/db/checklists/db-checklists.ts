@@ -92,7 +92,9 @@ export class DatabaseChecklistsStorage {
     template: InsertMaintenanceTemplate
   ): Promise<MaintenanceTemplate> {
     const [n] = await db.insert(maintenanceTemplates).values(template).returning();
-    if (!n) {throw new Error("createMaintenanceTemplate: no row returned");}
+    if (!n) {
+      throw new Error("createMaintenanceTemplate: no row returned");
+    }
     await recordAndPublish("maintenance_template", n.id, "create", n);
     return n;
   }
@@ -160,7 +162,9 @@ export class DatabaseChecklistsStorage {
           updatedAt: new Date(),
         })
         .returning();
-      if (!cloned) {throw new Error("cloneMaintenanceTemplate: clone insert returned no row");}
+      if (!cloned) {
+        throw new Error("cloneMaintenanceTemplate: clone insert returned no row");
+      }
       const oi = await tx
         .select()
         .from(maintenanceChecklistItems)
@@ -207,7 +211,9 @@ export class DatabaseChecklistsStorage {
     item: InsertMaintenanceChecklistItem
   ): Promise<MaintenanceChecklistItem> {
     const [n] = await db.insert(maintenanceChecklistItems).values(item).returning();
-    if (!n) {throw new Error("createMaintenanceChecklistItem: no row returned");}
+    if (!n) {
+      throw new Error("createMaintenanceChecklistItem: no row returned");
+    }
     await recordAndPublish("maintenance_checklist_item", n.id, "create", n);
     return n;
   }
@@ -291,7 +297,9 @@ export class DatabaseChecklistsStorage {
     completion: InsertMaintenanceChecklistCompletion
   ): Promise<MaintenanceChecklistCompletion> {
     const [n] = await db.insert(maintenanceChecklistCompletions).values(completion).returning();
-    if (!n) {throw new Error("createChecklistCompletion: no row returned");}
+    if (!n) {
+      throw new Error("createChecklistCompletion: no row returned");
+    }
     await recordAndPublish("maintenance_checklist_completion", n.id, "create", n);
     return n;
   }
@@ -521,7 +529,9 @@ export class DatabaseChecklistsStorage {
       .insert(workOrderTasks)
       .values({ id: randomUUID(), ...task, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("createWorkOrderTask: no row returned");}
+    if (!n) {
+      throw new Error("createWorkOrderTask: no row returned");
+    }
     return n;
   }
 
@@ -584,7 +594,9 @@ export class DatabaseChecklistsStorage {
       .insert(workOrderChecklists)
       .values({ id: randomUUID(), ...checklist, createdAt: new Date() } as never)
       .returning();
-    if (!n) {throw new Error("createWorkOrderChecklist: no row returned");}
+    if (!n) {
+      throw new Error("createWorkOrderChecklist: no row returned");
+    }
     return n;
   }
 
@@ -644,7 +656,9 @@ export class DatabaseChecklistsStorage {
       .insert(workOrderWorklogs)
       .values({ id: randomUUID(), ...worklog, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("createWorkOrderWorklog: no row returned");}
+    if (!n) {
+      throw new Error("createWorkOrderWorklog: no row returned");
+    }
     return n;
   }
 

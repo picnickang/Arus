@@ -66,7 +66,7 @@ for (const key of Object.keys(targetOpts)) {
 
 if (drift.length === 0) {
   console.log(
-    `[check-tsconfig-target] OK — tsconfig.json matches tsconfig.target.json on all ${Object.keys(targetOpts).length} tracked option(s).`,
+    `[check-tsconfig-target] OK — tsconfig.json matches tsconfig.target.json on all ${Object.keys(targetOpts).length} tracked option(s).`
   );
   process.exit(0);
 }
@@ -76,6 +76,6 @@ for (const { key, want, got } of drift) {
   console.error(`  - ${key}: live=${JSON.stringify(got)} target=${JSON.stringify(want)}`);
 }
 console.error(
-  `\n${drift.length} option(s) need to be reconciled (see tsconfig.target.json burndown notes).`,
+  `\n${drift.length} option(s) need to be reconciled (see tsconfig.target.json burndown notes).`
 );
 process.exit(1);

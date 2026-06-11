@@ -44,10 +44,7 @@ export function SummaryCards({ summary }: { summary?: CertSummary | undefined })
           <div className="flex items-center justify-between gap-1">
             <div>
               <p className="text-sm text-muted-foreground">Expiring Soon</p>
-              <p
-                className="text-2xl font-bold text-amber-600"
-                data-testid="text-summary-expiring"
-              >
+              <p className="text-2xl font-bold text-amber-600" data-testid="text-summary-expiring">
                 {summary?.expiringSoon ?? 0}
               </p>
             </div>

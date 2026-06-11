@@ -17,13 +17,13 @@
  */
 import { createRequire } from "node:module";
 
-const endpoint = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
+const endpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
 const enabled = Boolean(endpoint);
 
 // P2 #24 — Observability warn-once. Match instrument.ts for Sentry.
-if (!endpoint && process.env['NODE_ENV'] === "production") {
+if (!endpoint && process.env["NODE_ENV"] === "production") {
   console.warn(
-    "[otel] OTEL_EXPORTER_OTLP_ENDPOINT is not set in production — distributed tracing is DISABLED.",
+    "[otel] OTEL_EXPORTER_OTLP_ENDPOINT is not set in production — distributed tracing is DISABLED."
   );
 }
 
@@ -50,17 +50,19 @@ interface OTLPExporterModule {
 if (enabled && endpoint) {
   try {
     const { NodeSDK } = requireFromHere("@opentelemetry/sdk-node") as NodeSDKModule;
-    const { getNodeAutoInstrumentations } =
-      requireFromHere("@opentelemetry/auto-instrumentations-node") as AutoInstrumentationsModule;
-    const { OTLPTraceExporter } =
-      requireFromHere("@opentelemetry/exporter-trace-otlp-http") as OTLPExporterModule;
+    const { getNodeAutoInstrumentations } = requireFromHere(
+      "@opentelemetry/auto-instrumentations-node"
+    ) as AutoInstrumentationsModule;
+    const { OTLPTraceExporter } = requireFromHere(
+      "@opentelemetry/exporter-trace-otlp-http"
+    ) as OTLPExporterModule;
 
     const sdk = new NodeSDK({
-      serviceName: process.env['OTEL_SERVICE_NAME'] || "arus-server",
+      serviceName: process.env["OTEL_SERVICE_NAME"] || "arus-server",
       traceExporter: new OTLPTraceExporter({
         url: `${endpoint.replace(/\/$/, "")}/v1/traces`,
-        headers: process.env['OTEL_EXPORTER_OTLP_HEADERS']
-          ? parseHeaderEnv(process.env['OTEL_EXPORTER_OTLP_HEADERS'])
+        headers: process.env["OTEL_EXPORTER_OTLP_HEADERS"]
+          ? parseHeaderEnv(process.env["OTEL_EXPORTER_OTLP_HEADERS"])
           : undefined,
       }),
       instrumentations: [
@@ -75,15 +77,13 @@ if (enabled && endpoint) {
     started = true;
 
     process.on("SIGTERM", () => {
-      sdk
-        .shutdown()
-        .catch((e: unknown) => console.warn("[otel] shutdown failed:", e));
+      sdk.shutdown().catch((e: unknown) => console.warn("[otel] shutdown failed:", e));
     });
 
     // Defer logging to avoid yanking structured-logger before it's ready.
     queueMicrotask(() => {
       console.log(
-        `[otel] tracing enabled → ${endpoint} (service=${process.env['OTEL_SERVICE_NAME'] || "arus-server"})`,
+        `[otel] tracing enabled → ${endpoint} (service=${process.env["OTEL_SERVICE_NAME"] || "arus-server"})`
       );
     });
   } catch (err) {

@@ -22,9 +22,7 @@ export interface ITwinUpdateScheduler {
     orgId: string,
     twinId: string
   ): Promise<{ state: AssetTwinState; residuals: TwinResidual[] }>;
-  refreshAllActiveTwins(
-    orgId: string
-  ): Promise<{
+  refreshAllActiveTwins(orgId: string): Promise<{
     refreshed: number;
     failed: number;
     results: Array<{ twinId: string; success: boolean; error?: string }>;

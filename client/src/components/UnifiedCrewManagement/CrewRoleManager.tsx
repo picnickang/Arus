@@ -302,6 +302,9 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
     }
     const ordered = roles.map((r) => r.id);
     const [moved] = ordered.splice(index, 1);
+    if (!moved) {
+      return;
+    }
     ordered.splice(target, 0, moved);
     reorderMutation.mutate(ordered);
   };
@@ -521,7 +524,10 @@ export function CrewRoleManager({ canManage }: CrewRoleManagerProps) {
                         </button>
                       </div>
                     )}
-                    <span className="flex-1 text-sm text-slate-100" data-testid={`text-role-name-${role.id}`}>
+                    <span
+                      className="flex-1 text-sm text-slate-100"
+                      data-testid={`text-role-name-${role.id}`}
+                    >
                       {role.name}
                     </span>
                     <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-xs text-slate-400">

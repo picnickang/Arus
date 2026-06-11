@@ -26,20 +26,8 @@
  * effects against Postgres or AGE — pure middleware/route contract.
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import request from "supertest";
 
 const ORG_ID = "org-t136";
@@ -183,7 +171,7 @@ describe("Task #136 — PATCH /api/v1/equipment-dependencies/:id (notes editor)"
     });
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0].set).toMatchObject({ notes: "shared cooling loop" });
-    expect(updateCalls[0].set.updatedAt).toBeInstanceOf(Date);
+    expect(updateCalls[0].set["updatedAt"]).toBeInstanceOf(Date);
 
     // Notes mutation must NOT touch the graph projector — edges already exist.
     await flushMicrotasks();
@@ -295,9 +283,7 @@ describe("Task #136 — PATCH /api/v1/equipment-dependencies/:id (notes editor)"
   });
 
   it("rejects missing body / wrong type with 400", async () => {
-    const res = await request(adminApp)
-      .patch(`/api/v1/equipment-dependencies/${DEP_ID}`)
-      .send({}); // notes missing
+    const res = await request(adminApp).patch(`/api/v1/equipment-dependencies/${DEP_ID}`).send({}); // notes missing
 
     expect(res.status).toBe(400);
     expect(updateCalls).toHaveLength(0);
@@ -353,14 +339,12 @@ describe("Task #136 — dialog flows hit the documented routes", () => {
     // create payload the dialog sends).
     nextInsertReturn = [depRow({ id: NEW_ID, notes: null })];
 
-    const createRes = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-        notes: null,
-      });
+    const createRes = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+      notes: null,
+    });
 
     expect(createRes.status).toBe(201);
     expect(createRes.body.dependency.id).toBe(NEW_ID);
@@ -395,14 +379,12 @@ describe("Task #136 — dialog flows hit the documented routes", () => {
     const NEW_ID = "dep-skip-t136";
     nextInsertReturn = [depRow({ id: NEW_ID, notes: null })];
 
-    const createRes = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-        notes: null,
-      });
+    const createRes = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+      notes: null,
+    });
 
     expect(createRes.status).toBe(201);
     expect(createRes.body.dependency.notes).toBeNull();

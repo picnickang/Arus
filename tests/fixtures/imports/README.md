@@ -12,11 +12,11 @@ and `tests/integration/import-shipmate-golden.test.ts`. Two principles:
     `SHIPMATE-FIXT-` so they cannot collide with real vessel codes in
     any tenant's data.
 
-| File | Module | Purpose |
-|------|--------|---------|
-| `amos-equipment-valid.csv` | AMOS equipment | Happy-path import — 5 rows, hierarchical (pumps reference `ME-001`) |
-| `amos-equipment-malformed.csv` | AMOS equipment | Mixed valid/invalid — 3 broken rows (missing required `EQUIPMENT_NO` or `DESCRIPTION`) + 1 valid row |
-| `shipmate-equipment-valid.csv` | SHIPMATE pms_equipment | Happy-path with dot-notation hierarchy + DD/MM/YYYY dates |
+| File                               | Module                 | Purpose                                                                                                 |
+| ---------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `amos-equipment-valid.csv`         | AMOS equipment         | Happy-path import — 5 rows, hierarchical (pumps reference `ME-001`)                                     |
+| `amos-equipment-malformed.csv`     | AMOS equipment         | Mixed valid/invalid — 3 broken rows (missing required `EQUIPMENT_NO` or `DESCRIPTION`) + 1 valid row    |
+| `shipmate-equipment-valid.csv`     | SHIPMATE pms_equipment | Happy-path with dot-notation hierarchy + DD/MM/YYYY dates                                               |
 | `shipmate-equipment-malformed.csv` | SHIPMATE pms_equipment | Mixed valid/invalid — 3 broken rows (missing required `Component No` or `Component Name`) + 1 valid row |
 
 ## Idempotency-test contract

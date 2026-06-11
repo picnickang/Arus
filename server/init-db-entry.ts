@@ -5,7 +5,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 export async function initDb(dbPath?: string): Promise<void> {
-  const path = dbPath ?? process.env['DATABASE_PATH'] ?? "data/vessel-local.db";
+  const path = dbPath ?? process.env["DATABASE_PATH"] ?? "data/vessel-local.db";
 
   logger.info(`[ARUS] Initialising database: ${path}`);
   mkdirSync(dirname(path), { recursive: true });

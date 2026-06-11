@@ -39,14 +39,7 @@ interface UnifiedCrewManagementProps {
   accessReadinessEnabled?: boolean;
 }
 
-type RegistryView =
-  | "registry"
-  | "current"
-  | "former"
-  | "access"
-  | "safety"
-  | "tasks"
-  | "orgchart";
+type RegistryView = "registry" | "current" | "former" | "access" | "safety" | "tasks" | "orgchart";
 
 const TASK_URGENCY_RANK: Record<CrewAttentionItem["urgency"], number> = {
   critical: 0,
@@ -66,9 +59,7 @@ const URGENCY_RANK: Record<CrewAttentionItem["urgency"], number> = {
   notice: 2,
 };
 
-export function UnifiedCrewManagement({
-  accessReadinessEnabled,
-}: UnifiedCrewManagementProps = {}) {
+export function UnifiedCrewManagement({ accessReadinessEnabled }: UnifiedCrewManagementProps = {}) {
   const { canCreate, canExport, canEdit, canDelete, hasPermission } = usePermissions();
   const { hasAnyRole } = useRoleNames();
   const isAdmin = hasAnyRole(...ADMIN_ROLES);
@@ -80,12 +71,9 @@ export function UnifiedCrewManagement({
   const searchString = useSearch();
   const deepLinkTaskId = useMemo(
     () => new URLSearchParams(searchString).get("taskId"),
-    [searchString],
+    [searchString]
   );
-  const deepLinkView = useMemo(
-    () => new URLSearchParams(searchString).get("view"),
-    [searchString],
-  );
+  const deepLinkView = useMemo(() => new URLSearchParams(searchString).get("view"), [searchString]);
   const [view, setView] = useState<RegistryView>("registry");
   const [contactSectionOpen, setContactSectionOpen] = useState(false);
   const [crewFormInitialStep, setCrewFormInitialStep] = useState(0);
@@ -104,10 +92,14 @@ export function UnifiedCrewManagement({
   const { data: formerCrew = [], isLoading: formerLoading } = useFormerCrew();
 
   // Real compliance signals for the summary tiles + per-crew status pills.
-  const { data: certExpiry, isLoading: certLoading } =
-    useCertificationExpiryData({ daysAhead: 30 });
-  const { data: docExpiry, isLoading: docLoading, getDocumentTypeLabel } =
-    useDocumentExpiryData({ daysAhead: 30 });
+  const { data: certExpiry, isLoading: certLoading } = useCertificationExpiryData({
+    daysAhead: 30,
+  });
+  const {
+    data: docExpiry,
+    isLoading: docLoading,
+    getDocumentTypeLabel,
+  } = useDocumentExpiryData({ daysAhead: 30 });
 
   const expiryLoading = certLoading || docLoading;
   const expiryLoaded = !expiryLoading && (certExpiry !== undefined || docExpiry !== undefined);
@@ -144,7 +136,7 @@ export function UnifiedCrewManagement({
       label: getDocumentTypeLabel(doc.documentType),
       daysUntilExpiry: doc.daysUntilExpiry,
       urgency: doc.urgencyLevel,
-      href: "/compliance-consolidated",
+      href: "/logs/compliance",
     }));
     return [...certItems, ...docItems].sort((a, b) => {
       const byUrgency = URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
@@ -162,7 +154,9 @@ export function UnifiedCrewManagement({
 
   const taskCrewNames = useMemo(() => {
     const map = new Map<string, string>();
-    for (const c of d.crew) {map.set(c.id, c.name);}
+    for (const c of d.crew) {
+      map.set(c.id, c.name);
+    }
     return map;
   }, [d.crew]);
 
@@ -174,14 +168,12 @@ export function UnifiedCrewManagement({
       .filter((t) => isOverdue(t) || isBlocked(t))
       .map((t) => {
         const overdue = isOverdue(t);
-        const days = t.dueDate
-          ? Math.round((new Date(t.dueDate).getTime() - now) / dayMs)
-          : 0;
+        const days = t.dueDate ? Math.round((new Date(t.dueDate).getTime() - now) / dayMs) : 0;
         return {
           id: `task-${t.id}`,
           kind: "task" as const,
           crewName: t.assignedCrewId
-            ? taskCrewNames.get(t.assignedCrewId) ?? "Unassigned"
+            ? (taskCrewNames.get(t.assignedCrewId) ?? "Unassigned")
             : "Unassigned",
           label: t.title,
           daysUntilExpiry: days,
@@ -197,7 +189,7 @@ export function UnifiedCrewManagement({
         const byUrgency = TASK_URGENCY_RANK[a.urgency] - TASK_URGENCY_RANK[b.urgency];
         return byUrgency !== 0 ? byUrgency : a.daysUntilExpiry - b.daysUntilExpiry;
       }),
-    [attentionItems, taskAttention],
+    [attentionItems, taskAttention]
   );
 
   const attentionCount = combinedAttention.length;
@@ -309,7 +301,9 @@ export function UnifiedCrewManagement({
             initialTaskId={deepLinkTaskId}
             onOpenCrewProfile={(crewId) => {
               const member = d.crew.find((c) => c.id === crewId);
-              if (member) {d.handleViewProfile(member);}
+              if (member) {
+                d.handleViewProfile(member);
+              }
             }}
             onBack={() => setLocation("/crew-management")}
           />
@@ -329,7 +323,8 @@ export function UnifiedCrewManagement({
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Access readiness unavailable</AlertTitle>
                 <AlertDescription>
-                  Crew roster data is loaded, but login and dashboard readiness could not be checked.
+                  Crew roster data is loaded, but login and dashboard readiness could not be
+                  checked.
                 </AlertDescription>
               </Alert>
             )}
@@ -398,34 +393,40 @@ export function UnifiedCrewManagement({
             initialTab={d.profileInitialTab}
             reportsToName={
               d.viewingCrew.reportsToId
-                ? d.crew.find((c) => c.id === d.viewingCrew?.reportsToId)?.name ?? null
+                ? (d.crew.find((c) => c.id === d.viewingCrew?.reportsToId)?.name ?? null)
                 : null
             }
             canManage={perms.canManageCrew}
             onEdit={() => {
               const member = d.viewingCrew;
-              if (!member) {return;}
+              if (!member) {
+                return;
+              }
               setCrewFormInitialStep(0);
               d.closeProfileDialog();
               d.handleEditCrew(member);
             }}
             onAssign={() => {
               const member = d.viewingCrew;
-              if (!member) {return;}
+              if (!member) {
+                return;
+              }
               setCrewFormInitialStep(1);
               d.closeProfileDialog();
               d.handleEditCrew(member);
             }}
             onArchive={() => {
               const member = d.viewingCrew;
-              if (!member) {return;}
+              if (!member) {
+                return;
+              }
               d.closeProfileDialog();
               lifecycle.open(
                 "retire",
                 member.id,
                 member.name,
                 member.vesselId ? d.getVesselName(member.vesselId) : undefined,
-                member.contractPenalty,
+                member.contractPenalty
               );
             }}
           />

@@ -101,17 +101,30 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
   async updateType(
     orgId: string,
     id: string,
-    patch: UpdateAlarmTypeCommand,
+    patch: UpdateAlarmTypeCommand
   ): Promise<SafetyAlarmTypeEntity | undefined> {
     const updateValues: Partial<InsertSafetyAlarmType> = {};
-    if (patch.displayName !== undefined) {updateValues.displayName = patch.displayName;}
-    if (patch.description !== undefined) {updateValues.description = patch.description;}
-    if (patch.defaultSeverity !== undefined) {updateValues.defaultSeverity = patch.defaultSeverity;}
-    if (patch.icon !== undefined) {updateValues.icon = patch.icon;}
-    if (patch.color !== undefined) {updateValues.color = patch.color;}
-    if (patch.requiresAcknowledgement !== undefined)
-      {updateValues.requiresAcknowledgement = patch.requiresAcknowledgement;}
-    if (patch.isActive !== undefined) {updateValues.isActive = patch.isActive;}
+    if (patch.displayName !== undefined) {
+      updateValues.displayName = patch.displayName;
+    }
+    if (patch.description !== undefined) {
+      updateValues.description = patch.description;
+    }
+    if (patch.defaultSeverity !== undefined) {
+      updateValues.defaultSeverity = patch.defaultSeverity;
+    }
+    if (patch.icon !== undefined) {
+      updateValues.icon = patch.icon;
+    }
+    if (patch.color !== undefined) {
+      updateValues.color = patch.color;
+    }
+    if (patch.requiresAcknowledgement !== undefined) {
+      updateValues.requiresAcknowledgement = patch.requiresAcknowledgement;
+    }
+    if (patch.isActive !== undefined) {
+      updateValues.isActive = patch.isActive;
+    }
 
     const [updated] = await db
       .update(safetyAlarmTypes)
@@ -136,7 +149,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
     if (filters?.vesselId) {
       const vesselScope = or(
         eq(vesselSafetyAlarms.vesselId, filters.vesselId),
-        isNull(vesselSafetyAlarms.vesselId),
+        isNull(vesselSafetyAlarms.vesselId)
       );
       if (vesselScope) {
         conditions.push(vesselScope);
@@ -152,7 +165,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
 
   async findActiveAlarmsForScope(
     orgId: string,
-    scope: UserAlarmScope,
+    scope: UserAlarmScope
   ): Promise<SafetyAlarmWithAcks[]> {
     const conditions: SQL[] = [
       eq(vesselSafetyAlarms.orgId, orgId),
@@ -164,7 +177,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
       const scoped = scope.vesselIds.length
         ? or(
             isNull(vesselSafetyAlarms.vesselId),
-            inArray(vesselSafetyAlarms.vesselId, scope.vesselIds),
+            inArray(vesselSafetyAlarms.vesselId, scope.vesselIds)
           )
         : isNull(vesselSafetyAlarms.vesselId);
       if (scoped) {
@@ -215,7 +228,7 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
-    resolutionNote: string | undefined,
+    resolutionNote: string | undefined
   ): Promise<SafetyAlarmEntity | undefined> {
     const [updated] = await db
       .update(vesselSafetyAlarms)
@@ -231,8 +244,8 @@ export class SafetyAlarmRepositoryAdapter implements ISafetyAlarmRepository {
         and(
           eq(vesselSafetyAlarms.orgId, orgId),
           eq(vesselSafetyAlarms.id, id),
-          eq(vesselSafetyAlarms.status, "active"),
-        ),
+          eq(vesselSafetyAlarms.status, "active")
+        )
       )
       .returning();
     return updated ? this.mapAlarm(updated) : undefined;

@@ -6,8 +6,11 @@ import {
 } from "@shared/schema-runtime";
 import { maintenanceService } from "../service";
 import { stripUndefined } from "../../../lib/strip-undefined";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -34,6 +37,8 @@ const autoScheduleBodySchema = z.object({
 const templatesListQuerySchema = z.object({
   equipmentType: z.string().optional(),
   isActive: z.enum(["true", "false"]).optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 export function registerMaintenanceRoutes(
@@ -115,7 +120,9 @@ export function registerMaintenanceRoutes(
     withErrorHandling("update maintenance schedule", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const scheduleData = stripUndefined(insertMaintenanceScheduleSchema.partial().parse(req.body));
+      const scheduleData = stripUndefined(
+        insertMaintenanceScheduleSchema.partial().parse(req.body)
+      );
       const schedule = await maintenanceService.updateSchedule(
         id,
         scheduleData,
@@ -134,11 +141,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling("delete maintenance schedule", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      await maintenanceService.deleteSchedule(
-        id,
-        orgId,
-        authenticatedRequest(req).user?.id
-      );
+      await maintenanceService.deleteSchedule(id, orgId, authenticatedRequest(req).user?.id);
       sendDeleted(res);
     })
   );
@@ -173,14 +176,24 @@ export function registerMaintenanceRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch maintenance templates", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { equipmentType, isActive } = templatesListQuerySchema.parse(req.query);
+      const { equipmentType, isActive, limit, offset } = templatesListQuerySchema.parse(req.query);
 
       const templates = await maintenanceService.listTemplates(
         orgId,
         equipmentType,
         isActive === undefined ? undefined : isActive === "true"
       );
-      return res.json(templates);
+      // Optional safety cap with NO default: existing consumers (work-order
+      // form dropdown, hub views, integration journeys) rely on the full
+      // bare-array response. Sliced at the route layer rather than threading
+      // limit/offset through the repository port — the table is small and
+      // user-authored, so SQL pushdown isn't worth the extra surface.
+      const start = offset ?? 0;
+      const paginated =
+        limit !== undefined || offset !== undefined
+          ? templates.slice(start, start + (limit ?? templates.length))
+          : templates;
+      return res.json(paginated);
     })
   );
 
@@ -224,7 +237,9 @@ export function registerMaintenanceRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      const templateData = stripUndefined(insertMaintenanceTemplateSchema.partial().parse(req.body));
+      const templateData = stripUndefined(
+        insertMaintenanceTemplateSchema.partial().parse(req.body)
+      );
       const template = await maintenanceService.updateTemplate(
         id,
         templateData,
@@ -244,11 +259,7 @@ export function registerMaintenanceRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      await maintenanceService.deleteTemplate(
-        id,
-        orgId,
-        authenticatedRequest(req).user?.id
-      );
+      await maintenanceService.deleteTemplate(id, orgId, authenticatedRequest(req).user?.id);
       sendDeleted(res);
     })
   );

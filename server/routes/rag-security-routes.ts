@@ -87,8 +87,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   // must hold for the dev bypass to fire. A stray env in prod can't reopen
   // the gate. Read at request time so live env mutations are respected.
   const devBypassAllowed =
-    process.env['RBAC_DEV_NO_AUTH'] === "1" &&
-    process.env['NODE_ENV'] !== "production";
+    process.env["RBAC_DEV_NO_AUTH"] === "1" && process.env["NODE_ENV"] !== "production";
   if (devBypassAllowed && !session?.userId) {
     logger.warn(
       "RagSecurityRoutes",
@@ -249,8 +248,8 @@ export function registerRagSecurityRoutes(app: Express): void {
     withErrorHandling("get RAG audit logs", async (req: Request, res: Response) => {
       const { auditLogger } = getRagSecurityServices();
 
-      const limit = parseInt(req.query['limit'] as string) || 100;
-      const eventType = req.query['eventType'] as string;
+      const limit = parseInt(req.query["limit"] as string) || 100;
+      const eventType = req.query["eventType"] as string;
       const orgId = DEFAULT_ORG_ID;
 
       const events = auditLogger.getEvents({

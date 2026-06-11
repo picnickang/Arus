@@ -123,7 +123,7 @@ export async function executeTool(
   try {
     toolResult = await tool.execute(toolInput, toolContext);
 
-    if (tool.requiresApproval && (toolResult as Record<string, unknown>)['requiresApproval']) {
+    if (tool.requiresApproval && (toolResult as Record<string, unknown>)["requiresApproval"]) {
       toolResult = await handleDraftApproval(
         deps,
         tool,
@@ -156,7 +156,9 @@ export async function executeTool(
     },
     { orgId, userId }
   ).catch((err) => {
-    logger.warn("[Agent] Audit logging failed for tool call:", { details: err instanceof Error ? err.message : "unknown" });
+    logger.warn("[Agent] Audit logging failed for tool call:", {
+      details: err instanceof Error ? err.message : "unknown",
+    });
   });
 
   return { toolResult, toolStatus, toolError, durationMs };
@@ -184,8 +186,8 @@ export async function handleDraftApproval(
   const autoApprove = safety.shouldAutoApprove(tool.riskLevel, permissionTier, userRole);
 
   const resultData = toolResult;
-  const data = resultData['data'] as Record<string, unknown>;
-  const draftType = resultData['draftType'] as string;
+  const data = resultData["data"] as Record<string, unknown>;
+  const draftType = resultData["draftType"] as string;
 
   if (autoApprove) {
     const execResult = await executeDraftAction(draftType, data, orgId);
@@ -195,7 +197,7 @@ export async function handleDraftApproval(
         orgId,
         conversationId,
         draftType,
-        title: (data?.['title'] as string) || tool.name,
+        title: (data?.["title"] as string) || tool.name,
         data,
         status: "pending",
         createdById: userId,
@@ -213,7 +215,7 @@ export async function handleDraftApproval(
       orgId,
       conversationId,
       draftType,
-      title: (data?.['title'] as string) || tool.name,
+      title: (data?.["title"] as string) || tool.name,
       data,
       status: "approved",
       createdById: userId,
@@ -260,7 +262,7 @@ export async function handleDraftApproval(
     orgId,
     conversationId,
     draftType,
-    title: (data?.['title'] as string) || tool.name,
+    title: (data?.["title"] as string) || tool.name,
     data,
     status: "pending",
     createdById: userId,

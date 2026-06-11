@@ -21,7 +21,7 @@ export async function evaluateEngineMissingWatch(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const watchPeriods = (config['watchPeriods'] as string[]) || ["00-06", "06-12", "12-18", "18-24"];
+  const watchPeriods = (config["watchPeriods"] as string[]) || ["00-06", "06-12", "12-18", "18-24"];
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
@@ -56,7 +56,7 @@ export async function evaluateEngineOvertemp(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const maxExhaustTemp = (config['maxExhaustTemp'] as number) || 450;
+  const maxExhaustTemp = (config["maxExhaustTemp"] as number) || 450;
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
@@ -64,11 +64,15 @@ export async function evaluateEngineOvertemp(
   }
 
   const overTempEntries = engineLogComplete.hourly.filter(
-    (h) => (h as { meExhaustGasTemp?: number | null }).meExhaustGasTemp !== null && ((h as { meExhaustGasTemp?: number | null }).meExhaustGasTemp ?? 0) > maxExhaustTemp
+    (h) =>
+      (h as { meExhaustGasTemp?: number | null }).meExhaustGasTemp !== null &&
+      ((h as { meExhaustGasTemp?: number | null }).meExhaustGasTemp ?? 0) > maxExhaustTemp
   );
 
   if (overTempEntries.length > 0) {
-    const maxTemp = Math.max(...overTempEntries.map((h) => (h as object as { meExhaustGasTemp: number }).meExhaustGasTemp));
+    const maxTemp = Math.max(
+      ...overTempEntries.map((h) => (h as object as { meExhaustGasTemp: number }).meExhaustGasTemp)
+    );
     return {
       triggered: true,
       finding: {
@@ -93,7 +97,7 @@ export async function evaluateEngineOverload(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const maxLoad = (config['maxLoad'] as number) || 90;
+  const maxLoad = (config["maxLoad"] as number) || 90;
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
@@ -130,8 +134,8 @@ export async function evaluateLowFuel(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const minHfoRob = (config['minHfoRob'] as number) || 50;
-  const minMdoRob = (config['minMdoRob'] as number) || 20;
+  const minHfoRob = (config["minHfoRob"] as number) || 50;
+  const minMdoRob = (config["minMdoRob"] as number) || 20;
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
@@ -215,7 +219,7 @@ export async function evaluateEngineMissingHourly(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const minHourlyEntries = (config['minHourlyEntries'] as number) || 12;
+  const minHourlyEntries = (config["minHourlyEntries"] as number) || 12;
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
@@ -223,7 +227,8 @@ export async function evaluateEngineMissingHourly(
   }
 
   const validEntries = engineLogComplete.hourly.filter(
-    (h) => h.meRpm !== null || h.meLoad !== null || (h as { meFoTemp?: number | null }).meFoTemp !== null
+    (h) =>
+      h.meRpm !== null || h.meLoad !== null || (h as { meFoTemp?: number | null }).meFoTemp !== null
   );
 
   if (validEntries.length < minHourlyEntries) {
@@ -251,7 +256,7 @@ export async function evaluateBilgeHigh(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const maxBilgeLevel = (config['maxBilgeLevel'] as number) || 80;
+  const maxBilgeLevel = (config["maxBilgeLevel"] as number) || 80;
 
   const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {

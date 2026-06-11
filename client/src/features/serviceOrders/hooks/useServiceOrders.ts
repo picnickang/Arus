@@ -5,23 +5,23 @@ import type { ServiceOrder, SOFilters, SOEvent } from "../types";
 function normalizeFilters(filters: SOFilters = {}): Record<string, string | undefined> {
   const result: Record<string, string | undefined> = {};
   if (filters.status) {
-    result['status'] = filters.status;
+    result["status"] = filters.status;
   }
 
   if (filters.serviceProviderId) {
-    result['serviceProviderId'] = filters.serviceProviderId;
+    result["serviceProviderId"] = filters.serviceProviderId;
   }
 
   if (filters.workOrderId) {
-    result['workOrderId'] = filters.workOrderId;
+    result["workOrderId"] = filters.workOrderId;
   }
 
   if (filters.dateFrom) {
-    result['dateFrom'] = filters.dateFrom;
+    result["dateFrom"] = filters.dateFrom;
   }
 
   if (filters.dateTo) {
-    result['dateTo'] = filters.dateTo;
+    result["dateTo"] = filters.dateTo;
   }
   return result;
 }

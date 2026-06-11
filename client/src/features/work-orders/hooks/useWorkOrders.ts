@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { WorkOrderListItem as WorkOrder, WorkOrderPartRecord as WorkOrderPart, WorkOrderChecklist, WorkOrderWorklog } from "../types";
+import type {
+  WorkOrderListItem as WorkOrder,
+  WorkOrderPartRecord as WorkOrderPart,
+  WorkOrderChecklist,
+  WorkOrderWorklog,
+} from "../types";
 
 export const workOrderKeys = {
   all: ["/api/work-orders"] as const,
@@ -31,7 +36,8 @@ export function useWorkOrders(filters?: {
 
   return useQuery<WorkOrder[]>({
     queryKey: [...workOrderKeys.list(), filterKey],
-    queryFn: () => apiRequest<WorkOrder[]>("GET", `/api/work-orders${queryString ? `?${queryString}` : ""}`),
+    queryFn: () =>
+      apiRequest<WorkOrder[]>("GET", `/api/work-orders${queryString ? `?${queryString}` : ""}`),
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
@@ -56,7 +62,8 @@ export function useWorkOrderParts(workOrderId: string | undefined) {
 export function useWorkOrderChecklists(workOrderId: string | undefined) {
   return useQuery<WorkOrderChecklist[]>({
     queryKey: workOrderKeys.checklists(workOrderId || ""),
-    queryFn: () => apiRequest<WorkOrderChecklist[]>("GET", `/api/work-orders/${workOrderId}/checklists`),
+    queryFn: () =>
+      apiRequest<WorkOrderChecklist[]>("GET", `/api/work-orders/${workOrderId}/checklists`),
     enabled: !!workOrderId,
   });
 }
@@ -64,7 +71,8 @@ export function useWorkOrderChecklists(workOrderId: string | undefined) {
 export function useWorkOrderWorklogs(workOrderId: string | undefined) {
   return useQuery<WorkOrderWorklog[]>({
     queryKey: workOrderKeys.worklogs(workOrderId || ""),
-    queryFn: () => apiRequest<WorkOrderWorklog[]>("GET", `/api/work-orders/${workOrderId}/worklogs`),
+    queryFn: () =>
+      apiRequest<WorkOrderWorklog[]>("GET", `/api/work-orders/${workOrderId}/worklogs`),
     enabled: !!workOrderId,
   });
 }

@@ -1,14 +1,7 @@
 import type { EventPublisherPort } from "../domain/ports";
 import type { Vessel } from "../domain/types";
-import {
-  recordAndPublish,
-  type EntityType,
-  type OperationType,
-} from "../../../sync-events";
-import {
-  mqttReliableSync,
-  type DataChangeOperation,
-} from "../../../mqtt-reliable-sync";
+import { recordAndPublish, type EntityType, type OperationType } from "../../../sync-events";
+import { mqttReliableSync, type DataChangeOperation } from "../../../mqtt-reliable-sync";
 import { logger } from "../../../utils/logger.js";
 
 /**
@@ -23,26 +16,16 @@ export class EventPublisherAdapter implements EventPublisherPort {
     entityId: string,
     action: string,
     data: Record<string, unknown>,
-    userId?: string,
+    userId?: string
   ): Promise<void> {
-    await recordAndPublish(
-      entity as EntityType,
-      entityId,
-      action as OperationType,
-      data,
-      userId,
-    );
+    await recordAndPublish(entity as EntityType, entityId, action as OperationType, data, userId);
   }
 
   publishVesselMqtt(action: string, vessel: Vessel | { id: string }): void {
     mqttReliableSync
       .publishVesselChange(action as DataChangeOperation, vessel)
       .catch((err: unknown) => {
-        logger.error(
-          "FleetRegistry",
-          `Failed to publish vessel ${action} to MQTT`,
-          err,
-        );
+        logger.error("FleetRegistry", `Failed to publish vessel ${action} to MQTT`, err);
       });
   }
 }

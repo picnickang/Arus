@@ -57,7 +57,9 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
     shape = Math.max(0.1, Math.min(10, newShape));
 
     if (Math.abs(shape - oldShape) < 1e-6) {
-      logger.info(`[Weibull MLE] Converged after ${iteration + 1} iterations: β=${shape.toFixed(4)}`);
+      logger.info(
+        `[Weibull MLE] Converged after ${iteration + 1} iterations: β=${shape.toFixed(4)}`
+      );
       break;
     }
 
@@ -70,7 +72,9 @@ export function estimateWeibullParameters(lifeData: EquipmentLifeData[]): Weibul
 
   const rsquared = calculateWeibullGoodnessOfFit(failureTimes, shape, scale, location);
 
-  logger.info(`[Weibull RUL] Estimated parameters: β=${shape.toFixed(2)}, η=${scale.toFixed(1)}h, γ=${location.toFixed(1)}h, R²=${rsquared.toFixed(3)}`);
+  logger.info(
+    `[Weibull RUL] Estimated parameters: β=${shape.toFixed(2)}, η=${scale.toFixed(1)}h, γ=${location.toFixed(1)}h, R²=${rsquared.toFixed(3)}`
+  );
 
   return {
     shape,
@@ -119,7 +123,9 @@ export function calculateWeibullGoodnessOfFit(
 
   for (let i = 0; i < n; i++) {
     const ft = failureTimes[i];
-    if (ft === undefined) {continue;}
+    if (ft === undefined) {
+      continue;
+    }
     const rank = (i + 1) / (n + 1);
     const observedX = Math.log(Math.log(1 / (1 - rank)));
     const theoreticalY = Math.log(Math.max(0.01, ft - location)) - Math.log(scale);

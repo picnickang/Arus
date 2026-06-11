@@ -75,9 +75,7 @@ class VesselService {
   async deleteDrydockWindow(id: string, orgId: string): Promise<void> {
     return dbVesselStorage.deleteDrydockWindow(id, orgId);
   }
-  async getVesselFleetOverview(
-    orgId?: string
-  ): Promise<{
+  async getVesselFleetOverview(orgId?: string): Promise<{
     vessels: number;
     signalsMapped: number;
     signalsDiscovered: number;

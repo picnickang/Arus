@@ -84,8 +84,7 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: (error: unknown) =>
-      (error as { message?: string })?.message || "Training failed",
+    errorMessage: (error: unknown) => (error as { message?: string })?.message || "Training failed",
     onSuccess: () => {
       refetchModels();
     },
@@ -105,8 +104,7 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"]],
     successMessage: (data: TrainingResult) =>
       `Model trained successfully with ${(data.metrics.accuracy * 100).toFixed(1)}% accuracy`,
-    errorMessage: (error: unknown) =>
-      (error as { message?: string })?.message || "Training failed",
+    errorMessage: (error: unknown) => (error as { message?: string })?.message || "Training failed",
     onSuccess: () => {
       refetchModels();
     },
@@ -127,8 +125,7 @@ export function useTrainingData() {
     },
     successMessage: (data: AcousticAnalysisResult) =>
       `Health score: ${data.healthScore?.toFixed(0)}% - ${data.severity} severity`,
-    errorMessage: (error: unknown) =>
-      (error as { message?: string })?.message || "Analysis failed",
+    errorMessage: (error: unknown) => (error as { message?: string })?.message || "Analysis failed",
     onSuccess: (data) => {
       setAcousticResults(data);
     },
@@ -144,8 +141,7 @@ export function useTrainingData() {
     invalidateKeys: [["/api/analytics/ml-models"], ["/api/equipment"]],
     successMessage: (data: ResetResult) =>
       `Reset complete: ${data.deleted.telemetryRecords} telemetry records, ${data.deleted.predictions} predictions, ${data.deleted.anomalies} anomalies deleted`,
-    errorMessage: (error: unknown) =>
-      (error as { message?: string })?.message || "Reset failed",
+    errorMessage: (error: unknown) => (error as { message?: string })?.message || "Reset failed",
     onSuccess: () => {
       refetchModels();
     },
@@ -158,14 +154,21 @@ export function useTrainingData() {
     const sequenceLength = Number.parseInt(
       (document.getElementById("lstm-sequence") as HTMLInputElement)?.value || "10"
     );
-    trainLSTM.mutate({ ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }), epochs, sequenceLength });
+    trainLSTM.mutate({
+      ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }),
+      epochs,
+      sequenceLength,
+    });
   };
 
   const handleTrainRandomForest = () => {
     const numTrees = Number.parseInt(
       (document.getElementById("rf-trees") as HTMLInputElement)?.value || "50"
     );
-    trainRandomForest.mutate({ ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }), numTrees });
+    trainRandomForest.mutate({
+      ...(selectedEquipmentType && { equipmentType: selectedEquipmentType }),
+      numTrees,
+    });
   };
 
   const exportData = (
@@ -222,7 +225,9 @@ export function useTrainingData() {
       },
     };
     const exp = exports[type];
-    if (!exp) {return;}
+    if (!exp) {
+      return;
+    }
     globalThis.open(exp.url, "_blank");
     toast({ title: exp.title, description: exp.desc });
   };

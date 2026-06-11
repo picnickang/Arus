@@ -218,24 +218,28 @@ export default function PerformanceTab() {
                       validatedPredictions?: number;
                     };
                     return (
-                    <TableRow key={model.modelId} data-testid={`row-model-${index}`}>
-                      <TableCell className="font-medium">
-                        {model.modelName || model.modelId}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getFriendlyModelName(model.modelType ?? "")}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{model.totalPredictions}</TableCell>
-                      <TableCell className="text-right">{model.validatedPredictions}</TableCell>
-                      <TableCell className="text-right">
-                        <AccuracyBadge accuracy={model.avgAccuracy} />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {model.lastValidation
-                          ? formatDistanceToNow(new Date(model.lastValidation), { addSuffix: true })
-                          : "Never"}
-                      </TableCell>
-                    </TableRow>
+                      <TableRow key={model.modelId} data-testid={`row-model-${index}`}>
+                        <TableCell className="font-medium">
+                          {model.modelName || model.modelId}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {getFriendlyModelName(model.modelType ?? "")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{model.totalPredictions}</TableCell>
+                        <TableCell className="text-right">{model.validatedPredictions}</TableCell>
+                        <TableCell className="text-right">
+                          <AccuracyBadge accuracy={model.avgAccuracy} />
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {model.lastValidation
+                            ? formatDistanceToNow(new Date(model.lastValidation), {
+                                addSuffix: true,
+                              })
+                            : "Never"}
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>
@@ -706,7 +710,9 @@ function ExplainabilitySection() {
             explanationLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : explanation ? (
-              <ExplainabilityVisualization data={explanation as Parameters<typeof ExplainabilityVisualization>[0]["data"]} />
+              <ExplainabilityVisualization
+                data={explanation as Parameters<typeof ExplainabilityVisualization>[0]["data"]}
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground border rounded-lg">
                 <p>No explanation data available for this prediction</p>

@@ -173,7 +173,7 @@ export function determinePriority(
 ): "low" | "medium" | "high" | "critical" {
   const criticalOrders = workOrders.filter((wo) => wo.priority <= 1).length;
   const urgentOrders = workOrders.filter((wo) => wo.priority === 2).length;
-  const criticalAlerts = alerts.filter((a) => a['severity'] === "critical").length;
+  const criticalAlerts = alerts.filter((a) => a["severity"] === "critical").length;
 
   if (criticalOrders > 0 || criticalAlerts > 2) {
     return "critical";

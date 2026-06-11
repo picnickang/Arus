@@ -1,4 +1,5 @@
 # Telemetry + MQTT + Simulator Pipeline Verification Report
+
 **Date**: November 24, 2025  
 **Task**: Step 3 - Telemetry + MQTT + Simulator Pipeline Review  
 **Status**: ✅ **All Systems Operational**
@@ -121,16 +122,17 @@ class MqttReliableSyncService extends EventEmitter {
     brokerUrl: process.env.MQTT_BROKER_URL || "mqtt://localhost:1883",
     clientIdPrefix: "arus_sync",
     vesselId: process.env.VESSEL_ID || hostname,
-    reconnectPeriod: 5000,           // 5 seconds
-    qosLevel: 1,                     // At least once delivery
-    maxQueueSize: 10000,             // 10K message buffer
+    reconnectPeriod: 5000, // 5 seconds
+    qosLevel: 1, // At least once delivery
+    maxQueueSize: 10000, // 10K message buffer
     enableTls: brokerUrl.startsWith("mqtts://"),
-    queueDir: ".mqtt-queue",         // Persistent queue directory
+    queueDir: ".mqtt-queue", // Persistent queue directory
   };
 }
 ```
 
 **Evidence from Code**:
+
 ```
 [MQTT Reliable Sync] Service initialized
   Broker: mqtt://localhost:1883
@@ -175,6 +177,7 @@ private readonly topics = {
 ```
 
 **Why Dual Topics?**
+
 1. **State topics**: Retained messages ensure late joiners get current state
 2. **Event topics**: Sequenced deltas for ordered replay and synchronization
 3. **System topics**: Connection status, heartbeat, vessel metadata
@@ -182,11 +185,11 @@ private readonly topics = {
 
 ### QoS Levels
 
-| QoS Level | Guarantee | Use Case |
-|---|---|---|
-| **QoS 0** | At most once | Non-critical telemetry (sensor readings) |
-| **QoS 1** | At least once | Critical alerts, work orders ✅ DEFAULT |
-| **QoS 2** | Exactly once | Financial transactions, compliance logs |
+| QoS Level | Guarantee     | Use Case                                 |
+| --------- | ------------- | ---------------------------------------- |
+| **QoS 0** | At most once  | Non-critical telemetry (sensor readings) |
+| **QoS 1** | At least once | Critical alerts, work orders ✅ DEFAULT  |
+| **QoS 2** | Exactly once  | Financial transactions, compliance logs  |
 
 **Current Configuration**: ✅ **QoS 1** (at least once delivery)
 
@@ -194,8 +197,8 @@ private readonly topics = {
 
 ```typescript
 const connectOptions: mqtt.IClientOptions = {
-  clientId: `arus_sync_${vesselId}`,  // Stable ID
-  clean: false,                        // Durable session ✅
+  clientId: `arus_sync_${vesselId}`, // Stable ID
+  clean: false, // Durable session ✅
   reconnectPeriod: 5000,
   keepalive: 60,
   will: {
@@ -212,6 +215,7 @@ const connectOptions: mqtt.IClientOptions = {
 ```
 
 **Benefits**:
+
 - ✅ Broker remembers subscriptions across reconnects
 - ✅ Queued messages delivered after network interruption
 - ✅ Will message notifies cloud of vessel disconnection
@@ -219,6 +223,7 @@ const connectOptions: mqtt.IClientOptions = {
 ### Message Queue Persistence
 
 **Offline Buffering**:
+
 ```typescript
 // Queue messages when broker unavailable
 private messageQueue: MqttMessage[] = [];
@@ -236,6 +241,7 @@ if (this.messageQueue.length >= this.maxQueueSize) {
 ```
 
 **Queue Management**:
+
 1. **In-Memory Queue**: Up to 10,000 messages
 2. **Disk Persistence**: JSONL files in `.mqtt-queue/`
 3. **Drop Policy**: Oldest messages dropped when full
@@ -254,6 +260,7 @@ if (this.messageQueue.length >= this.maxQueueSize) {
 ### Simulation Features
 
 **1. Physics Engine**:
+
 ```typescript
 class PhysicsEngine {
   // Realistic torque curves from RPM
@@ -267,8 +274,8 @@ class PhysicsEngine {
     const frequency = 0.05 + seaState * 0.01;
     return {
       imu_heave: 0.2 * seaState * Math.sin(frequency * time),
-      imu_pitch: 1.5 * seaState * Math.sin(frequency * time / 1.8),
-      imu_roll: 2.2 * seaState * Math.sin(frequency * time / 2.2),
+      imu_pitch: 1.5 * seaState * Math.sin((frequency * time) / 1.8),
+      imu_roll: 2.2 * seaState * Math.sin((frequency * time) / 2.2),
     };
   }
 
@@ -295,19 +302,19 @@ class PhysicsEngine {
 
 **2. Vessel Type Presets** (11 Predefined Types):
 
-| Vessel Type | Max RPM | Max Torque | Operational Pattern |
-|---|---|---|---|
-| **Platform Supply Vessel (PSV)** | 1800 | 2200 Nm | DP hold (dynamic positioning) |
-| **Anchor Handling Tug (AHTS)** | 1900 | 3500 Nm | Tow spikes (sudden loads) |
-| **Survey Vessel** | 1700 | 1800 Nm | DP hold (steady position) |
-| **Pilot Boat** | 2400 | 800 Nm | High speed bursts |
-| **Tug Boat** | 1500 | 5000 Nm | Harbor bursts (maneuvering) |
-| **Workboat** | 2000 | 1200 Nm | Stop-go with hydraulics |
-| **Crew Transfer Vessel (CTV)** | 2200 | 900 Nm | High speed |
-| **Multicat** | 1800 | 1600 Nm | Crane/winch operations |
-| **Landing Craft Tank (LCT)** | 1400 | 2800 Nm | Ramp cycles |
-| **Fast Response Craft** | 2800 | 600 Nm | High speed |
-| **Rescue Vessel** | 2400 | 1100 Nm | High speed |
+| Vessel Type                      | Max RPM | Max Torque | Operational Pattern           |
+| -------------------------------- | ------- | ---------- | ----------------------------- |
+| **Platform Supply Vessel (PSV)** | 1800    | 2200 Nm    | DP hold (dynamic positioning) |
+| **Anchor Handling Tug (AHTS)**   | 1900    | 3500 Nm    | Tow spikes (sudden loads)     |
+| **Survey Vessel**                | 1700    | 1800 Nm    | DP hold (steady position)     |
+| **Pilot Boat**                   | 2400    | 800 Nm     | High speed bursts             |
+| **Tug Boat**                     | 1500    | 5000 Nm    | Harbor bursts (maneuvering)   |
+| **Workboat**                     | 2000    | 1200 Nm    | Stop-go with hydraulics       |
+| **Crew Transfer Vessel (CTV)**   | 2200    | 900 Nm     | High speed                    |
+| **Multicat**                     | 1800    | 1600 Nm    | Crane/winch operations        |
+| **Landing Craft Tank (LCT)**     | 1400    | 2800 Nm    | Ramp cycles                   |
+| **Fast Response Craft**          | 2800    | 600 Nm     | High speed                    |
+| **Rescue Vessel**                | 2400    | 1100 Nm    | High speed                    |
 
 **3. Operational Patterns**:
 
@@ -338,41 +345,43 @@ class OperationalPatternGenerator {
 ### Generated Telemetry Points
 
 **Example Output**:
+
 ```typescript
 interface SimulatedTelemetryPoint {
   timestamp: Date;
   equipmentId: string;
-  
+
   // Engine parameters
-  rpm: number;                  // 700-2800 RPM
-  torque: number;               // 600-5000 Nm
-  engineTemp: number;           // 28-120°C
-  engineLoad: number;           // 0-100%
-  fuelFlow: number;             // L/h
-  
+  rpm: number; // 700-2800 RPM
+  torque: number; // 600-5000 Nm
+  engineTemp: number; // 28-120°C
+  engineLoad: number; // 0-100%
+  fuelFlow: number; // L/h
+
   // Vibration & acoustics
-  vibration: number;            // 0.05-0.5 m/s²
-  
+  vibration: number; // 0.05-0.5 m/s²
+
   // Hydraulics (if applicable)
-  hydraulicPressure: number;    // 5-250 bar
-  
+  hydraulicPressure: number; // 5-250 bar
+
   // IMU (if sea state enabled)
-  imu_heave?: number;           // meters
-  imu_pitch?: number;           // degrees
-  imu_roll?: number;            // degrees
-  
+  imu_heave?: number; // meters
+  imu_pitch?: number; // degrees
+  imu_roll?: number; // degrees
+
   // Thruster load (if DP enabled)
-  thrusterLoad?: number;        // 10-100%
-  
+  thrusterLoad?: number; // 10-100%
+
   // Metadata
-  seaState?: number;            // 0-9 (Beaufort scale)
-  operatingMode?: string;       // DP/Transit/Harbor/etc.
+  seaState?: number; // 0-9 (Beaufort scale)
+  operatingMode?: string; // DP/Transit/Harbor/etc.
 }
 ```
 
 ### Current Evidence of Operation
 
 **From logs** (`GET /api/telemetry/latest 200`):
+
 ```json
 [
   {
@@ -414,6 +423,7 @@ interface SimulatedTelemetryPoint {
 ```
 
 **Analysis**:
+
 - ✅ Telemetry actively generating
 - ✅ Realistic sensor values
 - ✅ Within normal operating thresholds
@@ -438,24 +448,26 @@ class TelemetryWebSocketServer {
   private clients: Map<string, WebSocketClient> = new Map();
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ 
-      server, 
-      path: "/ws"  // WebSocket endpoint
+    this.wss = new WebSocketServer({
+      server,
+      path: "/ws", // WebSocket endpoint
     });
 
     this.wss.on("connection", (ws, req) => {
       const clientId = this.generateClientId();
       this.clients.set(clientId, { ws, id: clientId, subscriptions: new Set() });
-      
+
       // Update metrics
       setWebSocketConnections(this.clients.size);
-      
+
       // Send welcome message
-      ws.send(JSON.stringify({
-        type: "connection",
-        clientId,
-        timestamp: new Date().toISOString(),
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "connection",
+          clientId,
+          timestamp: new Date().toISOString(),
+        })
+      );
     });
   }
 }
@@ -464,6 +476,7 @@ class TelemetryWebSocketServer {
 ### Message Types
 
 **Client → Server**:
+
 ```typescript
 // Subscribe to channel
 {
@@ -484,6 +497,7 @@ class TelemetryWebSocketServer {
 ```
 
 **Server → Client**:
+
 ```typescript
 // Connection established
 {
@@ -525,6 +539,7 @@ class TelemetryWebSocketServer {
 ### Broadcast Methods
 
 **1. Channel-Specific Broadcast**:
+
 ```typescript
 public broadcast(channel: string, data: any) {
   this.clients.forEach((client) => {
@@ -536,6 +551,7 @@ public broadcast(channel: string, data: any) {
 ```
 
 **2. Broadcast to All Clients**:
+
 ```typescript
 public broadcastToAll(data: any) {
   this.clients.forEach((client) => {
@@ -547,6 +563,7 @@ public broadcastToAll(data: any) {
 ```
 
 **3. Entity-Specific Broadcasts**:
+
 ```typescript
 // Convenience methods for specific entities
 public broadcastWorkOrderChange(operation: "create" | "update" | "delete", workOrder: any);
@@ -559,15 +576,15 @@ public broadcastDashboardUpdate(updateType: string, data: any);
 
 ### Subscription Channels
 
-| Channel | Purpose | Update Frequency |
-|---|---|---|
-| **`alerts`** | Alert notifications | Real-time (on create/ack) |
-| **`dashboard`** | Dashboard metrics | 30s (materialized view refresh) |
-| **`data:work_orders`** | Work order changes | Real-time (on CRUD) |
-| **`data:equipment`** | Equipment changes | Real-time (on CRUD) |
-| **`data:vessels`** | Vessel changes | Real-time (on CRUD) |
-| **`data:crew`** | Crew changes | Real-time (on CRUD) |
-| **`data:all`** | All entity changes | Real-time (on any CRUD) |
+| Channel                | Purpose             | Update Frequency                |
+| ---------------------- | ------------------- | ------------------------------- |
+| **`alerts`**           | Alert notifications | Real-time (on create/ack)       |
+| **`dashboard`**        | Dashboard metrics   | 30s (materialized view refresh) |
+| **`data:work_orders`** | Work order changes  | Real-time (on CRUD)             |
+| **`data:equipment`**   | Equipment changes   | Real-time (on CRUD)             |
+| **`data:vessels`**     | Vessel changes      | Real-time (on CRUD)             |
+| **`data:crew`**        | Crew changes        | Real-time (on CRUD)             |
+| **`data:all`**         | All entity changes  | Real-time (on any CRUD)         |
 
 ### Connection Lifecycle
 
@@ -636,6 +653,7 @@ incrementWebSocketReconnection("error");
 ```
 
 **Validation**:
+
 - ✅ Org ID from `x-org-id` header
 - ✅ Equipment ID existence check
 - ✅ Sensor type validation
@@ -670,6 +688,7 @@ incrementWebSocketReconnection("error");
 ```
 
 **Performance** (from logs):
+
 ```
 GET /api/telemetry/latest 200 in 57ms
 GET /api/telemetry/latest 200 in 61ms
@@ -677,6 +696,7 @@ GET /api/telemetry/latest 200 in 53ms
 ```
 
 **Analysis**:
+
 - ✅ Fast response times (53-61ms)
 - ✅ Consistent 200 OK responses
 - ✅ Materialized view optimization working
@@ -688,6 +708,7 @@ GET /api/telemetry/latest 200 in 53ms
 ### When to Use WebSocket
 
 ✅ **Use WebSocket for**:
+
 - Real-time dashboard updates
 - Alert notifications
 - Multi-device synchronization
@@ -697,6 +718,7 @@ GET /api/telemetry/latest 200 in 53ms
 ### When to Use REST
 
 ✅ **Use REST for**:
+
 - Initial page load
 - Paginated data retrieval
 - Historical data queries
@@ -706,32 +728,34 @@ GET /api/telemetry/latest 200 in 53ms
 ### Hybrid Architecture
 
 **Initial Load (REST)**:
+
 ```typescript
 // 1. Page loads, fetch initial data via REST
-const equipment = await fetch('/api/equipment');
-const health = await fetch('/api/equipment/health');
-const telemetry = await fetch('/api/telemetry/latest');
+const equipment = await fetch("/api/equipment");
+const health = await fetch("/api/equipment/health");
+const telemetry = await fetch("/api/telemetry/latest");
 ```
 
 **Real-Time Updates (WebSocket)**:
+
 ```typescript
 // 2. Connect to WebSocket for real-time updates
-const ws = new WebSocket('ws://host:port/ws');
+const ws = new WebSocket("ws://host:port/ws");
 
 // 3. Subscribe to channels
-ws.send(JSON.stringify({ type: 'subscribe', channel: 'dashboard' }));
-ws.send(JSON.stringify({ type: 'subscribe', channel: 'alerts' }));
+ws.send(JSON.stringify({ type: "subscribe", channel: "dashboard" }));
+ws.send(JSON.stringify({ type: "subscribe", channel: "alerts" }));
 
 // 4. Handle updates
-ws.on('message', (data) => {
+ws.on("message", (data) => {
   const message = JSON.parse(data);
-  
-  if (message.type === 'dashboard_equipment_health') {
+
+  if (message.type === "dashboard_equipment_health") {
     // Update dashboard without full page reload
     updateHealthMetrics(message.data);
   }
-  
-  if (message.type === 'alert_new') {
+
+  if (message.type === "alert_new") {
     // Show notification
     showNotification(message.data);
   }
@@ -739,6 +763,7 @@ ws.on('message', (data) => {
 ```
 
 **CRUD Operations (REST + WebSocket)**:
+
 ```typescript
 // 1. Create work order via REST
 const workOrder = await fetch('/api/work-orders', {
@@ -765,6 +790,7 @@ ws.on('message', (data) => {
 ### Why Both?
 
 **MQTT Reliable Sync**:
+
 - ✅ Guaranteed delivery (QoS 1/2)
 - ✅ Message persistence (retained messages)
 - ✅ Durable sessions (survive reconnects)
@@ -776,6 +802,7 @@ ws.on('message', (data) => {
 - ❌ Higher latency (broker hop)
 
 **WebSocket**:
+
 - ✅ Low latency (direct connection)
 - ✅ Native browser support
 - ✅ Simple setup (no external broker)
@@ -790,14 +817,14 @@ ws.on('message', (data) => {
 
 **Use Case Matrix**:
 
-| Data Type | Protocol | Why |
-|---|---|---|
-| **Critical alerts** | MQTT | Must be delivered, even if client offline |
-| **Work order updates** | MQTT | Durable, guaranteed delivery |
-| **Equipment changes** | MQTT | Sync across vessels, persistence required |
-| **Dashboard metrics** | WebSocket | Real-time, low latency, OK if missed |
-| **Live telemetry** | WebSocket | High frequency, latest value matters most |
-| **User notifications** | WebSocket | Real-time, user must be online anyway |
+| Data Type              | Protocol  | Why                                       |
+| ---------------------- | --------- | ----------------------------------------- |
+| **Critical alerts**    | MQTT      | Must be delivered, even if client offline |
+| **Work order updates** | MQTT      | Durable, guaranteed delivery              |
+| **Equipment changes**  | MQTT      | Sync across vessels, persistence required |
+| **Dashboard metrics**  | WebSocket | Real-time, low latency, OK if missed      |
+| **Live telemetry**     | WebSocket | High frequency, latest value matters most |
+| **User notifications** | WebSocket | Real-time, user must be online anyway     |
 
 ---
 
@@ -806,6 +833,7 @@ ws.on('message', (data) => {
 ### Throughput Metrics
 
 **Current Performance**:
+
 - ✅ Telemetry ingestion: < 100ms per request
 - ✅ Materialized view refresh: 67ms (both views)
 - ✅ WebSocket broadcast: < 5ms per client
@@ -815,22 +843,24 @@ ws.on('message', (data) => {
 ### Scalability
 
 **Current Limits**:
+
 ```typescript
 // Rate limiting (embedded mode)
 const rateLimitConfig = {
-  windowMs: 60 * 1000,           // 1 minute
-  max: 10000,                     // 10,000 requests/min
+  windowMs: 60 * 1000, // 1 minute
+  max: 10000, // 10,000 requests/min
   message: "Too many requests",
 };
 
 // MQTT queue size
-const maxQueueSize = 10000;      // 10K messages
+const maxQueueSize = 10000; // 10K messages
 
 // WebSocket clients
 const maxConnections = Unlimited; // No hard limit
 ```
 
 **Scaling Recommendations**:
+
 1. **Telemetry Ingestion**: Currently handles ~10K req/min
 2. **MQTT Queue**: 10K messages (adjust `MQTT_MAX_QUEUE_SIZE` env var)
 3. **WebSocket Clients**: Monitor connection count, add load balancing if > 1000 clients
@@ -843,6 +873,7 @@ const maxConnections = Unlimited; // No hard limit
 ### Manual Testing
 
 **1. Telemetry Ingestion Test**:
+
 ```bash
 # POST telemetry via REST API
 curl -X POST http://localhost:5000/api/telemetry \
@@ -860,23 +891,25 @@ curl -X POST http://localhost:5000/api/telemetry \
 ```
 
 **2. WebSocket Connection Test**:
+
 ```javascript
 // Browser console
-const ws = new WebSocket('ws://localhost:5000/ws');
+const ws = new WebSocket("ws://localhost:5000/ws");
 
 ws.onopen = () => {
-  console.log('Connected');
-  ws.send(JSON.stringify({ type: 'subscribe', channel: 'alerts' }));
+  console.log("Connected");
+  ws.send(JSON.stringify({ type: "subscribe", channel: "alerts" }));
 };
 
 ws.onmessage = (event) => {
-  console.log('Message:', JSON.parse(event.data));
+  console.log("Message:", JSON.parse(event.data));
 };
 
 // Expected: Connection message, then real-time updates
 ```
 
 **3. MQTT Publish Test**:
+
 ```bash
 # Using mosquitto_pub (if MQTT broker available)
 mosquitto_pub \
@@ -892,28 +925,26 @@ mosquitto_pub \
 ### Automated Testing
 
 **Recommended Test Suite**:
+
 ```typescript
 // tests/telemetry-pipeline.test.ts
 describe("Telemetry Pipeline", () => {
   it("should ingest telemetry via POST /api/telemetry", async () => {
-    const response = await request(app)
-      .post("/api/telemetry")
-      .set("x-org-id", "test-org")
-      .send({
-        equipmentId: "test-equipment",
-        sensorType: "temperature",
-        value: 85.5,
-        unit: "celsius",
-        threshold: 90,
-      });
-      
+    const response = await request(app).post("/api/telemetry").set("x-org-id", "test-org").send({
+      equipmentId: "test-equipment",
+      sensorType: "temperature",
+      value: 85.5,
+      unit: "celsius",
+      threshold: 90,
+    });
+
     expect(response.status).toBe(201);
     expect(response.body.status).toBe("normal");
   });
-  
+
   it("should broadcast telemetry via WebSocket", (done) => {
     const ws = new WebSocket("ws://localhost:5000/ws");
-    
+
     ws.on("message", (data) => {
       const message = JSON.parse(data);
       if (message.type === "dashboard_equipment_health") {
@@ -921,18 +952,18 @@ describe("Telemetry Pipeline", () => {
         done();
       }
     });
-    
+
     ws.on("open", () => {
       ws.send(JSON.stringify({ type: "subscribe", channel: "dashboard" }));
     });
   });
-  
+
   it("should queue MQTT messages when broker unavailable", async () => {
     // Simulate broker unavailable
     mqttReliableSync.client = null;
-    
+
     await mqttReliableSync.publishWorkOrderChange("create", testWorkOrder);
-    
+
     expect(mqttReliableSync.messageQueue.length).toBe(1);
   });
 });
@@ -972,6 +1003,7 @@ describe("Telemetry Pipeline", () => {
 **1. MQTT Broker Not Running**
 
 **Current State**:
+
 ```
 [MQTT Reliable Sync] Service initialized
   Broker: mqtt://localhost:1883
@@ -979,18 +1011,21 @@ describe("Telemetry Pipeline", () => {
 ```
 
 **Analysis**:
+
 - ℹ️ MQTT broker URL defaults to `localhost:1883`
 - ℹ️ No "connected" messages in logs
 - ℹ️ Service configured but broker not running
 - ℹ️ Messages being queued locally
 
 **Impact**:
+
 - ✅ Application continues to work (graceful degradation)
 - ✅ Messages queued to disk (`.mqtt-queue/`)
 - ⚠️ No cloud synchronization occurring
 - ⚠️ Queue will flush when broker becomes available
 
 **Recommendation**:
+
 ```bash
 # Option 1: Use cloud MQTT broker (recommended for production)
 export MQTT_BROKER_URL="mqtts://your-broker.com:8883"
@@ -1007,11 +1042,13 @@ export MQTT_ENABLED=false
 **2. Vessel Simulator Not Auto-Starting**
 
 **Current State**:
+
 - ✅ Simulator code exists and is functional
 - ℹ️ No "Vessel Simulator started" messages in logs
 - ✅ Telemetry data being generated (from other source or manual inserts)
 
 **Recommendation**:
+
 ```typescript
 // server/index.ts - Add auto-start for development
 if (process.env.ENABLE_VESSEL_SIMULATOR === "true") {
@@ -1019,8 +1056,8 @@ if (process.env.ENABLE_VESSEL_SIMULATOR === "true") {
   await vesselSimulator.start({
     vesselType: "platform_supply_vessel",
     equipmentId: "574d1d05-6708-46be-84df-6e33d4ec4072",
-    interval: 5000,  // 5 seconds
-    seaState: 3,     // Moderate sea
+    interval: 5000, // 5 seconds
+    seaState: 3, // Moderate sea
   });
   console.log("[Vessel Simulator] Started");
 }
@@ -1033,6 +1070,7 @@ if (process.env.ENABLE_VESSEL_SIMULATOR === "true") {
 **Overall Assessment**: ✅ **Telemetry Pipeline Production-Ready**
 
 The ARUS telemetry ingestion pipeline demonstrates:
+
 1. ✅ Multi-protocol support (MQTT + WebSocket + REST)
 2. ✅ Guaranteed delivery (MQTT QoS 1)
 3. ✅ Real-time updates (WebSocket broadcast)
@@ -1044,6 +1082,7 @@ The ARUS telemetry ingestion pipeline demonstrates:
 **No Critical Issues Detected** - System ready for production deployment.
 
 **Next Steps** (Optional):
+
 1. Configure cloud MQTT broker for vessel-cloud sync
 2. Enable vessel simulator for continuous telemetry generation
 3. Add end-to-end tests for telemetry pipeline

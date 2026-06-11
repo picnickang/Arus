@@ -3,24 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
-
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Shield,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Shield } from "lucide-react";
 import {
   type ScheduleAssignment,
   type FatigueResult,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
 
-
-import {
-  FatigueRiskBadge,
-} from "../schedule-planner-tabs";
-
+import { FatigueRiskBadge } from "../schedule-planner-tabs";
 
 export function ComplianceTab({
   fatigue,
@@ -190,4 +180,3 @@ export function ComplianceTab({
     </ScrollArea>
   );
 }
-

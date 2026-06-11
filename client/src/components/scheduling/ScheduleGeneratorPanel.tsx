@@ -86,11 +86,11 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
 
   const simulateMutation = useMutation({
     mutationFn: async (): Promise<SimulationResult> =>
-      (await apiRequest("POST", "/api/schedule/simulate", {
+      await apiRequest("POST", "/api/schedule/simulate", {
         from,
         days,
         fillUnassignedOnly: !allowUpdateDrafts,
-      })),
+      }),
     onSuccess: (data: SimulationResult) => {
       setSimulationResult(data);
       setAppliedRunId(null);
@@ -112,11 +112,11 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
       if (!simulationResult) {
         throw new Error("No simulation result to apply");
       }
-      return (await apiRequest("POST", "/api/schedule/apply-draft", {
+      return await apiRequest("POST", "/api/schedule/apply-draft", {
         simulationResult,
         skipCollisions: true,
         vesselIds: vesselIds && vesselIds.length > 0 ? vesselIds : undefined,
-      }));
+      });
     },
     onSuccess: (data: ApplyResult) => {
       setAppliedRunId(data.runId);
@@ -153,7 +153,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
 
   const clearHistoryMutation = useMutation({
     mutationFn: async (): Promise<{ deleted: number }> =>
-      (await apiRequest("DELETE", "/api/schedule/runs")),
+      await apiRequest("DELETE", "/api/schedule/runs"),
     onSuccess: (data: { deleted: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crew-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/assignments"] });

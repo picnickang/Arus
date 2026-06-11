@@ -20,9 +20,9 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-export async function migrateFeatureFlagOverrides(
-  db: { execute: (q: SQL<unknown>) => Promise<unknown> }
-): Promise<void> {
+export async function migrateFeatureFlagOverrides(db: {
+  execute: (q: SQL<unknown>) => Promise<unknown>;
+}): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS feature_flag_overrides (
       id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,

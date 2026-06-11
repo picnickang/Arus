@@ -103,7 +103,10 @@ export async function evaluateCrewChangeReminders(
   ctx: EvaluationContext
 ): Promise<CrewAlertResult[]> {
   const now = ctx.now || new Date();
-  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, (ctx.vesselId ?? undefined));
+  const settings = await alertSettingsService.getCrewAlertSettings(
+    ctx.orgId,
+    ctx.vesselId ?? undefined
+  );
   if (!settings?.crewChangeRemindersEnabled) {
     return [];
   }

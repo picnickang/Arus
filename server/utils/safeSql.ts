@@ -56,8 +56,11 @@ export async function safeSql<T = unknown>(
   // PostgreSQL/Neon (CLOUD) → db.execute() (standard Drizzle API)
   // SQLite/libSQL (VESSEL) → db.all()/db.get() (SQLite-specific API)
   if (hasPostgresFeatures) {
-    // CLOUD mode: PostgreSQL/Neon uses db.execute()
-    return (db.execute(sqlQuery) as unknown) as { rows?: T[]; rowCount?: number };
+    // CLOUD mode: PostgreSQL/Neon uses db.execute(). The driver erases row
+    // types at this boundary, so the unknown[] rows are asserted to T[] —
+    // the same boundary-cast pattern as the data-export upserters.
+    const result = await db.execute(sqlQuery);
+    return result as { rows?: T[]; rowCount?: number };
   }
 
   // VESSEL mode: handle based on options
@@ -108,8 +111,10 @@ export async function safeRawSql(
   }
 
   // SQLite/Vessel mode: skip (raw SQL commands like SET LOCAL don't work in SQLite)
-  if (skipMessage || process.env['NODE_ENV'] === "development") {
-    logger.info(`[SafeSQL] Raw SQL skipped in SQLite mode: ${skipMessage || rawSqlString.substring(0, 50)}`);
+  if (skipMessage || process.env["NODE_ENV"] === "development") {
+    logger.info(
+      `[SafeSQL] Raw SQL skipped in SQLite mode: ${skipMessage || rawSqlString.substring(0, 50)}`
+    );
   }
 }
 

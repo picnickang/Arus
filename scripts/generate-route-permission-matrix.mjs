@@ -53,7 +53,9 @@ for (const file of walk(serverRoot)) {
       };
     }
 
-    const permissionMatch = line.match(/requirePermission\(\s*["'`]([^"'`]+)["'`]\s*,\s*["'`]([^"'`]+)["'`]\s*\)/);
+    const permissionMatch = line.match(
+      /requirePermission\(\s*["'`]([^"'`]+)["'`]\s*,\s*["'`]([^"'`]+)["'`]\s*\)/
+    );
     if (permissionMatch) {
       rows.push({
         file: rel,
@@ -80,11 +82,12 @@ for (const file of walk(serverRoot)) {
   });
 }
 
-rows.sort((a, b) =>
-  a.path.localeCompare(b.path) ||
-  a.method.localeCompare(b.method) ||
-  a.file.localeCompare(b.file) ||
-  a.line - b.line
+rows.sort(
+  (a, b) =>
+    a.path.localeCompare(b.path) ||
+    a.method.localeCompare(b.method) ||
+    a.file.localeCompare(b.file) ||
+    a.line - b.line
 );
 
 const now = new Date().toISOString();

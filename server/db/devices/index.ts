@@ -1,19 +1,19 @@
 /**
-   * CANONICAL HOME — Devices
-   * ============================================================
-   * This module is the single canonical home for Devices data
-   * access. Other layers (domain adapters under
-   * `server/domains/devices/infrastructure/`, legacy route handlers,
-   * cross-domain readers in `server/composition/*`, etc.) MUST import
-   * the `db…Storage` singleton from this file directly rather than
-   * routing through `server/repositories.ts`. Push B4 (Repositories
-   * Proxy Decomposition) removed the four primary-domain importers of
-   * that proxy; the proxy now exists only as a transitional re-export
-   * barrel for legacy non-domain consumers. New code MUST import from
-   * here.
-   * ============================================================
-   */
-  /**
+ * CANONICAL HOME — Devices
+ * ============================================================
+ * This module is the single canonical home for Devices data
+ * access. Other layers (domain adapters under
+ * `server/domains/devices/infrastructure/`, legacy route handlers,
+ * cross-domain readers in `server/composition/*`, etc.) MUST import
+ * the `db…Storage` singleton from this file directly rather than
+ * routing through `server/repositories.ts`. Push B4 (Repositories
+ * Proxy Decomposition) removed the four primary-domain importers of
+ * that proxy; the proxy now exists only as a transitional re-export
+ * barrel for legacy non-domain consumers. New code MUST import from
+ * here.
+ * ============================================================
+ */
+/**
  * Devices Repository
  * Handles devices, heartbeats, and PDM scores
  */
@@ -47,7 +47,9 @@ export class DatabaseDevicesStorage {
   }
   async createDevice(data: InsertDevice): Promise<Device> {
     const r = await db.insert(devices).values(data).returning();
-    if (!r[0]) {throw new Error("Failed to create device");}
+    if (!r[0]) {
+      throw new Error("Failed to create device");
+    }
     return r[0];
   }
   async updateDevice(
@@ -73,8 +75,13 @@ export class DatabaseDevicesStorage {
       .orderBy(sql`ts DESC`);
   }
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> {
-    const r = await db.insert(edgeHeartbeatsTable).values(data as never).returning();
-    if (!r[0]) {throw new Error("Failed to create heartbeat");}
+    const r = await db
+      .insert(edgeHeartbeatsTable)
+      .values(data as never)
+      .returning();
+    if (!r[0]) {
+      throw new Error("Failed to create heartbeat");
+    }
     return r[0];
   }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> {
@@ -92,7 +99,9 @@ export class DatabaseDevicesStorage {
   }
   async createPdmScore(data: InsertPdmScore): Promise<PdmScoreLog> {
     const r = await db.insert(pdmScoreLogsTable).values(data).returning();
-    if (!r[0]) {throw new Error("Failed to create PDM score");}
+    if (!r[0]) {
+      throw new Error("Failed to create PDM score");
+    }
     return r[0];
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
@@ -122,7 +131,9 @@ export class DatabaseDevicesStorage {
         set: { ...heartbeat, ts: new Date() } as never,
       })
       .returning();
-    if (!r[0]) {throw new Error("Failed to upsert edge heartbeat");}
+    if (!r[0]) {
+      throw new Error("Failed to upsert edge heartbeat");
+    }
     return r[0];
   }
   async getDevicesWithStatus(

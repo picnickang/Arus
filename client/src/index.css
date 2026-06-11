@@ -431,21 +431,9 @@
 @layer components {
   .ops-surface {
     background:
-      radial-gradient(
-        circle at 12% 0%,
-        hsl(210 60% 18% / 0.55) 0%,
-        transparent 45%
-      ),
-      radial-gradient(
-        circle at 100% 100%,
-        hsl(195 70% 22% / 0.35) 0%,
-        transparent 50%
-      ),
-      linear-gradient(
-        180deg,
-        hsl(220 25% 7%) 0%,
-        hsl(220 30% 5%) 100%
-      );
+      radial-gradient(circle at 12% 0%, hsl(210 60% 18% / 0.55) 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, hsl(195 70% 22% / 0.35) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(220 25% 7%) 0%, hsl(220 30% 5%) 100%);
     color: hsl(var(--foreground));
   }
 
@@ -498,10 +486,18 @@
   }
 
   /* Severity accent helpers — for text/icon swatches alongside cards. */
-  .ops-accent-critical { color: hsl(0 80% 70%); }
-  .ops-accent-warning  { color: hsl(38 95% 65%); }
-  .ops-accent-info     { color: hsl(197 85% 65%); }
-  .ops-accent-success  { color: hsl(150 70% 60%); }
+  .ops-accent-critical {
+    color: hsl(0 80% 70%);
+  }
+  .ops-accent-warning {
+    color: hsl(38 95% 65%);
+  }
+  .ops-accent-info {
+    color: hsl(197 85% 65%);
+  }
+  .ops-accent-success {
+    color: hsl(150 70% 60%);
+  }
 
   .ops-topbar {
     background-color: hsl(220 25% 8% / 0.85);
@@ -523,4 +519,3 @@
     }
   }
 }
-

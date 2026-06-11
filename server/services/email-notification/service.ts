@@ -68,7 +68,9 @@ class EmailNotificationService {
     );
 
     if (applicableSettings.length === 0) {
-      logger.info(`[EmailNotificationService] No applicable notification settings for finding ${finding.id}`);
+      logger.info(
+        `[EmailNotificationService] No applicable notification settings for finding ${finding.id}`
+      );
       return;
     }
 

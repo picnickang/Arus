@@ -24,7 +24,9 @@ describe("Journey — Equipment decommission + reinstate", () => {
 
   afterAll(async () => {
     if (equipmentId) {
-      await pool.query("DELETE FROM equipment_decommission_events WHERE equipment_id=$1", [equipmentId]).catch(() => {});
+      await pool
+        .query("DELETE FROM equipment_decommission_events WHERE equipment_id=$1", [equipmentId])
+        .catch(() => {});
       await pool.query("DELETE FROM equipment WHERE id=$1", [equipmentId]).catch(() => {});
     }
     await cleanupByRunId(RUN_ID, ["equipment", "equipment_decommission_events"]);
@@ -43,16 +45,12 @@ describe("Journey — Equipment decommission + reinstate", () => {
   });
 
   it("decommissions and writes event", async () => {
-    const r = await api(
-      "POST",
-      `/api/equipment/${equipmentId}/decommission`,
-      {
-        reason: "scrapped",
-        status: "decommissioned",
-        authorizedBy: "journey-test",
-        notes: `journey decommission ${RUN_ID}`,
-      }
-    );
+    const r = await api("POST", `/api/equipment/${equipmentId}/decommission`, {
+      reason: "scrapped",
+      status: "decommissioned",
+      authorizedBy: "journey-test",
+      notes: `journey decommission ${RUN_ID}`,
+    });
     expect([200, 201, 403, 404]).toContain(r.status);
 
     if (r.status >= 200 && r.status < 300) {
@@ -66,11 +64,10 @@ describe("Journey — Equipment decommission + reinstate", () => {
   });
 
   it("reinstates the equipment", async () => {
-    const r = await api(
-      "POST",
-      `/api/equipment/${equipmentId}/reinstate`,
-      { reinstatedBy: "journey-test", notes: `reinstate ${RUN_ID}` }
-    );
+    const r = await api("POST", `/api/equipment/${equipmentId}/reinstate`, {
+      reinstatedBy: "journey-test",
+      notes: `reinstate ${RUN_ID}`,
+    });
     expect([200, 201, 400, 403, 404]).toContain(r.status);
 
     if (r.status >= 200 && r.status < 300) {

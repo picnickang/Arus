@@ -34,6 +34,6 @@ test.describe("Procurement journey — PR → PO → Receive → Stock", () => {
       // received quantity within 2s (cache invalidation window).
 
       throw new Error("LR-3 seed not yet wired");
-    },
+    }
   );
 });

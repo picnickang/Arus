@@ -65,10 +65,16 @@ export class DatabaseVesselStorage {
       .insert(vessels)
       .values({ id: randomUUID(), ...vesselData, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create vessel");}
+    if (!n) {
+      throw new Error("Failed to create vessel");
+    }
     return n;
   }
-  async updateVessel(id: string, updates: import("../../lib/widen-partial").WidenPartial<InsertVessel>, orgId?: string): Promise<Vessel> {
+  async updateVessel(
+    id: string,
+    updates: import("../../lib/widen-partial").WidenPartial<InsertVessel>,
+    orgId?: string
+  ): Promise<Vessel> {
     this.validateOrgId(orgId, "updateVessel");
     const conditions = orgId
       ? and(eq(vessels.id, id), eq(vessels.orgId, orgId))
@@ -130,7 +136,9 @@ export class DatabaseVesselStorage {
       .insert(portCallTable)
       .values({ id: randomUUID(), ...portCallData, createdAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create port call");}
+    if (!n) {
+      throw new Error("Failed to create port call");
+    }
     return n;
   }
   async updatePortCall(
@@ -181,7 +189,9 @@ export class DatabaseVesselStorage {
       .insert(drydockWindowTable)
       .values({ id: randomUUID(), ...window, createdAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create drydock window");}
+    if (!n) {
+      throw new Error("Failed to create drydock window");
+    }
     return n;
   }
   async updateDrydockWindow(

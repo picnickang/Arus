@@ -44,7 +44,7 @@ describe("ml-retrain promotion gate", () => {
     const stdout = JSON.stringify({
       stage: "metrics",
       modelId: "m_new",
-      mae: 0.10,
+      mae: 0.1,
       productionMae: 0.25,
       psi: 0.42,
     });

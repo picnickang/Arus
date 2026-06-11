@@ -1,10 +1,7 @@
 import { ReactNode, useSyncExternalStore } from "react";
 import { Redirect, useLocation } from "wouter";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
-import {
-  getApiSessionToken,
-  subscribeToApiSessionToken,
-} from "@/lib/sessionToken";
+import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionToken";
 
 /**
  * Routes that must render even when there is no active session. The
@@ -24,17 +21,12 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const hasSession = useSyncExternalStore(
     subscribeToApiSessionToken,
     () => getApiSessionToken() !== null,
-    () => false,
+    () => false
   );
 
   const currentPath = location.split("?")[0] ?? "";
 
-  if (
-    import.meta.env.DEV ||
-    isAdminUnlocked ||
-    hasSession ||
-    PUBLIC_PATHS.has(currentPath)
-  ) {
+  if (import.meta.env.DEV || isAdminUnlocked || hasSession || PUBLIC_PATHS.has(currentPath)) {
     return <>{children}</>;
   }
 

@@ -317,21 +317,23 @@ export default function AISensorAudits() {
                   <div>
                     <h3 className="font-semibold mb-2">Model Performance</h3>
                     <div className="grid grid-cols-3 gap-4">
-                      {(Object.entries(selectedAudit.modelPerformance) as Array<[string, { accuracy: string; trainingTimeMs: number }]>).map(
-                        ([model, perf]) => (
-                          <Card key={model}>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm">{model.toUpperCase()}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">{perf.accuracy}</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {perf.trainingTimeMs}ms
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )
-                      )}
+                      {(
+                        Object.entries(selectedAudit.modelPerformance) as Array<
+                          [string, { accuracy: string; trainingTimeMs: number }]
+                        >
+                      ).map(([model, perf]) => (
+                        <Card key={model}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">{model.toUpperCase()}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{perf.accuracy}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {perf.trainingTimeMs}ms
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -343,11 +345,12 @@ export default function AISensorAudits() {
                       {selectedAudit.featureRankings.map((rankingRaw: unknown, i: number) => {
                         const ranking = rankingRaw as { sensor: string; confidence: number };
                         return (
-                        <div key={i} className="flex items-center justify-between">
-                          <span className="text-sm">{ranking.sensor}</span>
-                          <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
-                        </div>
-                      );})}
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-sm">{ranking.sensor}</span>
+                            <Badge variant="outline">{ranking.confidence.toFixed(1)}%</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

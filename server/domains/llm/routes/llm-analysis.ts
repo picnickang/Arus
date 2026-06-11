@@ -117,7 +117,7 @@ export function registerLlmAnalysisRoutes(
         "../../../openai"
       );
 
-      const eqIdStr = equipmentId ?? '';
+      const eqIdStr = equipmentId ?? "";
       const [device, equipmentHealth, alerts, telemetryTrends, pdmScore] = await Promise.all([
         dbDevicesStorage.getDevice(eqIdStr),
         dbEquipmentStorage.getEquipmentHealth(DEFAULT_ORG_ID),
@@ -136,9 +136,14 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
-      const analysis = await analyzeEquipmentHealth(telemetryTrends, eqIdStr, device?.deviceType ?? undefined);
+      const analysis = await analyzeEquipmentHealth(
+        telemetryTrends,
+        eqIdStr,
+        device?.deviceType ?? undefined
+      );
 
-      let alertRecommendations: Awaited<ReturnType<typeof generateMaintenanceRecommendations>>[] = [];
+      let alertRecommendations: Awaited<ReturnType<typeof generateMaintenanceRecommendations>>[] =
+        [];
       if (includeRecommendations === "true" && recentAlerts.length > 0) {
         try {
           const combinedAlertContext = recentAlerts.slice(0, 3).map((alert) => ({
@@ -243,18 +248,18 @@ export function registerLlmAnalysisRoutes(
         failurePredictions: pdmScores.filter((s) => (s.pFail30d ?? 0) > 0.5).length,
         recentTelemetryPoints: telemetry.length,
         dataFreshness:
-          telemetry.length > 0 && telemetry[0]?.ts
-            ? new Date(telemetry[0].ts).toISOString()
-            : null,
+          telemetry.length > 0 && telemetry[0]?.ts ? new Date(telemetry[0].ts).toISOString() : null,
         topIssues: alerts
           .filter((a) => !a.acknowledged)
           .sort((a, b) => {
             // alertType is the severity discriminator; unknown values sort last.
-            const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-            return (
-              (severityOrder[a.alertType] ?? 4) -
-              (severityOrder[b.alertType] ?? 4)
-            );
+            const severityOrder: Record<string, number> = {
+              critical: 0,
+              high: 1,
+              medium: 2,
+              low: 3,
+            };
+            return (severityOrder[a.alertType] ?? 4) - (severityOrder[b.alertType] ?? 4);
           })
           .slice(0, 5)
           .map((a) => ({

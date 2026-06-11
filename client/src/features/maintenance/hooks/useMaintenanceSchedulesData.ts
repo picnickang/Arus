@@ -14,7 +14,14 @@ export function useMaintenanceSchedulesData() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<MaintenanceSchedule>>({});
-  const [createForm, setCreateForm] = useState<{ equipmentId: string; scheduledDate: string; maintenanceType: string; priority: number; description: string; assignedTo?: string }>({
+  const [createForm, setCreateForm] = useState<{
+    equipmentId: string;
+    scheduledDate: string;
+    maintenanceType: string;
+    priority: number;
+    description: string;
+    assignedTo?: string;
+  }>({
     equipmentId: "",
     scheduledDate: "",
     maintenanceType: "preventive",
@@ -74,9 +81,7 @@ export function useMaintenanceSchedulesData() {
     setSelectedSchedule(schedule);
     setEditForm({
       equipmentId: schedule.equipmentId,
-      scheduledDate: ((typeof schedule.scheduledDate === "string"
-        ? schedule.scheduledDate
-        : new Date(schedule.scheduledDate).toISOString().slice(0, 16)) as unknown) as Date,
+      scheduledDate: new Date(schedule.scheduledDate),
       maintenanceType: schedule.maintenanceType,
       priority: schedule.priority,
       status: schedule.status,

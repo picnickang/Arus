@@ -38,7 +38,7 @@ describe("Permission registry (§L)", () => {
   it("each resource entry carries a code", async () => {
     const res = await api<Registry>("GET", "/api/permissions/registry");
     expect(res.data.resources.every((r) => typeof r.code === "string" && r.code.length > 0)).toBe(
-      true,
+      true
     );
   });
 });

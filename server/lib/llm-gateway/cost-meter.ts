@@ -29,9 +29,15 @@ const RATES_PER_1K_USD: Record<string, { input: number; output: number }> = {
   "gpt-3.5-turbo": { input: 0.0005, output: 0.0015 },
 };
 
-export function estimateCostUsd(model: string, promptTokens: number, completionTokens: number): number {
+export function estimateCostUsd(
+  model: string,
+  promptTokens: number,
+  completionTokens: number
+): number {
   const rate = RATES_PER_1K_USD[model];
-  if (!rate) {return 0;}
+  if (!rate) {
+    return 0;
+  }
   return (promptTokens / 1000) * rate.input + (completionTokens / 1000) * rate.output;
 }
 
@@ -49,7 +55,11 @@ export class NoopCostMeter implements CostMeter {
 export class LoggingCostMeter implements CostMeter {
   record(event: CostMeterEvent): void {
     try {
-      const costUsd = estimateCostUsd(event.model, event.usage.promptTokens, event.usage.completionTokens);
+      const costUsd = estimateCostUsd(
+        event.model,
+        event.usage.promptTokens,
+        event.usage.completionTokens
+      );
       logger.info("llm.call", {
         provider: event.provider,
         model: event.model,
@@ -65,7 +75,9 @@ export class LoggingCostMeter implements CostMeter {
       });
     } catch (err) {
       // Telemetry must never bubble.
-      logger.warn("CostMeter record failed", { err: err instanceof Error ? err.message : String(err) });
+      logger.warn("CostMeter record failed", {
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 }
@@ -82,7 +94,9 @@ export class CompositeCostMeter implements CostMeter {
       try {
         await child.record(event);
       } catch (err) {
-        logger.warn("Child CostMeter failed", { err: err instanceof Error ? err.message : String(err) });
+        logger.warn("Child CostMeter failed", {
+          err: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }

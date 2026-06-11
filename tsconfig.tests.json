@@ -1,0 +1,25 @@
+{
+  "$note": "Typecheck lane for test files, which the main tsconfig deliberately excludes (jest runs @swc/jest, transpile-only — without this lane test files get no typechecking at all). Run via `npm run check:tests`. The two index/optional strict flags are pinned off here: production code is clean under them (tsconfig.target.json) but the test tree still has ~420 violations — flipping them here is tracked follow-up burndown work.",
+  "extends": "./tsconfig.json",
+  "include": [
+    "tests/**/*",
+    "server/tests/**/*",
+    "client/tests/**/*",
+    "server/**/*.test.ts",
+    "server/**/__tests__/**/*",
+    "shared/**/*.test.ts",
+    "client/src/**/*.test.ts",
+    "client/src/**/*.test.tsx",
+    "server/types/**/*",
+    "client/src/types/**/*",
+    "shared/types/**/*"
+  ],
+  "exclude": ["node_modules", "build", "dist"],
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "jest", "vite/client"],
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo-tests",
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  }
+}

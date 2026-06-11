@@ -849,7 +849,10 @@ export default function CopilotAdminPage() {
                         "Permanently delete ALL conversations, messages, tool calls, and drafts?"
                       )
                     ) {
-                      apiRequest<{ purged?: number }>("DELETE", "/api/agent/admin/conversations").then((data) => {
+                      apiRequest<{ purged?: number }>(
+                        "DELETE",
+                        "/api/agent/admin/conversations"
+                      ).then((data) => {
                         queryClient.invalidateQueries({
                           queryKey: ["/api/agent/admin/conversations"],
                         });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const BASE_URL = process.env["TEST_BASE_URL"] || "http://localhost:5000";
 const HEADERS = {
   "X-Org-Id": "default-org-id",
   "X-User-Id": "dev-admin-user",

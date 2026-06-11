@@ -16,21 +16,25 @@ Define comprehensive, type-safe DTOs for all analytics endpoints using Zod schem
 ## 📐 Design Principles
 
 ### 1. Schema-First Development
+
 - Define Zod schemas first
 - Generate TypeScript types from schemas
 - Use same schema for validation and typing
 
 ### 2. Metadata Consistency
+
 - All responses include `metadata` object
 - Metadata contains: `orgId`, `timestamp`, `version`
 - List endpoints add: `total`, `page`, `pageSize`
 
 ### 3. Runtime + Compile-Time Safety
+
 - Zod validates at runtime (API boundary)
 - TypeScript enforces at compile time (developer experience)
 - No `any` types allowed
 
 ### 4. Backward Compatibility
+
 - New fields are optional
 - Deprecated fields marked with comments
 - Version field enables future migrations
@@ -42,6 +46,7 @@ Define comprehensive, type-safe DTOs for all analytics endpoints using Zod schem
 ### Category 1: Equipment Analytics DTOs
 
 #### EquipmentHealthDTO
+
 **Endpoint**: `/api/equipment/health`  
 **Purpose**: Current health status for equipment
 
@@ -52,14 +57,14 @@ export const equipmentHealthDtoSchema = z.object({
   type: z.string(),
   vesselId: z.string().uuid().nullable(),
   vesselName: z.string().optional(),
-  condition: z.enum(['excellent', 'good', 'fair', 'poor', 'critical']),
+  condition: z.enum(["excellent", "good", "fair", "poor", "critical"]),
   healthScore: z.number().min(0).max(100),
-  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
+  riskLevel: z.enum(["low", "medium", "high", "critical"]),
   lastMaintenanceDate: z.coerce.date().nullable(),
   nextMaintenanceDate: z.coerce.date().nullable(),
   alertCount: z.number().int().min(0),
   operatingHours: z.number().min(0),
-  telemetryStatus: z.enum(['active', 'stale', 'offline']),
+  telemetryStatus: z.enum(["active", "stale", "offline"]),
 });
 
 export type EquipmentHealthDTO = z.infer<typeof equipmentHealthDtoSchema>;
@@ -79,6 +84,7 @@ export type EquipmentHealthResponse = z.infer<typeof equipmentHealthResponseSche
 ---
 
 #### RulPredictionDTO
+
 **Endpoint**: `/api/equipment/:id/rul`, `/api/equipment/rul/batch`  
 **Purpose**: Remaining Useful Life predictions
 
@@ -88,15 +94,17 @@ export const rulPredictionDtoSchema = z.object({
   equipmentName: z.string(),
   remainingDays: z.number().int().min(0),
   confidence: z.number().min(0).max(1),
-  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
+  riskLevel: z.enum(["low", "medium", "high", "critical"]),
   dataQuality: z.number().min(0).max(1),
   predictionDate: z.coerce.date(),
-  methodology: z.enum(['physics-based', 'ml-hybrid', 'statistical', 'degradation-model']),
-  contributingFactors: z.array(z.object({
-    factor: z.string(),
-    weight: z.number().min(0).max(1),
-    impact: z.enum(['positive', 'negative', 'neutral']),
-  })),
+  methodology: z.enum(["physics-based", "ml-hybrid", "statistical", "degradation-model"]),
+  contributingFactors: z.array(
+    z.object({
+      factor: z.string(),
+      weight: z.number().min(0).max(1),
+      impact: z.enum(["positive", "negative", "neutral"]),
+    })
+  ),
   maintenanceRecommendations: z.array(z.string()).optional(),
 });
 
@@ -129,6 +137,7 @@ export type RulBatchResponse = z.infer<typeof rulBatchResponseSchema>;
 ---
 
 #### SensorCoverageDTO
+
 **Endpoint**: `/api/equipment/:id/sensor-coverage`  
 **Purpose**: Sensor coverage analysis
 
@@ -140,16 +149,20 @@ export const sensorCoverageDtoSchema = z.object({
   sensorsConfigured: z.number().int(),
   sensorsActive: z.number().int(),
   coveragePercentage: z.number().min(0).max(100),
-  missingSensors: z.array(z.object({
-    sensorType: z.string(),
-    importance: z.enum(['critical', 'recommended', 'optional']),
-    reason: z.string(),
-  })),
-  inactiveSensors: z.array(z.object({
-    sensorId: z.string().uuid(),
-    sensorType: z.string(),
-    lastDataReceived: z.coerce.date().nullable(),
-  })),
+  missingSensors: z.array(
+    z.object({
+      sensorType: z.string(),
+      importance: z.enum(["critical", "recommended", "optional"]),
+      reason: z.string(),
+    })
+  ),
+  inactiveSensors: z.array(
+    z.object({
+      sensorId: z.string().uuid(),
+      sensorType: z.string(),
+      lastDataReceived: z.coerce.date().nullable(),
+    })
+  ),
   recommendations: z.array(z.string()),
 });
 
@@ -171,16 +184,17 @@ export type SensorCoverageResponse = z.infer<typeof sensorCoverageResponseSchema
 ### Category 2: ML Model DTOs
 
 #### MlModelDTO
+
 **Endpoints**: `/api/analytics/ml-models`, `/api/analytics/ml-models/:id`  
 **Purpose**: ML model configuration and metadata
 
 ```typescript
 export const mlModelDtoSchema = z.object({
   id: z.string().uuid(),
-  modelType: z.enum(['lstm', 'random-forest', 'xgboost', 'ensemble', 'isolation-forest']),
+  modelType: z.enum(["lstm", "random-forest", "xgboost", "ensemble", "isolation-forest"]),
   targetEquipmentType: z.string().nullable(),
   version: z.string(),
-  status: z.enum(['active', 'training', 'testing', 'deprecated', 'failed']),
+  status: z.enum(["active", "training", "testing", "deprecated", "failed"]),
   accuracy: z.number().min(0).max(1).nullable(),
   precision: z.number().min(0).max(1).nullable(),
   recall: z.number().min(0).max(1).nullable(),
@@ -218,6 +232,7 @@ export type MlModelResponse = z.infer<typeof mlModelResponseSchema>;
 ---
 
 #### ModelPerformanceDTO
+
 **Endpoints**: `/api/analytics/model-performance`, `/api/analytics/model-performance/summary`  
 **Purpose**: Track model performance over time
 
@@ -244,13 +259,17 @@ export const modelPerformanceSummaryDtoSchema = z.object({
   modelType: z.string(),
   currentAccuracy: z.number().min(0).max(1),
   averageAccuracy: z.number().min(0).max(1),
-  accuracyTrend: z.enum(['improving', 'stable', 'degrading']),
+  accuracyTrend: z.enum(["improving", "stable", "degrading"]),
   predictionVolume: z.number().int(),
   lastEvaluated: z.coerce.date(),
-  performanceHistory: z.array(z.object({
-    timestamp: z.coerce.date(),
-    accuracy: z.number(),
-  })).optional(),
+  performanceHistory: z
+    .array(
+      z.object({
+        timestamp: z.coerce.date(),
+        accuracy: z.number(),
+      })
+    )
+    .optional(),
 });
 
 export type ModelPerformanceSummaryDTO = z.infer<typeof modelPerformanceSummaryDtoSchema>;
@@ -261,6 +280,7 @@ export type ModelPerformanceSummaryDTO = z.infer<typeof modelPerformanceSummaryD
 ### Category 3: Anomaly Detection DTOs
 
 #### AnomalyDetectionDTO
+
 **Endpoints**: `/api/analytics/anomaly-detections`, `/api/analytics/anomaly-detections/:id`  
 **Purpose**: Detected anomalies in telemetry data
 
@@ -271,8 +291,8 @@ export const anomalyDetectionDtoSchema = z.object({
   equipmentName: z.string(),
   sensorType: z.string(),
   detectedAt: z.coerce.date(),
-  anomalyType: z.enum(['statistical', 'pattern', 'trend', 'seasonal', 'threshold']),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  anomalyType: z.enum(["statistical", "pattern", "trend", "seasonal", "threshold"]),
+  severity: z.enum(["low", "medium", "high", "critical"]),
   anomalyScore: z.number().min(0).max(1),
   currentValue: z.number(),
   expectedValue: z.number(),
@@ -306,6 +326,7 @@ export type AnomalyDetectionListResponse = z.infer<typeof anomalyDetectionListRe
 ### Category 4: Failure Prediction DTOs
 
 #### FailurePredictionDTO
+
 **Endpoints**: `/api/analytics/failure-predictions`, `/api/analytics/failure-predictions/:id`  
 **Purpose**: Equipment failure predictions
 
@@ -324,13 +345,15 @@ export const failurePredictionDtoSchema = z.object({
     upper: z.number(),
   }),
   failureMode: z.string(),
-  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
-  maintenanceRecommendations: z.array(z.object({
-    action: z.string(),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']),
-    estimatedCost: z.number().optional(),
-    estimatedDuration: z.number().optional(), // hours
-  })),
+  riskLevel: z.enum(["low", "medium", "high", "critical"]),
+  maintenanceRecommendations: z.array(
+    z.object({
+      action: z.string(),
+      priority: z.enum(["low", "medium", "high", "urgent"]),
+      estimatedCost: z.number().optional(),
+      estimatedDuration: z.number().optional(), // hours
+    })
+  ),
   costImpact: z.object({
     estimatedRepairCost: z.number(),
     estimatedDowntime: z.number(), // hours
@@ -361,6 +384,7 @@ export type FailurePredictionListResponse = z.infer<typeof failurePredictionList
 ### Category 5: Real-Time Prediction DTOs
 
 #### RealtimePredictionDTO
+
 **Endpoint**: `/api/ml/realtime-predictions`  
 **Purpose**: Current active predictions for dashboards
 
@@ -368,16 +392,16 @@ export type FailurePredictionListResponse = z.infer<typeof failurePredictionList
 export const realtimePredictionDtoSchema = z.object({
   equipmentId: z.string().uuid(),
   equipmentName: z.string(),
-  predictionType: z.enum(['failure', 'anomaly', 'degradation', 'performance']),
+  predictionType: z.enum(["failure", "anomaly", "degradation", "performance"]),
   value: z.number(),
   confidence: z.number().min(0).max(1),
-  status: z.enum(['normal', 'warning', 'critical', 'urgent']),
+  status: z.enum(["normal", "warning", "critical", "urgent"]),
   updatedAt: z.coerce.date(),
   details: z.object({
     metric: z.string(),
     currentValue: z.number(),
     threshold: z.number(),
-    trend: z.enum(['improving', 'stable', 'degrading']),
+    trend: z.enum(["improving", "stable", "degrading"]),
   }),
 });
 
@@ -403,6 +427,7 @@ export type RealtimePredictionListResponse = z.infer<typeof realtimePredictionLi
 ### Category 6: Explainability DTOs
 
 #### PredictionExplainabilityDTO
+
 **Endpoint**: `/api/ml/explainability/predictions/:predictionId`  
 **Purpose**: SHAP values and feature contributions
 
@@ -411,7 +436,7 @@ export const featureContributionSchema = z.object({
   featureName: z.string(),
   value: z.number(),
   shapValue: z.number(),
-  contribution: z.enum(['positive', 'negative', 'neutral']),
+  contribution: z.enum(["positive", "negative", "neutral"]),
   importance: z.number().min(0).max(1),
 });
 
@@ -422,16 +447,20 @@ export const predictionExplainabilityDtoSchema = z.object({
   predictionValue: z.number(),
   baseValue: z.number(), // model's baseline prediction
   featureContributions: z.array(featureContributionSchema),
-  topPositiveFactors: z.array(z.object({
-    feature: z.string(),
-    impact: z.number(),
-    explanation: z.string(),
-  })),
-  topNegativeFactors: z.array(z.object({
-    feature: z.string(),
-    impact: z.number(),
-    explanation: z.string(),
-  })),
+  topPositiveFactors: z.array(
+    z.object({
+      feature: z.string(),
+      impact: z.number(),
+      explanation: z.string(),
+    })
+  ),
+  topNegativeFactors: z.array(
+    z.object({
+      feature: z.string(),
+      impact: z.number(),
+      explanation: z.string(),
+    })
+  ),
   humanReadableExplanation: z.string(),
   confidence: z.number().min(0).max(1),
 });
@@ -447,7 +476,9 @@ export const predictionExplainabilityResponseSchema = z.object({
   }),
 });
 
-export type PredictionExplainabilityResponse = z.infer<typeof predictionExplainabilityResponseSchema>;
+export type PredictionExplainabilityResponse = z.infer<
+  typeof predictionExplainabilityResponseSchema
+>;
 ```
 
 ---
@@ -455,19 +486,20 @@ export type PredictionExplainabilityResponse = z.infer<typeof predictionExplaina
 ### Category 7: Export DTOs
 
 #### DataExportMetadataDTO
+
 **Endpoints**: `/api/analytics/export/*`  
 **Purpose**: Metadata for data export operations
 
 ```typescript
 export const dataExportMetadataDtoSchema = z.object({
   exportId: z.string().uuid(),
-  exportType: z.enum(['ml-models', 'telemetry', 'predictions', 'anomalies', 'complete']),
+  exportType: z.enum(["ml-models", "telemetry", "predictions", "anomalies", "complete"]),
   requestedAt: z.coerce.date(),
   completedAt: z.coerce.date().optional(),
-  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  status: z.enum(["pending", "processing", "completed", "failed"]),
   recordCount: z.number().int().min(0),
   fileSizeBytes: z.number().int().min(0).optional(),
-  format: z.enum(['json', 'csv', 'parquet']),
+  format: z.enum(["json", "csv", "parquet"]),
   filters: z.record(z.unknown()).optional(),
   downloadUrl: z.string().url().optional(),
   expiresAt: z.coerce.date().optional(),
@@ -481,24 +513,28 @@ export type DataExportMetadataDTO = z.infer<typeof dataExportMetadataDtoSchema>;
 ## 🏗️ Implementation Strategy
 
 ### Phase 1: Create DTOs (Week 1)
+
 1. Create `shared/analytics-types.ts`
 2. Implement all DTO schemas
 3. Export types for frontend/backend use
 4. Add JSDoc comments
 
 ### Phase 2: Backend Integration (Week 2)
+
 1. Update routes to use DTOs for response validation
 2. Add `.parse()` calls on responses
 3. Handle validation errors gracefully
 4. Add response time to metadata
 
 ### Phase 3: Frontend Integration (Week 3-4)
+
 1. Update API client to use typed DTOs
 2. Replace `any` types with DTOs
 3. Add runtime validation on responses
 4. Update components to use new types
 
 ### Phase 4: Testing & Documentation (Week 4)
+
 1. Unit tests for DTO validation
 2. Integration tests for API contracts
 3. Update API documentation
@@ -509,17 +545,20 @@ export type DataExportMetadataDTO = z.infer<typeof dataExportMetadataDtoSchema>;
 ## 📏 Validation Rules
 
 ### Required Fields
+
 - All IDs must be valid UUIDs
 - All timestamps must be valid dates
 - All enums must match allowed values
 
 ### Number Validations
+
 - Percentages: 0-100
 - Probabilities: 0-1
 - Counts: >= 0
 - Scores: 0-1
 
 ### String Validations
+
 - UUIDs: Must pass UUID regex
 - Enums: Strict matching
 - URLs: Must be valid URLs
@@ -529,11 +568,13 @@ export type DataExportMetadataDTO = z.infer<typeof dataExportMetadataDtoSchema>;
 ## 🔄 Migration Path
 
 ### Backward Compatibility
+
 - New fields added as optional
 - Deprecated fields kept with warnings
 - Version field enables gradual migration
 
 ### Breaking Changes
+
 - Coordinate frontend/backend deploys
 - Use feature flags for rollout
 - Provide deprecated field warnings 30 days before removal

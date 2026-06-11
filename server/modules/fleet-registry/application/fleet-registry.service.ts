@@ -60,7 +60,11 @@ export class FleetRegistryService {
     return vessel;
   }
 
-  async updateVessel(id: string, data: WidenPartial<InsertVessel>, userId?: string): Promise<Vessel> {
+  async updateVessel(
+    id: string,
+    data: WidenPartial<InsertVessel>,
+    userId?: string
+  ): Promise<Vessel> {
     const vessel = await this.vesselRepo.update(id, data);
     await this.eventPublisher.publish(
       "vessel",

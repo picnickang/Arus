@@ -17,8 +17,7 @@ export function buildReportingTree(members: CrewListItem[]) {
   const parentOf = new Map<string, string | null>();
   for (const m of members) {
     const supervisorId = m.reportsToId ?? null;
-    const valid =
-      supervisorId != null && supervisorId !== m.id && byId.has(supervisorId);
+    const valid = supervisorId != null && supervisorId !== m.id && byId.has(supervisorId);
     parentOf.set(m.id, valid ? supervisorId : null);
   }
 

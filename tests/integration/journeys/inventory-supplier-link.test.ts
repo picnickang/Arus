@@ -16,8 +16,12 @@ describe("Journey — Supplier → Part with FK propagation", () => {
   let partId: string;
 
   afterAll(async () => {
-    if (partId) {await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});}
-    if (supplierId) {await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});}
+    if (partId) {
+      await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});
+    }
+    if (supplierId) {
+      await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});
+    }
     await cleanupByRunId(RUN_ID, ["parts_inventory", "suppliers"]);
   });
 
@@ -57,13 +61,12 @@ describe("Journey — Supplier → Part with FK propagation", () => {
     // parts_inventory uses a non-Postgres storage backend in this install,
     // so persistence is verified via the GET endpoint rather than via the
     // shared test pool.
-    const get = await api<{ id: string; orgId?: string }>(
-      "GET",
-      `/api/parts-inventory/${partId}`
-    );
+    const get = await api<{ id: string; orgId?: string }>("GET", `/api/parts-inventory/${partId}`);
     // Accept either a direct GET-by-id, or fallback to list membership.
     if (get.status === 200 && get.data?.id === partId) {
-      if (get.data.orgId) {expect(get.data.orgId).toBe("default-org-id");}
+      if (get.data.orgId) {
+        expect(get.data.orgId).toBe("default-org-id");
+      }
     } else {
       await expectInList<{ id: string }>(
         "/api/parts-inventory",

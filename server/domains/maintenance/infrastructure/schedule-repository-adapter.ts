@@ -15,7 +15,11 @@ import { dbMaintenanceStorage, schedulingAdapter } from "../../../repositories";
  * PostgreSQL/Storage adapter for MaintenanceScheduleRepository
  */
 export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceScheduleRepository {
-  async findAll(orgId: string, equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]> {
+  async findAll(
+    orgId: string,
+    equipmentId?: string,
+    status?: string
+  ): Promise<MaintenanceScheduleEntity[]> {
     // LR-3.5 / TEN-1: the previous signature accepted no orgId and the
     // adapter passed `(equipmentId, status)` positionally — but the
     // underlying `dbMaintenanceStorage.getMaintenanceSchedules` signature
@@ -27,7 +31,7 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
       equipmentId,
       orgId,
-      status ? { status } : undefined,
+      status ? { status } : undefined
     );
     return schedules.map(this.mapToEntity);
   }
@@ -50,9 +54,7 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
     return schedules
-      .filter(
-        (s) => s.orgId === orgId && s.scheduledDate >= now && s.scheduledDate <= futureDate
-      )
+      .filter((s) => s.orgId === orgId && s.scheduledDate >= now && s.scheduledDate <= futureDate)
       .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
       .map(this.mapToEntity);
   }
@@ -84,16 +86,25 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     return this.mapToEntity(schedule);
   }
 
-  private mapToEntity(schedule: Record<string, unknown> | null | undefined): MaintenanceScheduleEntity {
+  private mapToEntity(
+    schedule: Record<string, unknown> | null | undefined
+  ): MaintenanceScheduleEntity {
     const s = (schedule ?? {}) as {
-      id: string; orgId?: string; equipmentId: string;
-      scheduledDate: Date; status?: string | null; priority?: string | null;
-      maintenanceType: string; description?: string | null;
+      id: string;
+      orgId?: string;
+      equipmentId: string;
+      scheduledDate: Date;
+      status?: string | null;
+      priority?: string | null;
+      maintenanceType: string;
+      description?: string | null;
       estimatedDurationHours?: number | null;
       assignedTo?: string | null;
-      completedAt?: Date | null; completedBy?: string | null;
+      completedAt?: Date | null;
+      completedBy?: string | null;
       notes?: string | null;
-      createdAt?: Date | null; updatedAt?: Date | null;
+      createdAt?: Date | null;
+      updatedAt?: Date | null;
     };
     return {
       id: s.id,

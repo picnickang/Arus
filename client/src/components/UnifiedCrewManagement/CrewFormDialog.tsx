@@ -350,7 +350,7 @@ export function CrewFormDialog({
   });
 
   const handleNext = async () => {
-    const valid = await d.crewForm.trigger(STEPS[step].fields);
+    const valid = await d.crewForm.trigger(STEPS[step]?.fields);
     if (valid) {
       setStep((s) => Math.min(s + 1, STEPS.length - 1));
     }

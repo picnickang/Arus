@@ -28,7 +28,7 @@ afterAll(async () => {
 });
 
 function inFormer(list: Array<Record<string, unknown>>, id: string): boolean {
-  return list.some((c) => c.id === id || c.crewId === id);
+  return list.some((c) => c["id"] === id || c["crewId"] === id);
 }
 
 describe("Offboarding + reinstatement (§G)", () => {

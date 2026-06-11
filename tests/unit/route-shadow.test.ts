@@ -37,7 +37,9 @@ async function loadRegisteredPaths(): Promise<Set<string>> {
   for (const mod of groups) {
     const routes = Object.values(mod).find(Array.isArray) as Array<{ path: string }> | undefined;
     expect(routes).toBeDefined();
-    for (const { path } of routes!) {paths.add(path);}
+    for (const { path } of routes!) {
+      paths.add(path);
+    }
   }
   return paths;
 }

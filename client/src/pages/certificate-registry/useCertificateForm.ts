@@ -38,7 +38,7 @@ export function useCertificateForm({
 }: {
   open: boolean;
   mode: "create" | "edit";
-  initialData?: VesselCertificate | null;
+  initialData?: VesselCertificate | null | undefined;
 }) {
   const form = useForm<CertificateFormData, unknown, CertificateFormData>({
     resolver: zodResolver(mode === "create" ? certificateCreateSchema : certificateEditSchema),

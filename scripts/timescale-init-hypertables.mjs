@@ -42,7 +42,7 @@ async function isHypertable(table) {
   const res = await client.query(
     `SELECT 1 FROM timescaledb_information.hypertables
      WHERE hypertable_schema = 'public' AND hypertable_name = $1 LIMIT 1`,
-    [table],
+    [table]
   );
   return res.rowCount > 0;
 }
@@ -59,7 +59,7 @@ async function getPkColumns(table) {
      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
      WHERE c.contype = 'p' AND c.conrelid = $1::regclass
      ORDER BY array_position(c.conkey, a.attnum)`,
-    [table],
+    [table]
   );
   return { cols: res.rows.map((r) => r.col), name: res.rows[0]?.conname };
 }
@@ -86,7 +86,7 @@ async function convertOne(cfg) {
 
   if (!apply) {
     console.log(
-      `${prefix} PLAN: ${needsPkRebuild ? `rebuild PK to (${[...pk.cols, timeColumn].join(", ")}), ` : ""}create_hypertable('${table}', '${timeColumn}', chunk_time_interval => INTERVAL '${chunkInterval}')`,
+      `${prefix} PLAN: ${needsPkRebuild ? `rebuild PK to (${[...pk.cols, timeColumn].join(", ")}), ` : ""}create_hypertable('${table}', '${timeColumn}', chunk_time_interval => INTERVAL '${chunkInterval}')`
     );
     return { table, status: "dry-run" };
   }
@@ -102,7 +102,7 @@ async function convertOne(cfg) {
     console.log(`${prefix} creating hypertable...`);
     await client.query(
       `SELECT create_hypertable($1, $2, chunk_time_interval => INTERVAL '${chunkInterval}', migrate_data => true, if_not_exists => true)`,
-      [table, timeColumn],
+      [table, timeColumn]
     );
     await client.query("COMMIT");
     console.log(`${prefix} ✓ converted`);
@@ -117,7 +117,7 @@ async function convertOne(cfg) {
 console.log(`TimescaleDB hypertable initialization (apply=${apply}, force=${force})\n`);
 
 const extRes = await client.query(
-  "SELECT installed_version FROM pg_available_extensions WHERE name = 'timescaledb'",
+  "SELECT installed_version FROM pg_available_extensions WHERE name = 'timescaledb'"
 );
 if (!extRes.rows[0]?.installed_version) {
   console.error("TimescaleDB extension is not installed. Run: CREATE EXTENSION timescaledb;");

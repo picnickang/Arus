@@ -43,7 +43,10 @@ export interface CrewStoragePort {
   createCrewLeave(data: Record<string, unknown>): Promise<unknown>;
   updateCrewLeave(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
   deleteCrewLeave(id: string, orgId: string): Promise<unknown>;
-  getCrewAssignments(orgId?: string, filters?: { vesselId?: string; crewId?: string }): Promise<unknown>;
+  getCrewAssignments(
+    orgId?: string,
+    filters?: { vesselId?: string; crewId?: string }
+  ): Promise<unknown>;
   createCrewAssignment(data: Record<string, unknown>): Promise<unknown>;
   updateCrewAssignment(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
   deleteCrewAssignment(id: string, orgId: string): Promise<unknown>;
@@ -56,30 +59,68 @@ export interface CrewStoragePort {
 export interface CrewExtensionsStoragePort {
   getCrewCertifications(crewId: string, orgId: string): Promise<unknown>;
   createCrewCertification(data: Record<string, unknown>): Promise<unknown>;
-  updateCrewCertification(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
+  updateCrewCertification(
+    id: string,
+    data: Record<string, unknown>,
+    orgId: string
+  ): Promise<unknown>;
   deleteCrewCertification(id: string, orgId: string): Promise<unknown>;
-  getCertificationsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<SelectCrewCertification[]>;
-  acknowledgeCertificationAlert(certId: string, userId: string | undefined, notes: string | undefined): Promise<unknown>;
+  getCertificationsExpiring(
+    orgId: string,
+    daysAhead: number,
+    includeAcknowledged: boolean
+  ): Promise<SelectCrewCertification[]>;
+  acknowledgeCertificationAlert(
+    certId: string,
+    userId: string | undefined,
+    notes: string | undefined
+  ): Promise<unknown>;
   updateCertificationAlertFlags(orgId: string): Promise<unknown>;
   getCrewDocuments(crewId: string, orgId: string): Promise<unknown>;
   createCrewDocument(data: Record<string, unknown>): Promise<unknown>;
   updateCrewDocument(id: string, data: Record<string, unknown>, orgId: string): Promise<unknown>;
   deleteCrewDocument(id: string, orgId: string): Promise<unknown>;
-  getDocumentsExpiring(orgId: string, daysAhead: number, includeAcknowledged: boolean): Promise<SelectCrewDocument[]>;
-  getCrewDocumentTypesByOrg(orgId: string): Promise<{ crewId: string; documentType: string; expiresAt: Date | null }[]>;
-  acknowledgeDocumentAlert(docId: string, userId: string | undefined, notes: string | undefined): Promise<unknown>;
+  getDocumentsExpiring(
+    orgId: string,
+    daysAhead: number,
+    includeAcknowledged: boolean
+  ): Promise<SelectCrewDocument[]>;
+  getCrewDocumentTypesByOrg(
+    orgId: string
+  ): Promise<{ crewId: string; documentType: string; expiresAt: Date | null }[]>;
+  acknowledgeDocumentAlert(
+    docId: string,
+    userId: string | undefined,
+    notes: string | undefined
+  ): Promise<unknown>;
   updateDocumentAlertFlags(orgId: string): Promise<unknown>;
-  getCrewNotificationSettings(crewId: string, orgId: string): Promise<CrewNotificationSettingsLike | undefined>;
-  upsertCrewNotificationSettings(crewId: string, orgId: string, data: Record<string, unknown>): Promise<unknown>;
+  getCrewNotificationSettings(
+    crewId: string,
+    orgId: string
+  ): Promise<CrewNotificationSettingsLike | undefined>;
+  upsertCrewNotificationSettings(
+    crewId: string,
+    orgId: string,
+    data: Record<string, unknown>
+  ): Promise<unknown>;
   getAllCrewNotificationSettings(orgId: string): Promise<unknown>;
   getCrewAlerts(crewId: string, orgId: string): Promise<SelectCrewAlert[]>;
   createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert>;
-  acknowledgeCrewAlert(alertId: string, orgId: string, userId?: string, notes?: string): Promise<SelectCrewAlert>;
+  acknowledgeCrewAlert(
+    alertId: string,
+    orgId: string,
+    userId?: string,
+    notes?: string
+  ): Promise<SelectCrewAlert>;
   deleteCrewAlert(alertId: string, orgId: string): Promise<void>;
   getCrewRoles(orgId: string): Promise<SelectCrewRole[]>;
   getCrewRoleById(id: string, orgId: string): Promise<SelectCrewRole | undefined>;
   createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole>;
-  updateCrewRole(id: string, orgId: string, data: Partial<InsertCrewRole>): Promise<SelectCrewRole>;
+  updateCrewRole(
+    id: string,
+    orgId: string,
+    data: WidenPartial<InsertCrewRole>
+  ): Promise<SelectCrewRole>;
   deleteCrewRole(id: string, orgId: string): Promise<void>;
   reorderCrewRoles(orgId: string, orderedIds: string[]): Promise<SelectCrewRole[]>;
   countCrewByRoleName(orgId: string, name: string): Promise<number>;
@@ -155,7 +196,7 @@ export class CrewApplicationService {
       this.deps.crewMemberRepository.updateCrew as (
         id: string,
         data: WidenPartial<InsertCrew>,
-        orgId?: string,
+        orgId?: string
       ) => Promise<SelectCrew>
     )(id, sanitizedData, orgId);
 
@@ -195,11 +236,16 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.createCrewCertification(data);
   }
 
-  async updateCertification(id: string, data: Record<string, unknown>, userId?: string, orgId?: string) {
+  async updateCertification(
+    id: string,
+    data: Record<string, unknown>,
+    userId?: string,
+    orgId?: string
+  ) {
     return this.deps.crewExtensionsStorage.updateCrewCertification(
       id,
       data,
-      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
+      orgId || (typeof data["orgId"] === "string" ? data["orgId"] : "")
     );
   }
 
@@ -212,7 +258,11 @@ export class CrewApplicationService {
     daysAhead: number = 90,
     includeAcknowledged: boolean = false
   ) {
-    return this.deps.crewExtensionsStorage.getCertificationsExpiring(orgId, daysAhead, includeAcknowledged);
+    return this.deps.crewExtensionsStorage.getCertificationsExpiring(
+      orgId,
+      daysAhead,
+      includeAcknowledged
+    );
   }
 
   async acknowledgeCertificationAlert(certId: string, userId?: string, notes?: string) {
@@ -232,11 +282,16 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.createCrewDocument(data);
   }
 
-  async updateCrewDocument(id: string, data: Record<string, unknown>, userId?: string, orgId?: string) {
+  async updateCrewDocument(
+    id: string,
+    data: Record<string, unknown>,
+    userId?: string,
+    orgId?: string
+  ) {
     return this.deps.crewExtensionsStorage.updateCrewDocument(
       id,
       data,
-      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
+      orgId || (typeof data["orgId"] === "string" ? data["orgId"] : "")
     );
   }
 
@@ -249,7 +304,11 @@ export class CrewApplicationService {
     daysAhead: number = 90,
     includeAcknowledged: boolean = false
   ) {
-    return this.deps.crewExtensionsStorage.getDocumentsExpiring(orgId, daysAhead, includeAcknowledged);
+    return this.deps.crewExtensionsStorage.getDocumentsExpiring(
+      orgId,
+      daysAhead,
+      includeAcknowledged
+    );
   }
 
   async acknowledgeDocumentAlert(docId: string, userId?: string, notes?: string) {
@@ -265,7 +324,11 @@ export class CrewApplicationService {
     return this.deps.crewExtensionsStorage.getCrewNotificationSettings(crewId, orgId);
   }
 
-  async upsertCrewNotificationSettings(crewId: string, orgId: string, data: Record<string, unknown>) {
+  async upsertCrewNotificationSettings(
+    crewId: string,
+    orgId: string,
+    data: Record<string, unknown>
+  ) {
     return this.deps.crewExtensionsStorage.upsertCrewNotificationSettings(crewId, orgId, data);
   }
 
@@ -325,7 +388,7 @@ export class CrewApplicationService {
   async updateCrewRole(
     id: string,
     orgId: string,
-    data: Partial<InsertCrewRole>
+    data: WidenPartial<InsertCrewRole>
   ): Promise<SelectCrewRole> {
     await this.assertDefaultRoleValid(orgId, data.defaultRoleId);
     return this.deps.crewExtensionsStorage.updateCrewRole(id, orgId, data);
@@ -346,8 +409,7 @@ export class CrewApplicationService {
     // "Chief Engineer", lowercase "captain"), so match on a normalized role key
     // — lowercase with spaces collapsed to underscores — exactly as the client
     // RoleLookup does, otherwise a rank never matches its role.
-    const normRoleKey = (value: string): string =>
-      value.toLowerCase().replace(/\s+/g, "_");
+    const normRoleKey = (value: string): string => value.toLowerCase().replace(/\s+/g, "_");
     const requiredByRoleKey = new Map<string, string[]>();
     for (const role of roles) {
       const required = role.requiredDocuments ?? [];
@@ -392,9 +454,7 @@ export class CrewApplicationService {
       if (!member.active) {
         continue;
       }
-      const required = member.rank
-        ? requiredByRoleKey.get(normRoleKey(member.rank))
-        : undefined;
+      const required = member.rank ? requiredByRoleKey.get(normRoleKey(member.rank)) : undefined;
       if (!required) {
         continue;
       }
@@ -434,7 +494,10 @@ export class CrewApplicationService {
     if (!role) {
       return { role: undefined, assignedCount: 0 };
     }
-    const assignedCount = await this.deps.crewExtensionsStorage.countCrewByRoleName(orgId, role.name);
+    const assignedCount = await this.deps.crewExtensionsStorage.countCrewByRoleName(
+      orgId,
+      role.name
+    );
     return { role, assignedCount };
   }
 
@@ -490,7 +553,7 @@ export class CrewApplicationService {
     return this.deps.crewStorage.updateCrewLeave(
       id,
       data,
-      orgId || (typeof data['orgId'] === "string" ? data['orgId'] : ""),
+      orgId || (typeof data["orgId"] === "string" ? data["orgId"] : "")
     );
   }
 
@@ -510,7 +573,12 @@ export class CrewApplicationService {
     return this.deps.crewStorage.createCrewAssignment(data);
   }
 
-  async updateAssignment(id: string, data: Record<string, unknown>, orgId: string, userId?: string) {
+  async updateAssignment(
+    id: string,
+    data: Record<string, unknown>,
+    orgId: string,
+    userId?: string
+  ) {
     return this.deps.crewStorage.updateCrewAssignment(id, data, orgId);
   }
 

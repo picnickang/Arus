@@ -338,7 +338,9 @@ if (newViolations.length > 0) {
     console.log(`  ✗ ${v.file} ${v.table} — use ${v.problems.join(", ")} from "./base"`);
   }
   console.log("\nFix: build new tables with the shared builders, e.g.");
-  console.log('  pgTable("x", { ...uuidPrimaryKey(), ...tenantColumn(organizations), ..., ...timestamps() })');
+  console.log(
+    '  pgTable("x", { ...uuidPrimaryKey(), ...tenantColumn(organizations), ..., ...timestamps() })'
+  );
   process.exit(1);
 } else {
   console.log(

@@ -193,7 +193,7 @@ async function expectNoMobileOverflow(page: Page): Promise<void> {
         const rect = element.getBoundingClientRect();
         return {
           tag: element.tagName.toLowerCase(),
-          testId: element.dataset.testid,
+          testId: element.dataset["testid"],
           className: element.className,
           left: Math.round(rect.left),
           right: Math.round(rect.right),

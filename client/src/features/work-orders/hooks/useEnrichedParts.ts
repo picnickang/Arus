@@ -36,7 +36,8 @@ export interface OutOfStockSuggestion {
 export function useEnrichedWorkOrderParts(workOrderId: string | undefined) {
   return useQuery<EnrichedWorkOrderPart[]>({
     queryKey: ["/api/work-orders", workOrderId, "parts", "enriched"],
-    queryFn: () => apiRequest<EnrichedWorkOrderPart[]>("GET", `/api/work-orders/${workOrderId}/parts/enriched`),
+    queryFn: () =>
+      apiRequest<EnrichedWorkOrderPart[]>("GET", `/api/work-orders/${workOrderId}/parts/enriched`),
     enabled: !!workOrderId,
   });
 }
@@ -44,7 +45,11 @@ export function useEnrichedWorkOrderParts(workOrderId: string | undefined) {
 export function useOutOfStockSuggestions(workOrderId: string | undefined) {
   return useQuery<OutOfStockSuggestion[]>({
     queryKey: ["/api/work-orders", workOrderId, "parts", "out-of-stock-suggestions"],
-    queryFn: () => apiRequest<OutOfStockSuggestion[]>("GET", `/api/work-orders/${workOrderId}/parts/out-of-stock-suggestions`),
+    queryFn: () =>
+      apiRequest<OutOfStockSuggestion[]>(
+        "GET",
+        `/api/work-orders/${workOrderId}/parts/out-of-stock-suggestions`
+      ),
     enabled: !!workOrderId,
   });
 }

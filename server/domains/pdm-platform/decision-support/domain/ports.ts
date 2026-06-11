@@ -52,4 +52,3 @@ export interface SyntheticTelemetryPort {
     seed?: string;
   }): SyntheticTelemetryResult;
 }
-

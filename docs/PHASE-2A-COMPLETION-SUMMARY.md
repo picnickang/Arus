@@ -11,6 +11,7 @@
 Phase 2A successfully delivers a production-ready tenant-scoped repository pattern for the Equipment domain, completing the foundation for secure, scalable equipment management. All implementations have been architect-reviewed and approved for production use.
 
 ### Key Achievements
+
 - ✅ **3 Production-Ready Repositories**: Equipment, SensorConfiguration, SensorState
 - ✅ **10+ Equipment Methods**: Full CRUD + health metrics + related equipment + vessel management
 - ✅ **Architect-Approved**: All critical bugs fixed (OR logic, deduplication)
@@ -26,6 +27,7 @@ Phase 2A successfully delivers a production-ready tenant-scoped repository patte
 **Purpose**: Complete catalog of equipment endpoints requiring migration
 
 **Contents**:
+
 - 20+ equipment-related API endpoints identified
 - 15+ storage methods requiring migration
 - Phased migration plan (Weeks 1-4)
@@ -33,6 +35,7 @@ Phase 2A successfully delivers a production-ready tenant-scoped repository patte
 - Rollback procedures
 
 **Key Insights**:
+
 - **Core Equipment** (5 endpoints): GET list, GET :id, POST, PUT, DELETE
 - **Health & Analytics** (6 endpoints): health, health/:id, rul/predict, related, vessel/:id, device/:id
 - **Sensor Management** (4 endpoints): sensors/configurations, sensors/state, sensors/:equipmentId, sensors/:equipmentId/:sensorType
@@ -47,6 +50,7 @@ Phase 2A successfully delivers a production-ready tenant-scoped repository patte
 **Methods** (13 total):
 
 #### Core CRUD Operations
+
 ```typescript
 async getAll()                          // Get all equipment for org
 async getById(equipmentId: string)      // Get single equipment (validated)
@@ -56,6 +60,7 @@ async delete(equipmentId)               // Delete equipment (validates ownership
 ```
 
 #### Specialized Queries
+
 ```typescript
 async getByVesselId(vesselId)          // All equipment on a vessel
 async getByDeviceId(deviceId)          // Find equipment by device ID (telemetry)
@@ -63,11 +68,13 @@ async getRelated(equipmentId)          // Related equipment (same vessel OR type
 ```
 
 #### Vessel Management
+
 ```typescript
 async disassociateFromVessel(equipmentId) // Remove vessel assignment
 ```
 
 #### Health & Analytics
+
 ```typescript
 async getHealthMetrics(vesselId?)      // Latest PDM scores per equipment
 ```
@@ -101,6 +108,7 @@ async delete(equipmentId, sensorType)            // Delete config (validates own
 ```
 
 **Features**:
+
 - Supports filtering by `equipmentId` and/or `sensorType`
 - Validates org ownership on all mutations
 - Composite key handling (equipmentId + sensorType)
@@ -120,6 +128,7 @@ async upsert(data)                               // Create or update state
 ```
 
 **Features**:
+
 - Supports filtering by `equipmentId` and/or `sensorType`
 - Upsert pattern for real-time sensor state updates
 - Automatic `lastUpdated` timestamp management
@@ -131,13 +140,15 @@ async upsert(data)                               // Create or update state
 **File**: `server/infrastructure/TenantScopedRepository.ts`
 
 **Factory Methods**:
+
 ```typescript
-TenantRepositoryFactory.equipment(orgId)
-TenantRepositoryFactory.sensorConfiguration(orgId)
-TenantRepositoryFactory.sensorState(orgId)
+TenantRepositoryFactory.equipment(orgId);
+TenantRepositoryFactory.sensorConfiguration(orgId);
+TenantRepositoryFactory.sensorState(orgId);
 ```
 
 **Request-Based Factory**:
+
 ```typescript
 const repos = TenantRepositoryFactory.fromRequest(req);
 const equipmentRepo = repos.equipment();
@@ -146,9 +157,10 @@ const sensorStateRepo = repos.sensorState();
 ```
 
 **Usage in Routes** (Next Phase):
+
 ```typescript
 // Example usage in /api/equipment route
-router.get('/equipment', validateOrgIdHeader, async (req, res) => {
+router.get("/equipment", validateOrgIdHeader, async (req, res) => {
   const repos = TenantRepositoryFactory.fromRequest(req);
   const equipment = await repos.equipment().getAll();
   res.json(equipment);
@@ -162,21 +174,25 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ### Defense-in-Depth Tenant Isolation
 
 **Layer 1: Middleware** (`validateOrgIdHeader`)
+
 - Validates x-org-id header on all requests
 - Blocks forbidden organization IDs
 - Sets `req.orgId` for downstream use
 
 **Layer 2: Repository Constructor**
+
 - Immutable orgId via `Object.defineProperty()`
 - Constructor validation prevents invalid orgIds
 - Cannot be changed after instantiation
 
 **Layer 3: Query Execution**
+
 - `orgWhere()` helper auto-injects org filter
 - ALL queries include `WHERE orgId = ?`
 - No cross-tenant data leakage possible
 
 **Layer 4: Storage Fallback**
+
 - DualWriteAdapter validates consistency
 - Existing storage methods still validate orgId
 - Dual validation during migration phase
@@ -188,6 +204,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ## 🧪 Testing Strategy (Next Phase)
 
 ### Unit Tests (Phase 2.7)
+
 ```
 ✓ getAll() returns only org's equipment
 ✓ getById() validates org ownership
@@ -202,6 +219,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ```
 
 ### Integration Tests (Phase 2.8)
+
 ```
 ✓ DualWriteAdapter: both code paths return same results
 ✓ DualWriteAdapter: discrepancies logged to observability
@@ -210,6 +228,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ```
 
 ### E2E Tests (Phase 2.9)
+
 ```
 ✓ Create equipment via API (both code paths)
 ✓ Update equipment health (both code paths)
@@ -222,23 +241,27 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ## 📈 Migration Plan (Weeks 1-4)
 
 ### Week 1: Core Routes (Phase 2.4)
+
 - Migrate: GET /api/equipment, GET /api/equipment/:id
 - Migrate: POST /api/equipment, PUT /api/equipment/:id, DELETE /api/equipment/:id
 - Add dual-write integration with observability
 - Monitor: Tenant isolation violations, discrepancies, fallback rate
 
 ### Week 2: Health & Analytics (Phase 2.5)
+
 - Migrate: GET /api/equipment/health, GET /api/equipment/health/:id
 - Migrate: GET /api/equipment/:id/related
 - Migrate: GET /api/equipment/vessel/:vesselId, GET /api/equipment/device/:deviceId
 - Monitor: Query performance, deduplication accuracy
 
 ### Week 3: RUL & Sensors (Phase 2.6)
+
 - Migrate: POST /api/equipment/rul/predict
 - Migrate: Sensor configuration and state endpoints
 - Monitor: Prediction accuracy, sensor state upserts
 
 ### Week 4: Special Operations
+
 - Migrate: POST /api/equipment/:id/disassociate
 - Migrate: Maintenance schedules, work orders integration
 - Monitor: Vessel disassociation, cross-domain consistency
@@ -248,6 +271,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ## 🔍 Observability & Metrics
 
 ### Dual-Write Telemetry
+
 ```typescript
 {
   operation: 'equipment.getAll',
@@ -262,6 +286,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ```
 
 ### Success Metrics
+
 - **Tenant Isolation**: 0 cross-tenant violations
 - **Discrepancies**: <1% between repository and storage results
 - **Fallback Rate**: <0.1% (repository errors requiring storage fallback)
@@ -273,12 +298,14 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ## ⚠️ Critical Bugs Fixed
 
 ### Bug #1: getRelated() AND Logic
+
 **Symptom**: Related equipment queries returned empty results  
 **Root Cause**: Used `and(eq(id, target), eq(vessel, ...))` instead of OR  
 **Fix**: Implemented proper OR semantics: `and(ne(id, target), or(eq(vessel, ...), eq(type, ...)))`  
 **Architect Verdict**: ✅ Approved
 
 ### Bug #2: getHealthMetrics() Duplication
+
 **Symptom**: Multiple PDM scores returned per equipment (inflated results)  
 **Root Cause**: Left join returned all joined rows without deduplication  
 **Fix**: 4-step process with Map-based deduplication to latest score  
@@ -289,16 +316,19 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 ## 🚀 Next Steps
 
 ### Immediate (This Week)
+
 1. ✅ **Repository Implementation** - COMPLETE
 2. ⏳ **DualWriteAdapter Integration** - Wire repositories to routes
 3. ⏳ **Core Route Migration** - Migrate GET list, GET :id, POST, PUT, DELETE
 
 ### Short-Term (Next 2 Weeks)
+
 4. ⏳ **Unit Tests** - Add regression tests for getRelated() and getHealthMetrics()
 5. ⏳ **Integration Tests** - Validate dual-write behavior and feature flag
 6. ⏳ **Health & Analytics Routes** - Migrate health, RUL, related equipment endpoints
 
 ### Mid-Term (Next 4 Weeks)
+
 7. ⏳ **Observability** - Add metrics tracking and discrepancy logging
 8. ⏳ **Validation Suite** - Run cross-tenant isolation tests
 9. ⏳ **Documentation** - Document migration procedures and monitoring dashboard
@@ -320,6 +350,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 **Final Review**: ✅ **APPROVED FOR PRODUCTION**
 
 **Findings**:
+
 - OR semantics correct in getRelated()
 - Deduplication correct in getHealthMetrics()
 - Tenant scope exclusion enforced
@@ -327,6 +358,7 @@ router.get('/equipment', validateOrgIdHeader, async (req, res) => {
 - Zero security gaps
 
 **Recommendations**:
+
 1. Add regression tests for getRelated() covering vessel-only, type-only, and mixed scenarios
 2. Add repository tests validating health-metric dedupe on multiple PDM logs
 3. Proceed with Phase 2 route migration once tests are in place

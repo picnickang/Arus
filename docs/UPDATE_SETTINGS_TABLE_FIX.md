@@ -19,12 +19,14 @@ Added the `update_settings` table to SQLite initialization script (`server/sqlit
 ### The Missing Table
 
 The `update_settings` table existed in:
+
 - ✅ `shared/schema.ts` (PostgreSQL schema)
 - ✅ `shared/schema-sqlite-vessel.ts` (SQLite schema definition)
 - ✅ `shared/schema-runtime.ts` (Runtime export)
 - ❌ **Missing** in `server/sqlite-init.ts` (SQLite database creation)
 
 This meant vessel/offline deployments would have:
+
 - Schema definition (TypeScript) ✅
 - But no actual table in the database ❌
 
@@ -33,6 +35,7 @@ This meant vessel/offline deployments would have:
 Three layers of protection prevented any issues:
 
 **Guard #1** - Runtime feature flags:
+
 ```typescript
 // server/config/runtimeEnv.ts
 export const cloudOnlyFeatures = {
@@ -41,10 +44,11 @@ export const cloudOnlyFeatures = {
 ```
 
 **Guard #2** - Setup function early return:
+
 ```typescript
 // server/services/update-scheduler.ts (line 223-227)
 export function setupUpdateScheduler(): void {
-  if (!isCloudMode || !canUseCloudFeature('updateScheduler')) {
+  if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
     console.log("[UpdateScheduler] Disabled - cloud-only");
     return; // ✅ Never runs in vessel mode
   }
@@ -53,6 +57,7 @@ export function setupUpdateScheduler(): void {
 ```
 
 **Guard #3** - Try-catch wrapper:
+
 ```typescript
 // server/index.ts (line 628-635)
 try {
@@ -74,6 +79,7 @@ try {
 ### File Modified: `server/sqlite-init.ts`
 
 **Added** (line 3154-3180):
+
 ```sql
 CREATE TABLE IF NOT EXISTS update_settings (
   id TEXT PRIMARY KEY,
@@ -108,10 +114,15 @@ CREATE TABLE IF NOT EXISTS update_settings (
 ## Schema Parity Verification
 
 ### PostgreSQL Schema (`shared/schema.ts`)
+
 ```typescript
 export const updateSettings = pgTable("update_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   vesselId: varchar("vessel_id").references(() => vessels.id),
   autoUpdateEnabled: boolean("auto_update_enabled").default(false),
   // ... 15 more fields
@@ -119,6 +130,7 @@ export const updateSettings = pgTable("update_settings", {
 ```
 
 ### SQLite Schema (`shared/schema-sqlite-vessel.ts`)
+
 ```typescript
 export const updateSettingsSqlite = sqliteTable("update_settings", {
   id: text("id").primaryKey(),
@@ -130,6 +142,7 @@ export const updateSettingsSqlite = sqliteTable("update_settings", {
 ```
 
 ### SQLite Init (`server/sqlite-init.ts`) - **NOW COMPLETE** ✅
+
 ```sql
 CREATE TABLE IF NOT EXISTS update_settings (
   id TEXT PRIMARY KEY,
@@ -147,22 +160,26 @@ CREATE TABLE IF NOT EXISTS update_settings (
 ## Benefits of This Fix
 
 ### 1. **Schema Completeness**
+
 - SQLite database now has all 132 tables matching PostgreSQL
 - Eliminates confusion during manual testing or debugging
 - Ensures `drizzle-kit` schema introspection works correctly
 
 ### 2. **Future-Proofing**
+
 - If update scheduler is ever enabled in vessel mode (future enhancement)
 - If table is needed for manual testing
 - If code changes accidentally bypass guards
 - No silent failures from missing table
 
 ### 3. **Developer Experience**
+
 - Database schema matches TypeScript schema definitions
 - No "table does not exist" errors during development
 - Clear documentation of intent (table exists but unused in vessel mode)
 
 ### 4. **Migration Safety**
+
 - No breaking changes (table didn't exist, now it does)
 - No data loss risk
 - `CREATE TABLE IF NOT EXISTS` is idempotent (safe to run multiple times)
@@ -174,12 +191,14 @@ CREATE TABLE IF NOT EXISTS update_settings (
 ### Verification Steps
 
 1. **Compile Check**:
+
 ```bash
 npm run build:server
 # ✅ Should compile without errors
 ```
 
 2. **SQLite Init Test** (if in vessel mode):
+
 ```bash
 rm -f data/vessel-local.db
 npx electron .
@@ -187,13 +206,15 @@ npx electron .
 ```
 
 3. **Log Verification**:
+
 ```
 [SQLite Init] Database initialized successfully with 132 tables (100% feature parity)
 ```
 
 4. **Table Existence Check**:
+
 ```sql
-SELECT COUNT(*) FROM sqlite_master 
+SELECT COUNT(*) FROM sqlite_master
 WHERE type='table' AND name='update_settings';
 -- Expected: 1
 ```
@@ -201,11 +222,13 @@ WHERE type='table' AND name='update_settings';
 ### Expected Behavior
 
 **Cloud Mode (PostgreSQL)**:
+
 - Table created via Drizzle migrations
 - Update scheduler active
 - Table populated with org settings
 
 **Vessel Mode (SQLite)**:
+
 - Table created via sqlite-init.ts ✅ NEW
 - Update scheduler disabled
 - Table exists but remains empty
@@ -217,20 +240,24 @@ WHERE type='table' AND name='update_settings';
 ## Related Files
 
 ### Schema Definitions
+
 - `shared/schema.ts` - PostgreSQL schema (line ~6617)
 - `shared/schema-sqlite-vessel.ts` - SQLite schema (line 3347-3368)
 - `shared/schema-runtime.ts` - Runtime export (line 243)
 
 ### Database Initialization
+
 - `server/sqlite-init.ts` - **MODIFIED** (added table creation)
 - `server/db-config.ts` - Database client initialization
 
 ### Update Scheduler (Cloud-Only)
+
 - `server/services/update-scheduler.ts` - Uses update_settings table
 - `server/services/update-checker.ts` - Reads update_settings table
 - `server/index.ts` - Initialization with guards
 
 ### Runtime Configuration
+
 - `server/config/runtimeEnv.ts` - Feature flags (cloudOnlyFeatures.updateScheduler)
 
 ---
@@ -238,16 +265,19 @@ WHERE type='table' AND name='update_settings';
 ## Deployment Impact
 
 ### Existing Deployments
+
 - **No action required**
 - Existing SQLite databases will auto-create table on next startup
 - `CREATE TABLE IF NOT EXISTS` ensures no errors
 
 ### New Deployments
+
 - Table created automatically during initialization
 - 132 tables total (was 131)
 - No configuration changes needed
 
 ### Data Migration
+
 - **Not applicable** - No existing data to migrate
 - Table starts empty in all deployments
 
@@ -256,11 +286,13 @@ WHERE type='table' AND name='update_settings';
 ## Documentation Updates
 
 ### Architecture Report
+
 - Updated `docs/ARCHITECTURE_DISCOVERY_REPORT.md`
 - Confirmed update_settings table now complete
 - Status changed from "⚠️ Verification needed" to "✅ Complete"
 
 ### This Document
+
 - Explains the fix and rationale
 - Documents schema parity verification
 - Provides testing instructions
@@ -274,6 +306,7 @@ WHERE type='table' AND name='update_settings';
 The `update_settings` table is now created in SQLite initialization, achieving 100% schema parity between PostgreSQL and SQLite deployments.
 
 **Key Points**:
+
 - ✅ Table added to SQLite init script
 - ✅ Schema matches PostgreSQL and SQLite definitions exactly
 - ✅ No breaking changes or data migration needed

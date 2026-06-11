@@ -35,12 +35,10 @@ export function registerCIIRoutes(app: Express, _config: VesselPerformanceRoutes
         endDate
       );
       if (!rating) {
-        return res
-          .status(404)
-          .json({
-            message: "Insufficient data to calculate CII rating",
-            suggestion: "Ensure vessel has fuel consumption and speed telemetry data",
-          });
+        return res.status(404).json({
+          message: "Insufficient data to calculate CII rating",
+          suggestion: "Ensure vessel has fuel consumption and speed telemetry data",
+        });
       }
 
       res.setHeader("Cache-Control", "private, max-age=3600");

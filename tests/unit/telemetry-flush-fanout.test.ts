@@ -24,6 +24,9 @@ beforeAll(async () => {
   jest.unstable_mockModule("../../server/repositories", () => ({
     __esModule: true,
     dbTelemetryStorage: { createTelemetryReadingsBulk: jest.fn() },
+    // telemetry-ingest-config's static imports (formerly lazy) pull the
+    // sensors storage through the barrel at module-link time.
+    dbSensorsStorage: { getSensorConfigurations: jest.fn() },
   }));
   jest.unstable_mockModule("../../server/tenancy/quota-service", () => ({
     __esModule: true,
@@ -46,9 +49,7 @@ beforeAll(async () => {
     withTenantContext: jest.fn(async (_orgId: string, fn: () => Promise<unknown>) => fn()),
   }));
 
-  ({ latestPerEquipmentSensor } = (await import(
-    "../../server/telemetry-batch-writer"
-  )) as unknown as { latestPerEquipmentSensor: typeof latestPerEquipmentSensor });
+  ({ latestPerEquipmentSensor } = await import("../../server/telemetry-batch-writer"));
 });
 
 function r(equipmentId: string, sensorType: string, value: number, t: number): Reading {

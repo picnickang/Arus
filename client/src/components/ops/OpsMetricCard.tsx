@@ -40,7 +40,7 @@ export function OpsMetricCard({
         "ops-card relative overflow-hidden",
         "before:absolute before:left-0 before:top-0 before:h-full before:w-1",
         SEVERITY_ACCENT[severity],
-        className,
+        className
       )}
       data-testid={testId ?? "ops-metric-card"}
     >
@@ -52,7 +52,10 @@ export function OpsMetricCard({
           {icon ? <span className="text-muted-foreground">{icon}</span> : null}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-semibold tabular-nums text-foreground" data-testid="ops-metric-value">
+          <span
+            className="text-3xl font-semibold tabular-nums text-foreground"
+            data-testid="ops-metric-value"
+          >
             {value}
           </span>
           {trendLabel ? (

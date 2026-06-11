@@ -162,7 +162,9 @@ export class DbStockStorage {
       .insert(suppliers)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create supplier");}
+    if (!n) {
+      throw new Error("Failed to create supplier");
+    }
     return n;
   }
 
@@ -205,8 +207,10 @@ export class DbStockStorage {
       conditions.push(eq(stock.partId, filters.partId));
     }
     if (filters?.vesselId) {
-      const col = tableColumns(stock)['vesselId'];
-      if (col) {conditions.push(eq(col, filters.vesselId));}
+      const col = tableColumns(stock)["vesselId"];
+      if (col) {
+        conditions.push(eq(col, filters.vesselId));
+      }
     }
     if (filters?.location) {
       conditions.push(eq(stock.location, filters.location));
@@ -225,11 +229,17 @@ export class DbStockStorage {
       .insert(stock)
       .values({ id: randomUUID(), ...data, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!n) {throw new Error("Failed to create stock");}
+    if (!n) {
+      throw new Error("Failed to create stock");
+    }
     return n;
   }
 
-  async updateStock(id: string, updates: WidenPartial<InsertStock>, orgId?: string): Promise<Stock> {
+  async updateStock(
+    id: string,
+    updates: WidenPartial<InsertStock>,
+    orgId?: string
+  ): Promise<Stock> {
     this.validateOrgId(orgId, "updateStock");
     const conditions = orgId ? and(eq(stock.id, id), eq(stock.orgId, orgId)) : eq(stock.id, id);
     // Strip undefined to preserve falsy values (0, false, '') and avoid
@@ -254,12 +264,18 @@ export class DbStockStorage {
   async getPartSubstitutions(partId: string, orgId: string): Promise<PartSubstitution[]> {
     this.validateOrgId(orgId, "getPartSubstitutions");
     const cols = tableColumns(partSubstitutions);
-    const origCol = cols['originalPartId'];
-    const subCol = cols['substitutePartId'];
+    const origCol = cols["originalPartId"];
+    const subCol = cols["substitutePartId"];
     const subFilters: SQL[] = [];
-    if (origCol) {subFilters.push(eq(origCol, partId));}
-    if (subCol) {subFilters.push(eq(subCol, partId));}
-    if (subFilters.length === 0) {return [];}
+    if (origCol) {
+      subFilters.push(eq(origCol, partId));
+    }
+    if (subCol) {
+      subFilters.push(eq(subCol, partId));
+    }
+    if (subFilters.length === 0) {
+      return [];
+    }
     return db
       .select()
       .from(partSubstitutions)
@@ -271,7 +287,9 @@ export class DbStockStorage {
       .insert(partSubstitutions)
       .values({ id: randomUUID(), ...sub, createdAt: new Date(), updatedAt: new Date() } as never)
       .returning();
-    if (!n) {throw new Error("Failed to create part substitution");}
+    if (!n) {
+      throw new Error("Failed to create part substitution");
+    }
     return n;
   }
 
@@ -280,13 +298,15 @@ export class DbStockStorage {
     if (subs.length === 0) {
       return [];
     }
-    const ids = subs.map((s) => {
-      const r = s as PartSubstitution & {
-        originalPartId?: string;
-        substitutePartId?: string;
-      };
-      return r.originalPartId === partId ? r.substitutePartId : r.originalPartId;
-    }).filter((x): x is string => typeof x === "string");
+    const ids = subs
+      .map((s) => {
+        const r = s as PartSubstitution & {
+          originalPartId?: string;
+          substitutePartId?: string;
+        };
+        return r.originalPartId === partId ? r.substitutePartId : r.originalPartId;
+      })
+      .filter((x): x is string => typeof x === "string");
     return db
       .select()
       .from(parts)

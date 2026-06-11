@@ -25,8 +25,25 @@ import request from "supertest";
 
 const ORG = "test-org-wo-route-gate";
 
-const respondToAssignment = jest.fn();
-const getAssignmentsForUser = jest.fn();
+// Local mirror of the service's RespondToAssignmentResult discriminated
+// union, with the `ok` arm carrying only the work-order fields these
+// tests assert on (the real arm carries a full SelectWorkOrder row).
+type RespondToAssignmentRouteResult =
+  | { status: "ok"; workOrder: { id: string; assignmentStatus: string; status: string } }
+  | { status: "forbidden" | "not_crew" | "not_found" | "no_assignment" };
+
+const respondToAssignment =
+  jest.fn<
+    (
+      workOrderId: string,
+      userId: string,
+      orgId: string,
+      response: "accept" | "decline",
+      reason?: string
+    ) => Promise<RespondToAssignmentRouteResult>
+  >();
+const getAssignmentsForUser =
+  jest.fn<(userId: string, orgId: string) => Promise<Array<{ id: string; status: string }>>>();
 
 jest.unstable_mockModule("../../server/domains/work-orders/application", () => ({
   __esModule: true,
@@ -71,9 +88,7 @@ beforeAll(async () => {
   });
 
   try {
-    const { registerCoreRoutes } = await import(
-      "../../server/domains/work-orders/interfaces/core"
-    );
+    const { registerCoreRoutes } = await import("../../server/domains/work-orders/interfaces/core");
     const noop = (_req: Request, _res: Response, next: NextFunction) => next();
     registerCoreRoutes(app, {
       writeOperationRateLimit: noop,
@@ -98,7 +113,9 @@ describe("work-order assignment routes mounted", () => {
 
 describe("POST /api/work-orders/:id/assignment-response", () => {
   it("rejects a decline without a reason with 400 and never calls the service", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -109,7 +126,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects a decline whose reason is only whitespace with 400", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -120,7 +139,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("returns 200 with the updated work order on a successful accept", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({
       status: "ok",
       workOrder: { id: "wo1", assignmentStatus: "accepted", status: "in_progress" },
@@ -133,17 +154,13 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.assignmentStatus).toBe("accepted");
-    expect(respondToAssignment).toHaveBeenCalledWith(
-      "wo1",
-      "user-alice",
-      ORG,
-      "accept",
-      undefined
-    );
+    expect(respondToAssignment).toHaveBeenCalledWith("wo1", "user-alice", ORG, "accept", undefined);
   });
 
   it("passes the trimmed reason to the service on a valid decline", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({
       status: "ok",
       workOrder: { id: "wo1", assignmentStatus: "declined", status: "open" },
@@ -165,7 +182,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'forbidden' service result (assigned to someone else) to 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({ status: "forbidden" });
 
     const res = await request(app)
@@ -177,7 +196,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'not_crew' service result to 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({ status: "not_crew" });
 
     const res = await request(app)
@@ -189,7 +210,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'not_found' service result to 404", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({ status: "not_found" });
 
     const res = await request(app)
@@ -201,7 +224,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("maps a 'no_assignment' service result to 400", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     respondToAssignment.mockResolvedValue({ status: "no_assignment" });
 
     const res = await request(app)
@@ -213,7 +238,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .send({ response: "accept" });
@@ -223,7 +250,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
   });
 
   it("rejects an invalid response value with 400", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/work-orders/wo1/assignment-response")
       .set("x-test-user", "user-alice")
@@ -236,7 +265,9 @@ describe("POST /api/work-orders/:id/assignment-response", () => {
 
 describe("GET /api/work-orders/my-assignments", () => {
   it("returns the caller's assignments from the service", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     getAssignmentsForUser.mockResolvedValue([
       { id: "wo-open", status: "open" },
       { id: "wo-progress", status: "in_progress" },
@@ -252,7 +283,9 @@ describe("GET /api/work-orders/my-assignments", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app).get("/api/work-orders/my-assignments");
 
     expect(res.status).toBe(401);

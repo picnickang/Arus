@@ -7,7 +7,10 @@ export function useFleetBaselines(equipmentType: string) {
   return useQuery({
     queryKey: ["/api/pdm/fleet/baselines", currentOrgId, equipmentType],
     queryFn: async () => {
-      return apiRequest("GET", `/api/pdm/fleet/baselines?equipmentType=${encodeURIComponent(equipmentType)}`);
+      return apiRequest(
+        "GET",
+        `/api/pdm/fleet/baselines?equipmentType=${encodeURIComponent(equipmentType)}`
+      );
     },
     enabled: !!equipmentType && !!currentOrgId,
   });

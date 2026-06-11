@@ -25,8 +25,9 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
     const refs = await getRefIds();
     vesselId = refs.vesselId;
     // Use a far-future date varied by RUN_ID to avoid 409 collisions with
-     // existing entries (deck-log enforces unique vessel+date).
-    const dayOffset = (Math.abs(RUN_ID.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 9000) + 365;
+    // existing entries (deck-log enforces unique vessel+date).
+    const dayOffset =
+      (Math.abs(RUN_ID.split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % 9000) + 365;
     const today = new Date(Date.now() + dayOffset * 86400_000).toISOString().slice(0, 10);
     const { status, data } = await api<{ id: string }>("POST", "/api/logbook/deck/daily", {
       vesselId,
@@ -43,17 +44,18 @@ describe("Deck-logbook forms — CRUD + propagation", () => {
   });
 
   it("entry is fetchable via GET /api/logbook/deck/daily/:id", async () => {
-    if (!entryId) {return;}
-    const { status, data } = await api<{ id: string }>(
-      "GET",
-      `/api/logbook/deck/daily/${entryId}`
-    );
+    if (!entryId) {
+      return;
+    }
+    const { status, data } = await api<{ id: string }>("GET", `/api/logbook/deck/daily/${entryId}`);
     expect(status).toBe(200);
     expect(data.id).toBe(entryId);
   });
 
   it("entry appears in vessel-scoped list", async () => {
-    if (!entryId) {return;}
+    if (!entryId) {
+      return;
+    }
     const { status, data } = await api<unknown>(
       "GET",
       `/api/logbook/deck/daily?vesselId=${vesselId}`

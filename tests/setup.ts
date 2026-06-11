@@ -9,46 +9,46 @@ import { createHook, type AsyncHook } from "node:async_hooks";
 
 jest.setTimeout(30000);
 
-process.env.NODE_ENV = "test";
-process.env.SESSION_SECRET ||= "integration-test-session-secret-not-for-production";
-process.env.ARUS_DEV_LOGIN = "0";
+process.env["NODE_ENV"] = "test";
+process.env["SESSION_SECRET"] ||= "integration-test-session-secret-not-for-production";
+process.env["ARUS_DEV_LOGIN"] = "0";
 
 const explicitIntegrationDb =
-  process.env.ARUS_INTEGRATION_DATABASE_URL ?? process.env.TEST_DATABASE_URL;
+  process.env["ARUS_INTEGRATION_DATABASE_URL"] ?? process.env["TEST_DATABASE_URL"];
 const isIntegrationJestRun = process.argv.some((arg) => arg.includes("jest.integration.config"));
 
 if (explicitIntegrationDb) {
-  process.env.DATABASE_URL = explicitIntegrationDb;
-  process.env.ARUS_DEPLOYMENT_MODE = "CLOUD";
-  process.env.LOCAL_MODE = "false";
-  process.env.EMBEDDED_MODE = "false";
+  process.env["DATABASE_URL"] = explicitIntegrationDb;
+  process.env["ARUS_DEPLOYMENT_MODE"] = "CLOUD";
+  process.env["LOCAL_MODE"] = "false";
+  process.env["EMBEDDED_MODE"] = "false";
 } else {
-  delete process.env.DATABASE_URL;
-  process.env.ARUS_DEPLOYMENT_MODE = "VESSEL";
-  process.env.DEPLOYMENT_MODE = "VESSEL";
-  process.env.LOCAL_MODE = "true";
-  process.env.EMBEDDED_MODE = "true";
+  delete process.env["DATABASE_URL"];
+  process.env["ARUS_DEPLOYMENT_MODE"] = "VESSEL";
+  process.env["DEPLOYMENT_MODE"] = "VESSEL";
+  process.env["LOCAL_MODE"] = "true";
+  process.env["EMBEDDED_MODE"] = "true";
 }
 
-process.env.DISABLE_REDIS = "true";
-process.env.DISABLE_RATE_LIMITS = "true";
-process.env.DISABLE_JOB_QUEUE = "true";
-process.env.DISABLE_EMAIL_WORKER = "true";
-process.env.DISABLE_TELEMETRY_BATCH_WRITER = "true";
-process.env.DISABLE_OBSERVABILITY_TIMERS = "true";
-process.env.DISABLE_SECURITY_TIMERS = "true";
-process.env.DISABLE_AGENT_SCHEDULER = "true";
-process.env.DISABLE_DIGITAL_TWIN_STARTUP = "true";
-process.env.DISABLE_ML_SERVICE_STARTUP = "true";
-process.env.DISABLE_MODEL_BACKED_INFERENCE = "true";
-process.env.ENABLE_AUTO_REPLAN = "false";
-process.env.ENABLE_BACKGROUND_JOBS = "false";
-process.env.ENABLE_SCHEDULERS = "false";
-process.env.ENABLE_SYNC_SERVICES = "false";
-process.env.ENABLE_UPDATE_SYSTEM = "false";
-process.env.EVENT_SPINE_ANALYTICS = "0";
-process.env.EVENT_SPINE_DISABLED = "1";
-process.env.EVENT_SPINE_WORKER = "0";
+process.env["DISABLE_REDIS"] = "true";
+process.env["DISABLE_RATE_LIMITS"] = "true";
+process.env["DISABLE_JOB_QUEUE"] = "true";
+process.env["DISABLE_EMAIL_WORKER"] = "true";
+process.env["DISABLE_TELEMETRY_BATCH_WRITER"] = "true";
+process.env["DISABLE_OBSERVABILITY_TIMERS"] = "true";
+process.env["DISABLE_SECURITY_TIMERS"] = "true";
+process.env["DISABLE_AGENT_SCHEDULER"] = "true";
+process.env["DISABLE_DIGITAL_TWIN_STARTUP"] = "true";
+process.env["DISABLE_ML_SERVICE_STARTUP"] = "true";
+process.env["DISABLE_MODEL_BACKED_INFERENCE"] = "true";
+process.env["ENABLE_AUTO_REPLAN"] = "false";
+process.env["ENABLE_BACKGROUND_JOBS"] = "false";
+process.env["ENABLE_SCHEDULERS"] = "false";
+process.env["ENABLE_SYNC_SERVICES"] = "false";
+process.env["ENABLE_UPDATE_SYSTEM"] = "false";
+process.env["EVENT_SPINE_ANALYTICS"] = "0";
+process.env["EVENT_SPINE_DISABLED"] = "1";
+process.env["EVENT_SPINE_WORKER"] = "0";
 
 const trackedAsyncResources = new Map<
   number,
@@ -60,7 +60,7 @@ const trackedAsyncResources = new Map<
 >();
 let asyncDebugHook: AsyncHook | undefined;
 
-if (process.env.ARUS_DEBUG_OPEN_HANDLES === "true") {
+if (process.env["ARUS_DEBUG_OPEN_HANDLES"] === "true") {
   asyncDebugHook = createHook({
     destroy(asyncId) {
       trackedAsyncResources.delete(asyncId);
@@ -226,7 +226,7 @@ afterAll(async () => {
   await withCleanupTimeout("all cleanup tasks", Promise.all(cleanupTasks), 5000);
   await withCleanupTimeout("cleanupResidualNetworkHandles", cleanupResidualNetworkHandles(), 2000);
 
-  if (process.env.ARUS_DEBUG_OPEN_HANDLES === "true") {
+  if (process.env["ARUS_DEBUG_OPEN_HANDLES"] === "true") {
     const getActiveHandles = (process as unknown as { _getActiveHandles?: () => unknown[] })
       ._getActiveHandles;
     const getActiveRequests = (process as unknown as { _getActiveRequests?: () => unknown[] })

@@ -88,7 +88,9 @@ export function parseAmosCSV(
     const row: Record<string, string> = {};
     for (let j = 0; j < headers.length; j++) {
       const headerName = headers[j];
-      if (!headerName) {continue;}
+      if (!headerName) {
+        continue;
+      }
       row[headerName] = (values[j] || "").trim();
     }
     rows.push(row);
@@ -195,7 +197,9 @@ export function parseAmosXML(content: string): ParseResult {
     const fieldRegex = /<(\w+)(?:\s[^>]*)?>(?:<!\[CDATA\[(.*?)\]\]>|(.*?))<\/\1>/gs;
     for (const match of record.matchAll(fieldRegex)) {
       const rawName = match[1];
-      if (!rawName) {continue;}
+      if (!rawName) {
+        continue;
+      }
       const fieldName = rawName.toUpperCase();
       const value = (match[2] ?? match[3] ?? "").trim();
       row[fieldName] = value;
@@ -207,7 +211,9 @@ export function parseAmosXML(content: string): ParseResult {
     const recordStart = text.substring(text.indexOf(record) - 200, text.indexOf(record));
     for (const attrMatch of recordStart.matchAll(attrRegex)) {
       const rawAttr = attrMatch[1];
-      if (!rawAttr) {continue;}
+      if (!rawAttr) {
+        continue;
+      }
       const attrName = rawAttr.toUpperCase();
       if (!row[attrName]) {
         row[attrName] = attrMatch[2] ?? "";

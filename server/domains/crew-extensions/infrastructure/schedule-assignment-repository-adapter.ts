@@ -54,7 +54,11 @@ export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentR
     fromDate: Date,
     toDate: Date
   ): Promise<ScheduleAssignmentEntity[]> {
-    const assignments: unknown = await dbSchedulerStorage.getScheduleAssignments(orgId, fromDate, toDate);
+    const assignments: unknown = await dbSchedulerStorage.getScheduleAssignments(
+      orgId,
+      fromDate,
+      toDate
+    );
     return (assignments as AssignmentRow[]).map(mapToEntity);
   }
 

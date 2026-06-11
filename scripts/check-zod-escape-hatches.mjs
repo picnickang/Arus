@@ -114,7 +114,7 @@ function main() {
   if (hits.length) {
     console.error("");
     console.error(
-      `Zod escape-hatch violations (${hits.length}). These re-introduce \`any\`-shaped data behind a Zod facade and defeat wire-boundary validation.`,
+      `Zod escape-hatch violations (${hits.length}). These re-introduce \`any\`-shaped data behind a Zod facade and defeat wire-boundary validation.`
     );
     const byPattern = new Map();
     for (const h of hits) {
@@ -128,7 +128,7 @@ function main() {
     }
     console.error("");
     console.error(
-      "Replace with a concrete schema. If a single instance is genuinely justified (e.g. opaque third-party blob being passed through unchanged), add it to scripts/zod-escape-allowlist.json with a reason.",
+      "Replace with a concrete schema. If a single instance is genuinely justified (e.g. opaque third-party blob being passed through unchanged), add it to scripts/zod-escape-allowlist.json with a reason."
     );
     process.exit(1);
   }

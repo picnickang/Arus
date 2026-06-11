@@ -18,10 +18,7 @@ export interface SensorComparison {
 }
 
 export const llmSensorTuningService = {
-  async getRecommendations(
-    equipmentId: string,
-    _orgId: string
-  ): Promise<SensorRecommendation[]> {
+  async getRecommendations(equipmentId: string, _orgId: string): Promise<SensorRecommendation[]> {
     return [
       {
         equipmentId,

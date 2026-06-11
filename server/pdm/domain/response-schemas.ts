@@ -93,10 +93,12 @@ export const pdmDashboardResponseSchema = z.object({
 
 export const pdmFilterOptionsResponseSchema = z.object({
   vessels: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-    }).passthrough()
+    z
+      .object({
+        id: z.string(),
+        name: z.string(),
+      })
+      .passthrough()
   ),
   equipmentTypes: z.array(z.string()),
 });

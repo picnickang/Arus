@@ -13,7 +13,12 @@ declare module "javascript-lp-solver" {
     [variableName: string]: unknown;
   }
   interface LpSolverApi {
-    Solve(model: Record<string, unknown>, precision?: number, full?: boolean, validate?: boolean): LpSolveResult;
+    Solve(
+      model: Record<string, unknown>,
+      precision?: number,
+      full?: boolean,
+      validate?: boolean
+    ): LpSolveResult;
     Model?: unknown;
     Constraint?: unknown;
     Variable?: unknown;

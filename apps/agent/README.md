@@ -29,11 +29,11 @@ dotnet publish -c Release
 
 Environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| ARUS_DB_PATH | C:\ARUS\data\arus.sqlite | SQLite database path |
-| ARUS_HEARTBEAT_PATH | C:\ARUS\data\agent-heartbeat.json | Heartbeat JSON file |
-| ARUS_GRPC_PORT | 50051 | gRPC server port |
+| Variable            | Default                           | Description          |
+| ------------------- | --------------------------------- | -------------------- |
+| ARUS_DB_PATH        | C:\ARUS\data\arus.sqlite          | SQLite database path |
+| ARUS_HEARTBEAT_PATH | C:\ARUS\data\agent-heartbeat.json | Heartbeat JSON file  |
+| ARUS_GRPC_PORT      | 50051                             | gRPC server port     |
 
 ## Installation as Windows Service
 
@@ -46,11 +46,11 @@ sc start "ARUS Telemetry Agent"
 
 ### J1939 v1 Envelope
 
-| Offset | Size | Field |
-|--------|------|-------|
-| 0 | 4 | CAN ID (LE) |
-| 4 | 1 | DLC |
-| 5 | 0-8 | Data |
+| Offset | Size | Field       |
+| ------ | ---- | ----------- |
+| 0      | 4    | CAN ID (LE) |
+| 4      | 1    | DLC         |
+| 5      | 0-8  | Data        |
 
 ## SQLite Schema
 

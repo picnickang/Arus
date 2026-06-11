@@ -61,7 +61,9 @@ export class FeatureFlagManager {
 
   initialize(configs: FeatureFlagConfig[]): void {
     this.flags.clear();
-    for (const c of configs) {this.flags.set(c.key, c);}
+    for (const c of configs) {
+      this.flags.set(c.key, c);
+    }
   }
 
   isEnabled(key: string, _ctx?: FeatureFlagContext): boolean {
@@ -90,9 +92,15 @@ export class GradualRollout {
 
   currentPercentage(key: string, now: Date = new Date()): number {
     const s = this.schedules.get(key);
-    if (!s) {return 0;}
-    if (now <= s.startAt) {return s.startPercentage;}
-    if (now >= s.endAt) {return s.endPercentage;}
+    if (!s) {
+      return 0;
+    }
+    if (now <= s.startAt) {
+      return s.startPercentage;
+    }
+    if (now >= s.endAt) {
+      return s.endPercentage;
+    }
     const range = s.endAt.getTime() - s.startAt.getTime();
     const elapsed = now.getTime() - s.startAt.getTime();
     return s.startPercentage + ((s.endPercentage - s.startPercentage) * elapsed) / range;

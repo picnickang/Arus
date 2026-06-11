@@ -59,12 +59,14 @@ class QueryChain<T = unknown[]> implements PromiseLike<T> {
   }
 }
 
-function makeTx(fixtures: {
-  select?: unknown[][];
-  update?: unknown[][];
-  insert?: unknown[][];
-  delete?: unknown[][];
-} = {}) {
+function makeTx(
+  fixtures: {
+    select?: unknown[][];
+    update?: unknown[][];
+    insert?: unknown[][];
+    delete?: unknown[][];
+  } = {}
+) {
   const state = {
     select: [...(fixtures.select ?? [])],
     update: [...(fixtures.update ?? [])],
@@ -103,24 +105,31 @@ function makeTx(fixtures: {
 }
 
 const dbMock = {
-  transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
-    callback(makeTx())
-  ),
+  transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(makeTx())),
   select: jest.fn(),
   delete: jest.fn(),
 };
 
 const dbWorkOrderStorage = {
-  generateWorkOrderNumber: jest.fn(),
-  getWorkOrder: jest.fn(),
-  getWorkOrderById: jest.fn(),
-  createWorkOrder: jest.fn(),
+  generateWorkOrderNumber: jest.fn<() => Promise<string>>(),
+  getWorkOrder: jest.fn<() => Promise<{ id: string }>>(),
+  getWorkOrderById: jest.fn<() => Promise<{ id: string }>>(),
+  createWorkOrder: jest.fn<() => Promise<{ id: string }>>(),
   deleteWorkOrder: jest.fn(),
-  getWorkOrderParts: jest.fn(),
-  getWorkOrderTasks: jest.fn(),
-  getWorkOrderChecklists: jest.fn(),
-  getWorkOrderWorklogs: jest.fn(),
-  getWorkOrderCompletions: jest.fn(),
+  getWorkOrderParts: jest.fn<() => Promise<{ id: string }[]>>(),
+  getWorkOrderTasks: jest.fn<() => Promise<{ id: string }[]>>(),
+  getWorkOrderChecklists: jest.fn<() => Promise<{ id: string }[]>>(),
+  getWorkOrderWorklogs: jest.fn<() => Promise<{ id: string }[]>>(),
+  getWorkOrderCompletions: jest.fn<
+    () => Promise<
+      Array<{
+        actualDowntimeHours: number;
+        onTimeCompletion: boolean;
+        durationVariancePercent?: number;
+        costVariancePercent?: number;
+      }>
+    >
+  >(),
 };
 
 const dbInventoryStorage = {
@@ -194,9 +203,7 @@ describe("legacy WorkOrderService delegation and analytics", () => {
     await service.deleteWorkOrder("wo-3");
     await expect(service.getWorkOrderParts("wo-1")).resolves.toEqual([{ id: "part-link" }]);
     await expect(service.getWorkOrderTasks("wo-1")).resolves.toEqual([{ id: "task-1" }]);
-    await expect(service.getWorkOrderChecklists("wo-1")).resolves.toEqual([
-      { id: "checklist-1" },
-    ]);
+    await expect(service.getWorkOrderChecklists("wo-1")).resolves.toEqual([{ id: "checklist-1" }]);
     await expect(service.getWorkOrderWorklogs("wo-1")).resolves.toEqual([{ id: "worklog-1" }]);
 
     expect(dbWorkOrderStorage.deleteWorkOrder).toHaveBeenCalledWith("wo-3");
@@ -429,10 +436,7 @@ describe("legacy WorkOrderService clone and cleanup behavior", () => {
 
     await service.deleteWorkOrderCascade("wo-delete");
 
-    expect(dbInventoryStorage.releasePartsFromWorkOrder).toHaveBeenCalledWith(
-      "wo-delete",
-      "org-1"
-    );
+    expect(dbInventoryStorage.releasePartsFromWorkOrder).toHaveBeenCalledWith("wo-delete", "org-1");
     expect(dbMock.delete).toHaveBeenCalledTimes(5);
     expect(deleteChains[4].result).toEqual([{ id: "wo-delete" }]);
     expect(broadcastWorkOrderChange).toHaveBeenCalledWith("delete", { id: "wo-delete" });

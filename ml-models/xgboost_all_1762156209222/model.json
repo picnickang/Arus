@@ -21,10 +21,7 @@
     "maintenanceAge",
     "failureHistory"
   ],
-  "classLabels": [
-    "critical",
-    "healthy"
-  ],
+  "classLabels": ["critical", "healthy"],
   "baseScore": 0,
   "numClasses": 2
 }

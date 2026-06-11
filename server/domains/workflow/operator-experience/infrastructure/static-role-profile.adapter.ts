@@ -12,7 +12,8 @@ const PROFILES: Record<OperatorRole, RoleExperienceProfile> = {
       "Can I trust the PdM recommendation?",
       "What must be handed over before watch change?",
     ],
-    successDefinition: "Critical risk is converted into owned work with evidence, parts, and closeout feedback.",
+    successDefinition:
+      "Critical risk is converted into owned work with evidence, parts, and closeout feedback.",
     preferredPrimaryAction: "Open Attention Inbox",
   },
   second_engineer: {
@@ -48,7 +49,8 @@ const PROFILES: Record<OperatorRole, RoleExperienceProfile> = {
       "Where is the equipment?",
       "What checklist or evidence is required?",
     ],
-    successDefinition: "The technician can scan equipment, perform the work, and close it with proof.",
+    successDefinition:
+      "The technician can scan equipment, perform the work, and close it with proof.",
     preferredPrimaryAction: "Scan Equipment",
   },
   fleet_manager: {
@@ -84,7 +86,8 @@ const PROFILES: Record<OperatorRole, RoleExperienceProfile> = {
       "Are there sync conflicts?",
       "Are audit and access controls working?",
     ],
-    successDefinition: "The operational system is trusted because data, sync, and access controls are healthy.",
+    successDefinition:
+      "The operational system is trusted because data, sync, and access controls are healthy.",
     preferredPrimaryAction: "Review System Health",
   },
 };

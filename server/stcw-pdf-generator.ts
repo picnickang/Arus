@@ -115,11 +115,7 @@ export async function renderRestPdf(
   doc.fontSize(9).font("Helvetica-Bold");
   doc.text("Legend", gridLeft, currentY);
   doc.font("Helvetica");
-  doc.text(
-    "X (shaded) = Hour of rest    ·    Blank = Hour of work",
-    gridLeft + 45,
-    currentY
-  );
+  doc.text("X (shaded) = Hour of rest    ·    Blank = Hour of work", gridLeft + 45, currentY);
 
   // Compliance footer — exact STCW/MLC wording
   currentY += 18;
@@ -127,17 +123,9 @@ export async function renderRestPdf(
   doc.text("Minimum hours of rest (STCW A-VIII/1 · MLC A2.3):", gridLeft, currentY);
   doc.font("Helvetica");
   currentY += 13;
-  doc.text(
-    "1. A minimum of 10 hours of rest in any 24-hour period.",
-    gridLeft + 10,
-    currentY
-  );
+  doc.text("1. A minimum of 10 hours of rest in any 24-hour period.", gridLeft + 10, currentY);
   currentY += 12;
-  doc.text(
-    "2. A minimum of 77 hours of rest in any 7-day period.",
-    gridLeft + 10,
-    currentY
-  );
+  doc.text("2. A minimum of 77 hours of rest in any 7-day period.", gridLeft + 10, currentY);
   currentY += 12;
   doc.text(
     "3. Hours of rest may be divided into no more than two periods, one of which shall be at least 6 hours in length,",
@@ -164,8 +152,14 @@ export async function renderRestPdf(
 
   const colWidth = (pageWidth - 20) / 2;
   const lineY = sigY + 50;
-  doc.moveTo(gridLeft, lineY).lineTo(gridLeft + colWidth - 10, lineY).stroke();
-  doc.moveTo(gridLeft + colWidth + 10, lineY).lineTo(gridLeft + pageWidth, lineY).stroke();
+  doc
+    .moveTo(gridLeft, lineY)
+    .lineTo(gridLeft + colWidth - 10, lineY)
+    .stroke();
+  doc
+    .moveTo(gridLeft + colWidth + 10, lineY)
+    .lineTo(gridLeft + pageWidth, lineY)
+    .stroke();
   doc.fontSize(8);
   doc.text("Signature of seafarer", gridLeft, lineY + 4);
   doc.text(`Date: ____________________`, gridLeft, lineY + 16);

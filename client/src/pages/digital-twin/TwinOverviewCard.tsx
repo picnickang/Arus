@@ -3,22 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useEquipmentName, useEquipmentVesselName } from "@/hooks/use-equipment-lookup";
-import {
-  Loader2,
-  BarChart3,
-  Clock,
-  RefreshCw,
-  Heart,
-  Gauge,
-  Timer,
-} from "lucide-react";
-import {
-  useLatestTwinState,
-} from "@/features/digital-twin/hooks/useTwinApi";
-import {
-  type TwinFreshnessInfo,
-} from "@/features/digital-twin/hooks/useTwinFreshness";
-
+import { Loader2, BarChart3, Clock, RefreshCw, Heart, Gauge, Timer } from "lucide-react";
+import { useLatestTwinState } from "@/features/digital-twin/hooks/useTwinApi";
+import { type TwinFreshnessInfo } from "@/features/digital-twin/hooks/useTwinFreshness";
 
 import { healthColor, formatTimeAgo } from "./utils";
 
@@ -153,4 +140,3 @@ export function TwinOverviewCard({
     </Card>
   );
 }
-

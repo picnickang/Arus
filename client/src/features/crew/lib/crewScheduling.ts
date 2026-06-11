@@ -30,19 +30,21 @@ export interface EnhancedSchedulePlanResponse {
   engine: string;
   scheduled: ScheduleAssignment[];
   unfilled: UnfilledShift[];
-  compliance?: {
-    overall_ok: boolean;
-    per_crew: Array<{
-      crew_id: string;
-      name: string;
-      ok: boolean;
-      min_rest_24: number;
-      rest_7d: number;
-      nights_this_week: number;
-      violations: number;
-    }>;
-    rows_by_crew: { [crewId: string]: ComplianceRow[] };
-  } | undefined;
+  compliance?:
+    | {
+        overall_ok: boolean;
+        per_crew: Array<{
+          crew_id: string;
+          name: string;
+          ok: boolean;
+          min_rest_24: number;
+          rest_7d: number;
+          nights_this_week: number;
+          violations: number;
+        }>;
+        rows_by_crew: { [crewId: string]: ComplianceRow[] };
+      }
+    | undefined;
   summary: {
     totalShifts: number;
     scheduledAssignments: number;
@@ -107,12 +109,14 @@ interface RawScheduleResponse {
   scheduled?: unknown[] | undefined;
   unfilled?: unknown[] | undefined;
   compliance?: EnhancedSchedulePlanResponse["compliance"] | undefined;
-  summary?: {
-    totalShifts?: number | undefined;
-    scheduledAssignments?: number | undefined;
-    unfilledPositions?: number | undefined;
-    coverage?: number | undefined;
-  } | undefined;
+  summary?:
+    | {
+        totalShifts?: number | undefined;
+        scheduledAssignments?: number | undefined;
+        unfilledPositions?: number | undefined;
+        coverage?: number | undefined;
+      }
+    | undefined;
 }
 
 export function parseEnhancedScheduleResponse(

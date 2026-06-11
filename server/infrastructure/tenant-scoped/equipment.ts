@@ -56,7 +56,12 @@ export class EquipmentRepository extends TenantScopedRepository {
     const result = await db
       .select()
       .from(equipment)
-      .where(this.orgWhere(equipment, eq((equipment as object as Record<string, never>)["deviceId"]!, deviceId)))
+      .where(
+        this.orgWhere(
+          equipment,
+          eq((equipment as object as Record<string, never>)["deviceId"]!, deviceId)
+        )
+      )
       .limit(1);
 
     return result[0];

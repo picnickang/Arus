@@ -5,6 +5,7 @@
 When multiple devices work offline and later sync to a shared database, **data conflicts are inevitable**:
 
 ### Example Scenario:
+
 ```
 Initial State (All devices online):
 Equipment #123: oilPressure = 45 PSI, lastUpdated = 10:00 AM
@@ -26,7 +27,9 @@ Both devices reconnect at 11:00 AM and try to sync:
 ## 🎯 Conflict Resolution Strategies
 
 ### 1. **Last-Write-Wins (LWW)** ⚠️
+
 **How it works:** Latest timestamp wins
+
 ```
 Device A: oilPressure = 50 PSI (10:30 AM)
 Device B: oilPressure = 48 PSI (10:45 AM) ← Wins (most recent)
@@ -34,11 +37,13 @@ Result: 48 PSI saved, 50 PSI lost
 ```
 
 **Pros:**
+
 - ✅ Simple to implement
 - ✅ No user intervention needed
 - ✅ Always converges to single value
 
 **Cons:**
+
 - ❌ Data loss (earlier updates discarded)
 - ❌ No user control
 - ❌ Dangerous for critical maritime data
@@ -48,7 +53,9 @@ Result: 48 PSI saved, 50 PSI lost
 ---
 
 ### 2. **Optimistic Locking with Version Numbers** ✅ (RECOMMENDED)
+
 **How it works:** Each record has a version number, incremented on each update
+
 ```
 Initial: Equipment #123 version = 5
 
@@ -69,12 +76,14 @@ When syncing:
 ```
 
 **Pros:**
+
 - ✅ Detects all conflicts reliably
 - ✅ No data loss (conflicts are flagged)
 - ✅ Can implement various resolution strategies
 - ✅ Industry standard approach
 
 **Cons:**
+
 - ⚠️ Requires version tracking in database
 - ⚠️ Needs conflict resolution UI
 
@@ -83,7 +92,9 @@ When syncing:
 ---
 
 ### 3. **Field-Level Versioning** ✅ (RECOMMENDED FOR COMPLEX DATA)
+
 **How it works:** Each field has its own timestamp/version
+
 ```
 Equipment #123:
 - oilPressure: 45 PSI (updatedAt: 10:00 AM, updatedBy: "system")
@@ -102,12 +113,14 @@ No conflict! Different fields modified.
 ```
 
 **Pros:**
+
 - ✅ Merges non-conflicting changes automatically
 - ✅ Reduces conflicts significantly
 - ✅ Preserves more data
 - ✅ Great for complex objects
 
 **Cons:**
+
 - ⚠️ Complex schema (timestamp per field)
 - ⚠️ Still needs conflict resolution for same-field edits
 
@@ -116,7 +129,9 @@ No conflict! Different fields modified.
 ---
 
 ### 4. **Vector Clocks / Version Vectors** (Advanced)
+
 **How it works:** Track causal relationships between updates
+
 ```
 Device A: [A:2, B:1, C:0]
 Device B: [A:1, B:3, C:0]
@@ -128,11 +143,13 @@ Can determine:
 ```
 
 **Pros:**
+
 - ✅ Detects concurrent vs. sequential updates
 - ✅ No central timestamp needed
 - ✅ Works in fully distributed systems
 
 **Cons:**
+
 - ❌ Complex to implement
 - ❌ Overhead grows with device count
 - ❌ Overkill for most applications
@@ -142,7 +159,9 @@ Can determine:
 ---
 
 ### 5. **CRDTs (Conflict-free Replicated Data Types)** (Advanced)
+
 **How it works:** Mathematical structures that always converge
+
 ```
 Counter CRDT:
 - Device A: increment by 5
@@ -156,11 +175,13 @@ Set CRDT:
 ```
 
 **Pros:**
+
 - ✅ Mathematically guaranteed convergence
 - ✅ No conflict resolution needed
 - ✅ Excellent for collaborative editing
 
 **Cons:**
+
 - ❌ Limited data types
 - ❌ Not suitable for all maritime data
 - ❌ Complex to implement
@@ -170,7 +191,9 @@ Set CRDT:
 ---
 
 ### 6. **Manual Conflict Resolution** ✅ (RECOMMENDED FOR CRITICAL DATA)
+
 **How it works:** Present conflicts to user for decision
+
 ```
 Conflict Detected:
 ┌─────────────────────────────────────────┐
@@ -188,12 +211,14 @@ Conflict Detected:
 ```
 
 **Pros:**
+
 - ✅ User controls critical decisions
 - ✅ No automatic data loss
 - ✅ Audit trail maintained
 - ✅ Best for safety-critical systems
 
 **Cons:**
+
 - ⚠️ Requires user intervention
 - ⚠️ Can be tedious with many conflicts
 
@@ -238,6 +263,7 @@ Conflict Detected:
 ### Phase 1: Database Schema Enhancement
 
 #### Add Version Tracking
+
 ```sql
 -- Equipment table
 ALTER TABLE equipment ADD COLUMN version INTEGER DEFAULT 1;
@@ -256,6 +282,7 @@ ALTER TABLE sensor_configs ADD COLUMN last_modified_by VARCHAR(255);
 ```
 
 #### Create Conflict Log Table
+
 ```sql
 CREATE TABLE sync_conflicts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -280,6 +307,7 @@ CREATE TABLE sync_conflicts (
 ```
 
 #### Create Audit Trail Table
+
 ```sql
 CREATE TABLE change_audit (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -301,6 +329,7 @@ CREATE TABLE change_audit (
 ### Phase 2: Conflict Detection Logic
 
 #### API Endpoint: `/api/sync/check-conflicts`
+
 ```typescript
 // Check for conflicts before applying changes
 POST /api/sync/check-conflicts
@@ -343,52 +372,52 @@ POST /api/sync/check-conflicts
 
 #### Resolution Strategy Matrix
 
-| Data Type | Conflict Type | Strategy | Reason |
-|-----------|---------------|----------|--------|
-| Equipment name | Same field edit | **Manual** | Critical identifier |
-| Oil pressure threshold | Same field edit | **Manual** | Safety critical |
-| Sensor reading (current) | Same field edit | **Max value** | Safety (higher pressure = alert) |
-| Temperature threshold | Same field edit | **Manual** | Safety critical |
-| Work order notes | Same field edit | **Append both** | Preserve all info |
-| Work order status | Same field edit | **Most progressed** | In Progress > Scheduled |
-| UI preferences | Same field edit | **LWW** | Non-critical |
-| Equipment location | Same field edit | **LWW** | Likely sequential moves |
-| Telemetry data | New records | **Merge all** | No conflict (different timestamps) |
+| Data Type                | Conflict Type   | Strategy            | Reason                             |
+| ------------------------ | --------------- | ------------------- | ---------------------------------- |
+| Equipment name           | Same field edit | **Manual**          | Critical identifier                |
+| Oil pressure threshold   | Same field edit | **Manual**          | Safety critical                    |
+| Sensor reading (current) | Same field edit | **Max value**       | Safety (higher pressure = alert)   |
+| Temperature threshold    | Same field edit | **Manual**          | Safety critical                    |
+| Work order notes         | Same field edit | **Append both**     | Preserve all info                  |
+| Work order status        | Same field edit | **Most progressed** | In Progress > Scheduled            |
+| UI preferences           | Same field edit | **LWW**             | Non-critical                       |
+| Equipment location       | Same field edit | **LWW**             | Likely sequential moves            |
+| Telemetry data           | New records     | **Merge all**       | No conflict (different timestamps) |
 
 #### Implementation Example
+
 ```typescript
 function autoResolveConflict(conflict: Conflict): Resolution {
   const { tableName, fieldName, localValue, serverValue } = conflict;
-  
+
   // Safety-critical fields: Manual resolution
   if (isSafetyCritical(tableName, fieldName)) {
-    return { strategy: 'manual', requiresUserInput: true };
+    return { strategy: "manual", requiresUserInput: true };
   }
-  
+
   // Sensor readings: Use max value (safety)
-  if (tableName === 'equipment' && fieldName.includes('Pressure')) {
+  if (tableName === "equipment" && fieldName.includes("Pressure")) {
     const maxValue = Math.max(localValue, serverValue);
-    return { strategy: 'max', resolvedValue: maxValue };
+    return { strategy: "max", resolvedValue: maxValue };
   }
-  
+
   // Notes/Comments: Append both
-  if (fieldName.includes('notes') || fieldName.includes('comment')) {
+  if (fieldName.includes("notes") || fieldName.includes("comment")) {
     const merged = `${serverValue}\n---\n${localValue}`;
-    return { strategy: 'append', resolvedValue: merged };
+    return { strategy: "append", resolvedValue: merged };
   }
-  
+
   // Work order status: Most progressed
-  if (tableName === 'work_orders' && fieldName === 'status') {
-    const statusPriority = { 'completed': 3, 'in_progress': 2, 'scheduled': 1 };
-    const winner = statusPriority[localValue] > statusPriority[serverValue] 
-      ? localValue : serverValue;
-    return { strategy: 'priority', resolvedValue: winner };
+  if (tableName === "work_orders" && fieldName === "status") {
+    const statusPriority = { completed: 3, in_progress: 2, scheduled: 1 };
+    const winner =
+      statusPriority[localValue] > statusPriority[serverValue] ? localValue : serverValue;
+    return { strategy: "priority", resolvedValue: winner };
   }
-  
+
   // Default: Last-Write-Wins
-  const winner = conflict.localTimestamp > conflict.serverTimestamp 
-    ? localValue : serverValue;
-  return { strategy: 'lww', resolvedValue: winner };
+  const winner = conflict.localTimestamp > conflict.serverTimestamp ? localValue : serverValue;
+  return { strategy: "lww", resolvedValue: winner };
 }
 ```
 
@@ -397,6 +426,7 @@ function autoResolveConflict(conflict: Conflict): Resolution {
 ### Phase 4: Manual Conflict Resolution UI
 
 #### Conflict Resolution Modal
+
 ```typescript
 // Component: ConflictResolutionDialog.tsx
 interface ConflictDialogProps {
@@ -413,15 +443,15 @@ function ConflictResolutionDialog({ conflicts, onResolve }: ConflictDialogProps)
           Sync Conflict Detected
         </DialogTitle>
         <DialogDescription>
-          Multiple devices modified the same data while offline. 
+          Multiple devices modified the same data while offline.
           Please choose which changes to keep.
         </DialogDescription>
       </DialogHeader>
-      
+
       {conflicts.map(conflict => (
         <ConflictCard key={conflict.id}>
           <h3>{conflict.tableName} - {conflict.fieldName}</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4>Your Change</h4>
@@ -433,7 +463,7 @@ function ConflictResolutionDialog({ conflicts, onResolve }: ConflictDialogProps)
                 Keep Your Change
               </Button>
             </div>
-            
+
             <div>
               <h4>Other Change</h4>
               <p>{conflict.serverValue}</p>
@@ -445,17 +475,17 @@ function ConflictResolutionDialog({ conflicts, onResolve }: ConflictDialogProps)
               </Button>
             </div>
           </div>
-          
+
           <div>
             <h4>Custom Resolution</h4>
-            <Input 
-              placeholder="Enter custom value" 
+            <Input
+              placeholder="Enter custom value"
               onChange={(e) => resolveWith('custom', e.target.value)}
             />
           </div>
         </ConflictCard>
       ))}
-      
+
       <DialogFooter>
         <Button onClick={() => onResolve(resolutions)}>
           Apply Resolution
@@ -471,10 +501,11 @@ function ConflictResolutionDialog({ conflicts, onResolve }: ConflictDialogProps)
 ### Phase 5: Service Worker Integration
 
 #### Background Sync with Conflict Detection
+
 ```javascript
 // public/service-worker.js - Enhanced sync
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-offline-changes') {
+self.addEventListener("sync", async (event) => {
+  if (event.tag === "sync-offline-changes") {
     event.waitUntil(syncWithConflictDetection());
   }
 });
@@ -483,42 +514,42 @@ async function syncWithConflictDetection() {
   try {
     // 1. Get pending changes from IndexedDB
     const pendingChanges = await getPendingChanges();
-    
+
     // 2. Check for conflicts with server
-    const conflictCheck = await fetch('/api/sync/check-conflicts', {
-      method: 'POST',
-      body: JSON.stringify({ changes: pendingChanges })
+    const conflictCheck = await fetch("/api/sync/check-conflicts", {
+      method: "POST",
+      body: JSON.stringify({ changes: pendingChanges }),
     });
-    
+
     const { conflicts, safeChanges } = await conflictCheck.json();
-    
+
     // 3. Apply safe changes automatically
     if (safeChanges.length > 0) {
-      await fetch('/api/sync/apply', {
-        method: 'POST',
-        body: JSON.stringify({ changes: safeChanges })
+      await fetch("/api/sync/apply", {
+        method: "POST",
+        body: JSON.stringify({ changes: safeChanges }),
       });
     }
-    
+
     // 4. Store conflicts for user resolution
     if (conflicts.length > 0) {
       await storeConflictsForResolution(conflicts);
-      
+
       // Notify user
-      await self.registration.showNotification('Sync Conflict', {
+      await self.registration.showNotification("Sync Conflict", {
         body: `${conflicts.length} conflict(s) need your attention`,
-        icon: '/icon-192x192.png',
-        tag: 'sync-conflict',
-        requireInteraction: true
+        icon: "/icon-192x192.png",
+        tag: "sync-conflict",
+        requireInteraction: true,
       });
     }
-    
-    console.log('[SW] Sync completed:', {
+
+    console.log("[SW] Sync completed:", {
       applied: safeChanges.length,
-      conflicts: conflicts.length
+      conflicts: conflicts.length,
     });
   } catch (error) {
-    console.error('[SW] Sync failed:', error);
+    console.error("[SW] Sync failed:", error);
     throw error; // Retry sync
   }
 }
@@ -531,6 +562,7 @@ async function syncWithConflictDetection() {
 ### Conflict Analytics Dashboard
 
 Track conflict metrics:
+
 - **Conflict rate**: Conflicts per sync operation
 - **Resolution time**: How long conflicts take to resolve
 - **Auto-resolution success**: % of conflicts resolved automatically
@@ -538,6 +570,7 @@ Track conflict metrics:
 - **User resolution patterns**: Which options users choose
 
 ### Alerts for Critical Conflicts
+
 ```
 🚨 CRITICAL CONFLICT DETECTED
 Equipment: Main Engine #1
@@ -553,12 +586,14 @@ Action Required: Manual resolution needed for safety-critical setting
 ## 🔒 Security Considerations
 
 ### Conflict Resolution Permissions
+
 - Only authorized users can resolve conflicts
 - Safety-critical fields require higher permissions
 - All resolutions logged in audit trail
 - Tamper-proof conflict records
 
 ### Data Integrity
+
 - Version numbers prevent race conditions
 - Transactions ensure atomic updates
 - Rollback capability for bad resolutions
@@ -569,26 +604,31 @@ Action Required: Manual resolution needed for safety-critical setting
 ## 📚 Best Practices for Maritime Operations
 
 ### 1. **Minimize Offline Edits**
+
 - Encourage online work when possible
 - Batch offline changes to reduce conflicts
 - Use real-time collaboration when in port
 
 ### 2. **Clear Ownership**
+
 - Assign equipment to specific crew members
 - Reduce overlapping responsibilities
 - Use locking mechanism for critical edits
 
 ### 3. **Training**
+
 - Train crew on conflict resolution
 - Emphasize importance of timestamps
 - Document standard resolution procedures
 
 ### 4. **Regular Sync Schedule**
+
 - Sync devices every 4-6 hours at sea
 - Immediate sync when reaching port
 - Automated sync during satellite windows
 
 ### 5. **Conflict Prevention**
+
 - Read-only access for non-critical users
 - Reserved fields for specific roles
 - Clear data ownership policies
@@ -598,32 +638,38 @@ Action Required: Manual resolution needed for safety-critical setting
 ## ✅ Summary
 
 ### Current State (Phase 0)
+
 - ✅ Offline caching (read-only)
 - 🚧 Background sync (scaffolded, not implemented)
 
 ### Recommended Implementation
 
 **Phase 1: Foundation** (1-2 weeks)
+
 - Add version tracking to database
 - Create conflict log tables
 - Implement basic conflict detection
 
 **Phase 2: Auto-Resolution** (2-3 weeks)
+
 - Implement resolution strategies
 - Build conflict detection API
 - Add service worker sync logic
 
 **Phase 3: Manual Resolution** (2-3 weeks)
+
 - Build conflict resolution UI
 - Implement user resolution flow
 - Add notification system
 
 **Phase 4: Monitoring** (1-2 weeks)
+
 - Conflict analytics dashboard
 - Alert system
 - Audit trail reporting
 
 ### Key Decisions Needed
+
 1. Which tables need version tracking?
 2. Which fields are safety-critical (require manual resolution)?
 3. What automatic resolution rules to apply?
@@ -631,9 +677,10 @@ Action Required: Manual resolution needed for safety-critical setting
 
 ---
 
-*This strategy ensures data integrity while supporting offline operations in maritime environments.*
+_This strategy ensures data integrity while supporting offline operations in maritime environments._
 
 **Next Steps:**
+
 1. Review and approve conflict resolution strategy
 2. Prioritize which tables to implement first
 3. Begin Phase 1: Database schema enhancement
@@ -641,5 +688,5 @@ Action Required: Manual resolution needed for safety-critical setting
 
 ---
 
-*Last Updated: October 2025*  
-*ARUS Marine Predictive Maintenance System*
+_Last Updated: October 2025_  
+_ARUS Marine Predictive Maintenance System_

@@ -47,11 +47,15 @@ const MAX_NAME_LEN = 24;
 const MAX_ROUTE_LEN = 256;
 
 function sanitizeName(n: unknown): string {
-  if (typeof n !== "string") {return "unknown";}
+  if (typeof n !== "string") {
+    return "unknown";
+  }
   return n.slice(0, MAX_NAME_LEN).replace(/[^A-Za-z0-9_-]/g, "_");
 }
 function sanitizeRoute(r: unknown): string {
-  if (typeof r !== "string") {return "/";}
+  if (typeof r !== "string") {
+    return "/";
+  }
   return r.slice(0, MAX_ROUTE_LEN);
 }
 
@@ -65,7 +69,9 @@ export function createWebVitalsRouter(): Router {
         const metric = sanitizeName(e?.name);
         const route = sanitizeRoute(e?.route);
         const value = typeof e?.value === "number" && Number.isFinite(e.value) ? e.value : NaN;
-        if (Number.isNaN(value)) {continue;}
+        if (Number.isNaN(value)) {
+          continue;
+        }
         const rating = sanitizeName(e?.rating ?? "unknown");
         const scaled = metric === "CLS" ? value * 100 : value / 1000;
         webVitalsHistogram.observe({ metric, route, rating }, scaled);

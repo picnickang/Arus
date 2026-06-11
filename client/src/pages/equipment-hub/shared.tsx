@@ -1,15 +1,9 @@
 /** Shared visual helpers for the equipment hub page family (dark
  * IntelligenceLayout theme). Extracted verbatim from the pre-split page. */
 
-export function riskColor(r: string) {
-  if (r === "critical") {
-    return "text-red-500";
-  }
-  if (r === "warning") {
-    return "text-yellow-500";
-  }
-  return "text-green-500";
-}
+// Risk → text color now lives in the shared status-colors lib; re-exported
+// under its original name for this page family's importers.
+export { riskTextClass as riskColor } from "@/lib/status-colors";
 export function riskBg(r: string) {
   if (r === "critical") {
     return "bg-red-500/10 border-red-500/20";

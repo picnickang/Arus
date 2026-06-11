@@ -29,15 +29,8 @@ export interface UpsertSetupSettingOptions {
   description?: string;
 }
 
-export async function getSetupSetting(
-  category: string,
-  key: string
-): Promise<string | undefined> {
-  const setting = await dbSystemAdminStorage.getAdminSystemSetting(
-    DEFAULT_ORG_ID,
-    category,
-    key
-  );
+export async function getSetupSetting(category: string, key: string): Promise<string | undefined> {
+  const setting = await dbSystemAdminStorage.getAdminSystemSetting(DEFAULT_ORG_ID, category, key);
   return normalizeSettingValue(setting?.value);
 }
 
@@ -47,11 +40,7 @@ export async function upsertSetupSetting(
   value: string,
   options: UpsertSetupSettingOptions = {}
 ): Promise<void> {
-  const existing = await dbSystemAdminStorage.getAdminSystemSetting(
-    DEFAULT_ORG_ID,
-    category,
-    key
-  );
+  const existing = await dbSystemAdminStorage.getAdminSystemSetting(DEFAULT_ORG_ID, category, key);
   const payload = {
     orgId: DEFAULT_ORG_ID,
     category,

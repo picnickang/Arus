@@ -32,8 +32,7 @@ export function StreamingIndicator({
                 )}
                 <Wrench className="h-3 w-3" />
                 <span>
-                  {tc.status === "running" ? "Running" : "Completed"}{" "}
-                  {formatToolName(tc.toolName)}
+                  {tc.status === "running" ? "Running" : "Completed"} {formatToolName(tc.toolName)}
                 </span>
               </div>
             ))}

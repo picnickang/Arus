@@ -22,9 +22,6 @@
 
 import { spawn } from "node:child_process";
 
-// 113 = 111 + the two domain routers added by the route-contract triage
-// (maintenance checklist-routes, pdm-platform health routes); the pin was
-// not bumped when those landed, so boot-health was failing on main.
 const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 113);
 const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 60_000);
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);

@@ -1,7 +1,10 @@
 import { useState as useLocalState } from "react";
 import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
-import { WorkOrderCloseoutWizard, type CloseoutPredictionFeedback } from "@/components/work-orders/WorkOrderCloseoutWizard";
+import {
+  WorkOrderCloseoutWizard,
+  type CloseoutPredictionFeedback,
+} from "@/components/work-orders/WorkOrderCloseoutWizard";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -207,7 +210,11 @@ export default function WorkOrders() {
               </div>
             </div>
             <VirtualizedWorkOrderTable
-              workOrders={filteredAndSortedWorkOrders as object as React.ComponentProps<typeof VirtualizedWorkOrderTable>["workOrders"]}
+              workOrders={
+                filteredAndSortedWorkOrders as object as React.ComponentProps<
+                  typeof VirtualizedWorkOrderTable
+                >["workOrders"]
+              }
               equipment={equipment}
               vessels={vessels}
               crew={allCrewMembers}
@@ -231,7 +238,12 @@ export default function WorkOrders() {
         vessels={vessels}
         crew={allCrewMembers}
         onComplete={(id, feedback) => {
-          completeWorkOrderMutation.mutate({ orderId: id, ...(feedback !== undefined && { predictionFeedback: feedback as object as Record<string, unknown> }) });
+          completeWorkOrderMutation.mutate({
+            orderId: id,
+            ...(feedback !== undefined && {
+              predictionFeedback: feedback as object as Record<string, unknown>,
+            }),
+          });
           closeDrawer();
         }}
         onEdit={(_order) => {
@@ -272,7 +284,11 @@ export default function WorkOrders() {
               onComplete={(feedback) =>
                 completeWorkOrderMutation.mutate({
                   orderId: selectedOrder.id,
-                  ...(feedback !== undefined && { predictionFeedback: feedback as object as Parameters<typeof completeWorkOrderMutation.mutate>[0]["predictionFeedback"] }),
+                  ...(feedback !== undefined && {
+                    predictionFeedback: feedback as object as Parameters<
+                      typeof completeWorkOrderMutation.mutate
+                    >[0]["predictionFeedback"],
+                  }),
                 })
               }
               isCompleting={completeWorkOrderMutation.isPending}
@@ -288,7 +304,9 @@ export default function WorkOrders() {
         onOpenChange={setFormDialogOpen}
         mode={formDialogMode}
         workOrder={selectedOrder}
-        onSubmit={handleFormSubmit as object as React.ComponentProps<typeof WorkOrderFormDialog>["onSubmit"]}
+        onSubmit={
+          handleFormSubmit as object as React.ComponentProps<typeof WorkOrderFormDialog>["onSubmit"]
+        }
         isSubmitting={createMutation.isPending || updateMutation.isPending}
         defaultVesselId={defaultVesselId}
         defaultEquipmentId={defaultEquipmentId}
@@ -298,7 +316,11 @@ export default function WorkOrders() {
         workOrderId={pendingDeleteOrder?.id ?? null}
         workOrderLabel={pendingDeleteOrder?.woNumber || pendingDeleteOrder?.id || ""}
         open={!!pendingDeleteOrder}
-        onOpenChange={(o) => { if (!o) {setPendingDeleteOrder(null);} }}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPendingDeleteOrder(null);
+          }
+        }}
         onConfirm={confirmDeleteOrder}
         isDeleting={deleteMutation.isPending}
       />
@@ -491,15 +513,15 @@ function ViewOrderTabs({
         </div>
       </TabsContent>
       <WorkOrderCloseoutWizard
-      open={closeoutOpen}
-      onOpenChange={setCloseoutOpen}
-      workOrderId={order.id}
-      isPredictive={isPredictiveWo}
-      isSubmitting={isCompleting}
-      onComplete={(feedback?: CloseoutPredictionFeedback) => {
-        onComplete(feedback);
-        setCloseoutOpen(false);
-      }}
+        open={closeoutOpen}
+        onOpenChange={setCloseoutOpen}
+        workOrderId={order.id}
+        isPredictive={isPredictiveWo}
+        isSubmitting={isCompleting}
+        onComplete={(feedback?: CloseoutPredictionFeedback) => {
+          onComplete(feedback);
+          setCloseoutOpen(false);
+        }}
       />
     </Tabs>
   );

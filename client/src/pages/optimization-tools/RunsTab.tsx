@@ -1,21 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  BarChart3,
-  Download,
-  Loader2,
-  RotateCcw,
-  Trash2,
-  XCircle,
-} from "lucide-react";
+import { BarChart3, Download, Loader2, RotateCcw, Trash2, XCircle } from "lucide-react";
 import { formatDecimal } from "@/lib/formatters";
 import { formatDurationMs } from "@/features/maintenance";
 import { StatusBadge } from "./StatusBadge";
@@ -168,8 +155,7 @@ export function RunsTab({ o }: { o: OptimizationData }) {
                               size="sm"
                               onClick={() => o.applyToProductionMutation.mutate(result.id)}
                               disabled={
-                                result.appliedToProduction ||
-                                o.applyToProductionMutation.isPending
+                                result.appliedToProduction || o.applyToProductionMutation.isPending
                               }
                               data-testid={`button-apply-${result.id}`}
                             >
@@ -183,9 +169,7 @@ export function RunsTab({ o }: { o: OptimizationData }) {
                               size="sm"
                               onClick={() => {
                                 if (
-                                  confirm(
-                                    "Delete this optimization result? This cannot be undone."
-                                  )
+                                  confirm("Delete this optimization result? This cannot be undone.")
                                 ) {
                                   o.deleteOptimizationMutation.mutate(result.id);
                                 }

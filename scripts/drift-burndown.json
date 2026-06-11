@@ -13,9 +13,7 @@
     "medium": [
       {
         "table": "equipmentTelemetry",
-        "pgOnly": [
-          "idempotencyKey"
-        ],
+        "pgOnly": ["idempotencyKey"],
         "totalDiffs": 1,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add nullable idempotencyKey TEXT column to equipmentTelemetrySqlite (additive, no backfill needed — used by the cloud-side dedupe only).",
@@ -23,9 +21,7 @@
       },
       {
         "table": "equipmentLifecycle",
-        "pgOnly": [
-          "orgId"
-        ],
+        "pgOnly": ["orgId"],
         "totalDiffs": 1,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add orgId TEXT NOT NULL DEFAULT 'default-org-id' to equipmentLifecycleSqlite + create index. Backfill via single UPDATE before flipping to NOT NULL.",
@@ -33,9 +29,7 @@
       },
       {
         "table": "performanceMetrics",
-        "pgOnly": [
-          "orgId"
-        ],
+        "pgOnly": ["orgId"],
         "totalDiffs": 1,
         "action": "Align column names/types — small schema patch",
         "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
@@ -43,9 +37,7 @@
       },
       {
         "table": "maintenanceChecklistItems",
-        "pgOnly": [
-          "orgId"
-        ],
+        "pgOnly": ["orgId"],
         "totalDiffs": 1,
         "action": "Align column names/types — small schema patch",
         "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
@@ -53,9 +45,7 @@
       },
       {
         "table": "maintenanceChecklistCompletions",
-        "pgOnly": [
-          "orgId"
-        ],
+        "pgOnly": ["orgId"],
         "totalDiffs": 1,
         "action": "Align column names/types — small schema patch",
         "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
@@ -63,12 +53,8 @@
       },
       {
         "table": "reservations",
-        "sqliteOnly": [
-          "reservedAt"
-        ],
-        "typeDrift": [
-          "quantity"
-        ],
+        "sqliteOnly": ["reservedAt"],
+        "typeDrift": ["quantity"],
         "totalDiffs": 2,
         "action": "Align column names/types — small schema patch",
         "resolution": "Drop reservedAt from SQLite (or add to PG); reconcile quantity type (PG uses numeric, SQLite uses real).",
@@ -76,13 +62,8 @@
       },
       {
         "table": "vessels",
-        "pgOnly": [
-          "schematicLayout"
-        ],
-        "sqliteOnly": [
-          "id",
-          "orgId"
-        ],
+        "pgOnly": ["schematicLayout"],
+        "sqliteOnly": ["id", "orgId"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add schematicLayout JSON column to vesselsSqlite. The id/orgId false positives in sqliteOnly come from the validator picking up shadowed shorthand declarations — verified by running scripts/validate-dual-schema.mjs against the canonical PG copy.",
@@ -90,13 +71,8 @@
       },
       {
         "table": "maintenanceCosts",
-        "pgOnly": [
-          "orgId"
-        ],
-        "sqliteOnly": [
-          "recordId",
-          "scheduleId"
-        ],
+        "pgOnly": ["orgId"],
+        "sqliteOnly": ["recordId", "scheduleId"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add orgId to PG side; rename sqliteOnly recordId → maintenanceRecordId and scheduleId → maintenanceScheduleId to match PG conventions.",
@@ -104,13 +80,8 @@
       },
       {
         "table": "purchaseOrderItems",
-        "pgOnly": [
-          "rejectedQuantity",
-          "rejectionReason"
-        ],
-        "typeDrift": [
-          "receivedQuantity"
-        ],
+        "pgOnly": ["rejectedQuantity", "rejectionReason"],
+        "typeDrift": ["receivedQuantity"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add rejectedQuantity (integer) and rejectionReason (text) to SQLite; reconcile receivedQuantity type drift (PG numeric vs SQLite real).",
@@ -118,13 +89,8 @@
       },
       {
         "table": "skills",
-        "pgOnly": [
-          "active",
-          "maxLevel"
-        ],
-        "sqliteOnly": [
-          "isActive"
-        ],
+        "pgOnly": ["active", "maxLevel"],
+        "sqliteOnly": ["isActive"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Rename SQLite 'isActive' → 'active' to match PG; add maxLevel INTEGER DEFAULT 5 column to SQLite.",
@@ -132,13 +98,8 @@
       },
       {
         "table": "drydockWindow",
-        "pgOnly": [
-          "scope"
-        ],
-        "sqliteOnly": [
-          "actualCost",
-          "notes"
-        ],
+        "pgOnly": ["scope"],
+        "sqliteOnly": ["actualCost", "notes"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add scope TEXT to SQLite; promote sqliteOnly actualCost/notes to PG side (or drop from SQLite if unused).",
@@ -146,13 +107,8 @@
       },
       {
         "table": "dbSchemaVersion",
-        "sqliteOnly": [
-          "description"
-        ],
-        "typeDrift": [
-          "id",
-          "version"
-        ],
+        "sqliteOnly": ["description"],
+        "typeDrift": ["id", "version"],
         "totalDiffs": 3,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add description TEXT to PG; reconcile id/version type drift (PG: integer/text vs SQLite: text/integer). This table is internal bookkeeping — a one-shot rebuild is acceptable.",
@@ -160,12 +116,7 @@
       },
       {
         "table": "maintenanceTemplates",
-        "pgOnly": [
-          "checklistItems",
-          "estimatedDurationMinutes",
-          "intervalDays",
-          "intervalHours"
-        ],
+        "pgOnly": ["checklistItems", "estimatedDurationMinutes", "intervalDays", "intervalHours"],
         "totalDiffs": 4,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add checklistItems (jsonb), estimatedDurationMinutes (integer), intervalDays (integer), intervalHours (integer) to SQLite. Maintenance template sync is one-direction (cloud → vessel) so SQLite must be the superset.",
@@ -173,14 +124,8 @@
       },
       {
         "table": "requestIdempotency",
-        "pgOnly": [
-          "requestId"
-        ],
-        "sqliteOnly": [
-          "idempotencyKey",
-          "orgId",
-          "requestHash"
-        ],
+        "pgOnly": ["requestId"],
+        "sqliteOnly": ["idempotencyKey", "orgId", "requestHash"],
         "totalDiffs": 4,
         "action": "Align column names/types — small schema patch",
         "resolution": "Standardize on the SQLite naming convention: rename PG.requestId → idempotencyKey + requestHash + orgId. PG version is newer but uses ad-hoc names that don't compose with the sync layer.",
@@ -188,12 +133,7 @@
       },
       {
         "table": "sheetLock",
-        "sqliteOnly": [
-          "id",
-          "orgId",
-          "reason",
-          "sheetType"
-        ],
+        "sqliteOnly": ["id", "orgId", "reason", "sheetType"],
         "totalDiffs": 4,
         "action": "Align column names/types — small schema patch",
         "resolution": "Cloud-only at present; either add the table to PG schema (preferred) or remove from sqlite-schema if abandoned. sqliteOnly fields (id/orgId/reason/sheetType) are the full table.",
@@ -201,13 +141,7 @@
       },
       {
         "table": "workOrders",
-        "sqliteOnly": [
-          "id",
-          "lastModifiedBy",
-          "lastModifiedDevice",
-          "orgId",
-          "version"
-        ],
+        "sqliteOnly": ["id", "lastModifiedBy", "lastModifiedDevice", "orgId", "version"],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch",
         "resolution": "sqliteOnly fields (lastModifiedBy/lastModifiedDevice/version) are sync metadata; either port to PG (preferred for full audit) or move into a dedicated work_orders_sync table.",
@@ -215,15 +149,8 @@
       },
       {
         "table": "sensorTypes",
-        "pgOnly": [
-          "maxValue",
-          "minValue",
-          "units"
-        ],
-        "sqliteOnly": [
-          "code",
-          "orgId"
-        ],
+        "pgOnly": ["maxValue", "minValue", "units"],
+        "sqliteOnly": ["code", "orgId"],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch",
         "resolution": "Add maxValue/minValue (numeric) and units (text) to SQLite; rename sqliteOnly 'code' → 'type' (or whichever PG uses). The orgId mismatch is sensor-types being global vs per-tenant — needs a product decision.",
@@ -231,15 +158,8 @@
       },
       {
         "table": "alertComments",
-        "pgOnly": [
-          "alertId",
-          "commentedBy"
-        ],
-        "sqliteOnly": [
-          "alertNotificationId",
-          "createdBy",
-          "createdByName"
-        ],
+        "pgOnly": ["alertId", "commentedBy"],
+        "sqliteOnly": ["alertNotificationId", "createdBy", "createdByName"],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch",
         "resolution": "Field renames: alertNotificationId → alertId, createdBy → commentedBy, createdByName drop. SQLite was built off an earlier API contract.",
@@ -247,13 +167,7 @@
       },
       {
         "table": "sheetVersion",
-        "sqliteOnly": [
-          "changedBy",
-          "data",
-          "id",
-          "orgId",
-          "sheetType"
-        ],
+        "sqliteOnly": ["changedBy", "data", "id", "orgId", "sheetType"],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch",
         "resolution": "Same as sheetLock — cloud-only, must be ported to PG (preferred) to enable cloud-side audit of crew-rest edits.",
@@ -261,15 +175,8 @@
       },
       {
         "table": "scheduleUnfilled",
-        "pgOnly": [
-          "date",
-          "runId"
-        ],
-        "sqliteOnly": [
-          "assignmentDate",
-          "orgId",
-          "schedulerRunId"
-        ],
+        "pgOnly": ["date", "runId"],
+        "sqliteOnly": ["assignmentDate", "orgId", "schedulerRunId"],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch",
         "resolution": "Field renames: assignmentDate → date, schedulerRunId → runId. SQLite was built off an earlier draft.",
@@ -318,9 +225,7 @@
           "validatedAt",
           "validationResult"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 36,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -364,9 +269,7 @@
           "violations",
           "workHours"
         ],
-        "typeDrift": [
-          "date"
-        ],
+        "typeDrift": ["date"],
         "totalDiffs": 35,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -487,9 +390,7 @@
           "symptoms",
           "wasPredicted"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 31,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -599,9 +500,7 @@
           "recommendation",
           "status"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 26,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -696,14 +595,7 @@
           "terminationNotes",
           "terminationType"
         ],
-        "sqliteOnly": [
-          "department",
-          "employeeId",
-          "firstName",
-          "isActive",
-          "joinDate",
-          "lastName"
-        ],
+        "sqliteOnly": ["department", "employeeId", "firstName", "isActive", "joinDate", "lastName"],
         "totalDiffs": 24,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -762,13 +654,7 @@
           "serviceLifeHours",
           "serviceLifeYears"
         ],
-        "sqliteOnly": [
-          "id",
-          "lastModifiedBy",
-          "lastModifiedDevice",
-          "orgId",
-          "version"
-        ],
+        "sqliteOnly": ["id", "lastModifiedBy", "lastModifiedDevice", "orgId", "version"],
         "totalDiffs": 23,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -800,9 +686,7 @@
           "validationDate",
           "validationType"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 23,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -828,15 +712,8 @@
           "triggerMetrics",
           "triggeredBy"
         ],
-        "sqliteOnly": [
-          "metadata",
-          "processedAt",
-          "result",
-          "triggeredAt"
-        ],
-        "typeDrift": [
-          "id"
-        ],
+        "sqliteOnly": ["metadata", "processedAt", "result", "triggeredAt"],
+        "typeDrift": ["id"],
         "totalDiffs": 23,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1007,16 +884,8 @@
           "useForRetraining",
           "userId"
         ],
-        "sqliteOnly": [
-          "actualOutcome",
-          "isCorrect",
-          "notes",
-          "providedBy"
-        ],
-        "typeDrift": [
-          "id",
-          "predictionId"
-        ],
+        "sqliteOnly": ["actualOutcome", "isCorrect", "notes", "providedBy"],
+        "typeDrift": ["id", "predictionId"],
         "totalDiffs": 20,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1207,14 +1076,7 @@
           "issuedAt",
           "issuingCountry"
         ],
-        "sqliteOnly": [
-          "description",
-          "documentUrl",
-          "expiryDate",
-          "issueDate",
-          "status",
-          "title"
-        ],
+        "sqliteOnly": ["description", "documentUrl", "expiryDate", "issueDate", "status", "title"],
         "totalDiffs": 18,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1343,13 +1205,7 @@
           "recommendedAction",
           "version"
         ],
-        "sqliteOnly": [
-          "equipmentId",
-          "maxValue",
-          "minValue",
-          "normalValue",
-          "tolerance"
-        ],
+        "sqliteOnly": ["equipmentId", "maxValue", "minValue", "normalValue", "tolerance"],
         "totalDiffs": 18,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1423,12 +1279,7 @@
           "resolvedAt",
           "thresholdType"
         ],
-        "sqliteOnly": [
-          "conditionType",
-          "description",
-          "expectedRange",
-          "isActive"
-        ],
+        "sqliteOnly": ["conditionType", "description", "expectedRange", "isActive"],
         "totalDiffs": 17,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1454,9 +1305,7 @@
           "rootCause",
           "status"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 17,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1487,13 +1336,7 @@
       },
       {
         "table": "maintenanceRecords",
-        "pgOnly": [
-          "completedDate",
-          "cost",
-          "description",
-          "performedBy",
-          "scheduledDate"
-        ],
+        "pgOnly": ["completedDate", "cost", "description", "performedBy", "scheduledDate"],
         "sqliteOnly": [
           "actualDuration",
           "actualEndTime",
@@ -1522,13 +1365,7 @@
           "trainingMetrics",
           "type"
         ],
-        "sqliteOnly": [
-          "lastTrainedAt",
-          "metadata",
-          "modelPath",
-          "modelType",
-          "trainingDataCount"
-        ],
+        "sqliteOnly": ["lastTrainedAt", "metadata", "modelPath", "modelType", "trainingDataCount"],
         "totalDiffs": 14,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1551,9 +1388,7 @@
           "optimizationReason",
           "suggestedThreshold"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 14,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1582,13 +1417,7 @@
       },
       {
         "table": "dtcDefinitions",
-        "pgOnly": [
-          "fmi",
-          "fmiName",
-          "manufacturer",
-          "spn",
-          "spnName"
-        ],
+        "pgOnly": ["fmi", "fmiName", "manufacturer", "spn", "spnName"],
         "sqliteOnly": [
           "category",
           "code",
@@ -1599,9 +1428,7 @@
           "possibleCauses",
           "recommendedActions"
         ],
-        "typeDrift": [
-          "severity"
-        ],
+        "typeDrift": ["severity"],
         "totalDiffs": 14,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1665,14 +1492,8 @@
           "userId",
           "vesselId"
         ],
-        "sqliteOnly": [
-          "cost",
-          "currency",
-          "status"
-        ],
-        "typeDrift": [
-          "id"
-        ],
+        "sqliteOnly": ["cost", "currency", "status"],
+        "typeDrift": ["id"],
         "totalDiffs": 14,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1711,23 +1532,13 @@
           "start",
           "version"
         ],
-        "sqliteOnly": [
-          "assignmentDate",
-          "endTime",
-          "notes",
-          "startTime",
-          "workOrderId"
-        ],
+        "sqliteOnly": ["assignmentDate", "endTime", "notes", "startTime", "workOrderId"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "insightReports",
-        "pgOnly": [
-          "llmSummary",
-          "scope",
-          "snapshotId"
-        ],
+        "pgOnly": ["llmSummary", "scope", "snapshotId"],
         "sqliteOnly": [
           "content",
           "equipmentId",
@@ -1745,13 +1556,7 @@
       },
       {
         "table": "edgeHeartbeats",
-        "pgOnly": [
-          "bufferRows",
-          "cpuPct",
-          "diskFreeGb",
-          "memPct",
-          "swVersion"
-        ],
+        "pgOnly": ["bufferRows", "cpuPct", "diskFreeGb", "memPct", "swVersion"],
         "sqliteOnly": [
           "cpuUsage",
           "diskUsage",
@@ -1778,12 +1583,7 @@
           "notes",
           "validUntil"
         ],
-        "sqliteOnly": [
-          "calibrationData",
-          "equipmentId",
-          "status",
-          "validTo"
-        ],
+        "sqliteOnly": ["calibrationData", "equipmentId", "status", "validTo"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1799,13 +1599,7 @@
           "resourceConstraintStrict",
           "urgencyWeightFactor"
         ],
-        "sqliteOnly": [
-          "constraints",
-          "isActive",
-          "objectives",
-          "optimizerType",
-          "parameters"
-        ],
+        "sqliteOnly": ["constraints", "isActive", "objectives", "optimizerType", "parameters"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1833,13 +1627,7 @@
       },
       {
         "table": "complianceDocs",
-        "pgOnly": [
-          "expiresAt",
-          "fileHash",
-          "filePath",
-          "issuedAt",
-          "issuingAuthority"
-        ],
+        "pgOnly": ["expiresAt", "fileHash", "filePath", "issuedAt", "issuingAuthority"],
         "sqliteOnly": [
           "equipmentId",
           "expiryDate",
@@ -1849,9 +1637,7 @@
           "mimeType",
           "uploadedBy"
         ],
-        "typeDrift": [
-          "version"
-        ],
+        "typeDrift": ["version"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1867,13 +1653,7 @@
           "skillLevel",
           "standardRate"
         ],
-        "sqliteOnly": [
-          "effectiveFrom",
-          "effectiveTo",
-          "notes",
-          "ratePerHour",
-          "skillType"
-        ],
+        "sqliteOnly": ["effectiveFrom", "effectiveTo", "notes", "ratePerHour", "skillType"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1889,13 +1669,7 @@
           "vendor",
           "vesselName"
         ],
-        "sqliteOnly": [
-          "category",
-          "equipmentId",
-          "incurredAt",
-          "receiptUrl",
-          "vesselId"
-        ],
+        "sqliteOnly": ["category", "equipmentId", "incurredAt", "receiptUrl", "vesselId"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1913,11 +1687,7 @@
           "schemaVersion",
           "syncStatus"
         ],
-        "sqliteOnly": [
-          "features",
-          "isActive",
-          "minClientVersion"
-        ],
+        "sqliteOnly": ["features", "isActive", "minClientVersion"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1933,15 +1703,8 @@
           "notifyEmail",
           "provider"
         ],
-        "sqliteOnly": [
-          "currency",
-          "isActive",
-          "monthlyBudget",
-          "perRequestLimit"
-        ],
-        "typeDrift": [
-          "id"
-        ],
+        "sqliteOnly": ["currency", "isActive", "monthlyBudget", "perRequestLimit"],
+        "typeDrift": ["id"],
         "totalDiffs": 13,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1954,17 +1717,8 @@
           "completionRate",
           "templateName"
         ],
-        "sqliteOnly": [
-          "id",
-          "name",
-          "orgId",
-          "status",
-          "templateId",
-          "totalItems"
-        ],
-        "typeDrift": [
-          "completedItems"
-        ],
+        "sqliteOnly": ["id", "name", "orgId", "status", "templateId", "totalItems"],
+        "typeDrift": ["completedItems"],
         "totalDiffs": 12,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -1980,12 +1734,7 @@
           "previousHash",
           "sequenceNumber"
         ],
-        "sqliteOnly": [
-          "action",
-          "changeReason",
-          "changedBy",
-          "changedByName"
-        ],
+        "sqliteOnly": ["action", "changeReason", "changedBy", "changedByName"],
         "totalDiffs": 12,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2000,26 +1749,14 @@
           "windowEnd",
           "windowStart"
         ],
-        "sqliteOnly": [
-          "aggregationType",
-          "periodEnd",
-          "periodStart",
-          "sumValue"
-        ],
-        "typeDrift": [
-          "id"
-        ],
+        "sqliteOnly": ["aggregationType", "periodEnd", "periodStart", "sumValue"],
+        "typeDrift": ["id"],
         "totalDiffs": 12,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "complianceAuditLog",
-        "pgOnly": [
-          "complianceStandard",
-          "details",
-          "regulatoryReference",
-          "timestamp"
-        ],
+        "pgOnly": ["complianceStandard", "details", "regulatoryReference", "timestamp"],
         "sqliteOnly": [
           "id",
           "ipAddress",
@@ -2035,14 +1772,7 @@
       },
       {
         "table": "adminAuditEvents",
-        "pgOnly": [
-          "errorMessage",
-          "outcome",
-          "resourceId",
-          "resourceType",
-          "severity",
-          "userId"
-        ],
+        "pgOnly": ["errorMessage", "outcome", "resourceId", "resourceType", "severity", "userId"],
         "sqliteOnly": [
           "eventType",
           "performedBy",
@@ -2068,10 +1798,7 @@
           "revokedBy",
           "revokedReason"
         ],
-        "sqliteOnly": [
-          "deviceInfo",
-          "isActive"
-        ],
+        "sqliteOnly": ["deviceInfo", "isActive"],
         "totalDiffs": 12,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2087,12 +1814,7 @@
           "searchType",
           "successful"
         ],
-        "sqliteOnly": [
-          "feedbackScore",
-          "searchLatencyMs",
-          "topResultIds",
-          "userId"
-        ],
+        "sqliteOnly": ["feedbackScore", "searchLatencyMs", "topResultIds", "userId"],
         "totalDiffs": 12,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2118,21 +1840,8 @@
       },
       {
         "table": "workOrderWorklogs",
-        "pgOnly": [
-          "description",
-          "laborCostPerHour",
-          "status",
-          "technicianName",
-          "totalLaborCost"
-        ],
-        "sqliteOnly": [
-          "crewId",
-          "crewName",
-          "hourlyRate",
-          "id",
-          "orgId",
-          "totalCost"
-        ],
+        "pgOnly": ["description", "laborCostPerHour", "status", "technicianName", "totalLaborCost"],
+        "sqliteOnly": ["crewId", "crewName", "hourlyRate", "id", "orgId", "totalCost"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2148,11 +1857,7 @@
           "serviceCapabilities",
           "type"
         ],
-        "sqliteOnly": [
-          "country",
-          "currency",
-          "rating"
-        ],
+        "sqliteOnly": ["country", "currency", "rating"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2178,11 +1883,7 @@
       },
       {
         "table": "alertNotifications",
-        "pgOnly": [
-          "acknowledged",
-          "sensorType",
-          "value"
-        ],
+        "pgOnly": ["acknowledged", "sensorType", "value"],
         "sqliteOnly": [
           "alertConfigId",
           "isAcknowledged",
@@ -2198,21 +1899,8 @@
       },
       {
         "table": "insightSnapshots",
-        "pgOnly": [
-          "anomalies",
-          "compliance",
-          "kpi",
-          "recommendations",
-          "risks",
-          "scope"
-        ],
-        "sqliteOnly": [
-          "data",
-          "metrics",
-          "snapshotDate",
-          "snapshotType",
-          "vesselId"
-        ],
+        "pgOnly": ["anomalies", "compliance", "kpi", "recommendations", "risks", "scope"],
+        "sqliteOnly": ["data", "metrics", "snapshotDate", "snapshotType", "vesselId"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2228,11 +1916,7 @@
           "validationRule",
           "value"
         ],
-        "sqliteOnly": [
-          "isEncrypted",
-          "settingKey",
-          "settingValue"
-        ],
+        "sqliteOnly": ["isEncrypted", "settingKey", "settingValue"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
@@ -2268,19 +1952,13 @@
           "sessionId",
           "suspiciousIndicators"
         ],
-        "sqliteOnly": [
-          "eventType",
-          "metadata",
-          "success"
-        ],
+        "sqliteOnly": ["eventType", "metadata", "success"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "opsDbStaged",
-        "pgOnly": [
-          "url"
-        ],
+        "pgOnly": ["url"],
         "sqliteOnly": [
           "data",
           "errorMessage",
@@ -2292,20 +1970,13 @@
           "status",
           "tableName"
         ],
-        "typeDrift": [
-          "id"
-        ],
+        "typeDrift": ["id"],
         "totalDiffs": 11,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "scheduleAssignments",
-        "pgOnly": [
-          "assignmentType",
-          "date",
-          "reason",
-          "runId"
-        ],
+        "pgOnly": ["assignmentType", "date", "reason", "runId"],
         "sqliteOnly": [
           "assignmentDate",
           "endTime",
@@ -2320,11 +1991,7 @@
       },
       {
         "table": "downtimeEvents",
-        "pgOnly": [
-          "category",
-          "estimatedCost",
-          "severity"
-        ],
+        "pgOnly": ["category", "estimatedCost", "severity"],
         "sqliteOnly": [
           "downtimeType",
           "impactLevel",
@@ -2339,32 +2006,15 @@
       },
       {
         "table": "crewRestSheet",
-        "pgOnly": [
-          "crewName",
-          "rank",
-          "scheduleRunId",
-          "sourceType"
-        ],
-        "sqliteOnly": [
-          "approvedAt",
-          "approvedBy",
-          "complianceStatus",
-          "notes",
-          "status"
-        ],
-        "typeDrift": [
-          "month"
-        ],
+        "pgOnly": ["crewName", "rank", "scheduleRunId", "sourceType"],
+        "sqliteOnly": ["approvedAt", "approvedBy", "complianceStatus", "notes", "status"],
+        "typeDrift": ["month"],
         "totalDiffs": 10,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "sensorStates",
-        "pgOnly": [
-          "ema",
-          "lastTs",
-          "lastValue"
-        ],
+        "pgOnly": ["ema", "lastTs", "lastValue"],
         "sqliteOnly": [
           "avgValue",
           "currentValue",
@@ -2379,10 +2029,7 @@
       },
       {
         "table": "idempotencyLog",
-        "pgOnly": [
-          "expiresAt",
-          "key"
-        ],
+        "pgOnly": ["expiresAt", "key"],
         "sqliteOnly": [
           "endpoint",
           "id",
@@ -2398,219 +2045,93 @@
       },
       {
         "table": "rawTelemetry",
-        "pgOnly": [
-          "sig",
-          "src",
-          "value",
-          "vessel"
-        ],
-        "sqliteOnly": [
-          "equipmentId",
-          "processedValue",
-          "quality",
-          "rawValue",
-          "sensorType"
-        ],
+        "pgOnly": ["sig", "src", "value", "vessel"],
+        "sqliteOnly": ["equipmentId", "processedValue", "quality", "rawValue", "sensorType"],
         "totalDiffs": 9,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "crewSkill",
-        "pgOnly": [
-          "level",
-          "orgId",
-          "skill"
-        ],
-        "sqliteOnly": [
-          "certifiedDate",
-          "expiryDate",
-          "id",
-          "notes",
-          "proficiencyLevel",
-          "skillId"
-        ],
+        "pgOnly": ["level", "orgId", "skill"],
+        "sqliteOnly": ["certifiedDate", "expiryDate", "id", "notes", "proficiencyLevel", "skillId"],
         "totalDiffs": 9,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "crewLeave",
-        "pgOnly": [
-          "end",
-          "reason",
-          "start"
-        ],
-        "sqliteOnly": [
-          "approvedBy",
-          "endDate",
-          "leaveType",
-          "notes",
-          "startDate",
-          "status"
-        ],
+        "pgOnly": ["end", "reason", "start"],
+        "sqliteOnly": ["approvedBy", "endDate", "leaveType", "notes", "startDate", "status"],
         "totalDiffs": 9,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "alertSuppressions",
-        "pgOnly": [
-          "active",
-          "sensorType",
-          "suppressUntil",
-          "suppressedBy"
-        ],
-        "sqliteOnly": [
-          "alertConfigId",
-          "createdBy",
-          "endTime",
-          "startTime",
-          "suppressionType"
-        ],
+        "pgOnly": ["active", "sensorType", "suppressUntil", "suppressedBy"],
+        "sqliteOnly": ["alertConfigId", "createdBy", "endTime", "startTime", "suppressionType"],
         "totalDiffs": 9,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "storageConfig",
-        "pgOnly": [
-          "cfg",
-          "isDefault",
-          "kind",
-          "mirror",
-          "provider"
-        ],
-        "sqliteOnly": [
-          "configType",
-          "isActive",
-          "orgId",
-          "settings"
-        ],
+        "pgOnly": ["cfg", "isDefault", "kind", "mirror", "provider"],
+        "sqliteOnly": ["configType", "isActive", "orgId", "settings"],
         "totalDiffs": 9,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "workOrderTasks",
-        "pgOnly": [
-          "completedByName",
-          "isCompleted",
-          "sortOrder"
-        ],
-        "sqliteOnly": [
-          "assignedTo",
-          "notes",
-          "status",
-          "taskNumber",
-          "title"
-        ],
+        "pgOnly": ["completedByName", "isCompleted", "sortOrder"],
+        "sqliteOnly": ["assignedTo", "notes", "status", "taskNumber", "title"],
         "totalDiffs": 8,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "inventoryMovements",
-        "pgOnly": [
-          "notes",
-          "quantityAfter",
-          "quantityBefore",
-          "reservedAfter",
-          "reservedBefore"
-        ],
-        "sqliteOnly": [
-          "fromLocation",
-          "reason",
-          "toLocation"
-        ],
+        "pgOnly": ["notes", "quantityAfter", "quantityBefore", "reservedAfter", "reservedBefore"],
+        "sqliteOnly": ["fromLocation", "reason", "toLocation"],
         "totalDiffs": 8,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "purchaseOrders",
-        "pgOnly": [
-          "expectedDate",
-          "orderNumber"
-        ],
-        "sqliteOnly": [
-          "actualDelivery",
-          "approvedBy",
-          "expectedDelivery",
-          "orderDate",
-          "poNumber"
-        ],
+        "pgOnly": ["expectedDate", "orderNumber"],
+        "sqliteOnly": ["actualDelivery", "approvedBy", "expectedDelivery", "orderDate", "poNumber"],
         "totalDiffs": 7,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "partFailureHistory",
-        "pgOnly": [
-          "costImpact",
-          "downtimeHours",
-          "environment",
-          "replacementPartId"
-        ],
-        "sqliteOnly": [
-          "impactLevel",
-          "notes"
-        ],
-        "typeDrift": [
-          "operatingHours"
-        ],
+        "pgOnly": ["costImpact", "downtimeHours", "environment", "replacementPartId"],
+        "sqliteOnly": ["impactLevel", "notes"],
+        "typeDrift": ["operatingHours"],
         "totalDiffs": 7,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "partSubstitutions",
-        "pgOnly": [
-          "alternatePartNo",
-          "primaryPartNo"
-        ],
-        "sqliteOnly": [
-          "isActive",
-          "originalPartId",
-          "priority",
-          "substitutePartId"
-        ],
+        "pgOnly": ["alternatePartNo", "primaryPartNo"],
+        "sqliteOnly": ["isActive", "originalPartId", "priority", "substitutePartId"],
         "totalDiffs": 6,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "telemetryRollups",
-        "pgOnly": [
-          "bucket",
-          "bucketSize",
-          "unit"
-        ],
-        "sqliteOnly": [
-          "rollupDate",
-          "rollupType",
-          "stdDev"
-        ],
+        "pgOnly": ["bucket", "bucketSize", "unit"],
+        "sqliteOnly": ["rollupDate", "rollupType", "stdDev"],
         "totalDiffs": 6,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "portCall",
-        "pgOnly": [
-          "arrivalDate",
-          "departureDate",
-          "status"
-        ],
-        "sqliteOnly": [
-          "arrivalTime",
-          "departureTime",
-          "notes"
-        ],
+        "pgOnly": ["arrivalDate", "departureDate", "status"],
+        "sqliteOnly": ["arrivalTime", "departureTime", "notes"],
         "totalDiffs": 6,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
         "table": "errorLogs",
-        "pgOnly": [
-          "category",
-          "timestamp"
-        ],
-        "sqliteOnly": [
-          "endpoint",
-          "errorType",
-          "requestId",
-          "userId"
-        ],
+        "pgOnly": ["category", "timestamp"],
+        "sqliteOnly": ["endpoint", "errorType", "requestId", "userId"],
         "totalDiffs": 6,
         "action": "Major schema divergence — needs dedicated migration effort"
       }

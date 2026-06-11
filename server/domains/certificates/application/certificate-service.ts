@@ -112,7 +112,7 @@ export class CertificateApplicationService {
       id: `coc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       description: condition.description,
       dueDate: condition.dueDate,
-      imposedDate: condition.imposedDate || (new Date().toISOString().split("T")[0] ?? ''),
+      imposedDate: condition.imposedDate || (new Date().toISOString().split("T")[0] ?? ""),
       status: "open",
     };
     conditions.push(newCondition);

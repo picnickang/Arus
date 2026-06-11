@@ -17,20 +17,32 @@ function metricLabel(metric: string): string {
 }
 
 function formatRetryAfter(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) {return "shortly";}
-  if (seconds < 60) {return `${Math.ceil(seconds)} seconds`;}
-  if (seconds < 3600) {return `${Math.ceil(seconds / 60)} minutes`;}
-  if (seconds < 86400) {return `${Math.ceil(seconds / 3600)} hours`;}
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "shortly";
+  }
+  if (seconds < 60) {
+    return `${Math.ceil(seconds)} seconds`;
+  }
+  if (seconds < 3600) {
+    return `${Math.ceil(seconds / 60)} minutes`;
+  }
+  if (seconds < 86400) {
+    return `${Math.ceil(seconds / 3600)} hours`;
+  }
   return `${Math.ceil(seconds / 86400)} days`;
 }
 
 export function inspectQuotaWarning(res: Response): void {
   const metric = res.headers.get("X-Tenant-Quota-Warning");
-  if (!metric) {return;}
+  if (!metric) {
+    return;
+  }
 
   const now = Date.now();
   const last = lastWarningAt.get(metric) ?? 0;
-  if (now - last < WARNING_DEBOUNCE_MS) {return;}
+  if (now - last < WARNING_DEBOUNCE_MS) {
+    return;
+  }
   lastWarningAt.set(metric, now);
 
   const ratioHeader = res.headers.get("X-Tenant-Quota-Ratio");
@@ -54,45 +66,46 @@ export interface QuotaExceededInfo {
   used?: number | undefined;
 }
 
-export function parseQuotaExceeded(
-  res: Response,
-  body: unknown
-): QuotaExceededInfo | null {
-  if (res.status !== 429) {return null;}
+export function parseQuotaExceeded(res: Response, body: unknown): QuotaExceededInfo | null {
+  if (res.status !== 429) {
+    return null;
+  }
 
   const headerMetric = res.headers.get("X-Tenant-Quota-Exceeded");
   const bodyRecord =
     body && typeof body === "object" && !Array.isArray(body)
       ? (body as Record<string, unknown>)
       : undefined;
-  const code = bodyRecord?.['code'];
+  const code = bodyRecord?.["code"];
   const metricFromBody =
-    typeof bodyRecord?.['metric'] === "string" ? (bodyRecord['metric']) : undefined;
+    typeof bodyRecord?.["metric"] === "string" ? bodyRecord["metric"] : undefined;
 
-  if (!headerMetric && code !== "TENANT_QUOTA_EXCEEDED") {return null;}
+  if (!headerMetric && code !== "TENANT_QUOTA_EXCEEDED") {
+    return null;
+  }
 
   const metric = headerMetric ?? metricFromBody ?? "quota";
   const retryHeader = res.headers.get("Retry-After");
   const retryFromBody =
-    typeof bodyRecord?.['retryAfterSeconds'] === "number"
-      ? (bodyRecord['retryAfterSeconds'])
+    typeof bodyRecord?.["retryAfterSeconds"] === "number"
+      ? bodyRecord["retryAfterSeconds"]
       : undefined;
-  const retryAfterSeconds = retryHeader
-    ? Number(retryHeader)
-    : retryFromBody ?? 60;
+  const retryAfterSeconds = retryHeader ? Number(retryHeader) : (retryFromBody ?? 60);
 
   return {
     metric,
     retryAfterSeconds: Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 60,
-    limit: typeof bodyRecord?.['limit'] === "number" ? (bodyRecord['limit']) : undefined,
-    used: typeof bodyRecord?.['used'] === "number" ? (bodyRecord['used']) : undefined,
+    limit: typeof bodyRecord?.["limit"] === "number" ? bodyRecord["limit"] : undefined,
+    used: typeof bodyRecord?.["used"] === "number" ? bodyRecord["used"] : undefined,
   };
 }
 
 export function notifyQuotaExceeded(info: QuotaExceededInfo): void {
   const now = Date.now();
   const last = lastExceededAt.get(info.metric) ?? 0;
-  if (now - last < EXCEEDED_DEBOUNCE_MS) {return;}
+  if (now - last < EXCEEDED_DEBOUNCE_MS) {
+    return;
+  }
   lastExceededAt.set(info.metric, now);
 
   const label = metricLabel(info.metric);

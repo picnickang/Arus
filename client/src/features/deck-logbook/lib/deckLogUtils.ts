@@ -20,6 +20,12 @@ export interface DeckEventUIConfig {
   color: string;
 }
 
+const CUSTOM_EVENT_CONFIG: DeckEventUIConfig = {
+  label: "Custom",
+  icon: Settings,
+  color: "bg-slate-500",
+};
+
 export const EVENT_TYPES_UI: Record<string, DeckEventUIConfig> = {
   ENGINE_START: { label: "Engine Start", icon: Activity, color: "bg-green-500" },
   ENGINE_STOP: { label: "Engine Stop", icon: Activity, color: "bg-red-500" },
@@ -39,7 +45,7 @@ export const EVENT_TYPES_UI: Record<string, DeckEventUIConfig> = {
   MOVEMENT: { label: "Movement", icon: Navigation, color: "bg-blue-400" },
   MANUAL_ENTRY: { label: "Manual Entry", icon: FileText, color: "bg-gray-500" },
   REMARK: { label: "Remark", icon: FileText, color: "bg-gray-400" },
-  CUSTOM: { label: "Custom", icon: Settings, color: "bg-slate-500" },
+  CUSTOM: CUSTOM_EVENT_CONFIG,
 };
 
 export const optionalCoordinate = (min: number, max: number) =>
@@ -92,7 +98,7 @@ export interface HourlyEntry {
 }
 
 export function getEventTypeConfig(eventType: string): DeckEventUIConfig {
-  return EVENT_TYPES_UI[eventType] ?? EVENT_TYPES_UI['CUSTOM'];
+  return EVENT_TYPES_UI[eventType] ?? CUSTOM_EVENT_CONFIG;
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEventFormValues> {

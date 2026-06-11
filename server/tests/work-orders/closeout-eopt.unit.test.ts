@@ -45,9 +45,7 @@ describe("complete-with-feedback closeout validation (#22)", () => {
 });
 
 describe("complete-with-feedback EOPT falsy preservation (#28)", () => {
-  function selectBuilt<K extends string>(
-    input: Record<string, unknown>,
-  ): Record<K, unknown> {
+  function selectBuilt<K extends string>(input: Record<string, unknown>): Record<K, unknown> {
     const parsed = completeWithFeedbackSchema.parse(input);
     const { completionNotes, actualHours, actualDowntimeHours, closeout } = parsed;
     // Mirror the route's spread pattern verbatim.

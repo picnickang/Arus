@@ -1,25 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-
-import {
-  Sparkles,
-  Move,
-} from "lucide-react";
+import { Sparkles, Move } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   type ScheduleAssignment,
   type FatigueRiskLevel,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
-import {
-  getRoleColor,
-  DRAG_THRESHOLD_PX,
-  MOBILE_LONG_PRESS_MS,
-} from "../schedule-planner-utils";
-import {
-  FatigueRiskBadge,
-} from "../schedule-planner-tabs";
+import { getRoleColor, DRAG_THRESHOLD_PX, MOBILE_LONG_PRESS_MS } from "../schedule-planner-utils";
+import { FatigueRiskBadge } from "../schedule-planner-tabs";
 
 import type { DragCompliancePreview } from "./types";
 
@@ -47,7 +37,9 @@ export function AssignmentBlock({
   softViolations: number;
   fatigueRisk?: FatigueRiskLevel | undefined;
   isMobile?: boolean | undefined;
-  onPointerDragStart?: ((e: React.PointerEvent, assignment: ScheduleAssignment) => void) | undefined;
+  onPointerDragStart?:
+    | ((e: React.PointerEvent, assignment: ScheduleAssignment) => void)
+    | undefined;
   isDragging?: boolean | undefined;
   dragCompliancePreview?: DragCompliancePreview | null | undefined;
   isLongPressActive?: boolean | undefined;
@@ -273,4 +265,3 @@ export function AssignmentBlock({
     </Tooltip>
   );
 }
-

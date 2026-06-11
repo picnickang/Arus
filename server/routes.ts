@@ -51,8 +51,10 @@ export async function registerRoutes(
 
   // Global Tenant Isolation Middleware - MUST be BEFORE ALL /api routes
   if (options.skipGlobalTenantIsolation) {
-    logger.warn("[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
-        "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!");
+    logger.warn(
+      "[SECURITY WARNING] Global tenant isolation middleware DISABLED for testing. " +
+        "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!"
+    );
   } else {
     app.use("/api", (req, res, next) => {
       if (isPublicApiPath(req)) {
@@ -60,7 +62,9 @@ export async function registerRoutes(
       }
       return requireOrgId(req, res, next);
     });
-    logger.info("[Security] Global tenant isolation middleware registered (before all /api routes)");
+    logger.info(
+      "[Security] Global tenant isolation middleware registered (before all /api routes)"
+    );
   }
 
   const { initDtcIntegrationService } = await import("./dtc-integration-service");
@@ -96,7 +100,7 @@ export async function registerRoutes(
   // bus so single-instance dev deployments keep their pre-B2 behaviour.
   // When `WS_REDIS_FANOUT=true` we install the Redis bus before the WS
   // server boots so its first subscriptions land on the right substrate.
-  if (process.env['WS_REDIS_FANOUT'] === "true") {
+  if (process.env["WS_REDIS_FANOUT"] === "true") {
     const [{ setFanoutBus }, { RedisFanoutBus }] = await Promise.all([
       import("./websocket-fanout"),
       import("./websocket-fanout-redis"),

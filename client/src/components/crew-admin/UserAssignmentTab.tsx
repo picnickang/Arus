@@ -6,13 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -80,18 +74,20 @@ const ROLE_HIERARCHY_ORDER = [
   "viewer",
 ] as const;
 
-const roleOrder = new Map<string, number>(
-  ROLE_HIERARCHY_ORDER.map((name, index) => [name, index]),
-);
+const roleOrder = new Map<string, number>(ROLE_HIERARCHY_ORDER.map((name, index) => [name, index]));
 
 function displayNameForUser(user: CrewUser): string {
   return user.name ?? user.linkedCrewName ?? user.email ?? "Unnamed user";
 }
 
 function formatLastLogin(value: string | null): string {
-  if (!value) {return "Never";}
+  if (!value) {
+    return "Never";
+  }
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {return "Unknown";}
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
   return date.toLocaleString();
 }
 
@@ -113,16 +109,17 @@ function activeAssignments(user: CrewUser) {
 
 function vesselScope(user: CrewUser, vessels: VesselLite[]): string {
   const assignments = activeAssignments(user);
-  if (assignments.length === 0) {return "No vessel access";}
+  if (assignments.length === 0) {
+    return "No vessel access";
+  }
   if (assignments.some((assignment) => assignment.vesselId === null)) {
     return "Fleet-wide";
   }
   return assignments
     .map((assignment) =>
       assignment.vesselId
-        ? vessels.find((vessel) => vessel.id === assignment.vesselId)?.name ??
-          assignment.vesselId
-        : "Fleet-wide",
+        ? (vessels.find((vessel) => vessel.id === assignment.vesselId)?.name ?? assignment.vesselId)
+        : "Fleet-wide"
     )
     .join(", ");
 }
@@ -131,17 +128,23 @@ function departmentsForUser(user: CrewUser, role: CrewAdminRoleSummary | undefin
   const departments = activeAssignments(user)
     .map((assignment) => assignment.department)
     .filter((department): department is string => Boolean(department));
-  if (departments.length > 0) {return [...new Set(departments)].join(", ");}
+  if (departments.length > 0) {
+    return [...new Set(departments)].join(", ");
+  }
   return role?.department ?? "Unassigned";
 }
 
 function dashboardStatus(
   roleName: string,
-  configsByRole: Map<string, RoleDashboardConfigView>,
+  configsByRole: Map<string, RoleDashboardConfigView>
 ): { label: string; variant: "default" | "secondary" | "outline" | "destructive" } {
   const config = configsByRole.get(roleName);
-  if (!config) {return { label: "Missing config", variant: "destructive" };}
-  if (config.config.widgets.length === 0) {return { label: "No widgets", variant: "destructive" };}
+  if (!config) {
+    return { label: "Missing config", variant: "destructive" };
+  }
+  if (config.config.widgets.length === 0) {
+    return { label: "No widgets", variant: "destructive" };
+  }
   return {
     label: `${config.isCustomized ? "Custom" : "Default"} (${config.config.widgets.length})`,
     variant: config.isCustomized ? "default" : "secondary",
@@ -152,9 +155,11 @@ function userMatchesSearch(
   user: CrewUser,
   term: string,
   rolesByName: Map<string, CrewAdminRoleSummary>,
-  vessels: VesselLite[],
+  vessels: VesselLite[]
 ): boolean {
-  if (!term) {return true;}
+  if (!term) {
+    return true;
+  }
   const values = [
     user.name,
     user.email,
@@ -173,15 +178,25 @@ function userMatchesSearch(
 function attentionWarnings(
   user: CrewUser,
   primaryRole: CrewAdminRoleSummary | undefined,
-  configsByRole: Map<string, RoleDashboardConfigView>,
+  configsByRole: Map<string, RoleDashboardConfigView>
 ): string[] {
   const warnings: string[] = [];
-  if (!primaryRole) {warnings.push("No assignable role record");}
-  if (activeAssignments(user).length === 0) {warnings.push("No vessel scope");}
-  if (!user.loginEnabled) {warnings.push("Login disabled");}
-  if (user.loginEnabled && !user.hasPassword) {warnings.push("No password");}
+  if (!primaryRole) {
+    warnings.push("No assignable role record");
+  }
+  if (activeAssignments(user).length === 0) {
+    warnings.push("No vessel scope");
+  }
+  if (!user.loginEnabled) {
+    warnings.push("Login disabled");
+  }
+  if (user.loginEnabled && !user.hasPassword) {
+    warnings.push("No password");
+  }
   const dashboard = dashboardStatus(user.role, configsByRole);
-  if (dashboard.variant === "destructive") {warnings.push(dashboard.label);}
+  if (dashboard.variant === "destructive") {
+    warnings.push(dashboard.label);
+  }
   return warnings;
 }
 
@@ -216,7 +231,7 @@ export function UserAssignmentTab() {
   const rolesByName = useMemo(() => new Map(roles.map((role) => [role.name, role])), [roles]);
   const configsByRole = useMemo(
     () => new Map(dashboardConfigs.map((config) => [config.roleName, config])),
-    [dashboardConfigs],
+    [dashboardConfigs]
   );
   const term = search.trim().toLowerCase();
 
@@ -255,7 +270,7 @@ export function UserAssignmentTab() {
           .filter((user) =>
             groupMode === "primary"
               ? user.role === role.name
-              : user.role === role.name || user.assignedRoleNames.includes(role.name),
+              : user.role === role.name || user.assignedRoleNames.includes(role.name)
           )
           .sort((a, b) => displayNameForUser(a).localeCompare(displayNameForUser(b)));
         const active = rows.filter((user) => user.isActive).length;
@@ -278,7 +293,9 @@ export function UserAssignmentTab() {
 
   const link = useMutation({
     mutationFn: async () => {
-      if (!linkUserId || !linkCrewId) {return;}
+      if (!linkUserId || !linkCrewId) {
+        return;
+      }
       await apiRequest("POST", `/api/admin/crew/members/${linkCrewId}/link`, {
         userId: linkUserId,
       });
@@ -300,8 +317,8 @@ export function UserAssignmentTab() {
         <CardHeader>
           <CardTitle className="text-base">User Access by Role</CardTitle>
           <CardDescription>
-            Crew and admin logins grouped by primary role. Secondary roles show as badges in
-            each row; switch modes to review everyone who holds a role.
+            Crew and admin logins grouped by primary role. Secondary roles show as badges in each
+            row; switch modes to review everyone who holds a role.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -328,7 +345,10 @@ export function UserAssignmentTab() {
                 </SelectContent>
               </Select>
             </div>
-            <label className="flex items-center gap-2 text-sm" data-testid="toggle-show-empty-roles">
+            <label
+              className="flex items-center gap-2 text-sm"
+              data-testid="toggle-show-empty-roles"
+            >
               <Switch checked={showEmptyRoles} onCheckedChange={setShowEmptyRoles} />
               Show empty roles
             </label>
@@ -341,7 +361,11 @@ export function UserAssignmentTab() {
 
           <div className="space-y-4">
             {roleGroups.map(({ role, rows, counts }) => (
-              <div key={role.id} className="rounded-md border" data-testid={`role-group-${role.name}`}>
+              <div
+                key={role.id}
+                className="rounded-md border"
+                data-testid={`role-group-${role.name}`}
+              >
                 <div className="flex flex-col gap-2 border-b bg-muted/30 px-3 py-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -392,16 +416,19 @@ export function UserAssignmentTab() {
                       {rows.map((user) => {
                         const primaryRole = rolesByName.get(user.role);
                         const secondaryRoles = user.assignedRoleNames.filter(
-                          (roleName) => roleName !== user.role,
+                          (roleName) => roleName !== user.role
                         );
                         const supervisor = users.find(
-                          (candidate) => candidate.id === user.supervisorUserId,
+                          (candidate) => candidate.id === user.supervisorUserId
                         );
                         const dashboard = dashboardStatus(user.role, configsByRole);
                         const warnings = attentionWarnings(user, primaryRole, configsByRole);
 
                         return (
-                          <TableRow key={`${role.name}-${user.id}`} data-testid={`row-user-${user.id}`}>
+                          <TableRow
+                            key={`${role.name}-${user.id}`}
+                            data-testid={`row-user-${user.id}`}
+                          >
                             <TableCell>
                               <div className="font-medium">{displayNameForUser(user)}</div>
                               <div className="text-xs text-muted-foreground">
@@ -413,7 +440,9 @@ export function UserAssignmentTab() {
                                   {warnings.map((warning) => (
                                     <Badge
                                       key={warning}
-                                      variant={warning === "Login disabled" ? "outline" : "destructive"}
+                                      variant={
+                                        warning === "Login disabled" ? "outline" : "destructive"
+                                      }
                                       className="text-[10px]"
                                     >
                                       <AlertTriangle className="mr-1 h-3 w-3" />
@@ -433,7 +462,11 @@ export function UserAssignmentTab() {
                               {secondaryRoles.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
                                   {secondaryRoles.map((roleName) => (
-                                    <Badge key={roleName} variant="secondary" className="text-[10px]">
+                                    <Badge
+                                      key={roleName}
+                                      variant="secondary"
+                                      className="text-[10px]"
+                                    >
                                       {roleLabel(roleName, rolesByName)}
                                     </Badge>
                                   ))}
@@ -448,12 +481,18 @@ export function UserAssignmentTab() {
                               {supervisor ? displayNameForUser(supervisor) : "No supervisor"}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.loginEnabled ? "secondary" : "outline"} className="text-[10px]">
+                              <Badge
+                                variant={user.loginEnabled ? "secondary" : "outline"}
+                                className="text-[10px]"
+                              >
                                 {user.loginEnabled ? "Enabled" : "Disabled"}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={user.isActive ? "secondary" : "outline"} className="text-[10px]">
+                              <Badge
+                                variant={user.isActive ? "secondary" : "outline"}
+                                className="text-[10px]"
+                              >
                                 {user.isActive ? "Active" : "Inactive"}
                               </Badge>
                             </TableCell>

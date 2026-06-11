@@ -15,14 +15,18 @@ export class AttentionWorkflowSignalsAdapter implements OperatorExperienceSignal
     const workflow = await this.attentionService.getWorkflow(orgId);
     const items = workflow.items as WorkflowItemLike[];
     const criticalItems = items.filter((item) => item.severity === "critical").length;
-    const pdmRisks = items.filter((item) => item.type === "equipment" || item.queue === "needs_review").length;
+    const pdmRisks = items.filter(
+      (item) => item.type === "equipment" || item.queue === "needs_review"
+    ).length;
     const sourceHealth = {
       workOrders: workflow.sources.workOrders,
       alerts: workflow.sources.alerts,
       equipment: workflow.sources.equipment,
       inventory: workflow.sources.inventory,
     };
-    const dataQualityWarnings = Object.values(sourceHealth).filter((status) => status !== "ok").length;
+    const dataQualityWarnings = Object.values(sourceHealth).filter(
+      (status) => status !== "ok"
+    ).length;
 
     return {
       attentionItems: workflow.items.length,

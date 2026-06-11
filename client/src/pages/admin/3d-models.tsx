@@ -23,7 +23,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Crosshair, History, Loader2, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Crosshair,
+  History,
+  Loader2,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import type { Equipment, Vessel } from "@shared/schema";
 
 // Lazy so the admin page doesn't pull Three.js into the system-hub
@@ -51,8 +61,12 @@ interface ModelMetadata {
 }
 
 function formatBytes(n: number): string {
-  if (n < 1024) {return `${n} B`;}
-  if (n < 1024 * 1024) {return `${(n / 1024).toFixed(1)} KB`;}
+  if (n < 1024) {
+    return `${n} B`;
+  }
+  if (n < 1024 * 1024) {
+    return `${(n / 1024).toFixed(1)} KB`;
+  }
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
@@ -80,7 +94,9 @@ export default function Admin3DModelsPage() {
             `/api/v1/vessels/${encodeURIComponent(v.id)}/3d-model`
           );
         } catch (error) {
-          if (error instanceof ApiError && error.status === 404) {return null;}
+          if (error instanceof ApiError && error.status === 404) {
+            return null;
+          }
           throw error;
         }
       },
@@ -94,8 +110,8 @@ export default function Admin3DModelsPage() {
           <CardContent className="py-12 text-center space-y-2">
             <h1 className="text-lg font-semibold">Admin only</h1>
             <p className="text-sm text-muted-foreground">
-              You need the admin or chief engineer role to manage 3D vessel
-              models and equipment pins.
+              You need the admin or chief engineer role to manage 3D vessel models and equipment
+              pins.
             </p>
           </CardContent>
         </Card>
@@ -108,9 +124,8 @@ export default function Admin3DModelsPage() {
       <header>
         <h1 className="text-2xl font-bold">3D Vessel Models</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Upload self-contained <code>.glb</code> models and place equipment
-          pins. Models stream to the 3D Digital Twin viewer at{" "}
-          <code>/vessels/:id/3d</code>.
+          Upload self-contained <code>.glb</code> models and place equipment pins. Models stream to
+          the 3D Digital Twin viewer at <code>/vessels/:id/3d</code>.
         </p>
       </header>
 
@@ -134,7 +149,7 @@ export default function Admin3DModelsPage() {
                 vessel={vessel}
                 model={mq?.data ?? null}
                 loading={mq?.isLoading ?? false}
-                error={mq?.error}
+                error={mq?.error ?? null}
                 onChanged={() => {
                   queryClient.invalidateQueries({
                     queryKey: ["/api/v1/vessels", vessel.id, "3d-model"],
@@ -212,7 +227,9 @@ function VesselModelCard({
       });
     } finally {
       setUploading(false);
-      if (fileInput.current) {fileInput.current.value = "";}
+      if (fileInput.current) {
+        fileInput.current.value = "";
+      }
     }
   };
 
@@ -221,9 +238,7 @@ function VesselModelCard({
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-3 text-base">
           <span>{vessel.name}</span>
-          <span className="font-mono text-xs text-muted-foreground">
-            {vessel.id}
-          </span>
+          <span className="font-mono text-xs text-muted-foreground">{vessel.id}</span>
           {model ? (
             <Badge variant="secondary" data-testid={`badge-model-status-${vessel.id}`}>
               Model attached
@@ -243,10 +258,7 @@ function VesselModelCard({
         )}
 
         {error && !loading && (
-          <div
-            className="text-sm text-destructive"
-            data-testid={`text-model-error-${vessel.id}`}
-          >
+          <div className="text-sm text-destructive" data-testid={`text-model-error-${vessel.id}`}>
             {error.message.includes("403") || /forbidden/i.test(error.message)
               ? "Admin role required to view this model."
               : `Failed to load model: ${error.message}`}
@@ -265,11 +277,7 @@ function VesselModelCard({
             </div>
             <div>
               <dt className="text-muted-foreground">Updated</dt>
-              <dd>
-                {model.updatedAt
-                  ? new Date(model.updatedAt).toLocaleString()
-                  : "—"}
-              </dd>
+              <dd>{model.updatedAt ? new Date(model.updatedAt).toLocaleString() : "—"}</dd>
             </div>
           </dl>
         )}
@@ -286,13 +294,15 @@ function VesselModelCard({
               disabled={uploading}
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) {void handleUpload(f);}
+                if (f) {
+                  void handleUpload(f);
+                }
               }}
             />
           </div>
           <span className="text-xs text-muted-foreground">
-            Self-contained .glb only, max 100 MB. The server rejects spoofed
-            extensions via magic-byte verification.
+            Self-contained .glb only, max 100 MB. The server rejects spoofed extensions via
+            magic-byte verification.
           </span>
           {uploading && (
             <span className="text-sm flex items-center gap-2">
@@ -301,13 +311,7 @@ function VesselModelCard({
           )}
         </div>
 
-        {model && (
-          <PinEditor
-            model={model}
-            vesselId={vessel.id}
-            onSaved={onChanged}
-          />
-        )}
+        {model && <PinEditor model={model} vesselId={vessel.id} onSaved={onChanged} />}
 
         <HistoryPanel
           vesselId={vessel.id}
@@ -344,15 +348,11 @@ function HistoryPanel({
     queryKey: ["/api/v1/vessels", vesselId, "3d-model", "history"],
     queryFn: async () => {
       const res = await fetch(
-        resolveUrl(
-          `/api/v1/vessels/${encodeURIComponent(vesselId)}/3d-model/history`
-        ),
+        resolveUrl(`/api/v1/vessels/${encodeURIComponent(vesselId)}/3d-model/history`),
         { credentials: "include", headers: createHeaders() }
       );
       if (!res.ok) {
-        throw new Error(
-          `${res.status}: ${await res.text().catch(() => res.statusText)}`
-        );
+        throw new Error(`${res.status}: ${await res.text().catch(() => res.statusText)}`);
       }
       return (await res.json()) as ModelMetadata[];
     },
@@ -371,19 +371,17 @@ function HistoryPanel({
 
   const promote = useMutation({
     mutationFn: (modelId: string) =>
-      apiRequest(
-        "POST",
-        `/api/v1/vessels/3d-model/${encodeURIComponent(modelId)}/promote`
-      ),
+      apiRequest("POST", `/api/v1/vessels/3d-model/${encodeURIComponent(modelId)}/promote`),
     onSuccess: () => {
       toast({ title: "Model promoted to current" });
       invalidate();
     },
     onError: (err: unknown) => {
       const raw = err instanceof Error ? err.message : String(err);
-      const friendly = /^403:/.test(raw) || /forbidden/i.test(raw)
-        ? "Admin role required to promote models."
-        : raw;
+      const friendly =
+        /^403:/.test(raw) || /forbidden/i.test(raw)
+          ? "Admin role required to promote models."
+          : raw;
       toast({
         title: "Promote failed",
         description: friendly,
@@ -394,19 +392,15 @@ function HistoryPanel({
 
   const remove = useMutation({
     mutationFn: (modelId: string) =>
-      apiRequest(
-        "DELETE",
-        `/api/v1/vessels/3d-model/${encodeURIComponent(modelId)}`
-      ),
+      apiRequest("DELETE", `/api/v1/vessels/3d-model/${encodeURIComponent(modelId)}`),
     onSuccess: () => {
       toast({ title: "Model deleted" });
       invalidate();
     },
     onError: (err: unknown) => {
       const raw = err instanceof Error ? err.message : String(err);
-      const friendly = /^403:/.test(raw) || /forbidden/i.test(raw)
-        ? "Admin role required to delete models."
-        : raw;
+      const friendly =
+        /^403:/.test(raw) || /forbidden/i.test(raw) ? "Admin role required to delete models." : raw;
       toast({
         title: "Delete failed",
         description: friendly,
@@ -426,17 +420,11 @@ function HistoryPanel({
         data-testid={`button-toggle-history-${vesselId}`}
         aria-expanded={expanded}
       >
-        {expanded ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
+        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <History className="h-4 w-4" />
         Upload history
         {expanded && historyQuery.isSuccess && (
-          <span className="text-muted-foreground font-normal">
-            ({items.length})
-          </span>
+          <span className="text-muted-foreground font-normal">({items.length})</span>
         )}
       </button>
 
@@ -452,13 +440,12 @@ function HistoryPanel({
               className="text-sm text-destructive"
               data-testid={`text-history-error-${vesselId}`}
             >
-              Failed to load history: {(historyQuery.error).message}
+              Failed to load history: {historyQuery.error.message}
             </div>
           )}
           {historyQuery.isSuccess && items.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No upload history yet. Upload a .glb above to start a version
-              trail.
+              No upload history yet. Upload a .glb above to start a version trail.
             </p>
           )}
           {historyQuery.isSuccess && items.length > 0 && (
@@ -479,18 +466,11 @@ function HistoryPanel({
                     (promote.isPending && promote.variables === row.id) ||
                     (remove.isPending && remove.variables === row.id);
                   return (
-                    <TableRow
-                      key={row.id}
-                      data-testid={`row-history-${vesselId}-${row.id}`}
-                    >
-                      <TableCell className="font-mono text-xs">
-                        {row.filename}
-                      </TableCell>
+                    <TableRow key={row.id} data-testid={`row-history-${vesselId}-${row.id}`}>
+                      <TableCell className="font-mono text-xs">{row.filename}</TableCell>
                       <TableCell>{formatBytes(row.sizeBytes)}</TableCell>
                       <TableCell>
-                        {row.createdAt
-                          ? new Date(row.createdAt).toLocaleString()
-                          : "—"}
+                        {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                       </TableCell>
                       <TableCell>
                         {isCurrent ? (
@@ -509,11 +489,7 @@ function HistoryPanel({
                             disabled={isCurrent || busy}
                             onClick={() => promote.mutate(row.id)}
                             data-testid={`button-history-promote-${vesselId}-${row.id}`}
-                            title={
-                              isCurrent
-                                ? "Already current"
-                                : "Make this the active model"
-                            }
+                            title={isCurrent ? "Already current" : "Make this the active model"}
                           >
                             <RotateCcw className="h-3.5 w-3.5 mr-1" />
                             Promote
@@ -528,7 +504,9 @@ function HistoryPanel({
                                   ? `Delete the CURRENT model "${row.filename}"? The next-newest upload will become current. This cannot be undone.`
                                   : `Delete archived model "${row.filename}"? This cannot be undone.`
                               );
-                              if (ok) {remove.mutate(row.id);}
+                              if (ok) {
+                                remove.mutate(row.id);
+                              }
                             }}
                             data-testid={`button-history-delete-${vesselId}-${row.id}`}
                             aria-label="Delete this upload"
@@ -556,10 +534,7 @@ function HistoryPanel({
  * appends a new pin once placed; `mode === "move"` updates the
  * existing row at `targetIdx`.
  */
-type PlacementArm =
-  | { mode: "add" }
-  | { mode: "move"; targetIdx: number }
-  | null;
+type PlacementArm = { mode: "add" } | { mode: "move"; targetIdx: number } | null;
 
 function PinEditor({
   model,
@@ -588,7 +563,9 @@ function PinEditor({
   const equipmentList = equipmentQuery.data ?? [];
   const equipmentById = useMemo(() => {
     const map = new Map<string, Equipment>();
-    for (const e of equipmentList) {map.set(e.id, e);}
+    for (const e of equipmentList) {
+      map.set(e.id, e);
+    }
     return map;
   }, [equipmentList]);
 
@@ -605,11 +582,9 @@ function PinEditor({
           label: p.label?.trim() || undefined,
         }))
         .filter((p) => p.equipmentId.length > 0);
-      return apiRequest(
-        "PATCH",
-        `/api/v1/vessels/3d-model/${encodeURIComponent(model.id)}/pins`,
-        { pins: clean }
-      );
+      return apiRequest("PATCH", `/api/v1/vessels/3d-model/${encodeURIComponent(model.id)}/pins`, {
+        pins: clean,
+      });
     },
     onSuccess: () => {
       toast({ title: "Pins saved" });
@@ -618,9 +593,10 @@ function PinEditor({
     },
     onError: (e: unknown) => {
       const raw = e instanceof Error ? e.message : JSON.stringify(e);
-      const friendly = /^403:/.test(raw) || /forbidden/i.test(raw)
-        ? "Admin role required to edit equipment pins."
-        : raw;
+      const friendly =
+        /^403:/.test(raw) || /forbidden/i.test(raw)
+          ? "Admin role required to edit equipment pins."
+          : raw;
       toast({
         title: "Save failed",
         description: friendly,
@@ -630,9 +606,7 @@ function PinEditor({
   });
 
   const updatePin = (i: number, patch: Partial<EquipmentPin>) => {
-    setPins((prev) =>
-      prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p))
-    );
+    setPins((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
     setDirty(true);
   };
 
@@ -648,9 +622,15 @@ function PinEditor({
     // row was the target, shift its index down so we still point at the
     // right pin after the splice.
     setPlacement((arm) => {
-      if (arm?.mode !== "move") {return arm;}
-      if (arm.targetIdx === i) {return null;}
-      if (arm.targetIdx > i) {return { mode: "move", targetIdx: arm.targetIdx - 1 };}
+      if (arm?.mode !== "move") {
+        return arm;
+      }
+      if (arm.targetIdx === i) {
+        return null;
+      }
+      if (arm.targetIdx > i) {
+        return { mode: "move", targetIdx: arm.targetIdx - 1 };
+      }
       return arm;
     });
   };
@@ -670,7 +650,9 @@ function PinEditor({
 
   /** Fires when the admin clicks a point on the model in placement mode. */
   const handlePlaceAt = (point: { x: number; y: number; z: number }) => {
-    if (!placement) {return;}
+    if (!placement) {
+      return;
+    }
     // Round to 0.001 — pin precision below mm-of-mesh is noise and
     // makes the table easier to read.
     const round = (n: number) => Math.round(n * 1000) / 1000;
@@ -681,9 +663,7 @@ function PinEditor({
       setPlacement(null);
     } else {
       setPins((prev) =>
-        prev.map((p, idx) =>
-          idx === placement.targetIdx ? { ...p, ...next } : p
-        )
+        prev.map((p, idx) => (idx === placement.targetIdx ? { ...p, ...next } : p))
       );
       setDirty(true);
       setPlacement(null);
@@ -697,10 +677,7 @@ function PinEditor({
     : null;
 
   return (
-    <div
-      className="border-t pt-4 space-y-3"
-      data-testid={`pin-editor-${vesselId}`}
-    >
+    <div className="border-t pt-4 space-y-3" data-testid={`pin-editor-${vesselId}`}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-medium">Equipment Pins ({pins.length})</h3>
         <div className="flex gap-2 flex-wrap">
@@ -715,9 +692,7 @@ function PinEditor({
           <Button
             size="sm"
             variant={placement?.mode === "add" ? "default" : "outline"}
-            onClick={() =>
-              placement?.mode === "add" ? disarmPlacement() : armAddViaClick()
-            }
+            onClick={() => (placement?.mode === "add" ? disarmPlacement() : armAddViaClick())}
             data-testid={`button-add-pin-via-click-${vesselId}`}
           >
             <Crosshair className="h-4 w-4 mr-1" />
@@ -769,10 +744,7 @@ function PinEditor({
       </div>
 
       {placementHint && (
-        <p
-          className="text-xs text-primary"
-          data-testid={`text-placement-hint-${vesselId}`}
-        >
+        <p className="text-xs text-primary" data-testid={`text-placement-hint-${vesselId}`}>
           {placementHint}{" "}
           <button
             type="button"
@@ -796,16 +768,15 @@ function PinEditor({
           className="text-xs text-destructive"
           data-testid={`text-pins-missing-equipment-${vesselId}`}
         >
-          {pins.filter((p) => p.equipmentId.trim().length === 0).length} pin(s)
-          have no equipment selected and will be discarded on save. Use the
-          Equipment selector on each row.
+          {pins.filter((p) => p.equipmentId.trim().length === 0).length} pin(s) have no equipment
+          selected and will be discarded on save. Use the Equipment selector on each row.
         </p>
       )}
 
       {pins.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No pins yet. Use "Add via 3D click" to drop a pin directly on the
-          model, or "Add empty row" to enter coordinates manually.
+          No pins yet. Use "Add via 3D click" to drop a pin directly on the model, or "Add empty
+          row" to enter coordinates manually.
         </p>
       ) : (
         <Table>
@@ -822,8 +793,7 @@ function PinEditor({
           <TableBody>
             {pins.map((p, i) => {
               const known = equipmentById.get(p.equipmentId);
-              const isMoveTarget =
-                placement?.mode === "move" && placement.targetIdx === i;
+              const isMoveTarget = placement?.mode === "move" && placement.targetIdx === i;
               return (
                 <TableRow key={i} data-testid={`row-pin-${vesselId}-${i}`}>
                   <TableCell>
@@ -832,9 +802,7 @@ function PinEditor({
                         value={p.equipmentId || undefined}
                         onValueChange={(v) => updatePin(i, { equipmentId: v })}
                       >
-                        <SelectTrigger
-                          data-testid={`select-pin-equipment-${vesselId}-${i}`}
-                        >
+                        <SelectTrigger data-testid={`select-pin-equipment-${vesselId}-${i}`}>
                           <SelectValue
                             placeholder={
                               p.equipmentId && !known
@@ -858,9 +826,7 @@ function PinEditor({
                     ) : (
                       <Input
                         value={p.equipmentId}
-                        onChange={(e) =>
-                          updatePin(i, { equipmentId: e.target.value })
-                        }
+                        onChange={(e) => updatePin(i, { equipmentId: e.target.value })}
                         placeholder={
                           equipmentQuery.isLoading
                             ? "Loading equipment…"
@@ -900,17 +866,9 @@ function PinEditor({
                       <Button
                         size="icon"
                         variant={isMoveTarget ? "default" : "ghost"}
-                        onClick={() =>
-                          isMoveTarget
-                            ? disarmPlacement()
-                            : armMoveViaClick(i)
-                        }
+                        onClick={() => (isMoveTarget ? disarmPlacement() : armMoveViaClick(i))}
                         data-testid={`button-place-pin-${vesselId}-${i}`}
-                        aria-label={
-                          isMoveTarget
-                            ? "Cancel placement"
-                            : "Move pin via 3D click"
-                        }
+                        aria-label={isMoveTarget ? "Cancel placement" : "Move pin via 3D click"}
                         title={
                           isMoveTarget
                             ? "Cancel placement"

@@ -47,7 +47,9 @@ export class DatabaseStormGeoStorage {
   }
   async createStormgeoSetting(config: InsertStormgeoSetting): Promise<StormgeoSetting> {
     const [n] = await db.insert(stormgeoSettings).values(config).returning();
-    if (!n) {throw new Error("Failed to create stormgeo setting");}
+    if (!n) {
+      throw new Error("Failed to create stormgeo setting");
+    }
     return n;
   }
   async updateStormgeoSetting(
@@ -106,7 +108,9 @@ export class DatabaseStormGeoStorage {
   }
   async createStormgeoSnapshot(snapshot: InsertStormgeoSnapshot): Promise<StormgeoSnapshot> {
     const [n] = await db.insert(stormgeoSnapshots).values(snapshot).returning();
-    if (!n) {throw new Error("Failed to create stormgeo snapshot");}
+    if (!n) {
+      throw new Error("Failed to create stormgeo snapshot");
+    }
     return n;
   }
   async bulkInsertStormgeoSnapshots(snapshots: InsertStormgeoSnapshot[]): Promise<number> {
@@ -140,7 +144,9 @@ export class DatabaseStormGeoStorage {
     entry: InsertStormgeoImportHistory
   ): Promise<StormgeoImportHistory> {
     const [n] = await db.insert(stormgeoImportHistory).values(entry).returning();
-    if (!n) {throw new Error("Failed to create stormgeo import history");}
+    if (!n) {
+      throw new Error("Failed to create stormgeo import history");
+    }
     return n;
   }
   async updateStormgeoImportHistory(
@@ -152,7 +158,9 @@ export class DatabaseStormGeoStorage {
       .set(updates)
       .where(eq(stormgeoImportHistory.id, id))
       .returning();
-    if (!u) {throw new Error(`StormGeo import history ${id} not found`);}
+    if (!u) {
+      throw new Error(`StormGeo import history ${id} not found`);
+    }
     return u;
   }
   async getStormgeoSnapshotByTime(
@@ -167,8 +175,8 @@ export class DatabaseStormGeoStorage {
         and(
           eq(stormgeoSnapshots.vesselId, vesselId),
           eq(stormgeoSnapshots.orgId, orgId),
-          lte(stormgeoSnapshots.forecastTime, targetTime),
-        ),
+          lte(stormgeoSnapshots.forecastTime, targetTime)
+        )
       )
       .orderBy(sql`${stormgeoSnapshots.forecastTime} DESC`)
       .limit(1);
@@ -208,7 +216,9 @@ export class DatabaseStormGeoStorage {
   }
   async createWeatherCache(data: InsertWeatherCache): Promise<WeatherCache> {
     const [n] = await db.insert(weatherCache).values(data).returning();
-    if (!n) {throw new Error("Failed to create weather cache");}
+    if (!n) {
+      throw new Error("Failed to create weather cache");
+    }
     return n;
   }
   async bulkInsertWeatherCache(dataList: InsertWeatherCache[]): Promise<number> {

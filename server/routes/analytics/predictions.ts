@@ -6,7 +6,7 @@ import { cachedAnalytics, analyticsCacheKeys } from "../../lib/cache";
 type CachedAnalyticsLoose = <T>(
   key: string,
   loader: () => Promise<unknown>,
-  ttlSeconds?: number,
+  ttlSeconds?: number
 ) => Promise<T>;
 const cachedAnalyticsLoose = cachedAnalytics as object as CachedAnalyticsLoose;
 import {
@@ -105,7 +105,7 @@ export function mountPredictionsRoutes(router: Router) {
       );
       const response = await cachedAnalyticsLoose<AnomalyDetectionListResponse>(
         cacheKey,
-        (async () => {
+        async () => {
           const filters = [eq(anomalyDetections.orgId, orgId)];
           if (equipmentId) {
             filters.push(eq(anomalyDetections.equipmentId, equipmentId as string));
@@ -135,7 +135,7 @@ export function mountPredictionsRoutes(router: Router) {
               criticalCount: critical,
             },
           };
-        }),
+        },
         120
       );
       sendValidatedResponse(res, response, anomalyDetectionListResponseSchema);
@@ -176,7 +176,12 @@ export function mountPredictionsRoutes(router: Router) {
           const equipmentData =
             equipmentIds.length > 0 ? await dbEquipmentStorage.getEquipmentRegistry(orgId) : [];
           const equipmentMap = new Map(equipmentData.map((e) => [e.id, e]));
-          const results = predictions.map((p) => mapPredictionToResult(p, equipmentMap as object as Parameters<typeof mapPredictionToResult>[1]));
+          const results = predictions.map((p) =>
+            mapPredictionToResult(
+              p,
+              equipmentMap as object as Parameters<typeof mapPredictionToResult>[1]
+            )
+          );
           const highRisk = results.filter((r) => r.riskLevel === "high").length;
           const criticalRisk = results.filter((r) => r.riskLevel === "critical").length;
           return {

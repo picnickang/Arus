@@ -28,8 +28,8 @@ export function setupErrorHandlers(): void {
       error.message?.includes("which has only a getter") ||
       error.stack?.includes("@neondatabase/serverless");
 
-    const isEmbeddedMode = process.env['EMBEDDED_MODE'] === "true";
-    const isLocalMode = process.env['LOCAL_MODE'] === "true";
+    const isEmbeddedMode = process.env["EMBEDDED_MODE"] === "true";
+    const isLocalMode = process.env["LOCAL_MODE"] === "true";
 
     if ((isEmbeddedMode || isLocalMode) && isMqttConnectionError) {
       return;
@@ -55,7 +55,7 @@ export function setupErrorHandlers(): void {
     logger.error("❌ UNHANDLED REJECTION:", undefined, reason);
     logger.error("Promise:", undefined, promise);
 
-    if (process.env['EMBEDDED_MODE'] === "true" || startupComplete) {
+    if (process.env["EMBEDDED_MODE"] === "true" || startupComplete) {
       logger.error("⚠️ Rejection logged but server continuing (embedded/runtime mode)");
       return;
     }

@@ -54,10 +54,7 @@ function cypherStr(v) {
 async function ensureGraph(client, graph) {
   await client.query(`LOAD 'age'`);
   await client.query(`SET search_path = ag_catalog, "$user", public`);
-  const { rows } = await client.query(
-    `SELECT 1 FROM ag_catalog.ag_graph WHERE name = $1`,
-    [graph]
-  );
+  const { rows } = await client.query(`SELECT 1 FROM ag_catalog.ag_graph WHERE name = $1`, [graph]);
   if (rows.length === 0) {
     await client.query(`SELECT create_graph('${graph}')`);
   }
@@ -280,9 +277,7 @@ async function main() {
         `(cypherFailures=${cypherFailures})`
     );
     if (cypherFailures > 0) {
-      console.error(
-        `[graph-backfill] ${cypherFailures} cypher write(s) failed — exiting non-zero`
-      );
+      console.error(`[graph-backfill] ${cypherFailures} cypher write(s) failed — exiting non-zero`);
       exit(2);
     }
   } finally {

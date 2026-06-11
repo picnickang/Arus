@@ -35,12 +35,14 @@ interface ServiceOrderCalendarProps {
   className?: string;
 }
 
+const DRAFT_STATUS_COLORS = {
+  bg: "bg-slate-100 dark:bg-slate-800",
+  text: "text-slate-700 dark:text-slate-300",
+  border: "border-slate-300",
+};
+
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  draft: {
-    bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-300",
-    border: "border-slate-300",
-  },
+  draft: DRAFT_STATUS_COLORS,
   sent: {
     bg: "bg-blue-100 dark:bg-blue-900",
     text: "text-blue-700 dark:text-blue-300",
@@ -156,7 +158,7 @@ export function ServiceOrderCalendar({
 
   // Map SO to its color config
   function getSoColor(so: ServiceOrderSummary) {
-    return STATUS_COLORS[so.status] ?? STATUS_COLORS['draft'];
+    return STATUS_COLORS[so.status] ?? DRAFT_STATUS_COLORS;
   }
 
   // Get SOs that span a given day

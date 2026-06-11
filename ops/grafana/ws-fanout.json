@@ -5,42 +5,59 @@
   "tags": ["arus", "websocket"],
   "time": { "from": "now-6h", "to": "now" },
   "refresh": "30s",
-  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "templating": { "list": [{ "name": "datasource", "type": "datasource", "query": "prometheus" }] },
   "panels": [
     {
       "id": 1,
       "title": "Active connections (process-wide)",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
-      "targets": [ { "expr": "arus_websocket_connections_active", "legendFormat": "active" } ]
+      "targets": [{ "expr": "arus_websocket_connections_active", "legendFormat": "active" }]
     },
     {
       "id": 2,
       "title": "Active per org",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
-      "targets": [ { "expr": "arus_websocket_connections_active_per_org", "legendFormat": "{{org_id}}" } ]
+      "targets": [
+        { "expr": "arus_websocket_connections_active_per_org", "legendFormat": "{{org_id}}" }
+      ]
     },
     {
       "id": 3,
       "title": "Messages / sec by type",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-      "targets": [ { "expr": "sum by (type) (rate(arus_websocket_messages_total[5m]))", "legendFormat": "{{type}}" } ]
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(arus_websocket_messages_total[5m]))",
+          "legendFormat": "{{type}}"
+        }
+      ]
     },
     {
       "id": 4,
       "title": "Reconnections / sec by reason",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
-      "targets": [ { "expr": "sum by (reason) (rate(arus_websocket_reconnections_total[5m]))", "legendFormat": "{{reason}}" } ]
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(arus_websocket_reconnections_total[5m]))",
+          "legendFormat": "{{reason}}"
+        }
+      ]
     },
     {
       "id": 5,
       "title": "Rejections by reason",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
-      "targets": [ { "expr": "sum by (reason, org_id) (rate(arus_websocket_connections_rejected_total[5m]))", "legendFormat": "{{reason}}::{{org_id}}" } ]
+      "targets": [
+        {
+          "expr": "sum by (reason, org_id) (rate(arus_websocket_connections_rejected_total[5m]))",
+          "legendFormat": "{{reason}}::{{org_id}}"
+        }
+      ]
     }
   ]
 }

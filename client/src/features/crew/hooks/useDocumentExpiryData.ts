@@ -120,7 +120,10 @@ export function useDocumentExpiryData({
 
   const confirmAcknowledge = useCallback(() => {
     if (selectedDoc) {
-      acknowledgeMutation.mutate({ docId: selectedDoc.id, ...(acknowledgeNotes && { notes: acknowledgeNotes }) });
+      acknowledgeMutation.mutate({
+        docId: selectedDoc.id,
+        ...(acknowledgeNotes && { notes: acknowledgeNotes }),
+      });
     }
   }, [selectedDoc, acknowledgeNotes, acknowledgeMutation]);
 

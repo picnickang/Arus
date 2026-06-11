@@ -515,7 +515,9 @@ export default function TrainingTab() {
                                     : model.modelType}
                               </Badge>
                             </TableCell>
-                            <TableCell>{(model.targetEquipmentType as string | undefined) || "All"}</TableCell>
+                            <TableCell>
+                              {(model.targetEquipmentType as string | undefined) || "All"}
+                            </TableCell>
                             <TableCell>
                               {model.performance?.accuracy ? (
                                 <span className="text-sm">
@@ -536,7 +538,9 @@ export default function TrainingTab() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {model.createdAt ? new Date(model.createdAt).toLocaleDateString() : "—"}
+                              {model.createdAt
+                                ? new Date(model.createdAt).toLocaleDateString()
+                                : "—"}
                             </TableCell>
                           </TableRow>
                         );

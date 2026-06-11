@@ -400,13 +400,7 @@ function VesselStep({
   );
 }
 
-function SignInStep({
-  onBack,
-  onComplete,
-}: {
-  onBack: () => void;
-  onComplete: () => void;
-}) {
+function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -435,7 +429,7 @@ function SignInStep({
     },
     onError: () =>
       setError(
-        "Sign-in failed. Check your username and password, or your account may be disabled.",
+        "Sign-in failed. Check your username and password, or your account may be disabled."
       ),
   });
 
@@ -453,8 +447,8 @@ function SignInStep({
           Sign In
         </CardTitle>
         <CardDescription>
-          Sign in with your ARUS account to finish setup. Admin access requires an
-          admin account — there is no shared admin password.
+          Sign in with your ARUS account to finish setup. Admin access requires an admin account —
+          there is no shared admin password.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -467,7 +461,9 @@ function SignInStep({
               value={username}
               onChange={(e) => {
                 setUsername(e.target.value);
-                if (error) {setError(null);}
+                if (error) {
+                  setError(null);
+                }
               }}
               autoComplete="username"
               autoFocus
@@ -482,7 +478,9 @@ function SignInStep({
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                if (error) {setError(null);}
+                if (error) {
+                  setError(null);
+                }
               }}
               autoComplete="current-password"
             />

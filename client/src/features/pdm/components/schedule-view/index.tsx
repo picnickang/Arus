@@ -157,10 +157,13 @@ export function ScheduleView() {
         exportParams.set("endDate", filters.endDate);
       }
 
-      const response = await fetch(resolveUrl(`/api/pdm/export/schedule?${exportParams.toString()}`), {
-        credentials: "include",
-        headers: { ...createHeaders(false), Accept: "text/csv" },
-      });
+      const response = await fetch(
+        resolveUrl(`/api/pdm/export/schedule?${exportParams.toString()}`),
+        {
+          credentials: "include",
+          headers: { ...createHeaders(false), Accept: "text/csv" },
+        }
+      );
       if (!response.ok) {
         throw new Error("Export failed");
       }

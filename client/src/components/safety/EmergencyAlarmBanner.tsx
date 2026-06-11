@@ -8,11 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, BellRing, Check, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  ALARM_SEVERITY_RANK,
-  ALARM_SAFETY_NOTE,
-  type AlarmSeverity,
-} from "@shared/role-dashboard";
+import { ALARM_SEVERITY_RANK, ALARM_SAFETY_NOTE, type AlarmSeverity } from "@shared/role-dashboard";
 
 interface MeSafetyAlarm {
   id: string;
@@ -32,8 +28,7 @@ interface MeSafetyAlarm {
 const SEVERITY_STYLES: Record<string, string> = {
   emergency: "border-red-600 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100",
   critical: "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100",
-  warning:
-    "border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100",
+  warning: "border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100",
   info: "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
 };
 
@@ -82,7 +77,9 @@ export function EmergencyAlarmBanner() {
     select: (rows) =>
       [...rows].sort((a, b) => {
         const rank = severityRank(b.severity) - severityRank(a.severity);
-        if (rank !== 0) {return rank;}
+        if (rank !== 0) {
+          return rank;
+        }
         return (b.triggeredAt ?? "").localeCompare(a.triggeredAt ?? "");
       }),
   });
@@ -90,13 +87,15 @@ export function EmergencyAlarmBanner() {
   // A fetch failure must never block the dashboard — surface a non-blocking
   // warning instead. A subsequent successful refresh clears it.
   useEffect(() => {
-    if (isError) {setRefreshFailed(true);}
-    else if (isSuccess) {setRefreshFailed(false);}
+    if (isError) {
+      setRefreshFailed(true);
+    } else if (isSuccess) {
+      setRefreshFailed(false);
+    }
   }, [isError, isSuccess]);
 
   const acknowledge = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest("POST", `/api/me/safety-alarms/${id}/acknowledge`, {}),
+    mutationFn: (id: string) => apiRequest("POST", `/api/me/safety-alarms/${id}/acknowledge`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/me/safety-alarms"] });
       toast({ title: "Acknowledged", description: "Your acknowledgement was recorded." });
@@ -123,7 +122,7 @@ export function EmergencyAlarmBanner() {
   return (
     <div className="space-y-2" data-testid="emergency-alarm-banner">
       {alarms.map((alarm) => {
-        const styles = SEVERITY_STYLES[alarm.severity] ?? SEVERITY_STYLES['info'];
+        const styles = SEVERITY_STYLES[alarm.severity] ?? SEVERITY_STYLES["info"];
         const isDrillOrTest = alarm.mode === "drill" || alarm.mode === "test";
         const needsAck = alarm.requiresAcknowledgement && !alarm.acknowledged;
         return (
@@ -137,9 +136,7 @@ export function EmergencyAlarmBanner() {
               <ShieldAlert className="h-6 w-6 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-sm uppercase tracking-wide">
-                    {alarm.title}
-                  </span>
+                  <span className="font-bold text-sm uppercase tracking-wide">{alarm.title}</span>
                   <Badge variant="outline" className="text-[10px] uppercase">
                     {alarm.severity}
                   </Badge>
@@ -158,16 +155,10 @@ export function EmergencyAlarmBanner() {
                     </Badge>
                   )}
                 </div>
-                {alarm.message && (
-                  <p className="text-sm mt-1 break-words">{alarm.message}</p>
-                )}
+                {alarm.message && <p className="text-sm mt-1 break-words">{alarm.message}</p>}
                 <p className="text-[11px] opacity-80 mt-1">
-                  {alarm.triggeredByName
-                    ? `Triggered by ${alarm.triggeredByName}`
-                    : "Triggered"}
-                  {alarm.triggeredAt
-                    ? ` · ${new Date(alarm.triggeredAt).toLocaleString()}`
-                    : ""}
+                  {alarm.triggeredByName ? `Triggered by ${alarm.triggeredByName}` : "Triggered"}
+                  {alarm.triggeredAt ? ` · ${new Date(alarm.triggeredAt).toLocaleString()}` : ""}
                 </p>
               </div>
               {needsAck && (

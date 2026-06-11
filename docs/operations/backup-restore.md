@@ -8,13 +8,13 @@ mechanical tools; this doc is the policy.
 
 ## 1. What we back up
 
-| Source | Mechanism | Frequency | Retention |
-|--------|-----------|-----------|-----------|
-| PostgreSQL primary | `pg_dump --format=custom` to object storage | every 6h + on-deploy | 30 days hot, 1 year cold |
-| Object storage (KB docs, GLB models, ML artifacts) | bucket versioning | continuous | 90 days versions |
-| Redis (replay ring) | not backed up | n/a — recoverable from PG | — |
-| Schema migrations | git (source of truth) | n/a | repository lifetime |
-| Audit log table (`admin_audit_log`) | included in PG dump + replicated to cold bucket | daily | 7 years (compliance) |
+| Source                                             | Mechanism                                       | Frequency                 | Retention                |
+| -------------------------------------------------- | ----------------------------------------------- | ------------------------- | ------------------------ |
+| PostgreSQL primary                                 | `pg_dump --format=custom` to object storage     | every 6h + on-deploy      | 30 days hot, 1 year cold |
+| Object storage (KB docs, GLB models, ML artifacts) | bucket versioning                               | continuous                | 90 days versions         |
+| Redis (replay ring)                                | not backed up                                   | n/a — recoverable from PG | —                        |
+| Schema migrations                                  | git (source of truth)                           | n/a                       | repository lifetime      |
+| Audit log table (`admin_audit_log`)                | included in PG dump + replicated to cold bucket | daily                     | 7 years (compliance)     |
 
 We do **not** back up: build artifacts, mockup sandbox, ephemeral
 test fixtures, log files (they go to Loki when enabled).
@@ -92,11 +92,11 @@ The script exits non-zero on any failure. Wired into the
 
 ## 7. RTO / RPO targets
 
-| Metric | Target | Notes |
-|--------|--------|-------|
-| RPO (recovery point) | ≤ 6 h | matches dump cadence |
-| RTO (recovery time, single tenant) | ≤ 1 h | restore + smoke + cutover |
-| RTO (full region) | ≤ 4 h | requires standby in cold region |
+| Metric                             | Target | Notes                           |
+| ---------------------------------- | ------ | ------------------------------- |
+| RPO (recovery point)               | ≤ 6 h  | matches dump cadence            |
+| RTO (recovery time, single tenant) | ≤ 1 h  | restore + smoke + cutover       |
+| RTO (full region)                  | ≤ 4 h  | requires standby in cold region |
 
 Targets are pinned for the pilot launch; revisit after the first
 production incident or at LR-5 (post-launch hardening).

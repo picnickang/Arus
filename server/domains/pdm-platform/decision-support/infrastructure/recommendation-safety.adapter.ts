@@ -39,8 +39,13 @@ export class RecommendationSafetyAdapter implements RecommendationSafetyPort {
       };
     }
 
-    if (input.riskLevel === "critical" || REVIEW_PATTERNS.some((pattern) => pattern.test(trimmed))) {
-      reasons.push("Engineer review required because the recommendation touches critical or deferral language.");
+    if (
+      input.riskLevel === "critical" ||
+      REVIEW_PATTERNS.some((pattern) => pattern.test(trimmed))
+    ) {
+      reasons.push(
+        "Engineer review required because the recommendation touches critical or deferral language."
+      );
     }
 
     return {
@@ -50,4 +55,3 @@ export class RecommendationSafetyAdapter implements RecommendationSafetyPort {
     };
   }
 }
-

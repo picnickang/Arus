@@ -29,7 +29,7 @@ router.post("/baselines/compute", async (req: Request, res: Response) => {
 router.get("/baselines", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const equipmentType = req.query['equipmentType'] as string;
+    const equipmentType = req.query["equipmentType"] as string;
     if (!equipmentType) {
       return res.status(400).json({ error: "equipmentType query param required" });
     }
@@ -44,8 +44,8 @@ router.get("/baselines", async (req: Request, res: Response) => {
 router.get("/compare", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const equipmentId = req.query['equipmentId'] as string;
-    const equipmentType = req.query['equipmentType'] as string;
+    const equipmentId = req.query["equipmentId"] as string;
+    const equipmentType = req.query["equipmentType"] as string;
     if (!equipmentId || !equipmentType) {
       return res.status(400).json({ error: "equipmentId and equipmentType required" });
     }

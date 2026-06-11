@@ -22,16 +22,17 @@ describe("Journey — WO parts → cost roll-up", () => {
     const refs = await getRefIds();
     vesselId = refs.vesselId;
     // pick an existing parts_inventory row to attach to the WO
-    const { rows } = await pool.query(
-      "SELECT id FROM parts_inventory WHERE org_id=$1 LIMIT 1",
-      ["default-org-id"]
-    );
+    const { rows } = await pool.query("SELECT id FROM parts_inventory WHERE org_id=$1 LIMIT 1", [
+      "default-org-id",
+    ]);
     partInventoryId = rows[0]?.id;
   }, 30000);
 
   afterAll(async () => {
     if (woId) {
-      await pool.query("DELETE FROM work_order_parts WHERE work_order_id=$1", [woId]).catch(() => {});
+      await pool
+        .query("DELETE FROM work_order_parts WHERE work_order_id=$1", [woId])
+        .catch(() => {});
       await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
     }
     if (equipmentId) {
@@ -68,16 +69,12 @@ describe("Journey — WO parts → cost roll-up", () => {
       console.log("no parts_inventory rows present, skipping rollup assertion");
       return;
     }
-    const r = await api(
-      "POST",
-      `/api/work-orders/${woId}/parts`,
-      {
-        partId: partInventoryId,
-        quantity: 2,
-        unitCost: 5.5,
-        usedBy: "wo-cost-rollup-test",
-      }
-    );
+    const r = await api("POST", `/api/work-orders/${woId}/parts`, {
+      partId: partInventoryId,
+      quantity: 2,
+      unitCost: 5.5,
+      usedBy: "wo-cost-rollup-test",
+    });
     // 403 = the dev role lacks parts-management gating; this is a route
     // permission contract, not a propagation bug.
     expect([200, 201, 400, 403, 404]).toContain(r.status);

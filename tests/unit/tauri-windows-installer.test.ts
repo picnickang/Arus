@@ -152,8 +152,8 @@ describe("Tauri Windows Installer — Configuration", () => {
     it("does NOT contain an updater plugin with placeholder keys", () => {
       const plugins = conf.plugins ?? {};
       if ("updater" in plugins) {
-        const updater = plugins.updater as Record<string, unknown>;
-        const pubkey = (updater.pubkey as string) ?? "";
+        const updater = plugins["updater"] as Record<string, unknown>;
+        const pubkey = (updater["pubkey"] as string) ?? "";
         expect(pubkey).not.toMatch(/REPLACE_WITH/i);
         expect(pubkey).not.toBe("");
       }
@@ -525,7 +525,7 @@ describe("Tauri Windows Installer — Capabilities", () => {
 
   it("grants core:default, shell:allow-open, shell:allow-execute for sidecar", () => {
     const flat = caps.permissions.map((p) =>
-      typeof p === "string" ? p : (p as Record<string, unknown>).identifier
+      typeof p === "string" ? p : (p as Record<string, unknown>)["identifier"]
     );
     expect(flat).toContain("core:default");
     expect(flat).toContain("shell:allow-open");
@@ -535,16 +535,17 @@ describe("Tauri Windows Installer — Capabilities", () => {
   it("shell:allow-execute restricts to arus-server sidecar only", () => {
     const exec = caps.permissions.find(
       (p) =>
-        typeof p === "object" && (p as Record<string, unknown>).identifier === "shell:allow-execute"
+        typeof p === "object" &&
+        (p as Record<string, unknown>)["identifier"] === "shell:allow-execute"
     ) as Record<string, unknown>;
     expect(exec).toBeDefined();
-    const allow = exec.allow as { name: string; sidecar: boolean }[];
+    const allow = exec["allow"] as { name: string; sidecar: boolean }[];
     expect(allow).toEqual([{ name: "arus-server", sidecar: true }]);
   });
 
   it("includes fs read and write permissions scoped to $APPDATA", () => {
     const flat = caps.permissions.map((p) =>
-      typeof p === "string" ? p : (p as Record<string, unknown>).identifier
+      typeof p === "string" ? p : (p as Record<string, unknown>)["identifier"]
     );
     expect(flat).toContain("fs:allow-app-read");
     expect(flat).toContain("fs:allow-app-write");
@@ -552,7 +553,7 @@ describe("Tauri Windows Installer — Capabilities", () => {
 
   it("includes process:allow-relaunch and process:allow-exit", () => {
     const flat = caps.permissions.map((p) =>
-      typeof p === "string" ? p : (p as Record<string, unknown>).identifier
+      typeof p === "string" ? p : (p as Record<string, unknown>)["identifier"]
     );
     expect(flat).toContain("process:allow-relaunch");
     expect(flat).toContain("process:allow-exit");

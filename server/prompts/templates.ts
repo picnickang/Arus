@@ -12,7 +12,8 @@ export const SEED_PROMPTS: readonly PromptDefinition[] = [
   {
     id: "risk-narrative",
     version: "1.0.0",
-    description: "Generates a one-paragraph executive risk narrative for an at-risk equipment item.",
+    description:
+      "Generates a one-paragraph executive risk narrative for an at-risk equipment item.",
     owner: "ml-platform",
     template: [
       "You are a marine reliability engineer briefing a Chief Engineer.",
@@ -47,7 +48,8 @@ export const SEED_PROMPTS: readonly PromptDefinition[] = [
   {
     id: "wo-cause-suggestion",
     version: "1.0.0",
-    description: "Suggests probable cause for a completed work order based on the closeout payload.",
+    description:
+      "Suggests probable cause for a completed work order based on the closeout payload.",
     owner: "maintenance",
     template: [
       "You are an ISO 14224 failure-mode classifier.",

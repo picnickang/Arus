@@ -17,7 +17,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { api, pool, retry } from "./_helpers";
 
-const ORG_ID = process.env.TEST_ORG_ID || "default-org-id";
+const ORG_ID = process.env["TEST_ORG_ID"] || "default-org-id";
 
 async function countAudits(action: string, since: Date): Promise<number> {
   const { rows } = await pool.query<{ c: string }>(
@@ -33,10 +33,11 @@ describe("Audit-event propagation — admin-surface form actions", () => {
     const { status } = await api("GET", "/api/admin/settings");
     // Route must be reachable.
     expect([200, 304]).toContain(status);
+    // Bounded retry for the VIEW_SYSTEM_SETTINGS audit row to land.
     await retry(
       () => countAudits("VIEW_SYSTEM_SETTINGS", since),
       (c) => c >= 1,
-      { timeoutMs: 3000, label: "VIEW_SYSTEM_SETTINGS audit row" }
+      { timeoutMs: 3000 }
     );
   });
 
@@ -49,10 +50,11 @@ describe("Audit-event propagation — admin-surface form actions", () => {
       "/api/admin/settings/default-org-id/general/non_existent_probe_key"
     );
     expect([200, 404]).toContain(status);
+    // Bounded retry for the VIEW_SYSTEM_SETTING audit row to land.
     await retry(
       () => countAudits("VIEW_SYSTEM_SETTING", since),
       (c) => c >= 1,
-      { timeoutMs: 3000, label: "VIEW_SYSTEM_SETTING audit row" }
+      { timeoutMs: 3000 }
     );
   });
 
