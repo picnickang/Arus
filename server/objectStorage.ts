@@ -21,7 +21,7 @@ const REPLIT_SIDECAR_ENDPOINT = "http://127.0.1:1106";
 
 // Environment detection
 function isReplitEnvironment(): boolean {
-  return !!(process.env['REPL_ID'] || process.env['REPL_SLUG'] || process.env['REPLIT_DB_URL']);
+  return !!(process.env["REPL_ID"] || process.env["REPL_SLUG"] || process.env["REPLIT_DB_URL"]);
 }
 
 // Lazy-initialized storage client.
@@ -71,7 +71,9 @@ export async function getObjectStorageClient(): Promise<Storage | null> {
         });
         logger.info("✓ Object storage client initialized (Replit environment)");
       } else {
-        logger.info("ℹ Object storage not initialized (non-Replit environment). GCS features disabled.");
+        logger.info(
+          "ℹ Object storage not initialized (non-Replit environment). GCS features disabled."
+        );
       }
     } catch (error) {
       _clientInitError = error as Error;
@@ -108,7 +110,7 @@ export class ObjectNotFoundError extends Error {
 export class ObjectStorageService {
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
-    const pathsStr = process.env['PUBLIC_OBJECT_SEARCH_PATHS'] || "";
+    const pathsStr = process.env["PUBLIC_OBJECT_SEARCH_PATHS"] || "";
     const paths = Array.from(
       new Set(
         pathsStr
@@ -126,7 +128,7 @@ export class ObjectStorageService {
 
   // Gets the private object directory.
   getPrivateObjectDir(): string {
-    const dir = process.env['PRIVATE_OBJECT_DIR'] || "";
+    const dir = process.env["PRIVATE_OBJECT_DIR"] || "";
     if (!dir) {
       logger.warn("PRIVATE_OBJECT_DIR not set. Private object storage features may be limited.");
       return "";
@@ -201,7 +203,7 @@ export class ObjectStorageService {
     file: File,
     res: Response,
     cacheTtlSec: number = 3600,
-    auditCtx?: { orgId?: string; userId?: string },
+    auditCtx?: { orgId?: string | undefined; userId?: string | undefined }
   ) {
     try {
       // LR-3.5 / TEN-5: fail-closed ownership check at the leaf.
@@ -217,9 +219,12 @@ export class ObjectStorageService {
           return;
         }
       } else {
-        logger.warn("downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
-          objectName: file.name,
-        });
+        logger.warn(
+          "downloadObject called without auditCtx.orgId — fail-closed ownership check skipped",
+          {
+            objectName: file.name,
+          }
+        );
       }
 
       // Get file metadata
@@ -314,9 +319,7 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId)
-      ? `orgs/${orgId}/`
-      : "";
+    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId) ? `orgs/${orgId}/` : "";
     const fullPath = `${privateObjectDir}/uploads/${orgSegment}${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
@@ -442,7 +445,7 @@ export class ObjectStorageService {
   // bypass without also bypassing the upload signer.
   assertObjectOwnedByOrg(
     file: File,
-    callerOrgId: string,
+    callerOrgId: string
   ): { allowed: boolean; ownerOrgId: string | null; legacy: boolean } {
     // file.name is the object-within-bucket path. With our upload
     // layout it includes the `uploads/orgs/<id>/<uuid>` suffix.
@@ -474,7 +477,10 @@ export class ObjectStorageService {
   // Check if object storage is properly configured
   async isConfigured(): Promise<boolean> {
     const client = await getObjectStorageClient();
-    return !!(client && (process.env['PUBLIC_OBJECT_SEARCH_PATHS'] || process.env['PRIVATE_OBJECT_DIR']));
+    return !!(
+      client &&
+      (process.env["PUBLIC_OBJECT_SEARCH_PATHS"] || process.env["PRIVATE_OBJECT_DIR"])
+    );
   }
 
   // Check if running in Replit environment
@@ -492,35 +498,79 @@ export class ObjectStorageService {
  * only need to distinguish safe families from "everything else".
  */
 export function sniffMimeFamily(head: Buffer): string {
-  if (head.length === 0) {return "unknown";}
+  if (head.length === 0) {
+    return "unknown";
+  }
   // JPEG
-  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {return "image/jpeg";}
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {
+    return "image/jpeg";
+  }
   // PNG
   if (
-    head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47 &&
-    head[4] === 0x0d && head[5] === 0x0a && head[6] === 0x1a && head[7] === 0x0a
-  ) {return "image/png";}
+    head[0] === 0x89 &&
+    head[1] === 0x50 &&
+    head[2] === 0x4e &&
+    head[3] === 0x47 &&
+    head[4] === 0x0d &&
+    head[5] === 0x0a &&
+    head[6] === 0x1a &&
+    head[7] === 0x0a
+  ) {
+    return "image/png";
+  }
   // GIF
-  if (head.slice(0, 6).toString("ascii") === "GIF87a" || head.slice(0, 6).toString("ascii") === "GIF89a") {return "image/gif";}
+  if (
+    head.slice(0, 6).toString("ascii") === "GIF87a" ||
+    head.slice(0, 6).toString("ascii") === "GIF89a"
+  ) {
+    return "image/gif";
+  }
   // WebP (RIFF....WEBP)
-  if (head.slice(0, 4).toString("ascii") === "RIFF" && head.slice(8, 12).toString("ascii") === "WEBP") {return "image/webp";}
+  if (
+    head.slice(0, 4).toString("ascii") === "RIFF" &&
+    head.slice(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return "image/webp";
+  }
   // PDF
-  if (head.slice(0, 4).toString("ascii") === "%PDF") {return "application/pdf";}
+  if (head.slice(0, 4).toString("ascii") === "%PDF") {
+    return "application/pdf";
+  }
   // GLB (glTF binary)
-  if (head.slice(0, 4).toString("ascii") === "glTF") {return "model/gltf-binary";}
+  if (head.slice(0, 4).toString("ascii") === "glTF") {
+    return "model/gltf-binary";
+  }
   // ZIP family (covers .zip, .docx, .xlsx, .pptx)
-  if (head[0] === 0x50 && head[1] === 0x4b && (head[2] === 0x03 || head[2] === 0x05 || head[2] === 0x07)) {return "application/zip";}
+  if (
+    head[0] === 0x50 &&
+    head[1] === 0x4b &&
+    (head[2] === 0x03 || head[2] === 0x05 || head[2] === 0x07)
+  ) {
+    return "application/zip";
+  }
   // MP4 (ftyp box at offset 4)
-  if (head.slice(4, 8).toString("ascii") === "ftyp") {return "video/mp4";}
+  if (head.slice(4, 8).toString("ascii") === "ftyp") {
+    return "video/mp4";
+  }
   // OGG
-  if (head.slice(0, 4).toString("ascii") === "OggS") {return "audio/ogg";}
+  if (head.slice(0, 4).toString("ascii") === "OggS") {
+    return "audio/ogg";
+  }
   // MP3 (ID3 or sync frame)
-  if (head.slice(0, 3).toString("ascii") === "ID3") {return "audio/mpeg";}
-  if (head[0] === 0xff && (head[1] !== undefined && (head[1] & 0xe0) === 0xe0)) {return "audio/mpeg";}
+  if (head.slice(0, 3).toString("ascii") === "ID3") {
+    return "audio/mpeg";
+  }
+  if (head[0] === 0xff && head[1] !== undefined && (head[1] & 0xe0) === 0xe0) {
+    return "audio/mpeg";
+  }
   // Text-looking head (HTML/SVG/XML/JSON/plain) — return generic
   // "text" so pickSafeContentType can force attachment defensively.
-  const printable = head.slice(0, 64).every((b) => b === 0x09 || b === 0x0a || b === 0x0d || (b >= 0x20 && b <= 0x7e));
-  if (printable) {return "text";}
+  const printable = head
+    .slice(0, 64)
+    .every((b) => b === 0x09 || b === 0x0a || b === 0x0d || (b >= 0x20 && b <= 0x7e));
+  if (printable) {
+    return "text";
+  }
   return "unknown";
 }
 
@@ -545,7 +595,7 @@ const SAFE_MIME_FAMILIES: ReadonlyArray<{ prefix: string; sniffed: ReadonlyArray
 
 export function pickSafeContentType(
   claimed: string,
-  sniffed: string,
+  sniffed: string
 ): { safeContentType: string; forceAttachment: boolean } {
   const lower = claimed.toLowerCase();
   // Hostile families: never honour them, always force attachment.
@@ -584,7 +634,7 @@ function parseObjectPath(path: string): {
     throw new Error("Invalid path: must contain at least a bucket name");
   }
 
-  const bucketName = pathParts[1] ?? '';
+  const bucketName = pathParts[1] ?? "";
   const objectName = pathParts.slice(2).join("/");
 
   return {

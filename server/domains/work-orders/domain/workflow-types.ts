@@ -2,9 +2,9 @@ export type PredictionOutcome = "confirmed" | "partial" | "false_alarm";
 
 export interface CompletionPredictionFeedback {
   workOrderId: string;
-  predictionId?: string | number | null;
+  predictionId?: string | number | null | undefined;
   outcome: PredictionOutcome;
-  notes?: string;
+  notes?: string | undefined;
 }
 
 export function mapOutcomeToValidation(outcome: PredictionOutcome): "valid" | "disputed" {
@@ -31,14 +31,14 @@ export interface QuickWorkOrderResult {
 }
 
 export interface WorkOrderCloseoutDetails {
-  workPerformed?: string;
-  causeFound?: string;
-  partsUsed?: string;
-  laborHours?: number | null;
-  downtimeHours?: number | null;
-  evidenceNote?: string;
-  checklistVerified?: boolean;
-  supervisorVerified?: boolean;
+  workPerformed?: string | undefined;
+  causeFound?: string | undefined;
+  partsUsed?: string | undefined;
+  laborHours?: number | null | undefined;
+  downtimeHours?: number | null | undefined;
+  evidenceNote?: string | undefined;
+  checklistVerified?: boolean | undefined;
+  supervisorVerified?: boolean | undefined;
 }
 
 export interface WorkOrderCompletionInput {

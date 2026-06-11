@@ -426,7 +426,7 @@ export class InMemoryVesselDiagramRegistryStore implements VesselDiagramRegistry
       }
     }
     map.status = "published";
-    map.validationSummary = validation.summary;
+    map.validationSummary = validation.summary ?? null;
     map.publishedAt = now();
     map.updatedAt = now();
     return map;

@@ -464,7 +464,7 @@ export class MePortalService {
     orgId: string,
     username: string,
     password: string,
-    context: { ip?: string; userAgent?: string }
+    context: { ip?: string | undefined; userAgent?: string | undefined }
   ): Promise<SessionResult> {
     const record = await findUserByUsername(orgId, username);
 

@@ -197,13 +197,13 @@ export function registerMePortalRoutes(
       const { comment } = ackSchema.parse(req.body ?? {});
       const meUser = resolveMeUser(req);
       try {
-        await mePortalService.acknowledgeAlarm(meUser, req.params["id"], comment);
+        await mePortalService.acknowledgeAlarm(meUser, req.params["id"] ?? "", comment);
         await auditService.logEvent({
           orgId: meUser.orgId,
           eventCategory: "compliance_event",
           eventType: "alert_acknowledged",
           entityType: "safety_alarm",
-          entityId: req.params["id"],
+          entityId: req.params["id"] ?? "",
           performedBy: meUser.id,
           performedByName: meUser.name ?? meUser.email,
           performedByRole: meUser.role,
