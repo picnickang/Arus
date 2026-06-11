@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T22:46:59.800Z
+Generated: 2026-06-11T22:50:29.400Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `114` counted files.
-- The current counted inventory is `114` files.
+- The temporary ceiling is `112` counted files.
+- The current counted inventory is `112` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   114 |
-| Server                    |    41 |
-| Server route-like files   |    10 |
-| Server service-like files |    11 |
+| Total counted long files  |   112 |
+| Server                    |    39 |
+| Server route-like files   |     9 |
+| Server service-like files |    10 |
 | Client                    |    73 |
 | Client page files         |    28 |
 | Shared                    |     0 |
@@ -69,6 +69,8 @@ Completed splits:
 - `server/lib/domain-event-bus/types.ts` dropped below the threshold by moving event envelopes, payloads, and event map types to internal modules while preserving the public factory/barrel.
 - `server/integrations/fmcc-types.ts` dropped below the threshold by moving FMCC snapshot/polling types and register maps to internal modules while preserving the public barrel.
 - `server/tests/pdm/get-schedule.test.ts` dropped below the threshold by moving local fixture builders to a counted helper module while preserving the test coverage.
+- `server/services/rms/alert-service.ts` dropped below the threshold by moving alert config and row helpers to a sibling module while preserving `rmsAlertService`.
+- `server/domains/rms/routes.ts` dropped below the threshold by moving route schemas and request/row helpers to a sibling module while preserving `rmsRouter`.
 
 ## Top 30 Longest Files
 
@@ -234,9 +236,7 @@ Completed splits:
 523 client/src/lib/offline-sync.ts
 521 client/src/pages/logs-compliance-hub.tsx
 519 server/services/ml/model-evaluation-gate.ts
-515 server/services/rms/alert-service.ts
 515 server/domains/agent/tools/weather-tools.ts
 514 client/src/features/suppliers/components/SupplierForm.tsx
-509 server/domains/rms/routes.ts
 507 client/src/components/UnifiedCrewManagement/CurrentRoster.tsx
 ```

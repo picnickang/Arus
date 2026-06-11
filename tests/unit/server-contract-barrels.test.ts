@@ -3,6 +3,7 @@ import {
   DEFAULT_FMCC_REGISTER_MAP,
 } from "../../server/integrations/fmcc-types";
 import { createDomainEvent } from "../../server/lib/domain-event-bus/types";
+import { rmsRouter } from "../../server/domains/rms/routes";
 
 describe("server public contract barrels", () => {
   it("keeps domain event factory exports available from the public types module", () => {
@@ -59,5 +60,10 @@ describe("server public contract barrels", () => {
     expect(BUNKERING_REGISTER_MAP.every((entry) => entry.targetField.startsWith("fuel."))).toBe(
       true
     );
+  });
+
+  it("keeps RMS routes importable from the public route module", () => {
+    expect(rmsRouter).toBeDefined();
+    expect(rmsRouter.stack?.length).toBeGreaterThan(0);
   });
 });
