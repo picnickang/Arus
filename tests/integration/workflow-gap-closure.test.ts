@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool } from "pg";
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const BASE_URL = process.env["TEST_BASE_URL"] || "http://localhost:5000";
 const TEST_ORG_ID = "default-org-id";
 const RUN_ID = `gap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
 
 interface ApiResult<T = unknown> {
   status: number;

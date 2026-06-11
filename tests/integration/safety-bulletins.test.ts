@@ -226,9 +226,9 @@ describe("POST /api/safety-bulletins — admin gate", () => {
       expect(res.status).toBe(201);
       expect(createBulletin).toHaveBeenCalledTimes(1);
       const arg = createBulletin.mock.calls[0]?.[0] as Record<string, unknown>;
-      expect(arg.orgId).toBe(ORG);
-      expect(arg.createdBy).toBe(`ok-${role}`);
-      expect(arg.title).toBe("Lifeboat drill");
+      expect(arg["orgId"]).toBe(ORG);
+      expect(arg["createdBy"]).toBe(`ok-${role}`);
+      expect(arg["title"]).toBe("Lifeboat drill");
     });
   }
 });
@@ -272,6 +272,6 @@ describe("POST /api/safety-bulletins — body validation", () => {
       .send({ title: "Engine room notice", vesselId: "vessel-7" });
     expect(res.status).toBe(201);
     const arg = createBulletin.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(arg.vesselId).toBe("vessel-7");
+    expect(arg["vesselId"]).toBe("vessel-7");
   });
 });

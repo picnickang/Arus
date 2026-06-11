@@ -21,7 +21,7 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool, type PoolClient } from "pg";
 import { randomUUID } from "node:crypto";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 
 const ORG_A = `lr1b-a-${Date.now().toString(36)}`;
 const ORG_B = `lr1b-b-${Date.now().toString(36)}`;

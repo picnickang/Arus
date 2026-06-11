@@ -23,7 +23,7 @@ describe("validateResponse", () => {
     it("supports passthrough so extra fields survive", () => {
       const payload = { id: 1, name: "Bob", extra: "kept" };
       const result = validateResponse(userSchema, payload, "GET /api/users/:id");
-      expect((result as Record<string, unknown>).extra).toBe("kept");
+      expect((result as Record<string, unknown>)["extra"]).toBe("kept");
     });
 
     it("accepts string-or-number id (drift-tolerant)", () => {
@@ -49,14 +49,14 @@ describe("validateResponse", () => {
   });
 
   describe("non-production behavior", () => {
-    const ORIGINAL = process.env.NODE_ENV;
+    const ORIGINAL = process.env["NODE_ENV"];
 
     beforeEach(() => {
-      process.env.NODE_ENV = "test";
+      process.env["NODE_ENV"] = "test";
     });
 
     afterEach(() => {
-      process.env.NODE_ENV = ORIGINAL;
+      process.env["NODE_ENV"] = ORIGINAL;
     });
 
     it("throws when required field is missing", () => {
@@ -92,16 +92,16 @@ describe("validateResponse", () => {
   });
 
   describe("production behavior (logs + passes through)", () => {
-    const ORIGINAL = process.env.NODE_ENV;
+    const ORIGINAL = process.env["NODE_ENV"];
     let errSpy: ReturnType<typeof jest.spyOn>;
 
     beforeEach(() => {
-      process.env.NODE_ENV = "production";
+      process.env["NODE_ENV"] = "production";
       errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      process.env.NODE_ENV = ORIGINAL;
+      process.env["NODE_ENV"] = ORIGINAL;
       errSpy.mockRestore();
     });
 
@@ -125,14 +125,14 @@ describe("validateResponse", () => {
 
   describe("context propagation", () => {
     it("error message embeds the provided context string", () => {
-      const ORIGINAL = process.env.NODE_ENV;
-      process.env.NODE_ENV = "test";
+      const ORIGINAL = process.env["NODE_ENV"];
+      process.env["NODE_ENV"] = "test";
       try {
         expect(() =>
           validateResponse(userSchema, { id: "u1" }, "GET /api/permissions/me")
         ).toThrow(/GET \/api\/permissions\/me/);
       } finally {
-        process.env.NODE_ENV = ORIGINAL;
+        process.env["NODE_ENV"] = ORIGINAL;
       }
     });
   });

@@ -166,7 +166,7 @@ describe("§R — requireRole crew-admin gate rejects non-admins", () => {
 
   it("rejects an unauthenticated caller with 401 (no role)", async () => {
     const res = await (request(app) as unknown as Record<string, (p: string) => request.Test>)
-      .get("/api/admin/crew/roles")
+      ["get"]("/api/admin/crew/roles")
       .send({});
     expect(res.status).toBe(401);
   });

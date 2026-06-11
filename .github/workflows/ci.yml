@@ -18,7 +18,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +35,9 @@ jobs:
 
       - name: Typecheck
         run: npm run check
+
+      - name: Typecheck test files (lane excluded from main tsconfig)
+        run: npm run check:tests
 
       - name: Check domain boundaries & leak baseline
         run: npm run check:guards

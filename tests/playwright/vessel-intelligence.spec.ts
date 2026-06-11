@@ -21,17 +21,17 @@ const BASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 895 420">
 function makeFixtures(options?: { viewer?: boolean }) {
   const viewer = options?.viewer === true;
   const equipment = equipmentSeed.equipment.map((item: Record<string, string>, index: number) => ({
-    id: item.equipmentId || `equipment-${index + 1}`,
-    equipmentId: item.equipmentId,
+    id: item["equipmentId"] || `equipment-${index + 1}`,
+    equipmentId: item["equipmentId"],
     vesselId: "vessel-1",
-    name: item.name,
-    equipmentName: item.name,
-    assetCode: item.assetCode,
-    tagNumber: item.assetCode,
-    system: item.system,
-    status: item.status,
-    healthStatus: item.status,
-    sectionKey: item.sectionKey,
+    name: item["name"],
+    equipmentName: item["name"],
+    assetCode: item["assetCode"],
+    tagNumber: item["assetCode"],
+    system: item["system"],
+    status: item["status"],
+    healthStatus: item["status"],
+    sectionKey: item["sectionKey"],
   }));
 
   const activeSectionMap = {
@@ -47,15 +47,15 @@ function makeFixtures(options?: { viewer?: boolean }) {
     diagramKind: sectionMap.diagramKind,
     imageTransform: { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
     sections: sectionMap.sections.map((section: Record<string, unknown>, sectionIndex: number) => ({
-      id: `section-${section.sectionKey}`,
-      sectionKey: section.sectionKey,
-      sectionNo: section.sectionNo,
-      name: section.name,
-      color: section.color,
-      polygonNormalized: section.polygonNormalized,
-      labelNormalized: section.labelNormalized,
-      thumbnailFallback: section.thumbnailFallback,
-      equipment: (section.equipment as string[]).map((name, itemIndex) => ({
+      id: `section-${section["sectionKey"]}`,
+      sectionKey: section["sectionKey"],
+      sectionNo: section["sectionNo"],
+      name: section["name"],
+      color: section["color"],
+      polygonNormalized: section["polygonNormalized"],
+      labelNormalized: section["labelNormalized"],
+      thumbnailFallback: section["thumbnailFallback"],
+      equipment: (section["equipment"] as string[]).map((name, itemIndex) => ({
         id: `assignment-${sectionIndex + 1}-${itemIndex + 1}`,
         equipmentId:
           equipment.find((item) => item.name === name || item.assetCode === name)?.id ?? null,

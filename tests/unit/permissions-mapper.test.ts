@@ -80,7 +80,7 @@ describe("Permissions Mapper", () => {
         }),
         orgRoles
       );
-      expect(result.permissions.equipment).toEqual({
+      expect(result.permissions["equipment"]).toEqual({
         view: true,
         edit: false,
         delete: false,
@@ -99,9 +99,9 @@ describe("Permissions Mapper", () => {
       expect(warn).toHaveBeenCalledTimes(1);
       const [message, context] = warn.mock.calls[0] as [string, Record<string, unknown>];
       expect(message).toMatch(/possible data drift/i);
-      expect(context.metadata.missingRoleIds).toEqual(["role-ghost", "role-missing"]);
-      expect(context.metadata.userId).toBe("user-1");
-      expect(context.metadata.orgId).toBe("org-1");
+      expect(context["metadata"].missingRoleIds).toEqual(["role-ghost", "role-missing"]);
+      expect(context["metadata"].userId).toBe("user-1");
+      expect(context["metadata"].orgId).toBe("org-1");
     });
 
     it("does NOT log when all role IDs resolve", () => {

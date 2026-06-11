@@ -196,17 +196,17 @@ describe("PATCH role hub-access — before -> after audit", () => {
 
     expect(auditCalls).toHaveLength(1);
     const audit = auditCalls[0]!;
-    expect(audit.eventType).toBe("permission_changed");
-    expect(audit.entityType).toBe("role");
-    expect(audit.entityId).toBe("role-target");
-    expect(audit.performedBy).toBe("caller-admin");
+    expect(audit["eventType"]).toBe("permission_changed");
+    expect(audit["entityType"]).toBe("role");
+    expect(audit["entityId"]).toBe("role-target");
+    expect(audit["performedBy"]).toBe("caller-admin");
     // The before-state is the role as it stood prior to the mutation...
-    expect(audit.previousState).toMatchObject({
+    expect(audit["previousState"]).toMatchObject({
       hubAdmin: true,
       hubAccess: ["operations"],
     });
     // ...and the after-state is the persisted result.
-    expect(audit.newState).toMatchObject({
+    expect(audit["newState"]).toMatchObject({
       hubAdmin: true,
       hubAccess: ["operations", "fleet"],
     });
@@ -225,9 +225,9 @@ describe("PATCH role hub-access — before -> after audit", () => {
     // [] (admin, no hubs) must persist as [], never collapse to null.
     expect(lastGrant?.hubAccess).toEqual([]);
     expect(auditCalls).toHaveLength(1);
-    expect(auditCalls[0]!.previousState).toMatchObject({
+    expect(auditCalls[0]!["previousState"]).toMatchObject({
       hubAccess: ["operations"],
     });
-    expect(auditCalls[0]!.newState).toMatchObject({ hubAccess: [] });
+    expect(auditCalls[0]!["newState"]).toMatchObject({ hubAccess: [] });
   });
 });

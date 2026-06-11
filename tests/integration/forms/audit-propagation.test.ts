@@ -17,7 +17,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { api, pool, retry } from "./_helpers";
 
-const ORG_ID = process.env.TEST_ORG_ID || "default-org-id";
+const ORG_ID = process.env["TEST_ORG_ID"] || "default-org-id";
 
 async function countAudits(action: string, since: Date): Promise<number> {
   const { rows } = await pool.query<{ c: string }>(

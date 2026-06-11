@@ -269,11 +269,11 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
     });
     expect(auditCalls).toHaveLength(1);
     const audit = auditCalls[0]!;
-    expect(audit.eventType).toBe("permission_changed");
-    expect(audit.entityType).toBe("user");
-    expect(audit.entityId).toBe("user-target");
-    expect(audit.performedBy).toBe("caller-admin");
-    expect(audit.newState).toMatchObject({
+    expect(audit["eventType"]).toBe("permission_changed");
+    expect(audit["entityType"]).toBe("user");
+    expect(audit["entityId"]).toBe("user-target");
+    expect(audit["performedBy"]).toBe("caller-admin");
+    expect(audit["newState"]).toMatchObject({
       hubAdmin: true,
       hubAccess: ["operations", "fleet"],
     });
@@ -304,6 +304,6 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
       hubAccess: null,
     });
     expect(auditCalls).toHaveLength(1);
-    expect(auditCalls[0]!.newState).toMatchObject({ hubAdmin: false });
+    expect(auditCalls[0]!["newState"]).toMatchObject({ hubAdmin: false });
   });
 });

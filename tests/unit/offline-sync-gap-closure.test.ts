@@ -117,7 +117,7 @@ describe("offline-sync gap-closure", () => {
         (p) => p.operationType === "update" && p.entityId === "wo-123"
       );
       expect(updates.length).toBe(1);
-      expect(updates[0].payload.status).toBe("completed");
+      expect(updates[0].payload["status"]).toBe("completed");
     });
 
     it("queued create carries a request envelope for replay", async () => {
@@ -229,7 +229,7 @@ describe("offline-sync gap-closure", () => {
 
       const after = (await offlineSync.getPendingOperations()).find((p) => p.id === op.id);
       expect(after?.conflictPaused).toBe(false);
-      expect(after?.payload.title).toBe("merged-title");
+      expect(after?.payload["title"]).toBe("merged-title");
     });
 
     it("after resolveConflict('local'), a subsequent replay DOES execute the operation", async () => {
@@ -333,7 +333,7 @@ describe("offline-sync gap-closure", () => {
           url: item.url,
           contentType: "application/json",
         });
-        expect(op.payload.__queuedApiRequest).toBe(true);
+        expect(op.payload["__queuedApiRequest"]).toBe(true);
       }
     });
   });

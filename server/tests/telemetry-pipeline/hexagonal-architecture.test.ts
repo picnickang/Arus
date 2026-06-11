@@ -255,8 +255,8 @@ describe("Telemetry Hexagonal Architecture", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBeGreaterThan(0);
-      expect(readings[0].metadata?.idempotencyKey).toBeDefined();
-      expect(readings[0].metadata?.idempotencyKey).toContain("raw:");
+      expect(readings[0].metadata?.["idempotencyKey"]).toBeDefined();
+      expect(readings[0].metadata?.["idempotencyKey"]).toContain("raw:");
     });
 
     it("should process J1939 frames correctly", () => {

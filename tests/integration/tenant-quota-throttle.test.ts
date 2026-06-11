@@ -23,8 +23,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool, type PoolClient } from "pg";
 
-const BASE = process.env.TEST_BASE_URL || "http://localhost:5000";
-const databaseUrl = process.env.DATABASE_URL;
+const BASE = process.env["TEST_BASE_URL"] || "http://localhost:5000";
+const databaseUrl = process.env["DATABASE_URL"];
 
 // This deployment is single-tenant — the `ORG_CONTEXT_FORBIDDEN`
 // middleware rejects any X-Org-Id that isn't `default-org-id`. We

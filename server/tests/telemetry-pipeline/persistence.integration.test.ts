@@ -50,9 +50,9 @@ describe("Telemetry Persistence", () => {
       const metadata = readings[0].metadata;
 
       expect(metadata).toBeDefined();
-      expect(metadata?.idempotencyKey).toBeDefined();
-      expect(metadata?.source).toBeDefined();
-      expect(metadata?.pgn).toBeDefined();
+      expect(metadata?.["idempotencyKey"]).toBeDefined();
+      expect(metadata?.["source"]).toBeDefined();
+      expect(metadata?.["pgn"]).toBeDefined();
     });
   });
 
@@ -63,7 +63,7 @@ describe("Telemetry Persistence", () => {
 
       expect(readings.length).toBe(500);
 
-      const idempotencyKeys = readings.map((r) => r.metadata?.idempotencyKey);
+      const idempotencyKeys = readings.map((r) => r.metadata?.["idempotencyKey"]);
       const uniqueKeys = new Set(idempotencyKeys);
       expect(uniqueKeys.size).toBe(500);
     });
@@ -76,8 +76,8 @@ describe("Telemetry Persistence", () => {
       const readings2 = processor.process(batch2);
 
       const allKeys = [
-        ...readings1.map((r) => r.metadata?.idempotencyKey),
-        ...readings2.map((r) => r.metadata?.idempotencyKey),
+        ...readings1.map((r) => r.metadata?.["idempotencyKey"]),
+        ...readings2.map((r) => r.metadata?.["idempotencyKey"]),
       ];
       const uniqueKeys = new Set(allKeys);
 
@@ -95,7 +95,7 @@ describe("Telemetry Persistence", () => {
       const allReadings = results.flat();
       expect(allReadings.length).toBe(500);
 
-      const idempotencyKeys = new Set(allReadings.map((r) => r.metadata?.idempotencyKey));
+      const idempotencyKeys = new Set(allReadings.map((r) => r.metadata?.["idempotencyKey"]));
       expect(idempotencyKeys.size).toBe(500);
     });
   });
@@ -135,7 +135,7 @@ describe("Telemetry Persistence", () => {
       const readings1 = processor.process([frame]);
       const readings2 = processor.process([frame]);
 
-      expect(readings1[0].metadata?.idempotencyKey).toBe(readings2[0].metadata?.idempotencyKey);
+      expect(readings1[0].metadata?.["idempotencyKey"]).toBe(readings2[0].metadata?.["idempotencyKey"]);
     });
 
     it("should generate different keys for different frames", () => {
@@ -145,14 +145,14 @@ describe("Telemetry Persistence", () => {
       const readings1 = processor.process([frame1]);
       const readings2 = processor.process([frame2]);
 
-      expect(readings1[0].metadata?.idempotencyKey).not.toBe(readings2[0].metadata?.idempotencyKey);
+      expect(readings1[0].metadata?.["idempotencyKey"]).not.toBe(readings2[0].metadata?.["idempotencyKey"]);
     });
 
     it("should include source and protocol in idempotency key", () => {
       const frame = createJ1939EngineSpeedFrame(5003, 1500);
       const readings = processor.process([frame]);
 
-      const key = readings[0].metadata?.idempotencyKey as string;
+      const key = readings[0].metadata?.["idempotencyKey"] as string;
       expect(key).toContain("raw:");
       expect(key).toContain("J1939");
     });
@@ -314,9 +314,9 @@ describe("Data Integrity Through Pipeline", () => {
 
       for (const reading of readings) {
         expect(reading.metadata).toBeDefined();
-        expect(reading.metadata?.idempotencyKey).toBeDefined();
-        expect(reading.metadata?.source).toBeDefined();
-        expect(reading.metadata?.pgn).toBeDefined();
+        expect(reading.metadata?.["idempotencyKey"]).toBeDefined();
+        expect(reading.metadata?.["source"]).toBeDefined();
+        expect(reading.metadata?.["pgn"]).toBeDefined();
       }
     });
   });
@@ -356,7 +356,7 @@ describe("Data Integrity Through Pipeline", () => {
         expect(retrieved.value).toBeCloseTo(original.value, 6);
         expect(retrieved.orgId).toBe(original.orgId);
         expect(retrieved.timestamp.getTime()).toBe(original.timestamp.getTime());
-        expect(retrieved.metadata?.idempotencyKey).toBe(original.metadata?.idempotencyKey);
+        expect(retrieved.metadata?.["idempotencyKey"]).toBe(original.metadata?.["idempotencyKey"]);
       }
     });
 
@@ -368,7 +368,7 @@ describe("Data Integrity Through Pipeline", () => {
       let collisions = 0;
 
       for (const reading of readings) {
-        const key = reading.metadata?.idempotencyKey;
+        const key = reading.metadata?.["idempotencyKey"];
         if (key) {
           if (storedKeys.has(key)) {
             collisions++;
@@ -391,8 +391,8 @@ describe("Data Integrity Through Pipeline", () => {
       expect(retrievedReadings.length).toBe(frames.length);
 
       for (let i = 0; i < retrievedReadings.length; i++) {
-        expect(retrievedReadings[i].metadata?.idempotencyKey).toBe(
-          readings[i].metadata?.idempotencyKey
+        expect(retrievedReadings[i].metadata?.["idempotencyKey"]).toBe(
+          readings[i].metadata?.["idempotencyKey"]
         );
       }
     });

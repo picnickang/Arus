@@ -30,8 +30,8 @@
 // modules — `withDatabaseContext` caches `ENABLE_PG_RLS_CONTEXT` at
 // module load, and `db-config` runs its boot gate against
 // `REQUIRE_TENANT_AUTH` the first time it's imported.
-process.env.REQUIRE_TENANT_AUTH = "true";
-process.env.ENABLE_PG_RLS_CONTEXT = "true";
+process.env["REQUIRE_TENANT_AUTH"] = "true";
+process.env["ENABLE_PG_RLS_CONTEXT"] = "true";
 
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool, type PoolClient } from "pg";
@@ -39,7 +39,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 
 const ORG_A = `t104-a-${Date.now().toString(36)}`;
 const ORG_B = `t104-b-${Date.now().toString(36)}`;

@@ -273,8 +273,8 @@ describe("crew-admin — role create validation + safe-delete", () => {
       .set("x-test-user", "a1:admin")
       .send({ name: "deckhand", displayName: "Deck Hand" });
     expect(res.status).toBe(201);
-    expect(lastCreateRoleArg?.orgId).toBe(ORG);
-    expect(lastCreateRoleArg?.name).toBe("deckhand");
+    expect(lastCreateRoleArg?.["orgId"]).toBe(ORG);
+    expect(lastCreateRoleArg?.["name"]).toBe("deckhand");
   });
 
   it("maps ROLE_IN_USE delete conflict to 409", async () => {
@@ -308,9 +308,9 @@ describe("crew-admin — credential admin", () => {
       .set("x-test-user", "a1:admin")
       .send({ username: "jdoe", password: "longenough1" });
     expect(res.status).toBe(200);
-    expect(lastCredentialsArg?.orgId).toBe(ORG);
-    expect(lastCredentialsArg?.userId).toBe("user-7");
-    expect(lastCredentialsArg?.username).toBe("jdoe");
+    expect(lastCredentialsArg?.["orgId"]).toBe(ORG);
+    expect(lastCredentialsArg?.["userId"]).toBe("user-7");
+    expect(lastCredentialsArg?.["username"]).toBe("jdoe");
   });
 
   it("rejects deck_officer from resetting a password with 403", async () => {
@@ -352,7 +352,7 @@ describe("safety-alarms — write gate + trigger", () => {
         .set("x-test-user", `w-${role}:${role}`)
         .send({ alarmTypeId: "type-1", confirmed: true });
       expect(res.status).toBe(201);
-      expect(lastTriggerArg?.input.orgId).toBe(ORG);
+      expect(lastTriggerArg?.input["orgId"]).toBe(ORG);
       expect(lastTriggerArg?.confirmed).toBe(true);
     });
   }

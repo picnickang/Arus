@@ -69,12 +69,12 @@ describe("analytics sink reader", () => {
   });
 
   it("analyticsReadMode reflects EVENT_SPINE_ANALYTICS_READ env var", () => {
-    const prev = process.env.EVENT_SPINE_ANALYTICS_READ;
-    process.env.EVENT_SPINE_ANALYTICS_READ = "sink";
+    const prev = process.env["EVENT_SPINE_ANALYTICS_READ"];
+    process.env["EVENT_SPINE_ANALYTICS_READ"] = "sink";
     expect(analyticsReadMode()).toBe("sink");
-    process.env.EVENT_SPINE_ANALYTICS_READ = "";
+    process.env["EVENT_SPINE_ANALYTICS_READ"] = "";
     expect(analyticsReadMode()).toBe("oltp");
-    if (prev === undefined) {delete process.env.EVENT_SPINE_ANALYTICS_READ;}
-    else {process.env.EVENT_SPINE_ANALYTICS_READ = prev;}
+    if (prev === undefined) {delete process.env["EVENT_SPINE_ANALYTICS_READ"];}
+    else {process.env["EVENT_SPINE_ANALYTICS_READ"] = prev;}
   });
 });

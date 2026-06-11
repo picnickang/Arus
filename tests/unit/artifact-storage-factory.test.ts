@@ -56,13 +56,13 @@ describe("artifact-storage factory — boot-order contract", () => {
     // "local". Individual tests opt in to the replit-object-storage
     // branch by setting these explicitly and also providing the env
     // the adapter ctor needs.
-    delete process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-    delete process.env.PRIVATE_OBJECT_DIR;
+    delete process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"];
+    delete process.env["PRIVATE_OBJECT_DIR"];
   });
 
   function enableObjectStorageEnv(): void {
-    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID = "test-bucket";
-    process.env.PRIVATE_OBJECT_DIR = "/test-bucket/private";
+    process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"] = "test-bucket";
+    process.env["PRIVATE_OBJECT_DIR"] = "/test-bucket/private";
   }
 
   /**
@@ -75,8 +75,8 @@ describe("artifact-storage factory — boot-order contract", () => {
    * adapter — making the port-path observably distinct.
    */
   function enableObjectStorageCtorOnly(): void {
-    delete process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-    process.env.PRIVATE_OBJECT_DIR = "/test-bucket/private";
+    delete process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"];
+    process.env["PRIVATE_OBJECT_DIR"] = "/test-bucket/private";
   }
 
   it("falls back to the env default before any port is configured", async () => {

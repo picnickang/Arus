@@ -13,7 +13,7 @@
 
 import { Pool } from "pg";
 
-export const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+export const BASE_URL = process.env["TEST_BASE_URL"] || "http://localhost:5000";
 export const TEST_ORG_ID = "default-org-id";
 
 /**
@@ -27,7 +27,7 @@ const POOL_KEY = "__ARUS_INTEGRATION_PG_POOL__" as const;
 type PoolHolder = { [POOL_KEY]?: Pool };
 const _holder = process as unknown as PoolHolder;
 export const pool: Pool =
-  (_holder[POOL_KEY] ??= new Pool({ connectionString: process.env.DATABASE_URL }));
+  (_holder[POOL_KEY] ??= new Pool({ connectionString: process.env["DATABASE_URL"] }));
 
 /**
  * Build a fresh RUN_ID for the calling suite. Each test file should create

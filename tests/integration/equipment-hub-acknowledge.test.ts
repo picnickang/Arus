@@ -176,7 +176,7 @@ describe("POST acknowledge — happy path", () => {
     // The write happened exactly once, carrying the caller + a Date stamp.
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({ acknowledgedBy: "Chief Engineer" });
-    expect(setCalls[0]!.acknowledgedAt).toBeInstanceOf(Date);
+    expect(setCalls[0]!["acknowledgedAt"]).toBeInstanceOf(Date);
     expect(updateWhereCount).toBe(1);
   });
 

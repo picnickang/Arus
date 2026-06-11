@@ -33,7 +33,7 @@ const broadcastChange = jest.fn(() => {});
 const repoMock = {
   findById: jest.fn(async (id: string) => store.get(id)),
   create: jest.fn(async (data: Record<string, unknown>) => {
-    const id = String(data.id ?? `wo-${store.size + 1}`);
+    const id = String(data["id"] ?? `wo-${store.size + 1}`);
     const created = { ...data, id } as WO;
     store.set(id, created);
     return created;
@@ -48,7 +48,7 @@ const repoMock = {
     async (_equipmentId?: string, _orgId?: string, filters?: { assignedCrewId?: string }) => {
       const all = Array.from(store.values());
       if (filters?.assignedCrewId) {
-        return all.filter((w) => w.assignedCrewId === filters.assignedCrewId);
+        return all.filter((w) => w["assignedCrewId"] === filters.assignedCrewId);
       }
       return all;
     }

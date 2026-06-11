@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const BASE_URL = process.env["TEST_BASE_URL"] || "http://localhost:5000";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function api(method: string, path: string, body?: Record<string, unknown>) {

@@ -47,8 +47,8 @@ describe("AMOS field mapping", () => {
       _spec_powerKw: 1200.5,
       _spec_dimensions: "compact",
     });
-    expect(String(mapped.data._spec_installDate)).toContain("2024-01-15");
-    expect(String(mapped.data._spec_warrantyExpiry)).toContain("2027-01-15");
+    expect(String(mapped.data["_spec_installDate"])).toContain("2024-01-15");
+    expect(String(mapped.data["_spec_warrantyExpiry"])).toContain("2027-01-15");
 
     const invalid = applyMapping({ DESCRIPTION: "" }, EQUIPMENT_FIELD_MAP);
     expect(invalid.errors).toEqual(
@@ -209,8 +209,8 @@ describe("SHIPMATE field mapping", () => {
       isActive: true,
       _spec_powerKw: 75,
     });
-    expect(mapped.data.installDate).toBeInstanceOf(Date);
-    expect(mapped.data.lastMaintenanceDate).toBeInstanceOf(Date);
+    expect(mapped.data["installDate"]).toBeInstanceOf(Date);
+    expect(mapped.data["lastMaintenanceDate"]).toBeInstanceOf(Date);
   });
 
   it("maps SHIPMATE jobs, stores, crew certificates, and rest-hour records", () => {
@@ -277,8 +277,8 @@ describe("SHIPMATE field mapping", () => {
       employeeName: "Ana Chief",
       certificateName: "CoC",
     });
-    expect(cert.data.issueDate).toBeInstanceOf(Date);
-    expect(cert.data.expiryDate).toBeInstanceOf(Date);
+    expect(cert.data["issueDate"]).toBeInstanceOf(Date);
+    expect(cert.data["expiryDate"]).toBeInstanceOf(Date);
 
     const rest = applyMapping(
       {

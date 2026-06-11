@@ -139,7 +139,7 @@ describe("Work-Order forms — CRUD + propagation", () => {
       "/api/attention/items"
     );
     expect(status).toBe(200);
-    expect(data?.sources?.workOrders).toBe("ok");
+    expect(data?.sources?.["workOrders"]).toBe("ok");
   });
 
   it("DELETE removes the WO from the list", async () => {

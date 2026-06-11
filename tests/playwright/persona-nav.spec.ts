@@ -30,7 +30,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
 
-const BASE_URL = process.env.PERSONA_E2E_BASE_URL ?? "";
+const BASE_URL = process.env["PERSONA_E2E_BASE_URL"] ?? "";
 
 // Hub category ids (must match navigationConfig.navigationCategories).
 const ADMIN_HUBS = ["maintenance", "system", "crew", "logistics", "analytics"] as const;

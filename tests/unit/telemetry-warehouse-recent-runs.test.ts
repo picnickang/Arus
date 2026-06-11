@@ -14,7 +14,7 @@
 import { jest, describe, it, expect, beforeEach, afterAll } from "@jest/globals";
 import type { WarehouseExportJobSummary } from "../../server/services/telemetry-warehouse-export/types";
 
-process.env.PRIVATE_OBJECT_DIR = "/test-bucket/.private";
+process.env["PRIVATE_OBJECT_DIR"] = "/test-bucket/.private";
 
 // ---------------------------------------------------------------------------
 // In-memory object-storage stand-in (same shape as the integration test).
@@ -106,7 +106,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  delete process.env.PRIVATE_OBJECT_DIR;
+  delete process.env["PRIVATE_OBJECT_DIR"];
 });
 
 describe("telemetry-warehouse-export last-run persistence", () => {

@@ -183,7 +183,7 @@ describe("Task #136 — PATCH /api/v1/equipment-dependencies/:id (notes editor)"
     });
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0].set).toMatchObject({ notes: "shared cooling loop" });
-    expect(updateCalls[0].set.updatedAt).toBeInstanceOf(Date);
+    expect(updateCalls[0].set["updatedAt"]).toBeInstanceOf(Date);
 
     // Notes mutation must NOT touch the graph projector — edges already exist.
     await flushMicrotasks();

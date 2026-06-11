@@ -48,7 +48,7 @@ import express, {
   type NextFunction,
 } from "express";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 
 const SUFFIX = randomUUID().slice(0, 8);
 const ORG_A = `t230-org-a-${SUFFIX}`;
