@@ -177,5 +177,19 @@ Delivered on this branch (all phases verified by `npm run check`, `npm run check
   variants (verbatim classes); the two `StatusBadge` tables were left separate because every
   overlapping key renders differently — forcing one config would change the UI.
 
-Still open (recommendations only): `QueryBoundary` adoption, on-demand list virtualization,
-polling→WebSocket migration, eventual StatusBadge/PageHeader unification.
+**Follow-ups (§5, §6 — this branch)**
+- New `QueryBoundary` pattern component (`components/patterns/`) consolidating the
+  `useQuery → loading → error → empty → content` if-chains by composing the existing
+  LoadingState/ErrorState; piloted on 4 sites (pdm-equipment-detail, SensorSetupWizard
+  EquipmentStep, SensorHealthDashboard, analytics-hub PredictiveInsightsCard) with component
+  tests in the client jsdom lane. En route, fixed ErrorState silently ignoring its documented
+  `title` prop. ~94 inline repetitions remain for opportunistic adoption.
+- Governance model-lineage table virtualized (`components/governance/VirtualizedLineageTable`,
+  hybrid header + `@tanstack/react-virtual` body copying the inventory/work-order pattern;
+  testids and cells preserved). The lineage and maintenance-templates list endpoints gained
+  **optional** `limit`/`offset` (1–1000, no default — existing consumers byte-identical;
+  unit tests pin the no-param back-compat shape). The lineage client opts in at the
+  1000-record safety cap and reads `stats.totalModels` from the server-side total.
+
+Still open (recommendations only): broader `QueryBoundary` rollout, polling→WebSocket
+migration, eventual StatusBadge/PageHeader unification.
