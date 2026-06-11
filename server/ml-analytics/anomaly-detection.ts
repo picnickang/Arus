@@ -8,8 +8,8 @@
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("MlAnalytics:AnomalyDetection");
 import { db } from "../db";
-import { telemetryAggregates } from "@shared/schema-runtime";
-import { eq, and, gte, asc } from "drizzle-orm";
+import { equipmentTelemetry } from "@shared/schema-runtime";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { llmGateway } from "../composition/llm-gateway";
 import type { StatisticalBaseline, AnomalyResult } from "./types";
 import { calculateTrend, detectSeasonality } from "./statistical";
@@ -20,18 +20,25 @@ export async function calculateStatisticalBaseline(
 ): Promise<StatisticalBaseline> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
+  // Hourly buckets aggregated on the fly from live telemetry (0044 — the
+  // former telemetry_aggregates table was never written, so this path
+  // previously always returned the fallback baseline below).
+  const hourBucket = sql`date_trunc('hour', ${equipmentTelemetry.ts})`;
   const historicalData = await db
-    .select()
-    .from(telemetryAggregates)
+    .select({
+      windowStart: sql<Date>`${hourBucket}`.as("window_start"),
+      avgValue: sql<number>`avg(${equipmentTelemetry.value})::float8`.as("avg_value"),
+    })
+    .from(equipmentTelemetry)
     .where(
       and(
-        eq(telemetryAggregates.equipmentId, equipmentId),
-        eq(telemetryAggregates.sensorType, sensorType),
-        eq(telemetryAggregates.timeWindow, "1h"),
-        gte(telemetryAggregates.windowStart, thirtyDaysAgo)
+        eq(equipmentTelemetry.equipmentId, equipmentId),
+        eq(equipmentTelemetry.sensorType, sensorType),
+        gte(equipmentTelemetry.ts, thirtyDaysAgo)
       )
     )
-    .orderBy(asc(telemetryAggregates.windowStart));
+    .groupBy(hourBucket)
+    .orderBy(hourBucket);
 
   if (historicalData.length < 10) {
     return {

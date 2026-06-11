@@ -185,31 +185,6 @@ export const partsSqlite = sqliteTable(
   })
 );
 
-export const inventoryPartsSqlite = sqliteTable(
-  "inventory_parts",
-  {
-    id: text("id").primaryKey(),
-    orgId: text("org_id").notNull(),
-    partId: text("part_id").notNull(),
-    vesselId: text("vessel_id"),
-    warehouseId: text("warehouse_id"),
-    quantityOnHand: integer("quantity_on_hand").default(0),
-    quantityReserved: integer("quantity_reserved").default(0),
-    quantityOnOrder: integer("quantity_on_order").default(0),
-    reorderPoint: integer("reorder_point").default(0),
-    maxStock: integer("max_stock"),
-    location: text("location"),
-    binNumber: text("bin_number"),
-    lastCountDate: integer("last_count_date", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" }),
-    updatedAt: integer("updated_at", { mode: "timestamp" }),
-  },
-  (table) => ({
-    partIdx: index("idx_invp_part").on(table.partId),
-    vesselIdx: index("idx_invp_vessel").on(table.vesselId),
-  })
-);
-
 export const partSubstitutionsSqlite = sqliteTable(
   "part_substitutions",
   {
