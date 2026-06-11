@@ -173,7 +173,6 @@ export const downtimeEvents = pickSchema(isLocalMode, sqliteVessel.downtimeEvent
 export const parts = pickSchema(isLocalMode, sqliteVessel.partsSqlite, pgSchema.parts);
 export const partsInventory = pickSchema(isLocalMode, sqliteVessel.partsInventorySqlite, pgSchema.partsInventory);
 export const partsInventorySuppliers = cloudOnly(pgSchema.partsInventorySuppliers); // Cloud-only junction table (multi-supplier support)
-export const inventoryParts = pickSchema(isLocalMode, sqliteVessel.inventoryPartsSqlite, pgSchema.inventoryParts);
 export const stock = pickSchema(isLocalMode, sqliteVessel.stockSqlite, pgSchema.stock);
 export const inventoryMovements = pickSchema(isLocalMode, sqliteVessel.inventoryMovementsSqlite, pgSchema.inventoryMovements);
 export const suppliers = pickSchema(isLocalMode, sqliteVessel.suppliersSqlite, pgSchema.suppliers);
@@ -256,8 +255,6 @@ export const insightReports = pickSchema(isLocalMode, sqliteVessel.insightReport
 export const metricsHistory = cloudOnly(pgSchema.metricsHistory);
 export const dailyMetricRollups = cloudOnly(pgSchema.dailyMetricRollups);
 export const dataQualityMetrics = cloudOnly(pgSchema.dataQualityMetrics);
-export const telemetryAggregates = pickSchema(isLocalMode, sqliteVessel.telemetryAggregatesSqlite, pgSchema.telemetryAggregates);
-export const telemetryRollups = pickSchema(isLocalMode, sqliteVessel.telemetryRollupsSqlite, pgSchema.telemetryRollups);
 export const industryBenchmarks = cloudOnly(pgSchema.industryBenchmarks);
 
 // DTC & Diagnostics
@@ -391,7 +388,6 @@ export const weatherCache = cloudOnly(pgSchema.weatherCache);
 export const schedulerRuns = (IS_POSTGRES ? pgSchema.schedulerRuns : sqliteVessel.schedulerRunsSqlite) as typeof pgSchema.schedulerRuns;
 export const scheduleAssignments = (IS_POSTGRES ? pgSchema.scheduleAssignments : sqliteVessel.scheduleAssignmentsSqlite) as typeof pgSchema.scheduleAssignments;
 export const scheduleUnfilled = (IS_POSTGRES ? pgSchema.scheduleUnfilled : sqliteVessel.scheduleUnfilledSqlite) as typeof pgSchema.scheduleUnfilled;
-export const mlModelsLegacy = cloudOnly(pgSchema.mlModelsLegacy);
 export const modelVersions = cloudOnly(pgSchema.modelVersions);
 export const calibrationCurves = cloudOnly(pgSchema.calibrationCurves);
 export const realTimePredictions = cloudOnly(pgSchema.realTimePredictions);
@@ -485,7 +481,6 @@ export {
   insertSensorMappingSchema,
   insertDiscoveredSignalSchema,
   insertRequestIdempotencySchema,
-  insertTelemetryRollupSchema,
   insertInventoryMovementSchema,
   insertKnowledgeBaseItemSchema,
   insertRagSearchQuerySchema,
@@ -530,7 +525,6 @@ export {
   insertInsightReportSchema,
   insertVibrationAnalysisSchema,
   insertWeibullEstimateSchema,
-  insertInventoryPartSchema,
   insertBeastModeConfigSchema,
   insertPdmBaselineSchema,
   insertPdmAlertSchema,
@@ -539,9 +533,7 @@ export {
   insertConditionMonitoringSchema,
   insertOilChangeRecordSchema,
   insertMqttDeviceSchema,
-  insertTelemetryAggregateSchema,
   insertDataQualityMetricSchema,
-  insertMlModelLegacySchema,
   insertCalibrationCurveSchema,
   insertAnomalyDetectionSchema,
   insertFailurePredictionSchema,

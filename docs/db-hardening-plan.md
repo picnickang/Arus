@@ -1,8 +1,11 @@
 # Database Hardening Plan
 
-**Document Version:** 1.0  
-**Last Updated:** January 2026  
-**Status:** Assessment Complete, Implementation Pending
+**Document Version:** 1.1  
+**Last Updated:** June 2026  
+**Status:** Largely implemented — see migrations 0018–0050 (RLS coverage
+0018/0045, org FK backfill 0046, email normalization 0047, status CHECKs
+0042/0048, column hygiene 0041/0049, dead-table drops 0044/0050).
+Phase notes below are updated in place; unimplemented items are marked.
 
 ## Overview
 
@@ -10,7 +13,13 @@ This document outlines the database quality improvements identified during the A
 
 ---
 
-## Phase 1: Missing Foreign Keys (DEFERRED)
+## Phase 1: Missing Foreign Keys (PARTIALLY IMPLEMENTED)
+
+> **June 2026:** every `org_id` column now has an FK to
+> `organizations(id)` (migration 0046, NOT VALID + conditional VALIDATE);
+> PO/PR child cascades landed in 0023 and ML FKs in 0040. The specific
+> child FKs listed below (`work_order_parts`, `maintenance_costs`,
+> `ml_model_accuracy_history`) remain open.
 
 The following tables lack proper foreign key constraints, which could lead to orphaned records:
 
@@ -88,7 +97,13 @@ idx_wop_part ON work_order_parts(part_id)
 
 ---
 
-## Phase 3: org_id Column Cleanup (DEFERRED)
+## Phase 3: org_id Column Cleanup (SUPERSEDED)
+
+> **June 2026:** the platform went the opposite direction — multi-tenant
+> is permanent. `org_id` is NOT NULL + FK-constrained (0046), every
+> tenant table is under forced RLS (0018/0045, registry:
+> `server/tenancy/tenant-tables.ts`), and coverage is CI-enforced
+> (`scripts/check-rls-coverage.mjs`). The actions below are obsolete.
 
 ### Current State
 

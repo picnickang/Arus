@@ -2,6 +2,7 @@ import pg from "pg";
 import fs from "fs";
 import path from "path";
 import { createLogger } from "../lib/structured-logger";
+import { RLS_EXEMPT, TENANT_TABLE_NAMES } from "../tenancy/tenant-tables";
 const logger = createLogger("Scripts:Migrate");
 
 const { Pool } = pg;
@@ -71,8 +72,12 @@ const REQUIRED_INDEXES: ReadonlyArray<{ name: string; from: string }> = [
   { name: "idx_work_orders_org_vessel_status", from: "0021 hot-path indexes" },
   { name: "idx_alert_notifications_org_equipment_type", from: "0021 hot-path indexes" },
   { name: "idx_maintenance_schedules_equipment_date", from: "0021 hot-path indexes" },
-  { name: "uq_users_org_email", from: "0039 identity uniques" },
+  { name: "uq_users_org_email_lower", from: "0047 email normalization" },
   { name: "uq_work_orders_org_wo_number", from: "0039 identity uniques" },
+  // Belt for the org-scoped telemetry access path: 0038's partitioned
+  // rebuild keys the PK on (org_id, ts, id), which serves every observed
+  // org_id predicate — assert it survives future rebuilds.
+  { name: "equipment_telemetry_pkey", from: "0038 partitioning (org-scoped PK)" },
 ];
 
 // deleteRule matches pg_constraint.confdeltype: "c" = CASCADE, "n" = SET NULL,
@@ -129,6 +134,30 @@ const REQUIRED_FKS: ReadonlyArray<{
     refTable: "ml_models",
     from: "0040 ML FK integrity",
   },
+  // Representatives for the catalog-driven org FK sweep — one early-domain
+  // table, one mid-list, one late-list, so a partially applied 0046 trips
+  // the assertion regardless of where it stopped.
+  {
+    table: "crew_alerts",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
+  {
+    table: "agent_conversations",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
+  {
+    table: "report_schedules",
+    column: "org_id",
+    deleteRule: "a",
+    refTable: "organizations",
+    from: "0046 org FK backfill",
+  },
 ];
 
 // Columns the application assumes exist post-migration. Asserted after every
@@ -136,6 +165,8 @@ const REQUIRED_FKS: ReadonlyArray<{
 const REQUIRED_COLUMNS: ReadonlyArray<{ table: string; column: string; from: string }> = [
   { table: "roles", column: "hub_admin", from: "0033 role hub access" },
   { table: "roles", column: "hub_access", from: "0033 role hub access" },
+  { table: "system_settings", column: "openai_api_key_encrypted", from: "0043 secure settings" },
+  { table: "pdm_alerts", column: "created_at", from: "0049 column hygiene" },
 ];
 
 /**
@@ -392,6 +423,40 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
     }
   }
 
+  // RLS (0018/0034/0038/0045): every registry table that exists in this
+  // database must have rowsecurity + forcerowsecurity + its
+  // tenant_isolation_<t> policy. Tables that don't exist are skipped —
+  // the RLS migrations themselves skip missing tables by design.
+  const exemptNames = new Set(RLS_EXEMPT.map((e) => e.table));
+  const rlsRequired = TENANT_TABLE_NAMES.filter((t) => !exemptNames.has(t));
+  const rlsRes = await pool.query<{
+    relname: string;
+    relrowsecurity: boolean;
+    relforcerowsecurity: boolean;
+    has_policy: boolean;
+  }>(
+    `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity,
+            EXISTS (
+              SELECT 1 FROM pg_policies p
+               WHERE p.schemaname = current_schema()
+                 AND p.tablename = c.relname
+                 AND p.policyname = 'tenant_isolation_' || c.relname
+            ) AS has_policy
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = current_schema()
+        AND c.relkind IN ('r', 'p')
+        AND c.relname = ANY($1)`,
+    [rlsRequired]
+  );
+  for (const row of rlsRes.rows) {
+    if (!row.relrowsecurity || !row.relforcerowsecurity || !row.has_policy) {
+      missing.push(
+        `RLS on ${row.relname} (rowsecurity=${row.relrowsecurity}, force=${row.relforcerowsecurity}, policy=${row.has_policy}) (0018/0045 tenant isolation)`
+      );
+    }
+  }
+
   if (missing.length > 0) {
     throw new Error(
       `[Migrate] Post-migration assertion FAILED — required objects missing: ${missing.join("; ")}`
@@ -399,7 +464,7 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
   }
 
   logger.info(
-    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, identity uniques, FK delete rules present)"
+    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, identity uniques, FK delete rules, tenant RLS present)"
   );
 }
 

@@ -12,6 +12,8 @@ import {
   varchar,
   integer,
   real,
+  timestamps,
+  createdAtOnly,
   timestamp,
   boolean,
   jsonb,
@@ -240,6 +242,7 @@ export const pdmBaseline = pgTable(
     mu: real("mu").notNull(),
     sigma: real("sigma").notNull(),
     n: integer("n").notNull().default(0),
+    ...createdAtOnly(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
@@ -271,6 +274,7 @@ export const pdmAlerts = pgTable(
     scoreZ: real("score_z"),
     severity: text("severity"),
     explain: jsonb("explain"),
+    ...timestamps(),
   },
   (table) => ({
     vesselAtIndex: sql`CREATE INDEX IF NOT EXISTS idx_pdm_alerts_vat ON ${table} (${table.orgId}, ${table.vesselName}, ${table.at} DESC)`,
@@ -310,6 +314,7 @@ export const realTimePredictions = pgTable(
     isCached: boolean("is_cached").default(false),
     publishedToStream: boolean("published_to_stream").default(false),
     metadata: jsonb("metadata"),
+    ...timestamps(),
   },
   (table) => ({
     equipmentTimeIdx: index("idx_rt_pred_equipment_time").on(

@@ -18,6 +18,8 @@ import { pgTable, varchar, text, integer, timestamp, jsonb, index } from "drizzl
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { timestamps } from "./base";
+import { organizations } from "./core";
 
 export const importManifest = pgTable(
   "import_manifest",
@@ -25,7 +27,9 @@ export const importManifest = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull(),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
 
     // What was imported
     sourceSystem: text("source_system").notNull(), // "shipmate" | "amos" | future
@@ -53,6 +57,8 @@ export const importManifest = pgTable(
 
     // Who
     initiatedBy: varchar("initiated_by"), // user id, if known
+
+    ...timestamps(),
   },
   (table) => ({
     orgStatusIdx: index("idx_import_manifest_org_status").on(table.orgId, table.status),

@@ -125,55 +125,6 @@ export const telemetryRetentionPolicies = pgTable("telemetry_retention_policies"
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
 
-// TimescaleDB rollup data for telemetry
-export const telemetryRollups = pgTable("telemetry_rollups", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  equipmentId: text("equipment_id").notNull(),
-  sensorType: text("sensor_type").notNull(),
-  bucket: timestamp("bucket", { mode: "date" }).notNull(),
-  bucketSize: text("bucket_size").notNull(),
-  avgValue: real("avg_value"),
-  minValue: real("min_value"),
-  maxValue: real("max_value"),
-  sampleCount: integer("sample_count").notNull(),
-  unit: text("unit"),
-});
-
-// Time-series aggregated telemetry for analytics
-export const telemetryAggregates = pgTable(
-  "telemetry_aggregates",
-  {
-    id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().default("default-org-id"),
-    equipmentId: varchar("equipment_id").notNull(),
-    sensorType: varchar("sensor_type").notNull(),
-    timeWindow: varchar("time_window").notNull(),
-    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
-    windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
-    avgValue: real("avg_value"),
-    minValue: real("min_value"),
-    maxValue: real("max_value"),
-    stdDev: real("std_dev"),
-    sampleCount: integer("sample_count"),
-    anomalyScore: real("anomaly_score"),
-    qualityScore: real("quality_score"),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  },
-  (table) => ({
-    equipmentTimeIdx: index("idx_telemetry_agg_equipment_time").on(
-      table.equipmentId,
-      table.windowStart
-    ),
-    orgTimeIdx: index("idx_telemetry_agg_org_time").on(table.orgId, table.windowStart),
-  })
-);
-
 // J1939 configurations for CAN bus telemetry
 export const j1939Configurations = pgTable(
   "j1939_configurations",
@@ -269,15 +220,6 @@ export const insertRawTelemetrySchema = createInsertSchema(rawTelemetry).omit({
 
 export const insertTelemetryRetentionPolicySchema = createInsertSchema(telemetryRetentionPolicies);
 
-export const insertTelemetryRollupSchema = createInsertSchema(telemetryRollups).omit({
-  id: true,
-});
-
-export const insertTelemetryAggregateSchema = createInsertSchema(telemetryAggregates).omit({
-  id: true,
-  createdAt: true,
-});
-
 // Types
 export type EquipmentTelemetry = typeof equipmentTelemetry.$inferSelect;
 export type InsertEquipmentTelemetry = z.infer<typeof insertEquipmentTelemetrySchema>;
@@ -287,12 +229,6 @@ export type InsertRawTelemetry = z.infer<typeof insertRawTelemetrySchema>;
 
 export type TelemetryRetentionPolicy = typeof telemetryRetentionPolicies.$inferSelect;
 export type InsertTelemetryRetentionPolicy = z.infer<typeof insertTelemetryRetentionPolicySchema>;
-
-export type TelemetryRollup = typeof telemetryRollups.$inferSelect;
-export type InsertTelemetryRollup = z.infer<typeof insertTelemetryRollupSchema>;
-
-export type TelemetryAggregate = typeof telemetryAggregates.$inferSelect;
-export type InsertTelemetryAggregate = z.infer<typeof insertTelemetryAggregateSchema>;
 
 export const insertJ1939ConfigurationSchema = createInsertSchema(j1939Configurations).omit({
   id: true,

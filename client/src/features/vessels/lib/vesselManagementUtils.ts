@@ -26,8 +26,8 @@ export function formatVesselClass(className: string): string {
 }
 
 export function calculateUtilization(vessel: Vessel): number | null {
-  const opDays = Number.parseFloat(vessel.operationDays || "0");
-  const downDays = Number.parseFloat(vessel.downtimeDays || "0");
+  const opDays = vessel.operationDays ?? 0;
+  const downDays = vessel.downtimeDays ?? 0;
   const total = opDays + downDays;
   if (total <= 0) {
     return null;

@@ -166,6 +166,9 @@ export async function runSystemSettingsCompatibilityMigration(client: LibsqlClie
   if (!cols.includes("openai_api_key")) {
     await safeAddColumn(client, "system_settings", "openai_api_key", "TEXT");
   }
+  if (!cols.includes("openai_api_key_encrypted")) {
+    await safeAddColumn(client, "system_settings", "openai_api_key_encrypted", "TEXT");
+  }
   if (!cols.includes("ai_insights_throttle_minutes")) {
     await safeAddColumn(
       client,

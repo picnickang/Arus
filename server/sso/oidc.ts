@@ -116,7 +116,9 @@ export async function completeOidcAuthorization(
   }
   return {
     sub,
-    ...(typeof claims["email"] === "string" && { email: claims["email"] }),
+    // Normalized at the IdP boundary: providers return claims with
+    // arbitrary casing, lookups are lower()-based (0047).
+    ...(typeof claims["email"] === "string" && { email: claims["email"].toLowerCase() }),
     ...(typeof claims["email_verified"] === "boolean" && {
       emailVerified: claims["email_verified"],
     }),

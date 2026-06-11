@@ -89,14 +89,11 @@ export function useVesselDetail(): UseVesselDetailReturn {
     [vesselWorkOrders]
   );
 
-  const opDays = Number(vessel?.operationDays ?? 0);
-  const dtDays = Number(vessel?.downtimeDays ?? 0);
+  const opDays = vessel?.operationDays ?? 0;
+  const dtDays = vessel?.downtimeDays ?? 0;
   const utilizationRate =
     opDays && dtDays ? ((opDays / (opDays + dtDays)) * 100).toFixed(1) : "N/A";
-  const totalCost =
-    vessel?.dayRateSgd && opDays
-      ? (Number.parseFloat(String(vessel.dayRateSgd)) * opDays).toFixed(2)
-      : "N/A";
+  const totalCost = vessel?.dayRateSgd && opDays ? (vessel.dayRateSgd * opDays).toFixed(2) : "N/A";
 
   return {
     match: !!match,

@@ -12,6 +12,7 @@ import {
   varchar,
   integer,
   real,
+  timestamps,
   numeric,
   timestamp,
   boolean,
@@ -25,34 +26,8 @@ import { organizations } from "./core";
 import { equipment } from "./equipment";
 import { workOrders } from "./work-orders";
 
-// LEGACY ML model management and versioning
-export const mlModelsLegacy = pgTable(
-  "ml_models_legacy",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
-    name: varchar("name").notNull(),
-    version: varchar("version").notNull(),
-    modelType: varchar("model_type").notNull(),
-    targetEquipmentType: varchar("target_equipment_type"),
-    trainingDataFeatures: jsonb("training_data_features"),
-    hyperparameters: jsonb("hyperparameters"),
-    performance: jsonb("performance"),
-    modelArtifactPath: varchar("model_artifact_path"),
-    status: varchar("status").default("training"),
-    deployedAt: timestamp("deployed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  },
-  (table) => ({
-    nameVersionIdx: index("idx_ml_models_legacy_name_version").on(table.name, table.version),
-    orgIdx: index("idx_ml_models_legacy_org").on(table.orgId),
-  })
-);
+// ml_models_legacy dropped in 0050 — superseded by mlModels +
+// modelVersions; 0040 retargeted the last FKs off it.
 
 // Active ML models
 export const mlModels = pgTable(
@@ -67,10 +42,12 @@ export const mlModels = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     type: varchar("type", { length: 50 }).notNull(),
     status: varchar("status", { length: 50 }).notNull().default("training"),
-    accuracy: numeric("accuracy", { precision: 5, scale: 2 }),
-    precision: numeric("precision", { precision: 5, scale: 2 }),
-    recall: numeric("recall", { precision: 5, scale: 2 }),
-    f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
+    // Scores are statistics — real() per the 0041 numeric policy
+    // (converted from string-mode numeric(5,2) in 0049).
+    accuracy: real("accuracy"),
+    precision: real("precision"),
+    recall: real("recall"),
+    f1Score: real("f1_score"),
     trainedOn: timestamp("trained_on", { mode: "date" }),
     deployedOn: timestamp("deployed_on", { mode: "date" }),
     archivedOn: timestamp("archived_on", { mode: "date" }),
@@ -115,10 +92,12 @@ export const modelVersions = pgTable(
     version: varchar("version", { length: 50 }).notNull(),
     artifactPath: varchar("artifact_path", { length: 500 }),
     status: varchar("status", { length: 50 }).notNull().default("staging"),
-    accuracy: numeric("accuracy", { precision: 5, scale: 2 }),
-    precision: numeric("precision", { precision: 5, scale: 2 }),
-    recall: numeric("recall", { precision: 5, scale: 2 }),
-    f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
+    // Scores are statistics — real() per the 0041 numeric policy
+    // (converted from string-mode numeric(5,2) in 0049).
+    accuracy: real("accuracy"),
+    precision: real("precision"),
+    recall: real("recall"),
+    f1Score: real("f1_score"),
     trainingDataPoints: integer("training_data_points"),
     trainingDurationMs: integer("training_duration_ms"),
     hyperparameters: jsonb("hyperparameters"),
@@ -153,6 +132,7 @@ export const modelMetrics = pgTable(
     sampleSize: integer("sample_size"),
     computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
     metadata: jsonb("metadata"),
+    ...timestamps(),
   },
   (table) => ({
     versionIdx: index("idx_model_metrics_version").on(table.modelVersionId),
@@ -196,6 +176,7 @@ export const anomalyDetections = pgTable(
     outcomeVerifiedAt: timestamp("outcome_verified_at", { withTimezone: true }),
     outcomeVerifiedBy: varchar("outcome_verified_by"),
     metadata: jsonb("metadata"),
+    ...timestamps(),
   },
   (table) => ({
     equipmentTimeIdx: index("idx_anomaly_equipment_time").on(
@@ -392,11 +373,6 @@ export const failureHistory = pgTable(
 );
 
 // Insert schemas
-export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 export const insertMlModelSchema = createInsertSchema(mlModels).omit({
   id: true,
   createdAt: true,
@@ -433,8 +409,6 @@ export const insertFailureHistorySchema = createInsertSchema(failureHistory).omi
 });
 
 // Types
-export type MlModelLegacy = typeof mlModelsLegacy.$inferSelect;
-export type InsertMlModelLegacy = z.infer<typeof insertMlModelLegacySchema>;
 export type MlModel = typeof mlModels.$inferSelect;
 export type InsertMlModel = z.infer<typeof insertMlModelSchema>;
 export type UpdateMlModel = z.infer<typeof updateMlModelSchema>;
