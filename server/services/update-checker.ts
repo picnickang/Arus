@@ -478,6 +478,3 @@ export async function getUpdateChecker(): Promise<UpdateChecker> {
   }
   return updateCheckerInstance;
 }
-
-// For backward compatibility - use getUpdateChecker() instead
-export const updateChecker: Promise<UpdateChecker> = getUpdateChecker();
