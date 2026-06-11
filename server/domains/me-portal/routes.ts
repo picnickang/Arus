@@ -383,7 +383,7 @@ function registerFeedbackReviewRoutes(
       const review = pilotFeedbackReviewSchema.parse(req.body);
       const meUser = resolveMeUser(req);
       try {
-        const row = await mePortalService.reviewFeedback(meUser, req.params["id"], review);
+        const row = await mePortalService.reviewFeedback(meUser, req.params["id"] ?? "", review);
         await auditService.logEvent({
           orgId: meUser.orgId,
           eventCategory: "compliance_event",

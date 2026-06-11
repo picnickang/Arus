@@ -35,9 +35,7 @@ beforeAll(async () => {
     setWebSocketServer: jest.fn(),
   }));
 
-  ({ latestPerEquipmentSensor } = (await import(
-    "../../server/telemetry-batch-writer"
-  )) as unknown as { latestPerEquipmentSensor: typeof latestPerEquipmentSensor });
+  ({ latestPerEquipmentSensor } = await import("../../server/telemetry-batch-writer"));
 });
 
 function r(equipmentId: string, sensorType: string, value: number, t: number): Reading {
