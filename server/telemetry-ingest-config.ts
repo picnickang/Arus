@@ -17,6 +17,8 @@
 
 import client from "prom-client";
 import { createLogger } from "./lib/structured-logger";
+import { withTenantContext } from "./middleware/db-context.js";
+import { dbSensorsStorage } from "./repositories";
 
 const logger = createLogger("TelemetryIngestConfig");
 
@@ -124,8 +126,6 @@ export async function getOrgConfigMap(orgId: string): Promise<Map<string, Sensor
 
   let configs = new Map<string, SensorConfigLite>();
   try {
-    const { withTenantContext } = await import("./middleware/db-context.js");
-    const { dbSensorsStorage } = await import("./repositories");
     const rows = await withTenantContext(orgId, () =>
       dbSensorsStorage.getSensorConfigurations(orgId)
     );
