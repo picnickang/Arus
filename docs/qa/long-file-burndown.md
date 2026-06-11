@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:37:16.741Z
+Generated: 2026-06-11T23:41:50.799Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `97` counted files.
-- The current counted inventory is `97` files.
+- The temporary ceiling is `96` counted files.
+- The current counted inventory is `96` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    97 |
-| Server                    |    35 |
+| Total counted long files  |    96 |
+| Server                    |    34 |
 | Server route-like files   |     9 |
 | Server service-like files |     9 |
 | Client                    |    62 |
@@ -86,6 +86,7 @@ Completed splits:
 - `client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx` dropped below the threshold by moving convert/reject dialog controls to a sibling page dialog module while preserving the exported page component.
 - `client/src/features/crew/hooks/useShiftPlanning.ts` dropped below the threshold by moving scheduling payload and data-shape types to a sibling hook type module while preserving the exported hook and return type.
 - `client/src/pages/pdm-equipment-detail.tsx` dropped below the threshold by moving anomaly and maintenance history tab rendering to a sibling tab module while preserving the route component.
+- `server/integrations/fmcc-polling-service.ts` dropped below the threshold by moving FMCC raw poll normalization to a pure snapshot builder while preserving the polling service exports.
 
 ## Top 30 Longest Files
 
@@ -237,6 +238,5 @@ Completed splits:
 559 server/scripts/migrate.ts
 554 server/services/ml/prediction-outcome-tracker.ts
 548 server/services/anomaly-correlation/anomaly-correlator.ts
-535 server/integrations/fmcc-polling-service.ts
 532 server/db/equipment/db-equipment.ts
 ```
