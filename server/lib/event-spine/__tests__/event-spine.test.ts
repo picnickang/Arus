@@ -3,17 +3,15 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { jest } from "@jest/globals";
 
-import {
-  InMemoryFanoutProducer,
-  NoopProducer,
-} from "../producers";
+import { InMemoryFanoutProducer, NoopProducer } from "../producers";
 import { TelemetryAnalyticsSink } from "../telemetry-analytics-sink";
 import { envelopeToOutboxInput } from "../types";
 import type { EventSpineMessage } from "../types";
+import type { OutboxRow } from "../outbox-repository";
 
 function makeMessage(over: Partial<EventSpineMessage> = {}): EventSpineMessage {
   return {
-    eventId: `evt-${  Math.random().toString(36).slice(2)}`,
+    eventId: `evt-${Math.random().toString(36).slice(2)}`,
     eventType: "telemetry.batch_ingested",
     orgId: "org-A",
     aggregateId: "equipment-1",
@@ -38,7 +36,11 @@ describe("event-spine producers", () => {
     p.onMessage((m) => {
       received.push(m.eventId);
     });
-    const msgs = [makeMessage({ eventId: "a" }), makeMessage({ eventId: "b" }), makeMessage({ eventId: "c" })];
+    const msgs = [
+      makeMessage({ eventId: "a" }),
+      makeMessage({ eventId: "b" }),
+      makeMessage({ eventId: "c" }),
+    ];
     await p.publishBatch(msgs);
     expect(received).toEqual(["a", "b", "c"]);
     await p.close();
@@ -74,18 +76,10 @@ describe("TelemetryAnalyticsSink", () => {
     const fanout = new InMemoryFanoutProducer();
     sink.subscribe(fanout);
 
-    await fanout.publish(
-      makeMessage({ eventType: "telemetry.batch_ingested", orgId: "org-A" })
-    );
-    await fanout.publish(
-      makeMessage({ eventType: "telemetry.anomaly_detected", orgId: "org-A" })
-    );
-    await fanout.publish(
-      makeMessage({ eventType: "work_order.created", orgId: "org-A" })
-    );
-    await fanout.publish(
-      makeMessage({ eventType: "telemetry.batch_ingested", orgId: "org-B" })
-    );
+    await fanout.publish(makeMessage({ eventType: "telemetry.batch_ingested", orgId: "org-A" }));
+    await fanout.publish(makeMessage({ eventType: "telemetry.anomaly_detected", orgId: "org-A" }));
+    await fanout.publish(makeMessage({ eventType: "work_order.created", orgId: "org-A" }));
+    await fanout.publish(makeMessage({ eventType: "telemetry.batch_ingested", orgId: "org-B" }));
 
     expect(sink.getWriteCount()).toBe(3);
 
@@ -177,37 +171,46 @@ describe("EventSpineWorker (mocked repository)", () => {
 
   it("publishes claimed rows through the producer and marks them published", async () => {
     const claimed: Array<{ id: string; status: string; attempts: number }> = [];
-    const claimMock = jest.fn().mockImplementation(async (limit: number) => {
-      if (claimed.length > 0) {return [];}
-      const rows = [
-        {
-          id: "r1",
-          eventId: "evt-1",
-          eventType: "work_order.created",
-          orgId: "org-A",
-          aggregateId: null,
-          aggregateType: null,
-          payload: { foo: 1 },
-          occurredAt: new Date(),
-          status: "dispatching",
-          attempts: 1,
-          lastError: null,
-          nextAttemptAt: new Date(),
-          publishedAt: null,
-          createdAt: new Date(),
-        },
-      ];
-      for (const r of rows) {claimed.push({ id: r.id, status: r.status, attempts: r.attempts });}
-      return rows;
-    });
-    const markPublishedMock = jest.fn().mockResolvedValue(undefined);
-    const markFailedMock = jest.fn().mockResolvedValue(undefined);
+    const claimMock = jest
+      .fn<(limit: number) => Promise<OutboxRow[]>>()
+      .mockImplementation(async (_limit: number) => {
+        if (claimed.length > 0) {
+          return [];
+        }
+        const rows: OutboxRow[] = [
+          {
+            id: "r1",
+            eventId: "evt-1",
+            eventType: "work_order.created",
+            orgId: "org-A",
+            aggregateId: null,
+            aggregateType: null,
+            payload: { foo: 1 },
+            occurredAt: new Date(),
+            status: "dispatching",
+            attempts: 1,
+            lastError: null,
+            nextAttemptAt: new Date(),
+            dispatchedAt: null,
+            publishedAt: null,
+            createdAt: new Date(),
+          },
+        ];
+        for (const r of rows) {
+          claimed.push({ id: r.id, status: r.status, attempts: r.attempts });
+        }
+        return rows;
+      });
+    const markPublishedMock = jest.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined);
+    const markFailedMock = jest
+      .fn<(id: string, attempts: number, error: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
 
     await jest.unstable_mockModule("../outbox-repository", () => ({
       claimPendingBatch: claimMock,
       markPublished: markPublishedMock,
       markFailed: markFailedMock,
-      reapStaleDispatching: jest.fn().mockResolvedValue(0),
+      reapStaleDispatching: jest.fn<(staleMs: number) => Promise<number>>().mockResolvedValue(0),
       backoffMs: (n: number) => 1_000 * 2 ** n,
     }));
 
@@ -232,7 +235,7 @@ describe("EventSpineWorker (mocked repository)", () => {
 
   it("marks the row failed (and triggers backoff) when the producer throws", async () => {
     jest.resetModules();
-    const claimMock = jest.fn().mockResolvedValueOnce([
+    const claimMock = jest.fn<(limit: number) => Promise<OutboxRow[]>>().mockResolvedValueOnce([
       {
         id: "r2",
         eventId: "evt-2",
@@ -246,18 +249,21 @@ describe("EventSpineWorker (mocked repository)", () => {
         attempts: 3,
         lastError: null,
         nextAttemptAt: new Date(),
+        dispatchedAt: null,
         publishedAt: null,
         createdAt: new Date(),
       },
     ]);
-    const markPublishedMock = jest.fn().mockResolvedValue(undefined);
-    const markFailedMock = jest.fn().mockResolvedValue(undefined);
+    const markPublishedMock = jest.fn<(id: string) => Promise<void>>().mockResolvedValue(undefined);
+    const markFailedMock = jest
+      .fn<(id: string, attempts: number, error: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
 
     await jest.unstable_mockModule("../outbox-repository", () => ({
       claimPendingBatch: claimMock,
       markPublished: markPublishedMock,
       markFailed: markFailedMock,
-      reapStaleDispatching: jest.fn().mockResolvedValue(0),
+      reapStaleDispatching: jest.fn<(staleMs: number) => Promise<number>>().mockResolvedValue(0),
       backoffMs: (n: number) => 1_000 * 2 ** n,
     }));
 

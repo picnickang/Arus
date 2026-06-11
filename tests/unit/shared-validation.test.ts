@@ -28,8 +28,8 @@ describe("Entity Validation", () => {
 
   it("validates entity ID format if schema exists", () => {
     // Many ARUS entities use nanoid TEXT primary keys
-    if ("entityIdSchema" in validators) {
-      const schema = validators["entityIdSchema"];
+    const schema = validators["entityIdSchema"];
+    if (schema) {
       expect(schema.safeParse("abc123xyz").success).toBe(true);
       expect(schema.safeParse("").success).toBe(false);
     }
@@ -40,8 +40,8 @@ describe("Entity Validation", () => {
 
 describe("DateTime Validation", () => {
   it("validates ISO 8601 datetime strings if schema exists", () => {
-    if ("isoDateTimeSchema" in validators || "dateTimeSchema" in validators) {
-      const schema = validators["isoDateTimeSchema"] || validators["dateTimeSchema"];
+    const schema = validators["isoDateTimeSchema"] || validators["dateTimeSchema"];
+    if (schema) {
       expect(schema.safeParse("2025-01-15T14:30:00Z").success).toBe(true);
     }
   });
@@ -51,16 +51,16 @@ describe("DateTime Validation", () => {
 
 describe("Marine Validation", () => {
   it("validates IMO number format if schema exists", () => {
-    if ("imoNumberSchema" in validators) {
-      const schema = validators["imoNumberSchema"];
+    const schema = validators["imoNumberSchema"];
+    if (schema) {
       // IMO numbers are 7 digits
       expect(schema.safeParse("1234567").success).toBe(true);
     }
   });
 
   it("validates MMSI format if schema exists", () => {
-    if ("mmsiSchema" in validators) {
-      const schema = validators["mmsiSchema"];
+    const schema = validators["mmsiSchema"];
+    if (schema) {
       // MMSI is 9 digits
       expect(schema.safeParse("123456789").success).toBe(true);
     }
@@ -71,9 +71,8 @@ describe("Marine Validation", () => {
 
 describe("Telemetry Validation", () => {
   it("validates telemetry payload if schema exists", () => {
-    if ("telemetryPayloadSchema" in validators || "telemetryRecordSchema" in validators) {
-      const schema =
-        validators["telemetryPayloadSchema"] || validators["telemetryRecordSchema"];
+    const schema = validators["telemetryPayloadSchema"] || validators["telemetryRecordSchema"];
+    if (schema) {
       // Telemetry typically needs: sensorId, value, timestamp
       const valid = schema.safeParse({
         sensorId: "sensor-001",
@@ -90,8 +89,8 @@ describe("Telemetry Validation", () => {
 
 describe("PdM Validation", () => {
   it("validates prediction input if schema exists", () => {
-    if ("predictionInputSchema" in validators) {
-      const schema = validators["predictionInputSchema"];
+    const schema = validators["predictionInputSchema"];
+    if (schema) {
       const result = schema.safeParse({
         equipmentId: "eq-001",
         modelId: "rf_all_123",
@@ -105,8 +104,8 @@ describe("PdM Validation", () => {
 
 describe("Sensor Validation", () => {
   it("validates sensor configuration if schema exists", () => {
-    if ("sensorConfigSchema" in validators) {
-      const schema = validators["sensorConfigSchema"];
+    const schema = validators["sensorConfigSchema"];
+    if (schema) {
       const result = schema.safeParse({
         name: "Main Engine RPM",
         unit: "rpm",
@@ -122,8 +121,8 @@ describe("Sensor Validation", () => {
 
 describe("Query Filter Validation", () => {
   it("validates pagination params if schema exists", () => {
-    if ("paginationSchema" in validators || "queryFiltersSchema" in validators) {
-      const schema = validators["paginationSchema"] || validators["queryFiltersSchema"];
+    const schema = validators["paginationSchema"] || validators["queryFiltersSchema"];
+    if (schema) {
       const result = schema.safeParse({ page: 1, limit: 20 });
       expect(typeof result.success).toBe("boolean");
     }

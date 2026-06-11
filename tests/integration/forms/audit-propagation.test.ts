@@ -33,10 +33,11 @@ describe("Audit-event propagation — admin-surface form actions", () => {
     const { status } = await api("GET", "/api/admin/settings");
     // Route must be reachable.
     expect([200, 304]).toContain(status);
+    // Bounded retry for the VIEW_SYSTEM_SETTINGS audit row to land.
     await retry(
       () => countAudits("VIEW_SYSTEM_SETTINGS", since),
       (c) => c >= 1,
-      { timeoutMs: 3000, label: "VIEW_SYSTEM_SETTINGS audit row" }
+      { timeoutMs: 3000 }
     );
   });
 
@@ -49,10 +50,11 @@ describe("Audit-event propagation — admin-surface form actions", () => {
       "/api/admin/settings/default-org-id/general/non_existent_probe_key"
     );
     expect([200, 404]).toContain(status);
+    // Bounded retry for the VIEW_SYSTEM_SETTING audit row to land.
     await retry(
       () => countAudits("VIEW_SYSTEM_SETTING", since),
       (c) => c >= 1,
-      { timeoutMs: 3000, label: "VIEW_SYSTEM_SETTING audit row" }
+      { timeoutMs: 3000 }
     );
   });
 

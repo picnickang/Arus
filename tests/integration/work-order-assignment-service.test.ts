@@ -20,6 +20,16 @@ const ORG = "test-org-wo-assignment";
 
 type WO = Record<string, unknown> & { id: string };
 
+// Local mirror of the repository's `completeInTx` result
+// (`{ completion, pendingProjections }`) — only the fields these tests
+// exercise; `orgId`/`partId` stay optional so the no-org-context test can
+// resolve values without them.
+type PendingProjection = { movementId: string; partId?: string };
+type CompleteInTxResult = {
+  completion: { id: string; workOrderId: string; orgId?: string; notes?: string };
+  pendingProjections: PendingProjection[];
+};
+
 let store: Map<string, WO>;
 let nextCrewResult: Array<{ id: string; name: string }>;
 const TX = { tx: true };
@@ -27,12 +37,16 @@ const TX = { tx: true };
 const transactionMock = jest.fn(async (callback: (tx: typeof TX) => Promise<unknown>) =>
   callback(TX)
 );
-const fireInventoryMovementProjections = jest.fn(async () => {});
-const broadcastChange = jest.fn(() => {});
+const fireInventoryMovementProjections = jest.fn(
+  async (_orgId: string, _pending: PendingProjection[]) => {}
+);
+const broadcastChange = jest.fn(
+  (_action: "create" | "update" | "delete", _data: Record<string, unknown>) => {}
+);
 
 const repoMock = {
   findById: jest.fn(async (id: string) => store.get(id)),
-  create: jest.fn(async (data: Record<string, unknown>) => {
+  create: jest.fn(async (data: Record<string, unknown>, _tx?: typeof TX) => {
     const id = String(data["id"] ?? `wo-${store.size + 1}`);
     const created = { ...data, id } as WO;
     store.set(id, created);
@@ -53,7 +67,13 @@ const repoMock = {
       return all;
     }
   ),
-  completeInTx: jest.fn(async () => ({
+  completeInTx: jest.fn<
+    (
+      tx: typeof TX,
+      workOrderId: string,
+      completionData: Record<string, unknown>
+    ) => Promise<CompleteInTxResult>
+  >(async () => ({
     completion: { id: "completion-1", workOrderId: "wo1", orgId: ORG },
     pendingProjections: [{ movementId: "move-1", partId: "part-1" }],
   })),
@@ -95,7 +115,13 @@ jest.unstable_mockModule("../../server/db/workorders/types", () => ({
   broadcastChange,
 }));
 
-const eventPublisher = { publish: jest.fn(async () => () => {}) };
+// Mirrors IWorkOrderEventPublisher.publish: enqueue the event (optionally
+// inside the caller's tx) and resolve to a deferred post-commit emit thunk.
+const eventPublisher = {
+  publish: jest.fn<
+    (event: Record<string, unknown>, tx?: typeof TX) => Promise<(() => void) | null>
+  >(async () => () => {}),
+};
 
 type ServiceCtor =
   typeof import("../../server/domains/work-orders/application/work-order-service").WorkOrderApplicationService;
@@ -200,7 +226,8 @@ describe("WorkOrderApplicationService.updateWorkOrder — (re)assignment reset",
 
     const result = await service.updateWorkOrder(
       "wo1",
-      { assignedCrewId: "crew-1", priority: "high" },
+      // priority is an integer column (1 = highest; schema default 3).
+      { assignedCrewId: "crew-1", priority: 1 },
       ORG,
       "user-supervisor"
     );

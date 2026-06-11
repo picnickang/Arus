@@ -18,9 +18,9 @@
  * exercised through both drivers, shape parity asserted in one place.
  */
 import { describe, test, expect, beforeAll, afterAll } from "@jest/globals";
-import { eq, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, type Column } from "drizzle-orm";
 import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
-import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import { drizzle as drizzlePg, type NodePgClient } from "drizzle-orm/node-postgres";
 import { createClient as createLibsqlClient, type Client as LibsqlClient } from "@libsql/client";
 
 // Direct PG schema imports — import from the specific schema files
@@ -31,7 +31,7 @@ import { vessels as pgVessels, equipment as pgEquipment } from "../../shared/sch
 // SQLite schema barrel
 import { vesselsSqlite, equipmentSqlite } from "../../shared/sqlite-schema/core";
 
-type DrizzleTableLike = Parameters<typeof getTableColumns>[0] & { id: unknown };
+type DrizzleTableLike = Parameters<typeof getTableColumns>[0] & { id: Column };
 
 interface TablePair {
   name: string;
@@ -92,8 +92,9 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
     "$name: an identical SELECT expression compiles successfully against both drivers",
     ({ pg, sqlite }) => {
       // We don't connect to real DBs here — drizzle's `.toSQL()` is a pure
-      // serializer that runs without a live connection.
-      const pgDb = drizzlePg({} as unknown as Parameters<typeof drizzlePg>[0]);
+      // serializer that runs without a live connection (the empty object is
+      // never used as a client because no query is executed).
+      const pgDb = drizzlePg({} as unknown as NodePgClient);
       const sqliteClient = createLibsqlClient({ url: ":memory:" });
       const sqliteDb = drizzleLibsql(sqliteClient);
 
@@ -122,13 +123,15 @@ describe("Dual-driver query parity — Drizzle expression compilation", () => {
   test.each(PAIRS)(
     "$name: an identical INSERT expression compiles successfully against both drivers",
     ({ pg, sqlite, expectedFields }) => {
-      const pgDb = drizzlePg({} as unknown as Parameters<typeof drizzlePg>[0]);
+      const pgDb = drizzlePg({} as unknown as NodePgClient);
       const sqliteClient = createLibsqlClient({ url: ":memory:" });
       const sqliteDb = drizzleLibsql(sqliteClient);
 
       // Build values object using only fields shared by both drivers.
       const values: Record<string, string> = {};
-      for (const f of expectedFields) {values[f] = `parity-${f}`;}
+      for (const f of expectedFields) {
+        values[f] = `parity-${f}`;
+      }
 
       const pgInsertBuilder = pgDb.insert(pg) as unknown as {
         values: (v: Record<string, string>) => { toSQL: () => { sql: string; params: unknown[] } };

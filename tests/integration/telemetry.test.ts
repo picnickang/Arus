@@ -17,7 +17,7 @@ const TEST_VESSEL_ID = "00000000-0000-0000-0000-000000000001";
 const TEST_EQUIPMENT_ID = "00000000-0000-0000-0000-000000000002";
 
 describe("Telemetry API", () => {
-  let api: request.SuperTest<request.Test>;
+  let api: request.Agent;
   let closeServer: () => Promise<void>;
 
   beforeAll(async () => {

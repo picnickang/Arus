@@ -19,21 +19,8 @@
  * `safety-bulletins.test.ts`.
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import type {
-  Express,
-  NextFunction,
-  Request,
-  RequestHandler,
-  Response,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import type { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import type { CrewUserSummary } from "../../server/domains/crew-admin/domain/types";
 
@@ -69,6 +56,10 @@ function makeUser(overrides: Partial<CrewUserSummary> = {}): CrewUserSummary {
     supervisorUserId: null,
     assignments: [],
     assignedRoleNames: [],
+    linkedCrewId: null,
+    linkedCrewName: null,
+    hubAdmin: false,
+    hubAccess: null,
     ...overrides,
   };
 }
@@ -84,7 +75,7 @@ const fakeRepo = new Proxy(
       orgId: string,
       userId: string,
       hubAdmin: boolean,
-      hubAccess: string[] | null,
+      hubAccess: string[] | null
     ): Promise<void> {
       lastGrant = { orgId, userId, hubAdmin, hubAccess };
       grantCalls.push(lastGrant);
@@ -92,12 +83,14 @@ const fakeRepo = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) {return obj[prop];}
+      if (prop in obj) {
+        return obj[prop];
+      }
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
     },
-  },
+  }
 );
 
 let app: Express;
@@ -113,9 +106,7 @@ beforeAll(async () => {
   // (and its status mapping) behaves exactly as in production.
   jest.unstable_mockModule("../../server/domains/crew-admin/service", () => ({
     crewAdminService: new CrewAdminApplicationService(
-      fakeRepo as unknown as ConstructorParameters<
-        typeof CrewAdminApplicationService
-      >[0],
+      fakeRepo as unknown as ConstructorParameters<typeof CrewAdminApplicationService>[0]
     ),
     CrewAdminError,
   }));
@@ -152,9 +143,7 @@ beforeAll(async () => {
   const passthrough: RequestHandler = (_req, _res, next) => next();
 
   try {
-    const mod = await import(
-      "../../server/domains/crew-admin/interfaces/routes"
-    );
+    const mod = await import("../../server/domains/crew-admin/interfaces/routes");
     mod.registerCrewAdminRoutes(app, {
       generalApiRateLimit: passthrough,
       writeOperationRateLimit: passthrough,
@@ -181,7 +170,9 @@ describe("hub-access route — mounted", () => {
 
 describe("PATCH hub-access — authz gate", () => {
   it("rejects a non-super-admin caller with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", "caller-fm:fleet_manager")
@@ -192,7 +183,9 @@ describe("PATCH hub-access — authz gate", () => {
   });
 
   it("rejects an unauthenticated caller with 401", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app).patch(PATH).send({ hubAdmin: true });
     expect(res.status).toBe(401);
     expect(grantCalls).toHaveLength(0);
@@ -203,7 +196,9 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   const adminHeader = "caller-admin:system_admin";
 
   it("rejects editing a super-admin target with 409 ADMIN_ROLE_PROTECTED", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     targetUser = makeUser({ role: "company_admin" });
     const res = await request(app)
       .patch(PATH)
@@ -216,7 +211,9 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("rejects granting hub-admin to a non-eligible role with 400 ROLE_NOT_ELIGIBLE", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     targetUser = makeUser({ role: "technician" });
     const res = await request(app)
       .patch(PATH)
@@ -229,7 +226,9 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("rejects an unknown hub id in the allow-list with 400 (body schema)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)
@@ -239,7 +238,9 @@ describe("PATCH hub-access — guardrails (admin caller)", () => {
   });
 
   it("returns 404 when the target user does not exist", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     targetUser = undefined;
     const res = await request(app)
       .patch(PATH)
@@ -254,7 +255,9 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   const adminHeader = "caller-admin:system_admin";
 
   it("persists a valid grant with a normalised partial allow-list and audits it", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)
@@ -280,7 +283,9 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   });
 
   it("collapses a full allow-list to null (= all hubs) on grant", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const { HUB_IDS } = await import("@shared/role-dashboard");
     const res = await request(app)
       .patch(PATH)
@@ -292,7 +297,9 @@ describe("PATCH hub-access — grant / revoke persistence + audit", () => {
   });
 
   it("revokes the grant: hubAdmin=false clears the allow-list to null and audits it", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .patch(PATH)
       .set("x-test-user", adminHeader)

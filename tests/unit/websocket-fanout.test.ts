@@ -119,7 +119,7 @@ describe("websocket-fanout / cross-instance loopback", () => {
   class LoopbackBus extends InProcessFanoutBus {
     public peer: LoopbackBus | null = null;
 
-    async publish(channel: string, payload: unknown, orgId = SYSTEM_ORG_ID) {
+    override async publish(channel: string, payload: unknown, orgId = SYSTEM_ORG_ID) {
       const event = await super.publish(channel, payload, orgId);
       if (this.peer) {
         // Mirror to the peer's local dispatch + replay buffer without
@@ -127,7 +127,7 @@ describe("websocket-fanout / cross-instance loopback", () => {
         // inject the event as if it had arrived over the wire.
         (this.peer as unknown as { dispatch: (e: typeof event) => void }).dispatch(event);
         (this.peer as unknown as { ring: { append: (e: typeof event) => void } }).ring.append(
-          event,
+          event
         );
       }
       return event;
@@ -142,8 +142,12 @@ describe("websocket-fanout / cross-instance loopback", () => {
     try {
       const onA: string[] = [];
       const onB: string[] = [];
-      a.subscribe("alerts", SYSTEM_ORG_ID, (e) => onA.push(`a:${(e.payload as { id: string }).id}`));
-      b.subscribe("alerts", SYSTEM_ORG_ID, (e) => onB.push(`b:${(e.payload as { id: string }).id}`));
+      a.subscribe("alerts", SYSTEM_ORG_ID, (e) =>
+        onA.push(`a:${(e.payload as { id: string }).id}`)
+      );
+      b.subscribe("alerts", SYSTEM_ORG_ID, (e) =>
+        onB.push(`b:${(e.payload as { id: string }).id}`)
+      );
 
       await a.publish("alerts", { id: "from-a" });
       await b.publish("alerts", { id: "from-b" });
@@ -247,7 +251,7 @@ describe("websocket-fanout / compareEventIds", () => {
     expect(compareEventIds(makeEventId(1000, 0), makeEventId(1001, 0))).toBeLessThan(0);
     // Sanity: cross-second comparison
     expect(compareEventIds(makeEventId(2_000_000, 5), makeEventId(1_999_999, 99))).toBeGreaterThan(
-      0,
+      0
     );
   });
 });

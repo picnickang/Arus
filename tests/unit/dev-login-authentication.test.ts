@@ -32,15 +32,18 @@ function buildReq(headers: Record<string, string> = {}): Request {
 }
 
 function buildRes(): Response & { statusCode?: number; body?: unknown } {
+  // Plain closures (not jest.fn) so the partial object stays structurally
+  // comparable to Response — the tests assert on res.statusCode / res.body,
+  // never on mock call metadata.
   const res = {
-    status: jest.fn((code: number) => {
+    status: (code: number) => {
       res.statusCode = code;
       return res;
-    }),
-    json: jest.fn((body: unknown) => {
+    },
+    json: (body: unknown) => {
       res.body = body;
       return res;
-    }),
+    },
   } as Response & { statusCode?: number; body?: unknown };
   return res;
 }

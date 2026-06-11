@@ -36,6 +36,10 @@ function adminUser(overrides: Partial<CrewUserSummary> = {}): CrewUserSummary {
     supervisorUserId: null,
     assignments: [],
     assignedRoleNames: [],
+    linkedCrewId: null,
+    linkedCrewName: null,
+    hubAdmin: false,
+    hubAccess: null,
     ...overrides,
   };
 }
@@ -63,7 +67,7 @@ class FakeRepo {
   async setCredentials(
     _org: string,
     _id: string,
-    patch: { username?: string; passwordHash?: string; loginEnabled?: boolean },
+    patch: { username?: string; passwordHash?: string; loginEnabled?: boolean }
   ): Promise<void> {
     this.setCredentialsCalls.push(patch);
   }
@@ -111,7 +115,7 @@ describe("setCredentials — last-admin guard (loginEnabled:false)", () => {
     repo.remainingAdmins = 0;
     const service = makeService(repo);
     await expect(
-      service.setCredentials({ orgId: ORG, userId: "admin-1", loginEnabled: false }),
+      service.setCredentials({ orgId: ORG, userId: "admin-1", loginEnabled: false })
     ).rejects.toBeInstanceOf(CrewAdminError);
     expect(repo.setCredentialsCalls).toHaveLength(0);
   });
@@ -149,11 +153,7 @@ class FakeRoleRepo {
   async findRoleById(): Promise<FakeRoleRow> {
     return this.role;
   }
-  async updateRole(
-    _org: string,
-    id: string,
-    patch: Record<string, unknown>,
-  ): Promise<FakeRoleRow> {
+  async updateRole(_org: string, id: string, patch: Record<string, unknown>): Promise<FakeRoleRow> {
     this.updatedRoles.push({ id, patch });
     return { ...this.role, ...(patch as Partial<FakeRoleRow>) };
   }
@@ -177,29 +177,23 @@ function roleRow(overrides: Partial<FakeRoleRow> = {}): FakeRoleRow {
 describe("role lifecycle — admin-capable lockout", () => {
   it("blocks deactivating an admin-capable role", async () => {
     const repo = new FakeRoleRepo(roleRow({ name: "company_admin" }));
-    const service = new CrewAdminApplicationService(
-      repo as unknown as ICrewAdminRepository,
-    );
-    await expect(
-      service.updateRole(ORG, "role-x", { isActive: false }),
-    ).rejects.toMatchObject({ code: "ADMIN_ROLE_PROTECTED" });
+    const service = new CrewAdminApplicationService(repo as unknown as ICrewAdminRepository);
+    await expect(service.updateRole(ORG, "role-x", { isActive: false })).rejects.toMatchObject({
+      code: "ADMIN_ROLE_PROTECTED",
+    });
     expect(repo.updatedRoles).toHaveLength(0);
   });
 
   it("allows editing an admin-capable role without deactivating it", async () => {
     const repo = new FakeRoleRepo(roleRow({ name: "company_admin" }));
-    const service = new CrewAdminApplicationService(
-      repo as unknown as ICrewAdminRepository,
-    );
+    const service = new CrewAdminApplicationService(repo as unknown as ICrewAdminRepository);
     await service.updateRole(ORG, "role-x", { displayName: "Company Admin" });
     expect(repo.updatedRoles).toHaveLength(1);
   });
 
   it("blocks deleting an admin-capable role", async () => {
     const repo = new FakeRoleRepo(roleRow({ name: "system_admin" }));
-    const service = new CrewAdminApplicationService(
-      repo as unknown as ICrewAdminRepository,
-    );
+    const service = new CrewAdminApplicationService(repo as unknown as ICrewAdminRepository);
     await expect(service.deleteRole(ORG, "role-x")).rejects.toMatchObject({
       code: "PROTECTED_ROLE",
     });
@@ -208,9 +202,7 @@ describe("role lifecycle — admin-capable lockout", () => {
 
   it("allows deleting an unused custom role", async () => {
     const repo = new FakeRoleRepo(roleRow({ name: "deckhand" }));
-    const service = new CrewAdminApplicationService(
-      repo as unknown as ICrewAdminRepository,
-    );
+    const service = new CrewAdminApplicationService(repo as unknown as ICrewAdminRepository);
     await service.deleteRole(ORG, "role-x");
     expect(repo.deletedRoles).toEqual(["role-x"]);
   });

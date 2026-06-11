@@ -20,6 +20,11 @@ const ROOT = process.cwd();
 
 const SCAN_DIRS = ["client/src", "server", "shared"];
 
+// Test trees outside the production scan dirs (root tests/ and client/tests/).
+// Tracked as a separate monotonic total so test-code casts ratchet down
+// without being able to trade against the production count.
+const TEST_SCAN_DIRS = ["tests", "client/tests"];
+
 // Adapter boundaries may be exempted here when `any` is genuinely required for
 // raw external data. The original four exemptions (server/telemetry/, server/sync/,
 // server/vessel-simulator/, server/external-integrations/) reached zero casts and
@@ -68,10 +73,10 @@ function* walk(dir) {
   }
 }
 
-function countCasts() {
+function countCasts(scanDirs) {
   const perFile = new Map();
   let total = 0;
-  for (const scanDir of SCAN_DIRS) {
+  for (const scanDir of scanDirs) {
     const abs = resolve(ROOT, scanDir);
     if (!existsSync(abs)) {
       continue;
@@ -118,22 +123,29 @@ function main() {
   const writeBaseline = args.has("--write-baseline");
   const showReport = args.has("--report");
 
-  const { total, perFile } = countCasts();
+  const { total, perFile } = countCasts(SCAN_DIRS);
+  const { total: testsTotal, perFile: testsPerFile } = countCasts(TEST_SCAN_DIRS);
   console.log(`Type-cast occurrences (\`as any\` + \`as unknown as\`): ${total}`);
+  console.log(`Test-tree type-cast occurrences: ${testsTotal}`);
   const exemptNote = EXEMPT_PATH_FRAGMENTS.length
     ? ` (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`
     : "";
-  console.log(`Scanned: ${SCAN_DIRS.join(", ")}${exemptNote}`);
+  console.log(`Scanned: ${SCAN_DIRS.join(", ")}${exemptNote}; test trees: ${TEST_SCAN_DIRS.join(", ")}`);
 
   if (showReport) {
-    const summary = summarize(perFile);
-    console.log("\nTop files:");
-    for (const [f, n] of Object.entries(summary.byTopFiles)) {
-      console.log(`  ${String(n).padStart(4)}  ${f}`);
-    }
-    console.log("\nTop top-level directories:");
-    for (const [d, n] of Object.entries(summary.byTopDirs)) {
-      console.log(`  ${String(n).padStart(4)}  ${d}`);
+    for (const [label, files] of [
+      ["", perFile],
+      [" (test trees)", testsPerFile],
+    ]) {
+      const summary = summarize(files);
+      console.log(`\nTop files${label}:`);
+      for (const [f, n] of Object.entries(summary.byTopFiles)) {
+        console.log(`  ${String(n).padStart(4)}  ${f}`);
+      }
+      console.log(`\nTop top-level directories${label}:`);
+      for (const [d, n] of Object.entries(summary.byTopDirs)) {
+        console.log(`  ${String(n).padStart(4)}  ${d}`);
+      }
     }
   }
 
@@ -141,13 +153,17 @@ function main() {
     const summary = summarize(perFile);
     const payload = {
       _comment:
-        "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. No directories are exempt (the former adapter-boundary exemptions reached zero and were removed).",
+        "Type-cast burndown baseline. `total` (production scan dirs) and `testsTotal` (root tests/ + client/tests/) must each monotonically decrease — one may not be traded against the other. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. No directories are exempt (the former adapter-boundary exemptions reached zero and were removed).",
       generatedAt: new Date().toISOString(),
       total,
+      testsTotal,
       summary,
+      testsSummary: summarize(testsPerFile),
     };
     writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + "\n");
-    console.log(`\n✓ Baseline written: ${relative(ROOT, BASELINE_PATH)} (total=${total})`);
+    console.log(
+      `\n✓ Baseline written: ${relative(ROOT, BASELINE_PATH)} (total=${total}, testsTotal=${testsTotal})`,
+    );
     return;
   }
 
@@ -159,21 +175,27 @@ function main() {
     return;
   }
 
-  if (total > baseline.total) {
-    const delta = total - baseline.total;
-    console.error(`\n❌ Type-cast count INCREASED: ${baseline.total} → ${total} (+${delta})`);
+  let failed = false;
+  for (const [label, current, base] of [
+    ["Type-cast count", total, baseline.total],
+    // Older baselines predate the test-tree scan; skip until regenerated.
+    ["Test-tree type-cast count", testsTotal, baseline.testsTotal],
+  ]) {
+    if (base === undefined) continue;
+    if (current > base) {
+      console.error(`\n❌ ${label} INCREASED: ${base} → ${current} (+${current - base})`);
+      failed = true;
+    } else if (current < base) {
+      console.log(`\n✓ ${label} reduction: ${base} → ${current} (-${base - current}). Consider regenerating the baseline.`);
+    } else {
+      console.log(`\n✓ ${label} at baseline.`);
+    }
+  }
+  if (failed) {
     console.error("Each `as any` or `as unknown as` is a hole in the type system.");
     console.error("Fix the regression — or, if intentional and unavoidable, update the baseline:");
     console.error("  node scripts/check-cast-burndown.mjs --write-baseline");
     process.exit(1);
-  }
-
-  if (total < baseline.total) {
-    console.log(
-      `\n✓ Reduction: ${baseline.total} → ${total} (-${baseline.total - total}). Consider regenerating the baseline.`
-    );
-  } else {
-    console.log("\n✓ Type-cast count at baseline.");
   }
 }
 

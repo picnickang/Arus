@@ -135,7 +135,9 @@ describe("Telemetry Persistence", () => {
       const readings1 = processor.process([frame]);
       const readings2 = processor.process([frame]);
 
-      expect(readings1[0].metadata?.["idempotencyKey"]).toBe(readings2[0].metadata?.["idempotencyKey"]);
+      expect(readings1[0].metadata?.["idempotencyKey"]).toBe(
+        readings2[0].metadata?.["idempotencyKey"]
+      );
     });
 
     it("should generate different keys for different frames", () => {
@@ -145,7 +147,9 @@ describe("Telemetry Persistence", () => {
       const readings1 = processor.process([frame1]);
       const readings2 = processor.process([frame2]);
 
-      expect(readings1[0].metadata?.["idempotencyKey"]).not.toBe(readings2[0].metadata?.["idempotencyKey"]);
+      expect(readings1[0].metadata?.["idempotencyKey"]).not.toBe(
+        readings2[0].metadata?.["idempotencyKey"]
+      );
     });
 
     it("should include source and protocol in idempotency key", () => {
@@ -369,7 +373,7 @@ describe("Data Integrity Through Pipeline", () => {
 
       for (const reading of readings) {
         const key = reading.metadata?.["idempotencyKey"];
-        if (key) {
+        if (typeof key === "string") {
           if (storedKeys.has(key)) {
             collisions++;
           } else {

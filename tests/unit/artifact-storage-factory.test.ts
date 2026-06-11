@@ -22,8 +22,8 @@ import {
   _resetArtifactBackendSettingPortForTest,
   _resetArtifactStorageCacheForTest,
   type ArtifactBackendSettingPort,
-  type ArtifactBackend,
 } from "../../server/domains/pdm-platform/infrastructure/artifact-storage/factory.js";
+import type { ArtifactBackend } from "../../server/domains/pdm-platform/infrastructure/artifact-storage/types.js";
 
 interface PortHarness {
   port: ArtifactBackendSettingPort;
@@ -136,7 +136,7 @@ describe("artifact-storage factory — boot-order contract", () => {
 
   it("setArtifactBackendSetting throws when no port is configured", async () => {
     await expect(setArtifactBackendSetting("local")).rejects.toThrow(
-      /ArtifactBackendSettingPort not configured/,
+      /ArtifactBackendSettingPort not configured/
     );
   });
 

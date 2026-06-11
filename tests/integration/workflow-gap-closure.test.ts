@@ -12,7 +12,11 @@ interface ApiResult<T = unknown> {
   data: T;
 }
 
-async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
+async function api<T = unknown>(
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<ApiResult<T>> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
@@ -27,8 +31,50 @@ async function api<T = unknown>(method: string, path: string, body?: unknown): P
   return { status: res.status, data };
 }
 
+// Success-path response shapes, mirroring the zod response schemas in
+// server/domains/workflow/interfaces/routes.ts (only the fields these
+// tests assert on).
+interface BlockerResolutionRecord {
+  id: string;
+  status: string;
+  savedAt: string;
+}
+
+interface WorkflowHandoverRecord {
+  id: string;
+  status: string;
+  savedAt?: string;
+  createdAt?: string;
+  timestamp?: string;
+}
+
+interface IssueReportRecord {
+  id: string;
+  severity: string;
+  status: string;
+}
+
+interface InboxItem {
+  id: string;
+  lastResolution?: { status?: string };
+}
+
+interface AttentionInboxResponse {
+  sources?: {
+    workOrders?: string;
+    alerts?: string;
+    equipment?: string;
+    inventory?: string;
+  };
+  items?: InboxItem[];
+  queues?: Array<{ count: number }>;
+}
+
 async function pickOpenWorkOrder(excludeId?: string): Promise<string | null> {
-  const { data } = await api<Array<{ id: string }>>("GET", "/api/work-orders");
+  const { data } = await api<Array<{ id: string; status?: string | null }>>(
+    "GET",
+    "/api/work-orders"
+  );
   const open = (data || []).find(
     (w) =>
       w.id !== excludeId &&
@@ -45,7 +91,9 @@ describe("Workflow Gap-Closure Integration", () => {
     const health = await api("GET", "/api/healthz");
     expect(health.status).toBe(200);
     const wo = await pickOpenWorkOrder();
-    if (!wo) {throw new Error("No open work order available for tests");}
+    if (!wo) {
+      throw new Error("No open work order available for tests");
+    }
     workOrderId = wo;
   }, 30000);
 
@@ -73,13 +121,17 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("accepts 'waiting' resolution and returns valid record", async () => {
-      const { status, data } = await api("POST", "/api/attention/blocker-resolutions", {
-        itemId,
-        workOrderId,
-        blockerType: "parts",
-        reason: `awaiting parts ${RUN_ID}`,
-        status: "waiting",
-      });
+      const { status, data } = await api<BlockerResolutionRecord>(
+        "POST",
+        "/api/attention/blocker-resolutions",
+        {
+          itemId,
+          workOrderId,
+          blockerType: "parts",
+          reason: `awaiting parts ${RUN_ID}`,
+          status: "waiting",
+        }
+      );
       expect(status).toBe(201);
       expect(data?.id).toBeTruthy();
       expect(data?.status).toBe("waiting");
@@ -88,40 +140,47 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("upgrades the same item to 'unblocked' (latest-resolution wins)", async () => {
-      const { status, data } = await api("POST", "/api/attention/blocker-resolutions", {
-        itemId,
-        workOrderId,
-        blockerType: "parts",
-        reason: `resolved ${RUN_ID}`,
-        status: "unblocked",
-      });
+      const { status, data } = await api<BlockerResolutionRecord>(
+        "POST",
+        "/api/attention/blocker-resolutions",
+        {
+          itemId,
+          workOrderId,
+          blockerType: "parts",
+          reason: `resolved ${RUN_ID}`,
+          status: "unblocked",
+        }
+      );
       expect(status).toBe(201);
       expect(data?.status).toBe("unblocked");
     });
 
     it("/attention/items observes the latest-resolution filter (sources still healthy)", async () => {
-      const { status, data } = await api("GET", "/api/attention/items");
+      const { status, data } = await api<AttentionInboxResponse>("GET", "/api/attention/items");
       expect(status).toBe(200);
       // Our synthetic itemId never had a real backing WO in the inbox source,
       // so we verify the inbox responds and stays healthy after the resolution write.
       expect(data?.sources?.workOrders).toBe("ok");
       expect(data?.sources?.inventory).toBe("ok");
       // If our item ever appeared, after 'unblocked' it must NOT appear now.
-      type InboxItem = { id: string; lastResolution?: { status?: string } };
-      const stillThere = ((data?.items as InboxItem[] | undefined) || []).some(
+      const stillThere = (data?.items || []).some(
         (i) => i.id === itemId && i.lastResolution?.status !== "unblocked"
       );
       expect(stillThere).toBe(false);
     });
 
     it("supports re-blocking with 'waiting' (latest is now waiting again)", async () => {
-      const { status, data } = await api("POST", "/api/attention/blocker-resolutions", {
-        itemId,
-        workOrderId,
-        blockerType: "parts",
-        reason: `re-blocked ${RUN_ID}`,
-        status: "waiting",
-      });
+      const { status, data } = await api<BlockerResolutionRecord>(
+        "POST",
+        "/api/attention/blocker-resolutions",
+        {
+          itemId,
+          workOrderId,
+          blockerType: "parts",
+          reason: `re-blocked ${RUN_ID}`,
+          status: "waiting",
+        }
+      );
       expect(status).toBe(201);
       expect(data?.status).toBe("waiting");
     });
@@ -142,12 +201,16 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("creates a draft handover", async () => {
-      const { status, data } = await api("POST", "/api/attention/handover", {
-        note: `draft handover ${RUN_ID}`,
-        watchLabel: "NIGHT",
-        itemIds: [],
-        status: "draft",
-      });
+      const { status, data } = await api<WorkflowHandoverRecord>(
+        "POST",
+        "/api/attention/handover",
+        {
+          note: `draft handover ${RUN_ID}`,
+          watchLabel: "NIGHT",
+          itemIds: [],
+          status: "draft",
+        }
+      );
       expect(status).toBe(201);
       expect(data?.id).toBeTruthy();
       expect(data?.status).toBe("draft");
@@ -155,12 +218,16 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("creates a shared handover and lists both via GET /handovers", async () => {
-      const { status, data } = await api("POST", "/api/attention/handover", {
-        note: `shared handover ${RUN_ID}`,
-        watchLabel: "DAY",
-        itemIds: [],
-        status: "shared",
-      });
+      const { status, data } = await api<WorkflowHandoverRecord>(
+        "POST",
+        "/api/attention/handover",
+        {
+          note: `shared handover ${RUN_ID}`,
+          watchLabel: "DAY",
+          itemIds: [],
+          status: "shared",
+        }
+      );
       expect(status).toBe(201);
       expect(data?.status).toBe("shared");
 
@@ -168,9 +235,7 @@ describe("Workflow Gap-Closure Integration", () => {
       const list = await api<HandoverRecord[]>("GET", "/api/attention/handovers");
       expect(list.status).toBe(200);
       expect(Array.isArray(list.data)).toBe(true);
-      const ours = list.data.filter((h) =>
-        String(h.note || h.summary || "").includes(RUN_ID)
-      );
+      const ours = list.data.filter((h) => String(h.note || h.summary || "").includes(RUN_ID));
       // Both our handovers (draft + shared) should be in the listing
       expect(ours.length).toBeGreaterThanOrEqual(2);
       const ids = ours.map((h) => h.id);
@@ -178,10 +243,19 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("/handover/latest returns the most recent record with a parseable timestamp", async () => {
-      const { status, data } = await api("GET", "/api/attention/handover/latest");
+      const { status, data } = await api<WorkflowHandoverRecord | null>(
+        "GET",
+        "/api/attention/handover/latest"
+      );
       expect(status).toBe(200);
       expect(data).toBeTruthy();
+      if (!data) {
+        throw new Error("expected a latest handover record");
+      }
       const ts = data.savedAt || data.createdAt || data.timestamp;
+      if (!ts) {
+        throw new Error("latest handover record has no timestamp field");
+      }
       expect(new Date(ts).toString()).not.toBe("Invalid Date");
     });
   });
@@ -194,7 +268,9 @@ describe("Workflow Gap-Closure Integration", () => {
 
     beforeAll(async () => {
       const wo = await pickOpenWorkOrder(workOrderId);
-      if (!wo) {throw new Error("Need a second open WO for closeout test");}
+      if (!wo) {
+        throw new Error("Need a second open WO for closeout test");
+      }
       closeoutWorkOrderId = wo;
     });
 
@@ -210,7 +286,7 @@ describe("Workflow Gap-Closure Integration", () => {
         supervisorVerified: true,
       };
 
-      const { status, data } = await api(
+      const { status, data } = await api<{ completed?: boolean }>(
         "POST",
         `/api/work-orders/${closeoutWorkOrderId}/complete-with-feedback`,
         {
@@ -295,7 +371,7 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("creates an issue with valid severity + status", async () => {
-      const { status, data } = await api("POST", "/api/attention/issues", {
+      const { status, data } = await api<IssueReportRecord>("POST", "/api/attention/issues", {
         summary: `issue ${RUN_ID}`,
         severity: "medium",
         status: "submitted",
@@ -312,7 +388,7 @@ describe("Workflow Gap-Closure Integration", () => {
   // ─────────────────────────────────────────────────────────────────────
   describe("Scenario E: Attention inbox stays healthy", () => {
     it("all four port sources report 'ok' after activity", async () => {
-      const { status, data } = await api("GET", "/api/attention/items");
+      const { status, data } = await api<AttentionInboxResponse>("GET", "/api/attention/items");
       expect(status).toBe(200);
       expect(data?.sources?.workOrders).toBe("ok");
       expect(data?.sources?.alerts).toBe("ok");
@@ -321,7 +397,7 @@ describe("Workflow Gap-Closure Integration", () => {
     });
 
     it("queue counts are non-negative integers", async () => {
-      const { data } = await api("GET", "/api/attention/items");
+      const { data } = await api<AttentionInboxResponse>("GET", "/api/attention/items");
       const queues = data?.queues || [];
       expect(Array.isArray(queues)).toBe(true);
       for (const q of queues) {

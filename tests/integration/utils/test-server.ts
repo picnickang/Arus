@@ -8,7 +8,7 @@ type TestServer = {
   app: Express;
   baseUrl: string;
   close: () => Promise<void>;
-  request: () => request.SuperTest<request.Test>;
+  request: () => request.Agent;
   server: Server;
 };
 

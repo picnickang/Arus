@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 
-const executeMock = jest.fn();
+const executeMock = jest.fn<(query: unknown) => Promise<{ rows: Record<string, unknown>[] }>>();
 const emitMock = jest.fn();
 
 jest.unstable_mockModule("../../server/db", () => ({

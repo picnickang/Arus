@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import type { PdmRepositoryPort } from "../../pdm/ports/pdm-repository.port";
+import type { PdmRepositoryPort, VesselBasic } from "../../pdm/ports/pdm-repository.port";
 import { createGetDashboardUseCase } from "../../pdm/application/get-dashboard.use-case";
 import type {
+  AssetDetail,
   FleetHealthKpis,
   RiskQueueItem,
   TelemetryCoverage,
@@ -88,9 +89,12 @@ describe("PdM Dashboard Use Cases", () => {
       getMaintenancePipeline: jest
         .fn<() => Promise<MaintenancePipeline>>()
         .mockResolvedValue(mockMaintenancePipeline),
-      getAssetDetail: jest.fn(),
+      getAssetDetail: jest.fn<() => Promise<AssetDetail | null>>().mockResolvedValue(null),
       acknowledgeRiskItem: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       createWorkOrderFromRisk: jest.fn<() => Promise<string>>().mockResolvedValue("wo-123"),
+      getActiveAlerts: jest.fn<() => Promise<RiskQueueItem[]>>().mockResolvedValue([]),
+      getVessels: jest.fn<() => Promise<VesselBasic[]>>().mockResolvedValue([]),
+      getEquipmentTypes: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
     };
   });
 

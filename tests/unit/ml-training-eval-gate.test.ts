@@ -31,7 +31,9 @@ interface GateRunner {
 
 function newQueue(withDb = true): GateRunner {
   const boss = {} as unknown as PgBoss;
-  const db = withDb ? ({} as unknown as Parameters<typeof MlTrainingJobQueue>[1]) : undefined;
+  const db = withDb
+    ? ({} as unknown as ConstructorParameters<typeof MlTrainingJobQueue>[1])
+    : undefined;
   const queue = new MlTrainingJobQueue(boss, db);
   return queue as unknown as GateRunner;
 }

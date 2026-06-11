@@ -3,13 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-const sectionMap = JSON.parse(
+const sectionMap: {
+  coordinateMode: string;
+  diagramWidth: number;
+  diagramHeight: number;
+  diagramKind: string;
+  sections: Array<Record<string, unknown>>;
+} = JSON.parse(
   fs.readFileSync(
     path.join(repoRoot, "docs/design/vessel-intelligence-v2/tokens/data/section_mapping.json"),
     "utf8"
   )
 );
-const equipmentSeed = JSON.parse(
+const equipmentSeed: { equipment: Array<Record<string, string>> } = JSON.parse(
   fs.readFileSync(
     path.join(repoRoot, "docs/design/vessel-intelligence-v2/tokens/data/equipment_mapping.json"),
     "utf8"
@@ -231,7 +237,9 @@ async function installVesselFixtures(page: Page, options?: { viewer?: boolean })
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(versions[0]),
+        body: JSON.stringify(
+          fixtures["/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions"][0]
+        ),
       });
       return;
     }

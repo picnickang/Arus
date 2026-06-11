@@ -14,8 +14,11 @@ export const IS_POSTGRES = true;
 
 export * from "../../shared/schema";
 export type * from "../../shared/schema";
-export type * from "../../shared/schema-sqlite-vessel";
-export type * from "../../shared/schema-sqlite-sync";
+// NOTE: schema-sqlite-* types are intentionally NOT re-exported here, matching
+// the production `shared/schema-runtime.ts` barrel — their Drizzle-core
+// re-exports (index/integer/text/real/sqliteJsonHelpers) collide with the
+// PG schema's exports (TS2308). Consumers needing SQLite-specific types
+// should import from "@shared/sqlite-schema".
 
 // LR-1D — the production `@shared/schema-runtime` barrel re-exports
 // Zod request validators from `shared/validation/*`. Mirror them here

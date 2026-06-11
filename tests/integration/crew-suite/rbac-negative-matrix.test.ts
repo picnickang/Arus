@@ -26,31 +26,32 @@
  * The permission service is mocked so the requirePermission decision is
  * controllable; the assertion is on the GATE, not on any handler outcome.
  */
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  jest,
-} from "@jest/globals";
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import { describe, it, expect, beforeAll, jest } from "@jest/globals";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import request from "supertest";
 
 // This jest config runs native ESM (extensionsToTreatAsEsm: ['.ts']), where
 // jest.mock is a no-op — the supported API is jest.unstable_mockModule, which
 // must be called BEFORE the dynamic import of the module under test.
 
-// Control the requirePermission decision.
-const authorizeMock = jest.fn(async () => ({ allowed: false, reason: "denied by test" }));
+// Control the requirePermission decision. Typed with the production
+// `permissionService.authorize(userId, orgId, resource, action)` signature so
+// the toHaveBeenCalledWith assertion below typechecks against the real arity.
+const authorizeMock = jest.fn<
+  (
+    userId: string,
+    orgId: string,
+    resource: string,
+    action: string
+  ) => Promise<{ allowed: boolean; reason: string }>
+>(async () => ({ allowed: false, reason: "denied by test" }));
 
-// requireRole imports `./auth` only for the AuthenticatedRequest *type*
-// (erased at runtime). Stub it defensively so nothing transitive is pulled in.
-jest.unstable_mockModule("../../../server/middleware/auth.js", () => ({}));
+// requireRole imports the `authenticatedRequest` helper (an identity narrow)
+// from `./auth` at runtime. Stub the module with just that helper so nothing
+// transitive (db-config etc.) is pulled in.
+jest.unstable_mockModule("../../../server/middleware/auth.js", () => ({
+  authenticatedRequest: (req: unknown) => req,
+}));
 
 // Stub the permission service so requirePermission's decision is controllable
 // and no real DB / db-config is loaded.
@@ -70,28 +71,116 @@ jest.unstable_mockModule("../../../server/domains/permissions/service", () => ({
 const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 const HUB_GRANT_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 
-type RoleRoute = { label: string; method: "get" | "post" | "put" | "patch"; path: string; roles: readonly string[] };
+type RoleRoute = {
+  label: string;
+  method: "get" | "post" | "put" | "patch";
+  path: string;
+  roles: readonly string[];
+};
 const ROLE_ROUTES: RoleRoute[] = [
   { label: "list roles", method: "get", path: "/api/admin/crew/roles", roles: CREW_ADMIN_ROLES },
   { label: "create role", method: "post", path: "/api/admin/crew/roles", roles: CREW_ADMIN_ROLES },
-  { label: "list role-dashboards", method: "get", path: "/api/admin/role-dashboards", roles: CREW_ADMIN_ROLES },
-  { label: "save role-dashboard", method: "put", path: "/api/admin/role-dashboards/some_role", roles: CREW_ADMIN_ROLES },
-  { label: "access-readiness", method: "get", path: "/api/admin/crew/access-readiness", roles: CREW_ADMIN_ROLES },
-  { label: "former-access-risks", method: "get", path: "/api/admin/crew/former-access-risks", roles: CREW_ADMIN_ROLES },
-  { label: "create crew account", method: "post", path: "/api/admin/crew/members/c1/account", roles: CREW_ADMIN_ROLES },
-  { label: "set login-enabled", method: "patch", path: "/api/admin/crew/users/u1/login-enabled", roles: CREW_ADMIN_ROLES },
-  { label: "set hub-access (super-admin)", method: "patch", path: "/api/admin/crew/users/u1/hub-access", roles: HUB_GRANT_ADMIN_ROLES },
+  {
+    label: "list role-dashboards",
+    method: "get",
+    path: "/api/admin/role-dashboards",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "save role-dashboard",
+    method: "put",
+    path: "/api/admin/role-dashboards/some_role",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "access-readiness",
+    method: "get",
+    path: "/api/admin/crew/access-readiness",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "former-access-risks",
+    method: "get",
+    path: "/api/admin/crew/former-access-risks",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "create crew account",
+    method: "post",
+    path: "/api/admin/crew/members/c1/account",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "set login-enabled",
+    method: "patch",
+    path: "/api/admin/crew/users/u1/login-enabled",
+    roles: CREW_ADMIN_ROLES,
+  },
+  {
+    label: "set hub-access (super-admin)",
+    method: "patch",
+    path: "/api/admin/crew/users/u1/hub-access",
+    roles: HUB_GRANT_ADMIN_ROLES,
+  },
 ];
 
-type PermRoute = { label: string; method: "get" | "post"; path: string; resource: string; action: string };
+type PermRoute = {
+  label: string;
+  method: "get" | "post";
+  path: string;
+  resource: string;
+  action: string;
+};
 const PERM_ROUTES: PermRoute[] = [
-  { label: "retire crew", method: "post", path: "/api/crew/c1/retire", resource: "crew_members", action: "edit" },
-  { label: "reinstate crew", method: "post", path: "/api/crew/c1/reinstate", resource: "crew_members", action: "edit" },
-  { label: "former crew list", method: "get", path: "/api/crew/former", resource: "crew_members", action: "view" },
-  { label: "trigger safety alarm", method: "post", path: "/api/admin/safety-alarms", resource: "safety_alarms", action: "trigger" },
-  { label: "clear safety alarm", method: "post", path: "/api/admin/safety-alarms/a1/clear", resource: "safety_alarms", action: "clear" },
-  { label: "list safety alarm types", method: "get", path: "/api/admin/safety-alarm-types", resource: "safety_alarm_types", action: "view" },
-  { label: "create safety alarm type", method: "post", path: "/api/admin/safety-alarm-types", resource: "safety_alarm_types", action: "manage" },
+  {
+    label: "retire crew",
+    method: "post",
+    path: "/api/crew/c1/retire",
+    resource: "crew_members",
+    action: "edit",
+  },
+  {
+    label: "reinstate crew",
+    method: "post",
+    path: "/api/crew/c1/reinstate",
+    resource: "crew_members",
+    action: "edit",
+  },
+  {
+    label: "former crew list",
+    method: "get",
+    path: "/api/crew/former",
+    resource: "crew_members",
+    action: "view",
+  },
+  {
+    label: "trigger safety alarm",
+    method: "post",
+    path: "/api/admin/safety-alarms",
+    resource: "safety_alarms",
+    action: "trigger",
+  },
+  {
+    label: "clear safety alarm",
+    method: "post",
+    path: "/api/admin/safety-alarms/a1/clear",
+    resource: "safety_alarms",
+    action: "clear",
+  },
+  {
+    label: "list safety alarm types",
+    method: "get",
+    path: "/api/admin/safety-alarm-types",
+    resource: "safety_alarm_types",
+    action: "view",
+  },
+  {
+    label: "create safety alarm type",
+    method: "post",
+    path: "/api/admin/safety-alarm-types",
+    resource: "safety_alarm_types",
+    action: "manage",
+  },
 ];
 
 let app: Express;
@@ -127,14 +216,10 @@ beforeAll(async () => {
 
   try {
     for (const r of ROLE_ROUTES) {
-      a[r.method](r.path, requireRole(...(r.roles as string[]) as never[]), ok);
+      a[r.method](r.path, requireRole(...(r.roles as string[] as never[])), ok);
     }
     for (const r of PERM_ROUTES) {
-      a[r.method](
-        r.path,
-        requirePermission(r.resource, r.action as never),
-        ok,
-      );
+      a[r.method](r.path, requirePermission(r.resource, r.action as never), ok);
     }
   } catch (err) {
     mountErr = err;
@@ -165,9 +250,8 @@ describe("§R — requireRole crew-admin gate rejects non-admins", () => {
   }
 
   it("rejects an unauthenticated caller with 401 (no role)", async () => {
-    const res = await (request(app) as unknown as Record<string, (p: string) => request.Test>)
-      ["get"]("/api/admin/crew/roles")
-      .send({});
+    const agent = request(app) as unknown as Record<string, (p: string) => request.Test>;
+    const res = await agent["get"]("/api/admin/crew/roles").send({});
     expect(res.status).toBe(401);
   });
 
@@ -199,11 +283,6 @@ describe("§R — requirePermission gate rejects when permission is denied", () 
     authorizeMock.mockClear();
     authorizeMock.mockResolvedValue({ allowed: true, reason: "granted by test" });
     await send("post", "/api/crew/c1/retire", "viewer");
-    expect(authorizeMock).toHaveBeenCalledWith(
-      "actor",
-      "rbac-neg-org",
-      "crew_members",
-      "edit",
-    );
+    expect(authorizeMock).toHaveBeenCalledWith("actor", "rbac-neg-org", "crew_members", "edit");
   });
 });

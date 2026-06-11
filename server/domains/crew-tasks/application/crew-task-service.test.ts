@@ -76,7 +76,17 @@ describe("CrewTaskApplicationService", () => {
         if (!existing) {
           return null;
         }
-        const updated = { ...existing, ...patch, updatedAt: new Date("2026-06-03T00:00:00.000Z") };
+        const updated: CrewTaskEntity = {
+          ...existing,
+          ...patch,
+          dueDate:
+            patch.dueDate === undefined
+              ? existing.dueDate
+              : patch.dueDate === null
+                ? null
+                : new Date(patch.dueDate),
+          updatedAt: new Date("2026-06-03T00:00:00.000Z"),
+        };
         rows.set(id, updated);
         return updated;
       }),
@@ -160,6 +170,9 @@ describe("CrewTaskApplicationService", () => {
 
     rows.set("task-1", task());
     const added = await service.addComment(ORG, "task-1", "Checked on deck", ACTOR);
+    if (!added) {
+      throw new Error("Expected addComment to return the created event");
+    }
 
     expect(eventRepo.add).toHaveBeenCalledWith({
       orgId: ORG,

@@ -24,22 +24,28 @@
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
+// Mock signatures mirror the production projector module so `mock.calls`
+// destructures yield typed (orgId, projection) tuples in the assertions.
+type ProjectorModule = typeof import("../../server/graph/projector");
+
 type ProjectorMock = {
-  projectEquipment: jest.Mock;
-  projectFailureHistory: jest.Mock;
-  projectInventoryMovement: jest.Mock;
-  retractInstalledOn: jest.Mock;
-  projectDependency: jest.Mock;
-  retractDependency: jest.Mock;
+  projectEquipment: jest.Mock<ProjectorModule["projectEquipment"]>;
+  projectFailureHistory: jest.Mock<ProjectorModule["projectFailureHistory"]>;
+  projectInventoryMovement: jest.Mock<ProjectorModule["projectInventoryMovement"]>;
+  retractInstalledOn: jest.Mock<ProjectorModule["retractInstalledOn"]>;
+  projectDependency: jest.Mock<ProjectorModule["projectDependency"]>;
+  retractDependency: jest.Mock<ProjectorModule["retractDependency"]>;
 };
 
 const projectorMock: ProjectorMock = {
-  projectEquipment: jest.fn(async () => undefined),
-  projectFailureHistory: jest.fn(async () => undefined),
-  projectInventoryMovement: jest.fn(async () => undefined),
-  retractInstalledOn: jest.fn(async () => undefined),
-  projectDependency: jest.fn(async () => undefined),
-  retractDependency: jest.fn(async () => undefined),
+  projectEquipment: jest.fn<ProjectorModule["projectEquipment"]>(async () => undefined),
+  projectFailureHistory: jest.fn<ProjectorModule["projectFailureHistory"]>(async () => undefined),
+  projectInventoryMovement: jest.fn<ProjectorModule["projectInventoryMovement"]>(
+    async () => undefined
+  ),
+  retractInstalledOn: jest.fn<ProjectorModule["retractInstalledOn"]>(async () => undefined),
+  projectDependency: jest.fn<ProjectorModule["projectDependency"]>(async () => undefined),
+  retractDependency: jest.fn<ProjectorModule["retractDependency"]>(async () => undefined),
 };
 
 jest.unstable_mockModule("../../server/graph/projector", () => projectorMock);
