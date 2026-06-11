@@ -4,7 +4,7 @@
  *
  * Spawns the dev server, waits for "Domain routers registered (N modules)",
  * and asserts:
- *   1. The expected module count is reached (default: 111).
+ *   1. The expected module count is reached (default: 113).
  *   2. Zero "Failed to register" lines appear in startup output.
  *   3. The "ARUS application is now live" line is emitted.
  *

@@ -26,6 +26,7 @@ import { withTenantContext } from "./middleware/db-context";
 import { requireTenantAuth } from "@shared/config/tenant";
 import { supportsPinnedConnection } from "./db-config";
 import { ensureQueue, extractOrgId } from "./lib/pg-boss-utils";
+import { scheduleTelemetryLifecycleJobs } from "./telemetry-cron-schedules.js";
 
 const logger = createLogger("BackgroundJobs");
 
@@ -274,7 +275,6 @@ class BackgroundJobQueue {
       // Telemetry lifecycle crons (rollup / partition maintenance /
       // retention) — schedules and ordering rationale live in
       // telemetry-cron-schedules.ts.
-      const { scheduleTelemetryLifecycleJobs } = await import("./telemetry-cron-schedules.js");
       await scheduleTelemetryLifecycleJobs(boss, JOB_TYPES, ensureQueue);
     } catch (err: unknown) {
       this.fallback = true;

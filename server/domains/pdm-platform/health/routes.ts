@@ -16,7 +16,7 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { dbEquipmentStorage, dbDevicesStorage } from "../../../repositories";
+import { pdmHealthDirectory } from "../../../composition/pdm-health-directory.js";
 
 const router = Router();
 
@@ -71,8 +71,8 @@ router.get("/:equipmentId", async (req: Request, res: Response) => {
     }
 
     const [healthRows, pdmScores] = await Promise.all([
-      dbEquipmentStorage.getEquipmentHealth(orgId, { equipmentId }),
-      dbDevicesStorage.getPdmScores(equipmentId, orgId),
+      pdmHealthDirectory.getEquipmentHealth(orgId, { equipmentId }),
+      pdmHealthDirectory.getPdmScores(equipmentId, orgId),
     ]);
 
     const equipmentHealth = healthRows.find((eq) => eq.id === equipmentId);

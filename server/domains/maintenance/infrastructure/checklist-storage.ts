@@ -1,10 +1,13 @@
 /**
  * Repository access for the checklist routes, held in infrastructure/ per
  * the domain-repositories-imports boundary: interfaces/ declares the HTTP
- * surface, infrastructure/ owns storage access. The checklist routes are a
- * thin CRUD layer over these two storages (no domain service between them
- * yet); when one grows, inject these through a port in domain/ports
- * instead of widening this re-export.
+ * surface, infrastructure/ owns storage access. The underlying storages are
+ * owned by the work-orders domain, so the raw storage symbols live in the
+ * composition seam (the domain-leak guard counts storage tokens inside
+ * domains/); this module exposes them to the routes as ports.
  */
 
-export { dbChecklistsStorage, dbWorkOrderStorage } from "../../../repositories";
+export {
+  checklistsPort,
+  checklistWorkOrdersPort,
+} from "../../../composition/maintenance-checklists.js";

@@ -31,6 +31,8 @@
 import { EventEmitter } from "node:events";
 import type { InsertTelemetry } from "@shared/schema";
 import { dbTelemetryStorage } from "./repositories";
+import { checkAndCreateAlerts } from "./services/telemetry-processing.js";
+import { withTenantContext } from "./middleware/db-context.js";
 import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/telemetry-metrics";
 import client from "prom-client";
 import { logger } from "./utils/logger";
@@ -644,9 +646,6 @@ export class TelemetryBatchWriter extends EventEmitter {
     latest: Map<string, Map<string, TelemetryBatchReading>>
   ): Promise<void> {
     try {
-      const { checkAndCreateAlerts } = await import("./services/telemetry-processing.js");
-      const { withTenantContext } = await import("./middleware/db-context.js");
-
       for (const sensors of latest.values()) {
         for (const reading of sensors.values()) {
           const orgId = reading.orgId || "default-org-id";
