@@ -2,6 +2,7 @@ import pg from "pg";
 import fs from "fs";
 import path from "path";
 import { createLogger } from "../lib/structured-logger";
+import { RLS_EXEMPT, TENANT_TABLE_NAMES } from "../tenancy/tenant-tables";
 const logger = createLogger("Scripts:Migrate");
 
 const { Pool } = pg;
@@ -392,6 +393,40 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
     }
   }
 
+  // RLS (0018/0034/0038/0045): every registry table that exists in this
+  // database must have rowsecurity + forcerowsecurity + its
+  // tenant_isolation_<t> policy. Tables that don't exist are skipped —
+  // the RLS migrations themselves skip missing tables by design.
+  const exemptNames = new Set(RLS_EXEMPT.map((e) => e.table));
+  const rlsRequired = TENANT_TABLE_NAMES.filter((t) => !exemptNames.has(t));
+  const rlsRes = await pool.query<{
+    relname: string;
+    relrowsecurity: boolean;
+    relforcerowsecurity: boolean;
+    has_policy: boolean;
+  }>(
+    `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity,
+            EXISTS (
+              SELECT 1 FROM pg_policies p
+               WHERE p.schemaname = current_schema()
+                 AND p.tablename = c.relname
+                 AND p.policyname = 'tenant_isolation_' || c.relname
+            ) AS has_policy
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = current_schema()
+        AND c.relkind IN ('r', 'p')
+        AND c.relname = ANY($1)`,
+    [rlsRequired]
+  );
+  for (const row of rlsRes.rows) {
+    if (!row.relrowsecurity || !row.relforcerowsecurity || !row.has_policy) {
+      missing.push(
+        `RLS on ${row.relname} (rowsecurity=${row.relrowsecurity}, force=${row.relforcerowsecurity}, policy=${row.has_policy}) (0018/0045 tenant isolation)`
+      );
+    }
+  }
+
   if (missing.length > 0) {
     throw new Error(
       `[Migrate] Post-migration assertion FAILED — required objects missing: ${missing.join("; ")}`
@@ -399,7 +434,7 @@ async function assertCriticalObjects(pool: pg.Pool): Promise<void> {
   }
 
   logger.info(
-    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, identity uniques, FK delete rules present)"
+    "[Migrate] Post-migration assertions passed (telemetry dedup index, hot-path indexes, identity uniques, FK delete rules, tenant RLS present)"
   );
 }
 

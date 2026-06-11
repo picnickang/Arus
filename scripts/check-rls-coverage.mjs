@@ -118,15 +118,16 @@ const migrationCreated = new Set(
 );
 
 // ------------------------------------------------------- RLS migrations
-// Tables RLS-enabled via ARRAY lists (0018/0045 style) or literal ALTERs
-// (0038 style). Only up-migrations count.
+// Tables RLS-enabled via TENANT_TABLES arrays (0018/0045 style) or
+// literal `ALTER TABLE <t> FORCE ROW LEVEL SECURITY` statements (0034/
+// 0038 style). Only up-migrations count.
 const rlsEnabled = new Set();
 for (const fileName of readdirSync(migrationsDir).sort()) {
   if (!fileName.endsWith(".sql") || fileName.endsWith(".down.sql")) continue;
   const src = readFileSync(join(migrationsDir, fileName), "utf8");
-  for (const block of src.matchAll(/ARRAY\[([\s\S]*?)\]/g)) {
-    // Heuristic: only treat arrays in files that create tenant policies.
-    if (!/ROW LEVEL SECURITY/i.test(src)) break;
+  for (const block of src.matchAll(
+    /TENANT_TABLES\s+text\[\]\s*:=\s*ARRAY\[([\s\S]*?)\]/g
+  )) {
     for (const m of block[1].matchAll(/'([a-z_0-9]+)'/g)) rlsEnabled.add(m[1]);
   }
   for (const m of src.matchAll(
@@ -199,8 +200,14 @@ if (unprotected.length > 0) {
     );
   }
 }
+// tenant_quotas/tenant_usage appear in 0018's array but never actually
+// got RLS: 0018's DO block runs before their CREATE TABLE at the bottom
+// of the same file, so the has_table check skipped them. The hub-admin
+// tenant console depends on that (cross-org reads/writes), hence the
+// exemption. Do not extend this set — new contradictions are bugs.
+const KNOWN_ARRAY_VS_REALITY = new Set(["tenant_quotas", "tenant_usage"]);
 for (const t of exemptNames) {
-  if (rlsEnabled.has(t)) {
+  if (rlsEnabled.has(t) && !KNOWN_ARRAY_VS_REALITY.has(t)) {
     errors.push(
       `RLS_EXEMPT table "${t}" already has RLS enabled by a migration — drop the exemption or the policy, not both`
     );

@@ -99,6 +99,16 @@ export const RLS_EXEMPT: ReadonlyArray<{ table: string; reason: string }> =
       reason:
         "hub-admin monitoring reads performance metrics across orgs (server/db/system-admin/db-settings.ts)",
     },
+    {
+      table: "tenant_quotas",
+      reason:
+        "hub-admin tenant lifecycle console lists/provisions quotas across orgs (server/domains/system-admin/infrastructure/tenant-repository.ts:46,62). 0018 listed it in its RLS array, but the DO block ran before the CREATE TABLE at the bottom of the same file, so RLS never actually applied — which is the behavior the cross-org console depends on.",
+    },
+    {
+      table: "tenant_usage",
+      reason:
+        "hub-admin tenant lifecycle console reads usage across orgs; same 0018 ordering quirk as tenant_quotas",
+    },
   ]);
 
 /**
