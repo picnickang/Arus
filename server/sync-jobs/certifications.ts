@@ -7,13 +7,13 @@ const logger = createLogger("SyncJobs:Certifications");
 import { db } from "../db.js";
 import { crewCertification } from "@shared/schema.js";
 import { eq, sql, and, lt, gte } from "drizzle-orm";
-import type { CheckResult } from "./types.js";
+import type { SyncJobCheckResult } from "./types.js";
 
 /**
  * Check for crew certifications expiring within 30 days
  */
-export async function checkCrewCertificationExpiry(orgId: string): Promise<CheckResult> {
-  const issues: CheckResult["issues"] = [];
+export async function checkCrewCertificationExpiry(orgId: string): Promise<SyncJobCheckResult> {
+  const issues: SyncJobCheckResult["issues"] = [];
 
   try {
     const thirtyDaysFromNow = new Date();

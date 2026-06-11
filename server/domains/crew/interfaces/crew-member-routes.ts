@@ -8,7 +8,7 @@ import { z } from "zod";
 import { insertCrewSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
 import { permissionRepository } from "../../permissions/repository.js";
-import { dbVesselStorage } from "../../../db/vessels/index.js";
+import { vesselService } from "../../../services/domains/vessel-service.js";
 import { loadSections } from "../../../lib/aggregate-helpers.js";
 import { validateResponse } from "../../../lib/api-helpers.js";
 import { authenticatedRequest, requireOrgId,
@@ -112,7 +112,7 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
       const { sections, sectionErrors } = await loadSections(
         {
           crew: () => crewService.listCrew(orgId, undefined),
-          vessels: () => dbVesselStorage.getVessels(orgId),
+          vessels: () => vesselService.getVessels(orgId),
           crewRoles: () => crewService.listCrewRoles(orgId),
           permissionRoles: () => permissionRepository.listRoles(orgId),
         },

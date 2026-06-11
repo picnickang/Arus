@@ -1,17 +1,33 @@
 {
   "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
-  "generatedAt": "2026-06-04T07:20:11.946Z",
+  "generatedAt": "2026-06-11T04:08:05.230Z",
   "totals": {
-    "dynamicImports": 417,
-    "routeStorageImports": 103,
-    "crossDomainStorage": 80,
-    "total": 600
+    "dynamicImports": 410,
+    "routeStorageImports": 104,
+    "crossDomainStorage": 81,
+    "total": 595
   },
   "samples": {
     "dynamicImports": [
       {
         "file": "server/app.ts",
+        "target": "./orgIdValidation.js"
+      },
+      {
+        "file": "server/app.ts",
         "target": "./routes.js"
+      },
+      {
+        "file": "server/bootstrap/background-services.ts",
+        "target": "../lib/domain-event-bus/bridge.js"
+      },
+      {
+        "file": "server/bootstrap/background-services.ts",
+        "target": "../lib/event-spine/index.js"
+      },
+      {
+        "file": "server/bootstrap/background-services.ts",
+        "target": "../purchasing/email-worker"
       },
       {
         "file": "server/bootstrap/middleware.ts",
@@ -36,6 +52,18 @@
       {
         "file": "server/bootstrap/middleware.ts",
         "target": "../middleware/api-versioning"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../middleware/envelope"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../middleware/idempotency"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "@shared/offline-queue-routes"
       },
       {
         "file": "server/bootstrap/schedulers.ts",
@@ -80,34 +108,6 @@
       {
         "file": "server/bootstrap/schedulers.ts",
         "target": "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../domains/pdm-platform/feature-store/telemetry-adapter"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../../shared/config/tenant"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../domains/pdm-platform/prediction-governance/prediction-governance.service"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../domains/pdm-platform/prediction-governance/adapter"
-      },
-      {
-        "file": "server/bootstrap/schedulers.ts",
-        "target": "../job-processors"
-      },
-      {
-        "file": "server/bootstrap/services.ts",
-        "target": "../db-config"
       }
     ],
     "routeStorageImports": [

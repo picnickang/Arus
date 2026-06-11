@@ -7,13 +7,13 @@ const logger = createLogger("SyncJobs:Thresholds");
 import { db } from "../db.js";
 import { sensorThresholds } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
-import type { CheckResult } from "./types.js";
+import type { SyncJobCheckResult } from "./types.js";
 
 /**
  * Check for multiple active sensor thresholds for the same device/sensor combination
  */
-export async function checkSensorThresholdConflicts(orgId: string): Promise<CheckResult> {
-  const issues: CheckResult["issues"] = [];
+export async function checkSensorThresholdConflicts(orgId: string): Promise<SyncJobCheckResult> {
+  const issues: SyncJobCheckResult["issues"] = [];
 
   try {
     const conflicts = await db

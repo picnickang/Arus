@@ -13,7 +13,7 @@ import { getReconciliationSummary as getSummary } from "./metrics.js";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("SyncJobs:Index");
 
-export type { DataIssue, ReconciliationResult, CheckResult } from "./types.js";
+export type { DataIssue, ReconciliationResult, SyncJobCheckResult } from "./types.js";
 export { checkPartsStockAlignment } from "./parts-stock.js";
 export { checkReservationOverflow } from "./reservations.js";
 export { checkWorkOrdersPendingOnPO } from "./purchase-orders.js";

@@ -18,6 +18,9 @@
     { "file": "server/domains/rms/routes.ts",                                                 "pattern": "z.any",        "reason": "pre-existing — rms route payload; tighten in #165 (server/domains)" },
     { "file": "server/domains/workflow/operator-experience/interfaces/routes.ts",             "pattern": "z.unknown",    "reason": "pre-existing — operator-experience route; tighten in #165 (server/domains)" },
     { "file": "server/pdm/domain/response-schemas.ts",                                        "pattern": "passthrough",  "reason": "pre-existing — pdm response envelope; tighten in #165 (server/domains)" },
-    { "file": "server/shared/validators.ts",                                                  "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in shared validator helpers; tighten in #166 (server services/routes)" }
+    { "file": "server/shared/validators.ts",                                                  "pattern": "z.unknown",    "reason": "pre-existing — 3 instances in shared validator helpers; tighten in #166 (server services/routes)" },
+    { "file": "shared/api-envelope.ts",                                                      "pattern": "z.unknown",    "reason": "pre-existing — generic API envelope: data/meta/details are intentionally opaque; typed contracts use successEnvelopeOf<T>; tighten in #164 (shared/)" },
+    { "file": "server/domains/crew/interfaces/crew-member-routes.ts",                        "pattern": "z.unknown",    "reason": "pre-existing — crew unified-response aggregate sections; tighten in #165 (server/domains)" },
+    { "file": "server/domains/scheduling/routes.ts",                                         "pattern": "z.unknown",    "reason": "pre-existing — optimization dashboard aggregate sections; tighten in #165 (server/domains)" }
   ]
 }

@@ -3,7 +3,7 @@
  * Re-exports all functionality from modular implementation
  */
 
-export type { DataIssue, ReconciliationResult, CheckResult } from "./sync-jobs/index.js";
+export type { DataIssue, ReconciliationResult, SyncJobCheckResult } from "./sync-jobs/index.js";
 
 export {
   reconcileAll,

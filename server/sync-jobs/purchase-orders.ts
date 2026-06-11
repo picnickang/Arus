@@ -7,13 +7,13 @@ const logger = createLogger("SyncJobs:PurchaseOrders");
 import { db } from "../db.js";
 import { parts, reservations, purchaseOrders, purchaseOrderItems } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
-import type { CheckResult } from "./types.js";
+import type { SyncJobCheckResult } from "./types.js";
 
 /**
  * Check for work orders waiting on open purchase orders
  */
-export async function checkWorkOrdersPendingOnPO(orgId: string): Promise<CheckResult> {
-  const issues: CheckResult["issues"] = [];
+export async function checkWorkOrdersPendingOnPO(orgId: string): Promise<SyncJobCheckResult> {
+  const issues: SyncJobCheckResult["issues"] = [];
 
   try {
     const pendingWorkOrders = await db
