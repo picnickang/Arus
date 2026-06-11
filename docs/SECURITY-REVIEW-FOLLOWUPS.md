@@ -160,6 +160,44 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       can no longer regress. Remaining 146 (routes/legacy services importing
       `db/` directly) stay a tracked, ratcheted burn-down — not a defect.
 
+## B3. Data-layer remediation follow-ups (2026-06)
+
+- [ ] **Remove error-envelope `message`/`code` mirrors (sunset 2026-11-18).**
+      The canonical error envelope mirrors `error.message` and `error.code` at
+      the top level for transition compatibility (`server/middleware/envelope.ts`
+      `normalizeErrorBody`; schema in `shared/api-envelope.ts`). Remove both
+      mirrors with the unversioned-API sunset (`server/middleware/api-versioning.ts`,
+      2026-11-18) — same comms event. Update the pins in
+      `tests/unit/envelope-middleware.test.ts`; the client `ApiError` parser
+      already prefers `error.message`, so no client change is needed.
+
+- [ ] **Review the client legacy-body burndown log on a real deployment.**
+      `unwrapEnvelope` (`client/src/lib/queryClient.ts`) logs
+      `[api] non-envelope body from <url>` once per URL — the detector for any
+      consumer the raw-fetch audits missed after the /api-wide envelope flip.
+      One console review on a deployed build; then either migrate stragglers or
+      close this item.
+
+- [ ] **Auth-posture finding: endpoints were consumed with no Authorization
+      header for months.** STCW hours-of-rest import/export/rest reads, the PdM
+      model-registry version probe, and digital-twin reads sent no Bearer token,
+      yet none are public paths — production returns 401
+      (`server/security/authentication.ts:105-113`; no cookie/session fallback
+      exists). Client side fixed by the apiRequest migrations (2026-06). Open
+      question: were these dead features, or does some deployment run with auth
+      relaxed? Manual smoke on the next real deployment:
+  - _Hours of Rest_ — save, load, copy-months, CSV import.
+  - _Model registry_ — highlighted-version resolution.
+  - _Digital twin_ — templates, state, timeline pages.
+  - _Admin_ — 3D-models metadata; equipment-dependencies graph + layout.
+
+- [ ] **Repo settings (owner actions, GitHub UI — not code).**
+  - _Required status checks_ on `main`: at minimum `lint-and-typecheck`
+        (runs `check:guards`, closing the ratchet-race hole that let PRs #13/#15
+        merge red), `unit-tests`, `integration-tests`, `build`.
+  - _Dependency graph_ (Settings → Code security) so `dependency-review`
+        stops failing every PR; then flip the gate per the entry below.
+
 ## C. Cosmetic
 
 - [ ] Review-branch commits show **"Unverified"** — the SSH commit-signing key
