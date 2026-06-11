@@ -54,4 +54,43 @@ describe("client tail component extractions", () => {
     expect(vesselQueries).toContain("export async function fetchCurrentCrewPerVessel");
     expect(vesselQueries).toContain("export async function fetchRequiredCrewPerVessel");
   });
+
+  it("keeps service request dialog controls behind the service requests page", () => {
+    const page = read("client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx");
+    const dialogs = read(
+      "client/src/features/serviceRequests/pages/ServiceRequestsPageDialogs.tsx"
+    );
+
+    expect(page).toContain('from "./ServiceRequestsPageDialogs"');
+    expect(page).toContain("<ConvertToSODialog");
+    expect(page).toContain("<RejectDialog");
+    expect(dialogs).toContain("export function ConvertToSODialog");
+    expect(dialogs).toContain("export function RejectDialog");
+    expect(dialogs).toContain('data-testid="btn-submit-convert"');
+    expect(dialogs).toContain('data-testid="btn-submit-reject"');
+  });
+
+  it("keeps shift-planning data shapes in a hook type module", () => {
+    const hook = read("client/src/features/crew/hooks/useShiftPlanning.ts");
+    const types = read("client/src/features/crew/hooks/useShiftPlanningTypes.ts");
+
+    expect(hook).toContain('from "./useShiftPlanningTypes"');
+    expect(hook).toContain("export function useShiftPlanning");
+    expect(types).toContain("export interface SchedulePlanPayload");
+    expect(types).toContain("export interface EnhancedSchedulePayload");
+    expect(types).toContain("export interface CrewCertification");
+  });
+
+  it("keeps PDM equipment detail tail tabs in a sibling tab module", () => {
+    const page = read("client/src/pages/pdm-equipment-detail.tsx");
+    const tabs = read("client/src/pages/pdm-equipment-detail-tabs.tsx");
+
+    expect(page).toContain('from "./pdm-equipment-detail-tabs"');
+    expect(page).toContain("<AnomaliesTab equipmentId={equipmentId} />");
+    expect(page).toContain("<MaintenanceHistoryTab equipmentId={equipmentId} />");
+    expect(tabs).toContain("export function AnomaliesTab");
+    expect(tabs).toContain("export function MaintenanceHistoryTab");
+    expect(tabs).toContain("No anomalies detected for this equipment.");
+    expect(tabs).toContain("No maintenance history for this equipment.");
+  });
 });

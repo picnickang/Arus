@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:29:27.529Z
+Generated: 2026-06-11T23:37:16.741Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `100` counted files.
-- The current counted inventory is `100` files.
+- The temporary ceiling is `97` counted files.
+- The current counted inventory is `97` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   100 |
+| Total counted long files  |    97 |
 | Server                    |    35 |
 | Server route-like files   |     9 |
 | Server service-like files |     9 |
-| Client                    |    65 |
-| Client page files         |    26 |
+| Client                    |    62 |
+| Client page files         |    24 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -83,6 +83,9 @@ Completed splits:
 - `client/src/features/work-orders/hooks/useWorkOrdersPageData.ts` dropped below the threshold by moving work-order page formatters to a sibling lib module while preserving public exports from the hook module.
 - `client/src/pages/agent-activity.tsx` dropped below the threshold by moving activity rows, summary metrics, and activity types to a sibling page-parts module while preserving the route component and test IDs.
 - `server/domains/crew-extensions/infrastructure/schedule-planner-read-model.ts` dropped below the threshold by moving vessel summary/count query helpers to a sibling infrastructure module while preserving the adapter and `schedulePlannerReadModel` exports.
+- `client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx` dropped below the threshold by moving convert/reject dialog controls to a sibling page dialog module while preserving the exported page component.
+- `client/src/features/crew/hooks/useShiftPlanning.ts` dropped below the threshold by moving scheduling payload and data-shape types to a sibling hook type module while preserving the exported hook and return type.
+- `client/src/pages/pdm-equipment-detail.tsx` dropped below the threshold by moving anomaly and maintenance history tab rendering to a sibling tab module while preserving the route component.
 
 ## Top 30 Longest Files
 
@@ -234,9 +237,6 @@ Completed splits:
 559 server/scripts/migrate.ts
 554 server/services/ml/prediction-outcome-tracker.ts
 548 server/services/anomaly-correlation/anomaly-correlator.ts
-538 client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx
-537 client/src/features/crew/hooks/useShiftPlanning.ts
 535 server/integrations/fmcc-polling-service.ts
-533 client/src/pages/pdm-equipment-detail.tsx
 532 server/db/equipment/db-equipment.ts
 ```
