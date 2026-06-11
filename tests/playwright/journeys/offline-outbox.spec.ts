@@ -32,10 +32,7 @@ test.describe("Offline outbox — queue and reconnect", () => {
     });
   });
 
-  test("queues a mutation while offline and replays on reconnect", async ({
-    page,
-    context,
-  }) => {
+  test("queues a mutation while offline and replays on reconnect", async ({ page, context }) => {
     // Stub the probe endpoint. We capture every call (offline-time
     // attempts and the post-reconnect replay) so we can assert exactly
     // one network request hits the wire AFTER reconnect.

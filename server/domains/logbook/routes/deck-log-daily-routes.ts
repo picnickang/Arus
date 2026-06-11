@@ -132,7 +132,11 @@ export function registerDeckLogDailyRoutes(app: Express, rateLimit: RateLimiters
         logDate: string;
       } & Record<string, unknown>;
 
-      const existing = await deckLogStorage.getDeckLogDailyByDate(body.vesselId, body.logDate, orgId);
+      const existing = await deckLogStorage.getDeckLogDailyByDate(
+        body.vesselId,
+        body.logDate,
+        orgId
+      );
 
       if (existing) {
         return res.status(409).json({

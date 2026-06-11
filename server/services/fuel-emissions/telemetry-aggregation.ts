@@ -30,7 +30,9 @@ export async function aggregateTelemetryForPeriod(
   const engineEquipment = await db
     .select({
       id: equipment.id,
-      installedPower: sql<number | null>`CAST(${equipment.specifications}->>'installedPower' AS FLOAT)`,
+      installedPower: sql<
+        number | null
+      >`CAST(${equipment.specifications}->>'installedPower' AS FLOAT)`,
     })
     .from(equipment)
     .where(

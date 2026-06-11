@@ -14,9 +14,6 @@ export interface VesselPerformanceRoutesConfig {
   crewOperationRateLimit: RateLimitRequestHandler;
 }
 
-export type RouteRegisterFn = (
-  app: Express,
-  config: VesselPerformanceRoutesConfig,
-) => void;
+export type RouteRegisterFn = (app: Express, config: VesselPerformanceRoutesConfig) => void;
 
 export type { Request, Response };

@@ -17,9 +17,13 @@ import {
 } from "@/lib/offline-sync";
 
 function formatDate(value?: string | Date | null) {
-  if (!value) {return "Never";}
+  if (!value) {
+    return "Never";
+  }
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {return "Unknown";}
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
   return date.toLocaleString();
 }
 
@@ -39,7 +43,9 @@ function entityTone(entityType: string): "default" | "secondary" | "outline" | "
 }
 
 function PayloadPreview({ payload }: { payload: Record<string, unknown> }) {
-  const entries = Object.entries(payload).filter(([key]) => !key.startsWith("__")).slice(0, 5);
+  const entries = Object.entries(payload)
+    .filter(([key]) => !key.startsWith("__"))
+    .slice(0, 5);
   if (entries.length === 0) {
     return <p className="text-xs text-muted-foreground">No payload details captured.</p>;
   }
@@ -48,7 +54,9 @@ function PayloadPreview({ payload }: { payload: Record<string, unknown> }) {
       {entries.map(([key, value]) => (
         <div key={key} className="rounded-md bg-muted/40 p-2">
           <dt className="font-medium text-foreground">{key}</dt>
-          <dd className="truncate">{typeof value === "object" ? JSON.stringify(value) : String(value)}</dd>
+          <dd className="truncate">
+            {typeof value === "object" ? JSON.stringify(value) : String(value)}
+          </dd>
         </div>
       ))}
     </dl>
@@ -93,7 +101,8 @@ export default function OfflineOutboxPage() {
       workOrders: pending.filter((op) => op.entityType === "work_order").length,
       logbooks: pending.filter((op) => op.entityType === "logbook").length,
       checklists: pending.filter((op) => op.entityType === "checklist").length,
-      alerts: pending.filter((op) => op.entityType === "alert" || op.entityType === "pdm_risk").length,
+      alerts: pending.filter((op) => op.entityType === "alert" || op.entityType === "pdm_risk")
+        .length,
     }),
     [pending]
   );
@@ -113,7 +122,11 @@ export default function OfflineOutboxPage() {
   };
 
   const handleClear = async () => {
-    if (!confirm("Clear all queued offline changes? Use this only if you are sure these vessel changes should not sync.")) {
+    if (
+      !confirm(
+        "Clear all queued offline changes? Use this only if you are sure these vessel changes should not sync."
+      )
+    ) {
       return;
     }
     await clearAllOperations();
@@ -147,7 +160,10 @@ export default function OfflineOutboxPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
-      <PageHeader title="Offline Outbox" subtitle="Queued vessel changes, sync status, and conflicts." />
+      <PageHeader
+        title="Offline Outbox"
+        subtitle="Queued vessel changes, sync status, and conflicts."
+      />
       <div className="space-y-6 px-4 pt-2 lg:px-6">
         <Card>
           <CardHeader>
@@ -158,11 +174,15 @@ export default function OfflineOutboxPage() {
                   Onboard sync state
                 </CardTitle>
                 <CardDescription>
-                  Core vessel workflows are queued here when connectivity drops: work orders, logbooks, checklists, alerts, handover, and PdM actions.
+                  Core vessel workflows are queued here when connectivity drops: work orders,
+                  logbooks, checklists, alerts, handover, and PdM actions.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleSync} disabled={isSyncing || pending.length === 0 || !isNavigatorOnline}>
+                <Button
+                  onClick={handleSync}
+                  disabled={isSyncing || pending.length === 0 || !isNavigatorOnline}
+                >
                   <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                   {isSyncing ? "Syncing..." : "Sync now"}
                 </Button>
@@ -205,7 +225,8 @@ export default function OfflineOutboxPage() {
                 Conflicts need review
               </CardTitle>
               <CardDescription>
-                These changes reached the server but conflicted with newer vessel data. Review before clearing.
+                These changes reached the server but conflicted with newer vessel data. Review
+                before clearing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -217,11 +238,15 @@ export default function OfflineOutboxPage() {
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
-                      <p className="mb-1 text-xs font-medium text-muted-foreground">Local queued change</p>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        Local queued change
+                      </p>
                       <PayloadPreview payload={conflict.localVersion} />
                     </div>
                     <div>
-                      <p className="mb-1 text-xs font-medium text-muted-foreground">Server version</p>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        Server version
+                      </p>
                       <PayloadPreview payload={conflict.serverVersion} />
                     </div>
                   </div>
@@ -229,10 +254,18 @@ export default function OfflineOutboxPage() {
                     <Button size="sm" onClick={() => handleResolveConflict(conflict, "local")}>
                       Keep local and retry
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleResolveConflict(conflict, "merged")}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleResolveConflict(conflict, "merged")}
+                    >
                       Merge and retry
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleResolveConflict(conflict, "server")}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleResolveConflict(conflict, "server")}
+                    >
                       Use server / discard local
                     </Button>
                   </div>
@@ -249,7 +282,8 @@ export default function OfflineOutboxPage() {
               Queued changes
             </CardTitle>
             <CardDescription>
-              Pending items are replayed in order. Conflicted items pause until you choose a resolution.
+              Pending items are replayed in order. Conflicted items pause until you choose a
+              resolution.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -263,20 +297,34 @@ export default function OfflineOutboxPage() {
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={entityTone(op.entityType)}>{op.entityType.replace(/_/g, " ")}</Badge>
+                        <Badge variant={entityTone(op.entityType)}>
+                          {op.entityType.replace(/_/g, " ")}
+                        </Badge>
                         <Badge variant="outline">{op.operationType}</Badge>
-                        {op.retryCount > 0 && <Badge variant="destructive">{op.retryCount} failed attempt(s)</Badge>}
-                        {(op.conflictPaused || unresolvedConflictIds.has(op.id)) && <Badge variant="destructive">Conflict paused</Badge>}
+                        {op.retryCount > 0 && (
+                          <Badge variant="destructive">{op.retryCount} failed attempt(s)</Badge>
+                        )}
+                        {(op.conflictPaused || unresolvedConflictIds.has(op.id)) && (
+                          <Badge variant="destructive">Conflict paused</Badge>
+                        )}
                       </div>
                       <h3 className="mt-2 font-semibold">{labelForOperation(op)}</h3>
-                      <p className="text-xs text-muted-foreground">Queued {formatDate(op.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Queued {formatDate(op.createdAt)}
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeOperation(op.id).then(refresh)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOperation(op.id).then(refresh)}
+                    >
                       Remove
                     </Button>
                   </div>
                   {op.lastError && (
-                    <div className="mt-3 rounded-md bg-destructive/10 p-2 text-xs text-destructive">{op.lastError}</div>
+                    <div className="mt-3 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                      {op.lastError}
+                    </div>
                   )}
                   <Separator className="my-3" />
                   <PayloadPreview payload={op.payload} />

@@ -9,10 +9,7 @@
 
 import { objectStorageClient } from "../../replit_integrations/object_storage";
 import { createLogger } from "../../lib/structured-logger";
-import {
-  resolveWarehouseStorageTarget,
-  warehouseManifestKey,
-} from "./storage-config";
+import { resolveWarehouseStorageTarget, warehouseManifestKey } from "./storage-config";
 import type { WarehouseExportEntry, WarehouseManifest } from "./types";
 
 const logger = createLogger("TelemetryWarehouseExport:Manifest");
@@ -74,7 +71,7 @@ export async function saveManifest(manifest: WarehouseManifest): Promise<void> {
  */
 export function mergeEntry(
   manifest: WarehouseManifest,
-  entry: WarehouseExportEntry,
+  entry: WarehouseExportEntry
 ): WarehouseManifest {
   const others = manifest.exports.filter((e) => e.date !== entry.date);
   const next = [...others, entry].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -88,13 +85,16 @@ export function mergeEntry(
 /** Remove manifest entries whose `date` is older than `cutoffDate` (inclusive). */
 export function pruneEntries(
   manifest: WarehouseManifest,
-  cutoffDate: string,
+  cutoffDate: string
 ): { manifest: WarehouseManifest; removed: WarehouseExportEntry[] } {
   const kept: WarehouseExportEntry[] = [];
   const removed: WarehouseExportEntry[] = [];
   for (const e of manifest.exports) {
-    if (e.date < cutoffDate) {removed.push(e);}
-    else {kept.push(e);}
+    if (e.date < cutoffDate) {
+      removed.push(e);
+    } else {
+      kept.push(e);
+    }
   }
   return {
     manifest: {

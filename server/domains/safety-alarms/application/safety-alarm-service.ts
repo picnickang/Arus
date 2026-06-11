@@ -24,7 +24,7 @@ import { PROTECTED_ALARM_TYPE_KEYS } from "@shared/role-dashboard";
 export class AlarmValidationError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: string
   ) {
     super(message);
     this.name = "AlarmValidationError";
@@ -47,7 +47,7 @@ export class SafetyAlarmApplicationService {
     if (PROTECTED_ALARM_TYPE_KEYS.includes(key)) {
       throw new AlarmValidationError(
         "That key is reserved by a built-in protected alarm type",
-        "RESERVED_KEY",
+        "RESERVED_KEY"
       );
     }
     return this.repo.createType({ ...command, key });
@@ -56,7 +56,7 @@ export class SafetyAlarmApplicationService {
   async updateType(
     orgId: string,
     id: string,
-    patch: UpdateAlarmTypeCommand,
+    patch: UpdateAlarmTypeCommand
   ): Promise<SafetyAlarmTypeEntity> {
     const existing = await this.repo.findTypeById(orgId, id);
     if (!existing) {
@@ -90,10 +90,7 @@ export class SafetyAlarmApplicationService {
       throw new AlarmValidationError("Alarm type not found", "NOT_FOUND");
     }
     if (existing.isProtected) {
-      throw new AlarmValidationError(
-        "Protected alarm types cannot be deleted",
-        "PROTECTED_TYPE",
-      );
+      throw new AlarmValidationError("Protected alarm types cannot be deleted", "PROTECTED_TYPE");
     }
     await this.repo.deactivateType(orgId, id);
   }
@@ -111,22 +108,18 @@ export class SafetyAlarmApplicationService {
    * explicit `confirmed` flag from the caller (route layer) to guard against
    * accidental activation.
    */
-  async triggerAlarm(
-    command: TriggerAlarmCommand,
-    confirmed: boolean,
-  ): Promise<SafetyAlarmEntity> {
+  async triggerAlarm(command: TriggerAlarmCommand, confirmed: boolean): Promise<SafetyAlarmEntity> {
     const type = await this.repo.findTypeById(command.orgId, command.alarmTypeId);
     if (!type || !type.isActive) {
       throw new AlarmValidationError("Alarm type not found or inactive", "TYPE_NOT_FOUND");
     }
     const severity = command.severity ?? type.defaultSeverity;
     const mode = command.mode ?? "real";
-    const needsConfirm =
-      mode === "real" && (severity === "critical" || severity === "emergency");
+    const needsConfirm = mode === "real" && (severity === "critical" || severity === "emergency");
     if (needsConfirm && !confirmed) {
       throw new AlarmValidationError(
         "This high-severity alarm must be explicitly confirmed before activation",
-        "CONFIRMATION_REQUIRED",
+        "CONFIRMATION_REQUIRED"
       );
     }
     return this.repo.trigger({
@@ -143,7 +136,7 @@ export class SafetyAlarmApplicationService {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
-    resolutionNote?: string | undefined,
+    resolutionNote?: string | undefined
   ): Promise<SafetyAlarmEntity> {
     const alarm = await this.repo.findAlarmById(orgId, id);
     if (!alarm) {
@@ -154,7 +147,7 @@ export class SafetyAlarmApplicationService {
     if (requiresNote && !resolutionNote?.trim()) {
       throw new AlarmValidationError(
         "A resolution note is required to clear serious real alarms",
-        "RESOLUTION_NOTE_REQUIRED",
+        "RESOLUTION_NOTE_REQUIRED"
       );
     }
     const cleared = await this.repo.clear(orgId, id, clearedBy, clearedByName, resolutionNote);
@@ -172,7 +165,7 @@ export class SafetyAlarmApplicationService {
    */
   async acknowledge(
     command: AcknowledgeAlarmCommand,
-    scope?: UserAlarmScope,
+    scope?: UserAlarmScope
   ): Promise<SafetyAlarmAckEntity> {
     const alarm = await this.repo.findAlarmById(command.orgId, command.alarmId);
     if (!alarm) {
@@ -181,7 +174,7 @@ export class SafetyAlarmApplicationService {
     if (scope && !this.isAlarmInScope(alarm, scope)) {
       throw new AlarmValidationError(
         "This alarm is not within your assigned scope",
-        "OUT_OF_SCOPE",
+        "OUT_OF_SCOPE"
       );
     }
     return this.repo.acknowledge(command);

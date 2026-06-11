@@ -66,11 +66,7 @@ export async function prepareClassificationDataset(
   return splitDataset(data);
 }
 
-export function splitDataset<T>(
-  data: T[],
-  trainRatio = 0.7,
-  valRatio = 0.15
-): TrainingDataset<T> {
+export function splitDataset<T>(data: T[], trainRatio = 0.7, valRatio = 0.15): TrainingDataset<T> {
   const n = data.length;
   const trainEnd = Math.floor(n * trainRatio);
   const valEnd = Math.floor(n * (trainRatio + valRatio));

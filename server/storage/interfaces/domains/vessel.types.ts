@@ -26,7 +26,11 @@ export interface IVesselStorage {
   ): Promise<{ items: SelectVessel[]; total: number }>;
   getVessel(id: string, orgId?: string): Promise<SelectVessel | undefined>;
   createVessel(vessel: InsertVessel): Promise<SelectVessel>;
-  updateVessel(id: string, vessel: WidenPartial<InsertVessel>, orgId?: string): Promise<SelectVessel>;
+  updateVessel(
+    id: string,
+    vessel: WidenPartial<InsertVessel>,
+    orgId?: string
+  ): Promise<SelectVessel>;
   deleteVessel(id: string, deleteEquipment?: boolean, orgId?: string): Promise<void>;
   resetVesselDowntime(id: string): Promise<SelectVessel>;
   resetVesselOperation(id: string): Promise<SelectVessel>;
@@ -38,9 +42,7 @@ export interface IVesselStorage {
   ): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }>;
 
   // Fleet Overview
-  getVesselFleetOverview(
-    orgId?: string
-  ): Promise<{
+  getVesselFleetOverview(orgId?: string): Promise<{
     vessels: number;
     signalsMapped: number;
     signalsDiscovered: number;

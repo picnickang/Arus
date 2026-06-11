@@ -27,7 +27,10 @@ export function OpsShell({
 }: OpsShellProps) {
   return (
     <div
-      className={cn("ops-surface flex min-h-screen w-full bg-background text-foreground", className)}
+      className={cn(
+        "ops-surface flex min-h-screen w-full bg-background text-foreground",
+        className
+      )}
       data-testid={testId ?? "ops-shell"}
     >
       {sidebar}

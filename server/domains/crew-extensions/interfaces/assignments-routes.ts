@@ -87,17 +87,17 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
               notes?: string;
             };
             return {
-            id: a.id,
-            crewId: a.crewId,
-            crewName: bag.crewMember?.name || crewMap.get(a.crewId) || "Unknown",
-            vesselId: a.vesselId || "",
-            vesselName: bag.vessel?.name || vesselMap.get(a.vesselId ?? "") || "Unknown",
-            startDate: a.start instanceof Date ? a.start.toISOString() : a.start || a.date || "",
-            endDate: a.end instanceof Date ? a.end.toISOString() : a.end || a.date || "",
-            role: a.role || "Crew",
-            status: a.status === "scheduled" ? "confirmed" : a.status || "draft",
-            shiftPattern: bag.shiftPattern,
-            notes: bag.notes,
+              id: a.id,
+              crewId: a.crewId,
+              crewName: bag.crewMember?.name || crewMap.get(a.crewId) || "Unknown",
+              vesselId: a.vesselId || "",
+              vesselName: bag.vessel?.name || vesselMap.get(a.vesselId ?? "") || "Unknown",
+              startDate: a.start instanceof Date ? a.start.toISOString() : a.start || a.date || "",
+              endDate: a.end instanceof Date ? a.end.toISOString() : a.end || a.date || "",
+              role: a.role || "Crew",
+              status: a.status === "scheduled" ? "confirmed" : a.status || "draft",
+              shiftPattern: bag.shiftPattern,
+              notes: bag.notes,
             };
           });
 
@@ -157,7 +157,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         // Map status back to storage format
         const storageUpdates: Record<string, unknown> = {};
         if (validated.status) {
-          storageUpdates['status'] =
+          storageUpdates["status"] =
             validated.status === "confirmed"
               ? "scheduled"
               : validated.status === "published"
@@ -165,23 +165,27 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
                 : "pending";
         }
         if (validated.startDate) {
-          storageUpdates['start'] = new Date(validated.startDate);
-          storageUpdates['date'] = validated.startDate;
+          storageUpdates["start"] = new Date(validated.startDate);
+          storageUpdates["date"] = validated.startDate;
         }
         if (validated.endDate) {
-          storageUpdates['end'] = new Date(validated.endDate);
+          storageUpdates["end"] = new Date(validated.endDate);
         }
         if (validated.role) {
-          storageUpdates['role'] = validated.role;
+          storageUpdates["role"] = validated.role;
         }
         if (validated.crewId) {
-          storageUpdates['crewId'] = validated.crewId;
+          storageUpdates["crewId"] = validated.crewId;
         }
         if (validated.vesselId !== undefined) {
-          storageUpdates['vesselId'] = validated.vesselId;
+          storageUpdates["vesselId"] = validated.vesselId;
         }
 
-        const assignment = await dbCrewStorage.updateCrewAssignment(id ?? '', storageUpdates, orgId);
+        const assignment = await dbCrewStorage.updateCrewAssignment(
+          id ?? "",
+          storageUpdates,
+          orgId
+        );
 
         res.json({
           id: assignment.id,
@@ -206,7 +210,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
         const orgId = req.orgId!;
         const { id } = req.params;
 
-        await dbCrewStorage.deleteCrewAssignment(id ?? '', orgId);
+        await dbCrewStorage.deleteCrewAssignment(id ?? "", orgId);
         res.json({ success: true });
       }
     )

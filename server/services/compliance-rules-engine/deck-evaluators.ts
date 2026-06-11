@@ -21,7 +21,7 @@ export async function evaluateDeckMissingWatch(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const watchPeriods = (config['watchPeriods'] as string[]) || ["00-06", "06-12", "12-18", "18-24"];
+  const watchPeriods = (config["watchPeriods"] as string[]) || ["00-06", "06-12", "12-18", "18-24"];
 
   const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
@@ -56,7 +56,7 @@ export async function evaluateDeckMissingHourly(
   config: Record<string, unknown>
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
-  const minHourlyEntries = (config['minHourlyEntries'] as number) || 12;
+  const minHourlyEntries = (config["minHourlyEntries"] as number) || 12;
 
   const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
@@ -65,7 +65,7 @@ export async function evaluateDeckMissingHourly(
 
   const validEntries = deckLogComplete.hourly.filter(
     (h: Record<string, unknown>) =>
-      h['course'] !== null || h['windDirection'] !== null || h['seaState'] !== null
+      h["course"] !== null || h["windDirection"] !== null || h["seaState"] !== null
   );
 
   if (validEntries.length < minHourlyEntries) {
@@ -133,7 +133,10 @@ export async function evaluateDeckMissingPosition(
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
 
-  const daily = deckLogComplete.daily as { noonLatitude?: number | null; noonLongitude?: number | null };
+  const daily = deckLogComplete.daily as {
+    noonLatitude?: number | null;
+    noonLongitude?: number | null;
+  };
   if (daily.noonLatitude === null || daily.noonLongitude === null) {
     return {
       triggered: true,

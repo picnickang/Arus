@@ -37,10 +37,10 @@ Both `origin/main` and the local branch report the same 15 blocking drift rows:
 
 The local branch increases guarded/runtime exports and Postgres tables because it adds the Vessel Intelligence registry schema, but no `vessel_*` registry table appears in the failure list.
 
-| Ref | Guarded exports | PG tables found | SQLite tables found | Blocking drift |
-| --- | ---: | ---: | ---: | ---: |
-| `origin/main` | 209 | 284 | 130 | 15 |
-| local branch | 217 | 292 | 130 | 15 |
+| Ref           | Guarded exports | PG tables found | SQLite tables found | Blocking drift |
+| ------------- | --------------: | --------------: | ------------------: | -------------: |
+| `origin/main` |             209 |             284 |                 130 |             15 |
+| local branch  |             217 |             292 |                 130 |             15 |
 
 ## `check:schema-imports`
 

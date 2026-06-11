@@ -15,7 +15,10 @@ import type { OptimizationConstraints, OptimizationResult } from "./types.js";
 // canonical `Solve` and falling back to a lowercase alias if a future
 // version of the package adds one — this keeps the call sites readable
 // (`solver.solve(...)`) while routing to the correct underlying function.
-type LPSolution = { feasible: boolean; result: number; bounded?: boolean } & Record<string, unknown>;
+type LPSolution = { feasible: boolean; result: number; bounded?: boolean } & Record<
+  string,
+  unknown
+>;
 type SolverFn = (problem: unknown) => LPSolution;
 const _solverModule = solverDefault as object as { Solve?: SolverFn; solve?: SolverFn };
 const solver: { solve: SolverFn } = {
@@ -58,7 +61,9 @@ export class LinearProgrammingOptimizer {
 
       const lpProblem = formulateLinearProgram(jobs, constraints, partsData);
 
-      logger.info(`[LP Optimizer] Formulated LP problem with ${jobs.length} jobs and ${crewData.length} crew members`);
+      logger.info(
+        `[LP Optimizer] Formulated LP problem with ${jobs.length} jobs and ${crewData.length} crew members`
+      );
 
       const solution = solver.solve(lpProblem);
 

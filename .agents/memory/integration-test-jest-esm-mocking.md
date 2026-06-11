@@ -5,7 +5,7 @@ description: How to mock modules in the ARUS integration jest config, and why im
 
 The integration jest config (`jest.config.mjs` → `jest.integration.config.mjs`) runs **native ESM** (`extensionsToTreatAsEsm: ['.ts']`, swc transform `module.type: es6`).
 
-- `jest.mock(...)` is a **no-op** here. It silently does nothing — mocks appear "set" but never intercept. Use `jest.unstable_mockModule(specifier, factory)` and then `await import(...)` the module under test **after** the mock call (top-level mock call runs before `beforeAll`). Reference the mock fns (e.g. an `authorizeMock`) defined *before* the `unstable_mockModule` call.
+- `jest.mock(...)` is a **no-op** here. It silently does nothing — mocks appear "set" but never intercept. Use `jest.unstable_mockModule(specifier, factory)` and then `await import(...)` the module under test **after** the mock call (top-level mock call runs before `beforeAll`). Reference the mock fns (e.g. an `authorizeMock`) defined _before_ the `unstable_mockModule` call.
 
 **Why:** silently-ignored `jest.mock` is the #1 cause of "false-green" RBAC/negative tests — the real router fails to import, the suite's `if(!mountedOk) return` guards make every gate test pass trivially, and nobody notices the gate was never exercised. Always add a harness-sanity test asserting `mountErr === null` so a mount failure fails loudly.
 

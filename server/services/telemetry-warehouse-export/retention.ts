@@ -16,17 +16,16 @@
 
 import { objectStorageClient } from "../../replit_integrations/object_storage";
 import { createLogger } from "../../lib/structured-logger";
-import {
-  resolveWarehouseStorageTarget,
-  warehouseOrgPrefix,
-} from "./storage-config";
+import { resolveWarehouseStorageTarget, warehouseOrgPrefix } from "./storage-config";
 import { loadManifest, pruneEntries, saveManifest } from "./manifest";
 
 const logger = createLogger("TelemetryWarehouseExport:Retention");
 
 export function resolveRetentionDays(): number {
-  const raw = process.env['TELEMETRY_WAREHOUSE_RETENTION_DAYS'];
-  if (raw === undefined || raw === "") {return 0;}
+  const raw = process.env["TELEMETRY_WAREHOUSE_RETENTION_DAYS"];
+  if (raw === undefined || raw === "") {
+    return 0;
+  }
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) {
     logger.warn("TELEMETRY_WAREHOUSE_RETENTION_DAYS invalid — disabling retention", {
@@ -54,7 +53,7 @@ export function computeRetentionCutoffDate(now: Date, retentionDays: number): st
 /** Extract `YYYY-MM-DD` from a `date=YYYY-MM-DD/...` segment, or null. */
 function extractPartitionDate(objectName: string): string | null {
   const m = objectName.match(/\/date=(\d{4}-\d{2}-\d{2})\//);
-  return m ? m[1] ?? null : null;
+  return m ? (m[1] ?? null) : null;
 }
 
 /** Extract orgId from a `orgId=<urlencoded>/date=...` path. */
@@ -97,11 +96,17 @@ export async function pruneOldExports(now: Date = new Date()): Promise<Warehouse
 
   for (const f of files) {
     const name = f.name;
-    if (name.endsWith("_manifest.json")) {continue;}
+    if (name.endsWith("_manifest.json")) {
+      continue;
+    }
     const date = extractPartitionDate(name);
     const orgId = extractOrgId(name);
-    if (!date || !orgId) {continue;}
-    if (date >= cutoffDate) {continue;}
+    if (!date || !orgId) {
+      continue;
+    }
+    if (date >= cutoffDate) {
+      continue;
+    }
     try {
       await f.delete();
       objectsDeleted += 1;

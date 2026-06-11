@@ -199,8 +199,7 @@ export function OverviewTab({
                         <p className="text-sm font-medium">{alert.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {alert.vessel_name} &middot;{" "}
-                          {alert.created_at &&
-                            format(new Date(alert.created_at), "dd MMM HH:mm")}
+                          {alert.created_at && format(new Date(alert.created_at), "dd MMM HH:mm")}
                         </p>
                       </div>
                     </div>

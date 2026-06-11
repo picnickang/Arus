@@ -4,12 +4,12 @@ This document describes the security middleware configuration for the ARUS Marin
 
 ## Quick Reference
 
-| Feature | Status | Configuration |
-|---------|--------|---------------|
-| Helmet CSP | Enabled | Environment-specific directives |
-| HSTS | Enabled | 1 year, includeSubDomains, preload |
-| CORS | Enabled | Wildcard pattern matching |
-| Trust Proxy | Enabled | For Replit multi-proxy chain |
+| Feature     | Status  | Configuration                      |
+| ----------- | ------- | ---------------------------------- |
+| Helmet CSP  | Enabled | Environment-specific directives    |
+| HSTS        | Enabled | 1 year, includeSubDomains, preload |
+| CORS        | Enabled | Wildcard pattern matching          |
+| Trust Proxy | Enabled | For Replit multi-proxy chain       |
 
 ## Helmet Configuration
 
@@ -24,30 +24,30 @@ helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      
+
       // Environment-specific
       scriptSrc: isDevelopment
-        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]  // Dev: allow hot reload
-        : ["'self'"],                                      // Prod: strict
-        
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] // Dev: allow hot reload
+        : ["'self'"], // Prod: strict
+
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      
+
       connectSrc: isDevelopment
         ? ["'self'", "ws:", "wss:", "https:", "http:"]
         : ["'self'", "wss:", "https://api.openai.com"],
-        
+
       objectSrc: ["'none'"],
       mediaSrc: ["'self'", "data:", "blob:"],
       frameSrc: ["'none'"],
     },
   },
-  crossOriginEmbedderPolicy: false,  // Allow embedding for dev
+  crossOriginEmbedderPolicy: false, // Allow embedding for dev
   hsts: {
-    maxAge: 31536000,      // 1 year
+    maxAge: 31536000, // 1 year
     includeSubDomains: true,
     preload: true,
   },
-})
+});
 ```
 
 ### HSTS (HTTP Strict Transport Security)
@@ -65,7 +65,7 @@ Origins are matched using safe wildcard patterns:
 ```typescript
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
   "*.replit.dev",
-  "*.replit.dev:*",   // Replit dev with any port
+  "*.replit.dev:*", // Replit dev with any port
   "*.replit.app",
   "*.replit.co",
   "http://localhost:*",
@@ -77,7 +77,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
 
 ```typescript
 cors({
-  origin: corsOriginFunction,  // Custom wildcard matcher
+  origin: corsOriginFunction, // Custom wildcard matcher
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
@@ -96,7 +96,7 @@ cors({
     "X-RateLimit-Reset",
     "x-correlation-id",
   ],
-})
+});
 ```
 
 ### Wildcard Pattern Matching
@@ -111,12 +111,12 @@ The `originAllowed()` function in `server/utils/corsWildcard.ts` provides safe w
 
 Applied via `additionalSecurityHeaders` middleware (`server/security.ts`):
 
-| Header | Value | Purpose |
-|--------|-------|---------|
-| X-Content-Type-Options | nosniff | Prevent MIME sniffing |
-| Referrer-Policy | strict-origin-when-cross-origin | Privacy protection |
-| Permissions-Policy | geolocation=(), microphone=()... | Disable dangerous features |
-| Cache-Control | no-store, no-cache, must-revalidate, private | API responses |
+| Header                 | Value                                        | Purpose                    |
+| ---------------------- | -------------------------------------------- | -------------------------- |
+| X-Content-Type-Options | nosniff                                      | Prevent MIME sniffing      |
+| Referrer-Policy        | strict-origin-when-cross-origin              | Privacy protection         |
+| Permissions-Policy     | geolocation=(), microphone=()...             | Disable dangerous features |
+| Cache-Control          | no-store, no-cache, must-revalidate, private | API responses              |
 
 ## Request Security Middleware
 
@@ -130,10 +130,10 @@ Order of application (in `server/index.ts`):
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable        | Description                     | Default                     |
+| --------------- | ------------------------------- | --------------------------- |
 | ALLOWED_ORIGINS | Comma-separated origin patterns | Replit + localhost patterns |
-| NODE_ENV | Environment mode | development |
+| NODE_ENV        | Environment mode                | development                 |
 
 ## Customization
 

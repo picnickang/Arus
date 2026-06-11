@@ -28,9 +28,7 @@ const eventsQuerySchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
 });
-const eventCreateBodySchema = z
-  .object({ dayId: z.string().min(1) })
-  .and(jsonRecordSchema);
+const eventCreateBodySchema = z.object({ dayId: z.string().min(1) }).and(jsonRecordSchema);
 
 type EngineLogHourlyInput = Parameters<typeof engineLogStorage.upsertEngineLogHourly>[0];
 type EngineLogHourlyBulkInput = Parameters<typeof engineLogStorage.bulkUpsertEngineLogHourly>[0];

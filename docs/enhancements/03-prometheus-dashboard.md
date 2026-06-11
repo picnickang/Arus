@@ -1,6 +1,7 @@
 # Enhancement: Prometheus Monitoring Dashboard
 
 ## Objective
+
 Create comprehensive Grafana dashboards for real-time monitoring of inventory API performance, usage patterns, and business metrics.
 
 ---
@@ -8,6 +9,7 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
 ## Risk Assessment: **ZERO RISK** ✅
 
 **Why Zero Risk**:
+
 - Read-only monitoring (no code changes)
 - Existing Prometheus metrics already instrumented
 - Can be disabled/removed without affecting functionality
@@ -37,10 +39,12 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
             "legendFormat": "{{path}}"
           }
         ],
-        "yAxes": [{
-          "format": "reqps",
-          "label": "Requests/sec"
-        }]
+        "yAxes": [
+          {
+            "format": "reqps",
+            "label": "Requests/sec"
+          }
+        ]
       },
       {
         "title": "Latency P95/P99",
@@ -55,19 +59,23 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
             "legendFormat": "P99 - {{path}}"
           }
         ],
-        "yAxes": [{
-          "format": "s",
-          "label": "Latency"
-        }],
+        "yAxes": [
+          {
+            "format": "s",
+            "label": "Latency"
+          }
+        ],
         "alert": {
           "name": "High API Latency",
-          "conditions": [{
-            "evaluator": {
-              "type": "gt",
-              "params": [0.5]
-            },
-            "query": { "refId": "A", "from": "5m", "to": "now" }
-          }]
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [0.5]
+              },
+              "query": { "refId": "A", "from": "5m", "to": "now" }
+            }
+          ]
         }
       },
       {
@@ -79,18 +87,22 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
             "legendFormat": "{{path}}"
           }
         ],
-        "yAxes": [{
-          "format": "reqps",
-          "label": "Errors/sec"
-        }],
+        "yAxes": [
+          {
+            "format": "reqps",
+            "label": "Errors/sec"
+          }
+        ],
         "alert": {
           "name": "High Error Rate",
-          "conditions": [{
-            "evaluator": {
-              "type": "gt",
-              "params": [0.05]
+          "conditions": [
+            {
+              "evaluator": {
+                "type": "gt",
+                "params": [0.05]
+              }
             }
-          }]
+          ]
         }
       },
       {
@@ -124,10 +136,12 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
             "legendFormat": "P95 - {{query_type}}"
           }
         ],
-        "yAxes": [{
-          "format": "s",
-          "label": "Query Time"
-        }]
+        "yAxes": [
+          {
+            "format": "s",
+            "label": "Query Time"
+          }
+        ]
       }
     ],
     "time": {
@@ -203,9 +217,11 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
         ],
         "alert": {
           "name": "Critical Stock Spike",
-          "conditions": [{
-            "evaluator": { "type": "gt", "params": [10] }
-          }]
+          "conditions": [
+            {
+              "evaluator": { "type": "gt", "params": [10] }
+            }
+          ]
         }
       },
       {
@@ -311,9 +327,11 @@ Create comprehensive Grafana dashboards for real-time monitoring of inventory AP
         ],
         "alert": {
           "name": "High NaN Rate",
-          "conditions": [{
-            "evaluator": { "type": "gt", "params": [0.1] }
-          }]
+          "conditions": [
+            {
+              "evaluator": { "type": "gt", "params": [0.1] }
+            }
+          ]
         }
       }
     ]
@@ -340,7 +358,7 @@ groups:
         annotations:
           summary: "Inventory API P95 latency > 500ms"
           description: "P95 latency is {{ $value }}s on {{ $labels.path }}"
-          
+
       - alert: InventoryAPIErrorRate
         expr: sum(rate(http_requests_total{status=~"5..", path=~"/api/inventory.*"}[5m])) / sum(rate(http_requests_total{path=~"/api/inventory.*"}[5m])) > 0.05
         for: 3m
@@ -350,7 +368,7 @@ groups:
         annotations:
           summary: "Inventory API error rate > 5%"
           description: "Error rate is {{ $value | humanizePercentage }}"
-          
+
       - alert: CacheLowHitRate
         expr: sum(rate(cache_hits_total[15m])) / (sum(rate(cache_hits_total[15m])) + sum(rate(cache_misses_total[15m]))) < 0.5
         for: 30m
@@ -360,7 +378,7 @@ groups:
         annotations:
           summary: "Cache hit rate below 50%"
           description: "Hit rate is {{ $value | humanizePercentage }}"
-          
+
       - alert: CriticalStockAlertsSpike
         expr: sum(rate(inventory_stock_alerts_total{level="critical"}[1h])) > 20
         for: 15m
@@ -370,7 +388,7 @@ groups:
         annotations:
           summary: "Spike in critical stock alerts"
           description: "{{ $value }} critical alerts/hour detected"
-          
+
       - alert: SupplierPerformanceDegradation
         expr: avg(inventory_supplier_score) by (supplier_id) < 60
         for: 1h
@@ -392,44 +410,44 @@ groups:
 // Add new metrics for business KPIs
 export const inventoryMetrics = {
   // Existing metrics...
-  
+
   // Business metrics
   totalSavingsPotential: new Gauge({
-    name: 'inventory_total_savings_potential_usd',
-    help: 'Total potential savings from optimization recommendations',
-    labelNames: ['org_id'],
+    name: "inventory_total_savings_potential_usd",
+    help: "Total potential savings from optimization recommendations",
+    labelNames: ["org_id"],
   }),
-  
+
   partsWithoutUsage: new Gauge({
-    name: 'inventory_parts_without_usage_total',
-    help: 'Number of parts with no usage history',
-    labelNames: ['org_id'],
+    name: "inventory_parts_without_usage_total",
+    help: "Number of parts with no usage history",
+    labelNames: ["org_id"],
   }),
-  
+
   supplierScoreDistribution: new Histogram({
-    name: 'inventory_supplier_score',
-    help: 'Supplier performance score distribution',
-    labelNames: ['org_id', 'supplier_id'],
+    name: "inventory_supplier_score",
+    help: "Supplier performance score distribution",
+    labelNames: ["org_id", "supplier_id"],
     buckets: [0, 20, 40, 60, 80, 100],
   }),
-  
+
   eoqCalculated: new Histogram({
-    name: 'inventory_eoq_calculated',
-    help: 'Economic Order Quantity calculated values',
-    labelNames: ['org_id', 'part_category'],
+    name: "inventory_eoq_calculated",
+    help: "Economic Order Quantity calculated values",
+    labelNames: ["org_id", "part_category"],
     buckets: [1, 5, 10, 25, 50, 100, 250, 500],
   }),
-  
+
   substitutionsFound: new Counter({
-    name: 'inventory_substitutions_found_total',
-    help: 'Total number of part substitutions found',
-    labelNames: ['org_id', 'part_no'],
+    name: "inventory_substitutions_found_total",
+    help: "Total number of part substitutions found",
+    labelNames: ["org_id", "part_no"],
   }),
-  
+
   dataQualityScore: new Gauge({
-    name: 'inventory_data_quality_score',
-    help: 'Overall data completeness percentage',
-    labelNames: ['org_id', 'metric_type'],
+    name: "inventory_data_quality_score",
+    help: "Overall data completeness percentage",
+    labelNames: ["org_id", "metric_type"],
   }),
 };
 
@@ -445,21 +463,21 @@ export async function updateDataQualityMetrics(orgId: string) {
     })
     .from(parts)
     .where(eq(parts.orgId, orgId))
-    .then(r => r[0]);
-  
+    .then((r) => r[0]);
+
   // Update gauges
   inventoryMetrics.partsWithoutUsage.set(
     { org_id: orgId },
     stats.totalParts - stats.partsWithUsage
   );
-  
+
   inventoryMetrics.dataQualityScore.set(
-    { org_id: orgId, metric_type: 'usage_coverage' },
+    { org_id: orgId, metric_type: "usage_coverage" },
     (stats.partsWithUsage / stats.totalParts) * 100
   );
-  
+
   inventoryMetrics.dataQualityScore.set(
-    { org_id: orgId, metric_type: 'cost_coverage' },
+    { org_id: orgId, metric_type: "cost_coverage" },
     (stats.partsWithCosts / stats.totalParts) * 100
   );
 }
@@ -470,23 +488,27 @@ export async function updateDataQualityMetrics(orgId: string) {
 ## Implementation Steps
 
 ### Phase 1: Metric Enhancement (Day 1)
+
 1. Add new business metrics to `inventory-metrics.ts`
 2. Update endpoints to record new metrics
 3. Deploy to staging, verify metrics appear in Prometheus
 
 ### Phase 2: Dashboard Creation (Day 2)
+
 1. Import dashboard JSONs into Grafana
 2. Configure data sources
 3. Test all panels with real data
 4. Adjust thresholds based on baseline
 
 ### Phase 3: Alert Configuration (Day 3)
+
 1. Add alert rules to Prometheus
 2. Configure notification channels (Slack, PagerDuty, email)
 3. Test alerts with synthetic load
 4. Document runbook for each alert
 
 ### Phase 4: Documentation & Training (Day 4-5)
+
 1. Create dashboard user guide
 2. Train operations team on interpreting metrics
 3. Establish SLOs and review cadence
@@ -497,16 +519,19 @@ export async function updateDataQualityMetrics(orgId: string) {
 ## Expected Outcomes
 
 **Visibility**:
+
 - Real-time performance monitoring
 - Business impact tracking
 - Data quality insights
 
 **Proactive Issue Detection**:
+
 - Catch performance degradation before users complain
 - Identify data quality issues automatically
 - Track supplier performance trends
 
 **Business Value**:
+
 - Quantify cost savings from optimization
 - Demonstrate ROI of inventory management system
 - Identify most valuable features

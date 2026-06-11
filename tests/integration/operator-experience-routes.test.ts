@@ -35,7 +35,10 @@ class FakeSignalsPort implements OperatorExperienceSignalsPort {
 
 class MemoryEventPort implements OperatorExperienceEventPort {
   readonly records: RecordedOperatorExperienceEvent[] = [];
-  async record(orgId: string, event: OperatorExperienceEvent): Promise<RecordedOperatorExperienceEvent> {
+  async record(
+    orgId: string,
+    event: OperatorExperienceEvent
+  ): Promise<RecordedOperatorExperienceEvent> {
     const record = {
       ...event,
       id: `event-${this.records.length + 1}`,
@@ -46,7 +49,10 @@ class MemoryEventPort implements OperatorExperienceEventPort {
     return record;
   }
   async listRecent(orgId: string, limit: number): Promise<RecordedOperatorExperienceEvent[]> {
-    return this.records.filter((record) => record.orgId === orgId).slice(-limit).reverse();
+    return this.records
+      .filter((record) => record.orgId === orgId)
+      .slice(-limit)
+      .reverse();
   }
 }
 
@@ -87,9 +93,7 @@ describe("operator experience API routes", () => {
   it("rejects invalid roles", async () => {
     const app = buildApp();
 
-    await request(app)
-      .get("/api/operator-experience/brief?role=invalid_role")
-      .expect(400);
+    await request(app).get("/api/operator-experience/brief?role=invalid_role").expect(400);
   });
 
   it("records and lists UX events", async () => {
@@ -97,10 +101,19 @@ describe("operator experience API routes", () => {
 
     const saved = await request(app)
       .post("/api/operator-experience/events")
-      .send({ eventType: "cta_click", role: "chief_engineer", path: "/operator-experience", label: "Open Attention Inbox" })
+      .send({
+        eventType: "cta_click",
+        role: "chief_engineer",
+        path: "/operator-experience",
+        label: "Open Attention Inbox",
+      })
       .expect(201);
 
-    expect(saved.body).toMatchObject({ id: "event-1", orgId: "org-test", label: "Open Attention Inbox" });
+    expect(saved.body).toMatchObject({
+      id: "event-1",
+      orgId: "org-test",
+      label: "Open Attention Inbox",
+    });
 
     const list = await request(app).get("/api/operator-experience/events").expect(200);
     expect(list.body).toHaveLength(1);

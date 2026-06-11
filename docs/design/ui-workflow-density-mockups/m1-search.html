@@ -1,100 +1,314 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css"><link rel="stylesheet" href="mobile.css">
-<style>
-  .pal-group-label { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground); padding: 10px 4px 4px; }
-  .pal-item { display: flex; align-items: center; gap: 11px; padding: 10px 6px; border-bottom: 1px solid hsl(220 7% 94%); }
-  .pal-item svg { width: 17px; height: 17px; stroke-width: 1.9; color: var(--muted-foreground); flex-shrink: 0; }
-  .pal-item .t { font-weight: 600; font-size: 13.5px; }
-  .pal-item .t b { background: hsl(43 96% 56% / .35); font-weight: 700; border-radius: 3px; padding: 0 1px; }
-  .pal-item .s { font-size: 11.5px; color: var(--muted-foreground); }
-</style></head>
-<body>
-<div class="mcanvas">
-  <div class="compare-title">Mobile — global search (the Cmd-K equivalent)</div>
-  <div class="compare-sub">No command palette on a phone — instead a search button on every top bar opens a full-screen sheet over the same index: vessels, equipment, work orders, pages, actions.</div>
-  <div class="phones">
-
-    <!-- Phone A: trigger -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label after">Any page — search in the top bar</span></div>
-      <div class="phone">
-        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-          <span class="mtitle">Work Orders</span>
-          <div class="iconbtn hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
-          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="M12 5v14"/></svg></div>
-        </div>
-        <div class="mcontent">
-          <div class="chips"><span class="fchip on">Open · 14</span><span class="fchip">Northern Star</span><span class="fchip">High priority</span><span class="fchip">Assigned t…</span></div>
-          <div class="wo-card"><div class="wt">WO-2836 · ME cyl. 4 exhaust valve</div><div class="ws">M/V Northern Star · Main Engine #2 · due Jun 11</div><span class="badge badge-red">High</span> <span class="badge badge-gray">Open</span></div>
-          <div class="wo-card"><div class="wt">WO-2841 · Cooling water pump overhaul</div><div class="ws">M/V Northern Star · SW Cooling Pump #1 · due Jun 12</div><span class="badge badge-red">High</span> <span class="badge badge-blue">In progress</span></div>
-          <div class="wo-card"><div class="wt">WO-2839 · Purifier bowl cleaning</div><div class="ws">M/V Coral Wind · FO Purifier #2 · due Jun 14</div><span class="badge badge-amber">Medium</span> <span class="badge badge-gray">Open</span></div>
-          <div class="wo-card"><div class="wt">WO-2830 · Steering gear oil sample</div><div class="ws">M/V Baltic Trader · Steering Gear · due Jun 20</div><span class="badge badge-green">Low</span> <span class="badge badge-blue">In progress</span></div>
-        </div>
-        <div class="mbottomnav">
-          <div class="mbn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Hubs</div>
-          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ndot"></span>Alerts</div>
-          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>Flags</div>
-          <div class="mbn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</div>
-        </div>
-        <div class="homebar"></div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <link rel="stylesheet" href="mobile.css" />
+    <style>
+      .pal-group-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        padding: 10px 4px 4px;
+      }
+      .pal-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 10px 6px;
+        border-bottom: 1px solid hsl(220 7% 94%);
+      }
+      .pal-item svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 1.9;
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+      }
+      .pal-item .t {
+        font-weight: 600;
+        font-size: 13.5px;
+      }
+      .pal-item .t b {
+        background: hsl(43 96% 56% / 0.35);
+        font-weight: 700;
+        border-radius: 3px;
+        padding: 0 1px;
+      }
+      .pal-item .s {
+        font-size: 11.5px;
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mcanvas">
+      <div class="compare-title">Mobile — global search (the Cmd-K equivalent)</div>
+      <div class="compare-sub">
+        No command palette on a phone — instead a search button on every top bar opens a full-screen
+        sheet over the same index: vessels, equipment, work orders, pages, actions.
       </div>
-      <div class="anno anno-green" style="top:96px; left:-206px;"><div class="anno-pill">1</div><div class="anno-card">Search button on every top bar — one tap from anywhere, same index as desktop Cmd-K</div></div>
-      <div class="anno anno-green" style="top:560px; left:-206px;"><div class="anno-pill">2</div><div class="anno-card">Filter chips persist in the URL — back-navigation and app relaunch keep the slice</div></div>
-    </div>
+      <div class="phones">
+        <!-- Phone A: trigger -->
+        <div class="phone-wrap">
+          <div class="phone-label">
+            <span class="panel-label after">Any page — search in the top bar</span>
+          </div>
+          <div class="phone">
+            <div class="statusbar">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
+              </div>
+            </div>
+            <div class="mtopbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+              <span class="mtitle">Work Orders</span>
+              <div class="iconbtn hot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </div>
+              <div class="iconbtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+              </div>
+            </div>
+            <div class="mcontent">
+              <div class="chips">
+                <span class="fchip on">Open · 14</span><span class="fchip">Northern Star</span
+                ><span class="fchip">High priority</span><span class="fchip">Assigned t…</span>
+              </div>
+              <div class="wo-card">
+                <div class="wt">WO-2836 · ME cyl. 4 exhaust valve</div>
+                <div class="ws">M/V Northern Star · Main Engine #2 · due Jun 11</div>
+                <span class="badge badge-red">High</span> <span class="badge badge-gray">Open</span>
+              </div>
+              <div class="wo-card">
+                <div class="wt">WO-2841 · Cooling water pump overhaul</div>
+                <div class="ws">M/V Northern Star · SW Cooling Pump #1 · due Jun 12</div>
+                <span class="badge badge-red">High</span>
+                <span class="badge badge-blue">In progress</span>
+              </div>
+              <div class="wo-card">
+                <div class="wt">WO-2839 · Purifier bowl cleaning</div>
+                <div class="ws">M/V Coral Wind · FO Purifier #2 · due Jun 14</div>
+                <span class="badge badge-amber">Medium</span>
+                <span class="badge badge-gray">Open</span>
+              </div>
+              <div class="wo-card">
+                <div class="wt">WO-2830 · Steering gear oil sample</div>
+                <div class="ws">M/V Baltic Trader · Steering Gear · due Jun 20</div>
+                <span class="badge badge-green">Low</span>
+                <span class="badge badge-blue">In progress</span>
+              </div>
+            </div>
+            <div class="mbottomnav">
+              <div class="mbn active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" /></svg
+                >Hubs
+              </div>
+              <div class="mbn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg
+                ><span class="ndot"></span>Alerts
+              </div>
+              <div class="mbn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                  <path d="M4 22v-7" /></svg
+                >Flags
+              </div>
+              <div class="mbn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" /></svg
+                >Profile
+              </div>
+            </div>
+            <div class="homebar"></div>
+          </div>
+          <div class="anno anno-green" style="top: 96px; left: -206px">
+            <div class="anno-pill">1</div>
+            <div class="anno-card">
+              Search button on every top bar — one tap from anywhere, same index as desktop Cmd-K
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 560px; left: -206px">
+            <div class="anno-pill">2</div>
+            <div class="anno-card">
+              Filter chips persist in the URL — back-navigation and app relaunch keep the slice
+            </div>
+          </div>
+        </div>
 
-    <!-- Phone B: search sheet -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label after">Search sheet</span></div>
-      <div class="phone">
-        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar" style="gap:9px">
-          <div style="flex:1; display:flex; align-items:center; gap:8px; background:var(--muted); border-radius:11px; padding:9px 12px">
-            <svg style="width:16px;height:16px;stroke-width:2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <span style="font-weight:600; font-size:14.5px">north<span class="caret"></span></span>
+        <!-- Phone B: search sheet -->
+        <div class="phone-wrap">
+          <div class="phone-label"><span class="panel-label after">Search sheet</span></div>
+          <div class="phone">
+            <div class="statusbar">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
+              </div>
+            </div>
+            <div class="mtopbar" style="gap: 9px">
+              <div
+                style="
+                  flex: 1;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  background: var(--muted);
+                  border-radius: 11px;
+                  padding: 9px 12px;
+                "
+              >
+                <svg
+                  style="width: 16px; height: 16px; stroke-width: 2"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <span style="font-weight: 600; font-size: 14.5px"
+                  >north<span class="caret"></span
+                ></span>
+              </div>
+              <span style="color: hsl(197 75% 34%); font-weight: 600; font-size: 13.5px"
+                >Cancel</span
+              >
+            </div>
+            <div class="mcontent" style="padding-bottom: 300px">
+              <div class="pal-group-label">Vessels</div>
+              <div
+                class="pal-item"
+                style="background: var(--sidebar-accent); border-radius: 10px; padding: 10px"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"
+                  />
+                  <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
+                  <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+                  <path d="M12 10v4" />
+                  <path d="M12 2v3" />
+                </svg>
+                <div>
+                  <div class="t">M/V <b>North</b>ern Star</div>
+                  <div class="s">Vessel intelligence</div>
+                </div>
+                <span class="badge badge-amber" style="margin-left: auto">2 alerts</span>
+              </div>
+              <div class="pal-group-label">Equipment</div>
+              <div class="pal-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                  <rect x="9" y="9" width="6" height="6" />
+                  <path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2" />
+                </svg>
+                <div>
+                  <div class="t">Main Engine #2</div>
+                  <div class="s">M/V <b>North</b>ern Star · Health 62</div>
+                </div>
+                <span class="badge badge-amber" style="margin-left: auto">Warning</span>
+              </div>
+              <div class="pal-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                  <rect x="9" y="9" width="6" height="6" />
+                  <path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2" />
+                </svg>
+                <div>
+                  <div class="t">SW Cooling Pump #1</div>
+                  <div class="s">M/V <b>North</b>ern Star · Health 84</div>
+                </div>
+              </div>
+              <div class="pal-group-label">Work orders</div>
+              <div class="pal-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                  />
+                </svg>
+                <div>
+                  <div class="t">WO-2836 · ME cyl. 4 exhaust valve</div>
+                  <div class="s"><b>North</b>ern Star · Open</div>
+                </div>
+              </div>
+              <div class="pal-group-label">Pages &amp; actions</div>
+              <div class="pal-item" style="border-bottom: none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                <div>
+                  <div class="t">Create work order for "<b>north</b>ern star"…</div>
+                  <div class="s">Opens quick sheet, prefilled</div>
+                </div>
+              </div>
+            </div>
+            <div class="kb">
+              <div class="kb-row">
+                <span class="key">Q</span><span class="key">W</span><span class="key">E</span
+                ><span class="key">R</span><span class="key">T</span><span class="key">Y</span
+                ><span class="key">U</span><span class="key">I</span><span class="key">O</span
+                ><span class="key">P</span>
+              </div>
+              <div class="kb-row">
+                <span class="key">A</span><span class="key">S</span><span class="key">D</span
+                ><span class="key">F</span><span class="key">G</span><span class="key">H</span
+                ><span class="key">J</span><span class="key">K</span><span class="key">L</span>
+              </div>
+              <div class="kb-row">
+                <span class="key wide">⇧</span><span class="key">Z</span><span class="key">X</span
+                ><span class="key">C</span><span class="key">V</span><span class="key">B</span
+                ><span class="key">N</span><span class="key">M</span><span class="key wide">⌫</span>
+              </div>
+              <div class="kb-row">
+                <span class="key wide">123</span><span class="key space">space</span
+                ><span class="key wide" style="background: hsl(197, 71%, 52%); color: #fff"
+                  >go</span
+                >
+              </div>
+            </div>
+            <div class="homebar" style="z-index: 60"></div>
           </div>
-          <span style="color:hsl(197 75% 34%); font-weight:600; font-size:13.5px">Cancel</span>
+          <div class="anno anno-green" style="top: 240px; right: -206px">
+            <div class="anno-pill">3</div>
+            <div class="anno-card">
+              Grouped results with health/alert state inline — triage starts in the search sheet
+              itself
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 470px; right: -206px">
+            <div class="anno-pill">4</div>
+            <div class="anno-card">
+              Action rows jump straight into prefilled flows — zero navigation for the common case
+            </div>
+          </div>
         </div>
-        <div class="mcontent" style="padding-bottom:300px">
-          <div class="pal-group-label">Vessels</div>
-          <div class="pal-item" style="background:var(--sidebar-accent); border-radius:10px; padding:10px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg>
-            <div><div class="t">M/V <b>North</b>ern Star</div><div class="s">Vessel intelligence</div></div>
-            <span class="badge badge-amber" style="margin-left:auto">2 alerts</span>
-          </div>
-          <div class="pal-group-label">Equipment</div>
-          <div class="pal-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></svg>
-            <div><div class="t">Main Engine #2</div><div class="s">M/V <b>North</b>ern Star · Health 62</div></div>
-            <span class="badge badge-amber" style="margin-left:auto">Warning</span>
-          </div>
-          <div class="pal-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></svg>
-            <div><div class="t">SW Cooling Pump #1</div><div class="s">M/V <b>North</b>ern Star · Health 84</div></div>
-          </div>
-          <div class="pal-group-label">Work orders</div>
-          <div class="pal-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            <div><div class="t">WO-2836 · ME cyl. 4 exhaust valve</div><div class="s"><b>North</b>ern Star · Open</div></div>
-          </div>
-          <div class="pal-group-label">Pages &amp; actions</div>
-          <div class="pal-item" style="border-bottom:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            <div><div class="t">Create work order for "<b>north</b>ern star"…</div><div class="s">Opens quick sheet, prefilled</div></div>
-          </div>
-        </div>
-        <div class="kb">
-          <div class="kb-row"><span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span></div>
-          <div class="kb-row"><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span></div>
-          <div class="kb-row"><span class="key wide">⇧</span><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span><span class="key wide">⌫</span></div>
-          <div class="kb-row"><span class="key wide">123</span><span class="key space">space</span><span class="key wide" style="background:hsl(197,71%,52%); color:#fff">go</span></div>
-        </div>
-        <div class="homebar" style="z-index:60"></div>
       </div>
-      <div class="anno anno-green" style="top:240px; right:-206px;"><div class="anno-pill">3</div><div class="anno-card">Grouped results with health/alert state inline — triage starts in the search sheet itself</div></div>
-      <div class="anno anno-green" style="top:470px; right:-206px;"><div class="anno-pill">4</div><div class="anno-card">Action rows jump straight into prefilled flows — zero navigation for the common case</div></div>
     </div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

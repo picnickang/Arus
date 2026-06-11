@@ -57,19 +57,21 @@ async function tableExists(client: PoolClient, name: string): Promise<boolean> {
   const r = await client.query<{ exists: boolean }>(
     `SELECT EXISTS (SELECT 1 FROM information_schema.tables
                      WHERE table_schema = 'public' AND table_name = $1) AS exists`,
-    [name],
+    [name]
   );
   return r.rows[0]?.exists === true;
 }
 
 async function seedUsage(metric: string, value: number, windowDate: string): Promise<void> {
-  if (!pool) {return;}
+  if (!pool) {
+    return;
+  }
   await pool.query(
     `INSERT INTO tenant_usage (org_id, metric, window_start, value)
        VALUES ($1, $2, $3::date, $4)
        ON CONFLICT (org_id, metric, window_start)
          DO UPDATE SET value = EXCLUDED.value, recorded_at = now()`,
-    [ORG, metric, windowDate, value],
+    [ORG, metric, windowDate, value]
   );
 }
 
@@ -78,20 +80,26 @@ function todayWindowDate(): string {
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) {return;}
+  if (!databaseUrl) {
+    return;
+  }
   try {
     pool = new Pool({ connectionString: databaseUrl, max: 2 });
     const client = await pool.connect();
     try {
-      if (!(await tableExists(client, "tenant_quotas"))) {return;}
-      if (!(await tableExists(client, "tenant_usage"))) {return;}
+      if (!(await tableExists(client, "tenant_quotas"))) {
+        return;
+      }
+      if (!(await tableExists(client, "tenant_usage"))) {
+        return;
+      }
       usageWindows[1].windowStart = todayWindowDate();
 
       // Snapshot pre-existing quota row (if any) so we restore it.
       const existing = await client.query<QuotaRow>(
         `SELECT max_storage_bytes, max_equipment_count, max_telemetry_rows_per_day
            FROM tenant_quotas WHERE org_id = $1`,
-        [ORG],
+        [ORG]
       );
       if (existing.rows.length > 0) {
         originalQuota = existing.rows[0];
@@ -105,12 +113,9 @@ beforeAll(async () => {
         const r = await client.query<{ value: string | number }>(
           `SELECT value FROM tenant_usage
              WHERE org_id = $1 AND metric = $2 AND window_start = $3::date`,
-          [ORG, w.metric, w.windowStart],
+          [ORG, w.metric, w.windowStart]
         );
-        originalUsage.set(
-          `${w.metric}|${w.windowStart}`,
-          r.rows.length > 0 ? r.rows[0] : null,
-        );
+        originalUsage.set(`${w.metric}|${w.windowStart}`, r.rows.length > 0 ? r.rows[0] : null);
       }
 
       // Seed a synthetic quota row that's small enough to cross the
@@ -121,7 +126,7 @@ beforeAll(async () => {
            ON CONFLICT (org_id) DO UPDATE
              SET max_storage_bytes = EXCLUDED.max_storage_bytes,
                  max_telemetry_rows_per_day = EXCLUDED.max_telemetry_rows_per_day`,
-        [ORG, STORAGE_LIMIT, 100, TELEMETRY_LIMIT],
+        [ORG, STORAGE_LIMIT, 100, TELEMETRY_LIMIT]
       );
       ready = true;
     } finally {
@@ -145,13 +150,13 @@ afterAll(async () => {
                VALUES ($1, $2, $3::date, $4)
                ON CONFLICT (org_id, metric, window_start)
                  DO UPDATE SET value = EXCLUDED.value`,
-            [ORG, w.metric, w.windowStart, prior.value],
+            [ORG, w.metric, w.windowStart, prior.value]
           );
         } else {
           await pool.query(
             `DELETE FROM tenant_usage
                WHERE org_id = $1 AND metric = $2 AND window_start = $3::date`,
-            [ORG, w.metric, w.windowStart],
+            [ORG, w.metric, w.windowStart]
           );
         }
       }
@@ -169,7 +174,7 @@ afterAll(async () => {
             originalQuota.max_storage_bytes,
             originalQuota.max_equipment_count,
             originalQuota.max_telemetry_rows_per_day,
-          ],
+          ]
         );
       } else {
         await pool.query(`DELETE FROM tenant_quotas WHERE org_id = $1`, [ORG]);
@@ -179,7 +184,11 @@ afterAll(async () => {
     }
   }
   if (pool) {
-    try { await pool.end(); } catch { /* noop */ }
+    try {
+      await pool.end();
+    } catch {
+      /* noop */
+    }
     pool = null;
   }
 }, 30_000);
@@ -195,8 +204,12 @@ async function probeServerUp(): Promise<boolean> {
 
 describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", () => {
   it("soft-throttles at >=80% with warning headers and lets request through the gate", async () => {
-    if (!ready) {return;} // env not provisioned
-    if (!(await probeServerUp())) {return;}
+    if (!ready) {
+      return;
+    } // env not provisioned
+    if (!(await probeServerUp())) {
+      return;
+    }
 
     await seedUsage("storage_bytes", Math.floor(STORAGE_LIMIT * 0.85), "1970-01-01");
 
@@ -221,8 +234,12 @@ describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", (
   }, 20_000);
 
   it("hard-throttles at >=100% with 429 + Retry-After + TENANT_QUOTA_EXCEEDED", async () => {
-    if (!ready) {return;}
-    if (!(await probeServerUp())) {return;}
+    if (!ready) {
+      return;
+    }
+    if (!(await probeServerUp())) {
+      return;
+    }
 
     await seedUsage("storage_bytes", STORAGE_LIMIT, "1970-01-01");
 
@@ -248,14 +265,14 @@ describe("Task #89 — enforceQuota wiring (storage_bytes on /api/kb/upload)", (
 
 describe("Task #89 — enforceQuota wiring (telemetry_rows_today on /api/telemetry/readings)", () => {
   it("soft-throttles at >=80% with warning headers", async () => {
-    if (!ready) {return;}
-    if (!(await probeServerUp())) {return;}
+    if (!ready) {
+      return;
+    }
+    if (!(await probeServerUp())) {
+      return;
+    }
 
-    await seedUsage(
-      "telemetry_rows_today",
-      Math.floor(TELEMETRY_LIMIT * 0.9),
-      todayWindowDate(),
-    );
+    await seedUsage("telemetry_rows_today", Math.floor(TELEMETRY_LIMIT * 0.9), todayWindowDate());
 
     const res = await fetch(`${BASE}/api/telemetry/readings`, {
       method: "POST",
@@ -278,8 +295,12 @@ describe("Task #89 — enforceQuota wiring (telemetry_rows_today on /api/telemet
   }, 20_000);
 
   it("hard-throttles at >=100% with 429 + Retry-After pointing past now (per-day window)", async () => {
-    if (!ready) {return;}
-    if (!(await probeServerUp())) {return;}
+    if (!ready) {
+      return;
+    }
+    if (!(await probeServerUp())) {
+      return;
+    }
 
     await seedUsage("telemetry_rows_today", TELEMETRY_LIMIT + 5, todayWindowDate());
 
@@ -328,22 +349,25 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
   const bridgeEquipmentId = `t89-bridge-eq-${Date.now()}`;
 
   beforeAll(async () => {
-    if (!pool || !ready) {return;}
+    if (!pool || !ready) {
+      return;
+    }
     await pool.query(
       `INSERT INTO equipment (id, org_id, name, type) VALUES ($1, $2, $3, $4)
        ON CONFLICT (id) DO NOTHING`,
-      [bridgeEquipmentId, ORG, "Task #89 Bridge Test Equipment", "test"],
+      [bridgeEquipmentId, ORG, "Task #89 Bridge Test Equipment", "test"]
     );
   }, 30_000);
 
   afterAll(async () => {
-    if (!pool || !ready) {return;}
+    if (!pool || !ready) {
+      return;
+    }
     try {
       if (cleanupEquipmentIds.length > 0) {
-        await pool.query(
-          `DELETE FROM equipment_telemetry WHERE equipment_id = ANY($1::text[])`,
-          [cleanupEquipmentIds],
-        );
+        await pool.query(`DELETE FROM equipment_telemetry WHERE equipment_id = ANY($1::text[])`, [
+          cleanupEquipmentIds,
+        ]);
       }
       await pool.query(`DELETE FROM equipment WHERE id = $1`, [bridgeEquipmentId]);
     } catch {
@@ -359,34 +383,33 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
   // the same Postgres the test seeded.
   const runBridgeWriteBatch = async (
     equipmentId: string,
-    orgId: string,
-  ): Promise<{ blocked: { total: number; perOrg: Record<string, number> } | null; error?: string }> => {
+    orgId: string
+  ): Promise<{
+    blocked: { total: number; perOrg: Record<string, number> } | null;
+    error?: string;
+  }> => {
     const { execFileSync } = await import("node:child_process");
     const path = await import("node:path");
-    const helper = path.resolve(
-      __dirname,
-      "helpers",
-      "run-bridge-writebatch.ts",
-    );
+    const helper = path.resolve(__dirname, "helpers", "run-bridge-writebatch.ts");
     // Resolve tsx via its bin shim to skip npx's package-resolution
     // latency (which adds ~10s of cold-start to each invocation).
     const tsxBin = path.resolve(process.cwd(), "node_modules", ".bin", "tsx");
-    const out = execFileSync(
-      tsxBin,
-      [helper, JSON.stringify({ equipmentId, orgId })],
-      {
-        env: process.env,
-        stdio: ["ignore", "pipe", "inherit"],
-        timeout: 60_000,
-      },
-    ).toString("utf8");
+    const out = execFileSync(tsxBin, [helper, JSON.stringify({ equipmentId, orgId })], {
+      env: process.env,
+      stdio: ["ignore", "pipe", "inherit"],
+      timeout: 60_000,
+    }).toString("utf8");
     const match = out.match(/<<<T89_RESULT_BEGIN>>>([\s\S]*?)<<<T89_RESULT_END>>>/);
-    if (!match) {throw new Error(`subprocess produced no result payload; stdout=${out.slice(-500)}`);}
+    if (!match) {
+      throw new Error(`subprocess produced no result payload; stdout=${out.slice(-500)}`);
+    }
     return JSON.parse(match[1]);
   };
 
   it("drops readings for an org already at telemetry_rows_today limit and never writes them", async () => {
-    if (!ready || !pool) {return;}
+    if (!ready || !pool) {
+      return;
+    }
 
     // Seed the daily counter exactly at the limit so the next write
     // attempt is blocked.
@@ -402,13 +425,15 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
     // Crucially: the row was NOT committed to Postgres.
     const written = await pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count FROM equipment_telemetry WHERE equipment_id = $1`,
-      [bridgeEquipmentId],
+      [bridgeEquipmentId]
     );
     expect(Number(written.rows[0].count)).toBe(0);
   }, 90_000);
 
   it("allows readings for an org under limit and writes them through", async () => {
-    if (!ready || !pool) {return;}
+    if (!ready || !pool) {
+      return;
+    }
 
     // Well below the daily limit — should pass through.
     await seedUsage("telemetry_rows_today", 1, todayWindowDate());
@@ -416,7 +441,7 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
     cleanupEquipmentIds.push(bridgeEquipmentId);
     const before = await pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count FROM equipment_telemetry WHERE equipment_id = $1`,
-      [bridgeEquipmentId],
+      [bridgeEquipmentId]
     );
     const beforeCount = Number(before.rows[0].count);
 
@@ -426,7 +451,7 @@ describe("Task #89 — bridge-path telemetry quota (active ingest, writeBatch)",
 
     const after = await pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count FROM equipment_telemetry WHERE equipment_id = $1`,
-      [bridgeEquipmentId],
+      [bridgeEquipmentId]
     );
     expect(Number(after.rows[0].count)).toBe(beforeCount + 1);
   }, 90_000);

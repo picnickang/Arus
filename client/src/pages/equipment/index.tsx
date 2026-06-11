@@ -126,10 +126,9 @@ export default function EquipmentPage() {
     queryKey: ["/api/certificates"],
   });
 
-  const {
-    data: decommissionedEquipment = [],
-    isLoading: isLoadingDecommissioned,
-  } = useQuery<Equipment[]>({
+  const { data: decommissionedEquipment = [], isLoading: isLoadingDecommissioned } = useQuery<
+    Equipment[]
+  >({
     queryKey: equipmentKeys.decommissioned(),
     queryFn: () => apiRequest<Equipment[]>("GET", "/api/equipment/decommissioned"),
     enabled: activeTab === "decommissioned",
@@ -655,7 +654,9 @@ export default function EquipmentPage() {
         )}
         {selectedEquipment && (
           <SensorSetupWizard
-            equipment={selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]}
+            equipment={
+              selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]
+            }
             open={isSensorWizardOpen}
             onClose={() => setIsSensorWizardOpen(false)}
             onSuccess={() => {

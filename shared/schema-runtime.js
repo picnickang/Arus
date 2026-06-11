@@ -10,116 +10,242 @@ import * as sqliteVessel from "./schema-sqlite-vessel";
 import * as sqliteSync from "./schema-sqlite-sync";
 const organizations = isLocalMode ? sqliteSync.organizationsSqlite : pgSchema.organizations;
 const users = isLocalMode ? sqliteSync.usersSqlite : pgSchema.users;
-const syncJournal = isLocalMode ? sqliteSync.syncJournalSqlite : pgSchema.syncJournal || sqliteSync.syncJournalSqlite;
-const syncOutbox = isLocalMode ? sqliteSync.syncOutboxSqlite : pgSchema.syncOutbox || sqliteSync.syncOutboxSqlite;
+const syncJournal = isLocalMode
+  ? sqliteSync.syncJournalSqlite
+  : pgSchema.syncJournal || sqliteSync.syncJournalSqlite;
+const syncOutbox = isLocalMode
+  ? sqliteSync.syncOutboxSqlite
+  : pgSchema.syncOutbox || sqliteSync.syncOutboxSqlite;
 const vessels = isLocalMode ? sqliteVessel.vesselsSqlite : pgSchema.vessels;
 const equipment = isLocalMode ? sqliteVessel.equipmentSqlite : pgSchema.equipment;
 const devices = isLocalMode ? sqliteVessel.devicesSqlite : pgSchema.devices;
-const equipmentTelemetry = isLocalMode ? sqliteVessel.equipmentTelemetrySqlite : pgSchema.equipmentTelemetry;
-const equipmentLifecycle = isLocalMode ? sqliteVessel.equipmentLifecycleSqlite : pgSchema.equipmentLifecycle;
-const performanceMetrics = isLocalMode ? sqliteVessel.performanceMetricsSqlite : pgSchema.performanceMetrics;
+const equipmentTelemetry = isLocalMode
+  ? sqliteVessel.equipmentTelemetrySqlite
+  : pgSchema.equipmentTelemetry;
+const equipmentLifecycle = isLocalMode
+  ? sqliteVessel.equipmentLifecycleSqlite
+  : pgSchema.equipmentLifecycle;
+const performanceMetrics = isLocalMode
+  ? sqliteVessel.performanceMetricsSqlite
+  : pgSchema.performanceMetrics;
 const rawTelemetry = isLocalMode ? sqliteVessel.rawTelemetrySqlite : pgSchema.rawTelemetry;
 const deviceRegistry = isLocalMode ? sqliteVessel.deviceRegistrySqlite : pgSchema.deviceRegistry;
 const workOrders = isLocalMode ? sqliteVessel.workOrdersSqlite : pgSchema.workOrders;
-const workOrderCompletions = isLocalMode ? sqliteVessel.workOrderCompletionsSqlite : pgSchema.workOrderCompletions;
+const workOrderCompletions = isLocalMode
+  ? sqliteVessel.workOrderCompletionsSqlite
+  : pgSchema.workOrderCompletions;
 const workOrderParts = isLocalMode ? sqliteVessel.workOrderPartsSqlite : pgSchema.workOrderParts;
-const workOrderChecklists = isLocalMode ? sqliteVessel.workOrderChecklistsSqlite : pgSchema.workOrderChecklists;
-const workOrderWorklogs = isLocalMode ? sqliteVessel.workOrderWorklogsSqlite : pgSchema.workOrderWorklogs;
-const maintenanceSchedules = isLocalMode ? sqliteVessel.maintenanceSchedulesSqlite : pgSchema.maintenanceSchedules;
-const maintenanceRecords = isLocalMode ? sqliteVessel.maintenanceRecordsSqlite : pgSchema.maintenanceRecords;
-const maintenanceCosts = isLocalMode ? sqliteVessel.maintenanceCostsSqlite : pgSchema.maintenanceCosts;
-const maintenanceTemplates = isLocalMode ? sqliteVessel.maintenanceTemplatesSqlite : pgSchema.maintenanceTemplates;
-const maintenanceChecklistItems = isLocalMode ? sqliteVessel.maintenanceChecklistItemsSqlite : pgSchema.maintenanceChecklistItems;
-const maintenanceChecklistCompletions = isLocalMode ? sqliteVessel.maintenanceChecklistCompletionsSqlite : pgSchema.maintenanceChecklistCompletions;
-const maintenanceWindows = isLocalMode ? sqliteVessel.maintenanceWindowsSqlite : pgSchema.maintenanceWindows;
+const workOrderChecklists = isLocalMode
+  ? sqliteVessel.workOrderChecklistsSqlite
+  : pgSchema.workOrderChecklists;
+const workOrderWorklogs = isLocalMode
+  ? sqliteVessel.workOrderWorklogsSqlite
+  : pgSchema.workOrderWorklogs;
+const maintenanceSchedules = isLocalMode
+  ? sqliteVessel.maintenanceSchedulesSqlite
+  : pgSchema.maintenanceSchedules;
+const maintenanceRecords = isLocalMode
+  ? sqliteVessel.maintenanceRecordsSqlite
+  : pgSchema.maintenanceRecords;
+const maintenanceCosts = isLocalMode
+  ? sqliteVessel.maintenanceCostsSqlite
+  : pgSchema.maintenanceCosts;
+const maintenanceTemplates = isLocalMode
+  ? sqliteVessel.maintenanceTemplatesSqlite
+  : pgSchema.maintenanceTemplates;
+const maintenanceChecklistItems = isLocalMode
+  ? sqliteVessel.maintenanceChecklistItemsSqlite
+  : pgSchema.maintenanceChecklistItems;
+const maintenanceChecklistCompletions = isLocalMode
+  ? sqliteVessel.maintenanceChecklistCompletionsSqlite
+  : pgSchema.maintenanceChecklistCompletions;
+const maintenanceWindows = isLocalMode
+  ? sqliteVessel.maintenanceWindowsSqlite
+  : pgSchema.maintenanceWindows;
 const downtimeEvents = isLocalMode ? sqliteVessel.downtimeEventsSqlite : pgSchema.downtimeEvents;
 const parts = isLocalMode ? sqliteVessel.partsSqlite : pgSchema.parts;
 const partsInventory = isLocalMode ? sqliteVessel.partsInventorySqlite : pgSchema.partsInventory;
 const inventoryParts = isLocalMode ? sqliteVessel.inventoryPartsSqlite : pgSchema.inventoryParts;
 const stock = isLocalMode ? sqliteVessel.stockSqlite : pgSchema.stock;
-const inventoryMovements = isLocalMode ? sqliteVessel.inventoryMovementsSqlite : pgSchema.inventoryMovements;
+const inventoryMovements = isLocalMode
+  ? sqliteVessel.inventoryMovementsSqlite
+  : pgSchema.inventoryMovements;
 const suppliers = isLocalMode ? sqliteVessel.suppliersSqlite : pgSchema.suppliers;
 const purchaseOrders = isLocalMode ? sqliteVessel.purchaseOrdersSqlite : pgSchema.purchaseOrders;
-const purchaseOrderItems = isLocalMode ? sqliteVessel.purchaseOrderItemsSqlite : pgSchema.purchaseOrderItems;
-const partSubstitutions = isLocalMode ? sqliteVessel.partSubstitutionsSqlite : pgSchema.partSubstitutions;
-const partFailureHistory = isLocalMode ? sqliteVessel.partFailureHistorySqlite : pgSchema.partFailureHistory;
+const purchaseOrderItems = isLocalMode
+  ? sqliteVessel.purchaseOrderItemsSqlite
+  : pgSchema.purchaseOrderItems;
+const partSubstitutions = isLocalMode
+  ? sqliteVessel.partSubstitutionsSqlite
+  : pgSchema.partSubstitutions;
+const partFailureHistory = isLocalMode
+  ? sqliteVessel.partFailureHistorySqlite
+  : pgSchema.partFailureHistory;
 const reservations = isLocalMode ? sqliteVessel.reservationsSqlite : pgSchema.reservations;
 const crew = isLocalMode ? sqliteVessel.crewSqlite : pgSchema.crew;
 const skills = isLocalMode ? sqliteVessel.skillsSqlite : pgSchema.skills;
 const crewSkill = isLocalMode ? sqliteVessel.crewSkillSqlite : pgSchema.crewSkill;
 const crewAssignment = isLocalMode ? sqliteVessel.crewAssignmentSqlite : pgSchema.crewAssignment;
-const crewCertification = isLocalMode ? sqliteVessel.crewCertificationSqlite : pgSchema.crewCertification;
+const crewCertification = isLocalMode
+  ? sqliteVessel.crewCertificationSqlite
+  : pgSchema.crewCertification;
 const crewLeave = isLocalMode ? sqliteVessel.crewLeaveSqlite : pgSchema.crewLeave;
 const shiftTemplate = isLocalMode ? sqliteVessel.shiftTemplateSqlite : pgSchema.shiftTemplate;
 const crewRestSheet = isLocalMode ? sqliteVessel.crewRestSheetSqlite : pgSchema.crewRestSheet;
 const crewRestDay = isLocalMode ? sqliteVessel.crewRestDaySqlite : pgSchema.crewRestDay;
-const sensorConfigurations = isLocalMode ? sqliteVessel.sensorConfigurationsSqlite : pgSchema.sensorConfigurations;
+const sensorConfigurations = isLocalMode
+  ? sqliteVessel.sensorConfigurationsSqlite
+  : pgSchema.sensorConfigurations;
 const sensorStates = isLocalMode ? sqliteVessel.sensorStatesSqlite : pgSchema.sensorStates;
 const sensorTemplates = isLocalMode ? sqliteVessel.sensorTemplatesSqlite : pgSchema.sensorTemplates;
 const sensorBundles = isLocalMode ? sqliteVessel.sensorBundlesSqlite : pgSchema.sensorBundles;
 const sensorTypes = isLocalMode ? sqliteVessel.sensorTypesSqlite : pgSchema.sensorTypes;
-const sensorThresholds = isLocalMode ? sqliteVessel.sensorThresholdsSqlite : pgSchema.sensorThresholds;
+const sensorThresholds = isLocalMode
+  ? sqliteVessel.sensorThresholdsSqlite
+  : pgSchema.sensorThresholds;
 const sensorMapping = isLocalMode ? sqliteVessel.sensorMappingSqlite : pgSchema.sensorMapping;
-const discoveredSignals = isLocalMode ? sqliteVessel.discoveredSignalsSqlite : pgSchema.discoveredSignals;
-const alertConfigurations = isLocalMode ? sqliteVessel.alertConfigurationsSqlite : pgSchema.alertConfigurations;
-const alertNotifications = isLocalMode ? sqliteVessel.alertNotificationsSqlite : pgSchema.alertNotifications;
-const alertSuppressions = isLocalMode ? sqliteVessel.alertSuppressionsSqlite : pgSchema.alertSuppressions;
+const discoveredSignals = isLocalMode
+  ? sqliteVessel.discoveredSignalsSqlite
+  : pgSchema.discoveredSignals;
+const alertConfigurations = isLocalMode
+  ? sqliteVessel.alertConfigurationsSqlite
+  : pgSchema.alertConfigurations;
+const alertNotifications = isLocalMode
+  ? sqliteVessel.alertNotificationsSqlite
+  : pgSchema.alertNotifications;
+const alertSuppressions = isLocalMode
+  ? sqliteVessel.alertSuppressionsSqlite
+  : pgSchema.alertSuppressions;
 const alertComments = isLocalMode ? sqliteVessel.alertCommentsSqlite : pgSchema.alertComments;
-const operatingConditionAlerts = isLocalMode ? sqliteVessel.operatingConditionAlertsSqlite : pgSchema.operatingConditionAlerts;
+const operatingConditionAlerts = isLocalMode
+  ? sqliteVessel.operatingConditionAlertsSqlite
+  : pgSchema.operatingConditionAlerts;
 const pdmAlerts = isLocalMode ? sqliteVessel.pdmAlertsSqlite : pgSchema.pdmAlerts;
 const pdmScoreLogs = isLocalMode ? sqliteVessel.pdmScoreLogsSqlite : pgSchema.pdmScoreLogs;
 const pdmBaseline = isLocalMode ? sqliteVessel.pdmBaselineSqlite : pgSchema.pdmBaseline;
 const mlModels = isLocalMode ? sqliteVessel.mlModelsSqlite : pgSchema.mlModels;
-const mlModelAccuracyHistory = isLocalMode ? sqliteVessel.mlModelAccuracyHistorySqlite : pgSchema.mlModelAccuracyHistory || sqliteVessel.mlModelAccuracyHistorySqlite;
-const failurePredictions = isLocalMode ? sqliteVessel.failurePredictionsSqlite : pgSchema.failurePredictions;
-const anomalyDetections = isLocalMode ? sqliteVessel.anomalyDetectionsSqlite : pgSchema.anomalyDetections;
-const componentDegradation = isLocalMode ? sqliteVessel.componentDegradationSqlite : pgSchema.componentDegradation;
+const mlModelAccuracyHistory = isLocalMode
+  ? sqliteVessel.mlModelAccuracyHistorySqlite
+  : pgSchema.mlModelAccuracyHistory || sqliteVessel.mlModelAccuracyHistorySqlite;
+const failurePredictions = isLocalMode
+  ? sqliteVessel.failurePredictionsSqlite
+  : pgSchema.failurePredictions;
+const anomalyDetections = isLocalMode
+  ? sqliteVessel.anomalyDetectionsSqlite
+  : pgSchema.anomalyDetections;
+const componentDegradation = isLocalMode
+  ? sqliteVessel.componentDegradationSqlite
+  : pgSchema.componentDegradation;
 const failureHistory = isLocalMode ? sqliteVessel.failureHistorySqlite : pgSchema.failureHistory;
-const predictionFeedback = isLocalMode ? sqliteVessel.predictionFeedbackSqlite : pgSchema.predictionFeedback;
-const modelPerformanceValidations = isLocalMode ? sqliteVessel.modelPerformanceValidationsSqlite : pgSchema.modelPerformanceValidations;
-const retrainingTriggers = isLocalMode ? sqliteVessel.retrainingTriggersSqlite : pgSchema.retrainingTriggers;
-const thresholdOptimizations = isLocalMode ? sqliteVessel.thresholdOptimizationsSqlite : pgSchema.thresholdOptimizations;
+const predictionFeedback = isLocalMode
+  ? sqliteVessel.predictionFeedbackSqlite
+  : pgSchema.predictionFeedback;
+const modelPerformanceValidations = isLocalMode
+  ? sqliteVessel.modelPerformanceValidationsSqlite
+  : pgSchema.modelPerformanceValidations;
+const retrainingTriggers = isLocalMode
+  ? sqliteVessel.retrainingTriggersSqlite
+  : pgSchema.retrainingTriggers;
+const thresholdOptimizations = isLocalMode
+  ? sqliteVessel.thresholdOptimizationsSqlite
+  : pgSchema.thresholdOptimizations;
 const modelRegistry = isLocalMode ? sqliteVessel.modelRegistrySqlite : pgSchema.modelRegistry;
 const rulModels = isLocalMode ? sqliteVessel.rulModelsSqlite : pgSchema.rulModels;
 const rulFitHistory = isLocalMode ? sqliteVessel.rulFitHistorySqlite : pgSchema.rulFitHistory;
-const weibullEstimates = isLocalMode ? sqliteVessel.weibullEstimatesSqlite : pgSchema.weibullEstimates;
-const insightSnapshots = isLocalMode ? sqliteVessel.insightSnapshotsSqlite : pgSchema.insightSnapshots;
+const weibullEstimates = isLocalMode
+  ? sqliteVessel.weibullEstimatesSqlite
+  : pgSchema.weibullEstimates;
+const insightSnapshots = isLocalMode
+  ? sqliteVessel.insightSnapshotsSqlite
+  : pgSchema.insightSnapshots;
 const insightReports = isLocalMode ? sqliteVessel.insightReportsSqlite : pgSchema.insightReports;
 const metricsHistory = isLocalMode ? sqliteVessel.metricsHistorySqlite : pgSchema.metricsHistory;
-const dailyMetricRollups = isLocalMode ? sqliteVessel.dailyMetricRollupsSqlite : pgSchema.dailyMetricRollups;
-const dataQualityMetrics = isLocalMode ? sqliteVessel.dataQualityMetricsSqlite : pgSchema.dataQualityMetrics;
-const telemetryAggregates = isLocalMode ? sqliteVessel.telemetryAggregatesSqlite : pgSchema.telemetryAggregates;
-const telemetryRollups = isLocalMode ? sqliteVessel.telemetryRollupsSqlite : pgSchema.telemetryRollups;
-const industryBenchmarks = isLocalMode ? sqliteVessel.industryBenchmarksSqlite : pgSchema.industryBenchmarks;
+const dailyMetricRollups = isLocalMode
+  ? sqliteVessel.dailyMetricRollupsSqlite
+  : pgSchema.dailyMetricRollups;
+const dataQualityMetrics = isLocalMode
+  ? sqliteVessel.dataQualityMetricsSqlite
+  : pgSchema.dataQualityMetrics;
+const telemetryAggregates = isLocalMode
+  ? sqliteVessel.telemetryAggregatesSqlite
+  : pgSchema.telemetryAggregates;
+const telemetryRollups = isLocalMode
+  ? sqliteVessel.telemetryRollupsSqlite
+  : pgSchema.telemetryRollups;
+const industryBenchmarks = isLocalMode
+  ? sqliteVessel.industryBenchmarksSqlite
+  : pgSchema.industryBenchmarks;
 const dtcDefinitions = isLocalMode ? sqliteVessel.dtcDefinitionsSqlite : pgSchema.dtcDefinitions;
 const dtcFaults = isLocalMode ? sqliteVessel.dtcFaultsSqlite : pgSchema.dtcFaults;
 const systemSettings = isLocalMode ? sqliteVessel.systemSettingsSqlite : pgSchema.systemSettings;
-const systemPerformanceMetrics = isLocalMode ? sqliteVessel.systemPerformanceMetricsSqlite : pgSchema.systemPerformanceMetrics;
-const systemHealthChecks = isLocalMode ? sqliteVessel.systemHealthChecksSqlite : pgSchema.systemHealthChecks;
-const transportSettings = isLocalMode ? sqliteVessel.transportSettingsSqlite : pgSchema.transportSettings;
-const transportFailovers = isLocalMode ? sqliteVessel.transportFailoversSqlite : pgSchema.transportFailovers;
-const integrationConfigs = isLocalMode ? sqliteVessel.integrationConfigsSqlite : pgSchema.integrationConfigs;
+const systemPerformanceMetrics = isLocalMode
+  ? sqliteVessel.systemPerformanceMetricsSqlite
+  : pgSchema.systemPerformanceMetrics;
+const systemHealthChecks = isLocalMode
+  ? sqliteVessel.systemHealthChecksSqlite
+  : pgSchema.systemHealthChecks;
+const transportSettings = isLocalMode
+  ? sqliteVessel.transportSettingsSqlite
+  : pgSchema.transportSettings;
+const transportFailovers = isLocalMode
+  ? sqliteVessel.transportFailoversSqlite
+  : pgSchema.transportFailovers;
+const integrationConfigs = isLocalMode
+  ? sqliteVessel.integrationConfigsSqlite
+  : pgSchema.integrationConfigs;
 const storageConfig = isLocalMode ? sqliteVessel.storageConfigSqlite : pgSchema.storageConfig;
 const edgeHeartbeats = isLocalMode ? sqliteVessel.edgeHeartbeatsSqlite : pgSchema.edgeHeartbeats;
-const edgeDiagnosticLogs = isLocalMode ? sqliteVessel.edgeDiagnosticLogsSqlite : pgSchema.edgeDiagnosticLogs;
+const edgeDiagnosticLogs = isLocalMode
+  ? sqliteVessel.edgeDiagnosticLogsSqlite
+  : pgSchema.edgeDiagnosticLogs;
 const mqttDevices = isLocalMode ? sqliteVessel.mqttDevicesSqlite : pgSchema.mqttDevices;
-const serialPortStates = isLocalMode ? sqliteVessel.serialPortStatesSqlite : pgSchema.serialPortStates;
-const j1939Configurations = isLocalMode ? sqliteVessel.j1939ConfigurationsSqlite : pgSchema.j1939Configurations;
-const calibrationCache = isLocalMode ? sqliteVessel.calibrationCacheSqlite : pgSchema.calibrationCache;
-const conditionMonitoring = isLocalMode ? sqliteVessel.conditionMonitoringSqlite : pgSchema.conditionMonitoring;
+const serialPortStates = isLocalMode
+  ? sqliteVessel.serialPortStatesSqlite
+  : pgSchema.serialPortStates;
+const j1939Configurations = isLocalMode
+  ? sqliteVessel.j1939ConfigurationsSqlite
+  : pgSchema.j1939Configurations;
+const calibrationCache = isLocalMode
+  ? sqliteVessel.calibrationCacheSqlite
+  : pgSchema.calibrationCache;
+const conditionMonitoring = isLocalMode
+  ? sqliteVessel.conditionMonitoringSqlite
+  : pgSchema.conditionMonitoring;
 const oilAnalysis = isLocalMode ? sqliteVessel.oilAnalysisSqlite : pgSchema.oilAnalysis;
-const wearParticleAnalysis = isLocalMode ? sqliteVessel.wearParticleAnalysisSqlite : pgSchema.wearParticleAnalysis;
-const oilChangeRecords = isLocalMode ? sqliteVessel.oilChangeRecordsSqlite : pgSchema.oilChangeRecords;
-const vibrationFeatures = isLocalMode ? sqliteVessel.vibrationFeaturesSqlite : pgSchema.vibrationFeatures;
-const vibrationAnalysis = isLocalMode ? sqliteVessel.vibrationAnalysisSqlite : pgSchema.vibrationAnalysis;
-const operatingParameters = isLocalMode ? sqliteVessel.operatingParametersSqlite : pgSchema.operatingParameters;
-const scheduleOptimizations = isLocalMode ? sqliteVessel.scheduleOptimizationsSqlite : pgSchema.scheduleOptimizations;
-const optimizerConfigurations = isLocalMode ? sqliteVessel.optimizerConfigurationsSqlite : pgSchema.optimizerConfigurations;
-const resourceConstraints = isLocalMode ? sqliteVessel.resourceConstraintsSqlite : pgSchema.resourceConstraints;
-const optimizationResults = isLocalMode ? sqliteVessel.optimizationResultsSqlite : pgSchema.optimizationResults;
-const complianceBundles = isLocalMode ? sqliteVessel.complianceBundlesSqlite : pgSchema.complianceBundles;
+const wearParticleAnalysis = isLocalMode
+  ? sqliteVessel.wearParticleAnalysisSqlite
+  : pgSchema.wearParticleAnalysis;
+const oilChangeRecords = isLocalMode
+  ? sqliteVessel.oilChangeRecordsSqlite
+  : pgSchema.oilChangeRecords;
+const vibrationFeatures = isLocalMode
+  ? sqliteVessel.vibrationFeaturesSqlite
+  : pgSchema.vibrationFeatures;
+const vibrationAnalysis = isLocalMode
+  ? sqliteVessel.vibrationAnalysisSqlite
+  : pgSchema.vibrationAnalysis;
+const operatingParameters = isLocalMode
+  ? sqliteVessel.operatingParametersSqlite
+  : pgSchema.operatingParameters;
+const scheduleOptimizations = isLocalMode
+  ? sqliteVessel.scheduleOptimizationsSqlite
+  : pgSchema.scheduleOptimizations;
+const optimizerConfigurations = isLocalMode
+  ? sqliteVessel.optimizerConfigurationsSqlite
+  : pgSchema.optimizerConfigurations;
+const resourceConstraints = isLocalMode
+  ? sqliteVessel.resourceConstraintsSqlite
+  : pgSchema.resourceConstraints;
+const optimizationResults = isLocalMode
+  ? sqliteVessel.optimizationResultsSqlite
+  : pgSchema.optimizationResults;
+const complianceBundles = isLocalMode
+  ? sqliteVessel.complianceBundlesSqlite
+  : pgSchema.complianceBundles;
 const complianceDocs = isLocalMode ? sqliteVessel.complianceDocsSqlite : pgSchema.complianceDocs;
-const complianceAuditLog = isLocalMode ? sqliteVessel.complianceAuditLogSqlite : pgSchema.complianceAuditLog;
+const complianceAuditLog = isLocalMode
+  ? sqliteVessel.complianceAuditLogSqlite
+  : pgSchema.complianceAuditLog;
 const costSavings = isLocalMode ? sqliteVessel.costSavingsSqlite : pgSchema.costSavings;
 const costModel = isLocalMode ? sqliteVessel.costModelSqlite : pgSchema.costModel;
 const laborRates = isLocalMode ? sqliteVessel.laborRatesSqlite : pgSchema.laborRates;
@@ -128,26 +254,44 @@ const portCall = isLocalMode ? sqliteVessel.portCallSqlite : pgSchema.portCall;
 const drydockWindow = isLocalMode ? sqliteVessel.drydockWindowSqlite : pgSchema.drydockWindow;
 const digitalTwins = isLocalMode ? sqliteVessel.digitalTwinsSqlite : pgSchema.digitalTwins;
 const twinSimulations = isLocalMode ? sqliteVessel.twinSimulationsSqlite : pgSchema.twinSimulations;
-const visualizationAssets = isLocalMode ? sqliteVessel.visualizationAssetsSqlite : pgSchema.visualizationAssets;
-const adminAuditEvents = isLocalMode ? sqliteVessel.adminAuditEventsSqlite : pgSchema.adminAuditEvents;
-const adminSystemSettings = isLocalMode ? sqliteVessel.adminSystemSettingsSqlite : pgSchema.adminSystemSettings;
+const visualizationAssets = isLocalMode
+  ? sqliteVessel.visualizationAssetsSqlite
+  : pgSchema.visualizationAssets;
+const adminAuditEvents = isLocalMode
+  ? sqliteVessel.adminAuditEventsSqlite
+  : pgSchema.adminAuditEvents;
+const adminSystemSettings = isLocalMode
+  ? sqliteVessel.adminSystemSettingsSqlite
+  : pgSchema.adminSystemSettings;
 const errorLogs = isLocalMode ? sqliteVessel.errorLogsSqlite : pgSchema.errorLogs;
 const idempotencyLog = isLocalMode ? sqliteVessel.idempotencyLogSqlite : pgSchema.idempotencyLog;
-const requestIdempotency = isLocalMode ? sqliteVessel.requestIdempotencySqlite : pgSchema.requestIdempotency;
-const arMaintenanceProcedures = isLocalMode ? sqliteVessel.arMaintenanceProceduresSqlite : pgSchema.arMaintenanceProcedures;
+const requestIdempotency = isLocalMode
+  ? sqliteVessel.requestIdempotencySqlite
+  : pgSchema.requestIdempotency;
+const arMaintenanceProcedures = isLocalMode
+  ? sqliteVessel.arMaintenanceProceduresSqlite
+  : pgSchema.arMaintenanceProcedures;
 const beastModeConfig = isLocalMode ? sqliteVessel.beastModeConfigSqlite : pgSchema.beastModeConfig;
-const telemetryRetentionPolicies = isLocalMode ? sqliteVessel.telemetryRetentionPoliciesSqlite : pgSchema.telemetryRetentionPolicies;
+const telemetryRetentionPolicies = isLocalMode
+  ? sqliteVessel.telemetryRetentionPoliciesSqlite
+  : pgSchema.telemetryRetentionPolicies;
 const opsDbStaged = isLocalMode ? sqliteVessel.opsDbStagedSqlite : pgSchema.opsDbStaged;
 const replayIncoming = isLocalMode ? sqliteVessel.replayIncomingSqlite : pgSchema.replayIncoming;
 const sheetLock = isLocalMode ? sqliteVessel.sheetLockSqlite : pgSchema.sheetLock;
 const sheetVersion = isLocalMode ? sqliteVessel.sheetVersionSqlite : pgSchema.sheetVersion;
 const dbSchemaVersion = isLocalMode ? sqliteVessel.dbSchemaVersionSqlite : pgSchema.dbSchemaVersion;
-const llmBudgetConfigs = isLocalMode ? sqliteVessel.llmBudgetConfigsSqlite : pgSchema.llmBudgetConfigs;
+const llmBudgetConfigs = isLocalMode
+  ? sqliteVessel.llmBudgetConfigsSqlite
+  : pgSchema.llmBudgetConfigs;
 const llmCostTracking = isLocalMode ? sqliteVessel.llmCostTrackingSqlite : pgSchema.llmCostTracking;
-const ragSearchQueries = isLocalMode ? sqliteVessel.ragSearchQueriesSqlite : pgSchema.ragSearchQueries;
+const ragSearchQueries = isLocalMode
+  ? sqliteVessel.ragSearchQueriesSqlite
+  : pgSchema.ragSearchQueries;
 const contentSources = isLocalMode ? sqliteVessel.contentSourcesSqlite : pgSchema.contentSources;
 const knowledgeBaseItems = isLocalMode ? sqliteVessel.knowledgeBaseItemsSqlite : pgSchema.kbDocs;
-const syncConflicts = isLocalMode ? sqliteVessel.syncConflictsSqlite : pgSchema.syncConflicts || sqliteVessel.syncConflictsSqlite;
+const syncConflicts = isLocalMode
+  ? sqliteVessel.syncConflictsSqlite
+  : pgSchema.syncConflicts || sqliteVessel.syncConflictsSqlite;
 const softwarePatches = IS_POSTGRES ? pgSchema.softwarePatches : void 0;
 const configAuditLog = IS_POSTGRES ? pgSchema.configAuditLog : void 0;
 const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSync.updateSettingsSqlite;
@@ -384,7 +528,7 @@ import {
   utcTimeSchema,
   utcTimestampSchema,
   vesselIdSchema,
-  vesselQuerySchema
+  vesselQuerySchema,
 } from "./schema";
 export {
   DEPLOYMENT_MODE,
@@ -765,5 +909,5 @@ export {
   workOrderCompletions,
   workOrderParts,
   workOrderWorklogs,
-  workOrders
+  workOrders,
 };

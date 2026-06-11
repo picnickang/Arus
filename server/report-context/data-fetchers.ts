@@ -42,7 +42,10 @@ export async function getVesselWorkOrders(
   const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
     (wo: WorkOrderRow) =>
-      wo.vesselId === vesselId && wo.createdAt != null && wo.createdAt >= start && wo.createdAt <= end
+      wo.vesselId === vesselId &&
+      wo.createdAt != null &&
+      wo.createdAt >= start &&
+      wo.createdAt <= end
   );
 }
 
@@ -97,10 +100,14 @@ export async function getCrewRestSheets(
 ): Promise<unknown[]> {
   const restData = await dbStcwStorage.getCrewRestRange(
     vesselId,
-    start.toISOString().split("T")[0] ?? '',
-    end.toISOString().split("T")[0] ?? ''
+    start.toISOString().split("T")[0] ?? "",
+    end.toISOString().split("T")[0] ?? ""
   );
-  return (restData as object as { map?: (fn: (r: { sheet: unknown }) => unknown) => unknown[] }).map?.((r) => r.sheet) ?? [];
+  return (
+    (restData as object as { map?: (fn: (r: { sheet: unknown }) => unknown) => unknown[] }).map?.(
+      (r) => r.sheet
+    ) ?? []
+  );
 }
 
 export async function getComplianceLogs(start: Date, end: Date): Promise<unknown[]> {

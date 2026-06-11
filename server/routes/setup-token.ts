@@ -14,10 +14,7 @@
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 
-export function verifySetupToken(
-  configuredToken: string | undefined,
-  provided: unknown,
-): boolean {
+export function verifySetupToken(configuredToken: string | undefined, provided: unknown): boolean {
   if (!configuredToken || configuredToken.length === 0) {
     return false;
   }

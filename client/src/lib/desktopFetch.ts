@@ -7,9 +7,9 @@ const DEFAULT_URL = "http://localhost:5000";
 let _cachedUrl: string | null = null;
 
 function tauriImport(mod: string): Promise<Record<string, unknown> | null> {
-  return (
-    new Function("m", "return import(m)")(mod) as Promise<Record<string, unknown>>
-  ).catch(() => null);
+  return (new Function("m", "return import(m)")(mod) as Promise<Record<string, unknown>>).catch(
+    () => null
+  );
 }
 
 export async function resolveBackendUrl(): Promise<string> {
@@ -21,7 +21,10 @@ export async function resolveBackendUrl(): Promise<string> {
     try {
       const core = await tauriImport("@tauri-apps/api/core");
       if (core) {
-        const config = await ((core['invoke'] as (c: string) => unknown)("get_backend_config")) as { url: string; mode: string } | null;
+        const config = (await (core["invoke"] as (c: string) => unknown)("get_backend_config")) as {
+          url: string;
+          mode: string;
+        } | null;
         if (config?.url) {
           _cachedUrl = config.url;
           return _cachedUrl;

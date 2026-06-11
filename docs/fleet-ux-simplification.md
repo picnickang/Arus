@@ -1,9 +1,11 @@
 # Fleet UX Simplification - Implementation Complete
 
 ## Status: Completed
+
 Date: December 1, 2025
 
 ### Summary of Changes
+
 1. Created shared fleet monitoring components in `client/src/components/fleet/`
 2. Refactored Bridge View to use shared components (reduced ~140 lines)
 3. Refactored Health Monitor to use shared components
@@ -11,13 +13,15 @@ Date: December 1, 2025
 5. Verified navigation and state consistency across pages
 
 ### Shared Components Created
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| FleetKpiHeader | `client/src/components/fleet/FleetKpiHeader.tsx` | Reusable KPI summary cards with light/dark variants |
-| EquipmentHealthCard | `client/src/components/fleet/EquipmentHealthCard.tsx` | Unified equipment display with compact/light/dark variants |
-| mapToEquipmentHealthData | `client/src/components/fleet/EquipmentHealthCard.tsx` | Helper function for data normalization |
+
+| Component                | Location                                              | Purpose                                                    |
+| ------------------------ | ----------------------------------------------------- | ---------------------------------------------------------- |
+| FleetKpiHeader           | `client/src/components/fleet/FleetKpiHeader.tsx`      | Reusable KPI summary cards with light/dark variants        |
+| EquipmentHealthCard      | `client/src/components/fleet/EquipmentHealthCard.tsx` | Unified equipment display with compact/light/dark variants |
+| mapToEquipmentHealthData | `client/src/components/fleet/EquipmentHealthCard.tsx` | Helper function for data normalization                     |
 
 ### Navigation Patterns (Verified)
+
 - Fleet Overview → Health Monitor (with `?equipmentId=` for highlighting)
 - Health Monitor → Equipment Detail (`/pdm/equipment/:id`)
 - Bridge View → Equipment Detail (`/pdm/equipment/:id`)
@@ -41,12 +45,14 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 **Data Level**: Fleet → Vessel → Equipment
 
 **Main Widgets**:
+
 - Summary statistics cards (Total, Critical, Action Required, Monitoring)
 - Status filter buttons
 - Vessel tabs with equipment grouped by status priority
 - TechnicianInsightCard for each equipment
 
 **Unique Features**:
+
 - Plain-language technician insights with action steps
 - Grouped by status priority (critical first)
 - Status terminology: normal, monitor, action_required, critical
@@ -62,12 +68,14 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 **Data Level**: Fleet-wide or Vessel-specific (via dropdown)
 
 **Main Widgets**:
+
 - Vessel selector dropdown
 - 5 KPI status cards (Total, Healthy, Warning, Critical, Avg Health)
 - Equipment cards grouped by type
 - Live telemetry readings per equipment
 
 **Unique Features**:
+
 - Dark theme (slate-900 gradient)
 - Equipment grouped by type (engine, pump, etc.)
 - Shows real-time telemetry data
@@ -84,6 +92,7 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 **Data Level**: Fleet-wide or Vessel-specific (via dropdown)
 
 **Main Widgets**:
+
 - Vessel filter dropdown
 - 4 KPI cards (Fleet Health %, Healthy, Warnings, Critical)
 - Equipment health status list with progress bars
@@ -91,6 +100,7 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 - Health analytics summary
 
 **Unique Features**:
+
 - HealthLegend with tooltip explanations
 - PDM scores with failure risk %
 - Equipment highlighting from URL query params
@@ -104,15 +114,15 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 
 ### 2.1 Duplicated Metrics
 
-| Metric | Fleet Overview | Bridge View | Health Monitor |
-|--------|---------------|-------------|----------------|
-| Total Equipment | ✓ | ✓ | ✓ |
-| Critical Count | ✓ | ✓ | ✓ |
-| Warning Count | ✓ (Action Required) | ✓ | ✓ |
-| Healthy Count | ✓ (Normal) | ✓ | ✓ |
-| Average Health | - | ✓ | ✓ |
-| Failure Risk | ✓ | ✓ | ✓ |
-| RUL (days) | ✓ | ✓ | ✓ (predictedDueDays) |
+| Metric          | Fleet Overview      | Bridge View | Health Monitor       |
+| --------------- | ------------------- | ----------- | -------------------- |
+| Total Equipment | ✓                   | ✓           | ✓                    |
+| Critical Count  | ✓                   | ✓           | ✓                    |
+| Warning Count   | ✓ (Action Required) | ✓           | ✓                    |
+| Healthy Count   | ✓ (Normal)          | ✓           | ✓                    |
+| Average Health  | -                   | ✓           | ✓                    |
+| Failure Risk    | ✓                   | ✓           | ✓                    |
+| RUL (days)      | ✓                   | ✓           | ✓ (predictedDueDays) |
 
 ### 2.2 Duplicated UI Patterns
 
@@ -123,13 +133,13 @@ This document analyzes the overlap between three monitoring views (Fleet Overvie
 
 ### 2.3 Terminology Inconsistencies
 
-| Concept | Fleet Overview | Bridge View | Health Monitor |
-|---------|---------------|-------------|----------------|
-| Good status | `normal` | `healthy` | `healthy` |
-| Watch status | `monitor` | - | - |
-| Concern status | `action_required` | `warning` | `warning` |
-| Urgent status | `critical` | `critical` | `critical` |
-| Health metric | `failureProbability` | `healthScore` | `healthIndex` |
+| Concept        | Fleet Overview       | Bridge View   | Health Monitor |
+| -------------- | -------------------- | ------------- | -------------- |
+| Good status    | `normal`             | `healthy`     | `healthy`      |
+| Watch status   | `monitor`            | -             | -              |
+| Concern status | `action_required`    | `warning`     | `warning`      |
+| Urgent status  | `critical`           | `critical`    | `critical`     |
+| Health metric  | `failureProbability` | `healthScore` | `healthIndex`  |
 
 ---
 
@@ -159,16 +169,19 @@ Equipment Detail (/pdm/equipment/:id) [EXISTING]
 ### 3.2 Simplification Strategy
 
 #### Fleet Overview - Keep as fleet-level entry point
+
 - Retain: Fleet-wide KPI summary, vessel list/tabs
 - Simplify: Remove detailed equipment cards (those belong in Health view)
 - Add: "View All Equipment" link to Health Monitor
 
 #### Bridge View - Merge into Vessel Detail
+
 - The vessel-specific operational view should be part of `/vessels/:id`
 - Move equipment-by-type grouping to Vessel Detail
 - Retain dark theme as an option/preference
 
 #### Health Monitor - Enhance as the equipment browser
+
 - Primary: Filter-first equipment search across fleet
 - Add: System type filter, severity filter
 - Retain: Equipment health list with drill-down
@@ -195,26 +208,31 @@ Equipment Detail (/pdm/equipment/:id) [EXISTING]
 ## 4. Implementation Plan
 
 ### Phase 1: Extract Shared Components
+
 1. Create `FleetKpiHeader` from common KPI patterns
 2. Create `EquipmentHealthCard` unifying card patterns
 3. Ensure consistent status terminology (healthy/warning/critical)
 
 ### Phase 2: Simplify Fleet Overview
+
 1. Focus on high-level fleet summary
 2. Add vessel cards linking to Vessel Detail
 3. Remove equipment-level detail (keep counts only)
 
 ### Phase 3: Enhance Vessel Detail
+
 1. Integrate live telemetry display from Bridge View
 2. Add equipment health section using shared component
 3. Optionally support dark "bridge mode" theme
 
 ### Phase 4: Enhance Health Monitor
+
 1. Add filter panel (vessel, system, severity)
 2. Use shared EquipmentHealthCard component
 3. Standardize status terminology
 
 ### Phase 5: Deprecate Bridge View
+
 1. Redirect `/bridge` → `/vessels/:id` or `/fleet`
 2. Document the consolidation
 
@@ -223,16 +241,19 @@ Equipment Detail (/pdm/equipment/:id) [EXISTING]
 ## 5. Migration Notes
 
 ### Routes
+
 - `/fleet-overview` → Keep as `/fleet` (fleet-level)
 - `/bridge` → Merge into `/vessels/:id` (vessel-level)
 - `/health` → Keep as `/health` (equipment filter view)
 
 ### Backwards Compatibility
+
 - All existing links continue to work via redirects
 - No data/API changes required
 - Only UI consolidation
 
 ### Testing Checklist
+
 - [ ] Fleet Overview loads without errors
 - [ ] Vessel Detail shows equipment health
 - [ ] Health Monitor filters work correctly

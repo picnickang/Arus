@@ -67,7 +67,7 @@ export async function getPurchaseRequestWithItems(
   if (partIds.length > 0) {
     const partsCols = parts as object as Record<string, never>;
     const partRows = await db
-      .select({ id: parts.id, name: parts.name, partNumber: partsCols['partNumber']! })
+      .select({ id: parts.id, name: parts.name, partNumber: partsCols["partNumber"]! })
       .from(parts)
       .where(inArray(parts.id, partIds));
     type PartRow = { id: string; name: string; partNumber: string };
@@ -267,10 +267,10 @@ export async function updateEmailStatus(
     lastAttemptAt: new Date(),
   };
   if (status === "sent") {
-    updateData['sentAt'] = new Date();
+    updateData["sentAt"] = new Date();
   }
   if (errorMessage) {
-    updateData['errorMessage'] = errorMessage;
+    updateData["errorMessage"] = errorMessage;
   }
 
   const [result] = await db
@@ -310,7 +310,10 @@ export async function generateRequestNumber(orgId: string): Promise<string> {
  * Sequence-based PO number generation (used inside transactions).
  * Called from pr-send-service.ts to generate PO numbers atomically.
  */
-export async function generatePONumber(orgId: string, tx?: { execute: typeof db.execute }): Promise<string> {
+export async function generatePONumber(
+  orgId: string,
+  tx?: { execute: typeof db.execute }
+): Promise<string> {
   const year = new Date().getFullYear();
   const seqName = `po_number_seq_${year}`;
   const executor = tx ?? db;

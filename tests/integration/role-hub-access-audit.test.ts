@@ -17,21 +17,8 @@
  * `hub-admin-grant-route.test.ts`.
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import type {
-  Express,
-  NextFunction,
-  Request,
-  RequestHandler,
-  Response,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import type { Express, NextFunction, Request, RequestHandler, Response } from "express";
 import request from "supertest";
 import type { RoleSummary } from "../../server/domains/crew-admin/domain/types";
 
@@ -81,7 +68,7 @@ const fakeRepo = new Proxy(
       orgId: string,
       id: string,
       hubAdmin: boolean,
-      hubAccess: string[] | null,
+      hubAccess: string[] | null
     ): Promise<RoleSummary> {
       lastGrant = { orgId, id, hubAdmin, hubAccess };
       grantCalls.push(lastGrant);
@@ -91,12 +78,14 @@ const fakeRepo = new Proxy(
   } as Record<string, unknown>,
   {
     get(obj, prop: string) {
-      if (prop in obj) {return obj[prop];}
+      if (prop in obj) {
+        return obj[prop];
+      }
       return async () => {
         throw new Error(`unexpected repo call: ${prop}`);
       };
     },
-  },
+  }
 );
 
 let app: Express;
@@ -109,9 +98,7 @@ beforeAll(async () => {
 
   jest.unstable_mockModule("../../server/domains/crew-admin/service", () => ({
     crewAdminService: new CrewAdminApplicationService(
-      fakeRepo as unknown as ConstructorParameters<
-        typeof CrewAdminApplicationService
-      >[0],
+      fakeRepo as unknown as ConstructorParameters<typeof CrewAdminApplicationService>[0]
     ),
     CrewAdminError,
   }));
@@ -148,9 +135,7 @@ beforeAll(async () => {
   const passthrough: RequestHandler = (_req, _res, next) => next();
 
   try {
-    const mod = await import(
-      "../../server/domains/crew-admin/interfaces/routes"
-    );
+    const mod = await import("../../server/domains/crew-admin/interfaces/routes");
     mod.registerCrewAdminRoutes(app, {
       generalApiRateLimit: passthrough,
       writeOperationRateLimit: passthrough,
@@ -178,7 +163,9 @@ describe("role hub-access route — mounted", () => {
 
 describe("PATCH role hub-access — before -> after audit", () => {
   it("records BOTH previousState and newState on a hub-access change", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Prior: admin with only "operations". Change to operations + fleet.
     priorRole = makeRole({ hubAdmin: true, hubAccess: ["operations"] });
     const res = await request(app)
@@ -213,7 +200,9 @@ describe("PATCH role hub-access — before -> after audit", () => {
   });
 
   it("captures previousState when revoking all hub access (empty -> kept distinct from null)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Prior: admin with a partial list. Now revoke to no hubs ([]).
     priorRole = makeRole({ hubAdmin: true, hubAccess: ["operations"] });
     const res = await request(app)

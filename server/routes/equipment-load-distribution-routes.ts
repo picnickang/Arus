@@ -19,8 +19,10 @@ router.get("/:id/load-distribution", async (req, res) => {
     const now = new Date();
     const defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const startDate = req.query['startDate'] ? new Date(req.query['startDate'] as string) : defaultStart;
-    const endDate = req.query['endDate'] ? new Date(req.query['endDate'] as string) : now;
+    const startDate = req.query["startDate"]
+      ? new Date(req.query["startDate"] as string)
+      : defaultStart;
+    const endDate = req.query["endDate"] ? new Date(req.query["endDate"] as string) : now;
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       return res.status(400).json({ message: "Invalid date format. Use ISO 8601 strings." });

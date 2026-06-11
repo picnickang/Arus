@@ -60,8 +60,7 @@ process.env["NODE_ENV"] = "production";
 // Imports must be after env + unstable_mockModule setup.
 type TelemetryWebSocketServerType =
   typeof import("../../server/websocket").TelemetryWebSocketServer;
-type InProcessFanoutBusType =
-  typeof import("../../server/websocket-fanout").InProcessFanoutBus;
+type InProcessFanoutBusType = typeof import("../../server/websocket-fanout").InProcessFanoutBus;
 
 let TelemetryWebSocketServer: TelemetryWebSocketServerType;
 let InProcessFanoutBus: InProcessFanoutBusType;
@@ -122,7 +121,9 @@ function collectFrames(ws: WebSocket): { frames: Array<Record<string, unknown>> 
   ws.on("message", (data) => {
     try {
       const parsed = JSON.parse(data.toString());
-      if (parsed.type === "connection" || parsed.type === "pong") {return;}
+      if (parsed.type === "connection" || parsed.type === "pong") {
+        return;
+      }
       frames.push(parsed);
     } catch {
       /* ignore non-json frames */
@@ -136,7 +137,9 @@ async function settle(ms = 60): Promise<void> {
 }
 
 async function closeSocket(ws: WebSocket): Promise<void> {
-  if (ws.readyState === WebSocket.CLOSED) {return;}
+  if (ws.readyState === WebSocket.CLOSED) {
+    return;
+  }
   await new Promise<void>((resolve) => {
     ws.once("close", () => resolve());
     ws.close();
@@ -213,9 +216,7 @@ describe("websocket strict mode / cross-tenant isolation", () => {
     h.wsServer.broadcast("updates", { type: "alert_for_a", data: { id: "a-1" } }, ORG_A);
     await settle();
 
-    const aGotIt = aCap.frames.some(
-      (f) => f["orgId"] === ORG_A && f["type"] === "alert_for_a",
-    );
+    const aGotIt = aCap.frames.some((f) => f["orgId"] === ORG_A && f["type"] === "alert_for_a");
     const bSawA = bCap.frames.some((f) => f["orgId"] === ORG_A);
     expect(aGotIt).toBe(true);
     expect(bSawA).toBe(false);

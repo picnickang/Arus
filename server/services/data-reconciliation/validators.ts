@@ -52,10 +52,14 @@ export async function validateTelemetryIntegrity(orgId: string): Promise<Validat
         timestamp: record.ts,
         value: record.value,
         unit: record.unit ?? undefined,
-        sensorType: record.sensorType as Parameters<typeof telemetryPointSchema.parse>[0] extends { sensorType: infer S } ? S : never,
+        sensorType: record.sensorType as Parameters<typeof telemetryPointSchema.parse>[0] extends {
+          sensorType: infer S;
+        }
+          ? S
+          : never,
       };
       telemetryPointSchema.parse(point);
-      const pQuality = (r['quality'] ?? 1) as number;
+      const pQuality = (r["quality"] ?? 1) as number;
       if (pQuality < 0.5) {
         issues.push({
           type: "data_quality",

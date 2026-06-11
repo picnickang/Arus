@@ -1,20 +1,24 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
-import { execSync } from 'node:child_process';
+import fs from "node:fs";
+import { execSync } from "node:child_process";
 
-const BURNDOWN = 'scripts/ts-nocheck-burndown-list.txt';
-const TAG = '// @ts-ignore -- bulk-silence';
+const BURNDOWN = "scripts/ts-nocheck-burndown-list.txt";
+const TAG = "// @ts-ignore -- bulk-silence";
 
 function readList() {
-  return fs.readFileSync(BURNDOWN, 'utf8').split('\n').map(s => s.trim()).filter(Boolean);
+  return fs
+    .readFileSync(BURNDOWN, "utf8")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function stripNocheck(file) {
   if (!fs.existsSync(file)) return false;
-  const orig = fs.readFileSync(file, 'utf8');
+  const orig = fs.readFileSync(file, "utf8");
   let s = orig;
-  s = s.replace(/^\s*\/\/\s*@ts-nocheck.*\r?\n/m, '');
-  s = s.replace(/^\s*\/\*\s*@ts-nocheck\s*\*\/\r?\n/m, '');
+  s = s.replace(/^\s*\/\/\s*@ts-nocheck.*\r?\n/m, "");
+  s = s.replace(/^\s*\/\*\s*@ts-nocheck\s*\*\/\r?\n/m, "");
   if (s !== orig) {
     fs.writeFileSync(file, s);
     return true;
@@ -24,24 +28,24 @@ function stripNocheck(file) {
 
 function addNocheck(file) {
   if (!fs.existsSync(file)) return;
-  const s = fs.readFileSync(file, 'utf8');
+  const s = fs.readFileSync(file, "utf8");
   if (/^\s*(\/\/|\/\*)\s*@ts-nocheck/.test(s)) return;
-  fs.writeFileSync(file, '// @ts-nocheck\n' + s);
+  fs.writeFileSync(file, "// @ts-nocheck\n" + s);
 }
 
 function runTsc() {
   let out;
   try {
-    out = execSync('npx tsc --noEmit 2>&1', { encoding: 'utf8', maxBuffer: 200 * 1024 * 1024 });
+    out = execSync("npx tsc --noEmit 2>&1", { encoding: "utf8", maxBuffer: 200 * 1024 * 1024 });
   } catch (e) {
-    out = (e.stdout || '') + (e.stderr || '');
+    out = (e.stdout || "") + (e.stderr || "");
   }
   return out;
 }
 
 function parseErrors(out) {
   const byFile = new Map();
-  for (const line of out.split('\n')) {
+  for (const line of out.split("\n")) {
     const m = line.match(/^(.+?)\((\d+),(\d+)\): error TS\d+/);
     if (!m) continue;
     const [, file, ln] = m;
@@ -53,7 +57,7 @@ function parseErrors(out) {
 
 function insertIgnores(file, lineSet) {
   if (!fs.existsSync(file)) return 0;
-  const src = fs.readFileSync(file, 'utf8').split('\n');
+  const src = fs.readFileSync(file, "utf8").split("\n");
   const sorted = [...lineSet].sort((a, b) => b - a);
   let inserted = 0;
   for (const ln of sorted) {
@@ -61,20 +65,20 @@ function insertIgnores(file, lineSet) {
     if (i < 0 || i >= src.length) continue;
     const cur = src[i];
     const indent = cur.match(/^\s*/)[0];
-    const prev = i > 0 ? src[i - 1] : '';
-    if (prev.includes('@ts-ignore') || prev.includes('@ts-expect-error')) continue;
+    const prev = i > 0 ? src[i - 1] : "";
+    if (prev.includes("@ts-ignore") || prev.includes("@ts-expect-error")) continue;
     // Skip dangerous JSX contexts: line begins with `<` or attribute (no { wrapper)
     const trimmed = cur.trim();
-    if (file.endsWith('.tsx') && /^<[A-Za-z]/.test(trimmed)) {
+    if (file.endsWith(".tsx") && /^<[A-Za-z]/.test(trimmed)) {
       // wrap-safe: insert as JSX comment line above
-      src.splice(i, 0, indent + '{/* @ts-ignore */}');
+      src.splice(i, 0, indent + "{/* @ts-ignore */}");
       inserted++;
       continue;
     }
     src.splice(i, 0, indent + TAG);
     inserted++;
   }
-  fs.writeFileSync(file, src.join('\n'));
+  fs.writeFileSync(file, src.join("\n"));
   return inserted;
 }
 
@@ -94,7 +98,7 @@ for (let iter = 1; iter <= MAX_ITER; iter++) {
   console.log(`  errors: ${total} across ${byFile.size} files`);
   if (total === 0) break;
   if (total >= prevTotal) {
-    console.log('  not converging; falling back to @ts-nocheck for remaining files');
+    console.log("  not converging; falling back to @ts-nocheck for remaining files");
     for (const file of byFile.keys()) addNocheck(file);
     break;
   }
@@ -107,7 +111,7 @@ for (let iter = 1; iter <= MAX_ITER; iter++) {
 }
 
 // Final sweep: any remaining errors -> mute that file
-console.log('\nPhase 3: final tsc check + mute stragglers');
+console.log("\nPhase 3: final tsc check + mute stragglers");
 const finalOut = runTsc();
 const finalByFile = parseErrors(finalOut);
 const finalTotal = [...finalByFile.values()].reduce((a, s) => a + s.size, 0);
@@ -115,21 +119,20 @@ console.log(`  remaining errors: ${finalTotal} across ${finalByFile.size} files`
 for (const file of finalByFile.keys()) addNocheck(file);
 
 // Rebuild burndown: files that still carry @ts-nocheck
-console.log('\nPhase 4: rebuild burndown list');
-const allCandidates = [...new Set([
-  ...list,
-  ...finalByFile.keys(),
-])];
-const stillMuted = allCandidates.filter(f => {
-  if (!fs.existsSync(f)) return false;
-  const head = fs.readFileSync(f, 'utf8').slice(0, 200);
-  return /^\s*(\/\/|\/\*)\s*@ts-nocheck/.test(head);
-}).sort();
-fs.writeFileSync(BURNDOWN, stillMuted.join('\n') + (stillMuted.length ? '\n' : ''));
+console.log("\nPhase 4: rebuild burndown list");
+const allCandidates = [...new Set([...list, ...finalByFile.keys()])];
+const stillMuted = allCandidates
+  .filter((f) => {
+    if (!fs.existsSync(f)) return false;
+    const head = fs.readFileSync(f, "utf8").slice(0, 200);
+    return /^\s*(\/\/|\/\*)\s*@ts-nocheck/.test(head);
+  })
+  .sort();
+fs.writeFileSync(BURNDOWN, stillMuted.join("\n") + (stillMuted.length ? "\n" : ""));
 console.log(`  burndown: ${stillMuted.length} files`);
 
 // One last tsc
-console.log('\nPhase 5: confirm tsc = 0');
+console.log("\nPhase 5: confirm tsc = 0");
 const confirm = runTsc();
 const confirmErrs = parseErrors(confirm);
 const confirmTotal = [...confirmErrs.values()].reduce((a, s) => a + s.size, 0);

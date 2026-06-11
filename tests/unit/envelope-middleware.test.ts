@@ -12,14 +12,8 @@ import { describe, it, expect } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 import { envelopeJson, normalizeErrorBody } from "../../server/middleware/envelope";
-import {
-  ENVELOPE_EXCLUDED_PREFIXES,
-  isEnvelopedPath,
-} from "../../server/lib/envelope-manifest";
-import {
-  errorEnvelopeSchema,
-  successEnvelopeSchema,
-} from "../../shared/api-envelope";
+import { ENVELOPE_EXCLUDED_PREFIXES, isEnvelopedPath } from "../../server/lib/envelope-manifest";
+import { errorEnvelopeSchema, successEnvelopeSchema } from "../../shared/api-envelope";
 
 function buildApp() {
   const app = express();

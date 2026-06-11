@@ -58,7 +58,7 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(
     JOB_TYPES.TELEMETRY_WAREHOUSE_EXPORT,
     processTelemetryWarehouseExport,
-    { tenantScope: "fleet-wide" },
+    { tenantScope: "fleet-wide" }
   );
 
   // Telemetry lifecycle cron sweeps (scheduled with empty payloads by
@@ -74,7 +74,7 @@ export function registerJobProcessors(): void {
   jobQueue.registerProcessor(
     JOB_TYPES.TELEMETRY_PARTITION_MAINTENANCE,
     processTelemetryPartitionMaintenance,
-    { tenantScope: "fleet-wide" },
+    { tenantScope: "fleet-wide" }
   );
 
   logger.info("[Background Jobs] All processors registered successfully");

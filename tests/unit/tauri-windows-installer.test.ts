@@ -535,7 +535,8 @@ describe("Tauri Windows Installer — Capabilities", () => {
   it("shell:allow-execute restricts to arus-server sidecar only", () => {
     const exec = caps.permissions.find(
       (p) =>
-        typeof p === "object" && (p as Record<string, unknown>)["identifier"] === "shell:allow-execute"
+        typeof p === "object" &&
+        (p as Record<string, unknown>)["identifier"] === "shell:allow-execute"
     ) as Record<string, unknown>;
     expect(exec).toBeDefined();
     const allow = exec["allow"] as { name: string; sidecar: boolean }[];

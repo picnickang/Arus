@@ -122,8 +122,7 @@ class WorkOrderService {
         }
       }
 
-      const filtered =
-        conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+      const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
       const results = await filtered.orderBy(sql`${workOrders.createdAt} DESC`);
 
       const detailedResults: WorkOrderWithDetails[] = results as never;
@@ -213,8 +212,7 @@ class WorkOrderService {
         .leftJoin(equipment, eq(workOrders.equipmentId, equipment.id))
         .leftJoin(vessels, eq(workOrders.vesselId, vessels.id));
 
-      const filtered =
-        conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+      const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
       const results = await filtered
         .orderBy(sql`${workOrders.createdAt} DESC`)
         .limit(limit)
@@ -250,12 +248,13 @@ class WorkOrderService {
       }
 
       const postUpdateOrder = { ...existing, ...updates };
-      const finalUpdates: WidenPartial<InsertWorkOrder> & { vesselDowntimeStartedAt?: Date | null | undefined } = {
+      const finalUpdates: WidenPartial<InsertWorkOrder> & {
+        vesselDowntimeStartedAt?: Date | null | undefined;
+      } = {
         ...updates,
       };
       const equipmentIdForDowntime = postUpdateOrder.equipmentId;
-      const shouldTrackDowntime =
-        postUpdateOrder.affectsVesselDowntime && equipmentIdForDowntime;
+      const shouldTrackDowntime = postUpdateOrder.affectsVesselDowntime && equipmentIdForDowntime;
 
       if (shouldTrackDowntime && equipmentIdForDowntime) {
         const [equipmentResult] = await tx
@@ -545,17 +544,15 @@ class WorkOrderService {
         }
       }
       if (closeData.notes || closeData.completedBy) {
-        await tx
-          .insert(workOrderWorklogs)
-          .values({
-            workOrderId: id,
-            orgId: workOrder.orgId,
-            performedBy: closeData.completedBy || "system",
-            laborHours: 0,
-            laborCost: 0,
-            notes: closeData.notes || "Work order completed",
-            performedAt: new Date(),
-          } as never);
+        await tx.insert(workOrderWorklogs).values({
+          workOrderId: id,
+          orgId: workOrder.orgId,
+          performedBy: closeData.completedBy || "system",
+          laborHours: 0,
+          laborCost: 0,
+          notes: closeData.notes || "Work order completed",
+          performedAt: new Date(),
+        } as never);
       }
       const [updated] = await tx
         .update(workOrders)
@@ -647,28 +644,28 @@ class WorkOrderService {
           updatedAt: now,
         })
         .returning();
-      if (!clonedOrder) {throw new Error("cloneWorkOrder: insert returned no row");}
+      if (!clonedOrder) {
+        throw new Error("cloneWorkOrder: insert returned no row");
+      }
       if (options?.includeTasks !== false) {
         const originalTasks = await tx
           .select()
           .from(workOrderTasks)
           .where(eq(workOrderTasks.workOrderId, id));
         if (originalTasks.length > 0) {
-          await tx
-            .insert(workOrderTasks)
-            .values(
-              originalTasks.map((t) => ({
-                ...t,
-                id: undefined,
-                workOrderId: clonedOrder.id,
-                isCompleted: false,
-                completedAt: null,
-                completedBy: null,
-                completedByName: null,
-                createdAt: now,
-                updatedAt: now,
-              }))
-            );
+          await tx.insert(workOrderTasks).values(
+            originalTasks.map((t) => ({
+              ...t,
+              id: undefined,
+              workOrderId: clonedOrder.id,
+              isCompleted: false,
+              completedAt: null,
+              completedBy: null,
+              completedByName: null,
+              createdAt: now,
+              updatedAt: now,
+            }))
+          );
         }
       }
       if (options?.includeParts !== false) {
@@ -677,18 +674,16 @@ class WorkOrderService {
           .from(workOrderParts)
           .where(eq(workOrderParts.workOrderId, id));
         if (originalParts.length > 0) {
-          await tx
-            .insert(workOrderParts)
-            .values(
-              originalParts.map((p) => ({
-                ...p,
-                id: undefined,
-                workOrderId: clonedOrder.id,
-                quantityUsed: 0,
-                totalCost: 0,
-                createdAt: now,
-              }))
-            );
+          await tx.insert(workOrderParts).values(
+            originalParts.map((p) => ({
+              ...p,
+              id: undefined,
+              workOrderId: clonedOrder.id,
+              quantityUsed: 0,
+              totalCost: 0,
+              createdAt: now,
+            }))
+          );
         }
       }
       return clonedOrder;
@@ -748,7 +743,9 @@ class WorkOrderService {
         throw new Error(`Work order ${workOrderId} not found`);
       }
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
-      if (!completion) {throw new Error("Failed to insert work order completion");}
+      if (!completion) {
+        throw new Error("Failed to insert work order completion");
+      }
       const woParts = await tx
         .select()
         .from(workOrderParts)
@@ -779,22 +776,20 @@ class WorkOrderService {
               .set({ quantityOnHand: newOnHand, quantityReserved: newReserved, updatedAt: now })
               .where(eq(stock.id, row.id));
             const movementId = randomUUID();
-            await tx
-              .insert(inventoryMovements)
-              .values({
-                id: movementId,
-                orgId: completionData.orgId,
-                partId,
-                workOrderId,
-                movementType: "consume",
-                quantity: -toConsume,
-                quantityBefore: onHand,
-                quantityAfter: newOnHand,
-                reservedBefore: reserved,
-                reservedAfter: newReserved,
-                performedBy: completionData.completedBy || "system",
-                notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId} (stock ${row.id})`,
-              });
+            await tx.insert(inventoryMovements).values({
+              id: movementId,
+              orgId: completionData.orgId,
+              partId,
+              workOrderId,
+              movementType: "consume",
+              quantity: -toConsume,
+              quantityBefore: onHand,
+              quantityAfter: newOnHand,
+              reservedBefore: reserved,
+              reservedAfter: newReserved,
+              performedBy: completionData.completedBy || "system",
+              notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId} (stock ${row.id})`,
+            });
             pendingProjections.push({
               movementId,
               partId,

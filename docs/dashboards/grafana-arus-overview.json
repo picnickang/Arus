@@ -18,7 +18,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
         "options": {
           "graphMode": "area",
           "colorMode": "value"
@@ -26,13 +26,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "reqps",
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 50, "color": "yellow"},
-                {"value": 100, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 100, "color": "red" }
               ]
             }
           }
@@ -49,7 +49,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
         "options": {
           "graphMode": "area",
           "colorMode": "value"
@@ -57,13 +57,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "percent",
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 1, "color": "yellow"},
-                {"value": 5, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
               ]
             }
           }
@@ -80,20 +80,20 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
         "options": {
           "graphMode": "none",
           "colorMode": "value"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 1, "color": "yellow"},
-                {"value": 5, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
               ]
             }
           }
@@ -110,20 +110,20 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
         "options": {
           "graphMode": "area",
           "colorMode": "value"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "green"},
-                {"value": 50, "color": "yellow"},
-                {"value": 100, "color": "red"}
+                { "value": null, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 100, "color": "red" }
               ]
             }
           }
@@ -150,7 +150,7 @@
             "refId": "C"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
         "fieldConfig": {
           "defaults": {
             "unit": "s",
@@ -162,21 +162,23 @@
           },
           "overrides": [
             {
-              "matcher": {"id": "byName", "options": "p50"},
-              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+              "matcher": { "id": "byName", "options": "p50" },
+              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
             },
             {
-              "matcher": {"id": "byName", "options": "p95"},
-              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+              "matcher": { "id": "byName", "options": "p95" },
+              "properties": [
+                { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }
+              ]
             },
             {
-              "matcher": {"id": "byName", "options": "p99"},
-              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+              "matcher": { "id": "byName", "options": "p99" },
+              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
             }
           ]
         },
         "options": {
-          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+          "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
         }
       },
       {
@@ -190,19 +192,19 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
         "fieldConfig": {
           "defaults": {
             "unit": "reqps",
             "custom": {
               "drawStyle": "bars",
               "fillOpacity": 80,
-              "stacking": {"mode": "normal"}
+              "stacking": { "mode": "normal" }
             }
           }
         },
         "options": {
-          "legend": {"displayMode": "table", "placement": "bottom"}
+          "legend": { "displayMode": "table", "placement": "bottom" }
         }
       },
       {
@@ -216,17 +218,17 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
         "fieldConfig": {
           "defaults": {
             "unit": "percent",
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "red"},
-                {"value": 60, "color": "yellow"},
-                {"value": 80, "color": "green"}
+                { "value": null, "color": "red" },
+                { "value": 60, "color": "yellow" },
+                { "value": 80, "color": "green" }
               ]
             },
             "min": 0,
@@ -249,7 +251,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
         "fieldConfig": {
           "defaults": {
             "unit": "reqps",
@@ -261,7 +263,7 @@
           }
         },
         "options": {
-          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+          "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
         }
       },
       {
@@ -276,12 +278,12 @@
             "format": "table"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
         "transformations": [
           {
             "id": "organize",
             "options": {
-              "excludeByName": {"Time": true},
+              "excludeByName": { "Time": true },
               "renameByName": {
                 "route": "Endpoint",
                 "Value": "p95 Latency (s)"
@@ -298,10 +300,10 @@
           },
           "overrides": [
             {
-              "matcher": {"id": "byName", "options": "p95 Latency (s)"},
+              "matcher": { "id": "byName", "options": "p95 Latency (s)" },
               "properties": [
-                {"id": "unit", "value": "s"},
-                {"id": "custom.displayMode", "value": "gradient-gauge"},
+                { "id": "unit", "value": "s" },
+                { "id": "custom.displayMode", "value": "gradient-gauge" },
                 {
                   "id": "color",
                   "value": {
@@ -313,9 +315,9 @@
                   "value": {
                     "mode": "absolute",
                     "steps": [
-                      {"value": null, "color": "green"},
-                      {"value": 0.5, "color": "yellow"},
-                      {"value": 1.5, "color": "red"}
+                      { "value": null, "color": "green" },
+                      { "value": 0.5, "color": "yellow" },
+                      { "value": 1.5, "color": "red" }
                     ]
                   }
                 }
@@ -335,7 +337,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
         "fieldConfig": {
           "defaults": {
             "unit": "short",
@@ -347,7 +349,7 @@
           }
         },
         "options": {
-          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+          "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
         }
       }
     ],

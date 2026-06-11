@@ -22,7 +22,9 @@ export class ScenarioSimAdapter implements ScenarioSimPort {
 
   async saveScenario(data: InsertTwinScenario): Promise<TwinScenario> {
     const [result] = await db.insert(twinScenarios).values(data).returning();
-    if (!result) {throw new Error("Failed to save twin scenario");}
+    if (!result) {
+      throw new Error("Failed to save twin scenario");
+    }
     return result;
   }
 }

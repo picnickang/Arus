@@ -42,7 +42,10 @@ export async function cleanupCrewSuite(runId: string): Promise<void> {
 }
 
 function slug(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 50);
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .slice(0, 50);
 }
 
 export interface CrewRecord {
@@ -62,7 +65,7 @@ export interface CrewRecord {
 /** Create an active crew member tagged with runId in its name. */
 export async function createCrew(
   runId: string,
-  overrides: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {}
 ): Promise<CrewRecord> {
   const res = await api<CrewRecord>("POST", "/api/crew", {
     name: `Crew ${runId} ${Math.random().toString(36).slice(2, 6)}`,
@@ -88,7 +91,7 @@ export interface CrewAccount {
  */
 export async function createCrewWithAccount(
   runId: string,
-  opts: { role?: string; loginEnabled?: boolean; vesselId?: string | null } = {},
+  opts: { role?: string; loginEnabled?: boolean; vesselId?: string | null } = {}
 ): Promise<{ crew: CrewRecord; account: CrewAccount }> {
   const crew = await createCrew(runId);
   const username = slug(`u_${runId}_${Math.random().toString(36).slice(2, 6)}`);
@@ -104,11 +107,11 @@ export async function createCrewWithAccount(
       loginEnabled: opts.loginEnabled ?? true,
       vesselId: opts.vesselId ?? null,
       skipVesselAssignment: opts.vesselId == null,
-    },
+    }
   );
   if (!res.ok) {
     throw new Error(
-      `createCrewWithAccount: account failed (${res.status}): ${JSON.stringify(res.data)}`,
+      `createCrewWithAccount: account failed (${res.status}): ${JSON.stringify(res.data)}`
     );
   }
   const refreshed = await api<CrewRecord>("GET", `/api/crew/${crew.id}`);
@@ -119,18 +122,28 @@ export const listCrew = (vesselId?: string): Promise<ApiResult<CrewRecord[]>> =>
   api<CrewRecord[]>("GET", `/api/crew${vesselId ? `?vesselId=${vesselId}` : ""}`);
 export const getCrew = (id: string): Promise<ApiResult<CrewRecord>> =>
   api<CrewRecord>("GET", `/api/crew/${id}`);
-export const updateCrew = (id: string, body: Record<string, unknown>): Promise<ApiResult<CrewRecord>> =>
-  api<CrewRecord>("PUT", `/api/crew/${id}`, body);
+export const updateCrew = (
+  id: string,
+  body: Record<string, unknown>
+): Promise<ApiResult<CrewRecord>> => api<CrewRecord>("PUT", `/api/crew/${id}`, body);
 export const deleteCrew = (id: string): Promise<ApiResult> => api("DELETE", `/api/crew/${id}`);
-export const toggleDuty = (id: string): Promise<ApiResult<{ success: boolean; crew: CrewRecord }>> =>
+export const toggleDuty = (
+  id: string
+): Promise<ApiResult<{ success: boolean; crew: CrewRecord }>> =>
   api<{ success: boolean; crew: CrewRecord }>("POST", `/api/crew/${id}/toggle-duty`, {});
 
-export const retireCrew = (id: string, body: Record<string, unknown> = {}): Promise<ApiResult<CrewRecord>> =>
-  api<CrewRecord>("POST", `/api/crew/${id}/retire`, body);
-export const cancelCrew = (id: string, body: Record<string, unknown> = {}): Promise<ApiResult<CrewRecord>> =>
-  api<CrewRecord>("POST", `/api/crew/${id}/cancel`, body);
-export const reinstateCrew = (id: string, body: Record<string, unknown> = {}): Promise<ApiResult<CrewRecord>> =>
-  api<CrewRecord>("POST", `/api/crew/${id}/reinstate`, body);
+export const retireCrew = (
+  id: string,
+  body: Record<string, unknown> = {}
+): Promise<ApiResult<CrewRecord>> => api<CrewRecord>("POST", `/api/crew/${id}/retire`, body);
+export const cancelCrew = (
+  id: string,
+  body: Record<string, unknown> = {}
+): Promise<ApiResult<CrewRecord>> => api<CrewRecord>("POST", `/api/crew/${id}/cancel`, body);
+export const reinstateCrew = (
+  id: string,
+  body: Record<string, unknown> = {}
+): Promise<ApiResult<CrewRecord>> => api<CrewRecord>("POST", `/api/crew/${id}/reinstate`, body);
 export const listFormerCrew = (): Promise<ApiResult<CrewRecord[]>> =>
   api<CrewRecord[]>("GET", "/api/crew/former");
 
@@ -174,7 +187,7 @@ export const setLoginEnabled = (userId: string, enabled: boolean): Promise<ApiRe
 export const setHubAccess = (
   userId: string,
   hubAdmin: boolean,
-  hubAccess: string[] | null = null,
+  hubAccess: string[] | null = null
 ): Promise<ApiResult> =>
   api("PATCH", `/api/admin/crew/users/${userId}/hub-access`, { hubAdmin, hubAccess });
 
@@ -192,7 +205,7 @@ export interface AlarmType {
 }
 export const createAlarmType = (
   runId: string,
-  overrides: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {}
 ): Promise<ApiResult<AlarmType>> =>
   api<AlarmType>("POST", "/api/admin/safety-alarm-types", {
     key: slug(`atype_${runId}_${Math.random().toString(36).slice(2, 6)}`),
@@ -203,9 +216,12 @@ export const createAlarmType = (
 export const listAlarmTypes = (includeInactive = false): Promise<ApiResult<AlarmType[]>> =>
   api<AlarmType[]>(
     "GET",
-    `/api/admin/safety-alarm-types${includeInactive ? "?includeInactive=true" : ""}`,
+    `/api/admin/safety-alarm-types${includeInactive ? "?includeInactive=true" : ""}`
   );
-export const updateAlarmType = (id: string, body: Record<string, unknown>): Promise<ApiResult<AlarmType>> =>
+export const updateAlarmType = (
+  id: string,
+  body: Record<string, unknown>
+): Promise<ApiResult<AlarmType>> =>
   api<AlarmType>("PATCH", `/api/admin/safety-alarm-types/${id}`, body);
 export const deleteAlarmType = (id: string): Promise<ApiResult> =>
   api("DELETE", `/api/admin/safety-alarm-types/${id}`);
@@ -223,13 +239,12 @@ export interface Alarm {
 }
 export const triggerAlarm = (body: Record<string, unknown>): Promise<ApiResult<Alarm>> =>
   api<Alarm>("POST", "/api/admin/safety-alarms", body);
-export const clearAlarm = (id: string, body: Record<string, unknown> = {}): Promise<ApiResult<Alarm>> =>
-  api<Alarm>("POST", `/api/admin/safety-alarms/${id}/clear`, body);
+export const clearAlarm = (
+  id: string,
+  body: Record<string, unknown> = {}
+): Promise<ApiResult<Alarm>> => api<Alarm>("POST", `/api/admin/safety-alarms/${id}/clear`, body);
 export const listAlarms = (includeCleared = false): Promise<ApiResult<Alarm[]>> =>
-  api<Alarm[]>(
-    "GET",
-    `/api/admin/safety-alarms${includeCleared ? "?includeCleared=true" : ""}`,
-  );
+  api<Alarm[]>("GET", `/api/admin/safety-alarms${includeCleared ? "?includeCleared=true" : ""}`);
 
 /* -------------------------------- Roles --------------------------------- */
 
@@ -243,7 +258,7 @@ export interface RoleRecord {
 /** Create a custom role (name slugified + tagged with runId). */
 export async function createRole(
   runId: string,
-  overrides: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {}
 ): Promise<RoleRecord> {
   const name = slug(`role_${runId}_${Math.random().toString(36).slice(2, 5)}`);
   const res = await api<RoleRecord>("POST", "/api/admin/crew/roles", {
@@ -274,7 +289,9 @@ export const listRoleDashboards = (): Promise<ApiResult<unknown[]>> =>
   api<unknown[]>("GET", "/api/admin/role-dashboards");
 export const getRoleDashboard = (roleId: string): Promise<ApiResult> =>
   api("GET", `/api/admin/role-dashboards/${roleId}`);
-export const saveRoleDashboard = (roleId: string, body: Record<string, unknown>): Promise<ApiResult> =>
-  api("PUT", `/api/admin/role-dashboards/${roleId}`, body);
+export const saveRoleDashboard = (
+  roleId: string,
+  body: Record<string, unknown>
+): Promise<ApiResult> => api("PUT", `/api/admin/role-dashboards/${roleId}`, body);
 export const resetRoleDashboard = (roleId: string): Promise<ApiResult> =>
   api("POST", `/api/admin/role-dashboards/${roleId}/reset`, {});

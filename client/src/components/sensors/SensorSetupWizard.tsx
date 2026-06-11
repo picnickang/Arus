@@ -76,7 +76,15 @@ export function SensorSetupWizard({ equipment, open, onClose, onSuccess }: Senso
           </div>
           <Separator />
           {wizardState.currentStep === 1 && (
-            <EquipmentStep equipment={equipment as object as Pick<Equipment, "id" | "name" | "type" | "location"> & { status?: string | null }} onNext={handleNext} data-testid="wizard-step-1" />
+            <EquipmentStep
+              equipment={
+                equipment as object as Pick<Equipment, "id" | "name" | "type" | "location"> & {
+                  status?: string | null;
+                }
+              }
+              onNext={handleNext}
+              data-testid="wizard-step-1"
+            />
           )}
           {wizardState.currentStep === 2 && (
             <BundleStep
@@ -238,7 +246,11 @@ function SensorStatusBadge({ sensor }: { sensor: SensorConfiguration }) {
       <span className="text-muted-foreground">{sensor.enabled ? "Enabled" : "Disabled"}</span>
       {(sensor as SensorConfiguration & { lastReading?: string | Date | null }).lastReading && (
         <span className="text-muted-foreground ml-2">
-          • Last reading: {formatDistanceToNow(new Date((sensor as SensorConfiguration & { lastReading: string | Date }).lastReading), { addSuffix: true })}
+          • Last reading:{" "}
+          {formatDistanceToNow(
+            new Date((sensor as SensorConfiguration & { lastReading: string | Date }).lastReading),
+            { addSuffix: true }
+          )}
         </span>
       )}
     </div>
@@ -550,16 +562,18 @@ function ThresholdStep({
                     <div>
                       <span className="text-muted-foreground">Warning Low:</span>
                       <span className="ml-2 font-medium">
-                        {String(template.fields?.['warn_low'] ?? template.fields?.['warnLo'] ?? "—")}
+                        {String(
+                          template.fields?.["warn_low"] ?? template.fields?.["warnLo"] ?? "—"
+                        )}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Warning High:</span>
                       <span className="ml-2 font-medium">
                         {String(
-                          template.fields?.['warn_high'] ??
-                            template.fields?.['warnHi'] ??
-                            template.fields?.['warn_rms'] ??
+                          template.fields?.["warn_high"] ??
+                            template.fields?.["warnHi"] ??
+                            template.fields?.["warn_rms"] ??
                             "—"
                         )}
                       </span>
@@ -567,16 +581,18 @@ function ThresholdStep({
                     <div>
                       <span className="text-muted-foreground">Critical Low:</span>
                       <span className="ml-2 font-medium">
-                        {String(template.fields?.['crit_low'] ?? template.fields?.['critLo'] ?? "—")}
+                        {String(
+                          template.fields?.["crit_low"] ?? template.fields?.["critLo"] ?? "—"
+                        )}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Critical High:</span>
                       <span className="ml-2 font-medium">
                         {String(
-                          template.fields?.['crit_high'] ??
-                            template.fields?.['critHi'] ??
-                            template.fields?.['crit_rms'] ??
+                          template.fields?.["crit_high"] ??
+                            template.fields?.["critHi"] ??
+                            template.fields?.["crit_rms"] ??
                             "—"
                         )}
                       </span>

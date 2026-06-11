@@ -66,10 +66,13 @@ export function ExportButton({
 
       switch (format) {
         case "csv":
-          success = exportToCSV((Array.isArray(data) ? data : [data]) as Record<string, unknown>[], {
-            filename: `${filename}-${timestamp}.csv`,
-            ...csvOptions,
-          });
+          success = exportToCSV(
+            (Array.isArray(data) ? data : [data]) as Record<string, unknown>[],
+            {
+              filename: `${filename}-${timestamp}.csv`,
+              ...csvOptions,
+            }
+          );
           break;
 
         case "json":

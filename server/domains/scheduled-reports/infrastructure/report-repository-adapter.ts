@@ -192,22 +192,22 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
   private mapRowToConfig(row: unknown): ReportScheduleConfig {
     const r = rowRecord(row);
     return {
-      id: String(r['id']),
-      orgId: String(r['org_id']),
-      name: String(r['name']),
-      reportType: reportTypeSchema.parse(r['report_type']),
-      frequency: reportFrequencySchema.parse(r['frequency']),
-      cronExpression: String(r['cron_expression']),
-      timezone: String(r['timezone']),
-      format: reportFormatSchema.parse(r['format']),
-      recipients: parseJsonArray(r['recipients']) ?? [],
-      vesselIds: parseJsonArray(r['vessel_ids']),
-      enabled: Boolean(r['enabled']),
-      lastRunAt: r['last_run_at'] ? new Date(String(r['last_run_at'])) : null,
-      nextRunAt: r['next_run_at'] ? new Date(String(r['next_run_at'])) : null,
-      createdBy: String(r['created_by']),
-      createdAt: new Date(String(r['created_at'])),
-      updatedAt: new Date(String(r['updated_at'])),
+      id: String(r["id"]),
+      orgId: String(r["org_id"]),
+      name: String(r["name"]),
+      reportType: reportTypeSchema.parse(r["report_type"]),
+      frequency: reportFrequencySchema.parse(r["frequency"]),
+      cronExpression: String(r["cron_expression"]),
+      timezone: String(r["timezone"]),
+      format: reportFormatSchema.parse(r["format"]),
+      recipients: parseJsonArray(r["recipients"]) ?? [],
+      vesselIds: parseJsonArray(r["vessel_ids"]),
+      enabled: Boolean(r["enabled"]),
+      lastRunAt: r["last_run_at"] ? new Date(String(r["last_run_at"])) : null,
+      nextRunAt: r["next_run_at"] ? new Date(String(r["next_run_at"])) : null,
+      createdBy: String(r["created_by"]),
+      createdAt: new Date(String(r["created_at"])),
+      updatedAt: new Date(String(r["updated_at"])),
     };
   }
 
@@ -320,26 +320,26 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       DELETE FROM generated_reports WHERE expires_at < ${now}
     `);
 
-    return Number(rowRecord(result)['rowCount'] ?? 0);
+    return Number(rowRecord(result)["rowCount"] ?? 0);
   }
 
   private mapRowToReport(row: unknown): GeneratedReport {
     const r = rowRecord(row);
     return {
-      id: String(r['id']),
-      scheduleId: String(r['schedule_id']),
-      orgId: String(r['org_id']),
-      reportType: reportTypeSchema.parse(r['report_type']),
-      format: reportFormatSchema.parse(r['format']),
-      filename: String(r['filename']),
-      filePath: String(r['file_path']),
-      fileSize: Number(r['file_size']),
-      status: reportStatusSchema.parse(r['status']),
-      generatedAt: new Date(String(r['generated_at'])),
-      deliveredAt: r['delivered_at'] ? new Date(String(r['delivered_at'])) : null,
-      expiresAt: new Date(String(r['expires_at'])),
-      metadata: parseMetadata(r['metadata']),
-      errorMessage: r['error_message'] == null ? null : String(r['error_message']),
+      id: String(r["id"]),
+      scheduleId: String(r["schedule_id"]),
+      orgId: String(r["org_id"]),
+      reportType: reportTypeSchema.parse(r["report_type"]),
+      format: reportFormatSchema.parse(r["format"]),
+      filename: String(r["filename"]),
+      filePath: String(r["file_path"]),
+      fileSize: Number(r["file_size"]),
+      status: reportStatusSchema.parse(r["status"]),
+      generatedAt: new Date(String(r["generated_at"])),
+      deliveredAt: r["delivered_at"] ? new Date(String(r["delivered_at"])) : null,
+      expiresAt: new Date(String(r["expires_at"])),
+      metadata: parseMetadata(r["metadata"]),
+      errorMessage: r["error_message"] == null ? null : String(r["error_message"]),
     };
   }
 }

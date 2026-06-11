@@ -212,7 +212,16 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
   };
 
   const handleExportCsv = () => {
-    const header = ["Type", "Number", "Country", "Authority", "Issued", "Expires", "Status", "Notes"];
+    const header = [
+      "Type",
+      "Number",
+      "Country",
+      "Authority",
+      "Issued",
+      "Expires",
+      "Status",
+      "Notes",
+    ];
     const rows = documents.map((doc: CrewDocument) => [
       getDocumentTypeLabel(doc.documentType),
       doc.documentNumber || "",
@@ -412,9 +421,7 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
                           className={`text-xs flex items-center gap-1 ${status.className}`}
                         >
                           {renderExpiryIcon(status.level)}
-                          {status.level === "expired"
-                            ? "Expired"
-                            : `Expires in ${status.label}`}
+                          {status.level === "expired" ? "Expired" : `Expires in ${status.label}`}
                         </Badge>
                       )}
                     </span>
@@ -495,10 +502,7 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((d) => onSubmit(d, true))}
-              className="space-y-4"
-            >
+            <form onSubmit={form.handleSubmit((d) => onSubmit(d, true))} className="space-y-4">
               <FormField
                 control={form.control}
                 name="action"
@@ -653,8 +657,8 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      A renewal task is raised automatically once the document is within
-                      this many days of expiry.
+                      A renewal task is raised automatically once the document is within this many
+                      days of expiry.
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -710,10 +714,7 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
                   </p>
                 ) : null}
                 {uploadError ? (
-                  <p
-                    className="text-xs text-destructive"
-                    data-testid="text-doc-file-error"
-                  >
+                  <p className="text-xs text-destructive" data-testid="text-doc-file-error">
                     {uploadError}
                   </p>
                 ) : null}
@@ -736,11 +737,7 @@ export function CrewDocumentsTab({ crewId, crewName, rank }: CrewDocumentsTabPro
                 >
                   {isSaving ? "Saving..." : "Save draft"}
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  data-testid="button-submit-doc-form"
-                >
+                <Button type="submit" disabled={isSaving} data-testid="button-submit-doc-form">
                   <Upload className="mr-1 h-4 w-4" />
                   {isSaving
                     ? "Saving..."

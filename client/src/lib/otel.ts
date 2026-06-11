@@ -8,7 +8,7 @@
  * via W3C traceparent propagation, joining the spans emitted by
  * server/otel.ts on the same trace.
  */
-const endpoint = import.meta.env['VITE_OTEL_EXPORTER_OTLP_ENDPOINT'] as string | undefined;
+const endpoint = import.meta.env["VITE_OTEL_EXPORTER_OTLP_ENDPOINT"] as string | undefined;
 
 // P2 #24 — Observability warn-once on missing endpoint in production
 // builds, so an operator inspecting the console sees the gap rather
@@ -21,7 +21,7 @@ function warnOnceMissingEndpoint(): void {
   warnedMissingEndpoint = true;
   if (import.meta.env.PROD && !endpoint) {
     console.warn(
-      "[otel] VITE_OTEL_EXPORTER_OTLP_ENDPOINT is not set in a production build — browser tracing is DISABLED.",
+      "[otel] VITE_OTEL_EXPORTER_OTLP_ENDPOINT is not set in a production build — browser tracing is DISABLED."
     );
   }
 }
@@ -60,7 +60,7 @@ export async function initBrowserOtel(): Promise<void> {
         new BatchSpanProcessor(
           new OTLPTraceExporter({
             url: `${endpoint.replace(/\/$/, "")}/v1/traces`,
-          }),
+          })
         ),
       ],
     });

@@ -51,10 +51,7 @@ export function enforceQuota(metric: QuotaMetric) {
       }
       if (check.warning) {
         res.setHeader("X-Tenant-Quota-Warning", metric);
-        res.setHeader(
-          "X-Tenant-Quota-Ratio",
-          check.ratio.toFixed(2)
-        );
+        res.setHeader("X-Tenant-Quota-Ratio", check.ratio.toFixed(2));
       }
       next();
     } catch (err) {

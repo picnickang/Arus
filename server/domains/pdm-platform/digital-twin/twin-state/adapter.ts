@@ -21,7 +21,9 @@ export class TwinStateAdapter implements TwinStatePort {
     since?: Date
   ): Promise<AssetTwinState[]> {
     const conditions = [eq(assetTwinState.orgId, orgId), eq(assetTwinState.twinId, twinId)];
-    if (since) {conditions.push(gte(assetTwinState.timestamp, since));}
+    if (since) {
+      conditions.push(gte(assetTwinState.timestamp, since));
+    }
     return db
       .select()
       .from(assetTwinState)

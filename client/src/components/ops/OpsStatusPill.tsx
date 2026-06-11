@@ -31,7 +31,7 @@ export function OpsStatusPill({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
         SEVERITY_CLASSES[severity],
-        className,
+        className
       )}
       data-testid={testId ?? `ops-status-pill-${severity}`}
     >

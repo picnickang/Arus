@@ -24,7 +24,7 @@ export interface TelemetryWarehouseJobData {
 }
 
 export async function processTelemetryWarehouseExport(
-  data: TelemetryWarehouseJobData = {},
+  data: TelemetryWarehouseJobData = {}
 ): Promise<WarehouseExportJobSummary> {
   logger.info("Telemetry warehouse export job triggered", {
     date: data.date ?? "(yesterday)",

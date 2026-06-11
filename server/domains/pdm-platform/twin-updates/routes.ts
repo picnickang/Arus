@@ -67,7 +67,7 @@ router.get("/freshness", async (req: Request, res: Response) => {
 router.get("/freshness/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const { twinId = '' } = req.params;
+    const { twinId = "" } = req.params;
     const freshness = await updateService.getTwinFreshness(orgId, twinId);
     if (!freshness) {
       return res.status(404).json({ error: "Twin not found or not active" });

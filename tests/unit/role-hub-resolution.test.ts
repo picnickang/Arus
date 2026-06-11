@@ -28,7 +28,7 @@ import {
 const role = (
   name: string,
   hubAdmin = false,
-  hubAccess: string[] | null = null,
+  hubAccess: string[] | null = null
 ): RoleHubFields => ({ name, hubAdmin, hubAccess });
 
 describe("resolveEffectiveHubAdmin (role-level)", () => {
@@ -67,54 +67,45 @@ describe("resolveEffectiveHubAccess (role-level)", () => {
 
   it("an admin role's hub allow-list is returned as-is", () => {
     expect(
-      resolveEffectiveHubAccess([role("chief_engineer", true, ["maintenance"])], false, null),
+      resolveEffectiveHubAccess([role("chief_engineer", true, ["maintenance"])], false, null)
     ).toEqual(["maintenance"]);
   });
 
   it("multiple admin roles union their granted hubs", () => {
     const result = resolveEffectiveHubAccess(
-      [
-        role("chief_engineer", true, ["maintenance"]),
-        role("fleet_manager", true, ["crew"]),
-      ],
+      [role("chief_engineer", true, ["maintenance"]), role("fleet_manager", true, ["crew"])],
       false,
-      null,
+      null
     );
     expect(result).not.toBeNull();
     expect((result ?? []).sort()).toEqual(["crew", "maintenance"]);
   });
 
   it("an admin role with a null (full) list collapses to null", () => {
-    expect(
-      resolveEffectiveHubAccess([role("chief_engineer", true, null)], false, null),
-    ).toBeNull();
+    expect(resolveEffectiveHubAccess([role("chief_engineer", true, null)], false, null)).toBeNull();
   });
 
   it("a union covering every hub collapses to null", () => {
     expect(
-      resolveEffectiveHubAccess([role("chief_engineer", true, [...HUB_IDS])], false, null),
+      resolveEffectiveHubAccess([role("chief_engineer", true, [...HUB_IDS])], false, null)
     ).toBeNull();
   });
 
   it("an admin with no hubs granted returns [] (overview with every hub locked)", () => {
-    expect(
-      resolveEffectiveHubAccess([role("chief_engineer", true, [])], false, null),
-    ).toEqual([]);
+    expect(resolveEffectiveHubAccess([role("chief_engineer", true, [])], false, null)).toEqual([]);
   });
 
   it("a per-user override is additive on top of the role grants", () => {
     const result = resolveEffectiveHubAccess(
       [role("chief_engineer", true, ["maintenance"])],
       true,
-      ["analytics"],
+      ["analytics"]
     );
     expect((result ?? []).sort()).toEqual(["analytics", "maintenance"]);
   });
 
   it("a per-user override is ignored when no eligible role remains", () => {
-    expect(
-      resolveEffectiveHubAccess([role("crew_member")], true, ["analytics"]),
-    ).toBeNull();
+    expect(resolveEffectiveHubAccess([role("crew_member")], true, ["analytics"])).toBeNull();
   });
 });
 
@@ -159,11 +150,7 @@ describe("normalizeRoleHubAccess (write-path normalisation)", () => {
   });
 
   it("an admin with a partial list keeps that list (deduped, unknowns dropped)", () => {
-    const result = normalizeRoleHubAccess(true, [
-      "maintenance",
-      "maintenance",
-      "not-a-real-hub",
-    ]);
+    const result = normalizeRoleHubAccess(true, ["maintenance", "maintenance", "not-a-real-hub"]);
     expect(result.hubAdmin).toBe(true);
     expect(result.hubAccess).toEqual(["maintenance"]);
   });

@@ -140,13 +140,10 @@ describe("offline-sync gap-closure", () => {
       const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
         title: "conflict-wo",
       });
-      await offlineSync.addConflict(
-        op.id,
-        op.entityType,
-        op.entityId,
-        op.payload,
-        { id: "server-version-1", title: "server-side" }
-      );
+      await offlineSync.addConflict(op.id, op.entityType, op.entityId, op.payload, {
+        id: "server-version-1",
+        title: "server-side",
+      });
 
       const after = (await offlineSync.getPendingOperations()).find((p) => p.id === op.id);
       expect(after?.conflictPaused).toBe(true);
@@ -157,8 +154,12 @@ describe("offline-sync gap-closure", () => {
     });
 
     it("syncPendingOperations SKIPS paused operations during replay", async () => {
-      const op1 = await offlineSync.queueApiOperation("POST", "/api/work-orders", { title: "ok-wo" });
-      const op2 = await offlineSync.queueApiOperation("POST", "/api/work-orders", { title: "paused-wo" });
+      const op1 = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
+        title: "ok-wo",
+      });
+      const op2 = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
+        title: "paused-wo",
+      });
 
       // Pause op2
       await offlineSync.addConflict(op2.id, op2.entityType, op2.entityId, op2.payload, {
@@ -192,7 +193,9 @@ describe("offline-sync gap-closure", () => {
     });
 
     it("resolveConflict('server') removes the operation entirely", async () => {
-      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", { title: "drop-me" });
+      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
+        title: "drop-me",
+      });
       await offlineSync.addConflict(op.id, op.entityType, op.entityId, op.payload, { id: "s" });
       await offlineSync.resolveConflict(op.id, "server");
 
@@ -201,7 +204,9 @@ describe("offline-sync gap-closure", () => {
     });
 
     it("resolveConflict('local') clears conflictPaused and resets retry count", async () => {
-      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", { title: "keep-local" });
+      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
+        title: "keep-local",
+      });
       await offlineSync.addConflict(op.id, op.entityType, op.entityId, op.payload, { id: "s" });
       await offlineSync.markOperationFailed(op.id, "previous error");
 
@@ -233,7 +238,9 @@ describe("offline-sync gap-closure", () => {
     });
 
     it("after resolveConflict('local'), a subsequent replay DOES execute the operation", async () => {
-      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", { title: "retry" });
+      const op = await offlineSync.queueApiOperation("POST", "/api/work-orders", {
+        title: "retry",
+      });
       await offlineSync.addConflict(op.id, op.entityType, op.entityId, op.payload, { id: "s" });
       await offlineSync.resolveConflict(op.id, "local");
       // resolveConflict marks the conflict as resolved (resolvedAt) so it's no longer in the
@@ -256,14 +263,28 @@ describe("offline-sync gap-closure", () => {
     it("classifies routes correctly", () => {
       expect(offlineSync.classifyOfflineEntity("/api/work-orders/123/parts")).toBe("parts");
       expect(offlineSync.classifyOfflineEntity("/api/work-orders")).toBe("work_order");
-      expect(offlineSync.classifyOfflineEntity("/api/work-orders/wo-1/complete-with-feedback")).toBe("work_order");
+      expect(
+        offlineSync.classifyOfflineEntity("/api/work-orders/wo-1/complete-with-feedback")
+      ).toBe("work_order");
       expect(offlineSync.classifyOfflineEntity("/api/parts-inventory")).toBe("inventory_item");
-      expect(offlineSync.classifyOfflineEntity("/api/parts-inventory/part-1/stock")).toBe("inventory_stock");
-      expect(offlineSync.classifyOfflineEntity("/api/offshore-ops/op-1/complete")).toBe("logistics_task");
-      expect(offlineSync.classifyOfflineEntity("/api/service-requests/sr-1")).toBe("logistics_task");
-      expect(offlineSync.classifyOfflineEntity("/api/service-orders/so-1/complete")).toBe("logistics_task");
-      expect(offlineSync.classifyOfflineEntity("/api/rms/alerts/alarm-1/acknowledge")).toBe("safety_acknowledgement");
-      expect(offlineSync.classifyOfflineEntity("/api/me/safety-alarms/alarm-1/acknowledge")).toBe("safety_acknowledgement");
+      expect(offlineSync.classifyOfflineEntity("/api/parts-inventory/part-1/stock")).toBe(
+        "inventory_stock"
+      );
+      expect(offlineSync.classifyOfflineEntity("/api/offshore-ops/op-1/complete")).toBe(
+        "logistics_task"
+      );
+      expect(offlineSync.classifyOfflineEntity("/api/service-requests/sr-1")).toBe(
+        "logistics_task"
+      );
+      expect(offlineSync.classifyOfflineEntity("/api/service-orders/so-1/complete")).toBe(
+        "logistics_task"
+      );
+      expect(offlineSync.classifyOfflineEntity("/api/rms/alerts/alarm-1/acknowledge")).toBe(
+        "safety_acknowledgement"
+      );
+      expect(offlineSync.classifyOfflineEntity("/api/me/safety-alarms/alarm-1/acknowledge")).toBe(
+        "safety_acknowledgement"
+      );
       expect(offlineSync.classifyOfflineEntity("/api/attention/handover")).toBe("handover");
       expect(offlineSync.classifyOfflineEntity("/api/logbook/deck")).toBe("logbook");
       expect(offlineSync.classifyOfflineEntity("/api/maintenance-checklist")).toBe("checklist");
@@ -274,15 +295,27 @@ describe("offline-sync gap-closure", () => {
     it("queues POST/PATCH/PUT/DELETE on supported routes only", () => {
       expect(offlineSync.isQueueableMutation("POST", "/api/work-orders")).toBe(true);
       expect(offlineSync.isQueueableMutation("POST", "/api/work-orders/wo-1/parts")).toBe(true);
-      expect(offlineSync.isQueueableMutation("POST", "/api/work-orders/wo-1/complete-with-feedback")).toBe(true);
+      expect(
+        offlineSync.isQueueableMutation("POST", "/api/work-orders/wo-1/complete-with-feedback")
+      ).toBe(true);
       expect(offlineSync.isQueueableMutation("POST", "/api/parts-inventory")).toBe(true);
-      expect(offlineSync.isQueueableMutation("PATCH", "/api/parts-inventory/part-1/stock")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/parts-inventory/part-1/stock")).toBe(
+        true
+      );
       expect(offlineSync.isQueueableMutation("POST", "/api/offshore-ops")).toBe(true);
-      expect(offlineSync.isQueueableMutation("PATCH", "/api/offshore-ops/op-1/complete")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/offshore-ops/op-1/complete")).toBe(
+        true
+      );
       expect(offlineSync.isQueueableMutation("POST", "/api/service-requests")).toBe(true);
-      expect(offlineSync.isQueueableMutation("PATCH", "/api/service-orders/so-1/complete")).toBe(true);
-      expect(offlineSync.isQueueableMutation("PATCH", "/api/rms/alerts/alarm-1/acknowledge")).toBe(true);
-      expect(offlineSync.isQueueableMutation("POST", "/api/me/safety-alarms/alarm-1/acknowledge")).toBe(true);
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/service-orders/so-1/complete")).toBe(
+        true
+      );
+      expect(offlineSync.isQueueableMutation("PATCH", "/api/rms/alerts/alarm-1/acknowledge")).toBe(
+        true
+      );
+      expect(
+        offlineSync.isQueueableMutation("POST", "/api/me/safety-alarms/alarm-1/acknowledge")
+      ).toBe(true);
       expect(offlineSync.isQueueableMutation("PATCH", "/api/attention/handover")).toBe(true);
       expect(offlineSync.isQueueableMutation("DELETE", "/api/work-orders/123")).toBe(true);
       expect(offlineSync.isQueueableMutation("GET", "/api/work-orders")).toBe(false);

@@ -19,9 +19,7 @@ const manifestPath = path.join(root, "server/lib/envelope-manifest.ts");
 const baselinePath = path.join(root, "scripts/envelope-manifest-baseline.json");
 
 function extractPrefixes(source, constName) {
-  const match = source.match(
-    new RegExp(`${constName}[^=]*=\\s*\\[([^\\]]*)\\]`, "m")
-  );
+  const match = source.match(new RegExp(`${constName}[^=]*=\\s*\\[([^\\]]*)\\]`, "m"));
   if (!match) {
     console.error(`✗ Could not find ${constName} in ${manifestPath}`);
     process.exit(1);

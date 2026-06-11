@@ -44,8 +44,7 @@ async function notify(orgId: string, meta: WorkOrderAssignmentResponsePayload): 
       orgId,
       equipmentId: meta.equipmentId,
       sensorType: "assignment",
-      alertType:
-        meta.response === "declined" ? "work_order_declined" : "work_order_accepted",
+      alertType: meta.response === "declined" ? "work_order_declined" : "work_order_accepted",
       message: buildMessage(meta),
       value: 0,
       threshold: 0,

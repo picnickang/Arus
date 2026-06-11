@@ -31,20 +31,59 @@ export interface SimulatedTelemetryPoint {
   ramp_hyd_pressure?: number | undefined;
 }
 
-export const VESSEL_TYPE_PRESETS: Record<string, {
-  name: string;
-  speed: number;
-  rpm: number;
-  fuelConsumption: number;
-  maxRpm: number;
-  maxTorque: number;
-  pattern: "steady" | "harbor" | "dp" | string;
-  seaState: number;
-}> = {
-  CARGO: { name: "Cargo", speed: 12, rpm: 100, fuelConsumption: 100, maxRpm: 1800, maxTorque: 2500, pattern: "steady", seaState: 3 },
-  TANKER: { name: "Tanker", speed: 10, rpm: 80, fuelConsumption: 120, maxRpm: 1600, maxTorque: 3000, pattern: "steady", seaState: 3 },
-  tug: { name: "Tug", speed: 12, rpm: 100, fuelConsumption: 110, maxRpm: 2000, maxTorque: 2200, pattern: "harbor", seaState: 2 },
-  osv: { name: "OSV", speed: 14, rpm: 110, fuelConsumption: 130, maxRpm: 1800, maxTorque: 2800, pattern: "dp", seaState: 4 },
+export const VESSEL_TYPE_PRESETS: Record<
+  string,
+  {
+    name: string;
+    speed: number;
+    rpm: number;
+    fuelConsumption: number;
+    maxRpm: number;
+    maxTorque: number;
+    pattern: "steady" | "harbor" | "dp" | string;
+    seaState: number;
+  }
+> = {
+  CARGO: {
+    name: "Cargo",
+    speed: 12,
+    rpm: 100,
+    fuelConsumption: 100,
+    maxRpm: 1800,
+    maxTorque: 2500,
+    pattern: "steady",
+    seaState: 3,
+  },
+  TANKER: {
+    name: "Tanker",
+    speed: 10,
+    rpm: 80,
+    fuelConsumption: 120,
+    maxRpm: 1600,
+    maxTorque: 3000,
+    pattern: "steady",
+    seaState: 3,
+  },
+  tug: {
+    name: "Tug",
+    speed: 12,
+    rpm: 100,
+    fuelConsumption: 110,
+    maxRpm: 2000,
+    maxTorque: 2200,
+    pattern: "harbor",
+    seaState: 2,
+  },
+  osv: {
+    name: "OSV",
+    speed: 14,
+    rpm: 110,
+    fuelConsumption: 130,
+    maxRpm: 1800,
+    maxTorque: 2800,
+    pattern: "dp",
+    seaState: 4,
+  },
 };
 
 export interface SimulationConfig {
@@ -55,7 +94,7 @@ export interface SimulationConfig {
   durationMinutes: number;
   samplingIntervalSeconds?: number | undefined;
   signals?: string[] | undefined;
-  customPreset?: Partial<typeof VESSEL_TYPE_PRESETS[string]> | undefined;
+  customPreset?: Partial<(typeof VESSEL_TYPE_PRESETS)[string]> | undefined;
   injectFault?: boolean | undefined;
   faultStartMinute?: number | undefined;
   faultSeverity?: number | undefined;

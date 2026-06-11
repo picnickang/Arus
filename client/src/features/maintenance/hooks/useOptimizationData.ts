@@ -33,12 +33,14 @@ interface RulPrediction {
   remainingDays: number;
   healthIndex: number;
   failureProbability: number;
-  componentStatus?: Array<{
-    componentType: string;
-    healthScore?: number | undefined;
-    degradationMetric?: number | undefined;
-    predictedFailureDays: number;
-  }> | undefined;
+  componentStatus?:
+    | Array<{
+        componentType: string;
+        healthScore?: number | undefined;
+        degradationMetric?: number | undefined;
+        predictedFailureDays: number;
+      }>
+    | undefined;
   recommendations?: string[] | undefined;
 }
 
@@ -176,7 +178,7 @@ export function useOptimizationData() {
       apiRequest("POST", `/api/optimization/${optimizationId}/apply`),
     invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: "Optimization applied to production successfully",
-    errorMessage: (error: unknown) => ((error instanceof Error ? error.message : String(error))),
+    errorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
   });
 
   const downloadOptimizationMutation = useCustomMutation({
@@ -206,8 +208,7 @@ export function useOptimizationData() {
   });
 
   const clearAllOptimizationsMutation = useCustomMutation({
-    mutationFn: async () =>
-      apiRequest("DELETE", "/api/optimization/results"),
+    mutationFn: async () => apiRequest("DELETE", "/api/optimization/results"),
     invalidateKeys: ["/api/optimization/results", "/api/optimization"],
     successMessage: (data: unknown) =>
       `Successfully cleared ${(data as { deletedCount: number }).deletedCount} optimization result(s)`,

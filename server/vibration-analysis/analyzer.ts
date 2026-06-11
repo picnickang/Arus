@@ -41,7 +41,9 @@ export class VibrationAnalyzer {
 
       const vibrationData = await this.getVibrationData(equipmentId, orgId);
       if (!vibrationData || vibrationData.length < this.windowSize) {
-        logger.info(`[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`);
+        logger.info(
+          `[Vibration Analysis] Insufficient data for ${equipmentId} (${vibrationData?.length || 0} samples, need ${this.windowSize})`
+        );
         return null;
       }
 
@@ -67,12 +69,13 @@ export class VibrationAnalyzer {
         createdAt: new Date(),
       };
 
-      const [savedAnalysis] = await db
-        .insert(vibrationAnalysis)
-        .values(insertRow)
-        .returning();
-      if (!savedAnalysis) {throw new Error("Failed to save vibration analysis");}
-      logger.info(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
+      const [savedAnalysis] = await db.insert(vibrationAnalysis).values(insertRow).returning();
+      if (!savedAnalysis) {
+        throw new Error("Failed to save vibration analysis");
+      }
+      logger.info(
+        `[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`
+      );
       return {
         ...savedAnalysis,
         timestamp: savedAnalysis.createdAt ?? new Date(),
@@ -105,7 +108,11 @@ export class VibrationAnalyzer {
         }))
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     } catch (error) {
-      logger.error(`[Vibration Analysis] Error retrieving data for ${equipmentId}:`, undefined, error);
+      logger.error(
+        `[Vibration Analysis] Error retrieving data for ${equipmentId}:`,
+        undefined,
+        error
+      );
       return [];
     }
   }
@@ -138,17 +145,21 @@ export class VibrationAnalyzer {
         return {
           ...row,
           timestamp: row.createdAt ?? new Date(),
-          dominantFrequency: Number(faultBands['dominantFreq'] ?? 0),
-          dominantMagnitude: Number(faultBands['dominantMagnitude'] ?? 0),
-          anomalyScore: Number(faultBands['anomalyScore'] ?? 0),
-          anomalyType: String(faultBands['anomalyType'] ?? "normal"),
-          healthScore: Number(faultBands['healthScore'] ?? 100),
-          isAnomalous: Boolean(faultBands['isAnomalous'] ?? false),
-          confidence: Number(faultBands['confidence'] ?? 0),
+          dominantFrequency: Number(faultBands["dominantFreq"] ?? 0),
+          dominantMagnitude: Number(faultBands["dominantMagnitude"] ?? 0),
+          anomalyScore: Number(faultBands["anomalyScore"] ?? 0),
+          anomalyType: String(faultBands["anomalyType"] ?? "normal"),
+          healthScore: Number(faultBands["healthScore"] ?? 100),
+          isAnomalous: Boolean(faultBands["isAnomalous"] ?? false),
+          confidence: Number(faultBands["confidence"] ?? 0),
         };
       });
     } catch (error) {
-      logger.error(`[Vibration Analysis] Error getting history for ${equipmentId}:`, undefined, error);
+      logger.error(
+        `[Vibration Analysis] Error getting history for ${equipmentId}:`,
+        undefined,
+        error
+      );
       return [];
     }
   }

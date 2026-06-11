@@ -65,7 +65,9 @@ export function useLaborRateData() {
       contractorRate: 125,
     },
   });
-  const updateRateForm = useForm<LaborRateFormData, unknown, LaborRateFormData>({ resolver: zodResolver(laborRateSchema) });
+  const updateRateForm = useForm<LaborRateFormData, unknown, LaborRateFormData>({
+    resolver: zodResolver(laborRateSchema),
+  });
   const crewRateForm = useForm<CrewRateFormData, unknown, CrewRateFormData>({
     resolver: zodResolver(crewRateUpdateSchema),
     defaultValues: { overtimeMultiplier: 1.5 },

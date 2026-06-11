@@ -34,7 +34,7 @@ function parseRestCsv(csvText: string): RestDay[] {
     if (!row || typeof row !== "object") {
       continue;
     }
-    const date = (row['date'] ?? row['Date'] ?? "").toString().trim();
+    const date = (row["date"] ?? row["Date"] ?? "").toString().trim();
     if (!date) {
       continue;
     }
@@ -50,9 +50,7 @@ function parseRestCsv(csvText: string): RestDay[] {
   return rows;
 }
 
-const restDayShape = z
-  .object({ date: z.string() })
-  .catchall(z.union([z.number(), z.string()]));
+const restDayShape = z.object({ date: z.string() }).catchall(z.union([z.number(), z.string()]));
 
 const importBodySchema = z.object({
   csv: z.string().optional(),
@@ -149,10 +147,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       }
 
       if (idempotencyKey) {
-        await db
-          .insert(idempotencyLog)
-          .values({ key: idempotencyKey })
-          .onConflictDoNothing();
+        await db.insert(idempotencyLog).values({ key: idempotencyKey }).onConflictDoNothing();
       }
 
       incrementHorImport(sheetData.crewId, format, rowCount);
@@ -286,10 +281,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       }
 
       if (idempotencyKey) {
-        await db
-          .insert(idempotencyLog)
-          .values({ key: idempotencyKey })
-          .onConflictDoNothing();
+        await db.insert(idempotencyLog).values({ key: idempotencyKey }).onConflictDoNothing();
       }
 
       incrementHorImport(crewId, "json", rowCount);

@@ -17,7 +17,11 @@ import type { MaintenanceDomainEvent } from "./events";
  * Port for maintenance schedule persistence
  */
 export interface IMaintenanceScheduleRepository {
-  findAll(orgId: string, equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]>;
+  findAll(
+    orgId: string,
+    equipmentId?: string,
+    status?: string
+  ): Promise<MaintenanceScheduleEntity[]>;
   findById(id: string, orgId?: string): Promise<MaintenanceScheduleEntity | undefined>;
   findUpcoming(orgId: string, daysAhead: number): Promise<MaintenanceScheduleEntity[]>;
   create(schedule: CreateScheduleCommand): Promise<MaintenanceScheduleEntity>;

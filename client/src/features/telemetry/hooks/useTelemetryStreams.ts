@@ -69,7 +69,12 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
     data?: { timestamp: string; value: number }[];
     lastTimestamp?: string;
   };
-  type AnomalyItem = { equipmentId: string; sensorType: string; zscore?: number; timestamp?: string };
+  type AnomalyItem = {
+    equipmentId: string;
+    sensorType: string;
+    zscore?: number;
+    timestamp?: string;
+  };
   for (const trend of trends as object as TrendItem[]) {
     const matchingAnomalies = (anomalies as object as AnomalyItem[]).filter(
       (a) => a.equipmentId === trend.equipmentId && a.sensorType === trend.sensorType

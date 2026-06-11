@@ -2,8 +2,11 @@ import type { Express } from "express";
 import { insertDeviceSchema } from "@shared/schema-runtime";
 import { deviceService } from "./service";
 import { safeDbOperation } from "../../error-handling";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../middleware/auth";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 
 /**
@@ -45,7 +48,7 @@ export function registerDeviceRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch device", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const device = await deviceService.getDeviceById(req.params['id'] ?? '', orgId);
+      const device = await deviceService.getDeviceById(req.params["id"] ?? "", orgId);
 
       if (!device) {
         return sendNotFound(res, "Device");
@@ -77,7 +80,7 @@ export function registerDeviceRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const deviceData = insertDeviceSchema.partial().parse(req.body);
       const device = await deviceService.updateDevice(
-        req.params['id'] ?? '',
+        req.params["id"] ?? "",
         deviceData,
         orgId,
         req.user?.id
@@ -94,7 +97,7 @@ export function registerDeviceRoutes(
     criticalOperationRateLimit,
     withErrorHandling("delete device", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      await deviceService.deleteDevice(req.params['id'] ?? '', orgId, req.user?.id);
+      await deviceService.deleteDevice(req.params["id"] ?? "", orgId, req.user?.id);
 
       sendDeleted(res);
     })

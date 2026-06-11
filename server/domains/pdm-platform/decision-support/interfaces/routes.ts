@@ -1,13 +1,19 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { authenticatedRequest } from "../../../../middleware/auth";
-import type { PdmHealthStatus, StandardizedPdmDecision, SyntheticTelemetryResult } from "../domain/types";
+import type {
+  PdmHealthStatus,
+  StandardizedPdmDecision,
+  SyntheticTelemetryResult,
+} from "../domain/types";
 import { EquipmentNotFoundError, PdmResponseValidationError } from "../domain/errors";
 
 const healthStatusSchema = z.enum(["optimal", "watch", "degrading", "critical"]);
 
 const operationalContextSchema = z.object({
-  operatingMode: z.enum(["harbour", "transit", "maneuvering", "heavy_weather", "unknown"]).optional(),
+  operatingMode: z
+    .enum(["harbour", "transit", "maneuvering", "heavy_weather", "unknown"])
+    .optional(),
   loadFactor: z.number().min(0.05).max(1.5).optional(),
   weatherSeverity: z.number().min(0).max(1).optional(),
   seaState: z.number().min(0).max(12).optional(),
@@ -141,17 +147,19 @@ const syntheticTelemetryResponseSchema = z.object({
   scenario: syntheticScenarioSchema,
   hours: z.number().int().min(1),
   intervalMinutes: z.number().int().min(1),
-  samples: z.array(z.object({
-    timestamp: z.string(),
-    rpm: z.number(),
-    loadFactor: z.number(),
-    oilTemp: z.number(),
-    coolantTemp: z.number(),
-    vibrationRms: z.number(),
-    fuelFlow: z.number(),
-    pressure: z.number(),
-    sensorHealthy: z.boolean(),
-  })),
+  samples: z.array(
+    z.object({
+      timestamp: z.string(),
+      rpm: z.number(),
+      loadFactor: z.number(),
+      oilTemp: z.number(),
+      coolantTemp: z.number(),
+      vibrationRms: z.number(),
+      fuelFlow: z.number(),
+      pressure: z.number(),
+      sensorHealthy: z.boolean(),
+    })
+  ),
   summary: z.object({
     sampleCount: z.number().int().min(0),
     expectedStatus: healthStatusSchema,
@@ -176,7 +184,6 @@ function validateOutbound<T>(schema: z.ZodTypeAny, value: T): T {
   return parsed.data as T;
 }
 
-
 export interface PdmDecisionSupportRouteService {
   evaluateEquipment(input: {
     orgId: string;
@@ -185,14 +192,15 @@ export interface PdmDecisionSupportRouteService {
     minSequenceLength?: number | undefined;
     contextOverride?: z.infer<typeof operationalContextSchema> | undefined;
   }): Promise<StandardizedPdmDecision>;
-  generateSyntheticTelemetry(input: z.infer<typeof syntheticTelemetrySchema>): SyntheticTelemetryResult;
+  generateSyntheticTelemetry(
+    input: z.infer<typeof syntheticTelemetrySchema>
+  ): SyntheticTelemetryResult;
   reviewRecommendation(input: z.infer<typeof safetyCheckSchema>): {
     decision: "approved" | "needs_engineer_review" | "blocked";
     reasons: string[];
     sanitizedRecommendation: string;
   };
 }
-
 
 async function buildDefaultService(): Promise<PdmDecisionSupportRouteService> {
   const [
@@ -236,9 +244,7 @@ function requireOrgId(req: Request, res: Response): string | null {
   return orgId;
 }
 
-export function createPdmDecisionSupportRouter(
-  service: PdmDecisionSupportRouteService
-): Router {
+export function createPdmDecisionSupportRouter(service: PdmDecisionSupportRouteService): Router {
   const router = Router();
 
   router.post("/evaluate", async (req: Request, res: Response) => {
@@ -285,7 +291,12 @@ export function createPdmDecisionSupportRouter(
         res.status(400).json({ error: parsed.error.flatten().fieldErrors });
         return;
       }
-      res.json(validateOutbound(syntheticTelemetryResponseSchema, service.generateSyntheticTelemetry(parsed.data)));
+      res.json(
+        validateOutbound(
+          syntheticTelemetryResponseSchema,
+          service.generateSyntheticTelemetry(parsed.data)
+        )
+      );
     } catch (error: unknown) {
       if (error instanceof PdmResponseValidationError) {
         res.status(502).json({ error: getErrorMessage(error) });
@@ -307,7 +318,9 @@ export function createPdmDecisionSupportRouter(
         res.status(400).json({ error: parsed.error.flatten().fieldErrors });
         return;
       }
-      res.json(validateOutbound(safetyReviewResponseSchema, service.reviewRecommendation(parsed.data)));
+      res.json(
+        validateOutbound(safetyReviewResponseSchema, service.reviewRecommendation(parsed.data))
+      );
     } catch (error: unknown) {
       if (error instanceof PdmResponseValidationError) {
         res.status(502).json({ error: getErrorMessage(error) });
@@ -325,7 +338,9 @@ let lazyInner: Router | null = null;
 let lazyInnerPromise: Promise<Router> | null = null;
 
 async function getLazyInner(): Promise<Router> {
-  if (lazyInner) {return lazyInner;}
+  if (lazyInner) {
+    return lazyInner;
+  }
   if (!lazyInnerPromise) {
     lazyInnerPromise = buildDefaultService().then((service) => {
       lazyInner = createPdmDecisionSupportRouter(service);
@@ -345,4 +360,3 @@ pdmDecisionSupportRouter.use((req, res, next) => {
 });
 
 export { pdmDecisionSupportRouter };
-

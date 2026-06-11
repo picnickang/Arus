@@ -32,11 +32,11 @@ ARUS already includes oil condition monitoring sensors:
 
 ### Feature Differentiation
 
-| Sensor Type | Purpose | Unit | Application |
-|-------------|---------|------|-------------|
-| `oil_particles_iso_code` | Overall cleanliness standard | ISO 4406 | Filtration effectiveness |
-| `oil_water_content` | Seal integrity | ppm | Leak detection |
-| **`oil_debris`** (new) | Wear trending | ppm or particles/mL | Predictive maintenance |
+| Sensor Type              | Purpose                      | Unit                | Application              |
+| ------------------------ | ---------------------------- | ------------------- | ------------------------ |
+| `oil_particles_iso_code` | Overall cleanliness standard | ISO 4406            | Filtration effectiveness |
+| `oil_water_content`      | Seal integrity               | ppm                 | Leak detection           |
+| **`oil_debris`** (new)   | Wear trending                | ppm or particles/mL | Predictive maintenance   |
 
 ## Architecture Integration
 
@@ -49,15 +49,15 @@ ARUS already includes oil condition monitoring sensors:
 export const sensorTypes = [
   // ... existing types
   "oil_debris",
-  "oil_debris_ferrous",    // Optional: separate magnetic debris
-  "oil_debris_non_ferrous" // Optional: separate non-magnetic debris
+  "oil_debris_ferrous", // Optional: separate magnetic debris
+  "oil_debris_non_ferrous", // Optional: separate non-magnetic debris
 ] as const;
 
 // Add operating parameter types
 export const parameterTypes = [
   // ... existing
   "oil_debris_ppm",
-  "oil_debris_particles_ml"
+  "oil_debris_particles_ml",
 ] as const;
 ```
 
@@ -156,6 +156,7 @@ interface OilDebrisAnalyzeResponse {
 ```
 
 **Implementation approach**:
+
 1. **Phase 1**: Simple statistical analysis (mean, trend, threshold comparison)
 2. **Phase 2**: Integrate with existing 3-model hybrid ensemble (LSTM, XGBoost, Random Forest)
 
@@ -164,6 +165,7 @@ interface OilDebrisAnalyzeResponse {
 **Location**: Health index computation service
 
 **Integration strategy**:
+
 - Add `oil_debris_score` to composite health index
 - Weight: 10% initially (tune based on validation)
 - Calculation: Value position relative to optimal (0-150) and critical (300+) ranges
@@ -259,18 +261,19 @@ Response:
 
 Support multiple measurement units to accommodate international standards:
 
-| Unit | Description | Use Case |
-|------|-------------|----------|
-| `ppm` | Parts per million by weight | Most common, sensor default |
-| `particles/mL` | Particle count per milliliter | Optical particle counters |
-| `mg/L` | Milligrams per liter | Lab analysis |
-| `iso4406` | ISO cleanliness code | Existing `oil_particles_iso_code` sensor |
+| Unit           | Description                   | Use Case                                 |
+| -------------- | ----------------------------- | ---------------------------------------- |
+| `ppm`          | Parts per million by weight   | Most common, sensor default              |
+| `particles/mL` | Particle count per milliliter | Optical particle counters                |
+| `mg/L`         | Milligrams per liter          | Lab analysis                             |
+| `iso4406`      | ISO cleanliness code          | Existing `oil_particles_iso_code` sensor |
 
 **Implementation**: Store values in canonical unit (ppm), convert for display
 
 ## Integration Checklist
 
 ### Backend
+
 - [ ] Add `oil_debris` to sensor type schema/validation
 - [ ] Add oil debris templates to marine sensor templates
 - [ ] Update telemetry ingestion validation
@@ -280,12 +283,14 @@ Support multiple measurement units to accommodate international standards:
 - [ ] Ensure multi-tenant `orgId` validation throughout
 
 ### Frontend
+
 - [ ] Update EquipmentRegistry sensor type dropdown
 - [ ] Add oil debris to Operating Condition Status display
 - [ ] Show oil debris sensors in equipment sensor list
 - [ ] Add data-testid attributes for E2E testing
 
 ### Testing
+
 - [ ] Unit tests: Sensor configuration CRUD
 - [ ] Unit tests: Telemetry ingestion validation
 - [ ] Unit tests: Oil debris analysis algorithm
@@ -294,6 +299,7 @@ Support multiple measurement units to accommodate international standards:
 - [ ] Integration tests: Health index computation
 
 ### Documentation
+
 - [ ] Update `replit.md` with oil debris feature
 - [ ] Add inline JSDoc comments with I/O examples
 - [ ] Document threshold tuning guidelines
@@ -301,13 +307,13 @@ Support multiple measurement units to accommodate international standards:
 
 ## Risk Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Overlap with `oil_particles_iso_code` | Medium | Clear differentiation: ISO 4406 = cleanliness, oil_debris = wear trending |
-| Unit conversion errors | Medium | Centralize conversion logic, add validation |
-| False positives from sample variability | Medium | Use exponential moving average (EMA), require trend confirmation |
-| Multi-tenant data isolation breach | High | Enforce `orgId` validation in ALL queries and endpoints |
-| Health index degradation | Low | A/B test impact, start with low weight (10%) |
+| Risk                                    | Impact | Mitigation                                                                |
+| --------------------------------------- | ------ | ------------------------------------------------------------------------- |
+| Overlap with `oil_particles_iso_code`   | Medium | Clear differentiation: ISO 4406 = cleanliness, oil_debris = wear trending |
+| Unit conversion errors                  | Medium | Centralize conversion logic, add validation                               |
+| False positives from sample variability | Medium | Use exponential moving average (EMA), require trend confirmation          |
+| Multi-tenant data isolation breach      | High   | Enforce `orgId` validation in ALL queries and endpoints                   |
+| Health index degradation                | Low    | A/B test impact, start with low weight (10%)                              |
 
 ## Success Metrics
 

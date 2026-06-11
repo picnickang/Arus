@@ -250,7 +250,12 @@ export function mountHealthMetricsRoutes(router: Router) {
           const orgPdmScores = pdmScores.filter(
             (s) => equipmentMap.get(s.equipmentId)?.orgId === orgId
           );
-          const results = orgPdmScores.map((score) => mapPdmScoreToRulResult(score, equipmentMap as object as Map<string, EquipmentRegistryItem>));
+          const results = orgPdmScores.map((score) =>
+            mapPdmScoreToRulResult(
+              score,
+              equipmentMap as object as Map<string, EquipmentRegistryItem>
+            )
+          );
           return {
             results,
             metadata: {

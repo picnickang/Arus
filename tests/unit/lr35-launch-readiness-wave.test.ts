@@ -46,21 +46,21 @@ describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () 
     // caller that forgets the Idempotency-Key header would create
     // duplicate training rows. Require the key up-front.
     expect(src).toMatch(
-      /router\.post\(\s*"\/ml\/train",\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
+      /router\.post\(\s*"\/ml\/train",\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
   });
 
   it("/ml/models/:id/archive carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
     expect(src).toMatch(
-      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
+      /router\.post\(\s*"\/ml\/models\/:id\/archive",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
   });
 
   it("DELETE /ml/models/:id carries idempotencyMiddleware({ required: true })", async () => {
     const src = await loadSource(ROUTES_PATH);
     expect(src).toMatch(
-      /router\.delete\(\s*"\/ml\/models\/:id",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/,
+      /router\.delete\(\s*"\/ml\/models\/:id",\s*requirePermission\("predictive_maintenance",\s*"manage_config"\),\s*idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
     );
   });
 
@@ -69,9 +69,15 @@ describe("LR-3.5 / TX-2 — ML mutation routes mount idempotencyMiddleware", () 
     // request that arrives without an Idempotency-Key, not silently
     // proceed.
     const src = await loadSource(ROUTES_PATH);
-    expect(src).toMatch(/"\/ml\/models\/:id\/deploy"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
-    expect(src).toMatch(/"\/ml\/models\/:id\/promote"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
-    expect(src).toMatch(/"\/ml\/models\/:id\/rollback"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/);
+    expect(src).toMatch(
+      /"\/ml\/models\/:id\/deploy"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
+    );
+    expect(src).toMatch(
+      /"\/ml\/models\/:id\/promote"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
+    );
+    expect(src).toMatch(
+      /"\/ml\/models\/:id\/rollback"[\s\S]{0,600}?idempotencyMiddleware\(\{\s*required:\s*true\s*\}\)/
+    );
   });
 });
 
@@ -87,28 +93,28 @@ describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMidd
   it("POST /:id/receive carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
     expect(src).toMatch(
-      /router\.post\(\s*"\/:id\/receive",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+      /router\.post\(\s*"\/:id\/receive",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );
   });
 
   it("POST /:id/reject-items carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
     expect(src).toMatch(
-      /router\.post\(\s*"\/:id\/reject-items",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+      /router\.post\(\s*"\/:id\/reject-items",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );
   });
 
   it("PATCH /:id/items/:itemId carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
     expect(src).toMatch(
-      /router\.patch\(\s*"\/:id\/items\/:itemId",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+      /router\.patch\(\s*"\/:id\/items\/:itemId",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );
   });
 
   it("POST /:id/fulfill-pr carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
     expect(src).toMatch(
-      /router\.post\(\s*"\/:id\/fulfill-pr",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/,
+      /router\.post\(\s*"\/:id\/fulfill-pr",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );
   });
 });
@@ -118,7 +124,12 @@ describe("Task #200 — idempotencyMiddleware({ required: true }) rejects missin
     const { idempotencyMiddleware } = await import("../../server/middleware/idempotency");
     const mw = idempotencyMiddleware({ required: true });
 
-    const req = { headers: {}, body: {}, method: "POST", path: "/ml/train" } as unknown as import("express").Request;
+    const req = {
+      headers: {},
+      body: {},
+      method: "POST",
+      path: "/ml/train",
+    } as unknown as import("express").Request;
     let statusCode = 0;
     let jsonBody: unknown;
     const res = {
@@ -157,9 +168,7 @@ describe("LR-3.5 / V2 (ML-2) — RAG vector search pre-filters by org_id", () =>
     // org_id predicate, the ORDER BY <=>, and the LIMIT — splitting
     // any of these off into a separate query would mean the org
     // filter no longer pre-filters the top-K.
-    const m = src.match(
-      /db\.execute<[^>]*>\(\s*sql`([\s\S]+?)`\s*\)/,
-    );
+    const m = src.match(/db\.execute<[^>]*>\(\s*sql`([\s\S]+?)`\s*\)/);
     expect(m).not.toBeNull();
     const query = m![1]!;
     expect(query).toMatch(/<=>/);
@@ -208,20 +217,20 @@ describe("LR-3.5 wave — already-shipped items still in place (regression guard
     // The PUT config endpoint is the canonical mutating route — it
     // MUST sit behind requireAdminAuth.
     expect(src).toMatch(
-      /app\.put\([\s\S]{0,80}?"\/api\/rag\/security\/config",[\s\S]{0,80}?requireAdminAuth/,
+      /app\.put\([\s\S]{0,80}?"\/api\/rag\/security\/config",[\s\S]{0,80}?requireAdminAuth/
     );
     // The other mutating endpoints listed in the SEC-3 brief
     // (audit, sanitize, validate-file) must also sit behind it.
     expect(src).toMatch(/"\/api\/rag\/security\/test\/sanitize",[\s\S]{0,80}?requireAdminAuth/);
-    expect(src).toMatch(/"\/api\/rag\/security\/test\/validate-file",[\s\S]{0,80}?requireAdminAuth/);
+    expect(src).toMatch(
+      /"\/api\/rag\/security\/test\/validate-file",[\s\S]{0,80}?requireAdminAuth/
+    );
   });
 
   it("TEN-1: GET /api/maintenance-schedules carries requireOrgId", async () => {
     const src = await loadSource("server/domains/maintenance/interfaces/routes.ts");
     expect(src).toContain("LR-3.5 / TEN-1");
-    expect(src).toMatch(
-      /app\.get\(\s*"\/api\/maintenance-schedules",\s*requireOrgId/,
-    );
+    expect(src).toMatch(/app\.get\(\s*"\/api\/maintenance-schedules",\s*requireOrgId/);
   });
 
   it("OBJ-2 / TEN-5: objectStorage.downloadObject sniffs MIME + emits nosniff + accepts auditCtx.orgId", async () => {
@@ -259,15 +268,13 @@ describe("LR-3.5 wave — already-shipped items still in place (regression guard
 
   it("PERF-1: crew-compliance-generator pulls certifications in one fetch, not per-crew", async () => {
     const src = await loadSource(
-      "server/domains/scheduled-reports/generators/crew-compliance-generator.ts",
+      "server/domains/scheduled-reports/generators/crew-compliance-generator.ts"
     );
     expect(src).toContain("LR-3.5");
     // The fix replaces a per-crew loop with a single org-scoped projection query.
     expect(src).toMatch(/getCrewComplianceRows\(\s*orgId,/);
     // And the legacy "for (const crew of ...)" loop that wrapped the
     // per-member fetch should be gone.
-    expect(src).not.toMatch(
-      /for\s*\([^)]+of\s+\w*[Cc]rew\w*\)\s*\{[^}]*getCrewCertifications/,
-    );
+    expect(src).not.toMatch(/for\s*\([^)]+of\s+\w*[Cc]rew\w*\)\s*\{[^}]*getCrewCertifications/);
   });
 });

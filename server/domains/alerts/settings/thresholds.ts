@@ -43,14 +43,18 @@ export async function upsertThreshold(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(alertThresholds.id, existing.id))
       .returning();
-    if (!updated) {throw new Error("Failed to update threshold");}
+    if (!updated) {
+      throw new Error("Failed to update threshold");
+    }
     return updated;
   }
   const [created] = await db
     .insert(alertThresholds)
     .values({ ...data, orgId, key, name: data.name || key } as InsertAlertThreshold)
     .returning();
-  if (!created) {throw new Error("Failed to create threshold");}
+  if (!created) {
+    throw new Error("Failed to create threshold");
+  }
   return created;
 }
 

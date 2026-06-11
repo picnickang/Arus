@@ -11,5 +11,5 @@ import { crewTaskEventRepository } from "./infrastructure/crew-task-event-reposi
 export const crewTaskService = new CrewTaskApplicationService(
   crewTaskRepository,
   crewTaskEffects,
-  crewTaskEventRepository,
+  crewTaskEventRepository
 );

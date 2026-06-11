@@ -10,6 +10,7 @@
 ## Executive Summary
 
 This document outlines a phased implementation strategy for enhancing the ARUS crew management system. The improvements target three key areas:
+
 1. **Regulatory Compliance** - Certification expiry alerts and document tracking
 2. **Operational Efficiency** - Schedule-to-HoR automation
 3. **Safety Enhancement** - Fatigue risk monitoring and fleet compliance dashboard
@@ -17,7 +18,9 @@ This document outlines a phased implementation strategy for enhancing the ARUS c
 **Reference**: See `docs/crew-stack-notes.md` for the complete baseline analysis of existing screens, APIs, schemas, and deployment modes.
 
 ### Architecture Review Notes
+
 The architect review identified the following critical requirements:
+
 - All API endpoints must follow existing `requireOrgId` middleware patterns in `routes.ts`
 - Schema changes must use Drizzle ORM with proper insert schemas (no raw SQL ALTERs)
 - Storage interface (`IStorage`) must be updated for all new CRUD operations
@@ -29,24 +32,27 @@ The architect review identified the following critical requirements:
 
 All changes must work in both deployment modes:
 
-| Requirement | Cloud (PostgreSQL) | Vessel (SQLite) |
-|-------------|-------------------|-----------------|
-| Schema tables | `shared/schema.ts` | `shared/schema-sqlite-vessel.ts` |
-| Runtime exports | `shared/schema-runtime.ts` (auto-selects) | Same file |
-| Tenant isolation | `x-org-id` header via `requireOrgId` | Same pattern |
-| Background jobs | pg-boss (full features) | node-cron fallback or disabled |
-| Offline behavior | N/A | Core functions work without network |
+| Requirement      | Cloud (PostgreSQL)                        | Vessel (SQLite)                     |
+| ---------------- | ----------------------------------------- | ----------------------------------- |
+| Schema tables    | `shared/schema.ts`                        | `shared/schema-sqlite-vessel.ts`    |
+| Runtime exports  | `shared/schema-runtime.ts` (auto-selects) | Same file                           |
+| Tenant isolation | `x-org-id` header via `requireOrgId`      | Same pattern                        |
+| Background jobs  | pg-boss (full features)                   | node-cron fallback or disabled      |
+| Offline behavior | N/A                                       | Core functions work without network |
 
 **Critical**: New tables/columns must be defined in BOTH schema files with compatible types.
 
 ### Offline/Vessel Mode Considerations
+
 - All crew/scheduler/HoR core functions must work offline
 - No mandatory external API calls for scheduling or compliance
 - Background jobs gracefully skip if pg-boss unavailable in vessel mode
 - Sync conflict resolution uses existing outbox pattern
 
 ### Permissions/Roles
+
 If `users.role` field is populated, enforce:
+
 - `admin`, `manager`: Full CRUD on crew, schedules, HoR
 - `technician`: View crew, limited schedule edits
 - `viewer`: Read-only access
@@ -56,10 +62,12 @@ Check existing role enforcement in `server/middleware/auth.ts` before adding new
 ---
 
 ## Phase 1: Certification Expiry Warning System (Priority: High)
+
 **Estimated Effort**: 6-8 hours (revised)  
 **Regulatory Impact**: Port State Control compliance, STCW requirements
 
 ### Business Value
+
 - Prevents crew from working with expired certifications
 - Avoids port detentions due to documentation issues
 - Automated alerts reduce administrative burden
@@ -67,23 +75,29 @@ Check existing role enforcement in `server/middleware/auth.ts` before adding new
 ### Technical Approach
 
 #### Existing Schema Reference
+
 The `crew_cert` table already exists in `shared/schema.ts` (line 2693):
+
 ```typescript
-export const crewCertification = pgTable(
-  "crew_cert",
-  {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
-    crewId: varchar("crew_id").notNull().references(() => crew.id),
-    cert: text("cert").notNull(), // STCW, BOSIET, etc.
-    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
-    issuedBy: text("issued_by"),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  }
-);
+export const crewCertification = pgTable("crew_cert", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  crewId: varchar("crew_id")
+    .notNull()
+    .references(() => crew.id),
+  cert: text("cert").notNull(), // STCW, BOSIET, etc.
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  issuedBy: text("issued_by"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+});
 ```
 
 #### Schema Additions (Drizzle ORM)
+
 ```typescript
 // In shared/schema.ts - ADD columns to existing crewCertification table
 // NOTE: Use npm run db:push to sync, NOT raw SQL
@@ -98,6 +112,7 @@ acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
 ```
 
 #### Storage Interface Updates
+
 ```typescript
 // In server/storage.ts - Add to IStorage interface:
 getCertificationsExpiring(orgId: string, daysWindow: number): Promise<SelectCrewCertification[]>;
@@ -106,24 +121,26 @@ updateCertificationAlertFlags(id: string, flags: { alert30?: boolean; alert60?: 
 ```
 
 #### API Endpoints (Following existing patterns)
-| Method | Endpoint | Description | Middleware |
-|--------|----------|-------------|------------|
-| GET | `/api/crew/certifications/expiring` | List expiring certs | requireOrgId, crewOperationRateLimit |
-| GET | `/api/crew/:crewId/certifications` | Get crew's certs | requireOrgId |
-| PATCH | `/api/crew/certifications/:id/acknowledge` | Acknowledge alert | requireOrgId |
+
+| Method | Endpoint                                   | Description         | Middleware                           |
+| ------ | ------------------------------------------ | ------------------- | ------------------------------------ |
+| GET    | `/api/crew/certifications/expiring`        | List expiring certs | requireOrgId, crewOperationRateLimit |
+| GET    | `/api/crew/:crewId/certifications`         | Get crew's certs    | requireOrgId                         |
+| PATCH  | `/api/crew/certifications/:id/acknowledge` | Acknowledge alert   | requireOrgId                         |
 
 #### Background Job (pg-boss)
+
 ```typescript
 // In server/routes.ts - Register job processor
 // Similar to existing insights job pattern
 
 // Job: check-certification-expiry (runs nightly via cron)
-import Boss from 'pg-boss';
+import Boss from "pg-boss";
 
 async function registerCertificationExpiryJob(boss: Boss, storage: IStorage) {
-  await boss.schedule('check-certification-expiry', '0 3 * * *'); // 3 AM daily
-  
-  boss.work('check-certification-expiry', async (job) => {
+  await boss.schedule("check-certification-expiry", "0 3 * * *"); // 3 AM daily
+
+  boss.work("check-certification-expiry", async (job) => {
     const orgs = await storage.getAllOrganizations();
     for (const org of orgs) {
       await checkAndUpdateExpiryAlerts(org.id, storage);
@@ -133,19 +150,22 @@ async function registerCertificationExpiryJob(boss: Boss, storage: IStorage) {
 ```
 
 #### Frontend Components
+
 1. **CertificationAlertBanner** - Top-level warning in UnifiedCrewManagement
 2. **CertificationStatusBadge** - Visual indicator (green/amber/red) per crew member
 3. **ExpiryFilterPanel** - Filter crew by certification expiry window
 4. **CrewScheduler Integration** - Warning when assigning crew with expiring certs
 
 #### Cache Invalidation
+
 ```typescript
 // On mutation success:
-queryClient.invalidateQueries({ queryKey: ['/api/crew/certifications'] });
-queryClient.invalidateQueries({ queryKey: ['/api/crew', crewId, 'certifications'] });
+queryClient.invalidateQueries({ queryKey: ["/api/crew/certifications"] });
+queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "certifications"] });
 ```
 
 #### Implementation Steps
+
 1. Update `shared/schema.ts` with alert tracking columns (Drizzle format)
 2. Run `npm run db:push` to sync schema
 3. Update `IStorage` interface and `DatabaseStorage` class
@@ -156,16 +176,19 @@ queryClient.invalidateQueries({ queryKey: ['/api/crew', crewId, 'certifications'
 8. Write unit tests for expiry logic
 
 ### Dependencies
+
 - None (standalone feature, uses existing pg-boss infrastructure)
 
 ---
 
 ## Phase 2: Crew Document Management (Priority: High)
+
 **Estimated Effort**: 4-5 hours  
 **Regulatory Impact**: ISM Code, Flag State requirements
 **Status**: ✅ COMPLETE (November 28, 2025)
 
 ### Implementation Summary (Completed)
+
 - ✅ Database schema: `crew_documents` table added to both PostgreSQL and SQLite schemas
 - ✅ Storage interface: Full CRUD methods in IStorage, MemStorage, DatabaseStorage
 - ✅ Repository layer: CrewRepository with document methods
@@ -175,6 +198,7 @@ queryClient.invalidateQueries({ queryKey: ['/api/crew', crewId, 'certifications'
 - ✅ Profile dialog: New crew profile dialog with Details and Documents tabs
 
 ### Business Value
+
 - Centralized document tracking (passport, seaman's book, visa)
 - Proactive expiry management
 - Audit-ready document records
@@ -182,39 +206,45 @@ queryClient.invalidateQueries({ queryKey: ['/api/crew', crewId, 'certifications'
 ### Technical Approach
 
 #### Database Schema
+
 ```typescript
 // In shared/schema.ts
-export const crewDocuments = pgTable('crew_documents', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: varchar('org_id', { length: 255 }).notNull(),
-  crewId: uuid('crew_id').references(() => crew.id).notNull(),
-  documentType: varchar('document_type', { length: 50 }).notNull(), // 'passport', 'seaman_book', 'visa', 'medical', 'endorsement'
-  documentNumber: varchar('document_number', { length: 100 }),
-  issuingAuthority: varchar('issuing_authority', { length: 255 }),
-  issuedAt: timestamp('issued_at'),
-  expiresAt: timestamp('expires_at'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+export const crewDocuments = pgTable("crew_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: varchar("org_id", { length: 255 }).notNull(),
+  crewId: uuid("crew_id")
+    .references(() => crew.id)
+    .notNull(),
+  documentType: varchar("document_type", { length: 50 }).notNull(), // 'passport', 'seaman_book', 'visa', 'medical', 'endorsement'
+  documentNumber: varchar("document_number", { length: 100 }),
+  issuingAuthority: varchar("issuing_authority", { length: 255 }),
+  issuedAt: timestamp("issued_at"),
+  expiresAt: timestamp("expires_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 ```
 
 #### API Endpoints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/crew/:id/documents` | List all documents for crew member |
-| POST | `/api/crew/:id/documents` | Add new document |
-| PATCH | `/api/crew/documents/:docId` | Update document |
-| DELETE | `/api/crew/documents/:docId` | Remove document |
-| GET | `/api/crew/documents/expiring` | List all expiring documents (query: days) |
+
+| Method | Endpoint                       | Description                               |
+| ------ | ------------------------------ | ----------------------------------------- |
+| GET    | `/api/crew/:id/documents`      | List all documents for crew member        |
+| POST   | `/api/crew/:id/documents`      | Add new document                          |
+| PATCH  | `/api/crew/documents/:docId`   | Update document                           |
+| DELETE | `/api/crew/documents/:docId`   | Remove document                           |
+| GET    | `/api/crew/documents/expiring` | List all expiring documents (query: days) |
 
 #### Frontend Components
+
 1. **CrewDocumentsTab** - Tab in crew profile drawer
 2. **DocumentFormDialog** - Add/edit document modal
 3. **DocumentExpiryWidget** - Dashboard summary of expiring docs
 4. Reuse CertificationAlertBanner pattern for document alerts
 
 #### Implementation Steps
+
 1. Create crew_documents schema and migrations
 2. Add storage interface methods
 3. Build CRUD API endpoints with Zod validation
@@ -223,18 +253,22 @@ export const crewDocuments = pgTable('crew_documents', {
 6. Add document type icons (passport, visa, etc.)
 
 ### Dependencies
+
 - Phase 1 (reuses expiry alert infrastructure)
 
 ---
 
 ## Phase 3: Auto-populate Hours of Rest from Scheduler (Priority: Medium-High)
+
 **Estimated Effort**: 10-14 hours (revised - includes missing publication pipeline)  
 **Regulatory Impact**: STCW compliance automation
 
 ### ⚠️ Prerequisite Work
+
 **CRITICAL**: The schedule publication workflow does NOT currently exist. The current scheduler only generates assignments in memory or saves them temporarily. A complete publication pipeline must be built.
 
 ### Business Value
+
 - Eliminates manual HoR data entry
 - Reduces human error in compliance records
 - Creates audit trail linking schedules to rest records
@@ -242,10 +276,14 @@ export const crewDocuments = pgTable('crew_documents', {
 ### Technical Approach
 
 #### Existing Schema Reference
+
 The `crew_rest_sheet` table exists (line 2861) but lacks schedule linking:
+
 ```typescript
 export const crewRestSheet = pgTable("crew_rest_sheet", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   orgId: varchar("org_id").notNull(),
   crewId: varchar("crew_id").notNull(),
   crewName: text("crew_name"),
@@ -259,6 +297,7 @@ export const crewRestSheet = pgTable("crew_rest_sheet", {
 ```
 
 #### New Schema: Schedule Publication
+
 ```typescript
 // In shared/schema.ts - NEW table for schedule publication tracking
 export const scheduleRuns = pgTable("schedule_runs", {
@@ -298,6 +337,7 @@ sourceType: text("source_type").default("manual"), // 'manual', 'schedule', 'imp
 ```
 
 #### Storage Interface Updates
+
 ```typescript
 // In server/storage.ts - Add to IStorage:
 // Schedule Runs
@@ -316,24 +356,26 @@ generateHoRFromSchedule(runId: string, generateForMonth: number, generateForYear
 ```
 
 #### API Endpoints (Following existing patterns)
-| Method | Endpoint | Description | Middleware |
-|--------|----------|-------------|------------|
-| GET | `/api/schedule/runs` | List schedule runs | requireOrgId |
-| POST | `/api/schedule/plan` | Execute scheduling (creates run) | requireOrgId |
-| POST | `/api/schedule/:runId/publish` | Publish and persist schedule | requireOrgId |
-| POST | `/api/schedule/:runId/generate-hor` | Generate HoR from schedule | requireOrgId |
-| GET | `/api/schedule/assignments` | Get assignments for date range | requireOrgId |
-| GET | `/api/hor/preview` | Preview HoR before commit | requireOrgId |
+
+| Method | Endpoint                            | Description                      | Middleware   |
+| ------ | ----------------------------------- | -------------------------------- | ------------ |
+| GET    | `/api/schedule/runs`                | List schedule runs               | requireOrgId |
+| POST   | `/api/schedule/plan`                | Execute scheduling (creates run) | requireOrgId |
+| POST   | `/api/schedule/:runId/publish`      | Publish and persist schedule     | requireOrgId |
+| POST   | `/api/schedule/:runId/generate-hor` | Generate HoR from schedule       | requireOrgId |
+| GET    | `/api/schedule/assignments`         | Get assignments for date range   | requireOrgId |
+| GET    | `/api/hor/preview`                  | Preview HoR before commit        | requireOrgId |
 
 #### Idempotency & Error Handling
+
 ```typescript
 // Use existing idempotency pattern from routes.ts
-const idempotencyKey = req.headers['x-idempotency-key'];
+const idempotencyKey = req.headers["x-idempotency-key"];
 if (idempotencyKey) {
-  const isDuplicate = await storage.checkIdempotency(idempotencyKey, '/api/schedule/generate-hor');
+  const isDuplicate = await storage.checkIdempotency(idempotencyKey, "/api/schedule/generate-hor");
   if (isDuplicate) {
-    incrementIdempotencyHit('/api/schedule/generate-hor');
-    return res.status(200).json({ message: 'Already processed' });
+    incrementIdempotencyHit("/api/schedule/generate-hor");
+    return res.status(200).json({ message: "Already processed" });
   }
 }
 
@@ -348,6 +390,7 @@ await db.transaction(async (tx) => {
 ```
 
 #### Workflow
+
 ```
 CrewScheduler → "Execute Schedule" → POST /api/schedule/plan
      ↓
@@ -369,19 +412,21 @@ HoursOfRestGrid shows auto-populated data (sourceType: 'schedule')
 ```
 
 #### Cache Invalidation
+
 ```typescript
 // After publish:
-queryClient.invalidateQueries({ queryKey: ['/api/schedule/runs'] });
-queryClient.invalidateQueries({ queryKey: ['/api/schedule/assignments'] });
+queryClient.invalidateQueries({ queryKey: ["/api/schedule/runs"] });
+queryClient.invalidateQueries({ queryKey: ["/api/schedule/assignments"] });
 
 // After HoR generation:
-queryClient.invalidateQueries({ queryKey: ['/api/stcw/rest'] });
-queryClient.invalidateQueries({ queryKey: ['/api/hor'] });
+queryClient.invalidateQueries({ queryKey: ["/api/stcw/rest"] });
+queryClient.invalidateQueries({ queryKey: ["/api/hor"] });
 ```
 
 #### Implementation Steps
+
 1. Create `scheduleRuns` and `scheduleAssignments` schemas in `shared/schema.ts`
-2. Add `scheduleRunId` and `sourceType` to `crewRestSheet` 
+2. Add `scheduleRunId` and `sourceType` to `crewRestSheet`
 3. Run `npm run db:push` to sync schema
 4. Update `IStorage` interface with all schedule CRUD operations
 5. Implement `DatabaseStorage` methods
@@ -395,6 +440,7 @@ queryClient.invalidateQueries({ queryKey: ['/api/hor'] });
 13. Write integration tests for the full workflow
 
 ### Dependencies
+
 - Existing scheduler algorithm (verified ✓)
 - STCW compliance checker (exists ✓)
 - **NEW**: Schedule publication infrastructure must be built first
@@ -402,11 +448,13 @@ queryClient.invalidateQueries({ queryKey: ['/api/hor'] });
 ---
 
 ## Phase 4: Fatigue Risk Score Indicator (Priority: Medium)
+
 **Estimated Effort**: 4-5 hours  
 **Regulatory Impact**: Safety management, ISM Code
 **Status**: ✅ COMPLETE (November 28, 2025)
 
 ### Implementation Summary (Completed)
+
 - ✅ Fatigue calculation algorithm in stcw-compliance.ts with weighted scoring
 - ✅ API endpoints: GET /api/hor/fatigue/:crewId, /api/hor/fatigue/vessel/:vesselId, /api/hor/fatigue/fleet
 - ✅ FatigueRiskBadge component with popover showing contributing factors
@@ -414,6 +462,7 @@ queryClient.invalidateQueries({ queryKey: ['/api/hor'] });
 - ✅ Integration into HoursOfRestGrid and schedule-board assignments table
 
 ### Business Value
+
 - Proactive fatigue risk identification
 - Data-driven watch schedule optimization
 - Safety culture enhancement
@@ -421,44 +470,48 @@ queryClient.invalidateQueries({ queryKey: ['/api/hor'] });
 ### Technical Approach
 
 #### Fatigue Risk Algorithm
+
 ```typescript
 interface FatigueMetrics {
-  sleepDebt24h: number;        // Hours below 10h rest in 24h periods
-  sleepDebt7d: number;         // Hours below 77h rest in 7 day window
+  sleepDebt24h: number; // Hours below 10h rest in 24h periods
+  sleepDebt7d: number; // Hours below 77h rest in 7 day window
   consecutiveNightShifts: number;
   timeSinceLastFullRest: number; // Hours
-  nightWorkRatio: number;      // % of work hours at night (22:00-06:00)
+  nightWorkRatio: number; // % of work hours at night (22:00-06:00)
 }
 
-function calculateFatigueRisk(metrics: FatigueMetrics): 'low' | 'medium' | 'high' | 'critical' {
+function calculateFatigueRisk(metrics: FatigueMetrics): "low" | "medium" | "high" | "critical" {
   let score = 0;
-  
+
   if (metrics.sleepDebt24h > 0) score += metrics.sleepDebt24h * 10;
   if (metrics.sleepDebt7d > 0) score += metrics.sleepDebt7d * 5;
   if (metrics.consecutiveNightShifts >= 3) score += 20;
   if (metrics.consecutiveNightShifts >= 5) score += 30;
   if (metrics.nightWorkRatio > 0.5) score += 15;
-  
-  if (score >= 60) return 'critical';
-  if (score >= 40) return 'high';
-  if (score >= 20) return 'medium';
-  return 'low';
+
+  if (score >= 60) return "critical";
+  if (score >= 40) return "high";
+  if (score >= 20) return "medium";
+  return "low";
 }
 ```
 
 #### API Endpoints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/hor/fatigue/:crewId` | Get fatigue metrics for crew |
-| GET | `/api/hor/fatigue/vessel/:vesselId` | Vessel-wide fatigue summary |
+
+| Method | Endpoint                            | Description                  |
+| ------ | ----------------------------------- | ---------------------------- |
+| GET    | `/api/hor/fatigue/:crewId`          | Get fatigue metrics for crew |
+| GET    | `/api/hor/fatigue/vessel/:vesselId` | Vessel-wide fatigue summary  |
 
 #### Frontend Components
+
 1. **FatigueRiskBadge** - Color-coded indicator (green/amber/orange/red)
 2. **FatigueDetailsPopover** - Breakdown of contributing factors
 3. **HoRGrid integration** - Fatigue column in summary view
 4. **CrewScheduler warnings** - Flag high-fatigue crew in assignments
 
 #### Implementation Steps
+
 1. Extend stcw-compliance.ts with fatigue calculations
 2. Create fatigue API endpoints
 3. Build FatigueRiskBadge component
@@ -466,16 +519,19 @@ function calculateFatigueRisk(metrics: FatigueMetrics): 'low' | 'medium' | 'high
 5. Add warnings to CrewScheduler crew selection
 
 ### Dependencies
+
 - Phase 3 (relies on normalized rest data)
 
 ---
 
 ## Phase 5: Schedule-to-HoR Validation Preview (Priority: Medium)
+
 **Estimated Effort**: 3-4 hours  
 **Regulatory Impact**: STCW preventive compliance
 **Status**: ✅ COMPLETE (November 28, 2025)
 
 ### Implementation Summary (Completed)
+
 - ✅ API endpoint: POST /api/schedule/preview-compliance
 - ✅ compliance-preview.ts module with assignment-to-rest conversion and STCW checks
 - ✅ CompliancePreviewModal component with violation grouping and acknowledgment flow
@@ -483,6 +539,7 @@ function calculateFatigueRisk(metrics: FatigueMetrics): 'low' | 'medium' | 'high
 - ✅ schedule-board.tsx integration: publish button opens compliance preview first
 
 ### Business Value
+
 - Catch STCW violations before they happen
 - Reduce rework from invalid schedules
 - Training tool for scheduling supervisors
@@ -490,15 +547,17 @@ function calculateFatigueRisk(metrics: FatigueMetrics): 'low' | 'medium' | 'high
 ### Technical Approach
 
 #### API Endpoints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/schedule/preview-compliance` | Validate draft schedule against STCW |
+
+| Method | Endpoint                           | Description                          |
+| ------ | ---------------------------------- | ------------------------------------ |
+| POST   | `/api/schedule/preview-compliance` | Validate draft schedule against STCW |
 
 #### Request/Response
+
 ```typescript
 // Request
 interface PreviewComplianceRequest {
-  scheduleRunId?: string;  // For saved schedules
+  scheduleRunId?: string; // For saved schedules
   assignments?: Assignment[]; // For draft validation
 }
 
@@ -509,9 +568,9 @@ interface PreviewComplianceResponse {
     crewId: string;
     crewName: string;
     date: string;
-    rule: '10h_24h' | '77h_7d' | 'consecutive_days';
+    rule: "10h_24h" | "77h_7d" | "consecutive_days";
     description: string;
-    severity: 'warning' | 'violation';
+    severity: "warning" | "violation";
   }>;
   summary: {
     totalCrew: number;
@@ -523,11 +582,13 @@ interface PreviewComplianceResponse {
 ```
 
 #### Frontend Components
+
 1. **CompliancePreviewModal** - Show violations before publishing
 2. **ComplianceGate** - Block publish if critical violations
 3. Violation list with crew details and suggested fixes
 
 #### Implementation Steps
+
 1. Create preview-compliance endpoint reusing STCW checker
 2. Build CompliancePreviewModal component
 3. Add "Preview Compliance" button before Publish
@@ -535,16 +596,19 @@ interface PreviewComplianceResponse {
 5. Add "Ignore Warning" acknowledgment flow
 
 ### Dependencies
+
 - Phase 3 & 4 (schedule-to-HoR and fatigue calculations)
 
 ---
 
 ## Phase 6: Fleet STCW Compliance Dashboard (Priority: Medium)
+
 **Estimated Effort**: 4-5 hours  
 **Regulatory Impact**: Fleet-wide compliance monitoring
 **Status**: ✅ COMPLETE (November 28, 2025)
 
 ### Implementation Summary (Completed)
+
 - ✅ API endpoints: GET /api/dashboard/stcw-summary, /api/dashboard/stcw-summary/vessel/:id, /api/dashboard/stcw-trends
 - ✅ stcw-dashboard.ts service module with fleet and vessel aggregation
 - ✅ STCWComplianceWidget dashboard component with:
@@ -556,6 +620,7 @@ interface PreviewComplianceResponse {
 - ✅ Navigation: links to Hours of Rest dashboard for detailed review
 
 ### Business Value
+
 - Executive visibility into compliance status
 - Early warning for fleet-wide trends
 - ISM Code audit readiness
@@ -563,10 +628,11 @@ interface PreviewComplianceResponse {
 ### Technical Approach
 
 #### Database Schema
+
 ```typescript
 // Materialized view for performance
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_fleet_stcw_summary AS
-SELECT 
+SELECT
   org_id,
   vessel_id,
   DATE_TRUNC('day', date) as report_date,
@@ -580,19 +646,22 @@ GROUP BY org_id, vessel_id, DATE_TRUNC('day', date);
 ```
 
 #### API Endpoints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/dashboard/stcw-summary` | Fleet compliance overview |
-| GET | `/api/dashboard/stcw-summary/vessel/:id` | Per-vessel details |
-| GET | `/api/dashboard/stcw-trends` | 7/30 day compliance trends |
+
+| Method | Endpoint                                 | Description                |
+| ------ | ---------------------------------------- | -------------------------- |
+| GET    | `/api/dashboard/stcw-summary`            | Fleet compliance overview  |
+| GET    | `/api/dashboard/stcw-summary/vessel/:id` | Per-vessel details         |
+| GET    | `/api/dashboard/stcw-trends`             | 7/30 day compliance trends |
 
 #### Frontend Components
+
 1. **STCWComplianceWidget** - Dashboard card with fleet summary
 2. **VesselComplianceBreakdown** - Expandable per-vessel view
 3. **ComplianceTrendChart** - Line chart showing compliance % over time
 4. **FatigueHeatmap** - Visual overview of fatigue risk by vessel/date
 
 #### Implementation Steps
+
 1. Create materialized view for summary data
 2. Build summary API endpoints
 3. Create STCWComplianceWidget component
@@ -601,24 +670,26 @@ GROUP BY org_id, vessel_id, DATE_TRUNC('day', date);
 6. Add drill-down navigation to HoR grid
 
 ### Dependencies
+
 - Phases 3, 4, 5 (complete HoR and fatigue data pipeline)
 
 ---
 
 ## Implementation Timeline (Revised)
 
-| Phase | Feature | Effort | Dependencies | Target | Risk Level |
-|-------|---------|--------|--------------|--------|------------|
-| 1 | Certification Expiry Alerts | 6-8h | None | Week 1 | Low |
-| 2 | Document Management | 5-7h | Phase 1 | Week 1-2 | Low |
-| 3 | Schedule Publication + HoR Integration | 10-14h | None | Week 2-3 | **High** |
-| 4 | Fatigue Risk Score | 5-7h | Phase 3 | Week 3 | Medium |
-| 5 | Compliance Preview | 4-5h | Phase 3, 4 | Week 3-4 | Low |
-| 6 | Fleet Dashboard | 5-7h | All previous | Week 4 | Low |
+| Phase | Feature                                | Effort | Dependencies | Target   | Risk Level |
+| ----- | -------------------------------------- | ------ | ------------ | -------- | ---------- |
+| 1     | Certification Expiry Alerts            | 6-8h   | None         | Week 1   | Low        |
+| 2     | Document Management                    | 5-7h   | Phase 1      | Week 1-2 | Low        |
+| 3     | Schedule Publication + HoR Integration | 10-14h | None         | Week 2-3 | **High**   |
+| 4     | Fatigue Risk Score                     | 5-7h   | Phase 3      | Week 3   | Medium     |
+| 5     | Compliance Preview                     | 4-5h   | Phase 3, 4   | Week 3-4 | Low        |
+| 6     | Fleet Dashboard                        | 5-7h   | All previous | Week 4   | Low        |
 
 **Total Revised Estimate**: 35-48 hours
 
 ### Risk Assessment
+
 - **Phase 3 (High Risk)**: Requires building entire schedule publication pipeline that doesn't exist. Complex timezone handling for SGT. High integration complexity with existing scheduler.
 - **Phase 4 (Medium Risk)**: Algorithm complexity for accurate fatigue scoring. Requires validation against maritime fatigue research.
 
@@ -627,6 +698,7 @@ GROUP BY org_id, vessel_id, DATE_TRUNC('day', date);
 ## Prerequisites Checklist
 
 Before starting implementation:
+
 - [ ] Confirm pg-boss job queue is configured and running
 - [ ] Verify existing `crewCertification` table has data for testing
 - [ ] Understand current HoR data flow and timezone handling
@@ -638,17 +710,20 @@ Before starting implementation:
 ## Testing Strategy
 
 ### Unit Tests
+
 - Certification expiry date calculations
 - Fatigue risk algorithm
 - STCW compliance rules
 - Schedule-to-rest transformation
 
 ### Integration Tests
+
 - API endpoint validation
 - Database schema migrations
 - Real-time alert triggers
 
 ### E2E Tests (Playwright)
+
 - Certification alert workflow
 - Document CRUD operations
 - Schedule publish → HoR generation flow

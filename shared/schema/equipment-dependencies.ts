@@ -13,16 +13,7 @@
  *   admin UI's "add" button is naturally idempotent.
  */
 
-import {
-  pgTable,
-  varchar,
-  text,
-  timestamp,
-  jsonb,
-  index,
-  unique,
-  sql,
-} from "./base";
+import { pgTable, varchar, text, timestamp, jsonb, index, unique, sql } from "./base";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { organizations, users } from "./core";
@@ -58,10 +49,7 @@ export const equipmentDependencies = pgTable(
   (table) => ({
     orgIdx: index("idx_equipment_deps_org").on(table.orgId),
     vesselIdx: index("idx_equipment_deps_vessel").on(table.orgId, table.vesselId),
-    upstreamIdx: index("idx_equipment_deps_upstream").on(
-      table.orgId,
-      table.upstreamEquipmentId
-    ),
+    upstreamIdx: index("idx_equipment_deps_upstream").on(table.orgId, table.upstreamEquipmentId),
     uniqEdge: unique("uniq_equipment_deps_edge").on(
       table.orgId,
       table.upstreamEquipmentId,
@@ -70,9 +58,7 @@ export const equipmentDependencies = pgTable(
   })
 );
 
-export const insertEquipmentDependencySchema = createInsertSchema(
-  equipmentDependencies
-).omit({
+export const insertEquipmentDependencySchema = createInsertSchema(equipmentDependencies).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -81,9 +67,7 @@ export const insertEquipmentDependencySchema = createInsertSchema(
 });
 
 export type EquipmentDependency = typeof equipmentDependencies.$inferSelect;
-export type InsertEquipmentDependency = z.infer<
-  typeof insertEquipmentDependencySchema
->;
+export type InsertEquipmentDependency = z.infer<typeof insertEquipmentDependencySchema>;
 
 /**
  * Task #129 — Per-admin remembered layout for the dependency graph editor.

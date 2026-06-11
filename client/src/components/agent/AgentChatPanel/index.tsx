@@ -8,12 +8,7 @@ import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-import {
-  ALLOWED_FILE_TYPES,
-  MAX_ATTACHMENTS,
-  MAX_FILE_SIZE_BYTES,
-  MAX_RETRIES,
-} from "./constants";
+import { ALLOWED_FILE_TYPES, MAX_ATTACHMENTS, MAX_FILE_SIZE_BYTES, MAX_RETRIES } from "./constants";
 import { fetchStreamWithRetry, readStreamWithRetry } from "./streamClient";
 import { ConversationHistory } from "./ConversationHistory";
 import { EmptyState } from "./EmptyState";

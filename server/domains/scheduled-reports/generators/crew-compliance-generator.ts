@@ -113,11 +113,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
       }
 
       const storage = await this.getStorage();
-      const rows = await storage.getCrewComplianceRows(
-        orgId,
-        vesselIds,
-        ninetyDaysFromNow
-      );
+      const rows = await storage.getCrewComplianceRows(orgId, vesselIds, ninetyDaysFromNow);
 
       const alerts: CertificationAlert[] = rows.map((row) => {
         const expiryDate = row.expiresAt;

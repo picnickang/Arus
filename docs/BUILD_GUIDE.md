@@ -87,25 +87,25 @@ npm run tauri:build
 
 ### macOS
 
-| File | Type | Size | Use Case |
-|------|------|------|----------|
-| `ARUS Marine.app` | App Bundle | ~30MB | Direct use |
-| `ARUS Marine_x.x.x_aarch64.dmg` | DMG | ~35MB | Apple Silicon Macs |
-| `ARUS Marine_x.x.x_x64.dmg` | DMG | ~35MB | Intel Macs |
+| File                            | Type       | Size  | Use Case           |
+| ------------------------------- | ---------- | ----- | ------------------ |
+| `ARUS Marine.app`               | App Bundle | ~30MB | Direct use         |
+| `ARUS Marine_x.x.x_aarch64.dmg` | DMG        | ~35MB | Apple Silicon Macs |
+| `ARUS Marine_x.x.x_x64.dmg`     | DMG        | ~35MB | Intel Macs         |
 
 ### Windows
 
-| File | Type | Size | Use Case |
-|------|------|------|----------|
+| File                              | Type           | Size  | Use Case              |
+| --------------------------------- | -------------- | ----- | --------------------- |
 | `ARUS Marine_x.x.x_x64-setup.exe` | NSIS Installer | ~25MB | Standard installation |
-| `ARUS Marine_x.x.x_x64_en-US.msi` | MSI Installer | ~25MB | Enterprise deployment |
+| `ARUS Marine_x.x.x_x64_en-US.msi` | MSI Installer  | ~25MB | Enterprise deployment |
 
 ### Linux
 
-| File | Type | Size | Use Case |
-|------|------|------|----------|
+| File                               | Type     | Size  | Use Case        |
+| ---------------------------------- | -------- | ----- | --------------- |
 | `arus-marine_x.x.x_amd64.AppImage` | AppImage | ~30MB | Universal Linux |
-| `arus-marine_x.x.x_amd64.deb` | DEB | ~25MB | Debian/Ubuntu |
+| `arus-marine_x.x.x_amd64.deb`      | DEB      | ~25MB | Debian/Ubuntu   |
 
 ## Mobile Build (Capacitor)
 
@@ -127,6 +127,7 @@ node scripts/generate-icons.mjs
 ```
 
 **Generated icons:**
+
 - `src-tauri/icons/` — Tauri desktop icons (32x32, 128x128, 256x256, icon.png)
 - `build/icon-1024.png` — macOS base icon
 - `build/icon-*.png` — Multi-resolution PNGs
@@ -136,11 +137,13 @@ node scripts/generate-icons.mjs
 ### Before Distribution
 
 1. **Test development mode first:**
+
    ```bash
    npm run tauri:dev
    ```
 
 2. **Build and test release:**
+
    ```bash
    npm run tauri:build
    ```
@@ -159,6 +162,7 @@ xattr -cr /Applications/ARUS\ Marine.app
 ```
 
 **Issue:** "Unidentified developer" warning
+
 - **Cause:** App is not signed or notarized
 - **Solution:** Follow [Code Signing Guide](./CODE_SIGNING_GUIDE.md)
 
@@ -178,7 +182,7 @@ name: Build & Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
@@ -199,7 +203,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
@@ -232,14 +236,17 @@ Update in both `package.json` and `src-tauri/tauri.conf.json`:
 ## Distribution
 
 ### macOS
+
 - **Direct Distribution:** Distribute signed/notarized DMG via website
 - **Mac App Store:** Submit via Xcode after App Store provisioning
 
 ### Windows
+
 - **Direct Distribution:** Distribute signed NSIS/MSI installer
 - **Microsoft Store:** Submit via Microsoft Partner Center
 
 ### Linux
+
 - **AppImage:** Universal distribution
 - **DEB package:** Debian/Ubuntu
 - **Snapcraft/Flatpak:** Package manager distribution

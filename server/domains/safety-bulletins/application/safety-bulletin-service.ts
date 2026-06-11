@@ -15,14 +15,12 @@ export class SafetyBulletinApplicationService {
 
   async listBulletins(
     orgId: string,
-    filters?: ListSafetyBulletinsFilters,
+    filters?: ListSafetyBulletinsFilters
   ): Promise<SafetyBulletinEntity[]> {
     return this.repo.findAll(orgId, filters);
   }
 
-  async createBulletin(
-    command: CreateSafetyBulletinCommand,
-  ): Promise<SafetyBulletinEntity> {
+  async createBulletin(command: CreateSafetyBulletinCommand): Promise<SafetyBulletinEntity> {
     return this.repo.create(command);
   }
 }

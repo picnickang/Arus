@@ -168,7 +168,10 @@ export default function VesselManagement() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vessel Class</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value ?? undefined}
+                            >
                               <FormControl>
                                 <SelectTrigger data-testid="select-vessel-class">
                                   <SelectValue placeholder="Select class" />
@@ -492,67 +495,70 @@ export default function VesselManagement() {
                   )}
                 />
               </div>
-              {v.selectedVessel && ((selectedVesselId: string) => (
-                <div className="pt-4 border-t" data-vessel-id={selectedVesselId}>
-                  <h3 className="text-lg font-medium mb-3 text-destructive">Danger Zone</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/50">
-                      <div>
-                        <div className="font-medium">Reset Downtime Counter</div>
-                        <div className="text-sm text-muted-foreground">
-                          Reset accumulated downtime hours to zero
+              {v.selectedVessel &&
+                ((selectedVesselId: string) => (
+                  <div className="pt-4 border-t" data-vessel-id={selectedVesselId}>
+                    <h3 className="text-lg font-medium mb-3 text-destructive">Danger Zone</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/50">
+                        <div>
+                          <div className="font-medium">Reset Downtime Counter</div>
+                          <div className="text-sm text-muted-foreground">
+                            Reset accumulated downtime hours to zero
+                          </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => v.resetDowntimeMutation.mutate(selectedVesselId)}
+                          disabled={v.resetDowntimeMutation.isPending}
+                          data-testid="button-reset-downtime"
+                        >
+                          {v.resetDowntimeMutation.isPending ? "Resetting..." : "Reset Downtime"}
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => v.resetDowntimeMutation.mutate(selectedVesselId)}
-                        disabled={v.resetDowntimeMutation.isPending}
-                        data-testid="button-reset-downtime"
-                      >
-                        {v.resetDowntimeMutation.isPending ? "Resetting..." : "Reset Downtime"}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/50">
-                      <div>
-                        <div className="font-medium">Reset Operation Counter</div>
-                        <div className="text-sm text-muted-foreground">
-                          Reset accumulated operation hours to zero
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/50">
+                        <div>
+                          <div className="font-medium">Reset Operation Counter</div>
+                          <div className="text-sm text-muted-foreground">
+                            Reset accumulated operation hours to zero
+                          </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => v.resetOperationMutation.mutate(selectedVesselId)}
+                          disabled={v.resetOperationMutation.isPending}
+                          data-testid="button-reset-operation"
+                        >
+                          {v.resetOperationMutation.isPending ? "Resetting..." : "Reset Operation"}
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => v.resetOperationMutation.mutate(selectedVesselId)}
-                        disabled={v.resetOperationMutation.isPending}
-                        data-testid="button-reset-operation"
-                      >
-                        {v.resetOperationMutation.isPending ? "Resetting..." : "Reset Operation"}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg border-2 border-destructive">
-                      <div>
-                        <div className="font-medium text-destructive">Wipe All Vessel Data</div>
-                        <div className="text-sm text-muted-foreground">
-                          Delete all telemetry, DTCs, and insights for this vessel
+                      <div className="flex items-center justify-between p-3 rounded-lg border-2 border-destructive">
+                        <div>
+                          <div className="font-medium text-destructive">Wipe All Vessel Data</div>
+                          <div className="text-sm text-muted-foreground">
+                            Delete all telemetry, DTCs, and insights for this vessel
+                          </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={v.handleWipeVesselData}
+                          disabled={v.wipeVesselDataMutation.isPending}
+                          data-testid="button-wipe-vessel-data"
+                        >
+                          {v.wipeVesselDataMutation.isPending
+                            ? "Wiping..."
+                            : "Wipe All Vessel Data"}
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={v.handleWipeVesselData}
-                        disabled={v.wipeVesselDataMutation.isPending}
-                        data-testid="button-wipe-vessel-data"
-                      >
-                        {v.wipeVesselDataMutation.isPending ? "Wiping..." : "Wipe All Vessel Data"}
-                      </Button>
                     </div>
                   </div>
-                </div>
-              ))(v.selectedVessel.id)}
+                ))(v.selectedVessel.id)}
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"

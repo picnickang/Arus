@@ -30,8 +30,12 @@ describe("Crew forms — CRUD + propagation", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (certId) {await pool.query("DELETE FROM crew_cert WHERE id=$1", [certId]).catch(() => {});}
-    if (leaveId) {await pool.query("DELETE FROM crew_leave WHERE id=$1", [leaveId]).catch(() => {});}
+    if (certId) {
+      await pool.query("DELETE FROM crew_cert WHERE id=$1", [certId]).catch(() => {});
+    }
+    if (leaveId) {
+      await pool.query("DELETE FROM crew_leave WHERE id=$1", [leaveId]).catch(() => {});
+    }
     if (memberId) {
       await pool.query("DELETE FROM crew_cert WHERE crew_id=$1", [memberId]).catch(() => {});
       await pool.query("DELETE FROM crew_leave WHERE crew_id=$1", [memberId]).catch(() => {});
@@ -122,16 +126,15 @@ describe("Crew forms — CRUD + propagation", () => {
     expect([200, 201, 400]).toContain(status);
     if (status === 200 || status === 201) {
       leaveId = (data as { id: string }).id;
-      const { rows } = await pool.query(
-        "SELECT crew_id FROM crew_leave WHERE id=$1",
-        [leaveId]
-      );
+      const { rows } = await pool.query("SELECT crew_id FROM crew_leave WHERE id=$1", [leaveId]);
       expect(rows[0]?.crew_id).toBe(memberId);
     }
   });
 
   it("DELETE cert removes the row", async () => {
-    if (!certId) {return;}
+    if (!certId) {
+      return;
+    }
     const { status } = await api("DELETE", `/api/crew-certifications/${certId}`);
     expect([200, 204, 404]).toContain(status);
     if (status === 200 || status === 204) {

@@ -55,7 +55,9 @@ export function calculateFatigueMetrics(days: RestDay[]): FatigueMetrics {
 
   for (let i = days.length - 1; i >= 0; i--) {
     const day = days[i];
-    if (!day) {continue;}
+    if (!day) {
+      continue;
+    }
     const restHours = countRestHours(day);
     const workHours = countWorkHours(day);
     const nightWorkHours = countNightWorkHours(day);

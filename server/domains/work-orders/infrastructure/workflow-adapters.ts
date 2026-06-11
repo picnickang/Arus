@@ -23,7 +23,9 @@ import type {
 import { dbMlAnalyticsStorage } from "../../../db/ml-analytics";
 import { createLogger } from "../../../lib/structured-logger";
 
-const failureHistoryLogger = createLogger("Domains:WorkOrders:Infrastructure:FailureHistoryAdapter");
+const failureHistoryLogger = createLogger(
+  "Domains:WorkOrders:Infrastructure:FailureHistoryAdapter"
+);
 
 export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRepository {
   async createQuick(orgId: string, input: QuickWorkOrderInput): Promise<QuickWorkOrderResult> {
@@ -132,9 +134,13 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .then((r: unknown): { next_num?: number } | undefined => {
         if (r && typeof r === "object" && "rows" in r) {
           const rows = (r as { rows?: unknown }).rows;
-          if (Array.isArray(rows)) {return rows[0] as { next_num?: number } | undefined;}
+          if (Array.isArray(rows)) {
+            return rows[0] as { next_num?: number } | undefined;
+          }
         }
-        if (Array.isArray(r)) {return r[0] as { next_num?: number } | undefined;}
+        if (Array.isArray(r)) {
+          return r[0] as { next_num?: number } | undefined;
+        }
         return undefined;
       });
 
@@ -379,10 +385,7 @@ export class FailureHistoryAdapter implements IFailureHistoryPort {
       // projection (`projectFailureHistory`). Single source of truth
       // for failure_history writes; the projector is fired from
       // exactly one place.
-      await dbMlAnalyticsStorage.createFailureHistory(
-        insertValues,
-        input.orgId
-      );
+      await dbMlAnalyticsStorage.createFailureHistory(insertValues, input.orgId);
     } catch (err) {
       failureHistoryLogger.warn(
         `[FailureHistoryAdapter] recordFailure failed for WO ${input.workOrderId} (non-fatal)`,

@@ -6,7 +6,14 @@ export interface WorkOrderListItem {
   title: string;
   description?: string;
   priority: "low" | "medium" | "high" | "critical" | number;
-  status: "open" | "in_progress" | "on_hold" | "awaiting_service" | "completed" | "cancelled" | string;
+  status:
+    | "open"
+    | "in_progress"
+    | "on_hold"
+    | "awaiting_service"
+    | "completed"
+    | "cancelled"
+    | string;
   type: "corrective" | "preventive" | "predictive" | "emergency" | string;
   assignedTo?: string;
   dueDate?: Date | string | null;

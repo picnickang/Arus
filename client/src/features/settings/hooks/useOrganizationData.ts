@@ -211,7 +211,9 @@ export function useOrganizationData() {
   const openOrganizationDialog = (organization?: Organization) => {
     if (organization) {
       setEditingOrganization(organization);
-      organizationForm.reset(organization as object as Parameters<typeof organizationForm.reset>[0]);
+      organizationForm.reset(
+        organization as object as Parameters<typeof organizationForm.reset>[0]
+      );
     } else {
       setEditingOrganization(null);
       organizationForm.reset({

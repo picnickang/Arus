@@ -102,11 +102,7 @@
     "server/service-orders/index.ts",
     "server/suppliers/index.ts"
   ],
-  "project": [
-    "server/**/*.ts",
-    "client/src/**/*.{ts,tsx}",
-    "shared/**/*.ts"
-  ],
+  "project": ["server/**/*.ts", "client/src/**/*.{ts,tsx}", "shared/**/*.ts"],
   "ignore": [
     "**/node_modules/**",
     "**/dist/**",

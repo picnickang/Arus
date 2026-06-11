@@ -291,7 +291,9 @@ export class SemanticChunker {
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
-      if (!chunk) {continue;}
+      if (!chunk) {
+        continue;
+      }
       let content = chunk.content;
 
       if (i > 0) {

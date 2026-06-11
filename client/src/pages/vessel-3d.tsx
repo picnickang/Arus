@@ -20,12 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Loader2 } from "lucide-react";
-import type {
-  EquipmentPin,
-  Vessel3dModel,
-  AssetTwin,
-  AssetTwinState,
-} from "@shared/schema";
+import type { EquipmentPin, Vessel3dModel, AssetTwin, AssetTwinState } from "@shared/schema";
 
 const Vessel3DTwin = lazy(() => import("@/components/vessel/Vessel3DTwin"));
 
@@ -37,7 +32,9 @@ interface DependencyResponse {
 type PinList = EquipmentPin[];
 
 function parsePins(raw: unknown): PinList {
-  if (!Array.isArray(raw)) {return [];}
+  if (!Array.isArray(raw)) {
+    return [];
+  }
   return raw.filter((p): p is EquipmentPin => {
     return (
       !!p &&
@@ -79,10 +76,7 @@ export default function Vessel3DPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const pins: PinList = useMemo(
-    () => parsePins(modelQuery.data?.equipmentPins),
-    [modelQuery.data]
-  );
+  const pins: PinList = useMemo(() => parsePins(modelQuery.data?.equipmentPins), [modelQuery.data]);
 
   // Fetch the last ~6h of twin states for every twin that has a pin in this
   // model. Replay uses these real snapshots — no client-side twin computation.
@@ -122,9 +116,13 @@ export default function Vessel3DPage() {
     const targetMs = Date.now() - scrubHoursAgo * 3600 * 1000;
     const map: Record<string, number> = {};
     for (const q of historyQueries) {
-      if (!q.data) {continue;}
+      if (!q.data) {
+        continue;
+      }
       const { equipmentId, history } = q.data;
-      if (history.length === 0) {continue;}
+      if (history.length === 0) {
+        continue;
+      }
       let best: AssetTwinState | undefined;
       let bestDelta = Infinity;
       for (const snap of history) {
@@ -174,13 +172,21 @@ export default function Vessel3DPage() {
             </div>
           ) : modelQuery.isError || !modelQuery.data ? (
             <div className="text-sm text-muted-foreground" data-testid="text-no-3d-model">
-              No 3D model attached to this vessel. An admin can upload a self-contained .glb (≤100 MB)
-              via <code className="px-1 bg-muted rounded">POST /api/v1/vessels/{vesselId}/3d-model</code>.
+              No 3D model attached to this vessel. An admin can upload a self-contained .glb (≤100
+              MB) via{" "}
+              <code className="px-1 bg-muted rounded">
+                POST /api/v1/vessels/{vesselId}/3d-model
+              </code>
+              .
             </div>
           ) : (
             <div className="space-y-4">
               <div className="h-[60vh] min-h-[480px] rounded-md overflow-hidden border">
-                <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading viewer…</div>}>
+                <Suspense
+                  fallback={
+                    <div className="p-8 text-sm text-muted-foreground">Loading viewer…</div>
+                  }
+                >
                   <Vessel3DTwin
                     modelUrl={`/api/v1/vessels/3d-model/${modelQuery.data.id}/binary`}
                     pins={pins}
@@ -221,7 +227,9 @@ export default function Vessel3DPage() {
                     <div data-testid="text-selected-equipment">Selected: {selectedEquipmentId}</div>
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/equipment?id=${encodeURIComponent(selectedEquipmentId)}`)}
+                      onClick={() =>
+                        navigate(`/equipment?id=${encodeURIComponent(selectedEquipmentId)}`)
+                      }
                       data-testid="button-open-equipment-detail"
                     >
                       Open detail
@@ -232,12 +240,17 @@ export default function Vessel3DPage() {
                   )}
                   {highlighted.length > 0 && (
                     <div data-testid="text-dependency-count">
-                      {highlighted.length} downstream equipment would degrade if this fails (amber pins).
+                      {highlighted.length} downstream equipment would degrade if this fails (amber
+                      pins).
                     </div>
                   )}
-                  {!dependencyQuery.isLoading && highlighted.length === 0 && dependencyQuery.data && (
-                    <div className="text-muted-foreground">No downstream dependencies recorded.</div>
-                  )}
+                  {!dependencyQuery.isLoading &&
+                    highlighted.length === 0 &&
+                    dependencyQuery.data && (
+                      <div className="text-muted-foreground">
+                        No downstream dependencies recorded.
+                      </div>
+                    )}
                 </div>
               )}
             </div>

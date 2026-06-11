@@ -94,17 +94,15 @@ function severityFromLevel(level?: string): { label: string; className: string }
   }
 }
 
-function CrewAlertLog({
-  crewId,
-  crewVesselName,
-}: {
-  crewId: string;
-  crewVesselName?: string;
-}) {
+function CrewAlertLog({ crewId, crewVesselName }: { crewId: string; crewVesselName?: string }) {
   const { toast } = useToast();
   const certData = useCertificationExpiryData({ daysAhead: 365 });
-  const { documents, getExpiryStatus, getDocumentTypeLabel, isLoading: docsLoading } =
-    useCrewDocumentsData(crewId);
+  const {
+    documents,
+    getExpiryStatus,
+    getDocumentTypeLabel,
+    isLoading: docsLoading,
+  } = useCrewDocumentsData(crewId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -207,8 +205,12 @@ function CrewAlertLog({
   const docAlerts: CrewAlertEntry[] = documents
     .map((doc) => ({ doc, status: getExpiryStatus(doc.expiresAt) }))
     .filter(
-      (x): x is { doc: (typeof documents)[number]; status: NonNullable<ReturnType<typeof getExpiryStatus>> } =>
-        Boolean(x.status) && x.status?.level !== "ok"
+      (
+        x
+      ): x is {
+        doc: (typeof documents)[number];
+        status: NonNullable<ReturnType<typeof getExpiryStatus>>;
+      } => Boolean(x.status) && x.status?.level !== "ok"
     )
     .map(({ doc, status }) => ({
       id: doc.id,
@@ -291,10 +293,7 @@ function CrewAlertLog({
                       <Flag className="h-3.5 w-3.5 shrink-0 text-purple-500" />
                     )}
                     <span className="truncate text-sm font-medium">{entry.title}</span>
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs ${LEVEL_CLASS[entry.level]}`}
-                    >
+                    <Badge variant="secondary" className={`text-xs ${LEVEL_CLASS[entry.level]}`}>
                       {severityFromLevel(entry.level).label}
                     </Badge>
                   </div>
@@ -307,7 +306,8 @@ function CrewAlertLog({
                       className="gap-1 text-emerald-600"
                       data-testid={`alert-ack-${entry.id}`}
                     >
-                      <CheckCircle className="h-3 w-3" /> {entry.kind === "manual" ? "Resolved" : "Acknowledged"}
+                      <CheckCircle className="h-3 w-3" />{" "}
+                      {entry.kind === "manual" ? "Resolved" : "Acknowledged"}
                     </Badge>
                     {entry.kind === "manual" && (
                       <Button
@@ -368,7 +368,10 @@ function CrewAlertLog({
         )}
       </CardContent>
 
-      <Dialog open={certData.acknowledgeDialogOpen} onOpenChange={certData.setAcknowledgeDialogOpen}>
+      <Dialog
+        open={certData.acknowledgeDialogOpen}
+        onOpenChange={certData.setAcknowledgeDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Acknowledge Alert</DialogTitle>
@@ -421,8 +424,8 @@ function CrewAlertLog({
           <DialogHeader>
             <DialogTitle>Create new alert</DialogTitle>
             <DialogDescription>
-              Raise a custom alert for this crew member. It appears in the alert log
-              and can be resolved once actioned.
+              Raise a custom alert for this crew member. It appears in the alert log and can be
+              resolved once actioned.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

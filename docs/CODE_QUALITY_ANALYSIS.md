@@ -10,16 +10,16 @@ This report identifies redundancies, duplications, API drift, complexity hotspot
 
 ### 1. **God Files** (Files > 1000 lines with multiple responsibilities)
 
-| File | Lines | Issues | Priority |
-|------|-------|--------|----------|
-| `server/storage.ts` | 14,024 | Massive storage layer with 400+ methods | **CRITICAL** |
-| `server/routes.ts` | 13,731 | All API routes in one file, 200+ endpoints | **CRITICAL** |
-| `client/src/pages/analytics.tsx` | 2,340 | Multiple analytics features in one component | HIGH |
-| `client/src/pages/equipment-registry.tsx` | 1,928 | Equipment CRUD + display logic | HIGH |
-| `client/src/components/HoursOfRestGrid.tsx` | 1,744 | Complex crew scheduling UI | HIGH |
-| `client/src/components/CrewScheduler.tsx` | 1,649 | Scheduling algorithms + UI | HIGH |
-| `client/src/pages/vessel-management.tsx` | 1,139 | Vessel CRUD + associated data | MEDIUM |
-| `client/src/pages/work-orders.tsx` | 1,062 | Work order lifecycle management | MEDIUM |
+| File                                        | Lines  | Issues                                       | Priority     |
+| ------------------------------------------- | ------ | -------------------------------------------- | ------------ |
+| `server/storage.ts`                         | 14,024 | Massive storage layer with 400+ methods      | **CRITICAL** |
+| `server/routes.ts`                          | 13,731 | All API routes in one file, 200+ endpoints   | **CRITICAL** |
+| `client/src/pages/analytics.tsx`            | 2,340  | Multiple analytics features in one component | HIGH         |
+| `client/src/pages/equipment-registry.tsx`   | 1,928  | Equipment CRUD + display logic               | HIGH         |
+| `client/src/components/HoursOfRestGrid.tsx` | 1,744  | Complex crew scheduling UI                   | HIGH         |
+| `client/src/components/CrewScheduler.tsx`   | 1,649  | Scheduling algorithms + UI                   | HIGH         |
+| `client/src/pages/vessel-management.tsx`    | 1,139  | Vessel CRUD + associated data                | MEDIUM       |
+| `client/src/pages/work-orders.tsx`          | 1,062  | Work order lifecycle management              | MEDIUM       |
 
 **Recommendation:** Split these files using domain-driven design principles (see Module Layout section).
 
@@ -30,10 +30,11 @@ This report identifies redundancies, duplications, API drift, complexity hotspot
 ### 1. **Mutation Pattern Duplication**
 
 **Pattern appears 50+ times across codebase:**
+
 ```typescript
 // DUPLICATED PATTERN - appears in every CRUD component
 const createMutation = useMutation({
-  mutationFn: (data) => apiRequest('POST', '/api/endpoint', data),
+  mutationFn: (data) => apiRequest("POST", "/api/endpoint", data),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ["/api/endpoint"] });
     toast({ title: "Success", description: "..." });
@@ -47,11 +48,12 @@ const createMutation = useMutation({
 **Files affected:** `sensor-config.tsx`, `work-orders.tsx`, `equipment-registry.tsx`, `vessel-management.tsx`, `diagnostics.tsx`, etc.
 
 **Solution:** Create reusable mutation hooks:
+
 ```typescript
 // client/src/hooks/useCrudMutation.ts
 export function useCreateMutation<T>(endpoint: string, options?) {
   return useMutation({
-    mutationFn: (data: T) => apiRequest('POST', endpoint, data),
+    mutationFn: (data: T) => apiRequest("POST", endpoint, data),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: [endpoint] });
       toast({ title: "Created", description: "Successfully created" });
@@ -67,6 +69,7 @@ export function useCreateMutation<T>(endpoint: string, options?) {
 ### 2. **Statistical Analysis Duplication**
 
 **Duplicated across multiple files:**
+
 - `server/enhanced-trends.ts` - `calculateStatisticalSummary()`, `detectIQRAnomalies()`, `detectZScoreAnomalies()`
 - `server/pdm-features.ts` - `rms()`, `kurtosis()`, `skewness()`
 - `server/weibull-rul.ts` - `gammaFunction()`, `weibullPDF()`, `weibullCDF()`
@@ -77,6 +80,7 @@ export function useCreateMutation<T>(endpoint: string, options?) {
 ### 3. **Form Handling Duplication**
 
 Similar form setup code in 15+ components:
+
 - `useState` for form data
 - `zodResolver` setup
 - Field change handlers
@@ -98,27 +102,29 @@ Similar form setup code in 15+ components:
 
 ### 1. **Inconsistent Naming Conventions**
 
-| Endpoint | Issue | Recommendation |
-|----------|-------|----------------|
-| `/api/sensor-configs/status` | Status mixed with config path | `/api/sensors/status` or `/api/sensor-status` |
-| `/api/pdm/scores/:id/latest` | ID + latest mixed pattern | `/api/pdm/scores/latest?equipmentId=...` |
-| `/api/stcw/rest/:crew/:year/:month` | Too specific path | `/api/stcw/rest?crewId=...&year=...&month=...` |
-| `/api/equipment/:id/rul` | Inconsistent with analytics | `/api/analytics/rul/:equipmentId` |
-| `/api/reports/generate/pdf` | Verb in path | `/api/reports?format=pdf` |
+| Endpoint                            | Issue                         | Recommendation                                 |
+| ----------------------------------- | ----------------------------- | ---------------------------------------------- |
+| `/api/sensor-configs/status`        | Status mixed with config path | `/api/sensors/status` or `/api/sensor-status`  |
+| `/api/pdm/scores/:id/latest`        | ID + latest mixed pattern     | `/api/pdm/scores/latest?equipmentId=...`       |
+| `/api/stcw/rest/:crew/:year/:month` | Too specific path             | `/api/stcw/rest?crewId=...&year=...&month=...` |
+| `/api/equipment/:id/rul`            | Inconsistent with analytics   | `/api/analytics/rul/:equipmentId`              |
+| `/api/reports/generate/pdf`         | Verb in path                  | `/api/reports?format=pdf`                      |
 
 ### 2. **Error Response Inconsistency**
 
 **Old pattern** (inconsistent):
+
 ```typescript
 res.status(500).json({ message: "Failed" });
 ```
 
 **New pattern** (structured):
+
 ```typescript
-res.status(400).json({ 
-  message: "Validation failed", 
+res.status(400).json({
+  message: "Validation failed",
   code: "VALIDATION_ERROR",
-  errors: zodError.errors 
+  errors: zodError.errors,
 });
 ```
 
@@ -127,8 +133,9 @@ res.status(400).json({
 ### 3. **Rate Limiting Drift**
 
 Different rate limits scattered across routes:
+
 - `telemetryRateLimit` - 120/min
-- `bulkImportRateLimit` - 10/min  
+- `bulkImportRateLimit` - 10/min
 - `generalApiRateLimit` - 300/min
 - `writeOperationRateLimit` - 60/min
 - `criticalOperationRateLimit` - 20/5min
@@ -142,8 +149,9 @@ Different rate limits scattered across routes:
 ### 1. **Storage Layer Anti-Pattern**
 
 `server/storage.ts` (14K lines) violates Single Responsibility:
+
 - Device management (50+ methods)
-- Equipment management (60+ methods)  
+- Equipment management (60+ methods)
 - Work order management (40+ methods)
 - Crew management (70+ methods)
 - Telemetry operations (30+ methods)
@@ -153,6 +161,7 @@ Different rate limits scattered across routes:
 - Sync/conflict resolution (30+ methods)
 
 **Each domain should be separate:**
+
 ```
 server/
   storage/
@@ -171,6 +180,7 @@ server/
 ### 2. **Routes Layer Anti-Pattern**
 
 `server/routes.ts` (13K lines) contains:
+
 - 200+ API endpoints
 - WebSocket setup
 - Rate limiting config
@@ -179,6 +189,7 @@ server/
 - Business logic
 
 **Split by domain:**
+
 ```
 server/
   routes/
@@ -195,11 +206,13 @@ server/
 ### 3. **Frontend Component Anti-Patterns**
 
 **Analytics scattered across 3+ files:**
+
 - `analytics.tsx` (2,340 lines)
-- `advanced-analytics.tsx` (1,621 lines)  
+- `advanced-analytics.tsx` (1,621 lines)
 - `analytics-consolidated.tsx` (48 lines)
 
 **Work order logic split illogically:**
+
 - `work-orders.tsx` - Main CRUD
 - `MultiPartSelector.tsx` - Parts logic
 - Multiple scattered helper files
@@ -238,6 +251,7 @@ server/
 ## 🎯 Proposed Module Layout (Clean Architecture)
 
 ### Backend Structure
+
 ```
 server/
   ├── config/
@@ -303,6 +317,7 @@ server/
 ```
 
 ### Frontend Structure
+
 ```
 client/src/
   ├── features/                   # Feature modules
@@ -412,14 +427,14 @@ client/src/
 
 ## 📊 Expected Improvements
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Largest file | 14K lines | <500 lines | **96% reduction** |
-| Code duplication | ~30% | <10% | **67% reduction** |
-| Import depth | 40+ files | <10 files | **75% reduction** |
-| API consistency | 60% | 95% | **35% improvement** |
-| Module cohesion | Low | High | **Significant** |
-| Maintainability | Medium | High | **Major** |
+| Metric           | Before    | After      | Improvement         |
+| ---------------- | --------- | ---------- | ------------------- |
+| Largest file     | 14K lines | <500 lines | **96% reduction**   |
+| Code duplication | ~30%      | <10%       | **67% reduction**   |
+| Import depth     | 40+ files | <10 files  | **75% reduction**   |
+| API consistency  | 60%       | 95%        | **35% improvement** |
+| Module cohesion  | Low       | High       | **Significant**     |
+| Maintainability  | Medium    | High       | **Major**           |
 
 ---
 
@@ -447,12 +462,14 @@ client/src/
 ## 📝 Conclusion
 
 The ARUS codebase is functionally robust but suffers from:
+
 - **God files** (storage.ts, routes.ts)
 - **Code duplication** (mutations, forms, statistics)
 - **API inconsistencies** (naming, errors, rate limits)
 - **Poor module boundaries** (scattered logic)
 
 **Implementing the proposed refactoring will result in:**
+
 - ✅ Better maintainability
 - ✅ Easier onboarding
 - ✅ Reduced bugs

@@ -3,9 +3,9 @@
  * Uses Node.js built-in assert module
  */
 
-import assert from 'assert';
+import assert from "assert";
 
-let currentSuite = '';
+let currentSuite = "";
 let suiteResults = { passed: 0, failed: 0, errors: [] };
 
 export function describe(name, fn) {
@@ -63,7 +63,7 @@ export function expect(value) {
       assert.ok(value <= expected, `Expected ${value} <= ${expected}`);
     },
     toContain(expected) {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         assert.ok(value.includes(expected), `Expected "${value}" to contain "${expected}"`);
       } else if (Array.isArray(value)) {
         assert.ok(value.includes(expected), `Expected array to contain ${expected}`);
@@ -82,10 +82,13 @@ export function expect(value) {
       } catch (e) {
         threw = true;
         if (expectedError) {
-          assert.ok(e.message.includes(expectedError), `Expected error "${expectedError}" but got "${e.message}"`);
+          assert.ok(
+            e.message.includes(expectedError),
+            `Expected error "${expectedError}" but got "${e.message}"`
+          );
         }
       }
-      assert.ok(threw, 'Expected function to throw');
+      assert.ok(threw, "Expected function to throw");
     },
     not: {
       toBe(expected) {
@@ -95,13 +98,13 @@ export function expect(value) {
         assert.notDeepStrictEqual(value, expected);
       },
       toContain(expected) {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           assert.ok(!value.includes(expected), `Expected "${value}" not to contain "${expected}"`);
         } else if (Array.isArray(value)) {
           assert.ok(!value.includes(expected), `Expected array not to contain ${expected}`);
         }
-      }
-    }
+      },
+    },
   };
 }
 
@@ -114,16 +117,16 @@ export function resetResults() {
 }
 
 export function printSummary() {
-  console.log('\n' + '─'.repeat(50));
+  console.log("\n" + "─".repeat(50));
   console.log(`\n📊 Results: ${suiteResults.passed} passed, ${suiteResults.failed} failed`);
-  
+
   if (suiteResults.errors.length > 0) {
-    console.log('\n❌ Failed Tests:');
+    console.log("\n❌ Failed Tests:");
     suiteResults.errors.forEach(({ suite, test, error }) => {
       console.log(`  • ${suite} > ${test}`);
       console.log(`    ${error}`);
     });
   }
-  
+
   return suiteResults.failed === 0;
 }

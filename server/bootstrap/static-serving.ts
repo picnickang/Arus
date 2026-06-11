@@ -13,7 +13,7 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Bootstrap:StaticServing");
 
 export async function configureStaticServing(app: Express, server: Server): Promise<void> {
-  const isEmbeddedMode = process.env['EMBEDDED_MODE'] === "true";
+  const isEmbeddedMode = process.env["EMBEDDED_MODE"] === "true";
   const isDevelopmentEnv = app.get("env") === "development";
 
   if (!isEmbeddedMode && isDevelopmentEnv) {
@@ -56,7 +56,9 @@ export async function configureStaticServing(app: Express, server: Server): Prom
 
           try {
             const contents = fs.readdirSync(candidate);
-            logger.info(`[Static] Contents of staticRoot (${contents.length} items):`, { details: contents.slice(0, 10).join(", ") + (contents.length > 10 ? "..." : "") });
+            logger.info(`[Static] Contents of staticRoot (${contents.length} items):`, {
+              details: contents.slice(0, 10).join(", ") + (contents.length > 10 ? "..." : ""),
+            });
           } catch (e) {
             logger.error("[Static] Failed to read staticRoot contents:", undefined, e);
           }
@@ -70,7 +72,9 @@ export async function configureStaticServing(app: Express, server: Server): Prom
     }
 
     if (!staticRoot) {
-      logger.warn("[Static] ❌ No valid frontend build directory found - SPA UI will not be served");
+      logger.warn(
+        "[Static] ❌ No valid frontend build directory found - SPA UI will not be served"
+      );
       logger.warn("[Static] To fix: Run 'npm run build' or 'vite build' to build the frontend");
       return;
     }

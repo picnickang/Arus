@@ -163,7 +163,9 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
 
       if (autoPopulate) {
         const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-        alerts = [...alerts].sort((a, b) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99));
+        alerts = [...alerts].sort(
+          (a, b) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
+        );
       }
 
       const scheduledHoursPerDay = new Map<string, number>();
@@ -271,9 +273,7 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
       weekEnd.setDate(weekEnd.getDate() + 6);
 
       const tasksThisWeek = scheduledTasks.filter((t) => {
-        const sd = t.scheduledDate
-          ? new Date(t.scheduledDate)
-          : t.schedulingWindow.preferredDate;
+        const sd = t.scheduledDate ? new Date(t.scheduledDate) : t.schedulingWindow.preferredDate;
         return sd >= weekStart && sd <= weekEnd;
       });
 

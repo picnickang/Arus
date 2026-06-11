@@ -90,18 +90,12 @@
     {
       "tier": 1,
       "name": "Super Admin",
-      "mapsTo": [
-        "super_admin"
-      ]
+      "mapsTo": ["super_admin"]
     },
     {
       "tier": 2,
       "name": "Admin",
-      "mapsTo": [
-        "admin",
-        "system_admin",
-        "company_admin"
-      ]
+      "mapsTo": ["admin", "system_admin", "company_admin"]
     },
     {
       "tier": 3,
@@ -118,11 +112,7 @@
     {
       "tier": 4,
       "name": "Supervisor",
-      "mapsTo": [
-        "supervisor",
-        "chief_officer",
-        "second_engineer"
-      ]
+      "mapsTo": ["supervisor", "chief_officer", "second_engineer"]
     },
     {
       "tier": 5,
@@ -146,18 +136,10 @@
     {
       "tier": 6,
       "name": "Viewer / Auditor",
-      "mapsTo": [
-        "viewer"
-      ]
+      "mapsTo": ["viewer"]
     }
   ],
-  "targetHubs": [
-    "maintenance",
-    "system",
-    "crew",
-    "logistics",
-    "analytics"
-  ],
+  "targetHubs": ["maintenance", "system", "crew", "logistics", "analytics"],
   "normalUserArea": [
     "today_dashboard",
     "attention_inbox_if_permitted",
@@ -1734,21 +1716,13 @@
     {
       "name": "Health/Risk dashboards",
       "canonical": "equipment-intelligence",
-      "duplicates": [
-        "pdm-dashboard",
-        "ai-health (overview)",
-        "analytics-hub (health gauges)"
-      ],
+      "duplicates": ["pdm-dashboard", "ai-health (overview)", "analytics-hub (health gauges)"],
       "recommendation": "CONSOLIDATE to one risk view"
     },
     {
       "name": "PdM routes",
       "canonical": "pdm-platform",
-      "duplicates": [
-        "pdm-pack",
-        "pdm-schedule",
-        "pdm-dashboard"
-      ],
+      "duplicates": ["pdm-pack", "pdm-schedule", "pdm-dashboard"],
       "recommendation": "CONSOLIDATE into hub tabs"
     },
     {
@@ -1769,10 +1743,7 @@
     {
       "name": "Admin landing",
       "canonical": "system-administration",
-      "duplicates": [
-        "system-hub",
-        "diagnostics"
-      ],
+      "duplicates": ["system-hub", "diagnostics"],
       "recommendation": "CONSOLIDATE overview + diagnostics"
     },
     {
@@ -1789,22 +1760,13 @@
     {
       "name": "Crew views",
       "canonical": "crew-management",
-      "duplicates": [
-        "crew-hub",
-        "crew-scheduler",
-        "schedule-planner"
-      ],
+      "duplicates": ["crew-hub", "crew-scheduler", "schedule-planner"],
       "recommendation": "CONSOLIDATE roster + scheduling"
     },
     {
       "name": "Logistics entry routes",
       "canonical": "logistics-hub",
-      "duplicates": [
-        "inventory-management",
-        "vendors",
-        "suppliers",
-        "service-providers"
-      ],
+      "duplicates": ["inventory-management", "vendors", "suppliers", "service-providers"],
       "recommendation": "CONSOLIDATE (already tab-redirect)"
     }
   ],
@@ -1991,17 +1953,9 @@
       }
     ],
     "summary": {
-      "verifiedReal": [
-        "eq-hub-acknowledge",
-        "eq-hub-assign"
-      ],
-      "correctNoFalseSuccess": [
-        "schedule-pdf-export",
-        "roles-dashboards-save"
-      ],
-      "confirmedBroken": [
-        "sysadmin-publish-update"
-      ],
+      "verifiedReal": ["eq-hub-acknowledge", "eq-hub-assign"],
+      "correctNoFalseSuccess": ["schedule-pdf-export", "roles-dashboards-save"],
+      "confirmedBroken": ["sysadmin-publish-update"],
       "codeChangedThisPass": [],
       "rationale": "Two controls real+tested, two correct (no false success), one missing-backend feature out of scope to build here. All findings documented; no UI code changed."
     }
@@ -2010,11 +1964,7 @@
     {
       "phase": "P1",
       "goal": "Trust",
-      "items": [
-        "dead buttons",
-        "hardcoded stats",
-        "misleading fallbacks/toasts"
-      ],
+      "items": ["dead buttons", "hardcoded stats", "misleading fallbacks/toasts"],
       "risk": "Low"
     },
     {
@@ -2031,41 +1981,26 @@
     {
       "phase": "P3",
       "goal": "Clarity",
-      "items": [
-        "crew roster by role",
-        "role-hierarchy hub gating",
-        "normal-user area"
-      ],
+      "items": ["crew roster by role", "role-hierarchy hub gating", "normal-user area"],
       "risk": "Medium-High"
     },
     {
       "phase": "P4",
       "goal": "Authorization",
-      "items": [
-        "reconcile requireRole/PermissionGate",
-        "safety-bulletin list gate"
-      ],
+      "items": ["reconcile requireRole/PermissionGate", "safety-bulletin list gate"],
       "risk": "High"
     },
     {
       "phase": "P5",
       "goal": "Debt",
-      "items": [
-        "expose-or-remove DP/Charter/Vetting/Offshore/EFMS/Data Export"
-      ],
+      "items": ["expose-or-remove DP/Charter/Vetting/Offshore/EFMS/Data Export"],
       "risk": "Medium"
     }
   ],
   "phase2NavigationSimplification": {
     "task": "Phase 2 — 5-Hub Navigation Rebuild (Task #309)",
     "date": "2026-06-02",
-    "adminHubs": [
-      "maintenance",
-      "system",
-      "crew",
-      "logistics",
-      "analytics"
-    ],
+    "adminHubs": ["maintenance", "system", "crew", "logistics", "analytics"],
     "normalUserAreaShipped": [
       "user-dashboard (/)",
       "user-tasks (/my-tasks)",

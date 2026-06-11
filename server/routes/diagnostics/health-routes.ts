@@ -15,7 +15,7 @@ export function registerHealthRoutes(router: Router) {
       const result: HealthCheckResult = {
         status: overallStatus,
         timestamp: new Date().toISOString(),
-        version: process.env['npm_package_version'] || "1.0",
+        version: process.env["npm_package_version"] || "1.0",
         uptime: Math.round((Date.now() - startTime) / 1000),
         checks,
       };
@@ -32,13 +32,11 @@ export function registerHealthRoutes(router: Router) {
         "Health check failed",
         error instanceof Error ? error : new Error(String(error))
       );
-      res
-        .status(503)
-        .json({
-          status: "unhealthy",
-          timestamp: new Date().toISOString(),
-          error: "Health check failed",
-        });
+      res.status(503).json({
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+        error: "Health check failed",
+      });
     }
   });
 
@@ -50,24 +48,20 @@ export function registerHealthRoutes(router: Router) {
     try {
       const dbCheck = await checkDatabase();
       if (dbCheck.status === "fail") {
-        res
-          .status(503)
-          .json({
-            status: "not_ready",
-            reason: "Database unavailable",
-            timestamp: new Date().toISOString(),
-          });
+        res.status(503).json({
+          status: "not_ready",
+          reason: "Database unavailable",
+          timestamp: new Date().toISOString(),
+        });
         return;
       }
       res.status(200).json({ status: "ready", timestamp: new Date().toISOString() });
     } catch {
-      res
-        .status(503)
-        .json({
-          status: "not_ready",
-          error: "Readiness check failed",
-          timestamp: new Date().toISOString(),
-        });
+      res.status(503).json({
+        status: "not_ready",
+        error: "Readiness check failed",
+        timestamp: new Date().toISOString(),
+      });
     }
   });
 }

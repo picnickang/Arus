@@ -1,23 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Activity, ArrowRight, CheckCircle2, ShieldCheck, Smartphone, Target, Users } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  Smartphone,
+  Target,
+  Users,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExperienceScoreCard } from "../components/ExperienceScoreCard";
 import { SolutionLoopCard } from "../components/SolutionLoopCard";
 import { RoleInformationNeedsMatrix } from "../components/RoleInformationNeedsMatrix";
-import { useOperatorExperienceBrief, useOperatorExperienceRoles, useRecordOperatorExperienceEvent } from "../hooks/useOperatorExperience";
+import {
+  useOperatorExperienceBrief,
+  useOperatorExperienceRoles,
+  useRecordOperatorExperienceEvent,
+} from "../hooks/useOperatorExperience";
 import type { OperatorRole } from "../types";
 
 const DEFAULT_ROLE: OperatorRole = "chief_engineer";
 
 function priorityVariant(priority: string): "default" | "secondary" | "destructive" | "outline" {
-  if (priority === "immediate") {return "destructive";}
-  if (priority === "urgent") {return "secondary";}
-  if (priority === "soon") {return "outline";}
+  if (priority === "immediate") {
+    return "destructive";
+  }
+  if (priority === "urgent") {
+    return "secondary";
+  }
+  if (priority === "soon") {
+    return "outline";
+  }
   return "default";
 }
 
@@ -35,12 +59,19 @@ export default function OperatorExperiencePage() {
   const brief = briefQuery.data;
 
   useEffect(() => {
-    eventMutation.mutate({ eventType: "page_view", role, path: location, label: "Operator Experience" });
+    eventMutation.mutate({
+      eventType: "page_view",
+      role,
+      path: location,
+      label: "Operator Experience",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, location]);
 
   const weakestPillar = useMemo(() => {
-    if (!brief?.pillarScores.length) {return null;}
+    if (!brief?.pillarScores.length) {
+      return null;
+    }
     return [...brief.pillarScores].sort((a, b) => a.score - b.score)[0];
   }, [brief]);
 
@@ -74,9 +105,12 @@ export default function OperatorExperiencePage() {
               <Badge variant="outline" className="w-fit">
                 Hexagonal UX command layer
               </Badge>
-              <CardTitle className="text-2xl md:text-3xl">Operator Experience Command Center</CardTitle>
+              <CardTitle className="text-2xl md:text-3xl">
+                Operator Experience Command Center
+              </CardTitle>
               <CardDescription>
-                Answers who the user is, what they are trying to do, where they hesitate, and which UX action improves trust, conversion, retention, safety, and uptime.
+                Answers who the user is, what they are trying to do, where they hesitate, and which
+                UX action improves trust, conversion, retention, safety, and uptime.
               </CardDescription>
             </div>
             <div className="w-full md:w-72">
@@ -101,7 +135,9 @@ export default function OperatorExperiencePage() {
               <Target className="mt-1 h-5 w-5" />
               <div>
                 <div className="font-semibold">{brief.executiveSummary}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Success metric: {brief.successMetric}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Success metric: {brief.successMetric}
+                </p>
               </div>
             </div>
           </div>
@@ -131,12 +167,19 @@ export default function OperatorExperiencePage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" /> Highest-value next actions</CardTitle>
-            <CardDescription>Primary CTA guidance based on the current role and operating signals.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" /> Highest-value next actions
+            </CardTitle>
+            <CardDescription>
+              Primary CTA guidance based on the current role and operating signals.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {brief.nextActions.map((action) => (
-              <div key={action.id} className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
+              <div
+                key={action.id}
+                className="flex flex-col gap-3 rounded-lg border p-3 md:flex-row md:items-center md:justify-between"
+              >
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="font-semibold">{action.label}</div>
@@ -148,7 +191,12 @@ export default function OperatorExperiencePage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    eventMutation.mutate({ eventType: "cta_click", role, path: location, label: action.label });
+                    eventMutation.mutate({
+                      eventType: "cta_click",
+                      role,
+                      path: location,
+                      label: action.label,
+                    });
                     navigate(action.href);
                   }}
                 >
@@ -161,7 +209,9 @@ export default function OperatorExperiencePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> User questions</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" /> User questions
+            </CardTitle>
             <CardDescription>The UX plan converted into product answers.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -184,18 +234,26 @@ export default function OperatorExperiencePage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5" /> Friction points</CardTitle>
-            <CardDescription>What most likely blocks trust, task completion, or retention.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" /> Friction points
+            </CardTitle>
+            <CardDescription>
+              What most likely blocks trust, task completion, or retention.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {brief.frictionPoints.map((point) => (
               <div key={point.id} className="rounded-lg border p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="font-semibold">{point.title}</div>
-                  <Badge variant={point.priority === "critical" ? "destructive" : "outline"}>{point.priority}</Badge>
+                  <Badge variant={point.priority === "critical" ? "destructive" : "outline"}>
+                    {point.priority}
+                  </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{point.symptom}</p>
-                <p className="mt-2 text-xs"><strong>Fix:</strong> {point.fix}</p>
+                <p className="mt-2 text-xs">
+                  <strong>Fix:</strong> {point.fix}
+                </p>
               </div>
             ))}
           </CardContent>
@@ -203,8 +261,12 @@ export default function OperatorExperiencePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Trust signals</CardTitle>
-            <CardDescription>Evidence users need before acting on operational or AI recommendations.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" /> Trust signals
+            </CardTitle>
+            <CardDescription>
+              Evidence users need before acting on operational or AI recommendations.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {brief.trustSignals.map((signal) => (
@@ -212,7 +274,9 @@ export default function OperatorExperiencePage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <CheckCircle2 className="h-4 w-4" />
                   <div className="font-semibold">{signal.label}</div>
-                  <Badge variant={signal.status === "present" ? "default" : "outline"}>{signal.status.replace(/_/g, " ")}</Badge>
+                  <Badge variant={signal.status === "present" ? "default" : "outline"}>
+                    {signal.status.replace(/_/g, " ")}
+                  </Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{signal.description}</p>
                 <p className="mt-2 text-xs">Evidence: {signal.evidence}</p>
@@ -220,7 +284,8 @@ export default function OperatorExperiencePage() {
             ))}
             {weakestPillar && (
               <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-                Priority: improve <strong>{weakestPillar.label}</strong> first. {weakestPillar.recommendedImprovement}
+                Priority: improve <strong>{weakestPillar.label}</strong> first.{" "}
+                {weakestPillar.recommendedImprovement}
               </div>
             )}
           </CardContent>

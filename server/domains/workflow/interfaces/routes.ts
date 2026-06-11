@@ -210,7 +210,9 @@ export function registerWorkflowRoutes(
     requireAttentionInboxRole,
     withErrorHandling("get attention workflow items", async (req: Request, res: Response) => {
       const workflow = await service.getWorkflow(getOrgId(req));
-      res.json(validateResponse(attentionWorkflowResponseSchema, workflow, "GET /api/attention/items"));
+      res.json(
+        validateResponse(attentionWorkflowResponseSchema, workflow, "GET /api/attention/items")
+      );
     })
   );
 
@@ -221,7 +223,13 @@ export function registerWorkflowRoutes(
     requireAttentionInboxRole,
     withErrorHandling("get latest workflow handover", async (req: Request, res: Response) => {
       const record = await service.getLatestHandover(getOrgId(req));
-      res.json(validateResponse(handoverRecordSchema.nullable(), record, "GET /api/attention/handover/latest"));
+      res.json(
+        validateResponse(
+          handoverRecordSchema.nullable(),
+          record,
+          "GET /api/attention/handover/latest"
+        )
+      );
     })
   );
 
@@ -232,7 +240,9 @@ export function registerWorkflowRoutes(
     requireAttentionInboxRole,
     withErrorHandling("list workflow handovers", async (req: Request, res: Response) => {
       const records = await service.listHandovers(getOrgId(req));
-      res.json(validateResponse(z.array(handoverRecordSchema), records, "GET /api/attention/handovers"));
+      res.json(
+        validateResponse(z.array(handoverRecordSchema), records, "GET /api/attention/handovers")
+      );
     })
   );
 
@@ -244,7 +254,9 @@ export function registerWorkflowRoutes(
     withErrorHandling("save workflow handover", async (req: Request, res: Response) => {
       const payload = saveHandoverSchema.parse(req.body);
       const record = await service.saveHandover(getOrgId(req), payload, getUserId(req));
-      res.status(201).json(validateResponse(handoverRecordSchema, record, "POST /api/attention/handover"));
+      res
+        .status(201)
+        .json(validateResponse(handoverRecordSchema, record, "POST /api/attention/handover"));
     })
   );
 
@@ -256,9 +268,15 @@ export function registerWorkflowRoutes(
     withErrorHandling("save blocker resolution", async (req: Request, res: Response) => {
       const payload = saveBlockerResolutionSchema.parse(req.body);
       const record = await service.saveBlockerResolution(getOrgId(req), payload, getUserId(req));
-      res.status(201).json(
-        validateResponse(blockerResolutionRecordSchema, record, "POST /api/attention/blocker-resolutions")
-      );
+      res
+        .status(201)
+        .json(
+          validateResponse(
+            blockerResolutionRecordSchema,
+            record,
+            "POST /api/attention/blocker-resolutions"
+          )
+        );
     })
   );
 
@@ -270,7 +288,9 @@ export function registerWorkflowRoutes(
     withErrorHandling("report workflow issue", async (req: Request, res: Response) => {
       const payload = reportIssueSchema.parse(req.body);
       const record = await service.reportIssue(getOrgId(req), payload, getUserId(req));
-      res.status(201).json(validateResponse(issueReportRecordSchema, record, "POST /api/attention/issues"));
+      res
+        .status(201)
+        .json(validateResponse(issueReportRecordSchema, record, "POST /api/attention/issues"));
     })
   );
 }

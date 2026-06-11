@@ -68,7 +68,7 @@ export function mountModelGovernanceRoutes(router: Router) {
       return;
     }
     try {
-      const id = req.params['id'] ?? '';
+      const id = req.params["id"] ?? "";
       const cacheKey = `${orgId}:ml-model:${id}`;
       const response = await cachedAnalytics(
         cacheKey,
@@ -88,12 +88,10 @@ export function mountModelGovernanceRoutes(router: Router) {
       sendValidatedResponse(res, response, mlModelResponseSchema);
     } catch (error) {
       if (error instanceof Error && error.message === "Model not found") {
-        res
-          .status(404)
-          .json({
-            error: { code: "NOT_FOUND", message: "ML model not found" },
-            metadata: { orgId, timestamp: new Date(), version: "1.0" },
-          });
+        res.status(404).json({
+          error: { code: "NOT_FOUND", message: "ML model not found" },
+          metadata: { orgId, timestamp: new Date(), version: "1.0" },
+        });
       } else {
         handleError(res, error, "ML Model");
       }

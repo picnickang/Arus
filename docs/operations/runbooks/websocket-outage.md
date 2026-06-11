@@ -1,6 +1,7 @@
 # Runbook — WebSocket Outage
 
 Trigger conditions:
+
 - Alert: `WsConnectionsZero`, `WsConnectionsRejectedSpike`,
   `WsNightlyFanoutFailed`.
 - User report: "the page is no longer updating live" / "I have to
@@ -14,11 +15,11 @@ is the operator's quick path; read the design doc for context.
 
 Open Grafana → **WebSocket Fan-out** dashboard. Three signatures:
 
-| Signature | Likely cause | Section |
-|-----------|--------------|---------|
-| `connections_active == 0` everywhere | Proxy or upgrade path broken | §2 |
-| `connections_rejected_total{reason="cap_exceeded"}` rising for one org | LR-3 cap working as designed (or set too low) | §3 |
-| `connections_active` healthy but client UI not updating | Fan-out gap — Redis or `WS_TENANT_STRICT_MODE` | §4 |
+| Signature                                                              | Likely cause                                   | Section |
+| ---------------------------------------------------------------------- | ---------------------------------------------- | ------- |
+| `connections_active == 0` everywhere                                   | Proxy or upgrade path broken                   | §2      |
+| `connections_rejected_total{reason="cap_exceeded"}` rising for one org | LR-3 cap working as designed (or set too low)  | §3      |
+| `connections_active` healthy but client UI not updating                | Fan-out gap — Redis or `WS_TENANT_STRICT_MODE` | §4      |
 
 ## 2. Upgrade path broken (no connections at all)
 

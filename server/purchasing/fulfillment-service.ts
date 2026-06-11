@@ -226,7 +226,11 @@ export async function updatePRStatus(
   orgId: string,
   newStatus: PRStatus,
   userId?: string
-): Promise<{ success: boolean; pr?: Awaited<ReturnType<typeof repository.getPurchaseRequestById>>; error?: string }> {
+): Promise<{
+  success: boolean;
+  pr?: Awaited<ReturnType<typeof repository.getPurchaseRequestById>>;
+  error?: string;
+}> {
   const pr = await repository.getPurchaseRequestById(prId, orgId);
   if (!pr) {
     return { success: false, error: "Purchase request not found" };
@@ -242,10 +246,14 @@ export async function updatePRStatus(
 
   const updateData: Record<string, unknown> = { status: newStatus };
   if (newStatus === "closed") {
-    updateData['closedAt'] = new Date();
+    updateData["closedAt"] = new Date();
   }
 
-  const updatedPR = await repository.updatePurchaseRequest(prId, orgId, updateData as object as Parameters<typeof repository.updatePurchaseRequest>[2]);
+  const updatedPR = await repository.updatePurchaseRequest(
+    prId,
+    orgId,
+    updateData as object as Parameters<typeof repository.updatePurchaseRequest>[2]
+  );
 
   await repository.createPREvent(orgId, prId, newStatus, userId, {
     previousStatus: currentStatus,

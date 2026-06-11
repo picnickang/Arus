@@ -64,8 +64,9 @@ export function OpsAlertCard({
         "ops-card relative overflow-hidden",
         "before:absolute before:left-0 before:top-0 before:h-full before:w-1",
         SEVERITY_ACCENT[severity],
-        interactive && "cursor-pointer transition-colors hover:bg-accent/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className,
+        interactive &&
+          "cursor-pointer transition-colors hover:bg-accent/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className
       )}
       data-testid={testId ?? "ops-alert-card"}
     >
@@ -81,7 +82,10 @@ export function OpsAlertCard({
                 <span className="text-xs text-muted-foreground">{timestamp}</span>
               ) : null}
             </div>
-            <h3 className="mt-2 text-sm font-semibold text-foreground" data-testid="ops-alert-title">
+            <h3
+              className="mt-2 text-sm font-semibold text-foreground"
+              data-testid="ops-alert-title"
+            >
               {title}
             </h3>
             {description ? (

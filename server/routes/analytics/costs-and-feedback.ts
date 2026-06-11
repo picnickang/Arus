@@ -17,7 +17,7 @@ import { getOrgId, sendValidatedResponse, handleError } from "./helpers.js";
 type CachedAnalyticsLoose = <T>(
   key: string,
   loader: () => Promise<unknown>,
-  ttlSeconds?: number,
+  ttlSeconds?: number
 ) => Promise<T>;
 const cachedAnalyticsLoose = cachedAnalytics as object as CachedAnalyticsLoose;
 

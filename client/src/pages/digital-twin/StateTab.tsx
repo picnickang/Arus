@@ -1,23 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Loader2,
-  RefreshCw,
-  Heart,
-  Gauge,
-  Timer,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
+import { Loader2, RefreshCw, Heart, Gauge, Timer, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  useLatestTwinState,
-  useComputeTwinState,
-} from "@/features/digital-twin/hooks/useTwinApi";
-
-
-
+import { useLatestTwinState, useComputeTwinState } from "@/features/digital-twin/hooks/useTwinApi";
 
 import { healthColor } from "./utils";
 
@@ -40,8 +26,8 @@ export function StateTab() {
     }
   };
 
-  const observed = state?.observedValues as Record<string, number> | undefined;
-  const expected = state?.expectedValues as Record<string, number> | undefined;
+  const observed = state?.observedValues;
+  const expected = state?.expectedValues;
   const allSensors =
     observed && expected
       ? Array.from(new Set([...Object.keys(observed), ...Object.keys(expected)]))
@@ -183,4 +169,3 @@ export function StateTab() {
     </div>
   );
 }
-

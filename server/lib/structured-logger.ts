@@ -20,12 +20,14 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
  * `server/utils/correlation-context`. Tests can pass a custom provider to
  * `createLogger` to avoid relying on async storage propagation.
  */
-export type CorrelationProvider = () => {
-  correlationId?: string | undefined;
-  requestId?: string | undefined;
-  orgId?: string | undefined;
-  userId?: string | undefined;
-} | undefined;
+export type CorrelationProvider = () =>
+  | {
+      correlationId?: string | undefined;
+      requestId?: string | undefined;
+      orgId?: string | undefined;
+      userId?: string | undefined;
+    }
+  | undefined;
 
 const defaultProvider: CorrelationProvider = () => defaultGetRequestContext();
 
@@ -43,11 +45,13 @@ interface LogEntry {
   orgId?: string | undefined;
   userId?: string | undefined;
   context?: LogContext | undefined;
-  error?: {
-    name: string;
-    message: string;
-    stack?: string | undefined;
-  } | undefined;
+  error?:
+    | {
+        name: string;
+        message: string;
+        stack?: string | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -102,11 +106,11 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 /** Get minimum log level from environment */
 function getMinLevel(): LogLevel {
-  const envLevel = process.env['LOG_LEVEL']?.toLowerCase();
+  const envLevel = process.env["LOG_LEVEL"]?.toLowerCase();
   if (envLevel && envLevel in LOG_LEVELS) {
     return envLevel as LogLevel;
   }
-  return process.env['NODE_ENV'] === "production" ? "info" : "debug";
+  return process.env["NODE_ENV"] === "production" ? "info" : "debug";
 }
 
 /** Check if log should be output based on level */
@@ -129,7 +133,7 @@ function formatError(error: unknown): LogEntry["error"] | undefined {
     return {
       name: error.name,
       message: error.message,
-      stack: process.env['NODE_ENV'] === "development" ? error.stack : undefined,
+      stack: process.env["NODE_ENV"] === "development" ? error.stack : undefined,
     };
   }
 
@@ -152,7 +156,18 @@ function getLogFunction(level: LogLevel): typeof console.log {
 
 /** Output log entry to console — exported for unit testing of formatting only. */
 export function outputLog(entry: LogEntry): void {
-  const { timestamp, level, domain, message, correlationId, requestId, orgId, userId, context, error } = entry;
+  const {
+    timestamp,
+    level,
+    domain,
+    message,
+    correlationId,
+    requestId,
+    orgId,
+    userId,
+    context,
+    error,
+  } = entry;
 
   const correlationTag = correlationId ? ` [${correlationId.slice(0, 8)}]` : "";
   const prefix = `[${level.toUpperCase()}] ${timestamp} [${domain}]${correlationTag}`;
@@ -162,12 +177,24 @@ export function outputLog(entry: LogEntry): void {
   // object — which are authoritative — cannot be spoofed by a caller who
   // accidentally (or maliciously) passes e.g. `correlationId` in `context`.
   const meta: Record<string, unknown> = {};
-  if (context) {Object.assign(meta, context);}
-  if (correlationId) {meta['correlationId'] = correlationId;}
-  if (requestId) {meta['requestId'] = requestId;}
-  if (orgId) {meta['orgId'] = orgId;}
-  if (userId) {meta['userId'] = userId;}
-  if (error) {meta['error'] = error;}
+  if (context) {
+    Object.assign(meta, context);
+  }
+  if (correlationId) {
+    meta["correlationId"] = correlationId;
+  }
+  if (requestId) {
+    meta["requestId"] = requestId;
+  }
+  if (orgId) {
+    meta["orgId"] = orgId;
+  }
+  if (userId) {
+    meta["userId"] = userId;
+  }
+  if (error) {
+    meta["error"] = error;
+  }
 
   if (Object.keys(meta).length > 0) {
     logFn(`${prefix} ${message}`, meta);

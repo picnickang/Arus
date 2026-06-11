@@ -26,7 +26,7 @@ export interface ISafetyAlarmRepository {
   updateType(
     orgId: string,
     id: string,
-    patch: UpdateAlarmTypeCommand,
+    patch: UpdateAlarmTypeCommand
   ): Promise<SafetyAlarmTypeEntity | undefined>;
   deactivateType(orgId: string, id: string): Promise<void>;
 
@@ -39,7 +39,7 @@ export interface ISafetyAlarmRepository {
     id: string,
     clearedBy: string | undefined,
     clearedByName: string | undefined,
-    resolutionNote: string | undefined,
+    resolutionNote: string | undefined
   ): Promise<SafetyAlarmEntity | undefined>;
 
   acknowledge(command: AcknowledgeAlarmCommand): Promise<SafetyAlarmAckEntity>;

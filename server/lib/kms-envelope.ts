@@ -20,7 +20,7 @@ const ALGO = "aes-256-gcm";
 const IV_LEN = 16;
 const TAG_LEN = 16;
 
-export const kmsEnvelopeEnabled = Boolean(process.env['KMS_KEY_ID']);
+export const kmsEnvelopeEnabled = Boolean(process.env["KMS_KEY_ID"]);
 
 export interface KmsEnvelope {
   /** Base64 of the KMS-wrapped data key. */
@@ -40,23 +40,27 @@ interface KmsAdapter {
 let cachedAdapter: KmsAdapter | null = null;
 
 async function getAdapter(): Promise<KmsAdapter> {
-  if (cachedAdapter) {return cachedAdapter;}
+  if (cachedAdapter) {
+    return cachedAdapter;
+  }
   // Lazy import — keeps cold start free when KMS_KEY_ID unset.
-  const { KMSClient, GenerateDataKeyCommand, DecryptCommand } = await import(
-    "@aws-sdk/client-kms"
-  );
+  const { KMSClient, GenerateDataKeyCommand, DecryptCommand } = await import("@aws-sdk/client-kms");
   const client = new KMSClient({
-    region: process.env['AWS_REGION'] || process.env['KMS_REGION'] || "us-east-1",
+    region: process.env["AWS_REGION"] || process.env["KMS_REGION"] || "us-east-1",
   });
-  const keyId = process.env['KMS_KEY_ID'];
-  if (!keyId) {throw new Error("KMS_KEY_ID required");}
+  const keyId = process.env["KMS_KEY_ID"];
+  if (!keyId) {
+    throw new Error("KMS_KEY_ID required");
+  }
 
   cachedAdapter = {
     async generateDataKey() {
       const out = await client.send(
-        new GenerateDataKeyCommand({ KeyId: keyId, KeySpec: "AES_256" }),
+        new GenerateDataKeyCommand({ KeyId: keyId, KeySpec: "AES_256" })
       );
-      if (!out.Plaintext || !out.CiphertextBlob) {throw new Error("KMS returned empty key material");}
+      if (!out.Plaintext || !out.CiphertextBlob) {
+        throw new Error("KMS returned empty key material");
+      }
       return {
         plaintext: Buffer.from(out.Plaintext as Uint8Array),
         ciphertext: Buffer.from(out.CiphertextBlob as Uint8Array),
@@ -64,7 +68,9 @@ async function getAdapter(): Promise<KmsAdapter> {
     },
     async decryptDataKey(wrapped: Buffer) {
       const out = await client.send(new DecryptCommand({ CiphertextBlob: wrapped, KeyId: keyId }));
-      if (!out.Plaintext) {throw new Error("KMS decrypt returned empty plaintext");}
+      if (!out.Plaintext) {
+        throw new Error("KMS decrypt returned empty plaintext");
+      }
       return Buffer.from(out.Plaintext as Uint8Array);
     },
   };
@@ -72,7 +78,9 @@ async function getAdapter(): Promise<KmsAdapter> {
 }
 
 export async function encryptWithEnvelope(plaintext: string): Promise<KmsEnvelope> {
-  if (!kmsEnvelopeEnabled) {throw new Error("KMS envelope encryption is disabled (KMS_KEY_ID unset)");}
+  if (!kmsEnvelopeEnabled) {
+    throw new Error("KMS envelope encryption is disabled (KMS_KEY_ID unset)");
+  }
   const adapter = await getAdapter();
   const { plaintext: dek, ciphertext: wrapped } = await adapter.generateDataKey();
   try {
@@ -85,7 +93,7 @@ export async function encryptWithEnvelope(plaintext: string): Promise<KmsEnvelop
       iv: iv.toString("base64"),
       authTag: tag.toString("base64"),
       ciphertext: ct.toString("base64"),
-      keyId: process.env['KMS_KEY_ID']!,
+      keyId: process.env["KMS_KEY_ID"]!,
     };
   } finally {
     // Best-effort zeroisation. JS strings/buffers from KMS are short-lived
@@ -96,14 +104,18 @@ export async function encryptWithEnvelope(plaintext: string): Promise<KmsEnvelop
 }
 
 export async function decryptWithEnvelope(env: KmsEnvelope): Promise<string> {
-  if (!kmsEnvelopeEnabled) {throw new Error("KMS envelope encryption is disabled (KMS_KEY_ID unset)");}
+  if (!kmsEnvelopeEnabled) {
+    throw new Error("KMS envelope encryption is disabled (KMS_KEY_ID unset)");
+  }
   const adapter = await getAdapter();
   const wrapped = Buffer.from(env.wrappedKey, "base64");
   const dek = await adapter.decryptDataKey(wrapped);
   try {
     const iv = Buffer.from(env.iv, "base64");
     const tag = Buffer.from(env.authTag, "base64");
-    if (tag.length !== TAG_LEN) {throw new Error("Invalid auth tag length");}
+    if (tag.length !== TAG_LEN) {
+      throw new Error("Invalid auth tag length");
+    }
     const ct = Buffer.from(env.ciphertext, "base64");
     const decipher = createDecipheriv(ALGO, dek, iv, { authTagLength: TAG_LEN });
     decipher.setAuthTag(tag);

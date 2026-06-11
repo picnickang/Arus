@@ -73,7 +73,9 @@ function buildRes() {
   return res as unknown as Response & { statusCode: number; body: Record<string, unknown> };
 }
 
-async function authenticate(token?: string): Promise<{ req: Request; res: ReturnType<typeof buildRes>; nextCalled: boolean }> {
+async function authenticate(
+  token?: string
+): Promise<{ req: Request; res: ReturnType<typeof buildRes>; nextCalled: boolean }> {
   const req = buildReq(token);
   const res = buildRes();
   let nextCalled = false;

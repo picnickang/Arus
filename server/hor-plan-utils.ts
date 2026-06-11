@@ -24,10 +24,7 @@ export async function prepareCrewHoRContext(
   };
 }
 
-export function mergeHistoryWithPlan(
-  history: unknown[],
-  plan: unknown[]
-): unknown[] {
+export function mergeHistoryWithPlan(history: unknown[], plan: unknown[]): unknown[] {
   return [...history, ...plan];
 }
 

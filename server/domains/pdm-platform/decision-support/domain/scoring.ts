@@ -60,8 +60,12 @@ export function computePerformanceIndicators(
     : 0;
 
   const efficiencyLossPercent = round(
-    clamp(vibrationPenalty * 0.35 + tempPenalty * 0.35 + pressurePenalty * 0.15 + fuelPenaltyScore * 0.15) *
-      100,
+    clamp(
+      vibrationPenalty * 0.35 +
+        tempPenalty * 0.35 +
+        pressurePenalty * 0.15 +
+        fuelPenaltyScore * 0.15
+    ) * 100,
     1
   );
 
@@ -100,13 +104,20 @@ export function computeDecisionScore(
   const peakScore = clamp((peakToPeak - 6) / 16);
   const pressureScore = clamp((140 - pressure) / 140);
 
-  const tempTrend = historicalTemps.length >= 3 ? clamp(((historicalTemps[0] ?? 0) - average(historicalTemps.slice(1))) / 20) : 0;
+  const tempTrend =
+    historicalTemps.length >= 3
+      ? clamp(((historicalTemps[0] ?? 0) - average(historicalTemps.slice(1))) / 20)
+      : 0;
   const vibrationTrend =
     historicalVibration.length >= 3
       ? clamp(((historicalVibration[0] ?? 0) - average(historicalVibration.slice(1))) / 3)
       : 0;
 
-  const contextAdjustment = clamp(context.weatherSeverity * 0.12 + (context.loadFactor - 0.6) * 0.18, 0, 0.2);
+  const contextAdjustment = clamp(
+    context.weatherSeverity * 0.12 + (context.loadFactor - 0.6) * 0.18,
+    0,
+    0.2
+  );
   const poorDataPenalty = indicators.minimumSequenceSatisfied ? 0 : 0.1;
 
   return round(
@@ -118,7 +129,7 @@ export function computeDecisionScore(
         pressureScore * 0.08 +
         tempTrend * 0.1 +
         vibrationTrend * 0.1 +
-        indicators.efficiencyLossPercent / 100 * 0.14 +
+        (indicators.efficiencyLossPercent / 100) * 0.14 +
         contextAdjustment +
         poorDataPenalty
     ),
@@ -160,7 +171,10 @@ export function predictedRulHours(score: number, indicators: PerformanceIndicato
   return Math.max(6, Math.round(baseline * efficiencyPenalty));
 }
 
-export function shouldAlert(previousStatus: PdmHealthStatus | null | undefined, current: PdmHealthStatus): boolean {
+export function shouldAlert(
+  previousStatus: PdmHealthStatus | null | undefined,
+  current: PdmHealthStatus
+): boolean {
   const order: Record<PdmHealthStatus, number> = {
     optimal: 0,
     watch: 1,
@@ -178,7 +192,6 @@ export function confidenceFromData(score: number, indicators: PerformanceIndicat
   return round(clamp(0.45 + indicators.dataQualityScore * 0.4 + scoreClarity, 0.1, 0.98), 3);
 }
 
-
 export function defaultCalibrationSnapshot(): PdmCalibrationSnapshot {
   return {
     totalFeedback: 0,
@@ -194,9 +207,13 @@ export function defaultCalibrationSnapshot(): PdmCalibrationSnapshot {
   };
 }
 
-export function applyOutcomeCalibration(score: number, calibration?: PdmCalibrationSnapshot | null): number {
+export function applyOutcomeCalibration(
+  score: number,
+  calibration?: PdmCalibrationSnapshot | null
+): number {
   const snapshot = calibration ?? defaultCalibrationSnapshot();
-  const feedbackBias = clamp(snapshot.falseNegativeRate - snapshot.falsePositiveRate, -0.25, 0.25) * 0.18;
+  const feedbackBias =
+    clamp(snapshot.falseNegativeRate - snapshot.falsePositiveRate, -0.25, 0.25) * 0.18;
   const confirmedFailureBias = clamp(snapshot.confirmedFailureRate, 0, 0.4) * 0.1;
   return round(clamp(score + snapshot.scoreBias + feedbackBias + confirmedFailureBias));
 }
@@ -208,5 +225,7 @@ export function confidenceFromCalibration(
   const snapshot = calibration ?? defaultCalibrationSnapshot();
   const volumeBonus = clamp(snapshot.totalFeedback / 40, 0, 0.08);
   const accuracyBonus = clamp((snapshot.accurateRate - 0.5) * 0.08, -0.04, 0.04);
-  return round(clamp(baseConfidence * snapshot.confidenceMultiplier + volumeBonus + accuracyBonus, 0.1, 0.98));
+  return round(
+    clamp(baseConfidence * snapshot.confidenceMultiplier + volumeBonus + accuracyBonus, 0.1, 0.98)
+  );
 }

@@ -8,7 +8,7 @@ description: Why adding a permission to a default role template does not reach o
 `provisionTemplatesForOrg(orgId)` (server/domains/permissions/repository.ts)
 **only creates missing roles** — it never adds/updates permission grants on roles
 that already exist. So when a resource/action is added to a role in
-`server/config/default-role-templates.ts`, every org seeded *before* that change
+`server/config/default-role-templates.ts`, every org seeded _before_ that change
 keeps the old grant set. Admins silently lose access even though the template now
 says they should have it (there is no admin wildcard bypass in the permission
 service).

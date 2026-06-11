@@ -42,7 +42,9 @@ router.get("/config", async (req, res) => {
     });
   } catch (error) {
     logger.error("[Beast Mode API] Error getting configs:", undefined, error);
-    return res.status(500).json({ success: false, error: "Failed to retrieve Beast Mode configurations" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to retrieve Beast Mode configurations" });
   }
 });
 
@@ -51,31 +53,31 @@ router.get("/config/:feature", async (req, res) => {
     const { feature } = req.params;
     const orgId = DEFAULT_ORG_ID;
     if (!isValidBeastModeFeature(feature)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `Invalid feature name: ${feature}`,
-          validFeatures: [
-            "vibration_analysis",
-            "weibull_rul",
-            "lp_optimizer",
-            "enhanced_trends",
-            "inventory_risk",
-            "compliance_pdf",
-          ],
-        });
+      return res.status(400).json({
+        success: false,
+        error: `Invalid feature name: ${feature}`,
+        validFeatures: [
+          "vibration_analysis",
+          "weibull_rul",
+          "lp_optimizer",
+          "enhanced_trends",
+          "inventory_risk",
+          "compliance_pdf",
+        ],
+      });
     }
     const config = await beastModeManager.getFeatureConfig(orgId, feature);
     return res.json({ success: true, feature, config, orgId });
   } catch (error) {
-    logger.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: `Failed to retrieve configuration for ${req.params.feature}`,
-      });
+    logger.error(
+      `[Beast Mode API] Error getting config for ${req.params.feature}:`,
+      undefined,
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      error: `Failed to retrieve configuration for ${req.params.feature}`,
+    });
   }
 });
 
@@ -84,30 +86,26 @@ router.post("/config/:feature/toggle", async (req, res) => {
     const { feature } = req.params;
     const orgId = DEFAULT_ORG_ID;
     if (!isValidBeastModeFeature(feature)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `Invalid feature name: ${feature}`,
-          validFeatures: [
-            "vibration_analysis",
-            "weibull_rul",
-            "lp_optimizer",
-            "enhanced_trends",
-            "inventory_risk",
-            "compliance_pdf",
-          ],
-        });
+      return res.status(400).json({
+        success: false,
+        error: `Invalid feature name: ${feature}`,
+        validFeatures: [
+          "vibration_analysis",
+          "weibull_rul",
+          "lp_optimizer",
+          "enhanced_trends",
+          "inventory_risk",
+          "compliance_pdf",
+        ],
+      });
     }
     const validation = toggleFeatureSchema.safeParse({ ...req.body, feature });
     if (!validation.success) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "Invalid request body",
-          details: validation.error.format(),
-        });
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request body",
+        details: validation.error.format(),
+      });
     }
     const { enabled, configuration } = validation.data;
     const lastModifiedBy = (req.headers["x-user-id"] as string) || "api";
@@ -127,13 +125,10 @@ router.post("/config/:feature/toggle", async (req, res) => {
         message: `Feature ${feature} ${enabled ? "enabled" : "disabled"} successfully`,
       });
     }
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: `Failed to ${enabled ? "enable" : "disable"} feature ${feature}`,
-        });
-
+    return res.status(500).json({
+      success: false,
+      error: `Failed to ${enabled ? "enable" : "disable"} feature ${feature}`,
+    });
   } catch (error) {
     logger.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, undefined, error);
     return res
@@ -161,13 +156,11 @@ router.get("/health", async (req, res) => {
     });
   } catch (error) {
     logger.error("[Beast Mode API] Health check failed:", undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        status: "Beast Mode system error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    return res.status(500).json({
+      success: false,
+      status: "Beast Mode system error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 

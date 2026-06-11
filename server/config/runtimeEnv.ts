@@ -23,15 +23,15 @@ const logger = createLogger("Config:RuntimeEnv");
  * This ensures proper initialization order and prevents repeated side effects.
  */
 export const isLocalMode =
-  process.env['LOCAL_MODE'] === "true" ||
-  process.env['EMBEDDED_MODE'] === "true" ||
-  process.env['DEPLOYMENT_MODE'] === "VESSEL";
+  process.env["LOCAL_MODE"] === "true" ||
+  process.env["EMBEDDED_MODE"] === "true" ||
+  process.env["DEPLOYMENT_MODE"] === "VESSEL";
 
 /**
  * Detect if running in VESSEL mode specifically (offline-first vessel deployment)
  */
 export const isVesselMode =
-  process.env['DEPLOYMENT_MODE'] === "VESSEL" || process.env['EMBEDDED_MODE'] === "true";
+  process.env["DEPLOYMENT_MODE"] === "VESSEL" || process.env["EMBEDDED_MODE"] === "true";
 
 /**
  * Detect if running in CLOUD mode (server deployment with PostgreSQL/libSQL)
@@ -52,9 +52,9 @@ export const deploymentMode: "VESSEL" | "CLOUD" = isVesselMode ? "VESSEL" : "CLO
  * Based on presence of DATABASE_URL environment variable
  */
 export const canUseCloudDb = !!(
-  process.env['DATABASE_URL'] ||
-  process.env['TURSO_DB_URL'] ||
-  process.env['NEON_DATABASE_URL']
+  process.env["DATABASE_URL"] ||
+  process.env["TURSO_DB_URL"] ||
+  process.env["NEON_DATABASE_URL"]
 );
 
 /**
@@ -73,7 +73,7 @@ export const hasPostgresFeatures = canUseCloudDb && isCloudMode;
  * Check if libSQL-specific features are available (db.execute, etc.)
  * Only true when using Turso/libSQL client
  */
-export const hasLibSQLFeatures = !!(process.env['TURSO_DB_URL'] && process.env['TURSO_AUTH_TOKEN']);
+export const hasLibSQLFeatures = !!(process.env["TURSO_DB_URL"] && process.env["TURSO_AUTH_TOKEN"]);
 
 // ============================================================================
 // FEATURE FLAGS BASED ON DEPLOYMENT MODE

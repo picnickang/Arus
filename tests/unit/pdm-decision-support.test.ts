@@ -21,7 +21,10 @@ class FakePdmContextPort implements PdmContextPort {
     private readonly features: EquipmentFeatureSnapshot[]
   ) {}
 
-  async getEquipmentContext(_orgId: string, _equipmentId: string): Promise<EquipmentContext | null> {
+  async getEquipmentContext(
+    _orgId: string,
+    _equipmentId: string
+  ): Promise<EquipmentContext | null> {
     return this.equipment;
   }
 
@@ -55,7 +58,10 @@ class FakeOperationalContextPort implements OperationalContextPort {
   }
 }
 
-function buildService(features: EquipmentFeatureSnapshot[], equipment: EquipmentContext | null = defaultEquipment()) {
+function buildService(
+  features: EquipmentFeatureSnapshot[],
+  equipment: EquipmentContext | null = defaultEquipment()
+) {
   return new PdmDecisionSupportService(
     new FakePdmContextPort(equipment, features),
     new FakeOperationalContextPort(),
@@ -115,13 +121,62 @@ describe("PdM decision-support hexagonal service", () => {
         kurtosis: 8.4,
         meanPressure: 72,
       }),
-      snapshot("f-2", 15, { meanTemp: 96, rmsVibration: 6.5, meanVibration: 6.2, peakToPeak: 16, kurtosis: 5.2, meanPressure: 105 }),
-      snapshot("f-3", 30, { meanTemp: 90, rmsVibration: 5.8, meanVibration: 5.5, peakToPeak: 13, kurtosis: 4.8, meanPressure: 118 }),
-      snapshot("f-4", 45, { meanTemp: 86, rmsVibration: 5.1, meanVibration: 4.9, peakToPeak: 11, kurtosis: 4.3, meanPressure: 130 }),
-      snapshot("f-5", 60, { meanTemp: 81, rmsVibration: 4.4, meanVibration: 4.2, peakToPeak: 9, kurtosis: 3.9, meanPressure: 145 }),
-      snapshot("f-6", 75, { meanTemp: 78, rmsVibration: 3.8, meanVibration: 3.7, peakToPeak: 8, kurtosis: 3.5, meanPressure: 160 }),
-      snapshot("f-7", 90, { meanTemp: 75, rmsVibration: 3.2, meanVibration: 3.0, peakToPeak: 7, kurtosis: 3.2, meanPressure: 172 }),
-      snapshot("oldest", 105, { meanTemp: 72, rmsVibration: 2.8, meanVibration: 2.6, peakToPeak: 6, kurtosis: 3.1, meanPressure: 182 }),
+      snapshot("f-2", 15, {
+        meanTemp: 96,
+        rmsVibration: 6.5,
+        meanVibration: 6.2,
+        peakToPeak: 16,
+        kurtosis: 5.2,
+        meanPressure: 105,
+      }),
+      snapshot("f-3", 30, {
+        meanTemp: 90,
+        rmsVibration: 5.8,
+        meanVibration: 5.5,
+        peakToPeak: 13,
+        kurtosis: 4.8,
+        meanPressure: 118,
+      }),
+      snapshot("f-4", 45, {
+        meanTemp: 86,
+        rmsVibration: 5.1,
+        meanVibration: 4.9,
+        peakToPeak: 11,
+        kurtosis: 4.3,
+        meanPressure: 130,
+      }),
+      snapshot("f-5", 60, {
+        meanTemp: 81,
+        rmsVibration: 4.4,
+        meanVibration: 4.2,
+        peakToPeak: 9,
+        kurtosis: 3.9,
+        meanPressure: 145,
+      }),
+      snapshot("f-6", 75, {
+        meanTemp: 78,
+        rmsVibration: 3.8,
+        meanVibration: 3.7,
+        peakToPeak: 8,
+        kurtosis: 3.5,
+        meanPressure: 160,
+      }),
+      snapshot("f-7", 90, {
+        meanTemp: 75,
+        rmsVibration: 3.2,
+        meanVibration: 3.0,
+        peakToPeak: 7,
+        kurtosis: 3.2,
+        meanPressure: 172,
+      }),
+      snapshot("oldest", 105, {
+        meanTemp: 72,
+        rmsVibration: 2.8,
+        meanVibration: 2.6,
+        peakToPeak: 6,
+        kurtosis: 3.1,
+        meanPressure: 182,
+      }),
     ];
 
     const result = await buildService(features).evaluateEquipment({
@@ -151,7 +206,9 @@ describe("PdM decision-support hexagonal service", () => {
     expect(result.performanceIndicators.minimumSequenceSatisfied).toBe(true);
     expect(result.performanceIndicators.sequenceLength).toBe(8);
     expect(result.performanceIndicators.efficiencyLossPercent).toBeGreaterThan(0);
-    expect(result.recommendations.some((recommendation) => recommendation.createWorkOrder)).toBe(true);
+    expect(result.recommendations.some((recommendation) => recommendation.createWorkOrder)).toBe(
+      true
+    );
     expect(result.safetyReview.decision).not.toBe("blocked");
     expect(result.featureWindowStart).toBe("2026-01-01T10:15:00.000Z");
     expect(result.featureWindowEnd).toBe("2026-01-01T12:00:00.000Z");
@@ -214,9 +271,10 @@ describe("PdM decision-support hexagonal service", () => {
     expect(result.summary.failureMode).toMatch(/bearing/i);
     expect(result.featureHints.sampleCount).toBeGreaterThan(0);
     expect(result.featureHints.rmsVibration).toBeGreaterThan(0);
-    expect(result.samples.every((sample) => sample.timestamp && Number.isFinite(sample.rpm))).toBe(true);
+    expect(result.samples.every((sample) => sample.timestamp && Number.isFinite(sample.rpm))).toBe(
+      true
+    );
   });
-
 
   it("adjusts scoring using outcome feedback calibration", async () => {
     const features: EquipmentFeatureSnapshot[] = [
@@ -271,4 +329,3 @@ describe("PdM decision-support hexagonal service", () => {
     ).rejects.toBeInstanceOf(EquipmentNotFoundError);
   });
 });
-

@@ -9,7 +9,9 @@ import { describe, expect, it } from "@jest/globals";
 describe.skip("PdM decision-support production router registry", () => {
   it("mounts the production router through the domain registry", async () => {
     const { domainRouters } = await import("../../server/routes/domain-router-registry");
-    const config = domainRouters.find((entry: { name: string }) => entry.name === "PdmDecisionSupport");
+    const config = domainRouters.find(
+      (entry: { name: string }) => entry.name === "PdmDecisionSupport"
+    );
 
     expect(config).toBeDefined();
     expect(config).toMatchObject({
@@ -19,7 +21,9 @@ describe.skip("PdM decision-support production router registry", () => {
       middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
     });
 
-    const mod = await import("../../server/domains/pdm-platform/decision-support/interfaces/routes");
+    const mod = await import(
+      "../../server/domains/pdm-platform/decision-support/interfaces/routes"
+    );
     expect(mod.pdmDecisionSupportRouter).toBeDefined();
     expect(typeof mod.createPdmDecisionSupportRouter).toBe("function");
   });

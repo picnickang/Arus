@@ -212,7 +212,6 @@ async function queueOfflineApiRequest(
   };
 }
 
-
 export async function apiRequest<T = unknown>(
   method: string,
   url: string,
@@ -226,11 +225,12 @@ export async function apiRequest<T = unknown>(
   third?: unknown,
   fourth?: ApiRequestOptions
 ): Promise<T> {
-  const method = typeof second === "string" ? first : second?.method ?? "GET";
+  const method = typeof second === "string" ? first : (second?.method ?? "GET");
   const url = typeof second === "string" ? second : first;
   const data = typeof second === "string" ? third : second?.body;
   const options = typeof second === "string" ? fourth : second;
-  const body = typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
+  const body =
+    typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
   const includeContentType = body !== undefined;
 
   const shouldQueueOffline = isQueueableMutation(method, url);
@@ -240,9 +240,9 @@ export async function apiRequest<T = unknown>(
   // replays to the same cached response instead of double-writing.
   const payloadRecord = shouldQueueOffline ? asPayloadRecord(data) : undefined;
   const clientMutationId = shouldQueueOffline
-    ? (payloadRecord?.["clientMutationId"] as string | undefined) ??
+    ? ((payloadRecord?.["clientMutationId"] as string | undefined) ??
       (payloadRecord?.["__clientMutationId"] as string | undefined) ??
-      generateClientMutationId()
+      generateClientMutationId())
     : undefined;
 
   if (shouldQueueOffline && !isOnline()) {
@@ -337,7 +337,7 @@ export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFu
       url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
     } else {
       url = queryKey.join("/");
-      if (process.env['NODE_ENV'] === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.warn(
           `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
         );
@@ -426,7 +426,7 @@ function showGlobalErrorToast(
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
-      showGlobalErrorToast(error, query.meta as Record<string, unknown> | undefined, "query");
+      showGlobalErrorToast(error, query.meta, "query");
     },
   }),
   mutationCache: new MutationCache({
@@ -436,7 +436,7 @@ export const queryClient = new QueryClient({
       if (mutation.options.onError) {
         return;
       }
-      showGlobalErrorToast(error, mutation.meta as Record<string, unknown> | undefined, "mutation");
+      showGlobalErrorToast(error, mutation.meta, "mutation");
     },
   }),
   defaultOptions: {
@@ -494,7 +494,12 @@ async function doReplayQueuedApiRequests(): Promise<{
   let conflicts = 0;
 
   for (const op of apiOperations) {
-    if (!op.request || op.retryCount >= 5 || op.conflictPaused || unresolvedConflictIds.has(op.id)) {
+    if (
+      !op.request ||
+      op.retryCount >= 5 ||
+      op.conflictPaused ||
+      unresolvedConflictIds.has(op.id)
+    ) {
       continue;
     }
 
@@ -577,7 +582,10 @@ async function doReplayQueuedApiRequests(): Promise<{
       await removeOperation(op.id);
       synced++;
     } catch (error) {
-      await markOperationFailed(op.id, error instanceof Error ? error.message : "Unknown sync error");
+      await markOperationFailed(
+        op.id,
+        error instanceof Error ? error.message : "Unknown sync error"
+      );
       failed++;
     }
   }

@@ -25,10 +25,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
-import {
-  QuotaService,
-  type SqlExecutor,
-} from "../../server/tenancy/quota-service";
+import { QuotaService, type SqlExecutor } from "../../server/tenancy/quota-service";
 
 interface CapturedQuery {
   raw: string;
@@ -68,11 +65,11 @@ class SimulatedUsageTable implements SqlExecutor {
 
     // VALUES ('org', 'metric', 'yyyy-mm-dd', GREATEST(0, <delta>))
     const valuesMatch = raw.match(
-      /VALUES \('((?:[^']|'')+)', '([^']+)', '([^']+)', GREATEST\(0, (-?\d+)\)\)/,
+      /VALUES \('((?:[^']|'')+)', '([^']+)', '([^']+)', GREATEST\(0, (-?\d+)\)\)/
     );
     // DO UPDATE SET value = GREATEST(0, tenant_usage.value + (<delta>))
     const updateMatch = raw.match(
-      /DO UPDATE SET value = GREATEST\(0, tenant_usage\.value \+ \((-?\d+)\)\)/,
+      /DO UPDATE SET value = GREATEST\(0, tenant_usage\.value \+ \((-?\d+)\)\)/
     );
 
     if (!valuesMatch || !updateMatch) {
@@ -118,7 +115,7 @@ describe("QuotaService.incrementUsage — SQL shape", () => {
     await service.incrementUsage("org-A", "storage_bytes", -999_999_999);
     const sql = lastSql();
     expect(sql).toMatch(
-      /DO UPDATE SET value = GREATEST\(0, tenant_usage\.value \+ \(-999999999\)\)/,
+      /DO UPDATE SET value = GREATEST\(0, tenant_usage\.value \+ \(-999999999\)\)/
     );
     // Regression guard: must NOT use EXCLUDED.value in the UPDATE —
     // EXCLUDED.value is the already-clamped VALUES row, which would
@@ -128,9 +125,7 @@ describe("QuotaService.incrementUsage — SQL shape", () => {
 
   it("clamps the VALUES branch so a first-ever insert with a negative delta lands at 0", async () => {
     await service.incrementUsage("org-B", "storage_bytes", -42);
-    expect(lastSql()).toMatch(
-      /VALUES \('org-B', 'storage_bytes', '[^']+', GREATEST\(0, -42\)\)/,
-    );
+    expect(lastSql()).toMatch(/VALUES \('org-B', 'storage_bytes', '[^']+', GREATEST\(0, -42\)\)/);
   });
 
   it("escapes single quotes in orgId on the write path", async () => {

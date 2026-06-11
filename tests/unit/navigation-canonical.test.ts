@@ -24,10 +24,15 @@ const CLIENT_SRC = path.join(ROOT, "client", "src");
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name.startsWith(".")) {continue;}
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {walk(full, out);}
-    else if (/\.(tsx?|jsx?)$/.test(entry.name)) {out.push(full);}
+    if (entry.isDirectory()) {
+      walk(full, out);
+    } else if (/\.(tsx?|jsx?)$/.test(entry.name)) {
+      out.push(full);
+    }
   }
   return out;
 }
@@ -47,9 +52,7 @@ describe("Navigation Canonicalization", () => {
       const rel = path.relative(ROOT, file);
       const src = fs.readFileSync(file, "utf8");
       // Strip block + line comments so doc references don't trip the scan.
-      const stripped = src
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/(^|[^:])\/\/.*$/gm, "$1");
+      const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
       HUB_TAB_PATTERN.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = HUB_TAB_PATTERN.exec(stripped)) !== null) {

@@ -1,21 +1,13 @@
 import { useMemo } from "react";
 
-
-import {
-  Ship,
-} from "lucide-react";
+import { Ship } from "lucide-react";
 import { format, isToday, isSameDay } from "date-fns";
 import {
   type ScheduleAssignment,
   type FatigueResult,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
-import {
-  getRoleColor,
-  type DragState,
-} from "../schedule-planner-utils";
-
-
+import { getRoleColor, type DragState } from "../schedule-planner-utils";
 
 import type { DragCompliancePreview } from "./types";
 
@@ -46,7 +38,9 @@ export function VesselRow({
   onAssignmentClick: (id: string) => void;
   onEmptyCellClick: (vesselId: string, vesselName: string, date: Date) => void;
   isMobile?: boolean | undefined;
-  onPointerDragStart?: ((e: React.PointerEvent, assignment: ScheduleAssignment) => void) | undefined;
+  onPointerDragStart?:
+    | ((e: React.PointerEvent, assignment: ScheduleAssignment) => void)
+    | undefined;
   dragState?: DragState | null | undefined;
   dragCompliancePreview?: DragCompliancePreview | null | undefined;
   dragTargetVesselId?: string | null | undefined;
@@ -152,7 +146,9 @@ export function VesselRow({
                         onClick={() => onAssignmentClick(assignment.id)}
                         hardViolations={summary.hard}
                         softViolations={summary.soft}
-                        {...(fatigue?.riskLevel !== undefined && { fatigueRisk: fatigue.riskLevel })}
+                        {...(fatigue?.riskLevel !== undefined && {
+                          fatigueRisk: fatigue.riskLevel,
+                        })}
                         isMobile={isMobile}
                         onPointerDragStart={onPointerDragStart}
                         isDragging={isBeingDragged}

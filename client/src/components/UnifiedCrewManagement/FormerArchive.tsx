@@ -1,14 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  ChevronDown,
-  ChevronRight,
-  UserCheck,
-  UserX,
-  Download,
-} from "lucide-react";
+import { Search, ChevronDown, ChevronRight, UserCheck, UserX, Download } from "lucide-react";
 import { format } from "date-fns";
 import {
   formatRank,
@@ -48,7 +41,7 @@ const REHIRE_TONE: Record<RehireStatusKey, PillTone> = {
 };
 
 function latestPeriod(
-  periods: EmploymentHistoryRecord[] | undefined,
+  periods: EmploymentHistoryRecord[] | undefined
 ): EmploymentHistoryRecord | undefined {
   if (!periods || periods.length === 0) {
     return undefined;
@@ -97,7 +90,7 @@ function FormerCrewRow({
     crewId: string,
     crewName: string,
     vesselName?: string,
-    contractPenalty?: number,
+    contractPenalty?: number
   ) => void;
   getVesselName: (vesselId: string) => string;
   perms: CrewRowPermissions;
@@ -117,7 +110,10 @@ function FormerCrewRow({
         className="min-w-0 flex-1 text-left"
         data-testid={`button-open-crew-${member.id}`}
       >
-        <p className="truncate text-sm font-semibold text-white" data-testid={`text-crew-name-${member.id}`}>
+        <p
+          className="truncate text-sm font-semibold text-white"
+          data-testid={`text-crew-name-${member.id}`}
+        >
           {member.name}
         </p>
         <p className="truncate text-xs text-slate-400">
@@ -157,7 +153,7 @@ export function FormerArchive({
     crewId: string,
     crewName: string,
     vesselName?: string,
-    contractPenalty?: number,
+    contractPenalty?: number
   ) => void;
   onSwitchToCurrent: () => void;
   perms: CrewRowPermissions;
@@ -208,7 +204,7 @@ export function FormerArchive({
       switch (sortBy) {
         case "last_vessel":
           return (a.lastVesselId ? getVesselName(a.lastVesselId) : "").localeCompare(
-            b.lastVesselId ? getVesselName(b.lastVesselId) : "",
+            b.lastVesselId ? getVesselName(b.lastVesselId) : ""
           );
         case "end_date": {
           const aTime = a.endDate ? new Date(a.endDate).getTime() : 0;
@@ -226,7 +222,7 @@ export function FormerArchive({
 
   const groups = useMemo(
     () => groupCrewByRole(sorted.map((row) => ({ ...row, rank: row.lastRole }))),
-    [sorted],
+    [sorted]
   );
 
   const toggleGroup = (id: string) =>
@@ -287,7 +283,7 @@ export function FormerArchive({
             onClick={() =>
               d.handleExportCSV(
                 sorted.map((row) => toCrewListItem(row.member)),
-                "former-crew-roster",
+                "former-crew-roster"
               )
             }
             data-testid="button-export-csv"
@@ -382,7 +378,9 @@ export function FormerArchive({
                     ) : (
                       <ChevronDown className="h-4 w-4 text-slate-400" />
                     )}
-                    <span className="truncate text-sm font-semibold text-white">{bucket.group}</span>
+                    <span className="truncate text-sm font-semibold text-white">
+                      {bucket.group}
+                    </span>
                     <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-slate-300">
                       {bucket.members.length}
                     </span>
@@ -393,7 +391,7 @@ export function FormerArchive({
                       onClick={() =>
                         d.handleExportCSV(
                           bucket.members.map((row) => toCrewListItem(row.member)),
-                          `former-${bucket.group.toLowerCase().replace(/\s+/g, "-")}`,
+                          `former-${bucket.group.toLowerCase().replace(/\s+/g, "-")}`
                         )
                       }
                       className="text-xs font-medium text-sky-300 hover:text-sky-200"

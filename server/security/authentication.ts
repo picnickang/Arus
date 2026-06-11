@@ -145,7 +145,8 @@ export async function requireAuthentication(req: Request, res: Response, next: N
 
     const tokenHash = hashSessionToken(token);
     const cached = readSessionCache(tokenHash);
-    const session = cached?.session ?? (await dbSystemAdminStorage.getAdminSessionByToken(tokenHash));
+    const session =
+      cached?.session ?? (await dbSystemAdminStorage.getAdminSessionByToken(tokenHash));
 
     if (session) {
       if (new Date(session.expiresAt) < new Date()) {

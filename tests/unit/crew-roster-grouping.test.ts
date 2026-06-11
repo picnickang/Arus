@@ -171,15 +171,15 @@ describe("roster controls source-scan", () => {
 
   it("Current roster wires the group-by chips (role / vessel / name)", () => {
     const src = read("client/src/components/UnifiedCrewManagement/CurrentRoster.tsx");
-    expect(src).toContain('data-testid={`chip-group-${chip.mode}`}');
+    expect(src).toContain("data-testid={`chip-group-${chip.mode}`}");
     expect(src).toContain("groupCrewByRole");
     expect(src).toContain("groupCrewByVessel");
   });
 
   it("Former archive wires the rehire filter chips and the rehire badge", () => {
     const src = read("client/src/components/UnifiedCrewManagement/FormerArchive.tsx");
-    expect(src).toContain('data-testid={`chip-rehire-${chip.key}`}');
-    expect(src).toContain('testId={`pill-rehire-${member.id}`}');
+    expect(src).toContain("data-testid={`chip-rehire-${chip.key}`}");
+    expect(src).toContain("testId={`pill-rehire-${member.id}`}");
     expect(src).toContain("deriveRehireStatus");
   });
 });
@@ -214,7 +214,7 @@ describe("consolidated crew landing source-scan", () => {
   it("landing merges expiring certs + alerts into one attention list", () => {
     const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
     expect(src).toContain('data-testid="attention-list"');
-    expect(src).toContain('data-testid={`attention-row-${item.id}`}');
+    expect(src).toContain("data-testid={`attention-row-${item.id}`}");
   });
 
   it("landing exposes clickable counters that filter the roster", () => {
@@ -225,7 +225,7 @@ describe("consolidated crew landing source-scan", () => {
     expect(src).toContain('onClick={() => onOpenCurrent("off_duty")}');
     // The "Needs attention" counter focuses the on-page attention list
     // instead of navigating away to the compliance surface.
-    expect(src).toContain('onClick={scrollToAttention}');
+    expect(src).toContain("onClick={scrollToAttention}");
     expect(src).toContain("scrollIntoView");
   });
 
@@ -274,12 +274,12 @@ describe("crew upload-docs destination source-scan", () => {
     const tileStart = src.indexOf('testId="action-upload-docs"');
     const tileBlock = src.slice(Math.max(0, tileStart - 400), tileStart);
     expect(tileBlock).toContain('onClick={() => onOpenCurrent("all")}');
-    expect(tileBlock).not.toContain('/compliance-consolidated');
+    expect(tileBlock).not.toContain("/compliance-consolidated");
   });
 
   it("each roster member exposes a documents shortcut opening the Documents tab", () => {
     const src = read("client/src/components/UnifiedCrewManagement/crew-roster-shared.tsx");
-    expect(src).toContain('data-testid={`action-documents-${member.id}`}');
+    expect(src).toContain("data-testid={`action-documents-${member.id}`}");
     expect(src).toContain('d.handleViewProfile(member, "documents")');
   });
 

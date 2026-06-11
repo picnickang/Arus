@@ -109,7 +109,7 @@ export async function compileUserPermissions(
   return compiled;
 }
 
-const DEV_MODE = process.env['NODE_ENV'] === "development";
+const DEV_MODE = process.env["NODE_ENV"] === "development";
 const DEV_USER_ID = "dev-user-id";
 const DEV_ADMIN_USER_ID = "dev-admin-user";
 
@@ -272,7 +272,7 @@ export function getResourceDefinitions() {
  */
 export async function getEffectiveHubAccess(
   userId: string,
-  orgId: string,
+  orgId: string
 ): Promise<{ hubAdmin: boolean; hubAccess: string[] | null }> {
   const [userRow] = await db
     .select({ role: users.role, hubAdmin: users.hubAdmin, hubAccess: users.hubAccess })

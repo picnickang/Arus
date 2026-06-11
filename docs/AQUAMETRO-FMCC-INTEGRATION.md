@@ -7,6 +7,7 @@ ARUS integrates with Aquametro FMCC (Fuel Mass Consumption Computer) systems for
 ## Capabilities
 
 When FMCC is enabled, the system provides:
+
 - **Real-time fuel flow measurement** - Direct FO/DO flow rate readings
 - **Fuel density compensation** - Temperature-compensated mass flow calculations
 - **Cumulative fuel counters** - Aggregated consumption over periods
@@ -16,16 +17,16 @@ When FMCC is enabled, the system provides:
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `FMCC_ENABLED` | Enable FMCC integration | No | `false` |
-| `FMCC_API_URL` | Aquametro REST API endpoint | If enabled | - |
-| `FMCC_API_KEY` | API authentication key | If REST API used | - |
-| `FMCC_MODBUS_HOST` | Modbus TCP host address | If Modbus used | - |
-| `FMCC_MODBUS_PORT` | Modbus TCP port | No | `502` |
-| `FMCC_MODBUS_UNIT_ID` | Modbus unit/slave ID | No | `1` |
-| `FMCC_POLLING_INTERVAL_MS` | Data polling interval | No | `10000` |
-| `FMCC_VESSEL_MAPPING` | JSON mapping of vessel IDs to FMCC device IDs | No | `{}` |
+| Variable                   | Description                                   | Required         | Default |
+| -------------------------- | --------------------------------------------- | ---------------- | ------- |
+| `FMCC_ENABLED`             | Enable FMCC integration                       | No               | `false` |
+| `FMCC_API_URL`             | Aquametro REST API endpoint                   | If enabled       | -       |
+| `FMCC_API_KEY`             | API authentication key                        | If REST API used | -       |
+| `FMCC_MODBUS_HOST`         | Modbus TCP host address                       | If Modbus used   | -       |
+| `FMCC_MODBUS_PORT`         | Modbus TCP port                               | No               | `502`   |
+| `FMCC_MODBUS_UNIT_ID`      | Modbus unit/slave ID                          | No               | `1`     |
+| `FMCC_POLLING_INTERVAL_MS` | Data polling interval                         | No               | `10000` |
+| `FMCC_VESSEL_MAPPING`      | JSON mapping of vessel IDs to FMCC device IDs | No               | `{}`    |
 
 ### Example Configuration
 
@@ -61,13 +62,15 @@ When auto-filling Fuel & Emissions Log entries:
 ### Engine Room Logbook Integration
 
 The Engine Room Logbook daily fuel consumption fields are also populated from FMCC when available:
+
 - `fuelMeConsumption` - Main engine FO consumption
-- `fuelDgConsumption` - Diesel generator DO consumption  
+- `fuelDgConsumption` - Diesel generator DO consumption
 - `fuelTotalConsumption` - Total fuel consumption
 
 ### Failsafe Behavior
 
 If FMCC is unavailable or returns errors:
+
 - System falls back to SFOC-based calculations from engine telemetry
 - Data source is recorded as `estimated`
 - Warning is logged but operation continues
@@ -80,6 +83,7 @@ If FMCC is unavailable or returns errors:
 Returns current FMCC integration status.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -104,6 +108,7 @@ Returns current FMCC integration status.
 Tests FMCC connectivity for a specific vessel.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -123,6 +128,7 @@ Tests FMCC connectivity for a specific vessel.
 Retrieves cumulative fuel consumption for a date range.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -149,6 +155,7 @@ Retrieves cumulative fuel consumption for a date range.
 ### FMCC Status Badge
 
 The Fuel & Emissions Log page displays an FMCC status badge:
+
 - **Blue "FMCC Active"** - Integration enabled and connected
 - **Yellow "FMCC Connecting"** - Enabled but not yet ready
 - **Gray "FMCC Disabled"** - Integration not configured
@@ -156,6 +163,7 @@ The Fuel & Emissions Log page displays an FMCC status badge:
 ### Data Source Column
 
 Log entries show the data source:
+
 - **Blue "FMCC" badge** with lightning icon - Measured data
 - **Gray badge** with calculator icon - Estimated from telemetry
 
@@ -183,14 +191,14 @@ Hover over badges for detailed information about the data source.
 
 ### Register Map (Modbus)
 
-| Register | Description | Type | Unit |
-|----------|-------------|------|------|
-| 0-1 | FO Flow Rate | Float32 | m³/h |
-| 2-3 | DO Flow Rate | Float32 | m³/h |
-| 4-5 | FO Density | Float32 | kg/m³ |
-| 6-7 | DO Temperature | Float32 | °C |
-| 8-11 | FO Cumulative | Float64 | m³ |
-| 12-15 | DO Cumulative | Float64 | m³ |
+| Register | Description    | Type    | Unit  |
+| -------- | -------------- | ------- | ----- |
+| 0-1      | FO Flow Rate   | Float32 | m³/h  |
+| 2-3      | DO Flow Rate   | Float32 | m³/h  |
+| 4-5      | FO Density     | Float32 | kg/m³ |
+| 6-7      | DO Temperature | Float32 | °C    |
+| 8-11     | FO Cumulative  | Float64 | m³    |
+| 12-15    | DO Cumulative  | Float64 | m³    |
 
 ## Troubleshooting
 

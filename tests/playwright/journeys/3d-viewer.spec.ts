@@ -20,21 +20,18 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("3D Digital Twin journey", () => {
-  test.fixme(
-    "loads GLB, selects a pin, and scrubs the 6h replay",
-    async ({ page }) => {
-      // [LR-3] Seed: vessel + uploaded GLB + 6h twin-state history.
-      const vesselId = "LR3-FIXTURE-VESSEL";
+  test.fixme("loads GLB, selects a pin, and scrubs the 6h replay", async ({ page }) => {
+    // [LR-3] Seed: vessel + uploaded GLB + 6h twin-state history.
+    const vesselId = "LR3-FIXTURE-VESSEL";
 
-      await page.goto(`/vessels/${vesselId}/3d`);
-      await expect(page.getByTestId("viewer-3d")).toBeVisible();
+    await page.goto(`/vessels/${vesselId}/3d`);
+    await expect(page.getByTestId("viewer-3d")).toBeVisible();
 
-      // Wait for GLTFLoader to mount the scene (a single canvas + a
-      // pin overlay element). Click the first pin, assert downstream
-      // amber tint via the dependency-overlay test ids. Drag the
-      // scrubber from t-0 to t-6h and assert pin state changes.
+    // Wait for GLTFLoader to mount the scene (a single canvas + a
+    // pin overlay element). Click the first pin, assert downstream
+    // amber tint via the dependency-overlay test ids. Drag the
+    // scrubber from t-0 to t-6h and assert pin state changes.
 
-      throw new Error("LR-3 GLB + twin-state-history fixtures not yet wired");
-    },
-  );
+    throw new Error("LR-3 GLB + twin-state-history fixtures not yet wired");
+  });
 });

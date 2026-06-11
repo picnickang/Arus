@@ -58,9 +58,10 @@ afterEach(() => {
   }
 });
 
-const provider = (
-  ctx: ReturnType<CorrelationProvider> | undefined
-): CorrelationProvider => () => ctx;
+const provider =
+  (ctx: ReturnType<CorrelationProvider> | undefined): CorrelationProvider =>
+  () =>
+    ctx;
 
 // Stand-alone block at the top of the file; we re-import crypto-service inside
 // the test to keep this self-contained and avoid touching module-level state

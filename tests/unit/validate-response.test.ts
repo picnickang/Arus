@@ -79,9 +79,7 @@ describe("validateResponse", () => {
     });
 
     it("does NOT throw on email format violation when email is omitted", () => {
-      expect(() =>
-        validateResponse(userSchema, { id: "u1", name: "x" }, "ctx")
-      ).not.toThrow();
+      expect(() => validateResponse(userSchema, { id: "u1", name: "x" }, "ctx")).not.toThrow();
     });
 
     it("throws on email format violation when email is provided badly", () => {
@@ -128,9 +126,9 @@ describe("validateResponse", () => {
       const ORIGINAL = process.env["NODE_ENV"];
       process.env["NODE_ENV"] = "test";
       try {
-        expect(() =>
-          validateResponse(userSchema, { id: "u1" }, "GET /api/permissions/me")
-        ).toThrow(/GET \/api\/permissions\/me/);
+        expect(() => validateResponse(userSchema, { id: "u1" }, "GET /api/permissions/me")).toThrow(
+          /GET \/api\/permissions\/me/
+        );
       } finally {
         process.env["NODE_ENV"] = ORIGINAL;
       }

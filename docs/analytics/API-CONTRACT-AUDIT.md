@@ -2,7 +2,7 @@
 
 **Date**: November 6, 2025  
 **Phase**: Phase 2 - Task A.1  
-**Status**: Initial Audit Complete  
+**Status**: Initial Audit Complete
 
 ---
 
@@ -17,6 +17,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 1: ML Models & Training
 
 #### `/api/analytics/ml-models`
+
 - **Method**: GET
 - **Purpose**: List all ML models
 - **Auth**: requireOrgId middleware
@@ -25,18 +26,21 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: HIGH
 
 #### `/api/analytics/ml-models/:id`
+
 - **Method**: GET
 - **Purpose**: Get specific ML model details
 - **Response**: Single mlModel object
 - **Issues**: No typed response
 
 #### `/api/analytics/ml-models`
+
 - **Method**: POST
 - **Purpose**: Create new ML model
 - **Request**: Uses `insertMlModelSchema` validation
 - **Issues**: ✅ Zod validated (good pattern)
 
 #### `/api/analytics/ml-models/:id`
+
 - **Method**: DELETE
 - **Purpose**: Delete ML model
 - **Rate Limit**: Critical operation
@@ -47,24 +51,28 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 2: Model Performance & Monitoring
 
 #### `/api/analytics/model-performance`
+
 - **Method**: GET
 - **Purpose**: Get model performance metrics
 - **Response Shape**: Unknown (needs documentation)
 - **Priority**: HIGH
 
 #### `/api/analytics/model-performance/summary`
+
 - **Method**: GET
 - **Purpose**: Get aggregated performance summary
 - **Response Shape**: Unknown
 - **Priority**: HIGH
 
 #### `/api/analytics/model-performance`
+
 - **Method**: POST
 - **Purpose**: Record model performance metric
 - **Request**: Uses `insertModelPerformanceSchema` (assumed)
 - **Issues**: Need to verify request schema
 
 #### `/api/analytics/model-performance/by-equipment-type`
+
 - **Method**: GET
 - **Purpose**: Performance metrics grouped by equipment type
 - **Response Shape**: Unknown (likely grouped array)
@@ -75,6 +83,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 3: Feature Analysis
 
 #### `/api/analytics/feature-importance/trends`
+
 - **Method**: GET
 - **Purpose**: Track how feature importance changes over time
 - **Response Shape**: Time-series data (undocumented)
@@ -86,6 +95,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 4: Model Quality & Drift
 
 #### `/api/analytics/model-drift`
+
 - **Method**: GET
 - **Purpose**: Detect model drift over time
 - **Response Shape**: Drift metrics (needs DTO)
@@ -93,12 +103,14 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: HIGH
 
 #### `/api/analytics/retraining-queue`
+
 - **Method**: GET
 - **Purpose**: Models queued for retraining
 - **Response Shape**: Array of models needing retraining
 - **Priority**: MEDIUM
 
 #### `/api/analytics/model-improvements`
+
 - **Method**: GET
 - **Purpose**: Track model improvement history
 - **Response Shape**: Historical improvement metrics
@@ -109,24 +121,28 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 5: Prediction Feedback Loop
 
 #### `/api/analytics/prediction-feedback`
+
 - **Method**: GET
 - **Purpose**: Get prediction feedback from users
 - **Response Shape**: Array of feedback records
 - **Priority**: MEDIUM
 
 #### `/api/analytics/prediction-feedback`
+
 - **Method**: POST
 - **Purpose**: Submit prediction feedback
 - **Request**: Uses `insertPredictionFeedbackSchema` (assumed)
 - **Issues**: ✅ Zod validated
 
 #### `/api/analytics/prediction-feedback/summary`
+
 - **Method**: GET
 - **Purpose**: Aggregated feedback summary
 - **Response Shape**: Summary statistics
 - **Priority**: LOW
 
 #### `/api/analytics/correction-patterns`
+
 - **Method**: GET
 - **Purpose**: Identify common correction patterns
 - **Response Shape**: Pattern analysis results
@@ -138,6 +154,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 6: ML Explainability
 
 #### `/api/ml/explainability/predictions/:predictionId`
+
 - **Method**: GET
 - **Purpose**: SHAP values and feature contributions for specific prediction
 - **Response Shape**: Explainability data structure
@@ -145,6 +162,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: HIGH
 
 #### `/api/ml/explainability/feature-importances`
+
 - **Method**: GET
 - **Purpose**: Global feature importance across all predictions
 - **Response Shape**: Feature importance rankings
@@ -155,6 +173,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 7: Real-Time Predictions
 
 #### `/api/ml/realtime-predictions`
+
 - **Method**: GET
 - **Purpose**: Get current real-time predictions
 - **Response Shape**: Array of active predictions
@@ -167,24 +186,28 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 8: Cost Tracking
 
 #### `/api/analytics/llm-costs`
+
 - **Method**: GET
 - **Purpose**: Track LLM API usage costs
 - **Response Shape**: Cost records array
 - **Priority**: LOW
 
 #### `/api/analytics/llm-costs/summary`
+
 - **Method**: GET
 - **Purpose**: Aggregated cost summary
 - **Response Shape**: Summary with totals
 - **Priority**: LOW
 
 #### `/api/analytics/llm-costs/trends`
+
 - **Method**: GET
 - **Purpose**: Cost trends over time
 - **Response Shape**: Time-series cost data
 - **Priority**: LOW
 
 #### `/api/analytics/llm-costs`
+
 - **Method**: POST
 - **Purpose**: Record LLM cost
 - **Request**: Cost record schema
@@ -195,6 +218,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 9: Data Export
 
 #### `/api/analytics/export/ml-pdm-complete`
+
 - **Method**: GET
 - **Purpose**: Export complete ML and PdM dataset
 - **Response**: Large dataset (CSV or JSON)
@@ -202,12 +226,14 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: MEDIUM
 
 #### `/api/analytics/export/ml-models`
+
 - **Method**: GET
 - **Purpose**: Export ML model configurations
 - **Response**: Model export format
 - **Priority**: LOW
 
 #### `/api/analytics/export/telemetry`
+
 - **Method**: GET
 - **Purpose**: Export telemetry data
 - **Response**: Telemetry dataset
@@ -215,6 +241,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: MEDIUM
 
 #### `/api/analytics/export/predictions`
+
 - **Method**: GET
 - **Purpose**: Export prediction history
 - **Response**: Predictions dataset
@@ -225,6 +252,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 10: Anomaly Detection
 
 #### `/api/analytics/anomaly-detections`
+
 - **Method**: GET
 - **Purpose**: List all anomaly detections
 - **Response Shape**: Array of anomaly records
@@ -232,18 +260,21 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Caching Candidate**: ✅ YES (5-minute TTL)
 
 #### `/api/analytics/anomaly-detections/:id`
+
 - **Method**: GET
 - **Purpose**: Get specific anomaly details
 - **Response**: Single anomaly object
 - **Priority**: MEDIUM
 
 #### `/api/analytics/anomaly-detections`
+
 - **Method**: POST
 - **Purpose**: Record new anomaly detection
 - **Request**: Uses `insertAnomalyDetectionSchema`
 - **Issues**: ✅ Zod validated
 
 #### `/api/analytics/anomaly-detections/:id/acknowledge`
+
 - **Method**: PATCH
 - **Purpose**: Mark anomaly as acknowledged
 - **Request**: Acknowledgment data
@@ -254,6 +285,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 11: Failure Predictions
 
 #### `/api/analytics/failure-predictions`
+
 - **Method**: GET
 - **Purpose**: List all failure predictions
 - **Response Shape**: Array of prediction records
@@ -261,12 +293,14 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Caching Candidate**: ✅ YES (15-minute TTL)
 
 #### `/api/analytics/failure-predictions/:id`
+
 - **Method**: GET
 - **Purpose**: Get specific failure prediction
 - **Response**: Single prediction object with RUL, probability, etc.
 - **Priority**: HIGH
 
 #### `/api/analytics/failure-predictions`
+
 - **Method**: POST
 - **Purpose**: Create new failure prediction
 - **Request**: Uses `insertFailurePredictionSchema`
@@ -277,6 +311,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 12: Threshold Optimization
 
 #### `/api/analytics/threshold-optimizations`
+
 - **Method**: GET
 - **Purpose**: List threshold optimization results
 - **Response Shape**: Array of optimization records
@@ -284,12 +319,14 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Caching Candidate**: ✅ YES (30-minute TTL)
 
 #### `/api/analytics/threshold-optimizations/:id`
+
 - **Method**: GET
 - **Purpose**: Get specific optimization result
 - **Response**: Single optimization object
 - **Priority**: LOW
 
 #### `/api/analytics/threshold-optimizations`
+
 - **Method**: POST
 - **Purpose**: Record threshold optimization
 - **Request**: Uses `insertThresholdOptimizationSchema`
@@ -300,6 +337,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 ### Category 13: Equipment Analytics
 
 #### `/api/equipment/health`
+
 - **Method**: GET
 - **Purpose**: Get health scores for all equipment
 - **Response Shape**: Array of equipment health objects
@@ -317,15 +355,16 @@ Document all analytics endpoints, their current request/response shapes, identif
       nextMaintenanceDate: Date | null,
       alertCount: number,
       operatingHours: number,
-      vesselId: string | null
-    }
-  ]
+      vesselId: string | null,
+    },
+  ];
   ```
 - **Issues**: Response shape not typed, needs DTO
 - **Priority**: CRITICAL
 - **Caching Candidate**: ✅ YES (5-minute TTL)
 
 #### `/api/equipment/:id/rul`
+
 - **Method**: GET
 - **Purpose**: Get Remaining Useful Life prediction for equipment
 - **Response Shape**: RUL prediction object
@@ -345,6 +384,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Caching Candidate**: ✅ YES (15-minute TTL)
 
 #### `/api/equipment/rul/batch`
+
 - **Method**: POST
 - **Purpose**: Get RUL for multiple equipment in one request
 - **Request**: Array of equipment IDs
@@ -353,12 +393,14 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Caching Candidate**: ✅ YES (15-minute TTL)
 
 #### `/api/equipment/:id/degradation`
+
 - **Method**: POST
 - **Purpose**: Record equipment degradation event
 - **Request**: Degradation data
 - **Priority**: MEDIUM
 
 #### `/api/equipment/:id/sensor-coverage`
+
 - **Method**: GET
 - **Purpose**: Analyze sensor coverage for equipment
 - **Response Shape**: Coverage analysis object
@@ -376,6 +418,7 @@ Document all analytics endpoints, their current request/response shapes, identif
 - **Priority**: MEDIUM
 
 #### `/api/equipment/:id/load-distribution`
+
 - **Method**: GET
 - **Purpose**: Equipment load distribution analysis
 - **Response Shape**: Load distribution metrics
@@ -502,16 +545,19 @@ Document all analytics endpoints, their current request/response shapes, identif
 ## 🎯 Success Metrics
 
 ### Type Safety
+
 - [ ] 100% of analytics endpoints have typed DTOs
 - [ ] Zero `any` types in analytics code
 - [ ] Compile-time validation on all API calls
 
 ### Performance
+
 - [ ] Equipment health endpoint <100ms (p95)
 - [ ] RUL prediction endpoint <200ms (p95)
 - [ ] Cache hit rate >80% for analytics
 
 ### Documentation
+
 - [ ] All endpoints documented with examples
 - [ ] Request/response schemas published
 - [ ] Frontend integration guide complete

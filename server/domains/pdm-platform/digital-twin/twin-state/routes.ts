@@ -37,7 +37,7 @@ router.post("/compute", async (req: Request, res: Response) => {
 router.get("/latest/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const { twinId = '' } = req.params;
+    const { twinId = "" } = req.params;
     const result = await stateService.getLatestState(orgId, twinId);
     if (!result) {
       return res.status(404).json({ error: "No state found for twin" });
@@ -59,7 +59,7 @@ const historyQuerySchema = z.object({
 router.get("/history/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const { twinId = '' } = req.params;
+    const { twinId = "" } = req.params;
     const parsed = historyQuerySchema.safeParse(req.query);
     if (!parsed.success) {
       // Reject bad query params explicitly so callers cannot trigger an

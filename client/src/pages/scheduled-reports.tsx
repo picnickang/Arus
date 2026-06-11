@@ -552,7 +552,10 @@ export default function ScheduledReports() {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt ? String(schedule.lastRunAt) : "" })
+                        runNowMutation.mutate({
+                          id: schedule.id,
+                          lastRunAt: schedule.lastRunAt ? String(schedule.lastRunAt) : "",
+                        })
                       }
                       disabled={runNowMutation.isPending}
                       data-testid={`button-run-${schedule.id}`}

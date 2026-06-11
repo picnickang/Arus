@@ -29,24 +29,12 @@
  * failing so it stays safe to run against partial environments.
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-} from "@jest/globals";
+import { jest, describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 
 const databaseUrl = process.env["DATABASE_URL"];
 
@@ -102,7 +90,7 @@ async function seedOrg(orgId: string): Promise<void> {
     `INSERT INTO organizations (id, name, slug)
        VALUES ($1, $2, $3)
        ON CONFLICT (id) DO NOTHING`,
-    [orgId, `T230 Org ${orgId}`, orgId],
+    [orgId, `T230 Org ${orgId}`, orgId]
   );
 }
 
@@ -111,7 +99,7 @@ async function seedVessel(vesselId: string, orgId: string): Promise<void> {
     `INSERT INTO vessels (id, org_id, name)
        VALUES ($1, $2, $3)
        ON CONFLICT (id) DO NOTHING`,
-    [vesselId, orgId, `T230 Vessel ${vesselId}`],
+    [vesselId, orgId, `T230 Vessel ${vesselId}`]
   );
 }
 
@@ -149,12 +137,14 @@ async function seedBulletin(opts: {
       opts.active,
       opts.effectiveOffset,
       opts.expiresOffset,
-    ],
+    ]
   );
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) {return;}
+  if (!databaseUrl) {
+    return;
+  }
   try {
     if (
       !(await tableExists("safety_bulletins")) ||
@@ -261,8 +251,7 @@ beforeAll(async () => {
       next();
     });
 
-    const passthrough = (_req: Request, _res: Response, next: NextFunction) =>
-      next();
+    const passthrough = (_req: Request, _res: Response, next: NextFunction) => next();
     registerSafetyBulletinRoutes(app, {
       generalApiRateLimit: passthrough,
       writeOperationRateLimit: passthrough,
@@ -278,16 +267,13 @@ beforeAll(async () => {
 afterAll(async () => {
   if (ready) {
     try {
-      await pool.query(
-        `DELETE FROM safety_bulletins WHERE org_id = ANY($1::text[])`,
-        [[ORG_A, ORG_B]],
-      );
+      await pool.query(`DELETE FROM safety_bulletins WHERE org_id = ANY($1::text[])`, [
+        [ORG_A, ORG_B],
+      ]);
       await pool.query(`DELETE FROM vessels WHERE id = ANY($1::text[])`, [
         [VESSEL_A, VESSEL_OTHER],
       ]);
-      await pool.query(`DELETE FROM organizations WHERE id = ANY($1::text[])`, [
-        [ORG_A, ORG_B],
-      ]);
+      await pool.query(`DELETE FROM organizations WHERE id = ANY($1::text[])`, [[ORG_A, ORG_B]]);
     } catch {
       /* best-effort */
     }
@@ -316,13 +302,17 @@ const skip = () => {
 
 describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   it("returns 401 when unauthenticated", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!).get("/api/safety-bulletins").send();
     expect(res.status).toBe(401);
   });
 
   it("active-only by default: hides inactive, future-dated, and expired", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -339,7 +329,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("includeInactive=true surfaces inactive bulletins", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=true")
       .set("x-test-token", "org-a-token")
@@ -350,7 +342,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("includeInactive=false is NOT coerced to truthy (inactive stays hidden)", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=false")
       .set("x-test-token", "org-a-token")
@@ -361,7 +355,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("vessel scope returns vessel-specific + fleet-wide (null), not other vessels", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get(`/api/safety-bulletins?vesselId=${VESSEL_A}`)
       .set("x-test-token", "org-a-token")
@@ -375,7 +371,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("org scoping: tenant A never sees tenant B bulletins", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get("/api/safety-bulletins?includeInactive=true")
       .set("x-test-token", "org-a-token")
@@ -386,7 +384,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
   });
 
   it("tenant B sees only its own bulletins", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .get("/api/safety-bulletins")
       .set("x-test-token", "org-b-token")
@@ -401,7 +401,9 @@ describe("Task #230 — GET /api/safety-bulletins filtering", () => {
 
 describe("Task #230 — POST /api/safety-bulletins validation", () => {
   it("rejects a missing title with 400", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -411,7 +413,9 @@ describe("Task #230 — POST /api/safety-bulletins validation", () => {
   });
 
   it("rejects an out-of-enum severity with 400", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -421,7 +425,9 @@ describe("Task #230 — POST /api/safety-bulletins validation", () => {
   });
 
   it("creates a valid bulletin and scopes it to the caller's org", async () => {
-    if (skip()) {return;}
+    if (skip()) {
+      return;
+    }
     const res = await request(app!)
       .post("/api/safety-bulletins")
       .set("x-test-token", "org-a-token")
@@ -438,7 +444,7 @@ describe("Task #230 — POST /api/safety-bulletins validation", () => {
       .set("x-test-token", "org-a-token")
       .send();
     const titles = (Array.isArray(list.body) ? list.body : []).map(
-      (r: { title: string }) => r.title,
+      (r: { title: string }) => r.title
     );
     expect(titles).toContain(`${TAG}-created`);
   });

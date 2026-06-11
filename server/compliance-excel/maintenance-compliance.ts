@@ -17,7 +17,9 @@ export async function generateMaintenanceComplianceExcel(
   period: ReportingPeriod,
   options: MaintenanceComplianceOptions
 ): Promise<Buffer> {
-  logger.info(`[Compliance Excel] Generating maintenance compliance report for vessel: ${vesselId}`);
+  logger.info(
+    `[Compliance Excel] Generating maintenance compliance report for vessel: ${vesselId}`
+  );
 
   const workOrders = await storage.getWorkOrders(undefined, orgId);
   const equipmentHealth = await storage.getEquipmentHealth(orgId);

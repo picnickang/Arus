@@ -20,13 +20,18 @@ import {
 
 const DEFAULT_SOLUTION_MAP: ExperienceSolutionMap = {
   detectRisk: "Use Attention Inbox and PdM evidence to surface the most important risk first.",
-  explainRisk: "Show why it matters, source health, confidence, and sensor/evidence context beside every recommendation.",
+  explainRisk:
+    "Show why it matters, source health, confidence, and sensor/evidence context beside every recommendation.",
   assignAction: "Convert each risk into owner, ETA, priority, and one primary action.",
-  completeWork: "Guide users through work order, checklist, parts, labour, downtime, and verification steps.",
-  captureProof: "Require evidence, root cause, photos/notes, and supervisor verification at closeout.",
+  completeWork:
+    "Guide users through work order, checklist, parts, labour, downtime, and verification steps.",
+  captureProof:
+    "Require evidence, root cause, photos/notes, and supervisor verification at closeout.",
   updateHandover: "Carry unresolved risks, blockers, and ready-to-close work into watch handover.",
-  learnFromOutcome: "Feed closeout, prediction correctness, failure mode, and downtime avoided back into PdM calibration.",
-  reportImpact: "Summarize uptime, safety, compliance, cost, and trust impact for shore and vessel management.",
+  learnFromOutcome:
+    "Feed closeout, prediction correctness, failure mode, and downtime avoided back into PdM calibration.",
+  reportImpact:
+    "Summarize uptime, safety, compliance, cost, and trust impact for shore and vessel management.",
 };
 
 function roleSpecificAction(role: OperatorRole): OperatorNextAction {
@@ -35,7 +40,8 @@ function roleSpecificAction(role: OperatorRole): OperatorNextAction {
       return {
         id: "scan-equipment",
         label: "Scan Equipment",
-        description: "Open the asset, start a checklist, add evidence, or create a defect from the equipment tag.",
+        description:
+          "Open the asset, start a checklist, add evidence, or create a defect from the equipment tag.",
         href: "/equipment-scan",
         priority: "soon",
         businessImpact: "retention",
@@ -44,7 +50,8 @@ function roleSpecificAction(role: OperatorRole): OperatorNextAction {
       return {
         id: "prepare-handover",
         label: "Prepare Handover",
-        description: "Carry unresolved risks, watch notes, compliance items, and next-watch actions forward.",
+        description:
+          "Carry unresolved risks, watch notes, compliance items, and next-watch actions forward.",
         href: "/attention-inbox?view=handover",
         priority: "urgent",
         businessImpact: "safety",
@@ -54,7 +61,8 @@ function roleSpecificAction(role: OperatorRole): OperatorNextAction {
       return {
         id: "review-escalations",
         label: "Review Escalations",
-        description: "Focus on blocked work, cost exposure, compliance risk, and vessel-level downtime impact.",
+        description:
+          "Focus on blocked work, cost exposure, compliance risk, and vessel-level downtime impact.",
         href: "/analytics/maintenance",
         priority: "urgent",
         businessImpact: "uptime",
@@ -63,7 +71,8 @@ function roleSpecificAction(role: OperatorRole): OperatorNextAction {
       return {
         id: "review-sync-health",
         label: "Review System Health",
-        description: "Check sync, source health, telemetry freshness, integrations, and audit readiness.",
+        description:
+          "Check sync, source health, telemetry freshness, integrations, and audit readiness.",
         href: "/system",
         priority: "soon",
         businessImpact: "trust",
@@ -74,7 +83,8 @@ function roleSpecificAction(role: OperatorRole): OperatorNextAction {
       return {
         id: "open-attention-inbox",
         label: "Open Attention Inbox",
-        description: "Triage high-risk machinery, blockers, overdue work, waiting parts, and closeout items.",
+        description:
+          "Triage high-risk machinery, blockers, overdue work, waiting parts, and closeout items.",
         href: "/attention-inbox",
         priority: "urgent",
         businessImpact: "uptime",
@@ -118,7 +128,8 @@ function buildNextActions(input: {
     actions.push({
       id: "closeout-feedback",
       label: "Close Out With Evidence",
-      description: "Capture root cause, parts, labour, downtime, supervisor verification, and PdM feedback.",
+      description:
+        "Capture root cause, parts, labour, downtime, supervisor verification, and PdM feedback.",
       href: "/attention-inbox?queue=ready_to_close",
       priority: "soon",
       businessImpact: "retention",
@@ -129,7 +140,8 @@ function buildNextActions(input: {
     actions.push({
       id: "offline-conflicts",
       label: "Resolve Offline Conflicts",
-      description: "Review conflicted offline changes before users lose trust in disconnected workflows.",
+      description:
+        "Review conflicted offline changes before users lose trust in disconnected workflows.",
       href: "/offline-outbox",
       priority: "urgent",
       businessImpact: "trust",
@@ -146,7 +158,10 @@ export class OperatorExperienceService {
     private readonly eventPort: OperatorExperienceEventPort
   ) {}
 
-  async buildBrief(orgId: string, input: OperatorExperienceInput): Promise<OperatorExperienceBrief> {
+  async buildBrief(
+    orgId: string,
+    input: OperatorExperienceInput
+  ): Promise<OperatorExperienceBrief> {
     const role = this.profilePort.getProfile(input.role);
     const signals = await this.signalsPort.getSnapshot(orgId);
     const pillarScores = computeExperiencePillarScores(signals);
@@ -185,7 +200,9 @@ export class OperatorExperienceService {
         },
         {
           question: "What main action should they take?",
-          answer: nextActions[0]?.description ?? "Open the Attention Inbox and choose the highest-priority operational action.",
+          answer:
+            nextActions[0]?.description ??
+            "Open the Attention Inbox and choose the highest-priority operational action.",
         },
         {
           question: "Where might they hesitate?",
@@ -214,7 +231,10 @@ export class OperatorExperienceService {
     return DEFAULT_SOLUTION_MAP;
   }
 
-  recordEvent(orgId: string, event: OperatorExperienceEvent): Promise<RecordedOperatorExperienceEvent> {
+  recordEvent(
+    orgId: string,
+    event: OperatorExperienceEvent
+  ): Promise<RecordedOperatorExperienceEvent> {
     return this.eventPort.record(orgId, event);
   }
 

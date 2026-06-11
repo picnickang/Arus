@@ -35,9 +35,11 @@ export interface PythonShapResult {
  * the permutation path with telemetry rather than spawning failures.
  */
 export function isPythonShapEnabled(): boolean {
-  const flag = process.env['ML_PYTHON_SHAP'];
+  const flag = process.env["ML_PYTHON_SHAP"];
   const explicitlyDisabled = flag === "0" || flag === "false";
-  if (explicitlyDisabled) {return false;}
+  if (explicitlyDisabled) {
+    return false;
+  }
   return existsSync(SHAP_SCRIPT);
 }
 
@@ -46,7 +48,9 @@ export async function shapAttribute(
   orgId: string,
   features: Record<string, number>
 ): Promise<PythonShapResult | null> {
-  if (!isPythonShapEnabled()) {return null;}
+  if (!isPythonShapEnabled()) {
+    return null;
+  }
 
   return new Promise((resolve) => {
     const child = spawn("python3", [SHAP_SCRIPT], {
@@ -57,7 +61,9 @@ export async function shapAttribute(
     let stderr = "";
     let settled = false;
     const finish = (val: PythonShapResult | null) => {
-      if (settled) {return;}
+      if (settled) {
+        return;
+      }
       settled = true;
       resolve(val);
     };
@@ -76,11 +82,17 @@ export async function shapAttribute(
     child.on("exit", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        if (stderr) {logger.warn("Python SHAP stderr", { modelId, stderr: stderr.slice(0, 400) });}
+        if (stderr) {
+          logger.warn("Python SHAP stderr", { modelId, stderr: stderr.slice(0, 400) });
+        }
         finish(null);
         return;
       }
-      const line = stdout.split("\n").map((l) => l.trim()).filter(Boolean).pop();
+      const line = stdout
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .pop();
       if (!line) {
         finish(null);
         return;

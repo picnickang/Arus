@@ -221,13 +221,18 @@ export function ServiceOrderFormDialog({
 
     try {
       if (mode === "edit" && serviceOrder) {
-        await updateMutation.mutateAsync({ id: serviceOrder.id, data: data as object as Parameters<typeof updateMutation.mutateAsync>[0]["data"] });
+        await updateMutation.mutateAsync({
+          id: serviceOrder.id,
+          data: data as object as Parameters<typeof updateMutation.mutateAsync>[0]["data"],
+        });
         toast({
           title: "Service Order Updated",
           description: "The service order has been updated successfully.",
         });
       } else {
-        await createMutation.mutateAsync(data as object as Parameters<typeof createMutation.mutateAsync>[0]);
+        await createMutation.mutateAsync(
+          data as object as Parameters<typeof createMutation.mutateAsync>[0]
+        );
         toast({
           title: "Service Order Created",
           description: "The service order has been created successfully.",

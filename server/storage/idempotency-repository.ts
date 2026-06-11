@@ -41,7 +41,9 @@ export function hashIdempotentRequest(fullKey: string, body: unknown): string {
   return createHash("sha256").update(`${fullKey}\n${bodyText}`).digest("hex");
 }
 
-export async function getStoredResponse(fullKey: string): Promise<StoredIdempotentResponse | undefined> {
+export async function getStoredResponse(
+  fullKey: string
+): Promise<StoredIdempotentResponse | undefined> {
   const rows = await db
     .select({
       responseStatus: table.responseStatus,
@@ -64,7 +66,10 @@ export async function getStoredResponse(fullKey: string): Promise<StoredIdempote
       requestHash: wrapper.h,
     };
   } catch (error) {
-    logger.warn(LOG_CTX, `Discarding unparseable idempotency record for key ${fullKey.slice(0, 48)}: ${String(error)}`);
+    logger.warn(
+      LOG_CTX,
+      `Discarding unparseable idempotency record for key ${fullKey.slice(0, 48)}: ${String(error)}`
+    );
     return undefined;
   }
 }
@@ -80,7 +85,10 @@ export async function storeResponse(entry: {
 }): Promise<void> {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + entry.ttlMs);
-  const responseBody = JSON.stringify({ h: entry.requestHash, b: entry.body } satisfies StoredWrapper);
+  const responseBody = JSON.stringify({
+    h: entry.requestHash,
+    b: entry.body,
+  } satisfies StoredWrapper);
 
   const values: Record<string, unknown> = {
     key: entry.fullKey,

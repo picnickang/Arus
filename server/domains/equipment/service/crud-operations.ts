@@ -117,7 +117,9 @@ export async function createEquipment(
     legacyFn: () => equipmentRepository.create(data),
     consistencyCheck: ConsistencyChecks.objectById,
   });
-  if (!equipment) {throw new Error("createEquipment: repository returned no row");}
+  if (!equipment) {
+    throw new Error("createEquipment: repository returned no row");
+  }
 
   try {
     await (
@@ -156,7 +158,9 @@ export async function updateEquipment(
     legacyFn: () => equipmentRepository.update(id, data, orgId),
     consistencyCheck: ConsistencyChecks.objectById,
   });
-  if (!equipment) {throw new Error(`updateEquipment: equipment ${id} not found`);}
+  if (!equipment) {
+    throw new Error(`updateEquipment: equipment ${id} not found`);
+  }
 
   await recordAndPublish("equipment", equipment.id, "update", equipment, userId);
   mqttReliableSync

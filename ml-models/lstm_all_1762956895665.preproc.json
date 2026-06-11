@@ -10,9 +10,7 @@
     }
   },
   "features": {
-    "sensorTypes": [
-      "vibration"
-    ],
+    "sensorTypes": ["vibration"],
     "sequenceLength": 7
   }
 }

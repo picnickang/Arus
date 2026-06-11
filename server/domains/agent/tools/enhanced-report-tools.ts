@@ -123,15 +123,15 @@ function formatReportAsText(
   if (vesselId) {
     lines.push(`Vessel: ${vesselId}`);
   }
-  lines.push(`Confidence: ${((result['confidence'] as number) * 100).toFixed(0)}%`);
+  lines.push(`Confidence: ${((result["confidence"] as number) * 100).toFixed(0)}%`);
   lines.push(`${"=".repeat(60)}\n`);
   lines.push(analysis);
 
-  if (result['scenarios'] && Array.isArray(result['scenarios']) && result['scenarios'].length > 0) {
+  if (result["scenarios"] && Array.isArray(result["scenarios"]) && result["scenarios"].length > 0) {
     lines.push(`\n${"─".repeat(40)}`);
     lines.push("SCENARIO ANALYSIS");
     lines.push(`${"─".repeat(40)}`);
-    for (const s of result['scenarios'] as Array<{
+    for (const s of result["scenarios"] as Array<{
       scenario: string;
       probability: number;
       impact: string;
@@ -148,8 +148,8 @@ function formatReportAsText(
     }
   }
 
-  if (result['roi']) {
-    const roi = result['roi'] as {
+  if (result["roi"]) {
+    const roi = result["roi"] as {
       estimatedSavings: number;
       investmentRequired: number;
       paybackPeriod: number;
@@ -165,14 +165,14 @@ function formatReportAsText(
   }
 
   if (
-    result['referenceDocuments'] &&
-    Array.isArray(result['referenceDocuments']) &&
-    result['referenceDocuments'].length > 0
+    result["referenceDocuments"] &&
+    Array.isArray(result["referenceDocuments"]) &&
+    result["referenceDocuments"].length > 0
   ) {
     lines.push(`\n${"─".repeat(40)}`);
     lines.push("REFERENCE DOCUMENTS");
     lines.push(`${"─".repeat(40)}`);
-    for (const ref of result['referenceDocuments'] as Array<{
+    for (const ref of result["referenceDocuments"] as Array<{
       ref: string;
       document: string;
       relevance: string;
@@ -211,7 +211,7 @@ async function generatePdfBuffer(
     if (vesselId) {
       doc.text(`Vessel: ${vesselId}`, { align: "center" });
     }
-    doc.text(`Confidence: ${((result['confidence'] as number) * 100).toFixed(0)}%`, {
+    doc.text(`Confidence: ${((result["confidence"] as number) * 100).toFixed(0)}%`, {
       align: "center",
     });
 
@@ -231,11 +231,15 @@ async function generatePdfBuffer(
       }
     }
 
-    if (result['scenarios'] && Array.isArray(result['scenarios']) && result['scenarios'].length > 0) {
+    if (
+      result["scenarios"] &&
+      Array.isArray(result["scenarios"]) &&
+      result["scenarios"].length > 0
+    ) {
       doc.moveDown(1);
       doc.fontSize(14).font("Helvetica-Bold").text("Scenario Analysis");
       doc.moveDown(0.5);
-      for (const s of result['scenarios'] as Array<{
+      for (const s of result["scenarios"] as Array<{
         scenario: string;
         probability: number;
         impact: string;
@@ -255,8 +259,8 @@ async function generatePdfBuffer(
       }
     }
 
-    if (result['roi']) {
-      const roi = result['roi'] as {
+    if (result["roi"]) {
+      const roi = result["roi"] as {
         estimatedSavings: number;
         investmentRequired: number;
         paybackPeriod: number;
@@ -273,14 +277,14 @@ async function generatePdfBuffer(
     }
 
     if (
-      result['referenceDocuments'] &&
-      Array.isArray(result['referenceDocuments']) &&
-      result['referenceDocuments'].length > 0
+      result["referenceDocuments"] &&
+      Array.isArray(result["referenceDocuments"]) &&
+      result["referenceDocuments"].length > 0
     ) {
       doc.moveDown(1);
       doc.fontSize(14).font("Helvetica-Bold").text("Reference Documents");
       doc.moveDown(0.5);
-      for (const ref of result['referenceDocuments'] as Array<{
+      for (const ref of result["referenceDocuments"] as Array<{
         ref: string;
         document: string;
         relevance: string;
@@ -302,16 +306,16 @@ async function generatePdfBuffer(
 function convertToCSV(data: Record<string, unknown>): string {
   const rows: string[] = [];
   rows.push("Field,Value");
-  rows.push(`Report Type,${data['reportType'] || ""}`);
-  rows.push(`Audience,${data['audience'] || ""}`);
-  rows.push(`Generated At,${data['generatedAt'] || ""}`);
-  rows.push(`Confidence,${data['confidence'] || ""}`);
-  if (data['vesselId']) {
-    rows.push(`Vessel ID,${data['vesselId']}`);
+  rows.push(`Report Type,${data["reportType"] || ""}`);
+  rows.push(`Audience,${data["audience"] || ""}`);
+  rows.push(`Generated At,${data["generatedAt"] || ""}`);
+  rows.push(`Confidence,${data["confidence"] || ""}`);
+  if (data["vesselId"]) {
+    rows.push(`Vessel ID,${data["vesselId"]}`);
   }
   rows.push("");
   rows.push("Section,Content");
-  const analysis = String(data['analysis'] || "");
+  const analysis = String(data["analysis"] || "");
   const lines = analysis.split("\n");
   for (const line of lines) {
     rows.push(`Analysis,"${line.replace(/"/g, '""')}"`);
@@ -510,16 +514,16 @@ registerTool({
       };
 
       if (result.scenarios && result.scenarios.length > 0) {
-        response['scenarios'] = result.scenarios;
+        response["scenarios"] = result.scenarios;
       }
       if (result.roi) {
-        response['roi'] = result.roi;
+        response["roi"] = result.roi;
       }
       if (result.citations && result.citations.length > 0) {
-        response['citations'] = result.citations.slice(0, 5);
+        response["citations"] = result.citations.slice(0, 5);
       }
       if (vesselId) {
-        response['vesselId'] = vesselId;
+        response["vesselId"] = vesselId;
       }
 
       if (ctx.knowledgeBase) {
@@ -527,7 +531,7 @@ registerTool({
           const kbQuery = `${reportType} ${vesselId ? `vessel ${vesselId}` : "fleet"} reference documentation`;
           const kbResult = await ctx.knowledgeBase.search(ctx.orgId, kbQuery, { maxSources: 3 });
           if (!kbResult.error && kbResult.citations.length > 0) {
-            response['referenceDocuments'] = kbResult.citations.map((c, i) => ({
+            response["referenceDocuments"] = kbResult.citations.map((c, i) => ({
               ref: `[${i + 1}]`,
               document: c.docName,
               relevance: `${(c.relevance * 100).toFixed(0)}%`,
@@ -535,7 +539,9 @@ registerTool({
             }));
           }
         } catch (err) {
-          logger.warn("[Agent] KB enrichment query failed:", { details: err instanceof Error ? err.message : "unknown" });
+          logger.warn("[Agent] KB enrichment query failed:", {
+            details: err instanceof Error ? err.message : "unknown",
+          });
         }
       }
 
@@ -568,24 +574,24 @@ registerTool({
           artifactFormat,
           pdfBuffer
         );
-        response['artifact'] = {
+        response["artifact"] = {
           fileName: artifact.fileName,
           format: artifactFormat,
           downloadUrl: `/api/agent/reports/${reportId}/download`,
         };
-        response['downloadAvailable'] = true;
+        response["downloadAvailable"] = true;
       } catch (artifactErr) {
-        response['artifactError'] =
+        response["artifactError"] =
           "Report generated successfully but file export failed. The report content is available inline above.";
       }
 
-      response['previewCard'] = {
+      response["previewCard"] = {
         title: reportLabel,
         subtitle: vesselId ? `Vessel: ${vesselId}` : "Fleet-wide",
         audience,
         confidence: result.confidence,
-        generatedAt: response['generatedAt'],
-        hasDownload: !!response['artifact'],
+        generatedAt: response["generatedAt"],
+        hasDownload: !!response["artifact"],
         format: outputFormat,
       };
 

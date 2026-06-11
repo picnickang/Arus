@@ -46,9 +46,10 @@ export class ScenarioSimService {
       rulHours: latestState?.remainingUsefulLifeHours ?? 5000,
     };
 
-    const envelope = template.operatingEnvelope as
-      | { min?: Record<string, number>; max?: Record<string, number> }
-      | null;
+    const envelope = template.operatingEnvelope as {
+      min?: Record<string, number>;
+      max?: Record<string, number>;
+    } | null;
     const projected = this.computeProjectedValues(baseline, parameters, envelope);
 
     const healthDelta = projected.healthScore - baseline.healthScore;

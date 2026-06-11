@@ -20,7 +20,9 @@ type PoolHolder = { [POOL_KEY]?: Pool };
 export default async function globalTeardown(): Promise<void> {
   const holder = process as unknown as PoolHolder;
   const pool = holder[POOL_KEY];
-  if (!pool) {return;}
+  if (!pool) {
+    return;
+  }
   try {
     await pool.end();
   } catch (err) {

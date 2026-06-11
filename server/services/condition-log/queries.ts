@@ -45,8 +45,8 @@ export async function getVesselConditionSummary(
       equipmentCount: sql<number>`count(DISTINCT ${conditionLogSummary.equipmentId})`,
       avgHealth: sql<number>`avg(${conditionLogSummary.healthIndex})`,
       minHealth: sql<number>`min(${conditionLogSummary.healthIndex})`,
-      totalAlerts: sql<number>`sum(${(conditionLogSummary as object as Record<string, never>)['alertsCount']})`,
-      criticalAlerts: sql<number>`sum(${(conditionLogSummary as object as Record<string, never>)['criticalAlertsCount']})`,
+      totalAlerts: sql<number>`sum(${(conditionLogSummary as object as Record<string, never>)["alertsCount"]})`,
+      criticalAlerts: sql<number>`sum(${(conditionLogSummary as object as Record<string, never>)["criticalAlertsCount"]})`,
     })
     .from(conditionLogSummary)
     .where(

@@ -58,7 +58,7 @@ async function seedRole(page: Page, role: string): Promise<void> {
         /* private mode — fine */
       }
     },
-    { key: ROLE_STORAGE_KEY, value: role },
+    { key: ROLE_STORAGE_KEY, value: role }
   );
 }
 
@@ -181,7 +181,7 @@ test.describe("Persona navigation — hub-grant admin personas (seeded users)", 
       const password = process.env[persona.passEnv];
       test.skip(
         !username || !password,
-        `Seed a user and set ${persona.userEnv}/${persona.passEnv} to run this persona.`,
+        `Seed a user and set ${persona.userEnv}/${persona.passEnv} to run this persona.`
       );
 
       await login(page, username!, password!);

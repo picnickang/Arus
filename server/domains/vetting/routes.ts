@@ -12,7 +12,9 @@ function getOrgId(req: Request): string {
 }
 
 function getRows(result: unknown): Record<string, unknown>[] {
-  if (Array.isArray(result)) {return result as Record<string, unknown>[];}
+  if (Array.isArray(result)) {
+    return result as Record<string, unknown>[];
+  }
   const r = result as { rows?: Record<string, unknown>[] } | null | undefined;
   return r?.rows ?? [];
 }
@@ -162,7 +164,7 @@ router.get("/:inspectionId/findings", requireOrgId, async (req: Request, res: Re
   try {
     const result = await db.execute(sql`
       SELECT * FROM vetting_findings
-      WHERE inspection_id = ${req.params['inspectionId']} AND org_id = ${getOrgId(req)}
+      WHERE inspection_id = ${req.params["inspectionId"]} AND org_id = ${getOrgId(req)}
       ORDER BY finding_number
     `);
     return res.json(getRows(result));
@@ -190,22 +192,22 @@ router.patch(
         verified_by = ${verifiedBy || null},
         verified_date = CURRENT_DATE,
         updated_at = NOW()
-      WHERE id = ${req.params['findingId']} AND org_id = ${getOrgId(req)}
+      WHERE id = ${req.params["findingId"]} AND org_id = ${getOrgId(req)}
     `);
 
       const openResult = await db.execute(sql`
       SELECT COUNT(*) as open_count FROM vetting_findings
-      WHERE inspection_id = ${req.params['inspectionId']}
+      WHERE inspection_id = ${req.params["inspectionId"]}
         AND org_id = ${getOrgId(req)} AND status NOT IN ('closed', 'verified')
     `);
-      const openCount = Number(getFirstRow(openResult)?.['open_count'] || 0);
+      const openCount = Number(getFirstRow(openResult)?.["open_count"] || 0);
 
       if (openCount === 0) {
         await db.execute(sql`
         UPDATE vetting_inspections SET
           all_findings_closed = true, status = 'closed_out',
           closed_out_date = CURRENT_DATE, updated_at = NOW()
-        WHERE id = ${req.params['inspectionId']} AND org_id = ${getOrgId(req)}
+        WHERE id = ${req.params["inspectionId"]} AND org_id = ${getOrgId(req)}
       `);
       }
 
@@ -244,11 +246,11 @@ router.get("/fleet-readiness", requireOrgId, async (req: Request, res: Response)
 
     return res.json({
       totalVessels: vessels.length,
-      vettedAndValid: vessels.filter((v) => v['vetting_status'] === "valid").length,
+      vettedAndValid: vessels.filter((v) => v["vetting_status"] === "valid").length,
       needsVetting: vessels.filter(
-        (v) => v['vetting_status'] === "not_vetted" || v['vetting_status'] === "expired"
+        (v) => v["vetting_status"] === "not_vetted" || v["vetting_status"] === "expired"
       ).length,
-      openFindings: vessels.reduce((s, v) => s + Number(v['open_findings'] || 0), 0),
+      openFindings: vessels.reduce((s, v) => s + Number(v["open_findings"] || 0), 0),
       vessels,
     });
   } catch (err) {

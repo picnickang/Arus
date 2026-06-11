@@ -14,14 +14,14 @@
 
 ## Results
 
-| Scenario | p50 | p95 | p99 | Avg | Throughput | Status |
-|----------|-----|-----|-----|-----|------------|--------|
-| Dashboard | 20ms | **27ms** | 34ms | 21ms | 22.6 req/s | ✅ PASS (1600ms) |
-| Equipment List | 48ms | **97ms** | 325ms | 56ms | 23.19 req/s | ✅ PASS (1200ms) |
-| Equipment Health | 86ms | **101ms** | 101ms | 85ms | 0.4 req/s | ✅ PASS (1500ms) |
-| Work Orders | 95ms | **202ms** | 259ms | 110ms | 23.16 req/s | ✅ PASS (1200ms) |
-| Telemetry Latest | 156ms | **271ms** | 323ms | 161ms | 22.97 req/s | ✅ PASS (1500ms) |
-| DTC Dashboard Stats | 744ms | **865ms** | 885ms | 757ms | 5.18 req/s | ✅ PASS (1500ms) |
+| Scenario            | p50   | p95       | p99   | Avg   | Throughput  | Status           |
+| ------------------- | ----- | --------- | ----- | ----- | ----------- | ---------------- |
+| Dashboard           | 20ms  | **27ms**  | 34ms  | 21ms  | 22.6 req/s  | ✅ PASS (1600ms) |
+| Equipment List      | 48ms  | **97ms**  | 325ms | 56ms  | 23.19 req/s | ✅ PASS (1200ms) |
+| Equipment Health    | 86ms  | **101ms** | 101ms | 85ms  | 0.4 req/s   | ✅ PASS (1500ms) |
+| Work Orders         | 95ms  | **202ms** | 259ms | 110ms | 23.16 req/s | ✅ PASS (1200ms) |
+| Telemetry Latest    | 156ms | **271ms** | 323ms | 161ms | 22.97 req/s | ✅ PASS (1500ms) |
+| DTC Dashboard Stats | 744ms | **865ms** | 885ms | 757ms | 5.18 req/s  | ✅ PASS (1500ms) |
 
 ## Performance Gates
 

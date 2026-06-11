@@ -108,10 +108,7 @@ export const eventOutbox = pgTable(
   },
   (table) => ({
     eventIdUnique: uniqueIndex("uniq_event_outbox_event_id").on(table.eventId),
-    pendingIdx: index("idx_event_outbox_pending").on(
-      table.status,
-      table.nextAttemptAt
-    ),
+    pendingIdx: index("idx_event_outbox_pending").on(table.status, table.nextAttemptAt),
     orgEventIdx: index("idx_event_outbox_org_event").on(table.orgId, table.eventType),
   })
 );

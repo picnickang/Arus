@@ -55,10 +55,8 @@ const root = resolve(__dirname, "..");
 const baselinePath = resolve(__dirname, "domain-repositories-baseline.json");
 const writeBaseline = process.argv.includes("--write-baseline");
 
-const REPO_STATIC_RE =
-  /from\s+['"](?:\.\.\/)+repositories(?:\.js)?['"]/;
-const REPO_DYNAMIC_RE =
-  /await\s+import\s*\(\s*['"](?:\.\.\/)+repositories(?:\.js)?['"]\s*\)/;
+const REPO_STATIC_RE = /from\s+['"](?:\.\.\/)+repositories(?:\.js)?['"]/;
+const REPO_DYNAMIC_RE = /await\s+import\s*\(\s*['"](?:\.\.\/)+repositories(?:\.js)?['"]\s*\)/;
 
 function walkDir(dir) {
   const results = [];
@@ -127,7 +125,9 @@ if (writeBaseline) {
     files: violations,
   };
   writeFileSync(baselinePath, JSON.stringify(payload, null, 2) + "\n");
-  console.log(`Wrote baseline with ${violations.length} file(s) to scripts/domain-repositories-baseline.json`);
+  console.log(
+    `Wrote baseline with ${violations.length} file(s) to scripts/domain-repositories-baseline.json`
+  );
   process.exit(0);
 }
 
@@ -143,12 +143,16 @@ const resolved = baseline.files.filter((v) => !violationSet.has(v));
 
 console.log("=== Domain Repositories Import Boundary ===");
 console.log(`Baseline:        ${baseline.files.length} file(s) allowed (burn-down)`);
-console.log(`Current:         ${violations.length} file(s) importing repositories directly from domain/application/interfaces`);
+console.log(
+  `Current:         ${violations.length} file(s) importing repositories directly from domain/application/interfaces`
+);
 console.log(`New violations:  ${newViolations.length}`);
 console.log(`Resolved:        ${resolved.length}`);
 
 if (resolved.length > 0) {
-  console.log("\nThe following files were on the baseline but no longer leak — please remove from baseline:");
+  console.log(
+    "\nThe following files were on the baseline but no longer leak — please remove from baseline:"
+  );
   for (const r of resolved) console.log(`  - ${r}`);
 }
 
@@ -164,7 +168,9 @@ if (newViolations.length > 0) {
 }
 
 if (violations.length === 0) {
-  console.log("\nAll clear — no domain/application/interfaces code imports server/repositories directly.");
+  console.log(
+    "\nAll clear — no domain/application/interfaces code imports server/repositories directly."
+  );
 }
 
 process.exit(0);

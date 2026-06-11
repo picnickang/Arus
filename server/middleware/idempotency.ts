@@ -48,12 +48,15 @@ function cleanupExpiredKeys(): number {
 
 let cleanupInterval: NodeJS.Timeout | undefined;
 if (process.env["DISABLE_SECURITY_TIMERS"] !== "true" && process.env["NODE_ENV"] !== "test") {
-  cleanupInterval = setInterval(() => {
-    cleanupExpiredKeys();
-    deleteExpiredResponses().catch((error) => {
-      logger.warn(LOG_CTX, `Durable idempotency cleanup failed: ${String(error)}`);
-    });
-  }, 10 * 60 * 1000);
+  cleanupInterval = setInterval(
+    () => {
+      cleanupExpiredKeys();
+      deleteExpiredResponses().catch((error) => {
+        logger.warn(LOG_CTX, `Durable idempotency cleanup failed: ${String(error)}`);
+      });
+    },
+    10 * 60 * 1000
+  );
   cleanupInterval.unref?.();
 }
 

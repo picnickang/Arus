@@ -29,14 +29,18 @@ export function findBestSplitXGBoost(
     const values: number[] = [];
     for (const row of data) {
       const v = row[featureIndex];
-      if (v !== undefined) {values.push(v);}
+      if (v !== undefined) {
+        values.push(v);
+      }
     }
     const uniqueValues = Array.from(new Set(values)).sort((a, b) => a - b);
 
     for (let i = 0; i < uniqueValues.length - 1; i++) {
       const a = uniqueValues[i];
       const b = uniqueValues[i + 1];
-      if (a === undefined || b === undefined) {continue;}
+      if (a === undefined || b === undefined) {
+        continue;
+      }
       const threshold = (a + b) / 2;
       let leftGradSum = 0,
         leftHessSum = 0,
@@ -47,9 +51,13 @@ export function findBestSplitXGBoost(
         const row = data[j];
         const g = gradients[j];
         const h = hessians[j];
-        if (!row || g === undefined || h === undefined) {continue;}
+        if (!row || g === undefined || h === undefined) {
+          continue;
+        }
         const v = row[featureIndex];
-        if (v === undefined) {continue;}
+        if (v === undefined) {
+          continue;
+        }
         if (v <= threshold) {
           leftGradSum += g;
           leftHessSum += h;
@@ -111,7 +119,9 @@ export function buildGradientTree(
   for (let i = 0; i < numFeatures; i++) {
     const randomIndex = cryptoRandomInt(availableIndices.length);
     const picked = availableIndices[randomIndex];
-    if (picked === undefined) {continue;}
+    if (picked === undefined) {
+      continue;
+    }
     selectedIndices.push(picked);
     availableIndices.splice(randomIndex, 1);
   }
@@ -135,9 +145,13 @@ export function buildGradientTree(
     const row = data[i];
     const g = gradients[i];
     const h = hessians[i];
-    if (!row || g === undefined || h === undefined) {continue;}
+    if (!row || g === undefined || h === undefined) {
+      continue;
+    }
     const v = row[split.featureIndex];
-    if (v === undefined) {continue;}
+    if (v === undefined) {
+      continue;
+    }
     if (v <= split.threshold) {
       leftData.push(row);
       leftGradients.push(g);
@@ -176,7 +190,9 @@ export function predictTree(tree: TreeNode, sample: number[]): number {
     return 0;
   }
   const v = sample[tree.featureIndex];
-  if (v === undefined) {return 0;}
+  if (v === undefined) {
+    return 0;
+  }
   if (v <= tree.threshold) {
     return tree.left ? predictTree(tree.left, sample) : 0;
   }

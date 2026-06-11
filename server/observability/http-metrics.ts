@@ -77,7 +77,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
     });
 
     if (
-      process.env['NODE_ENV'] === "production" ||
+      process.env["NODE_ENV"] === "production" ||
       duration > PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS
     ) {
       structuredLog(

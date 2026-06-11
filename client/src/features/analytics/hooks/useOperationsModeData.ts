@@ -118,7 +118,8 @@ export function useOperationsModeData() {
   });
   const pdmScores: PdmScoreData[] = (pdmScoresRaw ?? []) as object as PdmScoreData[];
 
-  const equipmentHealth: EquipmentHealthData[] = (equipmentHealthResponse?.results ?? []) as object as EquipmentHealthData[];
+  const equipmentHealth: EquipmentHealthData[] = (equipmentHealthResponse?.results ??
+    []) as object as EquipmentHealthData[];
   const anomalies: AnomalyData[] = (anomaliesResponse?.results ?? []) as object as AnomalyData[];
   const failurePredictions: FailurePredictionData[] = failurePredictionsResponse?.results ?? [];
 

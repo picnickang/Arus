@@ -47,19 +47,23 @@ export function DeleteWorkOrderDialog({
   });
 
   const cascadeRows: Array<[string, number]> = data
-    ? ([
-        ["Parts", data.cascade.parts],
-        ["Checklists", data.cascade.checklists],
-        ["Worklogs", data.cascade.worklogs],
-      ] as Array<[string, number]>).filter(([, n]) => n > 0)
+    ? (
+        [
+          ["Parts", data.cascade.parts],
+          ["Checklists", data.cascade.checklists],
+          ["Worklogs", data.cascade.worklogs],
+        ] as Array<[string, number]>
+      ).filter(([, n]) => n > 0)
     : [];
 
   const linkedRows: Array<[string, number]> = data
-    ? ([
-        ["Purchase Requests", data.linked.purchaseRequests],
-        ["Service Requests", data.linked.serviceRequests],
-        ["Service Orders", data.linked.serviceOrders],
-      ] as Array<[string, number]>).filter(([, n]) => n > 0)
+    ? (
+        [
+          ["Purchase Requests", data.linked.purchaseRequests],
+          ["Service Requests", data.linked.serviceRequests],
+          ["Service Orders", data.linked.serviceOrders],
+        ] as Array<[string, number]>
+      ).filter(([, n]) => n > 0)
     : [];
 
   const hasLinked = (data?.totals.linked ?? 0) > 0;
@@ -89,9 +93,7 @@ export function DeleteWorkOrderDialog({
 
               {cascadeRows.length > 0 && (
                 <div className="rounded-md border border-border bg-muted/40 p-3">
-                  <p className="text-sm font-medium mb-1">
-                    Will also be deleted:
-                  </p>
+                  <p className="text-sm font-medium mb-1">Will also be deleted:</p>
                   <ul className="text-sm space-y-0.5">
                     {cascadeRows.map(([label, n]) => (
                       <li key={label} data-testid={`cascade-${label.toLowerCase()}`}>
@@ -119,8 +121,8 @@ export function DeleteWorkOrderDialog({
                     ))}
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    These records will remain but lose their work-order link.
-                    Consider reviewing them first.
+                    These records will remain but lose their work-order link. Consider reviewing
+                    them first.
                   </p>
                 </div>
               )}
@@ -128,9 +130,7 @@ export function DeleteWorkOrderDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel data-testid="button-cancel-delete">
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
           <AlertDialogAction
             data-testid="button-confirm-delete"
             disabled={isDeleting || isLoading || isError || !data}

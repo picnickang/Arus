@@ -76,7 +76,9 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
   const result = new Map<string, DrizzleTable>();
   for (const exportName of Object.keys(schema)) {
     const value = (schema as Record<string, unknown>)[exportName];
-    if (!value || typeof value !== "object") {continue;}
+    if (!value || typeof value !== "object") {
+      continue;
+    }
     // Heuristic: Drizzle table proxies have a Symbol(drizzle:Name) / IsDrizzleTable marker
     let tableName: string;
     try {
@@ -84,7 +86,9 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
     } catch {
       continue;
     }
-    if (!tableName || typeof tableName !== "string") {continue;}
+    if (!tableName || typeof tableName !== "string") {
+      continue;
+    }
     let cols: Record<string, unknown>;
     try {
       cols = getTableColumns(value as PgTable);
@@ -110,7 +114,11 @@ function dumpDrizzleSchema(): Map<string, DrizzleTable> {
     if (result.has(tableName)) {
       // Same table declared twice — record both
       const existing = result.get(tableName)!;
-      for (const [k, v] of colMap) {if (!existing.columns.has(k)) {existing.columns.set(k, v);}}
+      for (const [k, v] of colMap) {
+        if (!existing.columns.has(k)) {
+          existing.columns.set(k, v);
+        }
+      }
     } else {
       result.set(tableName, { name: tableName, columns: colMap });
     }
@@ -164,7 +172,9 @@ function typesCompatible(dbType: string, drizzleType: string): boolean {
   }
   const a = normalizeDbType(dbType);
   const b = normalizeDrizzleType(drizzleType);
-  if (a === b) {return true;}
+  if (a === b) {
+    return true;
+  }
   // Common equivalences
   const pairs: Array<[string, string]> = [
     ["timestamp", "timestamp"],
@@ -226,12 +236,22 @@ async function main() {
   const tablesOnlyInDrizzle: string[] = [];
   const tableDrifts: TableDrift[] = [];
 
-  for (const name of db.keys()) {if (!dz.has(name)) {tablesOnlyInDb.push(name);}}
-  for (const name of dz.keys()) {if (!db.has(name)) {tablesOnlyInDrizzle.push(name);}}
+  for (const name of db.keys()) {
+    if (!dz.has(name)) {
+      tablesOnlyInDb.push(name);
+    }
+  }
+  for (const name of dz.keys()) {
+    if (!db.has(name)) {
+      tablesOnlyInDrizzle.push(name);
+    }
+  }
 
   for (const [name, dbTable] of db) {
     const dzTable = dz.get(name);
-    if (!dzTable) {continue;}
+    if (!dzTable) {
+      continue;
+    }
     const drift: TableDrift = {
       table: name,
       missingInDb: [],
@@ -303,16 +323,22 @@ async function main() {
   lines.push(`- Tables present in DB but not in Drizzle: **${tablesOnlyInDb.length}**`);
   lines.push(`- Tables present in Drizzle but not in DB: **${tablesOnlyInDrizzle.length}**`);
   lines.push(`- Tables with column drift: **${tableDrifts.length}**`);
-  lines.push(`  - **SEVERE** (Drizzle queries reference phantom columns / will crash): ${severe.length}`);
+  lines.push(
+    `  - **SEVERE** (Drizzle queries reference phantom columns / will crash): ${severe.length}`
+  );
   lines.push(`  - MILD (only Drizzle missing columns the DB has): ${mild.length}`);
   lines.push("");
 
   if (tablesOnlyInDrizzle.length) {
     lines.push("## Phantom tables (declared in Drizzle, do NOT exist in DB)");
     lines.push("");
-    lines.push("Any code that does `db.select().from(<table>)` against these will fail at runtime.");
+    lines.push(
+      "Any code that does `db.select().from(<table>)` against these will fail at runtime."
+    );
     lines.push("");
-    for (const n of tablesOnlyInDrizzle) {lines.push(`- \`${n}\``);}
+    for (const n of tablesOnlyInDrizzle) {
+      lines.push(`- \`${n}\``);
+    }
     lines.push("");
   }
 
@@ -321,7 +347,9 @@ async function main() {
     lines.push("");
     lines.push("These are accessible only via raw SQL.");
     lines.push("");
-    for (const n of tablesOnlyInDb) {lines.push(`- \`${n}\``);}
+    for (const n of tablesOnlyInDb) {
+      lines.push(`- \`${n}\``);
+    }
     lines.push("");
   }
 
@@ -361,15 +389,23 @@ async function main() {
   }
 
   if (mild.length) {
-    lines.push("## MILD drift — DB has columns Drizzle doesn't declare (or non-harmful null mismatches)");
+    lines.push(
+      "## MILD drift — DB has columns Drizzle doesn't declare (or non-harmful null mismatches)"
+    );
     lines.push("");
-    lines.push("Queries still work; you just can't access the extra columns through typed Drizzle.");
+    lines.push(
+      "Queries still work; you just can't access the extra columns through typed Drizzle."
+    );
     lines.push("");
     for (const d of mild) {
       const summary: string[] = [];
-      if (d.missingInDrizzle.length) {summary.push(`${d.missingInDrizzle.length} cols missing in schema`);}
+      if (d.missingInDrizzle.length) {
+        summary.push(`${d.missingInDrizzle.length} cols missing in schema`);
+      }
       const benignNull = d.nullabilityMismatches.filter((m) => !(m.drizzleNotNull && m.dbNullable));
-      if (benignNull.length) {summary.push(`${benignNull.length} benign null mismatches`);}
+      if (benignNull.length) {
+        summary.push(`${benignNull.length} benign null mismatches`);
+      }
       lines.push(`### \`${d.table}\` — ${summary.join(", ")}`);
       if (d.missingInDrizzle.length) {
         for (const c of d.missingInDrizzle.slice(0, 50)) {

@@ -5,8 +5,11 @@ import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
 import { insertEquipmentSchema } from "@shared/schema-runtime";
 import { db } from "../../db";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
 import {
   equipmentLifecycleService,
@@ -134,15 +137,14 @@ export function registerEquipmentRoutes(
         });
         return res.json(result);
       }
-        const cacheKey = `equipment:list:${orgId}`;
-        const cached = getCached(cacheKey);
-        if (cached) {
-          return res.json(cached);
-        }
-        const equipment = await equipmentService.listEquipment(orgId);
-        setCache(cacheKey, equipment);
-        return res.json(equipment);
-
+      const cacheKey = `equipment:list:${orgId}`;
+      const cached = getCached(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+      const equipment = await equipmentService.listEquipment(orgId);
+      setCache(cacheKey, equipment);
+      return res.json(equipment);
     })
   );
 
@@ -192,9 +194,8 @@ export function registerEquipmentRoutes(
         setCache(cacheKey, response);
         return res.json(response);
       }
-        setCache(cacheKey, health);
-        return res.json(health);
-
+      setCache(cacheKey, health);
+      return res.json(health);
     })
   );
 
@@ -346,13 +347,7 @@ export function registerEquipmentRoutes(
       const { id } = idParamSchema.parse(req.params);
 
       const rawBody = jsonRecordSchema.parse(req.body);
-      const {
-        orgId: _,
-        id: __,
-        createdAt: ___,
-        updatedAt: ____,
-        ...safeUpdateData
-      } = rawBody;
+      const { orgId: _, id: __, createdAt: ___, updatedAt: ____, ...safeUpdateData } = rawBody;
 
       const validationResult = insertEquipmentSchema.partial().safeParse(safeUpdateData);
       if (!validationResult.success) {
@@ -364,11 +359,7 @@ export function registerEquipmentRoutes(
         const cleanedUpdate = Object.fromEntries(
           Object.entries(validationResult.data).filter(([, v]) => v !== undefined)
         ) as typeof validationResult.data;
-        const equipment = await equipmentService.updateEquipment(
-          id,
-          cleanedUpdate,
-          orgId
-        );
+        const equipment = await equipmentService.updateEquipment(id, cleanedUpdate, orgId);
         invalidateCache(`equipment:`);
         return res.json(equipment);
       } catch (error) {
@@ -547,9 +538,8 @@ export function registerEquipmentRoutes(
           await equipmentLifecycleService.getDecommissionedEquipmentWithHistory(orgId);
         return res.json(decommissioned);
       }
-        const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
-        return res.json(decommissioned);
-
+      const decommissioned = await equipmentLifecycleService.getDecommissionedEquipment(orgId);
+      return res.json(decommissioned);
     })
   );
 

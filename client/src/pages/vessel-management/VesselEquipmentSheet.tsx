@@ -109,7 +109,11 @@ export function VesselEquipmentSheet({
   }, [healthResponse]);
 
   const vesselEquipment: EquipmentWithHealth[] = useMemo(
-    () => vesselEquipmentRaw.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as object as EquipmentWithHealth[],
+    () =>
+      vesselEquipmentRaw.map((eq) => ({
+        ...eq,
+        health: healthMap.get(eq.id),
+      })) as object as EquipmentWithHealth[],
     [vesselEquipmentRaw, healthMap]
   );
 
@@ -407,7 +411,9 @@ export function VesselEquipmentSheet({
       )}
       {selectedEquipment && (
         <SensorSetupWizard
-          equipment={selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]}
+          equipment={
+            selectedEquipment as object as Parameters<typeof SensorSetupWizard>[0]["equipment"]
+          }
           open={sensorWizardOpen}
           onClose={() => setSensorWizardOpen(false)}
           onSuccess={() => {

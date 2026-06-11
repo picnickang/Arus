@@ -55,13 +55,20 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
   }
 
   private async connect(): Promise<void> {
-    if (this.connected) {return;}
-    if (this.connecting) {return this.connecting;}
+    if (this.connected) {
+      return;
+    }
+    if (this.connecting) {
+      return this.connecting;
+    }
     this.connecting = (async () => {
       const kafkajs = (await import("kafkajs")) as typeof import("kafkajs");
       const kafka = new kafkajs.Kafka({
         ...(this.opts.clientId !== undefined ? { clientId: this.opts.clientId } : {}),
-        brokers: this.opts.brokers.split(",").map((s) => s.trim()).filter(Boolean),
+        brokers: this.opts.brokers
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         ssl: this.opts.ssl ?? !!this.opts.sasl,
         ...(this.opts.sasl !== undefined ? { sasl: this.opts.sasl } : {}),
         connectionTimeout: this.opts.connectionTimeout ?? 10_000,
@@ -97,7 +104,9 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
   }
 
   async publishBatch(messages: EventSpineMessage[]): Promise<void> {
-    if (messages.length === 0) {return;}
+    if (messages.length === 0) {
+      return;
+    }
     await this.connect();
     const producer = this.producer as {
       sendBatch: (args: {
@@ -108,7 +117,10 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
       }) => Promise<unknown>;
     };
     // Group by topic so we can use sendBatch (one network round-trip).
-    const byTopic = new Map<string, Array<{ key: string; value: string; headers: Record<string, string> }>>();
+    const byTopic = new Map<
+      string,
+      Array<{ key: string; value: string; headers: Record<string, string> }>
+    >();
     for (const m of messages) {
       const topic = this.topicFor(m.eventType);
       const list = byTopic.get(topic) ?? [];
@@ -127,12 +139,17 @@ export class KafkaEventSpineProducer implements EventSpineProducer {
       byTopic.set(topic, list);
     }
     await producer.sendBatch({
-      topicMessages: Array.from(byTopic.entries()).map(([topic, messages]) => ({ topic, messages })),
+      topicMessages: Array.from(byTopic.entries()).map(([topic, messages]) => ({
+        topic,
+        messages,
+      })),
     });
   }
 
   async close(): Promise<void> {
-    if (!this.connected || !this.producer) {return;}
+    if (!this.connected || !this.producer) {
+      return;
+    }
     try {
       await (this.producer as { disconnect: () => Promise<void> }).disconnect();
     } catch (err) {

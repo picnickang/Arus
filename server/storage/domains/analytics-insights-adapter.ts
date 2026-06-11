@@ -129,10 +129,13 @@ export abstract class BaseAnalyticsInsightsAdapter {
     const riskAlerts = Math.max(pdmRiskAlerts, telemetryRiskAlerts);
 
     const history = await this.deps.getMetricsHistory(orgId, 7);
-    const weekOldMetrics = (
-      history.length > 0 ? history[history.length - 1] : undefined
-    ) as
-      | { activeDevices?: number; fleetHealth?: number; openWorkOrders?: number; riskAlerts?: number }
+    const weekOldMetrics = (history.length > 0 ? history[history.length - 1] : undefined) as
+      | {
+          activeDevices?: number;
+          fleetHealth?: number;
+          openWorkOrders?: number;
+          riskAlerts?: number;
+        }
       | undefined;
 
     return {
@@ -149,9 +152,7 @@ export abstract class BaseAnalyticsInsightsAdapter {
     };
   }
 
-  async getEquipmentHealth(
-    orgId: string
-  ): Promise<
+  async getEquipmentHealth(orgId: string): Promise<
     {
       equipmentId: string;
       name: string;
@@ -209,9 +210,7 @@ export abstract class BaseAnalyticsInsightsAdapter {
     });
   }
 
-  async getFleetOverview(
-    orgId: string
-  ): Promise<{
+  async getFleetOverview(orgId: string): Promise<{
     totalVessels: number;
     activeVessels: number;
     totalEquipment: number;
@@ -225,7 +224,9 @@ export abstract class BaseAnalyticsInsightsAdapter {
     ]);
 
     const activeEquipment = equipment.filter((eq) => eq.isActive).length;
-    const activeVessels = vessels.filter((v) => (v as { status?: string }).status === "active").length;
+    const activeVessels = vessels.filter(
+      (v) => (v as { status?: string }).status === "active"
+    ).length;
     const healthScores = pdmScores.map((s) => s.healthIdx || 0).filter((h) => h > 0);
     const avgFleetHealth =
       healthScores.length > 0
@@ -264,10 +265,7 @@ export class MemAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {
   async getInsightReports(_orgId?: string, _scope?: string): Promise<InsightReport[]> {
     return [];
   }
-  async createInsightReport(
-    _orgId: string,
-    _report: InsertInsightReport
-  ): Promise<InsightReport> {
+  async createInsightReport(_orgId: string, _report: InsertInsightReport): Promise<InsightReport> {
     throw new Error("MemAnalyticsInsightsAdapter.createInsightReport not implemented");
   }
 }
@@ -285,12 +283,16 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
 
   async getInsightSnapshots(orgId?: string, scope?: string): Promise<InsightSnapshot[]> {
     const conditions = [];
-    if (orgId) {conditions.push(eq(insightSnapshots.orgId, orgId));}
-    if (scope) {conditions.push(eq(insightSnapshots.scope, scope));}
+    if (orgId) {
+      conditions.push(eq(insightSnapshots.orgId, orgId));
+    }
+    if (scope) {
+      conditions.push(eq(insightSnapshots.scope, scope));
+    }
     const query = db.select().from(insightSnapshots);
     return conditions.length > 0
-        ? await query.where(and(...conditions)).orderBy(desc(insightSnapshots.createdAt))
-        : await query.orderBy(desc(insightSnapshots.createdAt));
+      ? await query.where(and(...conditions)).orderBy(desc(insightSnapshots.createdAt))
+      : await query.orderBy(desc(insightSnapshots.createdAt));
   }
 
   async getLatestInsightSnapshot(
@@ -314,29 +316,34 @@ export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapt
       .insert(insightSnapshots)
       .values({ ...snapshot, orgId })
       .returning();
-    if (!created) {throw new Error("Failed to create insight snapshot");}
+    if (!created) {
+      throw new Error("Failed to create insight snapshot");
+    }
     return created;
   }
 
   async getInsightReports(orgId?: string, scope?: string): Promise<InsightReport[]> {
     const conditions = [];
-    if (orgId) {conditions.push(eq(insightReports.orgId, orgId));}
-    if (scope) {conditions.push(eq(insightReports.scope, scope));}
+    if (orgId) {
+      conditions.push(eq(insightReports.orgId, orgId));
+    }
+    if (scope) {
+      conditions.push(eq(insightReports.scope, scope));
+    }
     const query = db.select().from(insightReports);
     return conditions.length > 0
-        ? await query.where(and(...conditions)).orderBy(desc(insightReports.createdAt))
-        : await query.orderBy(desc(insightReports.createdAt));
+      ? await query.where(and(...conditions)).orderBy(desc(insightReports.createdAt))
+      : await query.orderBy(desc(insightReports.createdAt));
   }
 
-  async createInsightReport(
-    orgId: string,
-    report: InsertInsightReport
-  ): Promise<InsightReport> {
+  async createInsightReport(orgId: string, report: InsertInsightReport): Promise<InsightReport> {
     const [created] = await db
       .insert(insightReports)
       .values({ ...report, orgId })
       .returning();
-    if (!created) {throw new Error("Failed to create insight report");}
+    if (!created) {
+      throw new Error("Failed to create insight report");
+    }
     return created;
   }
 }

@@ -80,7 +80,9 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           status: d.status,
         }));
       } catch (err) {
-        logger.warn("[KBAdapter] listDocuments failed:", { details: err instanceof Error ? err.message : "unknown" });
+        logger.warn("[KBAdapter] listDocuments failed:", {
+          details: err instanceof Error ? err.message : "unknown",
+        });
         return [];
       }
     },
@@ -105,7 +107,9 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
           totalChunks: chunkCount?.total ?? 0,
         };
       } catch (err) {
-        logger.warn("[KBAdapter] getStats failed:", { details: err instanceof Error ? err.message : "unknown" });
+        logger.warn("[KBAdapter] getStats failed:", {
+          details: err instanceof Error ? err.message : "unknown",
+        });
         return { totalDocs: 0, totalChunks: 0 };
       }
     },

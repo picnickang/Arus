@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../../../lib/async-handler";
-import { authenticatedRequest, requireOrgId, } from "../../../middleware/auth";
+import { authenticatedRequest, requireOrgId } from "../../../middleware/auth";
 import { RateLimiters } from "../../../lib/rate-limit-factory";
 import { getSupplierPerformanceSummaries } from "../application/supplier-performance-service";
 
@@ -16,5 +16,5 @@ supplierPerformanceRouter.get(
     const orgId = authenticatedRequest(req).orgId;
     const summaries = await getSupplierPerformanceSummaries(orgId);
     res.json(summaries);
-  }),
+  })
 );

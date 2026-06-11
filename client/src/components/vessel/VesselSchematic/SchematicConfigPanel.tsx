@@ -107,7 +107,9 @@ export function SchematicConfigPanel({
       if (idx > 0) {
         const cur = sorted[idx];
         const prev = sorted[idx - 1];
-        if (!cur || !prev) {return;}
+        if (!cur || !prev) {
+          return;
+        }
         const tmp = cur.order;
         cur.order = prev.order;
         prev.order = tmp;
@@ -122,7 +124,9 @@ export function SchematicConfigPanel({
       if (idx >= 0 && idx < sorted.length - 1) {
         const cur = sorted[idx];
         const next = sorted[idx + 1];
-        if (!cur || !next) {return;}
+        if (!cur || !next) {
+          return;
+        }
         const tmp = cur.order;
         cur.order = next.order;
         next.order = tmp;

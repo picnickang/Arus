@@ -17,12 +17,12 @@ generated code, migrations, data files.
 
 Name the error binding by what you do with it.
 
-| Pattern | When to use |
-|---|---|
-| `catch { ... }` | You intentionally ignore the error (and maintain behavior). No underscore prefix needed — bare `catch` says this more clearly. |
-| `catch (error) { logger.warn(...); return null; }` | You swallow the error but at least log it for diagnostics. |
-| `catch (error) { throw error; }` | You rethrow. Don't do this — just don't catch. If you need to catch-and-rethrow for cleanup, use `try { ... } finally { ... }` instead. |
-| `catch (error) { throw new DomainError("context", { cause: error }); }` | You're wrapping a low-level error with domain context. Good. |
+| Pattern                                                                 | When to use                                                                                                                             |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `catch { ... }`                                                         | You intentionally ignore the error (and maintain behavior). No underscore prefix needed — bare `catch` says this more clearly.          |
+| `catch (error) { logger.warn(...); return null; }`                      | You swallow the error but at least log it for diagnostics.                                                                              |
+| `catch (error) { throw error; }`                                        | You rethrow. Don't do this — just don't catch. If you need to catch-and-rethrow for cleanup, use `try { ... } finally { ... }` instead. |
+| `catch (error) { throw new DomainError("context", { cause: error }); }` | You're wrapping a low-level error with domain context. Good.                                                                            |
 
 The prior `catch (_error) { ... }` idiom with an underscore-prefixed binding is
 being phased out — the codemod converts these to bare `catch { ... }`.
@@ -47,11 +47,13 @@ catch (error: any) {        // defeats the type system
 ### Rule 1.3 — Never silently swallow errors in paths users care about
 
 Silent error swallowing is acceptable in:
+
 - Non-critical telemetry (running hours sync, RAG ingestion, cache writes)
 - Background sync workers where retry will handle it
 - Journal/outbox operations where missing one entry is acceptable
 
 Silent error swallowing is NOT acceptable in:
+
 - Anything the user initiated (work order save, import, login)
 - Anything that writes to the primary tables (work orders, equipment, parts)
 - Anything tied to compliance or audit (STCW, certificates, import manifest)
@@ -141,9 +143,9 @@ logger.warn(LOG_CTX, "Message", { reason });
 logger.error(LOG_CTX, "Message", { error });
 
 // Avoid
-console.log("Email sent");           // not structured, can't be filtered
-console.log(LOG_CTX, "Email sent");  // still not structured
-console.error(error);                // no context
+console.log("Email sent"); // not structured, can't be filtered
+console.log(LOG_CTX, "Email sent"); // still not structured
+console.error(error); // no context
 ```
 
 `console.log` is currently common in the codebase (~677 occurrences). Not all
@@ -151,12 +153,12 @@ need to go, but new code should default to the structured logger.
 
 ### Rule 3.2 — Log levels
 
-| Level | Use for |
-|---|---|
+| Level   | Use for                                                                                  |
+| ------- | ---------------------------------------------------------------------------------------- |
 | `error` | Something failed that a human should look at. Usually paired with an alert or dashboard. |
-| `warn` | Unexpected but handled. Accumulating `warn`s is a signal something's off. |
-| `info` | Normal operation milestones. Sync completed. Import finished. Not per-request. |
-| `debug` | Detailed tracing. Off in production. Don't rely on it for diagnostics. |
+| `warn`  | Unexpected but handled. Accumulating `warn`s is a signal something's off.                |
+| `info`  | Normal operation milestones. Sync completed. Import finished. Not per-request.           |
+| `debug` | Detailed tracing. Off in production. Don't rely on it for diagnostics.                   |
 
 Per-HTTP-request logging goes through middleware, not `logger.info` at route
 handlers.
@@ -164,6 +166,7 @@ handlers.
 ### Rule 3.3 — What not to log
 
 Never log:
+
 - Passwords (ever, in any form)
 - Session tokens (redact to first/last 4 chars)
 - PII without explicit redaction (names are sometimes ok, emails rarely,
@@ -203,10 +206,7 @@ const [vessel] = await db
   .where(and(eq(vessels.id, id), eq(vessels.orgId, orgId)));
 
 // NEVER — will return another tenant's data
-const [vessel] = await db
-  .select()
-  .from(vessels)
-  .where(eq(vessels.id, id));
+const [vessel] = await db.select().from(vessels).where(eq(vessels.id, id));
 ```
 
 Yes, even if the caller "knows" the ID. The caller might be wrong. The
@@ -253,11 +253,7 @@ const equipment = await getEquipment(id);
 const crew = await getCrew(id);
 
 // Better — parallel
-const [vessel, equipment, crew] = await Promise.all([
-  getVessel(id),
-  getEquipment(id),
-  getCrew(id),
-]);
+const [vessel, equipment, crew] = await Promise.all([getVessel(id), getEquipment(id), getCrew(id)]);
 ```
 
 Exception: when later calls depend on earlier results.
@@ -267,11 +263,11 @@ Exception: when later calls depend on earlier results.
 ```ts
 // Avoid — sequential loop awaits
 for (const row of rows) {
-  await processRow(row);   // processes one at a time
+  await processRow(row); // processes one at a time
 }
 
 // Often better — parallel
-await Promise.all(rows.map(row => processRow(row)));
+await Promise.all(rows.map((row) => processRow(row)));
 
 // Sometimes necessary — bounded parallelism
 // Use a small library (p-limit) or write a simple chunker
@@ -351,6 +347,7 @@ the data-fetching hook.
 ### Rule 7.1 — Domain boundaries
 
 Code lives in one of:
+
 - `server/domains/<name>/` — domain modules (alerts, work-orders, stcw-rest, …)
 - `server/db/<name>/` — repository layer, thin wrapper over Drizzle
 - `server/services/` — cross-domain services (notification, reporting, …)
@@ -387,6 +384,7 @@ extension-switching). All of them trip static analysis. Avoid adding new
 dynamic imports unless you have a specific reason.
 
 If you must add a dynamic import:
+
 - Use it for genuinely optional features (not for code organization)
 - Add the target to the `knip.json` allowlist
 - Verify the `scripts/check-route-imports.mjs` smoke check still passes

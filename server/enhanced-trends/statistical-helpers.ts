@@ -77,7 +77,10 @@ export function calculateTrend(values: number[], timestamps: Date[]): TrendResul
   const intercept = (sumY - slope * sumX) / n;
 
   const meanY = sumY / n;
-  const ssRes = y.reduce((sum, val, i) => sum + Math.pow(val - (slope * (x[i] ?? 0) + intercept), 2), 0);
+  const ssRes = y.reduce(
+    (sum, val, i) => sum + Math.pow(val - (slope * (x[i] ?? 0) + intercept), 2),
+    0
+  );
   const ssTot = y.reduce((sum, val) => sum + Math.pow(val - meanY, 2), 0);
   const rSquared = ssTot === 0 ? 0 : 1 - ssRes / ssTot;
 

@@ -61,7 +61,9 @@ export default function StorageSettings() {
 
   const [pendingBackend, setPendingBackend] = useState<ArtifactBackend | "">("");
   useEffect(() => {
-    if (mlStorageQuery.data?.backend) {setPendingBackend(mlStorageQuery.data.backend);}
+    if (mlStorageQuery.data?.backend) {
+      setPendingBackend(mlStorageQuery.data.backend);
+    }
   }, [mlStorageQuery.data?.backend]);
 
   const updateMlBackend = useMutation({
@@ -212,10 +214,9 @@ export default function StorageSettings() {
           <div>
             <CardTitle className="text-base">ML Model Artifact Storage</CardTitle>
             <CardDescription>
-              Where the weekly retrainer persists trained ONNX + UBJ
-              artifacts. Switching backends only affects newly trained
-              models — already-deployed models keep resolving from
-              their original backend.
+              Where the weekly retrainer persists trained ONNX + UBJ artifacts. Switching backends
+              only affects newly trained models — already-deployed models keep resolving from their
+              original backend.
             </CardDescription>
           </div>
           <Brain className="h-5 w-5 text-muted-foreground" />
@@ -257,11 +258,7 @@ export default function StorageSettings() {
                       </SelectTrigger>
                       <SelectContent>
                         {mlData.available.map((b) => (
-                          <SelectItem
-                            key={b}
-                            value={b}
-                            data-testid={`option-ml-backend-${b}`}
-                          >
+                          <SelectItem key={b} value={b} data-testid={`option-ml-backend-${b}`}>
                             {BACKEND_LABELS[b]}
                           </SelectItem>
                         ))}
@@ -276,9 +273,7 @@ export default function StorageSettings() {
                         pendingBackend === mlData.backend ||
                         updateMlBackend.isPending
                       }
-                      onClick={() =>
-                        pendingBackend && updateMlBackend.mutate(pendingBackend)
-                      }
+                      onClick={() => pendingBackend && updateMlBackend.mutate(pendingBackend)}
                     >
                       {updateMlBackend.isPending ? "Saving…" : "Save backend"}
                     </Button>

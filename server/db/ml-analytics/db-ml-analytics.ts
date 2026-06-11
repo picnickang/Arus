@@ -147,24 +147,22 @@ export class DatabaseMlAnalyticsStorage {
         modelVersionId?: string;
       };
       try {
-        await db
-          .insert(modelPerformanceValidations)
-          .values({
-            orgId,
-            modelId: detection.modelId,
-            equipmentId: detection.equipmentId,
-            predictionId: n.id,
-            predictionType: "anomaly_detection",
-            predictionTimestamp: n.detectionTimestamp,
-            predictedOutcome: {
-              anomalyScore: detection.anomalyScore,
-              severity: detection.severity,
-              sensorType: detection.sensorType,
-              value: d.value,
-              expectedRange: d.expectedRange,
-            },
-            modelVersion: d.modelVersionId,
-          } as never);
+        await db.insert(modelPerformanceValidations).values({
+          orgId,
+          modelId: detection.modelId,
+          equipmentId: detection.equipmentId,
+          predictionId: n.id,
+          predictionType: "anomaly_detection",
+          predictionTimestamp: n.detectionTimestamp,
+          predictedOutcome: {
+            anomalyScore: detection.anomalyScore,
+            severity: detection.severity,
+            sensorType: detection.sensorType,
+            value: d.value,
+            expectedRange: d.expectedRange,
+          },
+          modelVersion: d.modelVersionId,
+        } as never);
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -230,24 +228,22 @@ export class DatabaseMlAnalyticsStorage {
         remainingDays?: number;
       };
       try {
-        await db
-          .insert(modelPerformanceValidations)
-          .values({
-            orgId,
-            modelId: prediction.modelId,
-            equipmentId: prediction.equipmentId,
-            predictionId: n.id,
-            predictionType: "failure_prediction",
-            predictionTimestamp: n.predictionTimestamp ?? new Date(),
-            predictedOutcome: {
-              failureProbability: prediction.failureProbability,
-              predictedDate: p.predictedDate,
-              severity: p.severity,
-              riskLevel: prediction.riskLevel,
-              remainingDays: p.remainingDays,
-            },
-            modelVersion: prediction.modelVersionId,
-          });
+        await db.insert(modelPerformanceValidations).values({
+          orgId,
+          modelId: prediction.modelId,
+          equipmentId: prediction.equipmentId,
+          predictionId: n.id,
+          predictionType: "failure_prediction",
+          predictionTimestamp: n.predictionTimestamp ?? new Date(),
+          predictedOutcome: {
+            failureProbability: prediction.failureProbability,
+            predictedDate: p.predictedDate,
+            severity: p.severity,
+            riskLevel: prediction.riskLevel,
+            remainingDays: p.remainingDays,
+          },
+          modelVersion: prediction.modelVersionId,
+        });
       } catch (e) {
         logger.error(`[ML] Failed to create performance validation:`, undefined, e);
       }
@@ -264,10 +260,7 @@ export class DatabaseMlAnalyticsStorage {
    * pattern in db-equipment / db/inventory). Idempotency is preserved
    * by the projector keying every counting edge on `fh:<id>`.
    */
-  async createFailureHistory(
-    data: InsertFailureHistory,
-    orgId: string
-  ): Promise<FailureHistory> {
+  async createFailureHistory(data: InsertFailureHistory, orgId: string): Promise<FailureHistory> {
     const [row] = await db
       .insert(failureHistory)
       .values({ ...data, orgId, createdAt: new Date() } as never)
@@ -445,13 +438,13 @@ export class DatabaseMlAnalyticsStorage {
     const tCols = tableColumns(table);
     const c = [eq(table.orgId, orgId)];
     if (modelId) {
-      const col = tCols['modelId'] ?? tCols['modelType'];
+      const col = tCols["modelId"] ?? tCols["modelType"];
       if (col) {
         c.push(eq(col, modelId));
       }
     }
     if (equipmentId) {
-      const col = tCols['equipmentId'] ?? tCols['equipmentType'];
+      const col = tCols["equipmentId"] ?? tCols["equipmentType"];
       if (col) {
         c.push(eq(col, equipmentId));
       }

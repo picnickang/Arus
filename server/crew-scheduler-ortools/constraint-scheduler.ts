@@ -264,7 +264,9 @@ export function scheduleWithConstraints(
 
       for (let i = 0; i < assignedCount; i++) {
         const scored = scoredCrew[i];
-        if (!scored) {continue;}
+        if (!scored) {
+          continue;
+        }
         const { crewMember } = scored;
         const assignment: Assignment = {
           date: day,
@@ -277,7 +279,9 @@ export function scheduleWithConstraints(
         };
         state.scheduled.push(assignment);
         const list = state.crewAssignments[crewMember.id];
-        if (list) {list.push(assignment);}
+        if (list) {
+          list.push(assignment);
+        }
         if (isNight) {
           state.nightShiftCounts[crewMember.id] = (state.nightShiftCounts[crewMember.id] ?? 0) + 1;
         }

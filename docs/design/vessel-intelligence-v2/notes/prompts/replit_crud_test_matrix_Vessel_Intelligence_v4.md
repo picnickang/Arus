@@ -1,6 +1,7 @@
 # CRUD Test Matrix — Vessel Intelligence Hub v4
 
 ## Diagram CRUD
+
 - create diagram metadata
 - upload valid SVG / PNG / JPG / WebP
 - reject unsupported file type
@@ -19,6 +20,7 @@
 - audit log written
 
 ## Section Map CRUD
+
 - create section map for active diagram
 - clone existing map to draft
 - import/export map JSON
@@ -38,7 +40,9 @@
 - mobile and desktop read same published map
 
 ## Thumbnail CRUD
+
 Section thumbnails:
+
 - upload/read/replace/update crop/delete
 - generate from schematic crop
 - fallback to crop/placeholder/icon
@@ -47,6 +51,7 @@ Section thumbnails:
 - unauthorized mutation blocked
 
 Equipment thumbnails:
+
 - upload/read/replace/update crop/delete
 - fallback to asset photo, section thumbnail, generic icon
 - reject invalid media
@@ -54,6 +59,7 @@ Equipment thumbnails:
 - unauthorized mutation blocked
 
 ## Operational Regression
+
 - technical alerts create work orders and expert cases
 - emergency safety alarms remain in Safety
 - maintenance queue deep-links into Vessel Intelligence only when vessel-linked
@@ -61,7 +67,9 @@ Equipment thumbnails:
 - old Fleet/PDM/Equipment routes redirect correctly
 
 ## Playwright Smoke
+
 Desktop super admin:
+
 1. upload schematic
 2. choose keep map as draft
 3. edit section polygon
@@ -73,6 +81,7 @@ Desktop super admin:
 9. replace schematic and verify version history
 
 Mobile permitted user:
+
 1. open vessel twin
 2. view active diagram
 3. tap section

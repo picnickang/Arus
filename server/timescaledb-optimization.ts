@@ -8,7 +8,9 @@ export async function applyTimescaleOptimizations(): Promise<void> {
 }
 
 export async function configureChunkTimeInterval(): Promise<void> {
-  logger.info("[TimescaleDB] chunk_time_interval is configured in scripts/timescale-init-hypertables.mjs");
+  logger.info(
+    "[TimescaleDB] chunk_time_interval is configured in scripts/timescale-init-hypertables.mjs"
+  );
 }
 
 export async function enableCompression(): Promise<void> {

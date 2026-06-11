@@ -186,7 +186,8 @@ export function useTwinTimeline(twinId: string, startTime?: string, endTime?: st
   }
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
-    queryFn: () => apiRequest<TwinTimelineEvent[]>("GET", `/api/pdm/twin/replay/timeline?${params}`),
+    queryFn: () =>
+      apiRequest<TwinTimelineEvent[]>("GET", `/api/pdm/twin/replay/timeline?${params}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }

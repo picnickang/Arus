@@ -80,7 +80,7 @@ export function registerListAvailableToolsMeta(): void {
     },
     requiresApproval: false,
     async execute(input: Record<string, unknown>) {
-      const category = input['category'] as string | undefined;
+      const category = input["category"] as string | undefined;
       const allTools = getAllTools().filter((t) => t.name !== LIST_AVAILABLE_TOOLS_NAME);
       const filtered = category ? allTools.filter((t) => t.category === category) : allTools;
 

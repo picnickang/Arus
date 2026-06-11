@@ -43,15 +43,18 @@ export function TaskDetailPanel({ task, isOpen, onClose, onMoveTask }: TaskDetai
   };
 
   const dataQuality = task.confidence >= 80 ? "High" : task.confidence >= 60 ? "Medium" : "Low";
-  const urgency = task.rulP50Days <= 7
-    ? "Inspect this watch or next port window."
-    : task.rulP50Days <= 30
-      ? "Schedule within this maintenance cycle."
-      : "Monitor trend and schedule before the latest finish date.";
+  const urgency =
+    task.rulP50Days <= 7
+      ? "Inspect this watch or next port window."
+      : task.rulP50Days <= 30
+        ? "Schedule within this maintenance cycle."
+        : "Monitor trend and schedule before the latest finish date.";
   const costOfIgnoring = [
     task.estimatedDowntimeHours ? `${task.estimatedDowntimeHours}h estimated downtime` : null,
     task.estimatedCost ? `${task.estimatedCost.toLocaleString()} estimated exposure` : null,
-  ].filter(Boolean).join(" / ");
+  ]
+    .filter(Boolean)
+    .join(" / ");
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -81,19 +84,31 @@ export function TaskDetailPanel({ task, isOpen, onClose, onMoveTask }: TaskDetai
             )}
           </div>
 
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3" data-testid="pdm-decision-summary">
+          <div
+            className="rounded-lg border bg-muted/30 p-4 space-y-3"
+            data-testid="pdm-decision-summary"
+          >
             <div className="flex items-center justify-between gap-3">
               <h4 className="font-medium text-sm">Decision Summary</h4>
               <Badge variant="outline">Data quality: {dataQuality}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {task.equipmentName} is trending toward <span className="font-medium text-foreground">{task.failureMode}</span>.
-              Confidence is {task.confidence}%, with a P50 remaining useful life of {task.rulP50Days} days.
+              {task.equipmentName} is trending toward{" "}
+              <span className="font-medium text-foreground">{task.failureMode}</span>. Confidence is{" "}
+              {task.confidence}%, with a P50 remaining useful life of {task.rulP50Days} days.
             </p>
             <div className="grid grid-cols-1 gap-2 text-sm">
-              <div><span className="font-medium">Next action:</span> {urgency}</div>
-              <div><span className="font-medium">Cost of ignoring:</span> {costOfIgnoring || "Not yet estimated"}</div>
-              <div><span className="font-medium">Best path:</span> create a work order, complete the guided closeout, then record whether the PdM prediction was correct.</div>
+              <div>
+                <span className="font-medium">Next action:</span> {urgency}
+              </div>
+              <div>
+                <span className="font-medium">Cost of ignoring:</span>{" "}
+                {costOfIgnoring || "Not yet estimated"}
+              </div>
+              <div>
+                <span className="font-medium">Best path:</span> create a work order, complete the
+                guided closeout, then record whether the PdM prediction was correct.
+              </div>
             </div>
           </div>
 
@@ -238,7 +253,8 @@ export function TaskDetailPanel({ task, isOpen, onClose, onMoveTask }: TaskDetai
                   Move Task (write API pending)
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  To change execution date today, update the linked work order or create one from this risk.
+                  To change execution date today, update the linked work order or create one from
+                  this risk.
                 </p>
               </div>
             )}

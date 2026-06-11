@@ -72,7 +72,7 @@ export function usePdmPackData() {
   });
 
   const bearingAnalysisMutation = useCustomMutation<BearingFormData, { analysis: AnalysisResult }>({
-    mutationFn: (async (data: BearingFormData) => {
+    mutationFn: async (data: BearingFormData) => {
       const series = data.series
         .split(",")
         .map((s: string) => Number.parseFloat(s.trim()))
@@ -81,7 +81,7 @@ export function usePdmPackData() {
         throw new Error("At least 10 data points required for analysis");
       }
       return apiRequest("POST", "/api/pdm/analyze/bearing", { ...data, series });
-    }),
+    },
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],
@@ -92,8 +92,11 @@ export function usePdmPackData() {
     onSuccess: (data: { analysis: AnalysisResult }) => setBearingAnalysisResult(data.analysis),
   });
 
-  const pumpAnalysisMutation = useCustomMutation<z.infer<typeof pumpFormSchema>, { analysis: AnalysisResult }>({
-    mutationFn: (async (data: z.infer<typeof pumpFormSchema>) => {
+  const pumpAnalysisMutation = useCustomMutation<
+    z.infer<typeof pumpFormSchema>,
+    { analysis: AnalysisResult }
+  >({
+    mutationFn: async (data: z.infer<typeof pumpFormSchema>) => {
       const processedData: Record<string, string | boolean | number[]> = {
         vesselName: data.vesselName,
         assetId: data.assetId,
@@ -112,7 +115,7 @@ export function usePdmPackData() {
         }
       });
       return apiRequest("POST", "/api/pdm/analyze/pump", processedData);
-    }),
+    },
     invalidateKeys: [
       ["/api/pdm/alerts", currentOrgId],
       ["/api/pdm/baseline", currentOrgId, selectedVessel, selectedAsset],

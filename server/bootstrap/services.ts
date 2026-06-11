@@ -12,7 +12,7 @@ const logger = createLogger("Bootstrap:Services");
  */
 
 export async function initializeLocalDatabase(): Promise<void> {
-  if (process.env['LOCAL_MODE'] === "true") {
+  if (process.env["LOCAL_MODE"] === "true") {
     const { initializeLocalDatabase: initLocal } = await import("../db-config");
     await initLocal();
   }
@@ -30,14 +30,14 @@ export async function initializeLocalDatabase(): Promise<void> {
  * doesn't surface as a runtime "column does not exist" much later.
  */
 export async function runMigrationsOnBoot(): Promise<void> {
-  if (process.env['MIGRATE_ON_BOOT'] !== "true") {
+  if (process.env["MIGRATE_ON_BOOT"] !== "true") {
     return;
   }
-  if (process.env['LOCAL_MODE'] === "true" || process.env['EMBEDDED_MODE'] === "true") {
+  if (process.env["LOCAL_MODE"] === "true" || process.env["EMBEDDED_MODE"] === "true") {
     logger.info("ℹ MIGRATE_ON_BOOT skipped (local/embedded mode uses SQLite)");
     return;
   }
-  if (!process.env['DATABASE_URL']) {
+  if (!process.env["DATABASE_URL"]) {
     logger.warn("⚠ MIGRATE_ON_BOOT requested but DATABASE_URL missing — skipping");
     return;
   }
@@ -91,7 +91,7 @@ export async function initializeDatabase(): Promise<void> {
         const { createDatabaseIndexes, analyzeDatabasePerformance } = await import("../db-indexes");
         await withServiceTimeout(createDatabaseIndexes(), 60000, "Create database indexes");
 
-        if (process.env['NODE_ENV'] === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           await withServiceTimeout(
             analyzeDatabasePerformance(),
             30000,
@@ -99,7 +99,9 @@ export async function initializeDatabase(): Promise<void> {
           );
         }
       } else {
-        logger.info("SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)");
+        logger.info(
+          "SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)"
+        );
         logger.info("Database ready for offline-first operation");
       }
 
@@ -110,25 +112,33 @@ export async function initializeDatabase(): Promise<void> {
         await migrateWorkOrderServiceOrderBridge(db);
         logger.info("✓ WO ↔ SO bridge migration applied");
       } catch (err) {
-        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", { details: ((err instanceof Error ? err.message : String(err))) });
+        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", {
+          details: err instanceof Error ? err.message : String(err),
+        });
       }
 
       // Wave 0.6 — Feature flag overrides table + cache priming.
       try {
-        const { migrateFeatureFlagOverrides } = await import("../migrations/011-feature-flag-overrides");
+        const { migrateFeatureFlagOverrides } = await import(
+          "../migrations/011-feature-flag-overrides"
+        );
         await migrateFeatureFlagOverrides(db);
         const { featureFlags } = await import("../infrastructure/feature-flags");
         await featureFlags.refresh(db);
         featureFlags.startAutoRefresh(db, 60_000);
         logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
       } catch (err) {
-        logger.warn("[FeatureFlags] Override table setup skipped:", { details: ((err instanceof Error ? err.message : String(err))) });
+        logger.warn("[FeatureFlags] Override table setup skipped:", {
+          details: err instanceof Error ? err.message : String(err),
+        });
       }
 
       return;
     } catch (error: unknown) {
       const isLastAttempt = attempt === maxRetries;
-      logger.warn(`  Database initialization attempt ${attempt} failed:`, { details: error instanceof Error ? error.message : String(error) });
+      logger.warn(`  Database initialization attempt ${attempt} failed:`, {
+        details: error instanceof Error ? error.message : String(error),
+      });
 
       if (!isLastAttempt) {
         const delay = attempt * 5000;
@@ -136,7 +146,7 @@ export async function initializeDatabase(): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         logger.error("Database initialization failed after all retries:", undefined, error);
-        if (process.env['EMBEDDED_MODE'] === "true" || process.env['LOCAL_MODE'] === "true") {
+        if (process.env["EMBEDDED_MODE"] === "true" || process.env["LOCAL_MODE"] === "true") {
           logger.error("Embedded/local mode: Continuing despite initialization error");
           return;
         }
@@ -147,7 +157,7 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 export async function seedDevelopmentUser(): Promise<void> {
-  if (process.env['NODE_ENV'] !== "development") {
+  if (process.env["NODE_ENV"] !== "development") {
     return;
   }
 
@@ -232,7 +242,9 @@ export async function seedDevelopmentUser(): Promise<void> {
       }
     }
   } catch (error: unknown) {
-    logger.warn("⚠️  Could not seed development user:", { details: error instanceof Error ? error.message : String(error) });
+    logger.warn("⚠️  Could not seed development user:", {
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -271,17 +283,19 @@ export async function initializeJobQueue(): Promise<void> {
     logger.info("  ℹ /tmp/kb-uploads directory already exists");
   }
 
-  if (process.env['DATABASE_URL']) {
+  if (process.env["DATABASE_URL"]) {
     try {
       await withServiceTimeout(
-        jobQueueService.initialize(process.env['DATABASE_URL']),
+        jobQueueService.initialize(process.env["DATABASE_URL"]),
         15000,
         "Job queue"
       );
       await withServiceTimeout(startIngestionWorker(), 10000, "Ingestion worker");
       logger.info("✓ Job queue initialized with 5 workers");
     } catch (error: unknown) {
-      logger.warn("⚠️ Job queue initialization failed (non-fatal):", { details: error instanceof Error ? error.message : String(error) });
+      logger.warn("⚠️ Job queue initialization failed (non-fatal):", {
+        details: error instanceof Error ? error.message : String(error),
+      });
     }
   } else {
     logger.info("⚠ Skipping job queue initialization (no DATABASE_URL)");
@@ -293,14 +307,12 @@ export async function initializeMLServices(): Promise<void> {
 
   logger.info("→ Initializing vessel telemetry simulator...");
   const { initVesselSimulator } = await import("../vessel-simulator");
-  initVesselSimulator(
-    dbTelemetryStorage as object as Parameters<typeof initVesselSimulator>[0]
-  );
+  initVesselSimulator(dbTelemetryStorage as object as Parameters<typeof initVesselSimulator>[0]);
   logger.info("✓ Vessel telemetry simulator initialized");
 }
 
 export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise<void> {
-  if (isLocalMode || !process.env['DATABASE_URL']) {
+  if (isLocalMode || !process.env["DATABASE_URL"]) {
     return;
   }
 
@@ -321,7 +333,9 @@ export async function applyTimescaleOptimizations(isLocalMode: boolean): Promise
  * deployments without it.
  */
 export async function applyGraphBootstrap(): Promise<void> {
-  if (!process.env['DATABASE_URL']) {return;}
+  if (!process.env["DATABASE_URL"]) {
+    return;
+  }
   try {
     const { runGraphBootstrap } = await import("../graph-bootstrap");
     await runGraphBootstrap();
@@ -331,7 +345,7 @@ export async function applyGraphBootstrap(): Promise<void> {
 }
 
 export async function startSyncServices(isLocalMode: boolean): Promise<void> {
-  if (process.env['ENABLE_SYNC_SERVICES'] === "false") {
+  if (process.env["ENABLE_SYNC_SERVICES"] === "false") {
     logger.info("ℹ️  Sync services disabled by ENABLE_SYNC_SERVICES=false");
     return;
   }
@@ -351,7 +365,9 @@ export async function startSyncServices(isLocalMode: boolean): Promise<void> {
   logger.info("✓ Telemetry pruning service started");
 
   mqttReliableSync.start().catch((error: Error) => {
-    logger.warn("[MQTT Reliable Sync] Background start failed:", { details: error instanceof Error ? error.message : String(error) });
+    logger.warn("[MQTT Reliable Sync] Background start failed:", {
+      details: error instanceof Error ? error.message : String(error),
+    });
   });
   logger.info("✓ MQTT reliable sync starting in background");
 }
@@ -364,7 +380,7 @@ export async function initializeTelemetryBatchWriter(): Promise<void> {
 }
 
 export async function initializeAutoReplanPolicy(): Promise<void> {
-  if (process.env['ENABLE_AUTO_REPLAN'] === "false") {
+  if (process.env["ENABLE_AUTO_REPLAN"] === "false") {
     logger.info("ℹ️  Auto-replan policy disabled");
     return;
   }
@@ -378,7 +394,7 @@ export async function initializeAutoReplanPolicy(): Promise<void> {
 }
 
 export async function initializeFmccPolling(): Promise<void> {
-  if (process.env['FMCC_ENABLED'] !== "true") {
+  if (process.env["FMCC_ENABLED"] !== "true") {
     logger.info("ℹ️  FMCC polling disabled (FMCC_ENABLED != true)");
     return;
   }
@@ -390,7 +406,7 @@ export async function initializeFmccPolling(): Promise<void> {
 }
 
 export async function initializePatchingSystem(isEmbedded: boolean): Promise<void> {
-  if (process.env['ENABLE_UPDATE_SYSTEM'] === "false") {
+  if (process.env["ENABLE_UPDATE_SYSTEM"] === "false") {
     logger.info("ℹ️  Update system disabled");
     return;
   }
@@ -409,7 +425,9 @@ export async function initializePatchingSystem(isEmbedded: boolean): Promise<voi
     setupUpdateScheduler();
     logger.info("✓ Update scheduler configured");
   } catch (error: unknown) {
-    logger.warn("⚠️  Update system initialization failed (non-critical):", { details: error instanceof Error ? error.message : String(error) });
+    logger.warn("⚠️  Update system initialization failed (non-critical):", {
+      details: error instanceof Error ? error.message : String(error),
+    });
     if (isEmbedded) {
       logger.info("ℹ️  Continuing without update system in embedded mode");
     } else {

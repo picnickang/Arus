@@ -65,7 +65,9 @@ router.post(
       }
       const options = anonymizedExportSchema.parse(req.body);
       const exportedBy = requestActorId(req);
-      logger.info(`[Compliance] Starting anonymized export for org: ${orgId}, level: ${options.anonymize}`);
+      logger.info(
+        `[Compliance] Starting anonymized export for org: ${orgId}, level: ${options.anonymize}`
+      );
       await auditService.logEvent({
         orgId,
         eventCategory: "compliance_event",
@@ -120,16 +122,15 @@ router.post(
           },
         });
       }
-        return res.status(500).json({ success: false, error: result.error, exportId: result.exportId });
-
-    } catch (error) {
-      logger.error("[Compliance] Anonymized export error:", undefined, error);
       return res
         .status(500)
-        .json({
-          error: "Failed to create anonymized export",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
+        .json({ success: false, error: result.error, exportId: result.exportId });
+    } catch (error) {
+      logger.error("[Compliance] Anonymized export error:", undefined, error);
+      return res.status(500).json({
+        error: "Failed to create anonymized export",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 );
@@ -143,7 +144,9 @@ router.get(
     try {
       const orgId = requestOrgId(req);
       const { exportId } = req.params;
-      if (!exportId) {return res.status(400).json({ error: "Missing exportId" });}
+      if (!exportId) {
+        return res.status(400).json({ error: "Missing exportId" });
+      }
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -176,7 +179,7 @@ router.get(
   requireComplianceAccess,
   async (req: Request, res: Response) => {
     try {
-      const level = anonymizationLevelSchema.default("full").parse(req.query['level']);
+      const level = anonymizationLevelSchema.default("full").parse(req.query["level"]);
       const sampleRecord = {
         id: "sample-123",
         name: "John Doe",
@@ -254,7 +257,9 @@ router.get(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -299,13 +304,11 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      return res
-        .status(201)
-        .json({
-          success: true,
-          data: request,
-          message: `DSAR request created. Due date: ${request.dueDate.toISOString()}`,
-        });
+      return res.status(201).json({
+        success: true,
+        data: request,
+        message: `DSAR request created. Due date: ${request.dueDate.toISOString()}`,
+      });
     } catch (error) {
       logger.error("[Compliance] DSAR create error:", undefined, error);
       return res.status(500).json({ error: "Failed to create DSAR request" });
@@ -322,7 +325,9 @@ router.post(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
@@ -331,12 +336,10 @@ router.post(
         return res.status(404).json({ error: "DSAR request not found" });
       }
       if (existingRequest.status !== "pending") {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid state transition",
-            message: `DSAR request is already ${existingRequest.status}. Only pending requests can be acknowledged.`,
-          });
+        return res.status(400).json({
+          error: "Invalid state transition",
+          message: `DSAR request is already ${existingRequest.status}. Only pending requests can be acknowledged.`,
+        });
       }
       const request = await dbGdprStorage.acknowledgeDataSubjectRequest(
         id,
@@ -375,7 +378,9 @@ router.post(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       const { identifierType } = req.body as { identifierType: "email" | "userId" | "crewId" };
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -447,30 +452,28 @@ router.post(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       const { confirmErasure, reason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
       if (!confirmErasure) {
-        return res
-          .status(400)
-          .json({
-            error: "Erasure must be explicitly confirmed",
-            message: "Set confirmErasure: true to proceed with data erasure",
-          });
+        return res.status(400).json({
+          error: "Erasure must be explicitly confirmed",
+          message: "Set confirmErasure: true to proceed with data erasure",
+        });
       }
       const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
       if (!request) {
         return res.status(404).json({ error: "DSAR request not found" });
       }
       if (request.requestType !== "erasure") {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid request type",
-            message: "This endpoint is only for erasure requests",
-          });
+        return res.status(400).json({
+          error: "Invalid request type",
+          message: "This endpoint is only for erasure requests",
+        });
       }
       const erasedBy = requestActorId(req);
       const result = await dbGdprStorage.executeDataErasure(id, orgId, erasedBy, reason);
@@ -502,7 +505,9 @@ router.post(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       const { notes } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
@@ -541,7 +546,9 @@ router.post(
     try {
       const orgId = requestOrgId(req);
       const { id } = req.params;
-      if (!id) {return res.status(400).json({ error: "Missing id" });}
+      if (!id) {
+        return res.status(400).json({ error: "Missing id" });
+      }
       const { reason, rejectionReason } = req.body;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });

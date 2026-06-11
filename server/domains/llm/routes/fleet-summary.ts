@@ -39,15 +39,17 @@ export function registerFleetSummaryRoutes(
         dbDevicesStorage.getPdmScores(undefined, orgId),
       ]);
 
-      let fleetAnalysis: Awaited<ReturnType<typeof analyzeFleetHealth>> | {
-        totalEquipment: number;
-        healthyEquipment: number;
-        equipmentAtRisk: number;
-        criticalEquipment: number;
-        topRecommendations: string[];
-        costEstimate: number;
-        summary: string;
-      };
+      let fleetAnalysis:
+        | Awaited<ReturnType<typeof analyzeFleetHealth>>
+        | {
+            totalEquipment: number;
+            healthyEquipment: number;
+            equipmentAtRisk: number;
+            criticalEquipment: number;
+            topRecommendations: string[];
+            costEstimate: number;
+            summary: string;
+          };
       try {
         const analysisPromise = analyzeFleetHealth(equipmentHealth, telemetryData);
         fleetAnalysis = await Promise.race([

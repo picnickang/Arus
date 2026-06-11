@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Ship, Users, Wrench, Zap } from "lucide-react";
@@ -43,9 +37,7 @@ export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: F
                 <p className="text-2xl font-bold" data-testid="text-active-vessels">
                   {fleetStats.activeVessels}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  of {fleetStats.totalVessels} total
-                </p>
+                <p className="text-xs text-muted-foreground">of {fleetStats.totalVessels} total</p>
               </Card>
               <Card className="p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -55,9 +47,7 @@ export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: F
                 <p className="text-2xl font-bold" data-testid="text-active-crew">
                   {fleetStats.activeCrew}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  of {fleetStats.totalCrew} total
-                </p>
+                <p className="text-xs text-muted-foreground">of {fleetStats.totalCrew} total</p>
               </Card>
             </div>
             <Separator />
@@ -65,9 +55,7 @@ export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: F
               <Button
                 className="w-full"
                 onClick={() => o.fleetOptimizationMutation.mutate(undefined)}
-                disabled={
-                  o.fleetOptimizationMutation.isPending || !o.configurations?.length
-                }
+                disabled={o.fleetOptimizationMutation.isPending || !o.configurations?.length}
                 data-testid="button-fleet-optimization"
               >
                 {o.fleetOptimizationMutation.isPending ? (
@@ -154,22 +142,18 @@ export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: F
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Equipment Tracked</span>
-                <span>
-                  {(o.equipment as Array<{ id: string }> | undefined)?.length ?? 0} items
-                </span>
+                <span>{(o.equipment as Array<{ id: string }> | undefined)?.length ?? 0} items</span>
               </div>
               <Progress value={100} />
             </div>
             <Separator />
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="text-center">
-                <p
-                  className="text-2xl font-bold text-green-600"
-                  data-testid="text-total-savings"
-                >
+                <p className="text-2xl font-bold text-green-600" data-testid="text-total-savings">
                   {o.formatCurrency(
                     o.optimizationResults?.reduce(
-                      (sum: number, r: { costSavings?: number | null }) => sum + (r.costSavings || 0),
+                      (sum: number, r: { costSavings?: number | null }) =>
+                        sum + (r.costSavings || 0),
                       0
                     ) ?? 0
                   )}
@@ -177,12 +161,10 @@ export function FleetTab({ o, fleetStats }: { o: OptimizationData; fleetStats: F
                 <p className="text-sm text-muted-foreground">Total Savings</p>
               </div>
               <div className="text-center">
-                <p
-                  className="text-2xl font-bold text-blue-600"
-                  data-testid="text-completed-runs"
-                >
-                  {o.optimizationResults?.filter((r: { runStatus?: string }) => r.runStatus === "completed")
-                    .length ?? 0}
+                <p className="text-2xl font-bold text-blue-600" data-testid="text-completed-runs">
+                  {o.optimizationResults?.filter(
+                    (r: { runStatus?: string }) => r.runStatus === "completed"
+                  ).length ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Completed Runs</p>
               </div>

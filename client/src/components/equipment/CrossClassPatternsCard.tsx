@@ -64,8 +64,7 @@ export function CrossClassPatternsCard({ equipmentId }: { equipmentId: string })
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Top failure modes seen on equipment of the same type on other
-          vessels of the same class.
+          Top failure modes seen on equipment of the same type on other vessels of the same class.
         </p>
       </CardHeader>
       <CardContent>
@@ -78,52 +77,33 @@ export function CrossClassPatternsCard({ equipmentId }: { equipmentId: string })
         )}
 
         {isError && (
-          <p
-            className="text-sm text-destructive"
-            data-testid="error-cross-class"
-          >
+          <p className="text-sm text-destructive" data-testid="error-cross-class">
             Failed to load cross-fleet patterns
             {error instanceof Error ? `: ${error.message}` : ""}.
           </p>
         )}
 
         {!isLoading && !isError && data && data.reason === "vessel_class_not_set" && (
-          <p
-            className="text-sm text-muted-foreground"
-            data-testid="empty-cross-class-no-class"
-          >
-            Vessel class isn't set — assign a class to this vessel to compare
-            against the rest of the fleet.
+          <p className="text-sm text-muted-foreground" data-testid="empty-cross-class-no-class">
+            Vessel class isn't set — assign a class to this vessel to compare against the rest of
+            the fleet.
           </p>
         )}
 
-        {!isLoading &&
-          !isError &&
-          data &&
-          data.reason === "equipment_not_assigned_to_vessel" && (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="empty-cross-class-no-vessel"
-            >
-              This equipment isn't assigned to a vessel — assign it to compare
-              against peers on other vessels of the same class.
-            </p>
-          )}
+        {!isLoading && !isError && data && data.reason === "equipment_not_assigned_to_vessel" && (
+          <p className="text-sm text-muted-foreground" data-testid="empty-cross-class-no-vessel">
+            This equipment isn't assigned to a vessel — assign it to compare against peers on other
+            vessels of the same class.
+          </p>
+        )}
 
-        {!isLoading &&
-          !isError &&
-          data &&
-          !data.reason &&
-          data.patterns.length === 0 && (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="empty-cross-class"
-            >
-              {data.peerVesselCount === 0
-                ? "No peer vessels of this class in the fleet yet."
-                : "No failure history recorded on peer equipment yet."}
-            </p>
-          )}
+        {!isLoading && !isError && data && !data.reason && data.patterns.length === 0 && (
+          <p className="text-sm text-muted-foreground" data-testid="empty-cross-class">
+            {data.peerVesselCount === 0
+              ? "No peer vessels of this class in the fleet yet."
+              : "No failure history recorded on peer equipment yet."}
+          </p>
+        )}
 
         {!isLoading && !isError && data && data.patterns.length > 0 && (
           <ul className="divide-y rounded-md border">
@@ -137,9 +117,7 @@ export function CrossClassPatternsCard({ equipmentId }: { equipmentId: string })
                 <li key={p.failureMode}>
                   <button
                     type="button"
-                    onClick={() =>
-                      setOpenFailureMode(isOpen ? null : p.failureMode)
-                    }
+                    onClick={() => setOpenFailureMode(isOpen ? null : p.failureMode)}
                     className="w-full text-left px-3 py-2 hover-elevate active-elevate-2 flex items-center justify-between gap-3"
                     data-testid={`row-cross-class-pattern-${p.failureMode}`}
                   >
@@ -152,16 +130,11 @@ export function CrossClassPatternsCard({ equipmentId }: { equipmentId: string })
                       </span>
                     </div>
                     <ChevronRight
-                      className={`h-4 w-4 transition-transform ${
-                        isOpen ? "rotate-90" : ""
-                      }`}
+                      className={`h-4 w-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
                     />
                   </button>
                   {isOpen && (
-                    <PartsDrillDown
-                      equipmentId={equipmentId}
-                      failureMode={p.failureMode}
-                    />
+                    <PartsDrillDown equipmentId={equipmentId} failureMode={p.failureMode} />
                   )}
                 </li>
               );
@@ -187,20 +160,11 @@ function PartsDrillDown({
   // into the path, not the join itself.
   const encodedFm = encodeURIComponent(failureMode);
   const { data, isLoading, isError, error } = useQuery<PartsResponse>({
-    queryKey: [
-      "/api/v1/equipment",
-      equipmentId,
-      "cross-class-patterns",
-      encodedFm,
-      "parts",
-    ],
+    queryKey: ["/api/v1/equipment", equipmentId, "cross-class-patterns", encodedFm, "parts"],
   });
 
   return (
-    <div
-      className="px-3 py-2 bg-muted/30 border-t"
-      data-testid={`drilldown-parts-${failureMode}`}
-    >
+    <div className="px-3 py-2 bg-muted/30 border-t" data-testid={`drilldown-parts-${failureMode}`}>
       {isLoading && <Skeleton className="h-6 w-full" />}
       {isError && (
         <p className="text-xs text-destructive">

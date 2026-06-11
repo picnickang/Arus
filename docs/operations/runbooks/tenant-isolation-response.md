@@ -1,12 +1,13 @@
 # Runbook — Tenant Isolation Response
 
 Trigger conditions:
+
 - Alert: `TenantQuotaBlockedTelemetry`, `TenantQuotaHttp429Sustained`.
 - Manual report: a tenant sees another tenant's data, OR a tenant's
   load is degrading neighbours.
 
-This runbook covers **two distinct failure modes** — *isolation
-breach* (a correctness incident) and *noisy neighbour* (a capacity
+This runbook covers **two distinct failure modes** — _isolation
+breach_ (a correctness incident) and _noisy neighbour_ (a capacity
 incident). They have very different responses.
 
 ## A. Isolation breach (correctness — SEV-1 by default)

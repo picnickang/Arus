@@ -134,7 +134,9 @@ export const mlModelAccuracyDecayRatio = new client.Gauge({
  * floored to 1e-4 to avoid log(0).
  */
 export function computePsi(expected: number[], actual: number[]): number {
-  if (expected.length !== actual.length || expected.length === 0) {return 0;}
+  if (expected.length !== actual.length || expected.length === 0) {
+    return 0;
+  }
   const eSum = expected.reduce((s, v) => s + v, 0) || 1;
   const aSum = actual.reduce((s, v) => s + v, 0) || 1;
   let psi = 0;
@@ -155,7 +157,10 @@ export function recordModelDrift(
 ) {
   mlFeaturePsi.set({ model_id: modelId, feature, equipment_class: equipmentClass }, psi);
   if (typeof klDivergence === "number") {
-    mlFeatureKlDivergence.set({ model_id: modelId, feature, equipment_class: equipmentClass }, klDivergence);
+    mlFeatureKlDivergence.set(
+      { model_id: modelId, feature, equipment_class: equipmentClass },
+      klDivergence
+    );
   }
 }
 
@@ -168,7 +173,10 @@ export function recordModelPerformance(
     mlModelRollingMae.set({ model_id: modelId, equipment_class: equipmentClass }, metrics.mae);
   }
   if (typeof metrics.accuracy === "number") {
-    mlModelRollingAccuracy.set({ model_id: modelId, equipment_class: equipmentClass }, metrics.accuracy);
+    mlModelRollingAccuracy.set(
+      { model_id: modelId, equipment_class: equipmentClass },
+      metrics.accuracy
+    );
     if (typeof metrics.baselineAccuracy === "number" && metrics.baselineAccuracy > 0) {
       mlModelAccuracyDecayRatio.set(
         { model_id: modelId, equipment_class: equipmentClass },

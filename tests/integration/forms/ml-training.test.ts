@@ -22,7 +22,6 @@ beforeAll(async () => {
   const { status } = await api("GET", "/api/ml/health");
   mlAvailable = status === 200;
   if (!mlAvailable) {
-
     console.warn(
       `SKIP: ML training suite — /api/ml/health returned ${status} ` +
         "(ml-model-registry module missing in this install). " +
@@ -33,7 +32,9 @@ beforeAll(async () => {
 
 describe("ML training forms — endpoint contract", () => {
   it("POST /api/ml/train/random-forest is reachable and accepts the form payload", async () => {
-    if (!mlAvailable) {return;}
+    if (!mlAvailable) {
+      return;
+    }
     const { status } = await api("POST", "/api/ml/train/random-forest", {
       orgId: "default-org-id",
       equipmentType: "diesel_generator",
@@ -45,13 +46,17 @@ describe("ML training forms — endpoint contract", () => {
   });
 
   it("GET /api/ml/health responds 200", async () => {
-    if (!mlAvailable) {return;}
+    if (!mlAvailable) {
+      return;
+    }
     const { status } = await api("GET", "/api/ml/health");
     expect(status).toBe(200);
   });
 
   it("GET /api/ml/metrics responds 200", async () => {
-    if (!mlAvailable) {return;}
+    if (!mlAvailable) {
+      return;
+    }
     const { status } = await api("GET", "/api/ml/metrics");
     expect(status).toBe(200);
   });

@@ -15,13 +15,13 @@ require backend state. These differ from `tests/playwright/*.spec.ts`
 
 ## Per-spec status
 
-| Spec | Status | Blocker (if any) |
-|------|--------|------------------|
-| `offline-outbox.spec.ts` | Live — runs in CI | none |
-| `pr-po-receive.spec.ts` | `test.fixme` | LR-3 procurement seed fixture |
-| `crew-compliance.spec.ts` | `test.fixme` | LR-3 crew certs seed + STCW snapshot |
-| `3d-viewer.spec.ts` | `test.fixme` | LR-3 GLB upload via admin seed (object-storage round-trip) |
-| `amos-import.spec.ts` | `test.fixme` | LR-3 UI smoke once admin import page is rebuilt; backend path is already covered by `tests/integration/import-amos-golden.test.ts` |
+| Spec                      | Status            | Blocker (if any)                                                                                                                   |
+| ------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `offline-outbox.spec.ts`  | Live — runs in CI | none                                                                                                                               |
+| `pr-po-receive.spec.ts`   | `test.fixme`      | LR-3 procurement seed fixture                                                                                                      |
+| `crew-compliance.spec.ts` | `test.fixme`      | LR-3 crew certs seed + STCW snapshot                                                                                               |
+| `3d-viewer.spec.ts`       | `test.fixme`      | LR-3 GLB upload via admin seed (object-storage round-trip)                                                                         |
+| `amos-import.spec.ts`     | `test.fixme`      | LR-3 UI smoke once admin import page is rebuilt; backend path is already covered by `tests/integration/import-amos-golden.test.ts` |
 
 ## Why `test.fixme` rather than `test.skip`
 

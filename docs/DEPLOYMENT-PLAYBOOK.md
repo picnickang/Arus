@@ -120,6 +120,7 @@ msiexec /i "E:\ARUS-Setup-1.0.0.msi"
 ```
 
 First launch:
+
 1. App shows the Setup Wizard (Connection → Vessel → Admin)
 2. Connection: Enter `http://localhost:5000` as backend URL
 3. Vessel: Select the vessel from the dropdown (seeded in Step 1)
@@ -153,6 +154,7 @@ TELEMETRY_MODBUS_PORT=502
 ```
 
 Register sensors in ARUS:
+
 1. Open ARUS → System → Sensor Management
 2. Add each sensor with its tag, type, equipment link, and calibration data
 3. Verify telemetry is flowing: System → Diagnostics → Telemetry Status
@@ -176,18 +178,21 @@ Run through this checklist with the Chief Engineer:
 ## Crew Training (30 minutes)
 
 ### For Chief Engineer / 2nd Engineer:
+
 - How to check PdM alerts and equipment health scores
 - How to use the AI assistant for technical questions
 - How to view maintenance history imported from SHIPMATE
 - How SHIPMATE remains the system of record — ARUS is for analysis
 
 ### For Deck Officers:
+
 - How to use the role-based home screen
 - How to create logbook entries (with auto-fill from telemetry)
 - How to check hours of rest compliance
 - Bridge night mode toggle location
 
 ### For All Users:
+
 - The connectivity indicator and what it means
 - What "saved locally" vs "synced to server" means
 - How to change roles on the home screen
@@ -244,17 +249,20 @@ nssm start ARUSBackend
 ### Sync Failures
 
 The sync system is designed to be resilient:
+
 - Failed syncs are queued and retried automatically
 - The vessel database is always the authoritative source during offline periods
 - When connectivity returns, the sync runs in order (oldest first)
 - Conflict resolution: vessel wins for data created during offline period
 
 To force a sync:
+
 ```powershell
 curl -X POST http://localhost:5000/api/sync/force
 ```
 
 To check sync status:
+
 ```powershell
 curl http://localhost:5000/api/sync/status
 ```
@@ -264,21 +272,25 @@ curl http://localhost:5000/api/sync/status
 ## Ongoing Maintenance
 
 ### Weekly
+
 - Check ARUS is running: `curl http://localhost:5000/api/healthz`
 - Verify telemetry is flowing: System → Diagnostics → Telemetry Status
 - Check for overdue sensor calibrations: System → Sensor Calibration → Overdue
 
 ### Monthly
+
 - Export fresh SHIPMATE data and re-import to keep ARUS in sync
 - Review PdM alerts and equipment health trends
 - Check disk space: `dir C:\ARUS\backend\data\`
 
 ### On Crew Change
+
 - Brief incoming crew on ARUS (30-minute walkthrough)
 - Verify incoming Chief Engineer can access the system
 - No account transfers needed — accounts are role-based, not person-based
 
 ### Software Updates
+
 - Updates are delivered via the Tauri auto-updater (when connectivity is available)
 - Backend updates: copy new files from USB, restart service
 - Database migrations run automatically on startup

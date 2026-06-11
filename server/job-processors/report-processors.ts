@@ -56,27 +56,31 @@ export async function processPDFGeneration(data: {
     if (reportData.equipmentHealth) {
       doc.fontSize(16).text("Equipment Health Summary", 100, 180);
       let y = 210;
-      reportData.equipmentHealth.slice(0, 10).forEach((equipment: { id: string; healthIndex: number; status: string }) => {
-        doc
-          .fontSize(10)
-          .text(`${equipment.id}: Health ${equipment.healthIndex}%`, 100, y)
-          .text(`Status: ${equipment.status}`, 300, y);
-        y += 20;
-      });
+      reportData.equipmentHealth
+        .slice(0, 10)
+        .forEach((equipment: { id: string; healthIndex: number; status: string }) => {
+          doc
+            .fontSize(10)
+            .text(`${equipment.id}: Health ${equipment.healthIndex}%`, 100, y)
+            .text(`Status: ${equipment.status}`, 300, y);
+          y += 20;
+        });
     }
 
     if (reportData.workOrders) {
       let y = 350;
       doc.fontSize(16).text("Work Orders Summary", 100, y);
       y += 30;
-      reportData.workOrders.slice(0, 5).forEach((order: { title: string; priority: string; status: string }) => {
-        doc
-          .fontSize(10)
-          .text(`${order.title}`, 100, y)
-          .text(`Priority: ${order.priority}`, 300, y)
-          .text(`Status: ${order.status}`, 400, y);
-        y += 20;
-      });
+      reportData.workOrders
+        .slice(0, 5)
+        .forEach((order: { title: string; priority: string; status: string }) => {
+          doc
+            .fontSize(10)
+            .text(`${order.title}`, 100, y)
+            .text(`Priority: ${order.priority}`, 300, y)
+            .text(`Status: ${order.status}`, 400, y);
+          y += 20;
+        });
     }
 
     doc.end();
@@ -103,33 +107,37 @@ export async function processCSVGeneration(data: {
   const timestamp = new Date().toISOString();
 
   if (reportData.equipmentHealth) {
-    reportData.equipmentHealth.forEach((equipment: { id: string; healthIndex: number; vessel: string; status: string }) => {
-      csvRows.push(
-        [
-          "Equipment Health",
-          "Health Index",
-          sanitizeCSV(equipment.id),
-          equipment.healthIndex,
-          `Vessel: ${sanitizeCSV(equipment.vessel)}, Status: ${equipment.status}`,
-          timestamp,
-        ].join(",")
-      );
-    });
+    reportData.equipmentHealth.forEach(
+      (equipment: { id: string; healthIndex: number; vessel: string; status: string }) => {
+        csvRows.push(
+          [
+            "Equipment Health",
+            "Health Index",
+            sanitizeCSV(equipment.id),
+            equipment.healthIndex,
+            `Vessel: ${sanitizeCSV(equipment.vessel)}, Status: ${equipment.status}`,
+            timestamp,
+          ].join(",")
+        );
+      }
+    );
   }
 
   if (reportData.workOrders) {
-    reportData.workOrders.forEach((order: { id: string; title: string; priority: string; status: string }) => {
-      csvRows.push(
-        [
-          "Work Orders",
-          "Maintenance Task",
-          sanitizeCSV(order.id),
-          sanitizeCSV(order.title),
-          `Priority: ${order.priority}, Status: ${order.status}`,
-          timestamp,
-        ].join(",")
-      );
-    });
+    reportData.workOrders.forEach(
+      (order: { id: string; title: string; priority: string; status: string }) => {
+        csvRows.push(
+          [
+            "Work Orders",
+            "Maintenance Task",
+            sanitizeCSV(order.id),
+            sanitizeCSV(order.title),
+            `Priority: ${order.priority}, Status: ${order.status}`,
+            timestamp,
+          ].join(",")
+        );
+      }
+    );
   }
 
   const csv = csvRows.join("\n");
@@ -171,7 +179,13 @@ export async function processHTMLGeneration(data: {
         <tbody>${reportData.equipmentHealth
           .slice(0, 20)
           .map(
-            (e: { id: string; vessel: string; healthIndex: number; status: string; predictedDueDays?: number }) => `
+            (e: {
+              id: string;
+              vessel: string;
+              healthIndex: number;
+              status: string;
+              predictedDueDays?: number;
+            }) => `
           <tr><td>${escapeHtml(e.id)}</td><td>${escapeHtml(e.vessel)}</td><td>${e.healthIndex}%</td>
           <td class="status-${e.status === "critical" ? "critical" : e.status === "warning" ? "warning" : "normal"}">${escapeHtml(e.status)}</td>
           <td>${e.predictedDueDays || "N/A"}</td></tr>`
@@ -186,7 +200,13 @@ export async function processHTMLGeneration(data: {
         <tbody>${reportData.workOrders
           .slice(0, 15)
           .map(
-            (o: { title: string; equipmentId: string; priority: string; status: string; dueDate?: string | Date }) => `
+            (o: {
+              title: string;
+              equipmentId: string;
+              priority: string;
+              status: string;
+              dueDate?: string | Date;
+            }) => `
           <tr><td>${escapeHtml(o.title)}</td><td>${escapeHtml(o.equipmentId)}</td>
           <td class="status-${o.priority === "critical" ? "critical" : o.priority === "high" ? "warning" : "normal"}">${escapeHtml(o.priority)}</td>
           <td>${escapeHtml(o.status)}</td><td>${o.dueDate ? new Date(o.dueDate).toLocaleDateString() : "N/A"}</td></tr>`

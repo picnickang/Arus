@@ -38,7 +38,9 @@ export async function createServiceOrder(
   executor: { insert: typeof db.insert } = db
 ): Promise<ServiceOrder> {
   const [so] = await executor.insert(serviceOrders).values(data).returning();
-  if (!so) {throw new Error("createServiceOrder: no row returned");}
+  if (!so) {
+    throw new Error("createServiceOrder: no row returned");
+  }
   await executor.insert(serviceOrderEvents).values({
     orgId: data.orgId,
     soId: so.id,
@@ -190,8 +192,8 @@ export async function updateServiceOrderStatus(
     updates.actualEndDate = now;
   } else if (status === "cancelled") {
     updates.cancelledAt = now;
-    if (details?.['reason']) {
-      updates.cancellationReason = details['reason'] as string;
+    if (details?.["reason"]) {
+      updates.cancellationReason = details["reason"] as string;
     }
   }
 

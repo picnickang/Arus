@@ -54,7 +54,7 @@ describe("planPdmBackfill", () => {
     expect(admin.roleId).toBe("role-admin");
     expect(admin.applied).toBe(false);
     expect(admin.added.map((a) => a.action).sort()).toEqual(
-      ["manage_config", "override", "view"].sort(),
+      ["manage_config", "override", "view"].sort()
     );
     expect(admin.added.every((a) => a.resource === PDM_RESOURCE_CODE)).toBe(true);
     expect(admin.skippedRevoked).toEqual([]);
@@ -143,11 +143,18 @@ describe("planPdmBackfill", () => {
       { id: "role-chief", name: "chief_engineer", templateId: "tpl-chief" },
       { id: "role-viewer", name: "viewer", templateId: "tpl-viewer" },
     ];
-    const plan = planPdmBackfill([ADMIN_TEMPLATE, CHIEF_TEMPLATE, viewerTemplate], roles, new Map(), false);
+    const plan = planPdmBackfill(
+      [ADMIN_TEMPLATE, CHIEF_TEMPLATE, viewerTemplate],
+      roles,
+      new Map(),
+      false
+    );
 
     const roleNames = plan.map((r) => r.roleName);
     expect(roleNames).not.toContain("viewer");
-    expect(roleNames.every((n) => (PDM_BACKFILL_ROLE_NAMES as readonly string[]).includes(n))).toBe(true);
+    expect(roleNames.every((n) => (PDM_BACKFILL_ROLE_NAMES as readonly string[]).includes(n))).toBe(
+      true
+    );
     // chief_engineer template carries view + manage_config but NOT override.
     const chief = plan.find((r) => r.roleName === "chief_engineer");
     expect(chief?.added.map((a) => a.action).sort()).toEqual(["manage_config", "view"]);

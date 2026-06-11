@@ -57,9 +57,7 @@ export async function computeFleetLoadBenchmarks(
   vesselType?: string
 ): Promise<FleetLoadBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
-  const filteredVessels = vesselType
-    ? vessels.filter((v) => v.vesselType === vesselType)
-    : vessels;
+  const filteredVessels = vesselType ? vessels.filter((v) => v.vesselType === vesselType) : vessels;
   if (filteredVessels.length === 0) {
     return [];
   }
@@ -111,9 +109,7 @@ export async function computeFleetPowerSTWBenchmarks(
   vesselType?: string
 ): Promise<FleetPowerSTWBenchmark[]> {
   const vessels = await vesselService.getVessels(orgId);
-  const filteredVessels = vesselType
-    ? vessels.filter((v) => v.vesselType === vesselType)
-    : vessels;
+  const filteredVessels = vesselType ? vessels.filter((v) => v.vesselType === vesselType) : vessels;
   if (filteredVessels.length === 0) {
     return [];
   }

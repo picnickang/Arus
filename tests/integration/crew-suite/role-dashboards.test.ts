@@ -32,7 +32,9 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
-  if (roleId) {await deleteRoleHard(roleId);}
+  if (roleId) {
+    await deleteRoleHard(roleId);
+  }
 });
 
 describe("Role dashboards (§M)", () => {
@@ -47,7 +49,7 @@ describe("Role dashboards (§M)", () => {
     expect(get.ok).toBe(true);
     const body = get.data as DashboardResponse;
     expect(body.config.widgets).toEqual(
-      expect.arrayContaining(["safety_status", "safety_notices"]),
+      expect.arrayContaining(["safety_status", "safety_notices"])
     );
   });
 

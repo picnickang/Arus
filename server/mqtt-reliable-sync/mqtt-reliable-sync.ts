@@ -94,11 +94,11 @@ export class MqttReliableSyncService extends EventEmitter {
       };
 
       if (this.config.enableTls) {
-        connectOptions.rejectUnauthorized = process.env['MQTT_TLS_REJECT_UNAUTHORIZED'] !== "false";
+        connectOptions.rejectUnauthorized = process.env["MQTT_TLS_REJECT_UNAUTHORIZED"] !== "false";
       }
 
-      const isEmbeddedMode = process.env['EMBEDDED_MODE'] === "true";
-      const isLocalMode = process.env['LOCAL_MODE'] === "true";
+      const isEmbeddedMode = process.env["EMBEDDED_MODE"] === "true";
+      const isLocalMode = process.env["LOCAL_MODE"] === "true";
 
       this.client = mqtt.connect(this.config.brokerUrl, connectOptions);
 
@@ -136,8 +136,8 @@ export class MqttReliableSyncService extends EventEmitter {
         });
       });
     } catch (error) {
-      const isEmbeddedMode = process.env['EMBEDDED_MODE'] === "true";
-      const isLocalMode = process.env['LOCAL_MODE'] === "true";
+      const isEmbeddedMode = process.env["EMBEDDED_MODE"] === "true";
+      const isLocalMode = process.env["LOCAL_MODE"] === "true";
 
       if (isEmbeddedMode || isLocalMode) {
         logExpectedLimitation(

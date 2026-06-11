@@ -16,13 +16,13 @@ The following tables lack proper foreign key constraints, which could lead to or
 
 ### Tables Requiring Foreign Keys
 
-| Table | Missing FK Column | Should Reference |
-|-------|------------------|------------------|
-| `work_order_parts` | `work_order_id` | `work_orders.id` |
-| `work_order_parts` | `part_id` | `inventory_items.id` |
-| `maintenance_costs` | `work_order_id` | `work_orders.id` |
-| `maintenance_costs` | `equipment_id` | `equipment.id` |
-| `ml_model_accuracy_history` | `model_id` | `ml_models.id` |
+| Table                       | Missing FK Column | Should Reference     |
+| --------------------------- | ----------------- | -------------------- |
+| `work_order_parts`          | `work_order_id`   | `work_orders.id`     |
+| `work_order_parts`          | `part_id`         | `inventory_items.id` |
+| `maintenance_costs`         | `work_order_id`   | `work_orders.id`     |
+| `maintenance_costs`         | `equipment_id`    | `equipment.id`       |
+| `ml_model_accuracy_history` | `model_id`        | `ml_models.id`       |
 
 ### Migration Strategy
 
@@ -125,13 +125,13 @@ The single-tenant migration left nullable `org_id` columns throughout the schema
 
 ## Implementation Timeline
 
-| Phase | Priority | Status | Target |
-|-------|----------|--------|--------|
-| Composite Indexes | High | **DONE** | January 2026 |
-| Route Validation Audit | High | **DONE** | January 2026 |
-| Foreign Keys | Medium | Planning | Future Sprint |
-| org_id Cleanup | Low | Deferred | TBD |
-| Query Optimization | Ongoing | In Progress | Continuous |
+| Phase                  | Priority | Status      | Target        |
+| ---------------------- | -------- | ----------- | ------------- |
+| Composite Indexes      | High     | **DONE**    | January 2026  |
+| Route Validation Audit | High     | **DONE**    | January 2026  |
+| Foreign Keys           | Medium   | Planning    | Future Sprint |
+| org_id Cleanup         | Low      | Deferred    | TBD           |
+| Query Optimization     | Ongoing  | In Progress | Continuous    |
 
 ---
 
@@ -154,12 +154,14 @@ The codebase was audited for consistent request body validation patterns.
 ### Validation Patterns Found
 
 **Pattern 1: Formal Zod Validation (Preferred)**
+
 ```typescript
-const body = schema.parse(req.body);  // Throws on invalid data
-const result = schema.safeParse(req.body);  // Returns success/error object
+const body = schema.parse(req.body); // Throws on invalid data
+const result = schema.safeParse(req.body); // Returns success/error object
 ```
 
 **Pattern 2: Inline Validation (Legacy)**
+
 ```typescript
 if (!partId || !quantity) {
   return res.status(400).json({ message: "partId and quantity are required" });
@@ -168,14 +170,15 @@ if (!partId || !quantity) {
 
 ### Coverage Analysis
 
-| Domain | Total req.body Uses | With .parse() | Validation % |
-|--------|---------------------|---------------|--------------|
-| routes/ | 26 | 11 | 42% |
-| domains/ | 200+ | 70+ | ~35% |
+| Domain   | Total req.body Uses | With .parse() | Validation % |
+| -------- | ------------------- | ------------- | ------------ |
+| routes/  | 26                  | 11            | 42%          |
+| domains/ | 200+                | 70+           | ~35%         |
 
 ### Existing Infrastructure
 
 The codebase has excellent validation infrastructure in `server/shared/validators.ts`:
+
 - 40+ reusable Zod schemas (UUID, pagination, date ranges, etc.)
 - Helper functions: `validateRequest()`, `safeValidateRequest()`
 - Domain-specific schemas for crew, work orders, telemetry, etc.
@@ -189,6 +192,7 @@ The codebase has excellent validation infrastructure in `server/shared/validator
 ### Low-Risk Findings
 
 Most unvalidated routes have:
+
 - Runtime checks for required fields
 - Type coercion at the storage layer
 - Rate limiting and authentication in place

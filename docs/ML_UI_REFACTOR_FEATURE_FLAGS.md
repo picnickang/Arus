@@ -27,7 +27,7 @@
 ```typescript
 /**
  * ML/AI UI Refactor Feature Flags
- * 
+ *
  * Flags can be controlled via:
  * 1. Environment variables (VITE_FEATURE_*)
  * 2. LocalStorage overrides (for testing)
@@ -40,12 +40,12 @@ interface FeatureFlags {
   enableUnifiedTrainingForm: boolean;
   enableNewAcousticUI: boolean;
   enableDataExports: boolean;
-  
+
   // Phase 2: AI Performance
   enableNewPerformanceDashboard: boolean;
   enableNewExplanations: boolean;
   enableNewFeedbackUI: boolean;
-  
+
   // Phase 3: AI Insights
   enableNewAIReports: boolean;
   enableVesselIntelligence: boolean;
@@ -76,36 +76,36 @@ function getFlag(key: keyof FeatureFlags): boolean {
   // LocalStorage override (dev testing)
   const localOverride = localStorage.getItem(`feature_${key}`);
   if (localOverride !== null) {
-    return localOverride === 'true';
+    return localOverride === "true";
   }
-  
+
   // Environment variable
-  const envKey = `VITE_FEATURE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`;
+  const envKey = `VITE_FEATURE_${key.replace(/([A-Z])/g, "_$1").toUpperCase()}`;
   const envValue = import.meta.env[envKey];
   if (envValue !== undefined) {
-    return envValue === 'true';
+    return envValue === "true";
   }
-  
+
   // Default
   return defaultFlags[key];
 }
 
 export const featureFlags = {
   // Phase 1
-  enableNewModelManagement: getFlag('enableNewModelManagement'),
-  enableUnifiedTrainingForm: getFlag('enableUnifiedTrainingForm'),
-  enableNewAcousticUI: getFlag('enableNewAcousticUI'),
-  enableDataExports: getFlag('enableDataExports'),
-  
+  enableNewModelManagement: getFlag("enableNewModelManagement"),
+  enableUnifiedTrainingForm: getFlag("enableUnifiedTrainingForm"),
+  enableNewAcousticUI: getFlag("enableNewAcousticUI"),
+  enableDataExports: getFlag("enableDataExports"),
+
   // Phase 2
-  enableNewPerformanceDashboard: getFlag('enableNewPerformanceDashboard'),
-  enableNewExplanations: getFlag('enableNewExplanations'),
-  enableNewFeedbackUI: getFlag('enableNewFeedbackUI'),
-  
+  enableNewPerformanceDashboard: getFlag("enableNewPerformanceDashboard"),
+  enableNewExplanations: getFlag("enableNewExplanations"),
+  enableNewFeedbackUI: getFlag("enableNewFeedbackUI"),
+
   // Phase 3
-  enableNewAIReports: getFlag('enableNewAIReports'),
-  enableVesselIntelligence: getFlag('enableVesselIntelligence'),
-  enableEquipmentKnowledge: getFlag('enableEquipmentKnowledge'),
+  enableNewAIReports: getFlag("enableNewAIReports"),
+  enableVesselIntelligence: getFlag("enableVesselIntelligence"),
+  enableEquipmentKnowledge: getFlag("enableEquipmentKnowledge"),
 };
 
 /**
@@ -120,9 +120,9 @@ export function debugFeatureFlags() {
  */
 export function enableAllFlags() {
   Object.keys(defaultFlags).forEach((key) => {
-    localStorage.setItem(`feature_${key}`, 'true');
+    localStorage.setItem(`feature_${key}`, "true");
   });
-  console.log('✅ All feature flags enabled. Refresh to apply.');
+  console.log("✅ All feature flags enabled. Refresh to apply.");
 }
 
 /**
@@ -132,7 +132,7 @@ export function disableAllFlags() {
   Object.keys(defaultFlags).forEach((key) => {
     localStorage.removeItem(`feature_${key}`);
   });
-  console.log('✅ All feature flags disabled. Refresh to apply.');
+  console.log("✅ All feature flags disabled. Refresh to apply.");
 }
 
 // Expose to window for console access
@@ -209,6 +209,7 @@ export function FeatureFlag({ flag, fallback = null, children }: FeatureFlagProp
 **Method:** LocalStorage overrides
 
 **Setup:**
+
 ```bash
 # In browser console on dev environment
 window.featureFlags.enableAll();
@@ -216,12 +217,14 @@ location.reload();
 ```
 
 **Validation:**
+
 - ✅ All new components render without errors
 - ✅ All existing functionality still works
 - ✅ No console errors or warnings
 - ✅ Mobile layouts work correctly
 
 **Exit Criteria:**
+
 - All E2E tests passing
 - No critical bugs
 - Performance metrics acceptable
@@ -234,6 +237,7 @@ location.reload();
 **Method:** Environment variable + invitation
 
 **Deployment:**
+
 ```bash
 # .env.production
 VITE_FEATURE_ENABLE_NEW_MODEL_MANAGEMENT=true
@@ -241,16 +245,19 @@ VITE_FEATURE_ENABLE_UNIFIED_TRAINING_FORM=true
 ```
 
 **Beta Invitation:**
+
 - Email selected users
 - Provide feedback form: "What do you like? What's confusing?"
 - Monitor Sentry for errors
 
 **Metrics to Track:**
+
 - User session duration (should not decrease)
 - Error rate (should not increase)
 - Task completion time (training a model, generating report)
 
 **Exit Criteria:**
+
 - No critical bugs reported
 - Positive user feedback (>80% satisfaction)
 - Error rate < 1%
@@ -263,6 +270,7 @@ VITE_FEATURE_ENABLE_UNIFIED_TRAINING_FORM=true
 **Method:** Gradual environment variable rollout
 
 **25% Rollout:**
+
 ```bash
 # Enable for random sample
 # (Requires backend percentage-based flag support - future enhancement)
@@ -270,15 +278,18 @@ VITE_FEATURE_ENABLE_NEW_MODEL_MANAGEMENT=true
 ```
 
 **Monitor for 48 hours:**
+
 - Performance metrics
 - Error rates
 - User feedback
 - Support tickets
 
 **50% Rollout:**
+
 - If metrics stable, increase to 50%
 
 **100% Rollout:**
+
 - If metrics still stable, enable for all users
 - Old components remain in codebase (code path available)
 
@@ -287,6 +298,7 @@ VITE_FEATURE_ENABLE_NEW_MODEL_MANAGEMENT=true
 ### Phase 4: Deprecation (Week 6+)
 
 **After 2 weeks at 100%:**
+
 - Monitor for any late-surfacing issues
 - If stable, remove old components from codebase
 - Remove feature flags (code cleanup)
@@ -300,6 +312,7 @@ VITE_FEATURE_ENABLE_NEW_MODEL_MANAGEMENT=true
 **Scenario:** Critical bug discovered in production
 
 **Action:**
+
 ```bash
 # 1. Disable feature flag immediately
 # .env.production
@@ -312,6 +325,7 @@ npm run build && npm run deploy
 ```
 
 **Communication:**
+
 - Post in #incidents Slack channel
 - Update status page
 - Notify affected users
@@ -323,6 +337,7 @@ npm run build && npm run deploy
 **Scenario:** One feature broken, others work fine
 
 **Action:**
+
 ```bash
 # Disable only the problematic feature
 VITE_FEATURE_ENABLE_NEW_ACOUSTIC_UI=false
@@ -342,16 +357,17 @@ NEW → BETA → ROLLOUT → ESTABLISHED → DEPRECATED → REMOVED
 
 **Lifecycle Management:**
 
-| State | Description | Duration | Action |
-|-------|-------------|----------|--------|
-| NEW | Just developed | 1 week | Internal testing only |
-| BETA | Beta users testing | 1 week | Gather feedback |
-| ROLLOUT | Gradual 25→100% | 1-2 weeks | Monitor metrics |
-| ESTABLISHED | 100% enabled, stable | 2+ weeks | Remove flag if no issues |
-| DEPRECATED | Flag always true | N/A | Clean up code |
-| REMOVED | Code deleted | N/A | Flag deleted |
+| State       | Description          | Duration  | Action                   |
+| ----------- | -------------------- | --------- | ------------------------ |
+| NEW         | Just developed       | 1 week    | Internal testing only    |
+| BETA        | Beta users testing   | 1 week    | Gather feedback          |
+| ROLLOUT     | Gradual 25→100%      | 1-2 weeks | Monitor metrics          |
+| ESTABLISHED | 100% enabled, stable | 2+ weeks  | Remove flag if no issues |
+| DEPRECATED  | Flag always true     | N/A       | Clean up code            |
+| REMOVED     | Code deleted         | N/A       | Flag deleted             |
 
 **Cleanup Schedule:**
+
 - Every sprint: Review flags in "ESTABLISHED" state
 - Remove flags that have been stable for 2+ weeks
 - Document flag removal in changelog
@@ -361,6 +377,7 @@ NEW → BETA → ROLLOUT → ESTABLISHED → DEPRECATED → REMOVED
 ## Environment Configuration
 
 ### Development
+
 ```bash
 # .env.development
 # All flags enabled for dev/testing
@@ -377,6 +394,7 @@ VITE_FEATURE_ENABLE_EQUIPMENT_KNOWLEDGE=true
 ```
 
 ### Staging
+
 ```bash
 # .env.staging
 # Match production rollout state
@@ -386,6 +404,7 @@ VITE_FEATURE_ENABLE_UNIFIED_TRAINING_FORM=false
 ```
 
 ### Production
+
 ```bash
 # .env.production
 # Controlled rollout (start with all false)
@@ -408,9 +427,10 @@ VITE_FEATURE_ENABLE_EQUIPMENT_KNOWLEDGE=false
 ### Unit Tests
 
 **Mock feature flags in tests:**
+
 ```typescript
 // jest.setup.ts
-jest.mock('@/lib/feature-flags', () => ({
+jest.mock("@/lib/feature-flags", () => ({
   featureFlags: {
     enableNewModelManagement: true,
     // ... all flags true for testing
@@ -421,9 +441,10 @@ jest.mock('@/lib/feature-flags', () => ({
 ### E2E Tests
 
 **Test both paths:**
+
 ```typescript
 // Test old UI (flag disabled)
-test('ML Training - Old UI', async ({ page }) => {
+test("ML Training - Old UI", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear(); // Ensure no overrides
   });
@@ -431,9 +452,9 @@ test('ML Training - Old UI', async ({ page }) => {
 });
 
 // Test new UI (flag enabled)
-test('ML Training - New UI', async ({ page }) => {
+test("ML Training - New UI", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('feature_enableNewModelManagement', 'true');
+    localStorage.setItem("feature_enableNewModelManagement", "true");
   });
   // Test new UI behavior
 });
@@ -482,21 +503,25 @@ export function FeatureFlagsAdmin() {
 ### Metrics to Track Per Flag
 
 **Performance:**
+
 - Page load time (old vs new)
 - Time to Interactive
 - Bundle size impact
 
 **Usage:**
+
 - % of users seeing new UI
 - Feature adoption rate
 - User engagement metrics
 
 **Errors:**
+
 - JavaScript errors (by feature flag)
 - API errors (by feature flag)
 - User-reported bugs
 
 **Alerts:**
+
 ```yaml
 # Alert if error rate increases >5% after enabling flag
 - alert: FeatureFlagErrorRateHigh
@@ -515,29 +540,35 @@ export function FeatureFlagsAdmin() {
 
 ### User-Facing
 
-**No need to mention feature flags to users!**  
+**No need to mention feature flags to users!**
+
 - They see the new UI when it's ready
 - No "beta" or "experimental" labels (unless desired)
 
 ### Developer-Facing
 
 **README section:**
-```markdown
+
+````markdown
 ## Feature Flags
 
 This project uses feature flags for gradual rollout.
 
 ### Enable all flags locally:
+
 ```javascript
 // Browser console
 window.featureFlags.enableAll();
 location.reload();
 ```
+````
 
 ### Check current flags:
+
 ```javascript
 window.featureFlags.current;
 ```
+
 ```
 
 ---
@@ -561,3 +592,4 @@ window.featureFlags.current;
 ---
 
 **Next Step:** Proceed to Mobile Responsive Strategy
+```

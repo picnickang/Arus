@@ -65,7 +65,7 @@ export function useGovernanceData() {
       }
       return apiRequest<{ success: boolean; count: number; records: LineageRecord[] }>(
         "GET",
-        `/api/governance/model/lineage?${params.toString()}`,
+        `/api/governance/model/lineage?${params.toString()}`
       );
     },
   });
@@ -93,7 +93,7 @@ export function useGovernanceData() {
       params.set("limit", String(provenanceFilters.limit));
       return apiRequest<{ success: boolean; events: ProvenanceEvent[]; total: number }>(
         "GET",
-        `/api/governance/provenance/events?${params.toString()}`,
+        `/api/governance/provenance/events?${params.toString()}`
       );
     },
     enabled: activeTab === "provenance",
@@ -104,7 +104,7 @@ export function useGovernanceData() {
       apiRequest<{ success: boolean; verification: VerificationResult }>(
         "POST",
         "/api/governance/provenance/verify",
-        {},
+        {}
       ),
     onSuccess: (data: { success: boolean; verification: VerificationResult }) => {
       if (data.verification.ok) {

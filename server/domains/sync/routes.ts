@@ -88,7 +88,7 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("process sync events", async (req: Request, res: Response) => {
-      const limit = Number.parseInt(req.query['limit'] as string) || 100;
+      const limit = Number.parseInt(req.query["limit"] as string) || 100;
       const processed = await processPendingEvents(limit);
 
       res.json({
@@ -164,7 +164,12 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       const orgId = authenticatedRequest(req).orgId;
       const { table, recordId, data, version, timestamp, user, device } = req.body ?? {};
 
-      if (typeof table !== "string" || typeof recordId !== "string" || data === undefined || version === undefined) {
+      if (
+        typeof table !== "string" ||
+        typeof recordId !== "string" ||
+        data === undefined ||
+        version === undefined
+      ) {
         res.status(400).json({
           message: "Missing required fields: table, recordId, data, version",
         });
@@ -214,7 +219,10 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
           clientTimestamp,
         });
       } catch (error) {
-        if (error instanceof ConflictPayloadError || error instanceof ConflictTableNotAllowedError) {
+        if (
+          error instanceof ConflictPayloadError ||
+          error instanceof ConflictTableNotAllowedError
+        ) {
           res.status(400).json({ message: error.message });
           return;
         }
@@ -273,7 +281,11 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       const orgId = authenticatedRequest(req).orgId;
       const { conflictId, resolvedValue, resolvedBy, resolutionNotes } = req.body ?? {};
 
-      if (typeof conflictId !== "string" || resolvedValue === undefined || typeof resolvedBy !== "string") {
+      if (
+        typeof conflictId !== "string" ||
+        resolvedValue === undefined ||
+        typeof resolvedBy !== "string"
+      ) {
         res.status(400).json({
           message: "Missing required fields: conflictId, resolvedValue, resolvedBy",
         });
@@ -310,7 +322,11 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       const orgId = authenticatedRequest(req).orgId;
       const { conflictIds, resolvedBy } = req.body ?? {};
 
-      if (!Array.isArray(conflictIds) || conflictIds.length === 0 || typeof resolvedBy !== "string") {
+      if (
+        !Array.isArray(conflictIds) ||
+        conflictIds.length === 0 ||
+        typeof resolvedBy !== "string"
+      ) {
         res.status(400).json({
           message: "Missing required fields: conflictIds (non-empty array), resolvedBy",
         });
@@ -337,7 +353,8 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         return;
       }
 
-      const resolved: Array<{ conflictId: string; field: string | null; resolvedValue: unknown }> = [];
+      const resolved: Array<{ conflictId: string; field: string | null; resolvedValue: unknown }> =
+        [];
 
       for (const conflict of conflicts) {
         let resolvedValue;
@@ -362,7 +379,12 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         const strategyFn = resolutionStrategies[conflict.resolutionStrategy ?? ""];
         resolvedValue = strategyFn ? strategyFn() : localValue;
 
-        await manuallyResolveConflict(conflict.id, resolvedValue, `system:auto-${resolvedBy}`, orgId);
+        await manuallyResolveConflict(
+          conflict.id,
+          resolvedValue,
+          `system:auto-${resolvedBy}`,
+          orgId
+        );
         resolved.push({
           conflictId: conflict.id,
           field: conflict.fieldName ?? null,

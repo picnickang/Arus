@@ -15,11 +15,11 @@ export function InlineDraftApproval({
   isPending: boolean;
 }) {
   const draftData = draft.data || {};
-  const estimatedHours = draftData['estimatedHours'] as number | undefined;
-  const estimatedCostPerHour = draftData['estimatedCostPerHour'] as number | undefined;
-  const estimatedLaborCost = draftData['estimatedLaborCost'] as number | undefined;
-  const estimatedPartsCost = draftData['estimatedPartsCost'] as number | undefined;
-  const costJustification = draftData['costJustification'] as string | undefined;
+  const estimatedHours = draftData["estimatedHours"] as number | undefined;
+  const estimatedCostPerHour = draftData["estimatedCostPerHour"] as number | undefined;
+  const estimatedLaborCost = draftData["estimatedLaborCost"] as number | undefined;
+  const estimatedPartsCost = draftData["estimatedPartsCost"] as number | undefined;
+  const costJustification = draftData["costJustification"] as string | undefined;
   const hasCostInfo =
     estimatedHours != null ||
     estimatedCostPerHour != null ||

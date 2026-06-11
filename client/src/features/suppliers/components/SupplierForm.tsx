@@ -113,7 +113,9 @@ export function SupplierForm({
       isPreferred: supplier?.isPreferred ?? false,
       serviceCapabilities: supplier?.serviceCapabilities ?? [],
       certifications: supplier?.certifications ?? [],
-      ...(supplier?.responseSlaHours != null ? { responseSlaHours: supplier.responseSlaHours } : {}),
+      ...(supplier?.responseSlaHours != null
+        ? { responseSlaHours: supplier.responseSlaHours }
+        : {}),
       equipmentTypesServiced: supplier?.equipmentTypesServiced ?? [],
     },
   });

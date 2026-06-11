@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Camera, ClipboardCheck, Copy, PackageSearch, Printer, QrCode, Search, Wrench } from "lucide-react";
+import {
+  Activity,
+  Camera,
+  ClipboardCheck,
+  Copy,
+  PackageSearch,
+  Printer,
+  QrCode,
+  Search,
+  Wrench,
+} from "lucide-react";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,12 +30,16 @@ interface EquipmentLike {
 }
 
 function normalize(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function matchesCode(item: EquipmentLike, code: string): boolean {
   const target = normalize(code);
-  if (!target) {return false;}
+  if (!target) {
+    return false;
+  }
   return [item.id, item.name, item.tagNumber, item.assetTag, item.serialNumber]
     .map(normalize)
     .some((candidate) => candidate === target || candidate.includes(target));
@@ -50,13 +64,17 @@ export default function EquipmentScanPage() {
     : "";
 
   const copyQrPayload = async () => {
-    if (!selectedQrPayload) {return;}
+    if (!selectedQrPayload) {
+      return;
+    }
     await navigator.clipboard?.writeText(selectedQrPayload);
     setScanMessage("QR payload copied for label printing.");
   };
 
   const printLabel = () => {
-    if (!selectedEquipment) {return;}
+    if (!selectedEquipment) {
+      return;
+    }
     const labelWindow = window.open("", "_blank", "width=420,height=520");
     if (!labelWindow) {
       setScanMessage("Popup blocked. Allow popups to print labels.");
@@ -87,9 +105,17 @@ export default function EquipmentScanPage() {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Camera scanning is not available in this browser.");
       }
-      const BarcodeDetectorCtor = (window as object as { BarcodeDetector?: new (options?: unknown) => { detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>> } }).BarcodeDetector;
+      const BarcodeDetectorCtor = (
+        window as object as {
+          BarcodeDetector?: new (options?: unknown) => {
+            detect: (source: CanvasImageSource) => Promise<Array<{ rawValue?: string }>>;
+          };
+        }
+      ).BarcodeDetector;
       if (!BarcodeDetectorCtor) {
-        throw new Error("This device does not expose BarcodeDetector. Use a scanner wedge or type the asset tag.");
+        throw new Error(
+          "This device does not expose BarcodeDetector. Use a scanner wedge or type the asset tag."
+        );
       }
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       const video = document.createElement("video");
@@ -102,7 +128,8 @@ export default function EquipmentScanPage() {
         throw new Error("No QR code detected. Try again closer to the label.");
       }
       const parsed = new URL(rawValue, window.location.origin);
-      const scannedCode = parsed.searchParams.get("equipmentId") || parsed.searchParams.get("code") || rawValue;
+      const scannedCode =
+        parsed.searchParams.get("equipmentId") || parsed.searchParams.get("code") || rawValue;
       setCode(scannedCode);
       setScanMessage("QR code scanned.");
     } catch (error) {
@@ -121,7 +148,10 @@ export default function EquipmentScanPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
-      <PageHeader title="Scan Equipment" subtitle="Enter a QR code, asset tag, serial number, or equipment name." />
+      <PageHeader
+        title="Scan Equipment"
+        subtitle="Enter a QR code, asset tag, serial number, or equipment name."
+      />
       <div className="space-y-6 px-4 pt-2 lg:px-6">
         <Card>
           <CardHeader>
@@ -130,7 +160,8 @@ export default function EquipmentScanPage() {
               Equipment entry point
             </CardTitle>
             <CardDescription>
-              QR labels should encode either /equipment-scan?equipmentId=&lt;id&gt; or /equipment-scan?code=&lt;asset-tag&gt;.
+              QR labels should encode either /equipment-scan?equipmentId=&lt;id&gt; or
+              /equipment-scan?code=&lt;asset-tag&gt;.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -147,14 +178,32 @@ export default function EquipmentScanPage() {
             </div>
             {scanMessage && <p className="text-sm text-muted-foreground">{scanMessage}</p>}
             <div className="grid gap-2 md:grid-cols-4">
-              <Button onClick={() => selectedEquipment && setLocation(`/equipment/${selectedEquipment.id}`)} disabled={!selectedEquipment}>
+              <Button
+                onClick={() =>
+                  selectedEquipment && setLocation(`/equipment/${selectedEquipment.id}`)
+                }
+                disabled={!selectedEquipment}
+              >
                 Open equipment
               </Button>
-              <Button variant="outline" onClick={() => selectedEquipment && setLocation(`/work-orders?action=create&equipmentId=${selectedEquipment.id}`)} disabled={!selectedEquipment}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  selectedEquipment &&
+                  setLocation(`/work-orders?action=create&equipmentId=${selectedEquipment.id}`)
+                }
+                disabled={!selectedEquipment}
+              >
                 <Wrench className="h-4 w-4" />
                 Create defect
               </Button>
-              <Button variant="outline" onClick={() => selectedEquipment && setLocation(`/pdm/equipment/${selectedEquipment.id}`)} disabled={!selectedEquipment}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  selectedEquipment && setLocation(`/pdm/equipment/${selectedEquipment.id}`)
+                }
+                disabled={!selectedEquipment}
+              >
                 <Activity className="h-4 w-4" />
                 PdM detail
               </Button>
@@ -185,12 +234,15 @@ export default function EquipmentScanPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Matched equipment</CardTitle>
-            <CardDescription>{isLoading ? "Loading equipment..." : `${matches.length} match(es)`}</CardDescription>
+            <CardDescription>
+              {isLoading ? "Loading equipment..." : `${matches.length} match(es)`}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {!code && (
               <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                Scan or type a code to jump straight to equipment health, open work, parts, manuals, logs, and PdM actions.
+                Scan or type a code to jump straight to equipment health, open work, parts, manuals,
+                logs, and PdM actions.
               </div>
             )}
             {code && !isLoading && matches.length === 0 && (
@@ -205,7 +257,9 @@ export default function EquipmentScanPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge>{item.type || item.category || "Equipment"}</Badge>
                       {item.assetTag && <Badge variant="outline">Asset {item.assetTag}</Badge>}
-                      {item.serialNumber && <Badge variant="outline">Serial {item.serialNumber}</Badge>}
+                      {item.serialNumber && (
+                        <Badge variant="outline">Serial {item.serialNumber}</Badge>
+                      )}
                     </div>
                     <h3 className="mt-2 font-semibold">{item.name || item.id}</h3>
                     <p className="text-xs text-muted-foreground">ID: {item.id}</p>
@@ -214,11 +268,21 @@ export default function EquipmentScanPage() {
                     <Button size="sm" onClick={() => setLocation(`/equipment/${item.id}`)}>
                       Open
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation(`/work-orders?action=create&equipmentId=${item.id}`)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setLocation(`/work-orders?action=create&equipmentId=${item.id}`)
+                      }
+                    >
                       <ClipboardCheck className="h-4 w-4" />
                       Work order
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation(`/pdm/equipment/${item.id}`)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setLocation(`/pdm/equipment/${item.id}`)}
+                    >
                       PdM
                     </Button>
                   </div>

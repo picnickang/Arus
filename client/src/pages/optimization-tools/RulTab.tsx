@@ -1,19 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Loader2,
-  Target,
-  Wrench,
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, CheckCircle, Clock, Loader2, Target, Wrench } from "lucide-react";
 import { formatDecimal, formatPercent } from "@/lib/formatters";
 
 interface ComponentStatus {
@@ -60,10 +47,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
                     {eq.type} - {eq.location}
                   </CardDescription>
                 </div>
-                <Badge
-                  className={`${riskColor} text-white`}
-                  data-testid={`badge-risk-${eq.id}`}
-                >
+                <Badge className={`${riskColor} text-white`} data-testid={`badge-risk-${eq.id}`}>
                   {rulData.riskLevel.toUpperCase()} RISK
                 </Badge>
               </div>
@@ -75,10 +59,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm font-medium">Remaining Days</p>
                   </div>
-                  <p
-                    className="text-2xl font-bold"
-                    data-testid={`text-remaining-days-${eq.id}`}
-                  >
+                  <p className="text-2xl font-bold" data-testid={`text-remaining-days-${eq.id}`}>
                     {rulData.remainingDays}
                   </p>
                 </Card>
@@ -87,10 +68,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
                     <Target className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm font-medium">Health Index</p>
                   </div>
-                  <p
-                    className="text-2xl font-bold"
-                    data-testid={`text-health-index-${eq.id}`}
-                  >
+                  <p className="text-2xl font-bold" data-testid={`text-health-index-${eq.id}`}>
                     {rulData.healthIndex}%
                   </p>
                 </Card>
@@ -99,10 +77,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
                     <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm font-medium">Failure Probability</p>
                   </div>
-                  <p
-                    className="text-2xl font-bold"
-                    data-testid={`text-failure-prob-${eq.id}`}
-                  >
+                  <p className="text-2xl font-bold" data-testid={`text-failure-prob-${eq.id}`}>
                     {formatPercent(rulData.failureProbability * 100)}
                   </p>
                 </Card>
@@ -122,21 +97,16 @@ export function RulTab({ o }: { o: OptimizationData }) {
                         </p>
                         <div className="flex gap-4 mt-1">
                           <p className="text-sm text-muted-foreground">
-                            Health:{" "}
-                            {comp.healthScore ? formatPercent(comp.healthScore) : "N/A"}
+                            Health: {comp.healthScore ? formatPercent(comp.healthScore) : "N/A"}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Degradation:{" "}
-                            {comp.degradationMetric
-                              ? formatDecimal(comp.degradationMetric)
-                              : "N/A"}
+                            {comp.degradationMetric ? formatDecimal(comp.degradationMetric) : "N/A"}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">
-                          {comp.predictedFailureDays} days
-                        </p>
+                        <p className="text-sm font-medium">{comp.predictedFailureDays} days</p>
                       </div>
                     </div>
                   ))}

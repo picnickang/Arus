@@ -262,12 +262,12 @@ export function useSchedulePlannerData() {
             body: JSON.stringify(op.payload),
           });
         } else if (op.type === "update") {
-          await apiRequest(`/api/crew-extensions/assignments/${op.payload['id']}`, {
+          await apiRequest(`/api/crew-extensions/assignments/${op.payload["id"]}`, {
             method: "PATCH",
-            body: JSON.stringify(op.payload['data']),
+            body: JSON.stringify(op.payload["data"]),
           });
         } else if (op.type === "delete") {
-          await apiRequest(`/api/crew-extensions/assignments/${op.payload['id']}`, {
+          await apiRequest(`/api/crew-extensions/assignments/${op.payload["id"]}`, {
             method: "DELETE",
           });
         }
@@ -379,7 +379,10 @@ export function useSchedulePlannerData() {
       const results = await Promise.all(
         crewIdsInAssignments.map(async (crewId) => {
           try {
-            const data = await apiRequest<FatigueResult>("GET", `/api/hor/fatigue/${crewId}?days=14`);
+            const data = await apiRequest<FatigueResult>(
+              "GET",
+              `/api/hor/fatigue/${crewId}?days=14`
+            );
             return { crewId, data };
           } catch {
             return null;

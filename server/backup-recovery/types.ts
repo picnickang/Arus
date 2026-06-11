@@ -9,7 +9,7 @@
 
 export const BACKUP_CONFIG = {
   // NOSONAR: S5443 - /tmp used for development; override with BACKUP_DIR env var in production
-  backupDir: process.env['BACKUP_DIR'] || "/tmp/backups",
+  backupDir: process.env["BACKUP_DIR"] || "/tmp/backups",
 
   retention: {
     daily: 7,

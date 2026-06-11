@@ -29,7 +29,7 @@ export async function createFullBackup(): Promise<BackupResult> {
 
     logger.info(`🗄️  Starting full database backup: ${filename}`);
 
-    const dbUrl = new URL(process.env['DATABASE_URL']!);
+    const dbUrl = new URL(process.env["DATABASE_URL"]!);
 
     const pgDumpArgs = [
       "--verbose",
@@ -64,13 +64,17 @@ export async function createFullBackup(): Promise<BackupResult> {
     }
 
     metadata.size = backupSize;
-    if (checksum !== undefined) {metadata.checksum = checksum;}
+    if (checksum !== undefined) {
+      metadata.checksum = checksum;
+    }
     metadata.status = "completed";
 
     await storeBackupMetadata(metadata);
 
     const duration = Date.now() - startTime;
-    logger.info(`✅ Full backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`);
+    logger.info(
+      `✅ Full backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`
+    );
 
     return {
       success: true,
@@ -123,7 +127,7 @@ export async function createSchemaBackup(): Promise<BackupResult> {
 
     logger.info(`📋 Starting schema backup: ${filename}`);
 
-    const dbUrl = new URL(process.env['DATABASE_URL']!);
+    const dbUrl = new URL(process.env["DATABASE_URL"]!);
 
     const pgDumpArgs = [
       "--verbose",
@@ -157,13 +161,17 @@ export async function createSchemaBackup(): Promise<BackupResult> {
     }
 
     metadata.size = backupSize;
-    if (checksum !== undefined) {metadata.checksum = checksum;}
+    if (checksum !== undefined) {
+      metadata.checksum = checksum;
+    }
     metadata.status = "completed";
 
     await storeBackupMetadata(metadata);
 
     const duration = Date.now() - startTime;
-    logger.info(`✅ Schema backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`);
+    logger.info(
+      `✅ Schema backup completed: ${filename} (${formatBytes(backupSize)} in ${duration}ms)`
+    );
 
     return {
       success: true,

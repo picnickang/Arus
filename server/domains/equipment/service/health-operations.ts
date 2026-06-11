@@ -10,7 +10,10 @@ import { DualWriteAdapter } from "../../../infrastructure/DualWriteAdapter";
 import { TenantRepositoryFactory } from "../../../infrastructure/TenantScopedRepository";
 
 function transformHealthMetrics(
-  metrics: Array<{ equipment: Equipment; latestScore: { score?: number; failureProbability?: number } | null | undefined }>
+  metrics: Array<{
+    equipment: Equipment;
+    latestScore: { score?: number; failureProbability?: number } | null | undefined;
+  }>
 ): EquipmentHealth[] {
   return metrics.map(({ equipment, latestScore }) => {
     const equipmentRow = equipment as Equipment & { healthIndex?: number };
@@ -64,17 +67,20 @@ export async function getEquipmentHealth(
           ? "warning"
           : "critical";
 
-    const bucket: Record<string, number> =
-      (vesselHealthCounts[vesselIdKey] ??= { healthy: 0, warning: 0, critical: 0 });
-    const key = status as 'healthy' | 'warning' | 'critical';
+    const bucket: Record<string, number> = (vesselHealthCounts[vesselIdKey] ??= {
+      healthy: 0,
+      warning: 0,
+      critical: 0,
+    });
+    const key = status as "healthy" | "warning" | "critical";
     bucket[key] = (bucket[key] ?? 0) + 1;
     recordPdmScore(equipment.id, equipment.vessel ?? "", equipment.healthIndex);
   });
 
   Object.entries(vesselHealthCounts).forEach(([vesselId, counts]) => {
-    updateEquipmentHealthStatus("healthy", counts['healthy'] ?? 0, vesselId);
-    updateEquipmentHealthStatus("warning", counts['warning'] ?? 0, vesselId);
-    updateEquipmentHealthStatus("critical", counts['critical'] ?? 0, vesselId);
+    updateEquipmentHealthStatus("healthy", counts["healthy"] ?? 0, vesselId);
+    updateEquipmentHealthStatus("warning", counts["warning"] ?? 0, vesselId);
+    updateEquipmentHealthStatus("critical", counts["critical"] ?? 0, vesselId);
   });
 
   return health;
@@ -96,7 +102,9 @@ export async function getEquipmentWithSensorIssues(
         const sensors = await sensorRepo.getAll({ equipmentId: equipment.id });
         const hasSensors = sensors.length > 0;
         const allDisabled = sensors.every((s) => !s.enabled);
-        const criticalDisabled = sensors.some((s) => (s as { isCritical?: boolean }).isCritical && !s.enabled);
+        const criticalDisabled = sensors.some(
+          (s) => (s as { isCritical?: boolean }).isCritical && !s.enabled
+        );
 
         if (!hasSensors || allDisabled || criticalDisabled) {
           equipmentWithIssues.push(equipment);

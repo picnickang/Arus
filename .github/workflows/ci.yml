@@ -60,8 +60,8 @@ jobs:
       - name: Lint-warnings burndown
         run: npm run check:lint-warnings
 
-      - name: Prettier format ratchet
-        run: npm run check:format-ratchet
+      - name: Prettier format gate (whole repo must stay formatted)
+        run: npm run format:check
 
       - name: Code-hygiene burndown (catch-underscore, console-log, ts-ignore, ...)
         run: npm run check:hygiene

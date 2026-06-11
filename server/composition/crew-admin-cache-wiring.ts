@@ -20,7 +20,9 @@ import {
 let wired = false;
 
 export function wireCrewAdminPermissionCache(): void {
-  if (wired) {return;}
+  if (wired) {
+    return;
+  }
   crewAdminService.setPermissionCacheInvalidator({
     invalidateOrg: (orgId) => invalidateOrgPermissionCache(orgId),
     invalidateUser: (userId, orgId) => invalidateUserPermissionCache(userId, orgId),

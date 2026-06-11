@@ -206,11 +206,7 @@ export function ConfigDialog({ o }: { o: OptimizationData }) {
               />
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => o.setConfigDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => o.setConfigDialogOpen(false)}>
                 Cancel
               </Button>
               <Button

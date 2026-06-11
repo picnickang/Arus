@@ -87,7 +87,9 @@ export async function exportTelemetryChunked(
 
         for (const record of chunk) {
           if (!equipmentIdSet.has(record.equipmentId)) {
-            logger.warn(`[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`);
+            logger.warn(
+              `[DataExport] Skipping telemetry with non-org equipmentId: ${record.equipmentId}`
+            );
             continue;
           }
 
@@ -129,7 +131,9 @@ export async function exportTelemetryChunked(
       anonymizationService && options?.anonymize !== "none"
         ? ` (anonymized: ${totalAnonymizationResult.anonymizedFieldCount} fields)`
         : "";
-    logger.info(`[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`);
+    logger.info(
+      `[DataExport] Exported ${entityName}: ${totalCount} records in ${files.length} chunks${anonymizationInfo}`
+    );
 
     return {
       count: totalCount,

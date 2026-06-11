@@ -222,12 +222,8 @@
           "name": "acoustic_events_org_id_organizations_id_fk",
           "tableFrom": "acoustic_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -235,12 +231,8 @@
           "name": "acoustic_events_equipment_id_equipment_id_fk",
           "tableFrom": "acoustic_events",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -345,12 +337,8 @@
           "name": "admin_audit_events_org_id_organizations_id_fk",
           "tableFrom": "admin_audit_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -358,12 +346,8 @@
           "name": "admin_audit_events_user_id_users_id_fk",
           "tableFrom": "admin_audit_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -473,12 +457,8 @@
           "name": "admin_sessions_user_id_users_id_fk",
           "tableFrom": "admin_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -488,9 +468,7 @@
         "admin_sessions_session_token_unique": {
           "name": "admin_sessions_session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "session_token"
-          ]
+          "columns": ["session_token"]
         }
       },
       "policies": {},
@@ -597,12 +575,8 @@
           "name": "admin_system_settings_org_id_organizations_id_fk",
           "tableFrom": "admin_system_settings",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -610,12 +584,8 @@
           "name": "admin_system_settings_updated_by_users_id_fk",
           "tableFrom": "admin_system_settings",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -625,11 +595,7 @@
         "admin_system_settings_org_id_category_key_unique": {
           "name": "admin_system_settings_org_id_category_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "category",
-            "key"
-          ]
+          "columns": ["org_id", "category", "key"]
         }
       },
       "policies": {},
@@ -783,12 +749,8 @@
           "name": "alert_configurations_org_id_organizations_id_fk",
           "tableFrom": "alert_configurations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -796,12 +758,8 @@
           "name": "alert_configurations_equipment_id_equipment_id_fk",
           "tableFrom": "alert_configurations",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -898,12 +856,8 @@
           "name": "alert_notifications_org_id_organizations_id_fk",
           "tableFrom": "alert_notifications",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -911,12 +865,8 @@
           "name": "alert_notifications_equipment_id_equipment_id_fk",
           "tableFrom": "alert_notifications",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1179,12 +1129,8 @@
           "name": "anomaly_detections_model_id_ml_models_id_fk",
           "tableFrom": "anomaly_detections",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1192,12 +1138,8 @@
           "name": "anomaly_detections_resolved_by_work_order_id_work_orders_id_fk",
           "tableFrom": "anomaly_detections",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "resolved_by_work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by_work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1331,12 +1273,8 @@
           "name": "ar_maintenance_procedures_equipment_id_devices_id_fk",
           "tableFrom": "ar_maintenance_procedures",
           "tableTo": "devices",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1410,12 +1348,8 @@
           "name": "beast_mode_config_org_id_organizations_id_fk",
           "tableFrom": "beast_mode_config",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1425,10 +1359,7 @@
         "beast_mode_config_org_id_feature_name_unique": {
           "name": "beast_mode_config_org_id_feature_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "feature_name"
-          ]
+          "columns": ["org_id", "feature_name"]
         }
       },
       "policies": {},
@@ -1570,12 +1501,8 @@
           "name": "calibration_cache_org_id_organizations_id_fk",
           "tableFrom": "calibration_cache",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1710,12 +1637,8 @@
           "name": "calibration_curves_org_id_organizations_id_fk",
           "tableFrom": "calibration_curves",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1901,12 +1824,8 @@
           "name": "compliance_bundles_org_id_organizations_id_fk",
           "tableFrom": "compliance_bundles",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2040,12 +1959,8 @@
           "name": "compliance_docs_org_id_organizations_id_fk",
           "tableFrom": "compliance_docs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2053,12 +1968,8 @@
           "name": "compliance_docs_vessel_id_vessels_id_fk",
           "tableFrom": "compliance_docs",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2239,12 +2150,8 @@
           "name": "component_degradation_org_id_organizations_id_fk",
           "tableFrom": "component_degradation",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2252,12 +2159,8 @@
           "name": "component_degradation_equipment_id_equipment_id_fk",
           "tableFrom": "component_degradation",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2454,12 +2357,8 @@
           "name": "condition_monitoring_org_id_organizations_id_fk",
           "tableFrom": "condition_monitoring",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2467,12 +2366,8 @@
           "name": "condition_monitoring_equipment_id_equipment_id_fk",
           "tableFrom": "condition_monitoring",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2480,12 +2375,8 @@
           "name": "condition_monitoring_last_oil_analysis_id_oil_analysis_id_fk",
           "tableFrom": "condition_monitoring",
           "tableTo": "oil_analysis",
-          "columnsFrom": [
-            "last_oil_analysis_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["last_oil_analysis_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2493,12 +2384,8 @@
           "name": "condition_monitoring_last_wear_analysis_id_wear_particle_analysis_id_fk",
           "tableFrom": "condition_monitoring",
           "tableTo": "wear_particle_analysis",
-          "columnsFrom": [
-            "last_wear_analysis_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["last_wear_analysis_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2506,12 +2393,8 @@
           "name": "condition_monitoring_last_vibration_analysis_id_vibration_analysis_id_fk",
           "tableFrom": "condition_monitoring",
           "tableTo": "vibration_analysis",
-          "columnsFrom": [
-            "last_vibration_analysis_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["last_vibration_analysis_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2686,12 +2569,8 @@
           "name": "config_audit_log_org_id_organizations_id_fk",
           "tableFrom": "config_audit_log",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2699,12 +2578,8 @@
           "name": "config_audit_log_changed_by_users_id_fk",
           "tableFrom": "config_audit_log",
           "tableTo": "users",
-          "columnsFrom": [
-            "changed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["changed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2973,12 +2848,8 @@
           "name": "context_events_org_id_organizations_id_fk",
           "tableFrom": "context_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2986,12 +2857,8 @@
           "name": "context_events_vessel_id_vessels_id_fk",
           "tableFrom": "context_events",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2999,12 +2866,8 @@
           "name": "context_events_equipment_id_equipment_id_fk",
           "tableFrom": "context_events",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3119,12 +2982,8 @@
           "name": "cost_model_org_id_organizations_id_fk",
           "tableFrom": "cost_model",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3370,12 +3229,8 @@
           "name": "cost_savings_org_id_organizations_id_fk",
           "tableFrom": "cost_savings",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3383,12 +3238,8 @@
           "name": "cost_savings_work_order_id_work_orders_id_fk",
           "tableFrom": "cost_savings",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3396,12 +3247,8 @@
           "name": "cost_savings_equipment_id_equipment_id_fk",
           "tableFrom": "cost_savings",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3409,12 +3256,8 @@
           "name": "cost_savings_vessel_id_vessels_id_fk",
           "tableFrom": "cost_savings",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3422,12 +3265,8 @@
           "name": "cost_savings_prediction_id_failure_predictions_id_fk",
           "tableFrom": "cost_savings",
           "tableTo": "failure_predictions",
-          "columnsFrom": [
-            "prediction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["prediction_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3528,12 +3367,8 @@
           "name": "crew_org_id_organizations_id_fk",
           "tableFrom": "crew",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3541,12 +3376,8 @@
           "name": "crew_vessel_id_vessels_id_fk",
           "tableFrom": "crew",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3650,12 +3481,8 @@
           "name": "crew_assignment_shift_id_shift_template_id_fk",
           "tableFrom": "crew_assignment",
           "tableTo": "shift_template",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3663,12 +3490,8 @@
           "name": "crew_assignment_crew_id_crew_id_fk",
           "tableFrom": "crew_assignment",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3676,12 +3499,8 @@
           "name": "crew_assignment_vessel_id_vessels_id_fk",
           "tableFrom": "crew_assignment",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3741,12 +3560,8 @@
           "name": "crew_cert_crew_id_crew_id_fk",
           "tableFrom": "crew_cert",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3806,12 +3621,8 @@
           "name": "crew_leave_crew_id_crew_id_fk",
           "tableFrom": "crew_leave",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4013,12 +3824,8 @@
           "name": "crew_rest_day_sheet_id_crew_rest_sheet_id_fk",
           "tableFrom": "crew_rest_day",
           "tableTo": "crew_rest_sheet",
-          "columnsFrom": [
-            "sheet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sheet_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4090,12 +3897,8 @@
           "name": "crew_rest_sheet_vessel_id_vessels_id_fk",
           "tableFrom": "crew_rest_sheet",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4103,12 +3906,8 @@
           "name": "crew_rest_sheet_crew_id_crew_id_fk",
           "tableFrom": "crew_rest_sheet",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4149,12 +3948,8 @@
           "name": "crew_skill_crew_id_crew_id_fk",
           "tableFrom": "crew_skill",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4239,12 +4034,8 @@
           "name": "daily_metric_rollups_org_id_organizations_id_fk",
           "tableFrom": "daily_metric_rollups",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4252,12 +4043,8 @@
           "name": "daily_metric_rollups_vessel_id_vessels_id_fk",
           "tableFrom": "daily_metric_rollups",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4265,12 +4052,8 @@
           "name": "daily_metric_rollups_device_id_devices_id_fk",
           "tableFrom": "daily_metric_rollups",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4523,12 +4306,8 @@
           "name": "devices_org_id_organizations_id_fk",
           "tableFrom": "devices",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4536,12 +4315,8 @@
           "name": "devices_equipment_id_equipment_id_fk",
           "tableFrom": "devices",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4664,12 +4439,8 @@
           "name": "digital_twins_vessel_id_vessels_id_fk",
           "tableFrom": "digital_twins",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4780,12 +4551,8 @@
           "name": "discovered_signals_org_id_organizations_id_fk",
           "tableFrom": "discovered_signals",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4980,12 +4747,8 @@
           "name": "downtime_events_org_id_organizations_id_fk",
           "tableFrom": "downtime_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4993,12 +4756,8 @@
           "name": "downtime_events_work_order_id_work_orders_id_fk",
           "tableFrom": "downtime_events",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5006,12 +4765,8 @@
           "name": "downtime_events_equipment_id_equipment_id_fk",
           "tableFrom": "downtime_events",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5019,12 +4774,8 @@
           "name": "downtime_events_vessel_id_vessels_id_fk",
           "tableFrom": "downtime_events",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5097,12 +4848,8 @@
           "name": "drydock_window_vessel_id_vessels_id_fk",
           "tableFrom": "drydock_window",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5404,12 +5151,8 @@
           "name": "dtc_faults_org_id_organizations_id_fk",
           "tableFrom": "dtc_faults",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5417,12 +5160,8 @@
           "name": "dtc_faults_equipment_id_equipment_id_fk",
           "tableFrom": "dtc_faults",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5430,12 +5169,8 @@
           "name": "dtc_faults_device_id_devices_id_fk",
           "tableFrom": "dtc_faults",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5592,12 +5327,8 @@
           "name": "edge_diagnostic_logs_org_id_organizations_id_fk",
           "tableFrom": "edge_diagnostic_logs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5605,12 +5336,8 @@
           "name": "edge_diagnostic_logs_device_id_devices_id_fk",
           "tableFrom": "edge_diagnostic_logs",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5618,12 +5345,8 @@
           "name": "edge_diagnostic_logs_equipment_id_equipment_id_fk",
           "tableFrom": "edge_diagnostic_logs",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5688,12 +5411,8 @@
           "name": "edge_heartbeats_device_id_devices_id_fk",
           "tableFrom": "edge_heartbeats",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5909,12 +5628,8 @@
           "name": "equipment_org_id_organizations_id_fk",
           "tableFrom": "equipment",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5922,12 +5637,8 @@
           "name": "equipment_vessel_id_vessels_id_fk",
           "tableFrom": "equipment",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6058,9 +5769,7 @@
         "equipment_lifecycle_equipment_id_unique": {
           "name": "equipment_lifecycle_equipment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "equipment_id"
-          ]
+          "columns": ["equipment_id"]
         }
       },
       "policies": {},
@@ -6135,12 +5844,8 @@
           "name": "equipment_telemetry_org_id_organizations_id_fk",
           "tableFrom": "equipment_telemetry",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6148,12 +5853,8 @@
           "name": "equipment_telemetry_equipment_id_equipment_id_fk",
           "tableFrom": "equipment_telemetry",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6311,12 +6012,8 @@
           "name": "error_logs_org_id_organizations_id_fk",
           "tableFrom": "error_logs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6451,12 +6148,8 @@
           "name": "expenses_org_id_organizations_id_fk",
           "tableFrom": "expenses",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6464,12 +6157,8 @@
           "name": "expenses_work_order_id_work_orders_id_fk",
           "tableFrom": "expenses",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6477,12 +6166,8 @@
           "name": "expenses_approved_by_users_id_fk",
           "tableFrom": "expenses",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6760,12 +6445,8 @@
           "name": "failure_history_org_id_organizations_id_fk",
           "tableFrom": "failure_history",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6773,12 +6454,8 @@
           "name": "failure_history_equipment_id_equipment_id_fk",
           "tableFrom": "failure_history",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6786,12 +6463,8 @@
           "name": "failure_history_work_order_id_work_orders_id_fk",
           "tableFrom": "failure_history",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6990,12 +6663,8 @@
           "name": "failure_predictions_model_id_ml_models_id_fk",
           "tableFrom": "failure_predictions",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7003,12 +6672,8 @@
           "name": "failure_predictions_resolved_by_work_order_id_work_orders_id_fk",
           "tableFrom": "failure_predictions",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "resolved_by_work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by_work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7226,12 +6891,8 @@
           "name": "feature_importances_org_id_organizations_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7239,12 +6900,8 @@
           "name": "feature_importances_real_time_prediction_id_real_time_predictions_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "real_time_predictions",
-          "columnsFrom": [
-            "real_time_prediction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["real_time_prediction_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7252,12 +6909,8 @@
           "name": "feature_importances_failure_prediction_id_failure_predictions_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "failure_predictions",
-          "columnsFrom": [
-            "failure_prediction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["failure_prediction_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7265,12 +6918,8 @@
           "name": "feature_importances_anomaly_detection_id_anomaly_detections_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "anomaly_detections",
-          "columnsFrom": [
-            "anomaly_detection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["anomaly_detection_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7278,12 +6927,8 @@
           "name": "feature_importances_equipment_id_equipment_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7291,12 +6936,8 @@
           "name": "feature_importances_model_id_ml_models_id_fk",
           "tableFrom": "feature_importances",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7543,12 +7184,8 @@
           "name": "insight_reports_org_id_organizations_id_fk",
           "tableFrom": "insight_reports",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7556,12 +7193,8 @@
           "name": "insight_reports_snapshot_id_insight_snapshots_id_fk",
           "tableFrom": "insight_reports",
           "tableTo": "insight_snapshots",
-          "columnsFrom": [
-            "snapshot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["snapshot_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -7639,12 +7272,8 @@
           "name": "insight_snapshots_org_id_organizations_id_fk",
           "tableFrom": "insight_snapshots",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7769,12 +7398,8 @@
           "name": "integration_configs_org_id_organizations_id_fk",
           "tableFrom": "integration_configs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7782,12 +7407,8 @@
           "name": "integration_configs_created_by_users_id_fk",
           "tableFrom": "integration_configs",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7891,12 +7512,8 @@
           "name": "inventory_movements_org_id_organizations_id_fk",
           "tableFrom": "inventory_movements",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7904,12 +7521,8 @@
           "name": "inventory_movements_part_id_parts_inventory_id_fk",
           "tableFrom": "inventory_movements",
           "tableTo": "parts_inventory",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7917,12 +7530,8 @@
           "name": "inventory_movements_work_order_id_work_orders_id_fk",
           "tableFrom": "inventory_movements",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8034,12 +7643,8 @@
           "name": "inventory_parts_org_id_organizations_id_fk",
           "tableFrom": "inventory_parts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8133,12 +7738,8 @@
           "name": "j1939_configurations_org_id_organizations_id_fk",
           "tableFrom": "j1939_configurations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8146,12 +7747,8 @@
           "name": "j1939_configurations_device_id_devices_id_fk",
           "tableFrom": "j1939_configurations",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8354,12 +7951,8 @@
           "name": "labor_rates_org_id_organizations_id_fk",
           "tableFrom": "labor_rates",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8495,12 +8088,8 @@
           "name": "llm_budget_configs_org_id_organizations_id_fk",
           "tableFrom": "llm_budget_configs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8510,9 +8099,7 @@
         "llm_budget_configs_org_id_unique": {
           "name": "llm_budget_configs_org_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id"
-          ]
+          "columns": ["org_id"]
         }
       },
       "policies": {},
@@ -8787,12 +8374,8 @@
           "name": "llm_cost_tracking_org_id_organizations_id_fk",
           "tableFrom": "llm_cost_tracking",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8800,12 +8383,8 @@
           "name": "llm_cost_tracking_vessel_id_vessels_id_fk",
           "tableFrom": "llm_cost_tracking",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -8813,12 +8392,8 @@
           "name": "llm_cost_tracking_equipment_id_equipment_id_fk",
           "tableFrom": "llm_cost_tracking",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -8939,12 +8514,8 @@
           "name": "maintenance_checklist_completions_work_order_id_work_orders_id_fk",
           "tableFrom": "maintenance_checklist_completions",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8952,12 +8523,8 @@
           "name": "maintenance_checklist_completions_item_id_maintenance_checklist_items_id_fk",
           "tableFrom": "maintenance_checklist_completions",
           "tableTo": "maintenance_checklist_items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9075,12 +8642,8 @@
           "name": "maintenance_checklist_items_template_id_maintenance_templates_id_fk",
           "tableFrom": "maintenance_checklist_items",
           "tableTo": "maintenance_templates",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9177,12 +8740,8 @@
           "name": "maintenance_costs_work_order_id_work_orders_id_fk",
           "tableFrom": "maintenance_costs",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9419,12 +8978,8 @@
           "name": "maintenance_schedules_org_id_organizations_id_fk",
           "tableFrom": "maintenance_schedules",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9432,12 +8987,8 @@
           "name": "maintenance_schedules_equipment_id_equipment_id_fk",
           "tableFrom": "maintenance_schedules",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9445,12 +8996,8 @@
           "name": "maintenance_schedules_vessel_id_vessels_id_fk",
           "tableFrom": "maintenance_schedules",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9616,12 +9163,8 @@
           "name": "maintenance_templates_org_id_organizations_id_fk",
           "tableFrom": "maintenance_templates",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9770,12 +9313,8 @@
           "name": "maintenance_windows_org_id_organizations_id_fk",
           "tableFrom": "maintenance_windows",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9783,12 +9322,8 @@
           "name": "maintenance_windows_created_by_users_id_fk",
           "tableFrom": "maintenance_windows",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9796,12 +9331,8 @@
           "name": "maintenance_windows_assigned_to_users_id_fk",
           "tableFrom": "maintenance_windows",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9920,12 +9451,8 @@
           "name": "metrics_history_org_id_organizations_id_fk",
           "tableFrom": "metrics_history",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10073,12 +9600,8 @@
           "name": "ml_models_org_id_organizations_id_fk",
           "tableFrom": "ml_models",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10294,12 +9817,8 @@
           "name": "model_deployments_org_id_organizations_id_fk",
           "tableFrom": "model_deployments",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -10307,12 +9826,8 @@
           "name": "model_deployments_model_id_ml_models_id_fk",
           "tableFrom": "model_deployments",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -10320,12 +9835,8 @@
           "name": "model_deployments_rollback_model_id_ml_models_id_fk",
           "tableFrom": "model_deployments",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "rollback_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rollback_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10554,12 +10065,8 @@
           "name": "model_performance_validations_org_id_organizations_id_fk",
           "tableFrom": "model_performance_validations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -10567,12 +10074,8 @@
           "name": "model_performance_validations_model_id_ml_models_id_fk",
           "tableFrom": "model_performance_validations",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -10580,12 +10083,8 @@
           "name": "model_performance_validations_equipment_id_equipment_id_fk",
           "tableFrom": "model_performance_validations",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -10695,12 +10194,8 @@
           "name": "model_registry_org_id_organizations_id_fk",
           "tableFrom": "model_registry",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10799,12 +10294,8 @@
           "name": "mqtt_devices_device_id_devices_id_fk",
           "tableFrom": "mqtt_devices",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10814,9 +10305,7 @@
         "mqtt_devices_mqtt_client_id_unique": {
           "name": "mqtt_devices_mqtt_client_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "mqtt_client_id"
-          ]
+          "columns": ["mqtt_client_id"]
         }
       },
       "policies": {},
@@ -11162,12 +10651,8 @@
           "name": "oil_analysis_org_id_organizations_id_fk",
           "tableFrom": "oil_analysis",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11175,12 +10660,8 @@
           "name": "oil_analysis_equipment_id_equipment_id_fk",
           "tableFrom": "oil_analysis",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11338,12 +10819,8 @@
           "name": "oil_change_records_org_id_organizations_id_fk",
           "tableFrom": "oil_change_records",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11351,12 +10828,8 @@
           "name": "oil_change_records_equipment_id_equipment_id_fk",
           "tableFrom": "oil_change_records",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11364,12 +10837,8 @@
           "name": "oil_change_records_drained_oil_analysis_id_oil_analysis_id_fk",
           "tableFrom": "oil_change_records",
           "tableTo": "oil_analysis",
-          "columnsFrom": [
-            "drained_oil_analysis_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["drained_oil_analysis_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11377,12 +10846,8 @@
           "name": "oil_change_records_work_order_id_work_orders_id_fk",
           "tableFrom": "oil_change_records",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11561,12 +11026,8 @@
           "name": "operating_condition_alerts_org_id_organizations_id_fk",
           "tableFrom": "operating_condition_alerts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11574,12 +11035,8 @@
           "name": "operating_condition_alerts_equipment_id_equipment_id_fk",
           "tableFrom": "operating_condition_alerts",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11587,12 +11044,8 @@
           "name": "operating_condition_alerts_parameter_id_operating_parameters_id_fk",
           "tableFrom": "operating_condition_alerts",
           "tableTo": "operating_parameters",
-          "columnsFrom": [
-            "parameter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parameter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11770,12 +11223,8 @@
           "name": "operating_parameters_org_id_organizations_id_fk",
           "tableFrom": "operating_parameters",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12167,9 +11616,7 @@
         "organizations_slug_unique": {
           "name": "organizations_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -12360,12 +11807,8 @@
           "name": "part_failure_history_org_id_organizations_id_fk",
           "tableFrom": "part_failure_history",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12373,12 +11816,8 @@
           "name": "part_failure_history_part_id_parts_inventory_id_fk",
           "tableFrom": "part_failure_history",
           "tableTo": "parts_inventory",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12386,12 +11825,8 @@
           "name": "part_failure_history_equipment_id_equipment_id_fk",
           "tableFrom": "part_failure_history",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12399,12 +11834,8 @@
           "name": "part_failure_history_supplier_id_suppliers_id_fk",
           "tableFrom": "part_failure_history",
           "tableTo": "suppliers",
-          "columnsFrom": [
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["supplier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12412,12 +11843,8 @@
           "name": "part_failure_history_work_order_id_work_orders_id_fk",
           "tableFrom": "part_failure_history",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12541,12 +11968,8 @@
           "name": "part_substitutions_org_id_organizations_id_fk",
           "tableFrom": "part_substitutions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12554,12 +11977,8 @@
           "name": "part_substitutions_primary_part_id_parts_id_fk",
           "tableFrom": "part_substitutions",
           "tableTo": "parts",
-          "columnsFrom": [
-            "primary_part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["primary_part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12567,12 +11986,8 @@
           "name": "part_substitutions_alternate_part_id_parts_id_fk",
           "tableFrom": "part_substitutions",
           "tableTo": "parts",
-          "columnsFrom": [
-            "alternate_part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["alternate_part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12736,12 +12151,8 @@
           "name": "parts_org_id_organizations_id_fk",
           "tableFrom": "parts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12749,12 +12160,8 @@
           "name": "parts_primary_supplier_id_suppliers_id_fk",
           "tableFrom": "parts",
           "tableTo": "suppliers",
-          "columnsFrom": [
-            "primary_supplier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["primary_supplier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12899,12 +12306,8 @@
           "name": "parts_inventory_org_id_organizations_id_fk",
           "tableFrom": "parts_inventory",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13031,12 +12434,8 @@
           "name": "patch_downloads_patch_id_software_patches_id_fk",
           "tableFrom": "patch_downloads",
           "tableTo": "software_patches",
-          "columnsFrom": [
-            "patch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["patch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -13044,12 +12443,8 @@
           "name": "patch_downloads_org_id_organizations_id_fk",
           "tableFrom": "patch_downloads",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13139,12 +12534,8 @@
           "name": "pdm_alerts_org_id_organizations_id_fk",
           "tableFrom": "pdm_alerts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13229,12 +12620,8 @@
           "name": "pdm_baseline_org_id_organizations_id_fk",
           "tableFrom": "pdm_baseline",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13244,12 +12631,7 @@
         "pdm_baseline_org_id_vessel_name_asset_id_feature_unique": {
           "name": "pdm_baseline_org_id_vessel_name_asset_id_feature_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "vessel_name",
-            "asset_id",
-            "feature"
-          ]
+          "columns": ["org_id", "vessel_name", "asset_id", "feature"]
         }
       },
       "policies": {},
@@ -13317,12 +12699,8 @@
           "name": "pdm_score_logs_org_id_organizations_id_fk",
           "tableFrom": "pdm_score_logs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -13330,12 +12708,8 @@
           "name": "pdm_score_logs_equipment_id_equipment_id_fk",
           "tableFrom": "pdm_score_logs",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13513,12 +12887,8 @@
           "name": "port_call_vessel_id_vessels_id_fk",
           "tableFrom": "port_call",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13752,12 +13122,8 @@
           "name": "prediction_feedback_org_id_organizations_id_fk",
           "tableFrom": "prediction_feedback",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -13765,12 +13131,8 @@
           "name": "prediction_feedback_equipment_id_equipment_id_fk",
           "tableFrom": "prediction_feedback",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -13849,12 +13211,8 @@
           "name": "purchase_order_items_po_id_purchase_orders_id_fk",
           "tableFrom": "purchase_order_items",
           "tableTo": "purchase_orders",
-          "columnsFrom": [
-            "po_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["po_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -13862,12 +13220,8 @@
           "name": "purchase_order_items_part_id_parts_id_fk",
           "tableFrom": "purchase_order_items",
           "tableTo": "parts",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13966,12 +13320,8 @@
           "name": "purchase_orders_org_id_organizations_id_fk",
           "tableFrom": "purchase_orders",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -13979,12 +13329,8 @@
           "name": "purchase_orders_supplier_id_suppliers_id_fk",
           "tableFrom": "purchase_orders",
           "tableTo": "suppliers",
-          "columnsFrom": [
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["supplier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14341,12 +13687,8 @@
           "name": "real_time_predictions_org_id_organizations_id_fk",
           "tableFrom": "real_time_predictions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -14354,12 +13696,8 @@
           "name": "real_time_predictions_equipment_id_equipment_id_fk",
           "tableFrom": "real_time_predictions",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -14367,12 +13705,8 @@
           "name": "real_time_predictions_model_id_ml_models_id_fk",
           "tableFrom": "real_time_predictions",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -14558,12 +13892,8 @@
           "name": "reservations_org_id_organizations_id_fk",
           "tableFrom": "reservations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -14571,12 +13901,8 @@
           "name": "reservations_part_id_parts_id_fk",
           "tableFrom": "reservations",
           "tableTo": "parts",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -14584,12 +13910,8 @@
           "name": "reservations_work_order_id_work_orders_id_fk",
           "tableFrom": "reservations",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14949,12 +14271,8 @@
           "name": "retraining_triggers_org_id_organizations_id_fk",
           "tableFrom": "retraining_triggers",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -14962,12 +14280,8 @@
           "name": "retraining_triggers_model_id_ml_models_id_fk",
           "tableFrom": "retraining_triggers",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -14975,12 +14289,8 @@
           "name": "retraining_triggers_new_model_id_ml_models_id_fk",
           "tableFrom": "retraining_triggers",
           "tableTo": "ml_models",
-          "columnsFrom": [
-            "new_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["new_model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -15052,12 +14362,8 @@
           "name": "rul_fit_history_org_id_organizations_id_fk",
           "tableFrom": "rul_fit_history",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -15180,12 +14486,8 @@
           "name": "rul_models_org_id_organizations_id_fk",
           "tableFrom": "rul_models",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -15195,9 +14497,7 @@
         "rul_models_model_id_unique": {
           "name": "rul_models_model_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "model_id"
-          ]
+          "columns": ["model_id"]
         }
       },
       "policies": {},
@@ -15333,12 +14633,8 @@
           "name": "schedule_assignments_run_id_scheduler_runs_id_fk",
           "tableFrom": "schedule_assignments",
           "tableTo": "scheduler_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -15346,12 +14642,8 @@
           "name": "schedule_assignments_shift_id_shift_template_id_fk",
           "tableFrom": "schedule_assignments",
           "tableTo": "shift_template",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -15359,12 +14651,8 @@
           "name": "schedule_assignments_crew_id_crew_id_fk",
           "tableFrom": "schedule_assignments",
           "tableTo": "crew",
-          "columnsFrom": [
-            "crew_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -15372,12 +14660,8 @@
           "name": "schedule_assignments_vessel_id_vessels_id_fk",
           "tableFrom": "schedule_assignments",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -15618,12 +14902,8 @@
           "name": "schedule_unfilled_run_id_scheduler_runs_id_fk",
           "tableFrom": "schedule_unfilled",
           "tableTo": "scheduler_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -15631,12 +14911,8 @@
           "name": "schedule_unfilled_shift_id_shift_template_id_fk",
           "tableFrom": "schedule_unfilled",
           "tableTo": "shift_template",
-          "columnsFrom": [
-            "shift_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shift_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -15923,12 +15199,8 @@
           "name": "sensor_configurations_org_id_organizations_id_fk",
           "tableFrom": "sensor_configurations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16109,12 +15381,8 @@
           "name": "sensor_fusion_snapshots_org_id_organizations_id_fk",
           "tableFrom": "sensor_fusion_snapshots",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -16122,12 +15390,8 @@
           "name": "sensor_fusion_snapshots_equipment_id_equipment_id_fk",
           "tableFrom": "sensor_fusion_snapshots",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -16226,12 +15490,8 @@
           "name": "sensor_mapping_org_id_organizations_id_fk",
           "tableFrom": "sensor_mapping",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -16239,12 +15499,8 @@
           "name": "sensor_mapping_sensor_type_id_sensor_types_id_fk",
           "tableFrom": "sensor_mapping",
           "tableTo": "sensor_types",
-          "columnsFrom": [
-            "sensor_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sensor_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16316,12 +15572,8 @@
           "name": "sensor_states_org_id_organizations_id_fk",
           "tableFrom": "sensor_states",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16432,12 +15684,8 @@
           "name": "sensor_thresholds_org_id_organizations_id_fk",
           "tableFrom": "sensor_thresholds",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -16445,12 +15693,8 @@
           "name": "sensor_thresholds_device_id_devices_id_fk",
           "tableFrom": "sensor_thresholds",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16708,12 +15952,8 @@
           "name": "serial_port_states_org_id_organizations_id_fk",
           "tableFrom": "serial_port_states",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -16721,12 +15961,8 @@
           "name": "serial_port_states_device_id_devices_id_fk",
           "tableFrom": "serial_port_states",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16899,12 +16135,8 @@
           "name": "shift_template_vessel_id_vessels_id_fk",
           "tableFrom": "shift_template",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16985,12 +16217,8 @@
           "name": "skills_org_id_organizations_id_fk",
           "tableFrom": "skills",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17000,9 +16228,7 @@
         "skills_name_unique": {
           "name": "skills_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -17213,12 +16439,8 @@
           "name": "software_patches_org_id_organizations_id_fk",
           "tableFrom": "software_patches",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -17226,12 +16448,8 @@
           "name": "software_patches_applied_by_users_id_fk",
           "tableFrom": "software_patches",
           "tableTo": "users",
-          "columnsFrom": [
-            "applied_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["applied_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17357,12 +16575,8 @@
           "name": "stock_org_id_organizations_id_fk",
           "tableFrom": "stock",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -17370,12 +16584,8 @@
           "name": "stock_part_id_parts_id_fk",
           "tableFrom": "stock",
           "tableTo": "parts",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -17383,12 +16593,8 @@
           "name": "stock_supplier_id_suppliers_id_fk",
           "tableFrom": "stock",
           "tableTo": "suppliers",
-          "columnsFrom": [
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["supplier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17632,12 +16838,8 @@
           "name": "suppliers_org_id_organizations_id_fk",
           "tableFrom": "suppliers",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17738,12 +16940,8 @@
           "name": "sync_journal_user_id_users_id_fk",
           "tableFrom": "sync_journal",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17944,12 +17142,8 @@
           "name": "system_health_checks_org_id_organizations_id_fk",
           "tableFrom": "system_health_checks",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18041,12 +17235,8 @@
           "name": "system_performance_metrics_org_id_organizations_id_fk",
           "tableFrom": "system_performance_metrics",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18426,12 +17616,8 @@
           "name": "telemetry_rollups_org_id_organizations_id_fk",
           "tableFrom": "telemetry_rollups",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18577,12 +17763,8 @@
           "name": "threshold_optimizations_org_id_organizations_id_fk",
           "tableFrom": "threshold_optimizations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18712,12 +17894,8 @@
           "name": "transport_failovers_org_id_organizations_id_fk",
           "tableFrom": "transport_failovers",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -18725,12 +17903,8 @@
           "name": "transport_failovers_device_id_devices_id_fk",
           "tableFrom": "transport_failovers",
           "tableTo": "devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18907,12 +18081,8 @@
           "name": "twin_simulations_digital_twin_id_digital_twins_id_fk",
           "tableFrom": "twin_simulations",
           "tableTo": "digital_twins",
-          "columnsFrom": [
-            "digital_twin_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["digital_twin_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19088,12 +18258,8 @@
           "name": "update_settings_org_id_organizations_id_fk",
           "tableFrom": "update_settings",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19101,12 +18267,8 @@
           "name": "update_settings_vessel_id_vessels_id_fk",
           "tableFrom": "update_settings",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19187,12 +18349,8 @@
           "name": "users_org_id_organizations_id_fk",
           "tableFrom": "users",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19348,12 +18506,8 @@
           "name": "vessels_org_id_organizations_id_fk",
           "tableFrom": "vessels",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19450,12 +18604,8 @@
           "name": "vibration_analysis_org_id_organizations_id_fk",
           "tableFrom": "vibration_analysis",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19463,12 +18613,8 @@
           "name": "vibration_analysis_equipment_id_equipment_id_fk",
           "tableFrom": "vibration_analysis",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19601,12 +18747,8 @@
           "name": "vibration_features_org_id_organizations_id_fk",
           "tableFrom": "vibration_features",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19614,12 +18756,8 @@
           "name": "vibration_features_vessel_id_vessels_id_fk",
           "tableFrom": "vibration_features",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19969,12 +19107,8 @@
           "name": "wear_particle_analysis_org_id_organizations_id_fk",
           "tableFrom": "wear_particle_analysis",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19982,12 +19116,8 @@
           "name": "wear_particle_analysis_equipment_id_equipment_id_fk",
           "tableFrom": "wear_particle_analysis",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19995,12 +19125,8 @@
           "name": "wear_particle_analysis_oil_analysis_id_oil_analysis_id_fk",
           "tableFrom": "wear_particle_analysis",
           "tableTo": "oil_analysis",
-          "columnsFrom": [
-            "oil_analysis_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["oil_analysis_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -20183,12 +19309,8 @@
           "name": "weather_cache_vessel_id_vessels_id_fk",
           "tableFrom": "weather_cache",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20196,12 +19318,8 @@
           "name": "weather_cache_org_id_organizations_id_fk",
           "tableFrom": "weather_cache",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -20297,12 +19415,8 @@
           "name": "weibull_estimates_org_id_organizations_id_fk",
           "tableFrom": "weibull_estimates",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20310,12 +19424,8 @@
           "name": "weibull_estimates_equipment_id_equipment_id_fk",
           "tableFrom": "weibull_estimates",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -20401,12 +19511,8 @@
           "name": "work_order_checklists_org_id_organizations_id_fk",
           "tableFrom": "work_order_checklists",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20414,12 +19520,8 @@
           "name": "work_order_checklists_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_checklists",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -20654,12 +19756,8 @@
           "name": "work_order_completions_org_id_organizations_id_fk",
           "tableFrom": "work_order_completions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20667,12 +19765,8 @@
           "name": "work_order_completions_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_completions",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -20680,12 +19774,8 @@
           "name": "work_order_completions_equipment_id_equipment_id_fk",
           "tableFrom": "work_order_completions",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20693,12 +19783,8 @@
           "name": "work_order_completions_vessel_id_vessels_id_fk",
           "tableFrom": "work_order_completions",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20706,12 +19792,8 @@
           "name": "work_order_completions_maintenance_schedule_id_maintenance_schedules_id_fk",
           "tableFrom": "work_order_completions",
           "tableTo": "maintenance_schedules",
-          "columnsFrom": [
-            "maintenance_schedule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["maintenance_schedule_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -20839,12 +19921,8 @@
           "name": "work_order_parts_org_id_organizations_id_fk",
           "tableFrom": "work_order_parts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20852,12 +19930,8 @@
           "name": "work_order_parts_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_parts",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20865,12 +19939,8 @@
           "name": "work_order_parts_part_id_parts_inventory_id_fk",
           "tableFrom": "work_order_parts",
           "tableTo": "parts_inventory",
-          "columnsFrom": [
-            "part_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["part_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -20878,12 +19948,8 @@
           "name": "work_order_parts_supplier_id_suppliers_id_fk",
           "tableFrom": "work_order_parts",
           "tableTo": "suppliers",
-          "columnsFrom": [
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["supplier_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -21001,12 +20067,8 @@
           "name": "work_order_worklogs_org_id_organizations_id_fk",
           "tableFrom": "work_order_worklogs",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -21014,12 +20076,8 @@
           "name": "work_order_worklogs_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_worklogs",
           "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["work_order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -21297,12 +20355,8 @@
           "name": "work_orders_org_id_organizations_id_fk",
           "tableFrom": "work_orders",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -21310,12 +20364,8 @@
           "name": "work_orders_equipment_id_equipment_id_fk",
           "tableFrom": "work_orders",
           "tableTo": "equipment",
-          "columnsFrom": [
-            "equipment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["equipment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -21323,12 +20373,8 @@
           "name": "work_orders_vessel_id_vessels_id_fk",
           "tableFrom": "work_orders",
           "tableTo": "vessels",
-          "columnsFrom": [
-            "vessel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vessel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -21338,9 +20384,7 @@
         "work_orders_wo_number_unique": {
           "name": "work_orders_wo_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "wo_number"
-          ]
+          "columns": ["wo_number"]
         }
       },
       "policies": {},
@@ -21545,12 +20589,8 @@
           "name": "sync_conflicts_org_id_organizations_id_fk",
           "tableFrom": "sync_conflicts",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

@@ -24,7 +24,11 @@ export interface IDeadLetterQueue<T = unknown> {
     metadata?: Record<string, unknown>
   ): DeadLetterEntry<T>;
   get(id: string): DeadLetterEntry<T> | undefined;
-  list(options?: { limit?: number | undefined; offset?: number | undefined; source?: string | undefined }): DeadLetterEntry<T>[];
+  list(options?: {
+    limit?: number | undefined;
+    offset?: number | undefined;
+    source?: string | undefined;
+  }): DeadLetterEntry<T>[];
   replay(id: string): Promise<{ success: boolean; entryId: string; error?: string }>;
   replayAll(options?: {
     source?: string | undefined;

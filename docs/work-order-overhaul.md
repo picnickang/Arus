@@ -7,6 +7,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 ## Completed Phases
 
 ### Phase 0: Database Optimization
+
 - Added database indexes for improved query performance (defined in `shared/schema.ts`):
   - `work_orders_vessel_idx` on `vessel_id`
   - `work_orders_priority_idx` on `priority`
@@ -17,6 +18,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 ### Phase 1: UI Component Overhaul
 
 #### VirtualizedWorkOrderTable
+
 - High-performance virtualized table using `@tanstack/react-virtual`
 - Efficiently renders large datasets (1000+ work orders)
 - Sortable columns: WO#, Vessel, Equipment, Priority, Status, Due Date, Created
@@ -24,6 +26,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 - Row virtualization for minimal DOM footprint
 
 #### WorkOrderFilterPanel
+
 - Collapsible filter sidebar (desktop) / sheet drawer (mobile)
 - Filter options:
   - **Search**: Full-text search across WO#, equipment, description
@@ -37,6 +40,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 - Clear All filters action
 
 #### WorkOrderDetailDrawer
+
 - Slide-in drawer for viewing work order details
 - Tabbed interface:
   - **Details**: Core work order information, cost summary, time tracking
@@ -46,6 +50,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 - Quick actions: Edit Work Order, Add to Work Order
 
 #### URL Query Parameters
+
 - Filter state persisted in URL for shareable links
 - Browser navigation support (back/forward)
 - 300ms debounce on filter changes for performance
@@ -53,6 +58,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 ### Phase 2: Backend & Tasks Enhancement
 
 #### API Filtering
+
 - Enhanced GET `/api/work-orders` with comprehensive filter parameters:
   - `vesselId`: Filter by vessel
   - `engineerId`: Filter by assigned crew
@@ -63,6 +69,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
   - `search`: Full-text search
 
 #### Work Order Tasks (Checklists)
+
 - **Database Table**: `work_order_tasks` with fields:
   - `id`, `orgId`, `workOrderId`, `description`
   - `isCompleted`, `completedBy`, `completedByName`, `completedAt`
@@ -80,6 +87,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 - **Dual-Mode Parity**: Both PostgreSQL (DatabaseStorage) and in-memory (MemStorage) implementations
 
 #### WorkOrderTasksTab UI
+
 - Add task input with validation
 - Toggle task completion with visual feedback
 - Delete task with confirmation
@@ -89,6 +97,7 @@ This document summarizes the comprehensive overhaul of the Work Orders module, i
 ### Phase 3: Inventory Integration
 
 #### Automatic Inventory Consumption
+
 When a work order is completed via the `completeWorkOrder()` method in `server/storage.ts`:
 
 1. **Fetch Work Order Parts**: Retrieves all parts linked to the work order from `work_order_parts` table
@@ -106,10 +115,12 @@ When a work order is completed via the `completeWorkOrder()` method in `server/s
    - `notes`: Human-readable description
 
 #### Transaction Safety
+
 - **DatabaseStorage**: All inventory updates wrapped in the same `db.transaction()` as work order status change - atomic commit/rollback
 - **MemStorage**: Sequential Map operations for offline/vessel mode, maintaining in-memory consistency
 
 #### Edge Case Handling
+
 - **Parts not found in inventory**: Gracefully skipped (no error thrown)
 - **Over-consumption prevented**: Quantities clamped to zero minimum with `GREATEST()`/`Math.max()`
 - **Missing work order parts**: Empty array handled gracefully
@@ -117,6 +128,7 @@ When a work order is completed via the `completeWorkOrder()` method in `server/s
 ## Architecture
 
 ### File Structure
+
 ```
 client/src/
 ├── pages/
@@ -141,6 +153,7 @@ shared/
 ```
 
 ### Key Implementation Files
+
 - **Task CRUD Storage**: `server/storage.ts` - `getWorkOrderTasks()`, `createWorkOrderTask()`, `updateWorkOrderTask()`, `deleteWorkOrderTask()`
 - **Task CRUD Domain**: `server/domains/work-orders/service.ts` & `repository.ts` - orchestration layer
 - **Inventory Consumption**: `server/storage.ts` - `completeWorkOrder()` method (both DatabaseStorage and MemStorage)
@@ -148,6 +161,7 @@ shared/
 - **Types**: `shared/schema-runtime.ts` - `WorkOrderTask`, `InsertWorkOrderTask`, `insertWorkOrderTaskSchema`
 
 ### Call Flow for Work Order Completion
+
 ```
 routes.ts: POST /api/work-orders/:id/complete
   → service.ts: WorkOrderService.completeWorkOrder()
@@ -157,6 +171,7 @@ routes.ts: POST /api/work-orders/:id/complete
 ```
 
 ### API Response Transformation
+
 - Database uses `unitCost`, frontend expects `standardCost`
 - Parts tab displays nested `stock` object with current inventory levels
 - Both GET single and list endpoints apply consistent transformation
@@ -164,6 +179,7 @@ routes.ts: POST /api/work-orders/:id/complete
 ## Testing
 
 ### API Testing (curl)
+
 ```bash
 # List work orders with filters
 curl -H "x-org-id: default-org-id" \
@@ -183,6 +199,7 @@ curl -X PATCH -H "x-org-id: default-org-id" \
 ```
 
 ### Validation Testing
+
 ```bash
 # Test empty description validation
 curl -X POST -H "x-org-id: default-org-id" \
@@ -195,11 +212,13 @@ curl -X POST -H "x-org-id: default-org-id" \
 ## Migration Notes
 
 ### Schema Changes
+
 - New table: `work_order_tasks` added to `shared/schema.ts` and `shared/schema-sqlite-vessel.ts`
 - New indexes on `work_orders` table for query performance
 - Schema changes pushed via `npm run db:push` (use `--force` if data-loss warning appears)
 
 ### Validation Commands
+
 ```bash
 # Push schema changes
 npm run db:push
@@ -213,6 +232,7 @@ curl -H "x-org-id: default-org-id" "http://localhost:5000/api/work-orders/{id}/t
 ```
 
 ### Dual-Mode Testing
+
 - **Cloud Mode**: Test with PostgreSQL (default in Replit)
 - **Vessel Mode**: Test with SQLite (Electron desktop app)
 
@@ -221,23 +241,28 @@ curl -H "x-org-id: default-org-id" "http://localhost:5000/api/work-orders/{id}/t
 ## Phase 4: Parts Tracking Enhancements
 
 ### Overview
+
 Enhanced parts tracking for work orders with planned vs. actual quantity tracking and stock validation warnings.
 
 ### Schema Changes
+
 - Added `quantityPlanned` field to `work_order_parts` table (PostgreSQL and SQLite parity)
 - Captures available stock at selection time for validation
 
 ### Stock Warning System
+
 - **Persistent Validation**: Stock levels captured when part is selected
 - **Visual Indicators**: Red border and inline warnings for insufficient stock
 - **Banner Alerts**: Prominent notification when any parts have insufficient stock
 - **Real-time Feedback**: Warnings update as quantities are adjusted
 
 ### Rollback Logic
+
 - Consistent rollback restoring both `quantityPlanned` and `quantityUsed` on reservation failures
 - Prevents partial state when stock operations fail
 
 ### Test IDs
+
 - `parts-tab-stock-warning-${partId}` - Individual part stock warning
 - `parts-tab-insufficient-banner` - Overall insufficient stock banner
 - `input-quantity-planned-${partId}` - Planned quantity input
@@ -247,16 +272,19 @@ Enhanced parts tracking for work orders with planned vs. actual quantity trackin
 ## Phase 5: Audit Trail System
 
 ### Schema Additions
+
 - `work_order_history` table for tracking status changes
 - `inventory_movements` table for ledger-style stock auditing
 
 ### API Endpoint
+
 ```bash
 # Get work order history (combined status changes + inventory movements)
 GET /api/work-orders/:id/history
 ```
 
 ### WorkOrderHistoryTab Component
+
 - Timeline UI with chronological event display
 - Status change icons with before/after values
 - Inventory movement tracking with part details
@@ -267,17 +295,20 @@ GET /api/work-orders/:id/history
 ## Phase 6: Work Order Form Dialog
 
 ### WorkOrderFormDialog Component
+
 Located: `client/src/components/work-orders/WorkOrderFormDialog.tsx`
 
 A unified React Hook Form + Zod-validated modal supporting both create and edit modes.
 
 ### Features
+
 - **Full Field Coverage**: vessel, equipment, maintenance type, priority, status, planned dates, estimated hours, crew assignment, reason, description, downtime settings
 - **Vessel → Equipment Cascade**: Equipment dropdown filters based on selected vessel
 - **Date Validation**: Planned end date must be >= planned start date
 - **Create/Edit Modes**: Single component handles both workflows with appropriate defaults
 
 ### Form Schema
+
 ```typescript
 const workOrderFormSchema = z.object({
   vesselId: z.string().min(1, "Vessel is required"),
@@ -302,6 +333,7 @@ const workOrderFormSchema = z.object({
 ```
 
 ### Usage Example
+
 ```tsx
 import { WorkOrderFormDialog } from "@/components/work-orders/WorkOrderFormDialog";
 
@@ -322,6 +354,7 @@ import { WorkOrderFormDialog } from "@/components/work-orders/WorkOrderFormDialo
 ```
 
 ### Test IDs
+
 - `work-order-form-dialog` - Dialog container
 - `select-vessel` - Vessel dropdown
 - `select-equipment` - Equipment dropdown
@@ -344,9 +377,11 @@ import { WorkOrderFormDialog } from "@/components/work-orders/WorkOrderFormDialo
 ## Phase 7: Work Order Cloning
 
 ### Overview
+
 Ability to clone (duplicate) an existing work order for recurring maintenance tasks. Creates a new work order with the same equipment, vessel, reason, and configuration but with a new WO number and "open" status.
 
 ### API Endpoint
+
 ```bash
 # Clone a work order
 POST /api/work-orders/:id/clone
@@ -354,14 +389,16 @@ Content-Type: application/json
 
 {
   "plannedStartDate": "2025-12-01",   // Optional: New planned start date
-  "plannedEndDate": "2025-12-05",     // Optional: New planned end date  
+  "plannedEndDate": "2025-12-05",     // Optional: New planned end date
   "includeTasks": true,                // Optional: Clone tasks (default: true)
   "includeParts": true                 // Optional: Clone parts list (default: true)
 }
 ```
 
 ### Response
+
 Returns the newly created work order with:
+
 - New unique ID and WO number
 - Status set to "open"
 - All actual dates/hours reset to null
@@ -370,9 +407,11 @@ Returns the newly created work order with:
 - Cloned parts (as planned quantities, no inventory reserved)
 
 ### WorkOrderCloneDialog Component
+
 Located: `client/src/components/work-orders/WorkOrderCloneDialog.tsx`
 
 Features:
+
 - Date adjustment options for planned start/end dates
 - Toggle to include/exclude tasks in clone
 - Toggle to include/exclude parts list in clone
@@ -380,6 +419,7 @@ Features:
 - Success callback with navigation to cloned work order
 
 ### Usage
+
 ```tsx
 import { WorkOrderCloneDialog } from "@/components/work-orders";
 
@@ -390,10 +430,11 @@ import { WorkOrderCloneDialog } from "@/components/work-orders";
   onSuccess={(clonedOrder) => {
     // Navigate to cloned work order
   }}
-/>
+/>;
 ```
 
 ### Test IDs
+
 - `work-order-clone-dialog` - Dialog container
 - `input-clone-start-date` - Planned start date input
 - `input-clone-end-date` - Planned end date input
@@ -408,13 +449,16 @@ import { WorkOrderCloneDialog } from "@/components/work-orders";
 ## Phase 8: Maintenance Templates Integration
 
 ### Overview
+
 Maintenance Templates provide reusable PM procedures that can be applied when creating work orders. Templates define standard maintenance procedures with checklist items, estimated duration, priority, and safety notes.
 
 ### MaintenanceTemplatesPage
+
 Located: `client/src/pages/MaintenanceTemplatesPage.tsx`
 Route: `/maintenance-templates`
 
 Features:
+
 - Full CRUD operations for templates
 - Checklist items management within templates
 - Clone template functionality (with items)
@@ -423,12 +467,15 @@ Features:
 - Expandable details with checklist preview
 
 ### Database Schema
+
 Three related tables (templates and items are actively used; completions is for future checklist tracking):
+
 - **maintenanceTemplates**: Template definitions with equipmentType, maintenanceType, priority, estimatedDurationHours, frequencyDays/Hours, safetyNotes
 - **maintenanceChecklistItems**: Individual steps within a template (stepNumber, title, description, category, required, estimatedMinutes)
 - **maintenanceChecklistCompletions**: (Future use) Will track execution of checklist items during work order completion
 
 ### API Endpoints
+
 ```bash
 # List all templates
 GET /api/maintenance-templates?equipmentType=engine&isActive=true
@@ -461,9 +508,11 @@ POST /api/maintenance-templates/:id/items/reorder
 ```
 
 ### WorkOrderFormDialog Template Integration
+
 Located: `client/src/components/work-orders/WorkOrderFormDialog.tsx`
 
 Features:
+
 - Template selector dropdown appears only in create mode (not edit)
 - Templates auto-filtered by selected equipment type
 - Applying template pre-fills form fields:
@@ -478,6 +527,7 @@ Features:
 ### Test IDs
 
 **WorkOrderFormDialog Template Integration:**
+
 - `template-selector-section` - Template selector container (appears only in create mode with matching equipment)
 - `select-template` - Template dropdown selector
 - `template-option-none` - "No template" option
@@ -489,6 +539,7 @@ Features:
 - `template-applied-status` - Template applied success message
 
 **MaintenanceTemplatesPage:**
+
 - `maintenance-templates-page` - Page container
 - `page-title` - Page title
 - `card-template-${id}` - Template card (grid view)
@@ -498,6 +549,7 @@ Features:
 - `button-delete-${id}` - Delete template button
 
 ### Usage Example
+
 ```tsx
 // Template auto-populates work order form
 1. Select vessel and equipment in WorkOrderFormDialog
@@ -512,19 +564,24 @@ Features:
 ## Phase 9: Checklist Completion Tracking
 
 ### Overview
+
 Phase 9 connects template-derived checklist items to work order execution, enabling technicians to track pass/fail status with notes and providing supervisors with auditable completion data.
 
 ### Template Linking on Work Order Creation
+
 When creating a work order with a template selected:
+
 1. Work order is created via POST `/api/work-orders`
 2. Automatically calls POST `/api/work-orders/:id/initialize-checklist` with the template ID
 3. Creates `maintenanceChecklistCompletions` records for each template checklist item
 4. Items start with `passed: null` (pending status)
 
 ### Enhanced WorkOrderTasksTab
+
 Located: `client/src/components/work-orders/WorkOrderTasksTab.tsx`
 
 Features:
+
 - **Template Checklist Items**: Interactive pass/fail buttons with visual status indicators
 - **Notes Input**: Collapsible notes section for each checklist item
 - **Reset Functionality**: "Undo" button to reset completed items back to pending
@@ -532,15 +589,18 @@ Features:
 - **Dual Lists**: Separate sections for template checklist items and manual ad-hoc tasks
 
 ### LinkTemplateDialog
+
 Located: `client/src/components/work-orders/LinkTemplateDialog.tsx`
 
 Features:
+
 - Link maintenance templates to existing work orders
 - Filter templates by equipment type
 - Preview selected template details before linking
 - Automatically switches to Tasks tab after linking
 
 ### API Endpoints Used
+
 ```bash
 # Get checklist completions for a work order
 GET /api/maintenance-checklist/:workOrderId
@@ -557,6 +617,7 @@ Body: { templateId }
 ### Test IDs
 
 **WorkOrderTasksTab:**
+
 - `work-order-tasks-tab` - Tab container
 - `tasks-progress-section` - Progress section
 - `tasks-progress-text` - Progress count text
@@ -573,6 +634,7 @@ Body: { templateId }
 - `button-cancel-task` - Cancel adding task button
 
 **TemplateChecklistItem:**
+
 - `checklist-item-${id}` - Checklist item container
 - `status-icon-${id}` - Status icon (pending/passed/failed)
 - `completion-info-${id}` - Completion metadata
@@ -586,6 +648,7 @@ Body: { templateId }
 - `button-fail-with-notes-${id}` - Fail with notes button
 
 **LinkTemplateDialog:**
+
 - `link-template-dialog` - Dialog container
 - `select-link-template` - Template selector
 - `template-option-${id}` - Template option
@@ -595,11 +658,12 @@ Body: { templateId }
 - `button-link-template-drawer` - Link Template button in drawer
 
 ### Checklist Item States
-| State | passed Value | Visual Indicator |
-|-------|-------------|------------------|
-| Pending | `null` | Gray circle, white background |
-| Passed | `true` | Green checkmark, green background |
-| Failed | `false` | Red X, red background |
+
+| State   | passed Value | Visual Indicator                  |
+| ------- | ------------ | --------------------------------- |
+| Pending | `null`       | Gray circle, white background     |
+| Passed  | `true`       | Green checkmark, green background |
+| Failed  | `false`      | Red X, red background             |
 
 ---
 

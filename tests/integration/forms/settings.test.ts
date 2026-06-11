@@ -39,12 +39,17 @@ describe("Settings forms — update + propagation + org-isolation", () => {
     expect([200]).toContain(status);
     original = data ?? {};
     // Pick the first stringy field that already exists, so we can restore it.
-    if ("notificationEmail" in (original ?? {})) {writableField = "notificationEmail";}
-    else if ("companyName" in (original ?? {})) {writableField = "companyName";}
+    if ("notificationEmail" in (original ?? {})) {
+      writableField = "notificationEmail";
+    } else if ("companyName" in (original ?? {})) {
+      writableField = "companyName";
+    }
   });
 
   afterAll(async () => {
-    if (!writableField || !original) {return;}
+    if (!writableField || !original) {
+      return;
+    }
     // Restore to the snapshot so we never leak test marker into prod settings.
     await api("PUT", "/api/settings", { [writableField]: original[writableField] ?? null }).catch(
       () => {}
@@ -59,7 +64,6 @@ describe("Settings forms — update + propagation + org-isolation", () => {
 
   it("PUT /api/settings updates a writable field and GET returns the new value", async () => {
     if (!writableField) {
-
       console.warn("SKIP: no writable string field on settings; nothing to round-trip");
       return;
     }
@@ -76,7 +80,9 @@ describe("Settings forms — update + propagation + org-isolation", () => {
   });
 
   it("update is org-scoped — a write under a different x-org-id does not bleed back", async () => {
-    if (!writableField) {return;}
+    if (!writableField) {
+      return;
+    }
 
     const stamped = `cross+${RUN_ID}@example.com`;
     const { status } = await api(
@@ -88,7 +94,6 @@ describe("Settings forms — update + propagation + org-isolation", () => {
     // If the install rejects writes from a non-default org, that's a stronger
     // form of isolation than what we're asserting; either way we pass.
     if (status >= 400) {
-
       console.warn(
         `org-iso write under ${SECOND_ORG} rejected with ${status} — strict isolation, OK`
       );

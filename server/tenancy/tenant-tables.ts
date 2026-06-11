@@ -230,6 +230,4 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "users" },
 ]);
 
-export const TENANT_TABLE_NAMES: readonly string[] = TENANT_TABLES.map(
-  (t) => t.table
-);
+export const TENANT_TABLE_NAMES: readonly string[] = TENANT_TABLES.map((t) => t.table);

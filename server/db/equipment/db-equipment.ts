@@ -82,7 +82,9 @@ export class DatabaseEquipmentStorage {
           vesselName = vessel.name;
         }
       } catch (error) {
-        logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
+        logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, {
+          details: error,
+        });
       }
     }
     const [newEquipment] = await db
@@ -103,7 +105,9 @@ export class DatabaseEquipmentStorage {
     // Failures are logged at warn level (with orgId/equipmentId) so
     // graph drift is observable, not silent.
     try {
-      if (!newEquipment.orgId) {throw new Error("missing orgId");}
+      if (!newEquipment.orgId) {
+        throw new Error("missing orgId");
+      }
       await projectEquipment(newEquipment.orgId, {
         id: newEquipment.id,
         name: newEquipment.name,
@@ -126,7 +130,11 @@ export class DatabaseEquipmentStorage {
         await svc.setupEquipmentAnalytics(newEquipment);
       }
     } catch (error) {
-      logger.error(`Failed to setup analytics for new equipment ${newEquipment.id}:`, undefined, error);
+      logger.error(
+        `Failed to setup analytics for new equipment ${newEquipment.id}:`,
+        undefined,
+        error
+      );
     }
     const ws = getWebSocketServer();
     ws?.broadcastEquipmentChange("create", newEquipment);
@@ -172,7 +180,9 @@ export class DatabaseEquipmentStorage {
             updateData.vesselName = vessel.name;
           }
         } catch (error) {
-          logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, { details: error });
+          logger.warn(`Failed to lookup vessel name for ID ${equipmentData.vesselId}:`, {
+            details: error,
+          });
         }
       } else {
         updateData.vesselName = undefined;
@@ -199,10 +209,7 @@ export class DatabaseEquipmentStorage {
     // relational truth, which only stores one vesselId).
     try {
       if (updated.orgId) {
-        if (
-          priorVesselId &&
-          priorVesselId !== updated.vesselId
-        ) {
+        if (priorVesselId && priorVesselId !== updated.vesselId) {
           await retractInstalledOn(updated.orgId, updated.id, priorVesselId);
         }
         await projectEquipment(updated.orgId, {
@@ -247,7 +254,7 @@ export class DatabaseEquipmentStorage {
       // The cascade-delete path needs a real fix; until then, only run the
       // delete if a column with that name exists at runtime.
       {
-        const col = tableColumns(rawTelemetry)['equipmentId'];
+        const col = tableColumns(rawTelemetry)["equipmentId"];
         if (col) {
           await tx.delete(rawTelemetry).where(eq(col, id));
         }
@@ -260,7 +267,7 @@ export class DatabaseEquipmentStorage {
       // SCHEMA GAP: twinSimulations has no equipmentId column (only digitalTwinId).
       // Cascade-delete path needs a real fix.
       {
-        const col = tableColumns(twinSimulations)['equipmentId'];
+        const col = tableColumns(twinSimulations)["equipmentId"];
         if (col) {
           await tx.delete(twinSimulations).where(eq(col, id));
         }
@@ -273,11 +280,11 @@ export class DatabaseEquipmentStorage {
       // (org-scoped, not equipment-scoped). Cascade behavior needs a real fix —
       // probably this delete shouldn't exist at all. Guard at runtime.
       {
-        const r = tableColumns(insightReports)['equipmentId'];
+        const r = tableColumns(insightReports)["equipmentId"];
         if (r) {
           await tx.delete(insightReports).where(eq(r, id));
         }
-        const s = tableColumns(insightSnapshots)['equipmentId'];
+        const s = tableColumns(insightSnapshots)["equipmentId"];
         if (s) {
           await tx.delete(insightSnapshots).where(eq(s, id));
         }
@@ -343,7 +350,9 @@ export class DatabaseEquipmentStorage {
       .set({ vesselId, vesselName: vessel.name, updatedAt: new Date() })
       .where(eq(equipment.id, equipmentId))
       .returning();
-    if (!updated) {throw new Error(`Equipment ${equipmentId} update returned no row`);}
+    if (!updated) {
+      throw new Error(`Equipment ${equipmentId} update returned no row`);
+    }
     // Task #81 — keep graph INSTALLED_ON edge in lockstep. Retract
     // the old edge first (projectEquipment only ADDs), then re-project.
     // Best-effort; never blocks the relational write.
@@ -359,10 +368,10 @@ export class DatabaseEquipmentStorage {
         systemType: updated.systemType,
       });
     } catch (err) {
-      logger.warn(
-        `[Graph] projectEquipment(${equipmentId}) on associate failed`,
-        { orgId, details: err instanceof Error ? err.message : String(err) }
-      );
+      logger.warn(`[Graph] projectEquipment(${equipmentId}) on associate failed`, {
+        orgId,
+        details: err instanceof Error ? err.message : String(err),
+      });
     }
     return updated;
   }
@@ -395,10 +404,10 @@ export class DatabaseEquipmentStorage {
       try {
         await retractInstalledOn(orgId, equipmentId, priorVesselId);
       } catch (err) {
-        logger.warn(
-          `[Graph] retractInstalledOn(${equipmentId}) on disassociate failed`,
-          { orgId, details: err instanceof Error ? err.message : String(err) }
-        );
+        logger.warn(`[Graph] retractInstalledOn(${equipmentId}) on disassociate failed`, {
+          orgId,
+          details: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }
@@ -455,8 +464,10 @@ export class DatabaseEquipmentStorage {
   async getReplacementRecommendations(): Promise<EquipmentLifecycle[]> {
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    const col = tableColumns(equipmentLifecycle)['estimatedEndOfLife'];
-    if (!col) {return [];}
+    const col = tableColumns(equipmentLifecycle)["estimatedEndOfLife"];
+    if (!col) {
+      return [];
+    }
     return db.select().from(equipmentLifecycle).where(lte(col, sixMonthsFromNow));
   }
 
@@ -491,31 +502,31 @@ export class DatabaseEquipmentStorage {
       .where(and(...conditions))
       .orderBy(equipment.name);
     return results.map(
-      (e): EquipmentHealth & { healthIndex: number } => ({
-        id: e.id,
-        name: e.name,
-        type: e.type,
-        category: e.systemType || e.componentType || undefined,
-        status: e.isActive ? "healthy" : "inactive",
-        healthIndex: 100,
-        vesselId: e.vesselId || undefined,
-        vesselName: e.vesselName || undefined,
-      }) as EquipmentHealth & { healthIndex: number }
+      (e): EquipmentHealth & { healthIndex: number } =>
+        ({
+          id: e.id,
+          name: e.name,
+          type: e.type,
+          category: e.systemType || e.componentType || undefined,
+          status: e.isActive ? "healthy" : "inactive",
+          healthIndex: 100,
+          vesselId: e.vesselId || undefined,
+          vesselName: e.vesselName || undefined,
+        }) as EquipmentHealth & { healthIndex: number }
     );
   }
   async getEquipmentForPart(partId: string, orgId: string): Promise<Equipment[]> {
     this.validateOrgId(orgId, "getEquipmentForPart");
-    const compatibleParts = tableColumns(equipment)['compatibleParts'];
-    if (!compatibleParts) {return [];}
+    const compatibleParts = tableColumns(equipment)["compatibleParts"];
+    if (!compatibleParts) {
+      return [];
+    }
     return db
       .select()
       .from(equipment)
       .where(and(eq(equipment.orgId, orgId), sql`${partId} = ANY(${compatibleParts})`));
   }
-  async getEquipmentWithSensorIssues(
-    __orgId: string,
-    _options?: unknown
-  ): Promise<Equipment[]> {
+  async getEquipmentWithSensorIssues(__orgId: string, _options?: unknown): Promise<Equipment[]> {
     return [];
   }
 }

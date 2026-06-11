@@ -14,7 +14,9 @@ import type { InsertCrewRestSheet, InsertCrewRestDay } from "./types.js";
 export class DatabaseStcwStorage {
   async createCrewRestSheet(data: InsertCrewRestSheet): Promise<CrewRestSheet> {
     const [n] = await db.insert(crewRestSheet).values(data).returning();
-    if (!n) {throw new Error("Failed to create crew rest sheet");}
+    if (!n) {
+      throw new Error("Failed to create crew rest sheet");
+    }
     return n;
   }
   async upsertCrewRestDay(
@@ -32,14 +34,18 @@ export class DatabaseStcwStorage {
         .set(dayData)
         .where(and(eq(crewRestDay.sheetId, sheetId), eq(crewRestDay.date, dayData.date)))
         .returning();
-      if (!u) {throw new Error("Failed to update crew rest day");}
+      if (!u) {
+        throw new Error("Failed to update crew rest day");
+      }
       return u;
     }
     const [inserted] = await db
       .insert(crewRestDay)
       .values({ sheetId, ...dayData })
       .returning();
-    if (!inserted) {throw new Error("Failed to insert crew rest day");}
+    if (!inserted) {
+      throw new Error("Failed to insert crew rest day");
+    }
     return inserted;
   }
   async getCrewRestMonth(

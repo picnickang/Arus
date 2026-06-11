@@ -139,7 +139,9 @@ export class StreamingService {
       this.sendSSE(res, doneChunk);
       onChunk?.(doneChunk);
 
-      (ragMetrics as object as { recordQueryLatency: (sec: number) => void }).recordQueryLatency(latencyMs / 1000);
+      (ragMetrics as object as { recordQueryLatency: (sec: number) => void }).recordQueryLatency(
+        latencyMs / 1000
+      );
 
       res.end();
     } catch (error: unknown) {
@@ -159,7 +161,9 @@ export class StreamingService {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   }
 
-  private buildSystemPrompt(chunks: Array<{ content: string; documentTitle?: string | undefined }>): string {
+  private buildSystemPrompt(
+    chunks: Array<{ content: string; documentTitle?: string | undefined }>
+  ): string {
     const contextText = chunks
       .map(
         (c, i) => `[Source ${i + 1}${c.documentTitle ? `: ${c.documentTitle}` : ""}]\n${c.content}`

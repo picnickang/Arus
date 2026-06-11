@@ -12,14 +12,12 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "weibull_rul");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Weibull RUL analysis feature is disabled for this organization",
-          feature: "weibull_rul",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Weibull RUL analysis feature is disabled for this organization",
+        feature: "weibull_rul",
+        enabled: false,
+      });
     }
     const analyzer = new WeibullRULAnalyzer();
     const prediction = await analyzer.analyzeEquipmentRUL(equipmentId, orgId);
@@ -39,7 +37,11 @@ router.post("/weibull/analyze/:equipmentId", async (req, res) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error(`[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`, undefined, error);
+    logger.error(
+      `[Beast Mode API] Error analyzing RUL for ${req.params.equipmentId}:`,
+      undefined,
+      error
+    );
     return res
       .status(400)
       .json({ success: false, error: message, equipmentId: req.params.equipmentId });
@@ -50,17 +52,15 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
   try {
     const { equipmentId } = req.params;
     const orgId = DEFAULT_ORG_ID;
-    const limit = Number.parseInt(req.query['limit'] as string) || 50;
+    const limit = Number.parseInt(req.query["limit"] as string) || 50;
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "weibull_rul");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Weibull RUL analysis feature is disabled for this organization",
-          feature: "weibull_rul",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Weibull RUL analysis feature is disabled for this organization",
+        feature: "weibull_rul",
+        enabled: false,
+      });
     }
     const analyzer = new WeibullRULAnalyzer();
     const history = await analyzer.getRULHistory(equipmentId, orgId, limit);
@@ -69,16 +69,18 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
       equipmentId,
       orgId,
       count: history.length,
-      history: (history as Array<{
-        id: string;
-        createdAt: string | Date;
-        currentAge: number;
-        predictedRUL: number;
-        reliability: number;
-        recommendation: string;
-        failureProb30d: number;
-        failureProb90d: number;
-      }>).map((pred) => ({
+      history: (
+        history as Array<{
+          id: string;
+          createdAt: string | Date;
+          currentAge: number;
+          predictedRUL: number;
+          reliability: number;
+          recommendation: string;
+          failureProb30d: number;
+          failureProb90d: number;
+        }>
+      ).map((pred) => ({
         id: pred.id,
         timestamp: pred.createdAt,
         currentAge: pred.currentAge,
@@ -90,14 +92,16 @@ router.get("/weibull/history/:equipmentId", async (req, res) => {
       })),
     });
   } catch (error) {
-    logger.error(`[Beast Mode API] Error getting Weibull history for ${req.params.equipmentId}:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Failed to retrieve Weibull RUL history",
-        equipmentId: req.params.equipmentId,
-      });
+    logger.error(
+      `[Beast Mode API] Error getting Weibull history for ${req.params.equipmentId}:`,
+      undefined,
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      error: "Failed to retrieve Weibull RUL history",
+      equipmentId: req.params.equipmentId,
+    });
   }
 });
 
@@ -112,23 +116,19 @@ router.post("/weibull/batch-analyze", async (req, res) => {
     }
 
     if (equipmentIds.length > 20) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "Maximum 20 equipment units can be analyzed in a single batch",
-        });
+      return res.status(400).json({
+        success: false,
+        error: "Maximum 20 equipment units can be analyzed in a single batch",
+      });
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "weibull_rul");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Weibull RUL analysis feature is disabled for this organization",
-          feature: "weibull_rul",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Weibull RUL analysis feature is disabled for this organization",
+        feature: "weibull_rul",
+        enabled: false,
+      });
     }
     const analyzer = new WeibullRULAnalyzer();
     const results = await analyzer.batchAnalyzeRUL(equipmentIds, orgId);
@@ -171,7 +171,9 @@ router.post("/weibull/batch-analyze", async (req, res) => {
     });
   } catch (error: unknown) {
     logger.error(`[Beast Mode API] Error in batch Weibull RUL analysis:`, undefined, error);
-    return res.status(500).json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to perform batch Weibull RUL analysis" });
   }
 });
 

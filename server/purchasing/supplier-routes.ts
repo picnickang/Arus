@@ -16,11 +16,11 @@ supplierLinkRouter.get("/parts/:partId/suppliers", async (req: Request, res: Res
   try {
     const orgId = DEFAULT_ORG_ID;
 
-    const suppliers = await service.getPartSuppliers(req.params['partId'] ?? '', orgId);
+    const suppliers = await service.getPartSuppliers(req.params["partId"] ?? "", orgId);
     return res.json(suppliers);
   } catch (error) {
     logger.error("[Purchasing] Error getting part suppliers:", undefined, error);
-    return res.status(500).json({ error: ((error instanceof Error ? error.message : String(error))) });
+    return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -35,7 +35,7 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
 
     const link = await service.linkSupplierToPart({
       orgId,
-      partId: req.params['partId'] ?? '',
+      partId: req.params["partId"] ?? "",
       supplierId,
       isPrimary,
       supplierPartNumber,
@@ -46,7 +46,7 @@ supplierLinkRouter.post("/parts/:partId/suppliers", async (req: Request, res: Re
     return res.status(201).json(link);
   } catch (error) {
     logger.error("[Purchasing] Error linking supplier to part:", undefined, error);
-    return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
+    return res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -57,8 +57,8 @@ supplierLinkRouter.delete(
       const orgId = DEFAULT_ORG_ID;
 
       const removed = await service.unlinkSupplierFromPart(
-        req.params['partId'] ?? '',
-        req.params['supplierId'] ?? '',
+        req.params["partId"] ?? "",
+        req.params["supplierId"] ?? "",
         orgId
       );
 
@@ -69,7 +69,9 @@ supplierLinkRouter.delete(
       return res.json({ success: true });
     } catch (error) {
       logger.error("[Purchasing] Error unlinking supplier from part:", undefined, error);
-      return res.status(400).json({ error: ((error instanceof Error ? error.message : String(error))) });
+      return res
+        .status(400)
+        .json({ error: error instanceof Error ? error.message : String(error) });
     }
   }
 );

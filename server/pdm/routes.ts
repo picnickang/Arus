@@ -120,7 +120,9 @@ router.get("/dashboard", async (req, res) => {
       dashboardData.riskQueue.resolved = filterRiskQueue(dashboardData.riskQueue.resolved, filters);
     }
 
-    return res.json(validateResponse(pdmDashboardResponseSchema, dashboardData, "GET /api/pdm/dashboard"));
+    return res.json(
+      validateResponse(pdmDashboardResponseSchema, dashboardData, "GET /api/pdm/dashboard")
+    );
   } catch (error) {
     logger.error("Error fetching PdM dashboard data:", error);
     return res.status(500).json({ error: "Failed to fetch dashboard data" });
@@ -239,7 +241,9 @@ router.get("/schedule", async (req, res) => {
       ...(filters.equipmentTypes && { equipmentTypes: filters.equipmentTypes.split(",") }),
       ...(filters.startDate && { startDate: new Date(filters.startDate) }),
       ...(filters.endDate && { endDate: new Date(filters.endDate) }),
-      ...(filters.maxTasksPerVesselPerDay !== undefined && { maxTasksPerVesselPerDay: filters.maxTasksPerVesselPerDay }),
+      ...(filters.maxTasksPerVesselPerDay !== undefined && {
+        maxTasksPerVesselPerDay: filters.maxTasksPerVesselPerDay,
+      }),
       autoPopulate: filters.autoPopulate,
     });
 
@@ -253,7 +257,7 @@ router.get("/schedule", async (req, res) => {
 router.get("/export/schedule", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query['format'] as string) || "csv";
+    const format = (req.query["format"] as string) || "csv";
     const filters = scheduleFiltersSchema.parse(req.query);
 
     const result = await getScheduleUseCase.execute({
@@ -307,9 +311,7 @@ router.get("/export/schedule", async (req, res) => {
           task.schedulingWindow.earliestStart.toISOString().split("T")[0],
           task.schedulingWindow.preferredDate.toISOString().split("T")[0],
           task.schedulingWindow.latestFinish.toISOString().split("T")[0],
-          task.scheduledDate
-            ? new Date(task.scheduledDate).toISOString().split("T")[0]
-            : "",
+          task.scheduledDate ? new Date(task.scheduledDate).toISOString().split("T")[0] : "",
           task.status,
           task.blockReason || "",
           task.blockDetails || "",
@@ -324,13 +326,13 @@ router.get("/export/schedule", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.csv");
       return res.send(csv);
-    } if (format === "json") {
+    }
+    if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=pdm-schedule-export.json");
       return res.json(allTasks);
     }
-      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
-
+    return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
   } catch (error) {
     logger.error("Error exporting schedule:", error);
     return res.status(500).json({ error: "Failed to export schedule" });
@@ -340,7 +342,7 @@ router.get("/export/schedule", async (req, res) => {
 router.get("/export/risk-queue", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query['format'] as string) || "csv";
+    const format = (req.query["format"] as string) || "csv";
     const filters = dashboardFiltersSchema.parse(req.query);
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });
@@ -394,13 +396,13 @@ router.get("/export/risk-queue", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.csv");
       return res.send(csv);
-    } if (format === "json") {
+    }
+    if (format === "json") {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", "attachment; filename=risk-queue-export.json");
       return res.json(allItems);
     }
-      return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
-
+    return res.status(400).json({ error: "Invalid format. Supported: csv, json" });
   } catch (error) {
     logger.error("Error exporting risk queue:", error);
     return res.status(500).json({ error: "Failed to export risk queue" });
@@ -410,7 +412,7 @@ router.get("/export/risk-queue", async (req, res) => {
 router.get("/export/kpis", async (req, res) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const format = (req.query['format'] as string) || "json";
+    const format = (req.query["format"] as string) || "json";
 
     const dashboardData = await getDashboardUseCase.execute({ orgId });
     const kpis = dashboardData.kpis;
@@ -450,10 +452,9 @@ router.get("/export/kpis", async (req, res) => {
       res.setHeader("Content-Disposition", "attachment; filename=kpis-export.csv");
       return res.send(csv);
     }
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Content-Disposition", "attachment; filename=kpis-export.json");
-      return res.json(kpis);
-
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", "attachment; filename=kpis-export.json");
+    return res.json(kpis);
   } catch (error) {
     logger.error("Error exporting KPIs:", error);
     return res.status(500).json({ error: "Failed to export KPIs" });
@@ -492,8 +493,8 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
     if (!equipmentId) {
       return res.status(400).json({ error: "Equipment ID is required" });
     }
-    const limit = Math.min(Math.max(parseInt(req.query['limit'] as string) || 10, 1), 50);
-    const offset = Math.max(parseInt(req.query['offset'] as string) || 0, 0);
+    const limit = Math.min(Math.max(parseInt(req.query["limit"] as string) || 10, 1), 50);
+    const offset = Math.max(parseInt(req.query["offset"] as string) || 0, 0);
 
     const orgId = authenticatedRequest(req).orgId;
     if (!orgId) {
@@ -639,9 +640,9 @@ router.get("/equipment/:equipmentId/fleet-failure-pattern", async (req, res) => 
 router.get("/equipment/:equipmentId/telemetry", async (req, res) => {
   try {
     const equipmentId = req.params.equipmentId;
-    const limit = parseInt(req.query['limit'] as string) || 50;
-    const sensorType = req.query['sensorType'] as string;
-    const hours = parseInt(req.query['hours'] as string) || 24;
+    const limit = parseInt(req.query["limit"] as string) || 50;
+    const sensorType = req.query["sensorType"] as string;
+    const hours = parseInt(req.query["hours"] as string) || 24;
 
     if (!equipmentId) {
       return res.status(400).json({ error: "Equipment ID is required" });
@@ -679,8 +680,8 @@ router.get("/equipment/:equipmentId/telemetry", async (req, res) => {
 
 router.get("/telemetry/trends", async (req, res) => {
   try {
-    const equipmentId = req.query['equipmentId'] as string;
-    const hours = parseInt(req.query['hours'] as string) || 24;
+    const equipmentId = req.query["equipmentId"] as string;
+    const hours = parseInt(req.query["hours"] as string) || 24;
 
     const trends = await telemetryStorage.getTelemetryTrends(equipmentId, hours);
     return res.json(trends);

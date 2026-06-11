@@ -63,19 +63,11 @@ describe("mergeEntry", () => {
   it("inserts a new entry without disturbing other dates", () => {
     const m = manifest("org-1", [entry("2026-05-18"), entry("2026-05-16")]);
     const out = mergeEntry(m, entry("2026-05-17"));
-    expect(out.exports.map((e) => e.date)).toEqual([
-      "2026-05-18",
-      "2026-05-17",
-      "2026-05-16",
-    ]);
+    expect(out.exports.map((e) => e.date)).toEqual(["2026-05-18", "2026-05-17", "2026-05-16"]);
   });
 
   it("sorts the result by date DESC regardless of input order", () => {
-    const m = manifest("org-1", [
-      entry("2026-05-10"),
-      entry("2026-05-12"),
-      entry("2026-05-11"),
-    ]);
+    const m = manifest("org-1", [entry("2026-05-10"), entry("2026-05-12"), entry("2026-05-11")]);
     const out = mergeEntry(m, entry("2026-05-13"));
     expect(out.exports.map((e) => e.date)).toEqual([
       "2026-05-13",
@@ -103,10 +95,7 @@ describe("pruneEntries", () => {
 
     const { manifest: pruned, removed } = pruneEntries(m, "2026-05-12");
 
-    expect(pruned.exports.map((e) => e.date)).toEqual([
-      "2026-05-20",
-      "2026-05-15",
-    ]);
+    expect(pruned.exports.map((e) => e.date)).toEqual(["2026-05-20", "2026-05-15"]);
     expect(removed.map((e) => e.date).sort()).toEqual(["2026-05-05", "2026-05-10"]);
   });
 

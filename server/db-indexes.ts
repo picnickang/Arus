@@ -21,8 +21,8 @@ export interface IndexVerificationResult {
 }
 
 export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> {
-  const isProduction = process.env['NODE_ENV'] === "production";
-  const selfHealEnabled = process.env['DEV_SELF_HEAL'] === "true";
+  const isProduction = process.env["NODE_ENV"] === "production";
+  const selfHealEnabled = process.env["DEV_SELF_HEAL"] === "true";
 
   const verified: string[] = [];
   const missing: string[] = [];
@@ -34,7 +34,7 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
       const result = await db.execute(
         sql.raw(`SELECT to_regclass('public.${indexName}') AS exists`)
       );
-      const exists = result.rows?.[0]?.['exists'] !== null;
+      const exists = result.rows?.[0]?.["exists"] !== null;
 
       if (exists) {
         verified.push(indexName);
@@ -63,7 +63,9 @@ export async function verifyDatabaseIndexes(): Promise<IndexVerificationResult> 
   }
 
   if (selfHealEnabled) {
-    logger.info(`[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`);
+    logger.info(
+      `[DB Indexes] DEV_SELF_HEAL=true - Auto-creating ${missing.length} missing indexes...`
+    );
     await autoCreateMissingIndexes(missing);
     return { ok: true, verified: [...verified, ...missing], missing: [], lastCheckedAt };
   }

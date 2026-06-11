@@ -71,34 +71,41 @@ export function useEquipmentPageData() {
     if (!healthResponse || !Array.isArray(healthResponse)) {
       return [];
     }
-    return (healthResponse as RawHealthItem[]).map((item) => (({
-      id: item.id,
-      vessel: item.vesselId || item.vessel || "",
-      vesselId: item.vesselId || item.vessel || undefined,
-      name: item.name,
-      type: item.type,
-      healthIndex: item.healthIndex ?? item.healthScore ?? 0,
-      predictedDueDays: item.predictedDueDays ?? 30,
-      status:
-        item.status ||
-        (item.condition === "critical" || item.condition === "poor"
-          ? ("critical" as const)
-          : item.condition === "fair"
-            ? ("warning" as const)
-            : ("healthy" as const)),
-    }) as never));
+    return (healthResponse as RawHealthItem[]).map(
+      (item) =>
+        ({
+          id: item.id,
+          vessel: item.vesselId || item.vessel || "",
+          vesselId: item.vesselId || item.vessel || undefined,
+          name: item.name,
+          type: item.type,
+          healthIndex: item.healthIndex ?? item.healthScore ?? 0,
+          predictedDueDays: item.predictedDueDays ?? 30,
+          status:
+            item.status ||
+            (item.condition === "critical" || item.condition === "poor"
+              ? ("critical" as const)
+              : item.condition === "fair"
+                ? ("warning" as const)
+                : ("healthy" as const)),
+        }) as never
+    );
   }, [healthResponse]);
   const healthMap = useMemo(() => {
     const map = new Map<string, EquipmentHealth>();
     healthData.forEach((h) => {
-      if (h['id']) {
-        map.set(h['id'] as string, h);
+      if (h["id"]) {
+        map.set(h["id"] as string, h);
       }
     });
     return map;
   }, [healthData]);
   const equipmentWithHealth: EquipmentWithHealth[] = useMemo(
-    () => allEquipment.map((eq) => ({ ...eq, health: healthMap.get(eq.id) })) as object as EquipmentWithHealth[],
+    () =>
+      allEquipment.map((eq) => ({
+        ...eq,
+        health: healthMap.get(eq.id),
+      })) as object as EquipmentWithHealth[],
     [allEquipment, healthMap]
   );
   const uniqueTypes = useMemo(() => {
@@ -166,7 +173,8 @@ export function useEquipmentPageData() {
     const avgHealth =
       healthData.length > 0
         ? Math.round(
-            healthData.reduce((sum, h) => sum + ((h['healthIndex'] as number) || 0), 0) / healthData.length
+            healthData.reduce((sum, h) => sum + ((h["healthIndex"] as number) || 0), 0) /
+              healthData.length
           )
         : 0;
     return { total, healthy, warning, critical, noData, avgHealth };

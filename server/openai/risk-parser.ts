@@ -26,7 +26,9 @@ export function parseRecommendations(
 
   recommendations.forEach((recommendation: string) => {
     const parts = recommendation.split(" - ");
-    if (parts.length < 4) {return;}
+    if (parts.length < 4) {
+      return;
+    }
     const equipmentPart = parts[0];
     const impactPart = parts[1];
     const timePart = parts[2];
@@ -40,16 +42,14 @@ export function parseRecommendations(
       return;
     }
     const equipmentMatch = /^(\w+):\s{0,10}([^(]{1,200}?)\s{0,10}\((\d+)%\)/.exec(equipmentPart);
-    if (!equipmentMatch) {return;}
+    if (!equipmentMatch) {
+      return;
+    }
 
     const equipmentId = equipmentMatch[1];
     const failureMode = equipmentMatch[2];
     const probabilityStr = equipmentMatch[3];
-    if (
-      equipmentId === undefined ||
-      failureMode === undefined ||
-      probabilityStr === undefined
-    ) {
+    if (equipmentId === undefined || failureMode === undefined || probabilityStr === undefined) {
       return;
     }
     const probability = Number.parseInt(probabilityStr);
@@ -60,9 +60,7 @@ export function parseRecommendations(
 
     const urgency = determineUrgency(timePart);
 
-    const equipmentDossier = equipmentDossiers.find(
-      (d: { id?: string }) => d.id === equipmentId
-    );
+    const equipmentDossier = equipmentDossiers.find((d: { id?: string }) => d.id === equipmentId);
     const linkedWorkOrderId =
       (equipmentDossier?.context.workOrderStats.openCount ?? 0) > 0
         ? `work-order-${equipmentId}`

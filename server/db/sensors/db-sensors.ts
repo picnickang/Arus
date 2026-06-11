@@ -69,7 +69,9 @@ export class DbSensorsStorage {
         updatedAt: new Date(),
       } as never)
       .returning();
-    if (!r) {throw new Error("createSensorConfiguration: returned no row");}
+    if (!r) {
+      throw new Error("createSensorConfiguration: returned no row");
+    }
     return r;
   }
   async bulkCreateSensorConfigurations(
@@ -229,7 +231,9 @@ export class DbSensorsStorage {
         },
       })
       .returning();
-    if (!r) {throw new Error("upsertSensorState: returned no row");}
+    if (!r) {
+      throw new Error("upsertSensorState: returned no row");
+    }
     return r;
   }
 
@@ -262,7 +266,9 @@ export class DbSensorsStorage {
         updatedAt: new Date(),
       })
       .returning();
-    if (!r) {throw new Error("createJ1939Configuration: returned no row");}
+    if (!r) {
+      throw new Error("createJ1939Configuration: returned no row");
+    }
     return r;
   }
   async updateJ1939Configuration(

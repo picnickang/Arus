@@ -42,6 +42,8 @@ export function normalizeFeatures(
 
   const finalMean = mean;
   const finalStd = std;
-  const normalized = data.map((row) => row.map((val, i) => (val - (finalMean[i] ?? 0)) / (finalStd[i] ?? 1)));
+  const normalized = data.map((row) =>
+    row.map((val, i) => (val - (finalMean[i] ?? 0)) / (finalStd[i] ?? 1))
+  );
   return { normalized, mean: finalMean, std: finalStd };
 }

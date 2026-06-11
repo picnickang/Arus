@@ -68,7 +68,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     writeOperationRateLimit,
     withErrorHandling("calculate cost savings", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { workOrderId = '' } = req.params;
+      const { workOrderId = "" } = req.params;
       // Parse-and-discard: the public schema does not currently expose the
       // emergency multipliers calculateWorkOrderSavings accepts. Validating
       // keeps the wire contract honest; we pass calculator defaults below.
@@ -93,7 +93,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     writeOperationRateLimit,
     withErrorHandling("process cost savings", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { workOrderId = '' } = req.params;
+      const { workOrderId = "" } = req.params;
 
       const result = await processWorkOrderCompletion(workOrderId, orgId);
 
@@ -161,7 +161,7 @@ export function registerCostSavingsRoutes(app: Express, config: CostSavingsRoute
     withErrorHandling("update savings validation status", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
       const userId = authenticatedRequest(req).user?.id ?? "unknown";
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const body = updateValidationStatusSchema.parse(req.body);
 
       const { eq, and } = await import("drizzle-orm");

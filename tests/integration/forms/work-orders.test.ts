@@ -32,7 +32,9 @@ describe("Work-Order forms — CRUD + propagation", () => {
   afterAll(async () => {
     for (const id of [createdWoId, clonedWoId].filter(Boolean)) {
       await pool.query("DELETE FROM work_order_parts WHERE work_order_id=$1", [id]).catch(() => {});
-      await pool.query("DELETE FROM work_order_history WHERE work_order_id=$1", [id]).catch(() => {});
+      await pool
+        .query("DELETE FROM work_order_history WHERE work_order_id=$1", [id])
+        .catch(() => {});
       await pool.query("DELETE FROM work_orders WHERE id=$1", [id]).catch(() => {});
     }
     await cleanupByRunId(RUN_ID, ["work_orders", "work_order_history"]);

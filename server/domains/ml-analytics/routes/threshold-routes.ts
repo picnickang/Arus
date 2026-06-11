@@ -35,7 +35,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId } = req.query;
       const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(
-        Number.parseInt(req.params['id'] ?? ''),
+        Number.parseInt(req.params["id"] ?? ""),
         orgId as string
       );
       if (!optimization) {
@@ -71,7 +71,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
     withErrorHandling("apply threshold optimization", async (req, res) => {
       const { orgId = authenticatedRequest(req).orgId } = req.body;
       const optimization = await dbMlAnalyticsStorage.applyThresholdOptimization(
-        Number.parseInt(req.params['id'] ?? ''),
+        Number.parseInt(req.params["id"] ?? ""),
         orgId
       );
       const { normalizeThresholdOptimization } = await import(

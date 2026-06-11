@@ -27,7 +27,9 @@ describe("Cost-savings & expenses forms — CRUD + propagation", () => {
       await pool.query("DELETE FROM cost_savings WHERE work_order_id=$1", [woId]).catch(() => {});
       await pool.query("DELETE FROM work_orders WHERE id=$1", [woId]).catch(() => {});
     }
-    if (expenseId) {await pool.query("DELETE FROM expenses WHERE id=$1", [expenseId]).catch(() => {});}
+    if (expenseId) {
+      await pool.query("DELETE FROM expenses WHERE id=$1", [expenseId]).catch(() => {});
+    }
     await cleanupByRunId(RUN_ID, ["expenses", "cost_savings"]);
   });
 
@@ -52,11 +54,12 @@ describe("Cost-savings & expenses forms — CRUD + propagation", () => {
   });
 
   it("expense persists to DB with org scoping", async () => {
-    if (!expenseId) {return;}
-    const { rows } = await pool.query(
-      "SELECT description, org_id FROM expenses WHERE id=$1",
-      [expenseId]
-    );
+    if (!expenseId) {
+      return;
+    }
+    const { rows } = await pool.query("SELECT description, org_id FROM expenses WHERE id=$1", [
+      expenseId,
+    ]);
     expect(rows.length).toBe(1);
     expect(rows[0].org_id).toBe("default-org-id");
     expect(String(rows[0].description)).toContain(RUN_ID);
@@ -74,11 +77,7 @@ describe("Cost-savings & expenses forms — CRUD + propagation", () => {
     expect([200, 201]).toContain(wo.status);
     woId = wo.data.id;
 
-    const { status, data } = await api(
-      "POST",
-      `/api/cost-savings/calculate/${woId}`,
-      {}
-    );
+    const { status, data } = await api("POST", `/api/cost-savings/calculate/${woId}`, {});
     // Calculate may return 200 with a savings row or 400/404 if the WO has no
     // closeout yet — both are valid surface behaviour. The point is the route
     // must respond.

@@ -107,7 +107,7 @@ const availableDomains = new Set<string>();
 async function tableHasRls(client: PoolClient, table: string): Promise<boolean> {
   const r = await client.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
     `SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE relname = $1`,
-    [table],
+    [table]
   );
   return r.rows[0]?.relrowsecurity === true && r.rows[0]?.relforcerowsecurity === true;
 }
@@ -116,7 +116,7 @@ async function tableExists(client: PoolClient, table: string): Promise<boolean> 
   const r = await client.query<{ exists: boolean }>(
     `SELECT EXISTS (SELECT 1 FROM information_schema.tables
        WHERE table_schema = current_schema() AND table_name = $1) AS exists`,
-    [table],
+    [table]
   );
   return r.rows[0]?.exists === true;
 }
@@ -124,7 +124,7 @@ async function tableExists(client: PoolClient, table: string): Promise<boolean> 
 async function pinnedTx<T>(
   pool: Pool,
   orgId: string,
-  fn: (c: PoolClient) => Promise<T>,
+  fn: (c: PoolClient) => Promise<T>
 ): Promise<T> {
   const c = await pool.connect();
   try {
@@ -142,12 +142,18 @@ async function pinnedTx<T>(
 }
 
 beforeAll(async () => {
-  if (!databaseUrl) {return;}
+  if (!databaseUrl) {
+    return;
+  }
   pool = new Pool({ connectionString: databaseUrl, max: 4 });
   const probe = await pool.connect();
   try {
-    if (!(await tableExists(probe, "equipment"))) {return;}
-    if (!(await tableHasRls(probe, "equipment"))) {return;}
+    if (!(await tableExists(probe, "equipment"))) {
+      return;
+    }
+    if (!(await tableHasRls(probe, "equipment"))) {
+      return;
+    }
     rlsReady = true;
 
     for (const spec of DOMAINS) {
@@ -159,10 +165,14 @@ beforeAll(async () => {
     probe.release();
   }
 
-  if (!rlsReady || !pool) {return;}
+  if (!rlsReady || !pool) {
+    return;
+  }
 
   for (const spec of DOMAINS) {
-    if (!availableDomains.has(spec.domain)) {continue;}
+    if (!availableDomains.has(spec.domain)) {
+      continue;
+    }
 
     for (const org of [ORG_A, ORG_B]) {
       const id = `${TAG}-${spec.domain}-${org}`;
@@ -171,13 +181,17 @@ beforeAll(async () => {
           // raw_telemetry / vessel_3d_models / schedules need equipment / vessel
           // parents under RLS. We create disposable parents lazily under the
           // same pinned tx so RLS treats them as the same tenant.
-          if (spec.table === "raw_telemetry" || spec.table === "maintenance_schedules" || spec.table === "alert_notifications") {
+          if (
+            spec.table === "raw_telemetry" ||
+            spec.table === "maintenance_schedules" ||
+            spec.table === "alert_notifications"
+          ) {
             const eqId = `${TAG}-eq-${org}`;
             await c.query(
               `INSERT INTO equipment (id, name, org_id, type, status, criticality)
                  VALUES ($1, $2, $3, 'pump', 'operational', 'medium')
                  ON CONFLICT (id) DO NOTHING`,
-              [eqId, `lr1b eq ${org}`, org],
+              [eqId, `lr1b eq ${org}`, org]
             );
             await c.query(spec.insertSql, [id, org, eqId]);
           } else if (spec.table === "vessel_3d_models") {
@@ -185,7 +199,7 @@ beforeAll(async () => {
             await c.query(
               `INSERT INTO vessels (id, org_id, name, status)
                  VALUES ($1, $2, $3, 'active') ON CONFLICT (id) DO NOTHING`,
-              [vId, org, `lr1b vessel ${org}`],
+              [vId, org, `lr1b vessel ${org}`]
             );
             await c.query(spec.insertSql, [id, org, vId]);
           } else if (spec.table === "kb_docs") {
@@ -210,14 +224,20 @@ beforeAll(async () => {
 }, 90000);
 
 afterAll(async () => {
-  if (!pool) {return;}
+  if (!pool) {
+    return;
+  }
   if (rlsReady) {
     for (const spec of DOMAINS) {
-      if (!availableDomains.has(spec.domain)) {continue;}
+      if (!availableDomains.has(spec.domain)) {
+        continue;
+      }
       for (const org of [ORG_A, ORG_B]) {
         try {
           await pinnedTx(pool, org, async (c) => {
-            await c.query(`DELETE FROM ${spec.table} WHERE id LIKE $1`, [`${TAG}-${spec.domain}-%`]);
+            await c.query(`DELETE FROM ${spec.table} WHERE id LIKE $1`, [
+              `${TAG}-${spec.domain}-%`,
+            ]);
             await c.query(`DELETE FROM equipment WHERE id = $1`, [`${TAG}-eq-${org}`]);
             await c.query(`DELETE FROM vessels WHERE id = $1`, [`${TAG}-ves-${org}`]);
           });
@@ -234,12 +254,10 @@ describe("LR-1B — cross-tenant non-leakage across every tenant-scoped domain",
   for (const spec of DOMAINS) {
     it(`${spec.domain}: pinned tenant A only sees A's rows; B only sees B's`, async () => {
       if (!databaseUrl || !rlsReady || !pool) {
-
         console.warn(`[lr1b-cross-tenant] skipping ${spec.domain} — DB / RLS not ready`);
         return;
       }
       if (!availableDomains.has(spec.domain)) {
-
         console.warn(`[lr1b-cross-tenant] skipping ${spec.domain} — table/RLS missing`);
         return;
       }

@@ -19,7 +19,7 @@ insurance against a silently-broken backup pipeline.
 name: dr-backup-verify
 on:
   schedule:
-    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 jobs:
   verify:
@@ -52,28 +52,28 @@ jobs:
 
 ### Required env vars
 
-| Var | Purpose |
-|-----|---------|
-| `DATABASE_URL` | **read-only** prod DB credential — parity reference |
-| `VERIFY_DATABASE_URL` | scratch DB the dump is restored into (will be wiped) |
-| `BACKUP_PATH` or `BACKUP_URL` | the dump to validate (custom-format `pg_dump`) |
+| Var                           | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `DATABASE_URL`                | **read-only** prod DB credential — parity reference  |
+| `VERIFY_DATABASE_URL`         | scratch DB the dump is restored into (will be wiped) |
+| `BACKUP_PATH` or `BACKUP_URL` | the dump to validate (custom-format `pg_dump`)       |
 
 ### Optional env vars
 
-| Var | Default | Purpose |
-|-----|---------|---------|
-| `ROW_COUNT_TOLERANCE_PCT` | `20` | per-table row-count drift allowed |
-| `ANCHOR_TABLES` | `vessels,equipment,work_orders` | must be non-empty in restore |
-| `REPORT_PATH` | `/tmp/backup-verify-<ts>.json` | where the JSON report lands |
-| `ALLOW_RESTORE_ONLY_TABLES` | `true` | set `false` to fail on tables that exist in the restore but not live (catches stale dump files from a deprecated schema) |
+| Var                         | Default                         | Purpose                                                                                                                  |
+| --------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `ROW_COUNT_TOLERANCE_PCT`   | `20`                            | per-table row-count drift allowed                                                                                        |
+| `ANCHOR_TABLES`             | `vessels,equipment,work_orders` | must be non-empty in restore                                                                                             |
+| `REPORT_PATH`               | `/tmp/backup-verify-<ts>.json`  | where the JSON report lands                                                                                              |
+| `ALLOW_RESTORE_ONLY_TABLES` | `true`                          | set `false` to fail on tables that exist in the restore but not live (catches stale dump files from a deprecated schema) |
 
 ### Exit codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | All checks passed; backup is restorable and within drift tolerance. |
-| 1 | Validation failure — read the JSON report. |
-| 2 | Harness error (missing inputs, couldn't connect, pg_restore not on PATH). |
+| Code | Meaning                                                                   |
+| ---- | ------------------------------------------------------------------------- |
+| 0    | All checks passed; backup is restorable and within drift tolerance.       |
+| 1    | Validation failure — read the JSON report.                                |
+| 2    | Harness error (missing inputs, couldn't connect, pg_restore not on PATH). |
 
 ### What "drift tolerance" means
 
@@ -151,11 +151,11 @@ telemetry-warehouse/
 
 ### Versioning and retention
 
-| Class | Versioning | Retention | Lifecycle |
-|-------|------------|-----------|-----------|
-| `backups/postgres/**` | **enabled** (S3 versioning / object versioning) | 35 days for current versions, 7 days for non-current | Daily full dump; weekly dumps kept 90 days under `backups/postgres/weekly/` |
-| `backups/manifests/**` | enabled | indefinite | Single-key overwrite; old versions retained for audit |
-| `telemetry-warehouse/**` | enabled | per `TELEMETRY_WAREHOUSE_RETENTION_DAYS` env (default 90) | Exporter prunes on every run; bucket lifecycle is a backstop |
+| Class                    | Versioning                                      | Retention                                                 | Lifecycle                                                                   |
+| ------------------------ | ----------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `backups/postgres/**`    | **enabled** (S3 versioning / object versioning) | 35 days for current versions, 7 days for non-current      | Daily full dump; weekly dumps kept 90 days under `backups/postgres/weekly/` |
+| `backups/manifests/**`   | enabled                                         | indefinite                                                | Single-key overwrite; old versions retained for audit                       |
+| `telemetry-warehouse/**` | enabled                                         | per `TELEMETRY_WAREHOUSE_RETENTION_DAYS` env (default 90) | Exporter prunes on every run; bucket lifecycle is a backstop                |
 
 Versioning is non-negotiable for the `backups/postgres/**` prefix — without
 it, a single accidental `aws s3 rm` (or its equivalent) destroys every
@@ -164,12 +164,12 @@ delete markers that the previous-version restore can step over.
 
 ### Access policy
 
-| Principal | Access | Why |
-|-----------|--------|-----|
-| Backup-writer service account | `s3:PutObject`, `s3:ListBucket` on `backups/postgres/**` only | Least privilege — cannot delete prior versions even if compromised |
-| DR-restore role (assumed during drills) | `s3:GetObject`, `s3:GetObjectVersion`, `s3:ListBucket` | Read-only — drills cannot mutate the canonical backup set |
-| Human operators | NO direct access | All restores go through the audited DR-restore role; humans assume the role per-drill |
-| Application runtime | NO access to `backups/**` | The app reads/writes `telemetry-warehouse/**` only |
+| Principal                               | Access                                                        | Why                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Backup-writer service account           | `s3:PutObject`, `s3:ListBucket` on `backups/postgres/**` only | Least privilege — cannot delete prior versions even if compromised                    |
+| DR-restore role (assumed during drills) | `s3:GetObject`, `s3:GetObjectVersion`, `s3:ListBucket`        | Read-only — drills cannot mutate the canonical backup set                             |
+| Human operators                         | NO direct access                                              | All restores go through the audited DR-restore role; humans assume the role per-drill |
+| Application runtime                     | NO access to `backups/**`                                     | The app reads/writes `telemetry-warehouse/**` only                                    |
 
 ### Cross-region replication
 
@@ -187,4 +187,3 @@ outage or a credential-compromise blast radius in the primary account.
 4. The replica-region bucket has a matching object count for the prior 7 days.
 
 Anything red here means recovery is at risk — file a P1 the same shift.
-

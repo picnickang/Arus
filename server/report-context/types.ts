@@ -31,39 +31,45 @@ export interface ReportContext {
     audience: "executive" | "technical" | "maintenance" | "compliance";
     priority: "low" | "medium" | "high" | "critical";
   };
-  intelligence?: {
-    vesselLearnings?: unknown;
-    historicalContext?: unknown;
-    historicalContexts?: unknown[];
-    patterns?: unknown[];
-    predictions?: Array<{
-      equipmentId: string;
-      equipmentName: string;
-      equipmentType: string;
-      mlPrediction: MLPredictionResult;
-    }>;
-    knowledgeBase?: string[];
-  } | undefined;
-  knowledge?: {
-    documents: Array<{
-      docId: string;
-      name: string;
-      equipmentId?: string | null | undefined;
-      text?: string | undefined;
-      relevance: number;
-    }>;
-    semanticMatches: Array<{
-      docId: string;
-      text: string;
-      score: number;
-    }>;
-  } | undefined;
-  citations?: {
-    sourceType: string;
-    sourceId: string;
-    title: string;
-    relevance: number;
-  }[] | undefined;
+  intelligence?:
+    | {
+        vesselLearnings?: unknown;
+        historicalContext?: unknown;
+        historicalContexts?: unknown[];
+        patterns?: unknown[];
+        predictions?: Array<{
+          equipmentId: string;
+          equipmentName: string;
+          equipmentType: string;
+          mlPrediction: MLPredictionResult;
+        }>;
+        knowledgeBase?: string[];
+      }
+    | undefined;
+  knowledge?:
+    | {
+        documents: Array<{
+          docId: string;
+          name: string;
+          equipmentId?: string | null | undefined;
+          text?: string | undefined;
+          relevance: number;
+        }>;
+        semanticMatches: Array<{
+          docId: string;
+          text: string;
+          score: number;
+        }>;
+      }
+    | undefined;
+  citations?:
+    | {
+        sourceType: string;
+        sourceId: string;
+        title: string;
+        relevance: number;
+      }[]
+    | undefined;
 }
 
 export interface ContextBuilderOptions {

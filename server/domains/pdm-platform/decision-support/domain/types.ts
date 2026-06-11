@@ -50,7 +50,8 @@ export interface OperationalContextInput {
   routeSegment?: string;
 }
 
-export interface NormalizedOperationalContext extends Required<Pick<OperationalContextInput, "operatingMode">> {
+export interface NormalizedOperationalContext
+  extends Required<Pick<OperationalContextInput, "operatingMode">> {
   loadFactor: number;
   weatherSeverity: number;
   seaState: number;
@@ -80,7 +81,6 @@ export interface PerformanceIndicators {
   sequenceLength: number;
   requiredSequenceLength: number;
 }
-
 
 export interface PdmCalibrationSnapshot {
   totalFeedback: number;
@@ -170,4 +170,3 @@ export interface SyntheticTelemetryResult {
     sampleCount: number;
   };
 }
-

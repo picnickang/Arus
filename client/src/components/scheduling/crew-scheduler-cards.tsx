@@ -243,9 +243,7 @@ export function SchedulingConfigCard({
                               <FormLabel>Vessel (Optional)</FormLabel>
                               <Select
                                 value={field.value || "none"}
-                                onValueChange={(val) =>
-                                  field.onChange(val === "none" ? "" : val)
-                                }
+                                onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
                               >
                                 <FormControl>
                                   <SelectTrigger data-testid="select-shift-vessel">

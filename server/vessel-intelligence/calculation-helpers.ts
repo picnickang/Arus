@@ -42,7 +42,9 @@ export function calculatePerformanceMetrics(
   vesselAge: number
 ): HistoricalContext["performanceMetrics"] {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const recentWorkOrders = workOrders.filter((wo) => new Date(wo.createdAt ?? Date.now()) >= thirtyDaysAgo);
+  const recentWorkOrders = workOrders.filter(
+    (wo) => new Date(wo.createdAt ?? Date.now()) >= thirtyDaysAgo
+  );
 
   const totalDowntimeHours = recentWorkOrders
     .filter((wo) => wo.affectsVesselDowntime)
@@ -53,7 +55,10 @@ export function calculatePerformanceMetrics(
   const availability = analysisPeriodHours > 0 ? (operatingHours / analysisPeriodHours) * 100 : 100;
 
   const failureOrders = recentWorkOrders.filter(
-    (wo) => (wo.workOrderType) === "corrective" || String(wo.priority) === "critical" || String(wo.priority) === "urgent"
+    (wo) =>
+      wo.workOrderType === "corrective" ||
+      String(wo.priority) === "critical" ||
+      String(wo.priority) === "urgent"
   );
   const mtbf =
     operatingHours > 0 && failureOrders.length > 0
@@ -125,7 +130,8 @@ export function calculateAverageDaysBetween(orders: WorkOrder[]): number {
 
   for (let i = 1; i < sorted.length; i++) {
     const days =
-      (new Date(sorted[i]?.createdAt ?? 0).getTime() - new Date(sorted[i - 1]?.createdAt ?? 0).getTime()) /
+      (new Date(sorted[i]?.createdAt ?? 0).getTime() -
+        new Date(sorted[i - 1]?.createdAt ?? 0).getTime()) /
       (24 * 60 * 60 * 1000);
     totalDays += days;
   }
@@ -256,9 +262,17 @@ export function determineCostTrend(
   const lastQuarter = sorted.slice(-Math.floor(sorted.length / 4));
 
   const avgFirst =
-    firstQuarter.reduce((sum, wo) => sum + ((Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0)), 0) / firstQuarter.length;
+    firstQuarter.reduce(
+      (sum, wo) =>
+        sum + (Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0),
+      0
+    ) / firstQuarter.length;
   const avgLast =
-    lastQuarter.reduce((sum, wo) => sum + ((Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0)), 0) / lastQuarter.length;
+    lastQuarter.reduce(
+      (sum, wo) =>
+        sum + (Number(wo.estimatedCostPerHour ?? 0) || 0) * (Number(wo.estimatedHours ?? 0) || 0),
+      0
+    ) / lastQuarter.length;
 
   const change = ((avgLast - avgFirst) / avgFirst) * 100;
 

@@ -26,12 +26,7 @@
  */
 
 import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import request from "supertest";
 
 const ORG_ID = "org-t131";
@@ -162,14 +157,12 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
     };
     nextInsertReturn = [inserted];
 
-    const res = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-        notes: null,
-      });
+    const res = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+      notes: null,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.dependency).toMatchObject({
@@ -198,9 +191,7 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
       },
     ];
 
-    const res = await request(adminApp).delete(
-      `/api/v1/equipment-dependencies/${DEP_ID}`
-    );
+    const res = await request(adminApp).delete(`/api/v1/equipment-dependencies/${DEP_ID}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
@@ -218,13 +209,11 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
     // the graph would drift from relational truth.
     nextInsertReturn = []; // onConflictDoNothing returned no rows
 
-    const res = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-      });
+    const res = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+    });
 
     expect(res.status).toBe(409);
     await flushMicrotasks();
@@ -234,9 +223,7 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
   it("delete of a non-existent edge (404) MUST NOT retract", async () => {
     nextDeleteReturn = [];
 
-    const res = await request(adminApp).delete(
-      `/api/v1/equipment-dependencies/does-not-exist`
-    );
+    const res = await request(adminApp).delete(`/api/v1/equipment-dependencies/does-not-exist`);
 
     expect(res.status).toBe(404);
     await flushMicrotasks();
@@ -244,13 +231,11 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
   });
 
   it("self-loop is rejected by the create schema before any DB or projector call", async () => {
-    const res = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_A,
-      });
+    const res = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_A,
+    });
 
     expect(res.status).toBe(400);
     await flushMicrotasks();
@@ -260,13 +245,11 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
   it("cross-vessel / unknown equipment ids are rejected before projection", async () => {
     equipmentLookupRows = [{ id: EQUIP_A }]; // EQUIP_B missing from this vessel
 
-    const res = await request(adminApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-      });
+    const res = await request(adminApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+    });
 
     expect(res.status).toBe(400);
     expect(res.body.missingIds).toContain(EQUIP_B);
@@ -276,13 +259,11 @@ describe("Task #131 — Visual dependency editor → projector contract", () => 
 
   it("non-admin roles are gated server-side — UI cannot bypass the role check", async () => {
     const cookApp = await buildApp("cook");
-    const res = await request(cookApp)
-      .post("/api/v1/equipment-dependencies")
-      .send({
-        vesselId: VESSEL_ID,
-        upstreamEquipmentId: EQUIP_A,
-        downstreamEquipmentId: EQUIP_B,
-      });
+    const res = await request(cookApp).post("/api/v1/equipment-dependencies").send({
+      vesselId: VESSEL_ID,
+      upstreamEquipmentId: EQUIP_A,
+      downstreamEquipmentId: EQUIP_B,
+    });
 
     expect(res.status).toBe(403);
     await flushMicrotasks();

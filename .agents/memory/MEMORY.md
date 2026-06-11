@@ -13,7 +13,7 @@
 - [Dev preview domain vs real API port](dev-preview-vs-real-api.md) — `$REPLIT_DEV_DOMAIN` routes to the mockup-sandbox preview (404s on /api); smoke-test the real Express API at localhost:5000.
 - [Object-storage quota reclaim](object-storage-quota-reclaim.md) — upload routes that charge storage_bytes must reclaim the replaced object + compensate on DB-write failure or the per-org quota drifts upward.
 - [Stale service-worker app shell](stale-sw-app-shell.md) — "changes have not been applied" with correct code = SW serving non-hashed `/`/`index.html` cache-first; fix = network-first navigations + bump CACHE_NAME.
-- [Cross-domain wiring vs leak guard](cross-domain-composition-wiring.md) — put cross-domain db*Storage wiring in server/composition/ (check:domain-leaks section C only scans server/domains/**); alert_notifications is the de-facto org notification channel.
+- [Cross-domain wiring vs leak guard](cross-domain-composition-wiring.md) — put cross-domain db\*Storage wiring in server/composition/ (check:domain-leaks section C only scans server/domains/\*\*); alert_notifications is the de-facto org notification channel.
 - [lr35 source-scan UI tests](lr35-source-scan-ui-tests.md) — string-match testid/href/endpoint contracts; a screen redesign must update its lr35 test + nav-matrix playwright in lockstep. Lists known pre-existing reds.
 - [Crew former-rehire is derived](crew-former-rehire-derived.md) — no rehire-eligibility column exists; "Rehire OK/Review/No rehire" is computed from latest employment period's terminationType + contractPenalty.
 - [Crew profile photo crop format](crew-photo-crop.md) — CrewPhotoModal exports a square JPEG (no alpha); avatars are clipped round via CSS, not baked into the file.
@@ -21,7 +21,7 @@
 - [me-tasks feed is role-config gated](me-tasks-source-gating.md) — a new task type only shows in /api/me/tasks & "My Tasks" if its source is in the role's taskSources; default changes reach new orgs only.
 - [In-page subview discoverability](subview-nav-discoverability.md) — a subview reachable only via an in-page tile is invisible from the app nav; add a deep-link nav entry + URL-driven view.
 - [Crew doc renewal-task pattern](crew-doc-renewal-task.md) — near-expiry crew docs spawn a crew_document-linked crew task (existing /api/crew-tasks); dedupe by linkedSourceId before create or re-saves spam duplicates.
-- [Crew rank ↔ crew_roles matching](crew-rank-role-matching.md) — crew.rank is stored inconsistently vs Title-Case crew_roles.name; match via normRoleKey (lowercase+spaces→_), not exact name, or it silently returns empty.
+- [Crew rank ↔ crew_roles matching](crew-rank-role-matching.md) — crew.rank is stored inconsistently vs Title-Case crew*roles.name; match via normRoleKey (lowercase+spaces→*), not exact name, or it silently returns empty.
 - [Crew role catalog is name-keyed](crew-role-catalog-name-keyed.md) — crew.rank stores the role NAME (no FK to crew_roles); rename must propagate name→crew.rank atomically, in-use delete guard counts by name.
 - [Crew edit-clear needs null not undefined](crew-edit-clear-null.md) — useUpdateMutation omits undefined keys, so clearing an optional crew field on edit must send explicit null or the old value sticks.
 - [FormerCrewMember runtime shape](crew-list-item-mapper.md) — former-crew API returns full crew rows; mappers to CrewListItem must preserve runtime maxHours7d/minRestH (default 72/10), not zero them.

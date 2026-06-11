@@ -104,11 +104,7 @@ export class InventoryRepository {
     });
   }
 
-  async updateCompatibility(
-    partId: string,
-    equipmentIds: string[],
-    _orgId: string
-  ): Promise<Part> {
+  async updateCompatibility(partId: string, equipmentIds: string[], _orgId: string): Promise<Part> {
     const existing = await dbInventoryStorage.getPart(partId, _orgId);
     if (!existing) {
       throw new Error(`Part ${partId} not found`);
@@ -124,7 +120,9 @@ export class InventoryRepository {
     const allParts = await dbInventoryStorage.getParts(orgId);
     return allParts.filter((p) => {
       const bag = p as Part & { compatibleEquipment?: unknown };
-      return Array.isArray(bag.compatibleEquipment) && bag.compatibleEquipment.includes(equipmentId);
+      return (
+        Array.isArray(bag.compatibleEquipment) && bag.compatibleEquipment.includes(equipmentId)
+      );
     });
   }
 

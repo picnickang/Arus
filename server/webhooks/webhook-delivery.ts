@@ -77,11 +77,18 @@ export function signPayload(secret: string, body: string, timestamp: string): st
   return `sha256=${mac.digest("hex")}`;
 }
 
-export function verifySignature(secret: string, body: string, timestamp: string, signature: string): boolean {
+export function verifySignature(
+  secret: string,
+  body: string,
+  timestamp: string,
+  signature: string
+): boolean {
   const expected = signPayload(secret, body, timestamp);
   const a = Buffer.from(expected);
   const b = Buffer.from(signature);
-  if (a.length !== b.length) {return false;}
+  if (a.length !== b.length) {
+    return false;
+  }
   return crypto.timingSafeEqual(a, b);
 }
 
@@ -94,9 +101,18 @@ function backoffFor(attempt: number): number {
 export interface DeliveryDeps {
   fetchImpl?: typeof fetch;
   /** Optional callback into pg-boss to schedule the next retry. */
-  scheduleRetry?: (subscriptionId: string, event: WebhookEvent, attempt: number, delayMs: number) => Promise<void>;
+  scheduleRetry?: (
+    subscriptionId: string,
+    event: WebhookEvent,
+    attempt: number,
+    delayMs: number
+  ) => Promise<void>;
   /** Optional dead-letter sink. */
-  deadLetter?: (subscriptionId: string, event: WebhookEvent, lastAttempt: WebhookDeliveryAttempt) => Promise<void>;
+  deadLetter?: (
+    subscriptionId: string,
+    event: WebhookEvent,
+    lastAttempt: WebhookDeliveryAttempt
+  ) => Promise<void>;
 }
 
 export class WebhookDeliveryService {
@@ -192,7 +208,9 @@ export class WebhookDeliveryService {
           latencyMs: result.latencyMs,
         }
       );
-      if (result.ok) {return { attempts, succeeded: true };}
+      if (result.ok) {
+        return { attempts, succeeded: true };
+      }
       if (attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, backoffFor(attempt)));
       }

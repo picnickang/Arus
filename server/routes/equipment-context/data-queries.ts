@@ -45,9 +45,11 @@ export interface KbSearchHit {
   score?: number | undefined;
 }
 
-export type SearchKnowledgeBaseFn = (
-  args: { query: string; orgId: string; limit?: number | undefined },
-) => Promise<KbSearchHit[]>;
+export type SearchKnowledgeBaseFn = (args: {
+  query: string;
+  orgId: string;
+  limit?: number | undefined;
+}) => Promise<KbSearchHit[]>;
 
 export interface KnowledgeQueryLogger {
   warn: (
@@ -204,7 +206,9 @@ export async function runParallelQueries(
 
   const pick = <T>(key: string, fallback: T): T => {
     const idx = queryMap[key];
-    if (idx === undefined) {return fallback;}
+    if (idx === undefined) {
+      return fallback;
+    }
     return (results[idx] as T) ?? fallback;
   };
 
@@ -225,7 +229,11 @@ export async function runParallelQueries(
 
 export interface KnowledgeData {
   relatedDocuments: Array<typeof kbDocs.$inferSelect>;
-  semanticMatches: Array<{ docId?: string | undefined; text?: string | undefined; score?: number | undefined }>;
+  semanticMatches: Array<{
+    docId?: string | undefined;
+    text?: string | undefined;
+    score?: number | undefined;
+  }>;
 }
 
 export async function fetchKnowledgeData(
@@ -238,10 +246,8 @@ export async function fetchKnowledgeData(
   const results: KnowledgeData = { relatedDocuments: [], semanticMatches: [] };
 
   try {
-    const equipmentType =
-      typeof equipmentRecord.type === "string" ? equipmentRecord.type : "";
-    const equipmentName =
-      typeof equipmentRecord.name === "string" ? equipmentRecord.name : "";
+    const equipmentType = typeof equipmentRecord.type === "string" ? equipmentRecord.type : "";
+    const equipmentName = typeof equipmentRecord.name === "string" ? equipmentRecord.name : "";
     const searchQuery = `${equipmentType} ${equipmentName} maintenance procedures troubleshooting`;
 
     const semanticResults = await searchKnowledgeBase({

@@ -8,8 +8,11 @@ import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
 import { insertCrewDocumentSchema } from "@shared/schema-runtime";
 import { crewAppService as crewService } from "../application/index.js";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import { requirePermission } from "../../../lib/permissions/middleware.js";
 import {
   withErrorHandling,
@@ -20,10 +23,7 @@ import {
 import { enforceQuota } from "../../../middleware/tenant-quota.js";
 import { quotaService } from "../../../tenancy/quota-service.js";
 import { ObjectStorageService } from "../../../replit_integrations/object_storage/objectStorage.js";
-import {
-  validateImageMagicBytes,
-  isAllowedImageMimeType,
-} from "../../../lib/image-magic-bytes.js";
+import { validateImageMagicBytes, isAllowedImageMimeType } from "../../../lib/image-magic-bytes.js";
 import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
 
@@ -38,10 +38,7 @@ function isAllowedDocumentMimeType(mimetype: string): boolean {
 // Re-verify the leading bytes — the client Content-Type is spoofable.
 function validateDocumentMagicBytes(buf: Buffer, mimetype: string): boolean {
   if (mimetype === PDF_MIME_TYPE) {
-    return (
-      buf.length >= PDF_MAGIC_BYTES.length &&
-      PDF_MAGIC_BYTES.every((b, i) => buf[i] === b)
-    );
+    return buf.length >= PDF_MAGIC_BYTES.length && PDF_MAGIC_BYTES.every((b, i) => buf[i] === b);
   }
   return validateImageMagicBytes(buf, mimetype);
 }
@@ -69,7 +66,7 @@ async function deleteCrewDocumentObject(
   objectStorage: ObjectStorageService,
   filePath: string,
   orgId: string,
-  reclaimQuota: boolean,
+  reclaimQuota: boolean
 ): Promise<void> {
   try {
     const objectFile = await objectStorage.getObjectEntityFile(filePath);
@@ -119,12 +116,12 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       const { crewId } = crewIdParamSchema.parse(req.params);
       const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
-      if (body['issuedAt'] && typeof body['issuedAt'] === "string") {
-        body['issuedAt'] = new Date(body['issuedAt']);
+      if (body["issuedAt"] && typeof body["issuedAt"] === "string") {
+        body["issuedAt"] = new Date(body["issuedAt"]);
       }
 
-      if (body['expiresAt'] && typeof body['expiresAt'] === "string") {
-        body['expiresAt'] = new Date(body['expiresAt']);
+      if (body["expiresAt"] && typeof body["expiresAt"] === "string") {
+        body["expiresAt"] = new Date(body["expiresAt"]);
       }
 
       const docData = insertCrewDocumentSchema.parse({
@@ -217,21 +214,16 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
       const { id } = idParamSchema.parse(req.params);
       const body: Record<string, unknown> = { ...rawBodySchema.parse(req.body ?? {}) };
 
-      if (body['issuedAt'] && typeof body['issuedAt'] === "string") {
-        body['issuedAt'] = new Date(body['issuedAt']);
+      if (body["issuedAt"] && typeof body["issuedAt"] === "string") {
+        body["issuedAt"] = new Date(body["issuedAt"]);
       }
 
-      if (body['expiresAt'] && typeof body['expiresAt'] === "string") {
-        body['expiresAt'] = new Date(body['expiresAt']);
+      if (body["expiresAt"] && typeof body["expiresAt"] === "string") {
+        body["expiresAt"] = new Date(body["expiresAt"]);
       }
 
       const docData = insertCrewDocumentSchema.partial().parse(body);
-      const document = await crewService.updateCrewDocument(
-        id,
-        docData,
-        req.user?.id,
-        req.orgId
-      );
+      const document = await crewService.updateCrewDocument(id, docData, req.user?.id, req.orgId);
       res.json(document);
     })
   );
@@ -270,12 +262,17 @@ export function registerDocumentRoutes({ app, rateLimit }: CrewRouteDeps): void 
             ...doc,
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
-            daysUntilExpiry: typeof doc['expiresAt'] === "string" || doc['expiresAt'] instanceof Date
-              ? Math.ceil((new Date(doc['expiresAt'] as string | Date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-              : null,
-            urgencyLevel: typeof doc['expiresAt'] === "string" || doc['expiresAt'] instanceof Date
-              ? getExpiryUrgencyLevel(doc['expiresAt'] as string | Date)
-              : null,
+            daysUntilExpiry:
+              typeof doc["expiresAt"] === "string" || doc["expiresAt"] instanceof Date
+                ? Math.ceil(
+                    (new Date(doc["expiresAt"] as string | Date).getTime() - Date.now()) /
+                      (1000 * 60 * 60 * 24)
+                  )
+                : null,
+            urgencyLevel:
+              typeof doc["expiresAt"] === "string" || doc["expiresAt"] instanceof Date
+                ? getExpiryUrgencyLevel(doc["expiresAt"] as string | Date)
+                : null,
           };
         })
       );

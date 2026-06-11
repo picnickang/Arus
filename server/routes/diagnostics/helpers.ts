@@ -40,7 +40,10 @@ export async function checkTelemetry(): Promise<CheckResult> {
     const { telemetryBatchWriter } = await import("../../telemetry-batch-writer.js");
     const stats = telemetryBatchWriter.getStats();
     const bufferUtilization =
-      stats.bufferSize > 0 ? ((stats as { currentBufferSize?: number }).currentBufferSize ?? 0) / stats.bufferSize * 100 : 0;
+      stats.bufferSize > 0
+        ? (((stats as { currentBufferSize?: number }).currentBufferSize ?? 0) / stats.bufferSize) *
+          100
+        : 0;
     if (bufferUtilization > 90) {
       return {
         status: "warn",
