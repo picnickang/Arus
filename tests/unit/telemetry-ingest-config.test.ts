@@ -80,6 +80,16 @@ describe("applyConfigsToReadings", () => {
     expect(kept[0]).toBe(r);
   });
 
+  it("treats gain 0 as unset instead of zeroing the channel", () => {
+    // Mirrors applySensorConfiguration's truthiness check; zeroing a
+    // channel is what `enabled: false` is for.
+    const r = reading("e1", "temperature", 5);
+    const configs = new Map([[configKey("e1", "temperature"), config({ gain: 0 })]]);
+    const { kept } = applyConfigsToReadings([r], configs);
+    expect(kept[0]).toBe(r);
+    expect(kept[0]?.value).toBe(5);
+  });
+
   it("drops readings whose config is disabled and counts them", async () => {
     const configs = new Map([[configKey("e1", "rpm"), config({ enabled: false })]]);
     const { kept, droppedDisabled } = applyConfigsToReadings(

@@ -81,7 +81,9 @@ export function applyConfigsToReadings<T extends ConfigurableReading>(
     }
 
     let value = reading.value;
-    if (config.gain != null && config.gain !== 1) {
+    // gain 0 is treated as unset (mirrors applySensorConfiguration's
+    // truthiness check) — zeroing a channel is what `enabled: false` is for.
+    if (config.gain != null && config.gain !== 0 && config.gain !== 1) {
       value = value * config.gain;
     }
     if (config.offset != null && config.offset !== 0) {
@@ -127,14 +129,20 @@ export async function getOrgConfigMap(orgId: string): Promise<Map<string, Sensor
     const rows = await withTenantContext(orgId, () =>
       dbSensorsStorage.getSensorConfigurations(orgId)
     );
+    // Bounds normalize from the schema's REAL columns min_valid/max_valid
+    // (Drizzle properties minValid/maxValid). applySensorConfiguration
+    // reads config.minValue/maxValue through a cast — properties that have
+    // never existed on the row — so its below_min/above_max flags can
+    // never fire; this module maps the actual columns instead of
+    // inheriting that dead mapping.
     configs = new Map(
       (rows as Array<Record<string, unknown>>).map((row) => [
         configKey(String(row["equipmentId"]), String(row["sensorType"])),
         {
           gain: (row["gain"] as number | null) ?? null,
           offset: (row["offset"] as number | null) ?? null,
-          minValue: (row["minValue"] as number | null) ?? null,
-          maxValue: (row["maxValue"] as number | null) ?? null,
+          minValue: (row["minValid"] as number | null) ?? null,
+          maxValue: (row["maxValid"] as number | null) ?? null,
           enabled: (row["enabled"] as boolean | null) ?? null,
         },
       ])
