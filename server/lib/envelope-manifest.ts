@@ -55,6 +55,8 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   "/api/sensor-bundles",
   "/api/sensor-templates",
   "/api/me",
+  // Wave 5: office feedback triage (born enveloped)
+  "/api/feedback-review",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [

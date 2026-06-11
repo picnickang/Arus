@@ -50,7 +50,7 @@ import {
   isAdminPortalAccess,
   isSuperAdminRole,
 } from "@/application/navigation/role-navigation-policy";
-import { getHubIdForRoute } from "@/config/navigationConfig";
+import { ADMIN_ONLY_ROUTES, getHubIdForRoute } from "@/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -196,7 +196,6 @@ function Redirect({ from, to }: { from: string; to: string }) {
  * `/api/attention/*` endpoints; this client guard is a UX layer so
  * the page itself never paints for a regular user.
  */
-const ADMIN_ONLY_ROUTES = new Set<string>(["/attention-inbox", "/admin/access-diagnostic"]);
 
 function readCurrentRole(): string | null {
   if (typeof window === "undefined") {

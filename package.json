@@ -60,6 +60,7 @@
     "test:quick": "node client/tests/runner.mjs",
     "test:export": "node client/tests/export.test.mjs",
     "check:schema": "node scripts/validate-dual-schema.mjs",
+    "check:route-contract": "node scripts/check-route-contract.mjs",
     "check:drizzle-config": "node scripts/check-drizzle-config.mjs",
     "check:schema-builders": "node scripts/check-schema-builders.mjs",
     "check:storage-imports": "node scripts/check-storage-imports.mjs",

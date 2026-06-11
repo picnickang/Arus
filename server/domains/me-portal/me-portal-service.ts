@@ -23,8 +23,11 @@ import {
   updateUserPassword,
   insertPilotFeedback,
   listPilotFeedbackForUser,
+  listPilotFeedbackForOrg,
+  updatePilotFeedbackReview,
+  type PilotFeedbackWithSubmitter,
 } from "./infrastructure/me-portal-queries";
-import type { PilotFeedback, PilotFeedbackDraft } from "@shared/schema";
+import type { PilotFeedback, PilotFeedbackDraft, PilotFeedbackReview } from "@shared/schema";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -552,6 +555,37 @@ export class MePortalService {
   /** The caller's own reports, newest first ("My reports"). */
   async listMyFeedback(user: MeUser): Promise<PilotFeedback[]> {
     return listPilotFeedbackForUser(user.orgId, user.id);
+  }
+
+  /** Every report in the org, newest first (office review queue). */
+  async listFeedbackForReview(user: MeUser): Promise<PilotFeedbackWithSubmitter[]> {
+    return listPilotFeedbackForOrg(user.orgId);
+  }
+
+  /**
+   * Office review action: acknowledge or resolve a report, optionally
+   * attaching a resolution note and linking the work order raised from it.
+   */
+  async reviewFeedback(
+    user: MeUser,
+    feedbackId: string,
+    review: PilotFeedbackReview
+  ): Promise<PilotFeedback> {
+    let row: PilotFeedback | undefined;
+    try {
+      row = await updatePilotFeedbackReview(user.orgId, feedbackId, review);
+    } catch (error) {
+      // FK violation (23503): linkedWorkOrderId doesn't reference a real
+      // work order — surface as a client error, not a 500.
+      if (error instanceof Error && "code" in error && error.code === "23503") {
+        throw new MePortalError("Unknown work order id", "INVALID_WORK_ORDER", 400);
+      }
+      throw error;
+    }
+    if (!row) {
+      throw new MePortalError("Feedback report not found", "FEEDBACK_NOT_FOUND", 404);
+    }
+    return row;
   }
 
   private assertPasswordPolicy(password: string): void {
