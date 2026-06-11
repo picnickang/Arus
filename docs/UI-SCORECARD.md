@@ -11,7 +11,7 @@ bounded debt · C = working but systemically duplicated/unguarded · D/F =
 actively harmful. Points A=4.0, A−=3.7, B+=3.3, B=3.0, B−=2.7, C+=2.3, C=2.0,
 C−=1.7.
 
-## Overall: **B− (2.89 / 4.0 ≈ 72 / 100)**
+## Overall: **B− (2.93 / 4.0 ≈ 73 / 100)** — _dim 9 regraded after the integration erratum; was 2.89_
 
 | #   | Dimension                          | Weight | Grade | Trend since audit                       |
 | --- | ---------------------------------- | ------ | ----- | --------------------------------------- |
@@ -23,7 +23,7 @@ C−=1.7.
 | 6   | Client code health                 | 8      | C+    | ◆ mixed (one split done, crew grew)     |
 | 7   | Architecture boundaries (server)   | 12     | B+ \* | ▲ on branch; **failing on main**        |
 | 8   | Type safety & debt ratchets        | 10     | B−    | ▲ (casts under baseline)                |
-| 9   | Test & CI health                   | 12     | B−    | ◆ (unit strong; main CI red)            |
+| 9   | Test & CI health                   | 12     | B     | ▲ (erratum: integration is green)       |
 | 10  | Guardrail tooling maturity         | 10     | A     | ▲ (leak baseline ratcheted down)        |
 
 \* Dimension 7 and the boot-health half of 9 are graded on this branch; main
@@ -99,8 +99,9 @@ token guard.
 \* different grep definitions; both reproducible (§13).
 
 The three verified High-severity re-render bugs from the audit are fixed and
-merged. Remaining debt is breadth, not bugs: 132 polling sites with no shared
-`POLL` constants (audit §6.2), index keys in the mutable SchedulePlanner/RMS
+merged. Remaining debt is breadth, not bugs: 132 raw polling literals
+(constants already exist — `POLL_INTERVALS` in `client/src/lib/polling.ts`;
+the gap is adoption), index keys in the mutable SchedulePlanner/RMS
 grids, and near-zero list-row memoization. Polling grew since the audit —
 another candidate for a ratchet.
 
@@ -159,19 +160,23 @@ and monotonically shrinking. The absolute stock is still large (1,306 casts,
 B+. The lint-warning baseline shows the biggest banked win: −1,325 warnings
 since baseline.
 
-## 9. Test & CI health — **B−** (weight 12)
+## 9. Test & CI health — **B** (weight 12) — _regraded from B−, erratum 2026-06-11_
 
-| Metric                  | Value                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Unit lane               | **127 suites / 1,375 tests — green** (OOM fixed: worker recycling + heap headroom)                            |
-| Server-colocated suites | 33 files                                                                                                      |
-| Integration lane        | 88 files / 144 tests — **17 failing on main** (agent-activity suite; pre-existing, attributed to PRs #19/#24) |
-| Boot-health             | green on branch (113 routers, 0 failures); **red on main** (stale 111 pin)                                    |
-| CI on main HEAD         | **red** (Lint & Typecheck job: leak guard) until `196d8d0` lands                                              |
+| Metric                  | Value                                                                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit lane               | **127 suites / 1,375 tests — green** (OOM fixed: worker recycling + heap headroom)                                                                                      |
+| Server-colocated suites | 33 files                                                                                                                                                                |
+| Integration lane        | 88 files / **144 tests — green** (erratum: the earlier "17 failing" was an `EADDRINUSE :5000` port collision in the scoring container, not breakage; re-verified clean) |
+| Boot-health             | green on branch (113 routers, 0 failures); **red on main** (stale 111 pin)                                                                                              |
+| CI on main HEAD         | **red** (Lint & Typecheck job: leak guard) until `196d8d0` lands                                                                                                        |
 
 Test infrastructure is solid and behavior-pinning (route-shadow, redirect,
-public-API audits). The grade is dragged by main's current state: a red
-default branch and an unowned failing integration suite.
+public-API audits). **Erratum:** the originally reported failing integration
+suite was a fixed-port collision (`tests/integration/utils/test-server.ts:41`
+binds :5000) with a stray local dev-server — with the port free the lane is
+144/144. Remaining drags: main's red Lint & Typecheck job until `196d8d0`
+lands, and the fixed-port fragility itself (gap D6 in
+`docs/GAP-CLOSURE-PLAN.md`).
 
 ## 10. Guardrail tooling maturity — **A** (weight 10)
 
@@ -208,7 +213,7 @@ finishing the audit's §10 list.
 2. **Branch protection on the two core CI jobs** → dimension 10's caveat closed; prevents the entire §11 class.
 3. **`AppPage` + header ratchet + `lib/severity.ts`** (audit §3.3/§8.6/§5.3) → dimension 2 from C− toward B−; the single highest-leverage code change.
 4. **Records grammar unification (audit C2)** → dimension 1 to B+/A−.
-5. **Own or quarantine the failing activity integration suite** → dimension 9 to B.
+5. **Ephemeral port for the integration test server** (`tests/integration/utils/test-server.ts`) → removes the collision class behind the now-corrected "17 failures".
 
 ## 13. Re-scoring commands
 
