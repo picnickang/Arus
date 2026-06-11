@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T16:23:25Z
+Generated: 2026-06-11T18:09:45Z
 
 ## Policy
 
@@ -8,9 +8,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `146` counted files.
-- The current counted inventory is `142` files.
+- The temporary ceiling is `138` counted files.
+- The current counted inventory is `138` files.
 - The original release baseline was `52` files.
+- The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
 - Production code is not excluded from the count.
 - Test fixtures matching `server/tests/*/fixtures.ts` are excluded from the ratchet and tracked here as fixture debt.
@@ -19,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   142 |
-| Server                    |    60 |
-| Server route-like files   |    16 |
-| Server service-like files |    16 |
+| Total counted long files  |   138 |
+| Server                    |    56 |
+| Server route-like files   |    14 |
+| Server service-like files |    17 |
 | Client                    |    74 |
 | Client page files         |    28 |
 | Shared                    |     8 |
@@ -41,81 +42,69 @@ Completed splits:
 - `server/import-adapters/shipmate/import-service.ts` dropped below the threshold by moving types, vessel resolution, row upserts, running-hour sync, and RAG document helpers to sibling modules.
 - `server/db/inventory/index.ts` dropped below the threshold by moving projection, reservation-ledger, work-order-part mutation, and parts/stock query helpers to sibling modules.
 - `shared/role-dashboard.ts` dropped below the threshold by moving access policy, default configs, and safety alarm constants to sibling modules.
-- The vessel diagram registry pair was reduced by moving route helpers and persistence mappers, though `postgres-store.ts` and `interfaces/routes.ts` remain counted long files.
+- `server/routes/domain-router-registry.ts` dropped below the threshold by moving declarative router inventory to config modules.
+- `server/import-adapters/amos/import-service.ts` dropped below the threshold by moving AMOS types, row upserts, and RAG document helpers to sibling modules.
+- The vessel diagram registry route file dropped below the threshold by moving schemas, context, and route groups to focused modules.
+- The vessel diagram Postgres store dropped below the threshold by moving diagram, section-map, section, assignment, validation, thumbnail, and helper persistence groups to focused modules.
 
 ## Top 30 Longest Files
 
-| Rank | Lines | File                                                                      | Owner/module                | Risk   | Suggested tests before refactor                |
-| ---: | ----: | ------------------------------------------------------------------------- | --------------------------- | ------ | ---------------------------------------------- |
-|    1 |  1168 | `server/domains/vessel-diagram-registry/infrastructure/postgres-store.ts` | Vessel registry persistence | High   | Vessel Diagram Registry store contract tests   |
-|    2 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`                       | Admin equipment UI          | Medium | Equipment dependency page tests                |
-|    3 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx`                          | Crew admin safety UI        | Medium | Safety tab component tests                     |
-|    4 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             | Scheduling UI               | Medium | Scheduling component tests                     |
-|    5 |  1081 | `server/routes/domain-router-registry.ts`                                 | Route registration          | High   | `npm run check:route-registration`, boot smoke |
-|    6 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          | Crew UI                     | High   | Crew form validation tests                     |
-|    7 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx`                         | Hours of rest UI            | High   | Hours of rest unit and route tests             |
-|    8 |  1064 | `server/domains/crew-extensions/interfaces/scheduler-routes.ts`           | Crew scheduler routes       | High   | Crew scheduler integration tests               |
-|    9 |  1055 | `server/domains/crew-admin/application/crew-admin-service.ts`             | Crew admin service          | High   | Crew admin permission and CRUD tests           |
-|   10 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    | Scheduling UI               | Medium | Schedule planner tests                         |
-|   11 |   990 | `client/src/pages/ml-training.tsx`                                        | ML training UI              | Medium | ML training page tests                         |
-|   12 |   971 | `server/websocket.ts`                                                     | WebSocket runtime           | High   | WebSocket tenant propagation tests             |
-|   13 |   951 | `server/telemetry-batch-writer.ts`                                        | Telemetry runtime           | High   | Telemetry batch writer tests                   |
-|   14 |   940 | `server/domains/vessel-diagram-registry/interfaces/routes.ts`             | Vessel registry routes      | High   | Vessel Diagram Registry route tests            |
-|   15 |   937 | `shared/schema/ml-analytics-advanced.ts`                                  | Shared ML schema            | High   | `npm run check:schema`, ML schema tests        |
-|   16 |   923 | `client/src/components/unified-crew-components.tsx`                       | Crew UI shared components   | Medium | Crew component tests                           |
-|   17 |   917 | `server/domains/agent/application/orchestrator.ts`                        | Agent orchestration         | High   | Agent orchestration unit tests                 |
-|   18 |   915 | `server/import-adapters/amos/import-service.ts`                           | AMOS import                 | High   | AMOS import integration/unit tests             |
-|   19 |   899 | `client/src/pages/admin/3d-models.tsx`                                    | Admin 3D models UI          | Medium | Admin 3D page tests                            |
-|   20 |   889 | `server/domains/permissions/routes.ts`                                    | Permission routes           | High   | Permission matrix route tests                  |
-|   21 |   880 | `server/services/domains/work-order-service.ts`                           | Work order service          | High   | Work order CRUD and completion tests           |
-|   22 |   875 | `client/src/pages/copilot-admin.tsx`                                      | Copilot admin UI            | Medium | Copilot admin route tests                      |
-|   23 |   869 | `client/src/pages/system-administration.tsx`                              | System admin UI             | Medium | System administration tests                    |
-|   24 |   852 | `server/domains/workflow/application/attention-service.ts`                | Workflow attention service  | High   | Workflow attention unit tests                  |
-|   25 |   843 | `client/src/pages/findings.tsx`                                           | Findings UI                 | Medium | Findings page tests                            |
-|   26 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         | Analytics UI                | Medium | Analytics component tests                      |
-|   27 |   832 | `shared/schema/logbooks.ts`                                               | Shared logbook schema       | High   | Schema guard and logbook tests                 |
-|   28 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 | Deck logbook UI             | High   | Deck logbook unit and route tests              |
-|   29 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     | Crew utilities              | Medium | Crew utility tests                             |
-|   30 |   829 | `server/pdm/routes.ts`                                                    | PDM routes                  | High   | PDM route tests                                |
+| Rank | Lines | File |
+| ---: | ----: | ---- |
+|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx` |
+|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx` |
+|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx` |
+|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx` |
+|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx` |
+|    6 |  1064 | `server/domains/crew-extensions/interfaces/scheduler-routes.ts` |
+|    7 |  1055 | `server/domains/crew-admin/application/crew-admin-service.ts` |
+|    8 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx` |
+|    9 |   990 | `client/src/pages/ml-training.tsx` |
+|   10 |   971 | `server/websocket.ts` |
+|   11 |   951 | `server/telemetry-batch-writer.ts` |
+|   12 |   937 | `shared/schema/ml-analytics-advanced.ts` |
+|   13 |   923 | `client/src/components/unified-crew-components.tsx` |
+|   14 |   917 | `server/domains/agent/application/orchestrator.ts` |
+|   15 |   899 | `client/src/pages/admin/3d-models.tsx` |
+|   16 |   889 | `server/domains/permissions/routes.ts` |
+|   17 |   880 | `server/services/domains/work-order-service.ts` |
+|   18 |   875 | `client/src/pages/copilot-admin.tsx` |
+|   19 |   869 | `client/src/pages/system-administration.tsx` |
+|   20 |   852 | `server/domains/workflow/application/attention-service.ts` |
+|   21 |   843 | `client/src/pages/findings.tsx` |
+|   22 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
+|   23 |   832 | `shared/schema/logbooks.ts` |
+|   24 |   832 | `client/src/pages/deck-logbook/index.tsx` |
+|   25 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
+|   26 |   829 | `server/pdm/routes.ts` |
+|   27 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   28 |   819 | `client/src/pages/inventory-management.tsx` |
+|   29 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
+|   30 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
 
 ## Recommended Extraction Plan
 
-1. Vessel diagram registry follow-up
-   - Continue the store split by extracting mutation/query groups from `postgres-store.ts`.
-   - Continue the route split by extracting upload/version/thumbnail route groups from `interfaces/routes.ts`.
-   - Required proof: `vessel-diagram-postgres-store-contract.test.ts` and `vessel-diagram-registry-routes.test.ts`.
+1. Continue safety-first server splits.
+   - Prioritize crew extensions scheduler routes, crew admin service, WebSocket, telemetry batch writer, permissions routes, work-order service, PDM routes, and workflow attention service.
+   - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
-2. Route registry and route files
-   - Split declarative route configuration from registration runtime.
-   - Start with `server/routes/domain-router-registry.ts`, then domain route files over 800 lines.
-   - Required proof: route-registration guard, boot health, focused integration tests for touched domains.
+2. Add client characterization tests before large UI splits.
+   - Prioritize equipment dependencies, SafetyTab, scheduling, CrewFormDialog, HoursOfRestGrid, and ML/admin pages.
+   - Required proof: focused component/source tests and Playwright smoke where routed UI already has coverage.
 
-3. Server persistence stores and services
-   - Extract mappers, query builders, DTO adapters, validation helpers, and mutation groups.
-   - Prioritize crew admin, work orders, imports, permissions, telemetry, WebSocket, and remaining vessel registry work.
-   - Required proof: focused integration tests plus domain-specific unit tests.
+3. Split shared schema/runtime files by domain group.
+   - Preserve existing barrels and exported names.
+   - Required proof: typecheck and schema guard tests for touched schema surfaces.
 
-4. Shared schema files
-   - Split by table group or exported policy surface without changing public barrels.
-   - Required proof: dual schema guard, schema-import guard, stale type guard.
-
-5. Client page components
-   - Extract colocated subcomponents and hooks. Preserve route behavior, query keys, and test IDs.
-   - The completed `registry-screens.tsx` split (dispatcher + one file per screen + `shared.tsx`, mirroring `equipment-hub/`) is the template.
-   - Required proof: focused unit/component tests and Playwright smoke for affected pages.
-
-6. Counted test files
-   - Split only after production risks are under control.
-   - Required proof: the split test file still exercises the same behavior.
+4. Burn down the 501-649 tail with small colocated extractions.
+   - Use hooks, helper modules, route groups, and constant modules to leave orchestration files with headroom under 450 lines where practical.
 
 ## Full Counted Inventory
 
 ```text
-1168 server/domains/vessel-diagram-registry/infrastructure/postgres-store.ts
 1111 client/src/pages/admin/equipment-dependencies.tsx
 1095 client/src/components/crew-admin/SafetyTab.tsx
 1090 client/src/components/scheduling/ScheduleGeneratorPanel.tsx
-1081 server/routes/domain-router-registry.ts
 1073 client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx
 1072 client/src/components/HoursOfRestGrid/index.tsx
 1064 server/domains/crew-extensions/interfaces/scheduler-routes.ts
@@ -124,11 +113,9 @@ Completed splits:
 990 client/src/pages/ml-training.tsx
 971 server/websocket.ts
 951 server/telemetry-batch-writer.ts
-940 server/domains/vessel-diagram-registry/interfaces/routes.ts
 937 shared/schema/ml-analytics-advanced.ts
 923 client/src/components/unified-crew-components.tsx
 917 server/domains/agent/application/orchestrator.ts
-915 server/import-adapters/amos/import-service.ts
 899 client/src/pages/admin/3d-models.tsx
 889 server/domains/permissions/routes.ts
 880 server/services/domains/work-order-service.ts

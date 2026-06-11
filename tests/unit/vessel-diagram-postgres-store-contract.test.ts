@@ -11,6 +11,14 @@ const POSTGRES_MAPPERS = resolve(
   REPO_ROOT,
   "server/domains/vessel-diagram-registry/infrastructure/postgres-mappers.ts"
 );
+const POSTGRES_DIAGRAM_STORE = resolve(
+  REPO_ROOT,
+  "server/domains/vessel-diagram-registry/infrastructure/postgres-diagram-store.ts"
+);
+const POSTGRES_SECTION_HELPERS = resolve(
+  REPO_ROOT,
+  "server/domains/vessel-diagram-registry/infrastructure/postgres-section-helpers.ts"
+);
 const ROUTES = resolve(REPO_ROOT, "server/domains/vessel-diagram-registry/interfaces/routes.ts");
 const ROUTE_HELPERS = resolve(
   REPO_ROOT,
@@ -28,15 +36,21 @@ function source(path: string): string {
 }
 
 function functionBody(file: string, name: string): string {
-  const marker = file.indexOf(`async ${name}(`);
+  let marker = file.indexOf(`async ${name}(`);
+  if (marker === -1) {
+    marker = file.indexOf(`async function ${name}(`);
+  }
   expect(marker).toBeGreaterThanOrEqual(0);
-  const nextMethod = file.indexOf("\n  async ", marker + 1);
+  const nextClassMethod = file.indexOf("\n  async ", marker + 1);
+  const nextExportedFunction = file.indexOf("\nexport async function ", marker + 1);
+  const candidates = [nextClassMethod, nextExportedFunction].filter((index) => index > -1);
+  const nextMethod = candidates.length ? Math.min(...candidates) : -1;
   return nextMethod === -1 ? file.slice(marker) : file.slice(marker, nextMethod);
 }
 
 describe("vessel diagram postgres store contract", () => {
   it("maps and persists diagram version publish metadata", () => {
-    const store = source(POSTGRES_STORE);
+    const store = source(POSTGRES_DIAGRAM_STORE);
     const mappers = source(POSTGRES_MAPPERS);
     const schema = source(SCHEMA);
     const migration = source(MIGRATION);
@@ -62,9 +76,9 @@ describe("vessel diagram postgres store contract", () => {
   });
 
   it("serializes version creation and active-version publishing inside transactions", () => {
-    const store = source(POSTGRES_STORE);
-    const addVersion = functionBody(store, "addVersion");
-    const setActiveVersion = functionBody(store, "setActiveVersion");
+    const store = source(POSTGRES_DIAGRAM_STORE);
+    const addVersion = functionBody(store, "addPostgresVersion");
+    const setActiveVersion = functionBody(store, "setPostgresActiveVersion");
 
     expect(addVersion).toContain("return db.transaction(async (tx)");
     expect(addVersion).toContain('.for("update")');
@@ -79,8 +93,8 @@ describe("vessel diagram postgres store contract", () => {
   });
 
   it("keeps polygon replacement atomic", () => {
-    const store = source(POSTGRES_STORE);
-    const replaceSectionPolygon = functionBody(store, "replaceSectionPolygon");
+    const store = source(POSTGRES_SECTION_HELPERS);
+    const replaceSectionPolygon = functionBody(store, "replacePostgresSectionPolygon");
 
     expect(replaceSectionPolygon).toContain("await db.transaction(async (tx)");
     expect(replaceSectionPolygon).toMatch(/tx\s*\.delete\(vesselSectionPolygons\)/);
