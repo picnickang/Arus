@@ -9,8 +9,7 @@ import { logger } from "../../utils/logger";
 import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
 import type { MaintenanceSchedule } from "@shared/schema";
 import { dbOptimizerStorage } from "../../db/optimizer/index.js";
-import { dbEquipmentStorage } from "../../db/equipment/index.js";
-import { dbVesselStorage } from "../../db/vessels/index.js";
+import { optimizationDirectory } from "../../composition/optimization-directory.js";
 import { authenticatedRequest } from "../../middleware/auth";
 import {
   aiWeightsSchema,
@@ -361,8 +360,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         {
           configurations: () => dbOptimizerStorage.getOptimizerConfigurations(orgId),
           results: () => dbOptimizerStorage.getOptimizationResults(orgId),
-          equipment: () => dbEquipmentStorage.getEquipmentRegistry(orgId),
-          vessels: () => dbVesselStorage.getVessels(orgId),
+          equipment: () => optimizationDirectory.listEquipmentRegistry(orgId),
+          vessels: () => optimizationDirectory.listVessels(orgId),
         },
         "GET /api/optimization/dashboard"
       );

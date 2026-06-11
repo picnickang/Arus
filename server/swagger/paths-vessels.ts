@@ -60,6 +60,62 @@ export const vesselsPaths = {
       },
     },
   },
+  "/vessels/{id}/power-stw-analysis": {
+    get: {
+      tags: ["Vessels"],
+      summary: "Power vs speed-through-water baseline analysis",
+      description:
+        "Actual propulsion power (from rpm/torque/stw readings sharing timestamps) " +
+        "against the cubic propeller-law reference curve; hull-efficiency deviation " +
+        "is the actual-vs-baseline gap. Rendered by PowerSTWChart on the " +
+        "vessel-intelligence performance view. Defaults to the trailing 30 days.",
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string" } },
+        {
+          name: "startDate",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date-time" },
+        },
+        {
+          name: "endDate",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date-time" },
+        },
+      ],
+      responses: {
+        "200": {
+          description: "Actual and baseline power curves",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  actual: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: { x: { type: "number" }, y: { type: "number" } },
+                    },
+                  },
+                  baseline: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: { x: { type: "number" }, y: { type: "number" } },
+                    },
+                  },
+                  metadata: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        "404": { description: "Vessel not found" },
+      },
+    },
+  },
   "/vessels/{id}": {
     get: {
       tags: ["Vessels"],

@@ -9,7 +9,7 @@
  * ## Responsibilities
  *
  * This component is a **presentation layer** that:
- * - Fetches pre-aggregated health metrics from `/api/equipment/:id/sensors/health`
+ * - Fetches pre-aggregated health metrics from `/api/equipment/:id/sensor-health`
  * - Renders health scores with color-coded indicators
  * - Displays status distribution breakdown (normal/warning/critical/offline)
  * - Handles loading, error, and empty states
@@ -17,7 +17,7 @@
  *
  * **Note**: Status aggregation, health score calculation, and business logic are performed
  * on the backend. This component only renders the server-provided metrics.
- * See `server/routes.ts` sensor-health endpoint for aggregation logic.
+ * See server/domains/telemetry/routes.ts sensor-health endpoint for aggregation logic.
  *
  * ## Features
  * - Color-coded health score indicators (green/yellow/red)
@@ -59,7 +59,7 @@ interface SensorHealthDashboardProps {
 /**
  * Sensor health aggregation metrics
  *
- * Response from GET /api/equipment/:equipmentId/sensors/health
+ * Response from GET /api/equipment/:equipmentId/sensor-health
  * Uses 24-hour telemetry window for status determination.
  *
  * @interface SensorHealthMetrics

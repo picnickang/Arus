@@ -214,7 +214,7 @@ function OverviewTab({
   equipment: EquipmentDetail;
   healthData?: PdmHealthData;
 }) {
-  const { timeRange, setTimeRange, sensorData, isLoadingTelemetry, defaultSummary } =
+  const { timeRange, setTimeRange, sensorData, baselines, isLoadingTelemetry, defaultSummary } =
     useOverviewTabData(equipmentId, healthData);
   return (
     <div className="space-y-6">
@@ -224,8 +224,9 @@ function OverviewTab({
       </div>
       <MultiSensorChart
         title="Sensor Correlation Analysis"
-        description="Compare multiple sensor readings to identify correlations and anomalies"
+        description="Live readings against each sensor's 30-day operating baseline (median ± 2σ band)"
         sensors={sensorData}
+        baselines={baselines}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
         isLoading={isLoadingTelemetry}

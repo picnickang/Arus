@@ -35,6 +35,27 @@ import { telemetryBufferDepth, telemetryBufferEvictions } from "./observability/
 import client from "prom-client";
 import { logger } from "./utils/logger";
 import { quotaService } from "./tenancy/quota-service";
+import { getWebSocketServer } from "./websocket-server";
+
+/** Latest reading per (equipmentId, sensorType) in a flushed batch.
+ *  Exported for unit tests. */
+export function latestPerEquipmentSensor(
+  readings: TelemetryBatchReading[]
+): Map<string, Map<string, TelemetryBatchReading>> {
+  const latest = new Map<string, Map<string, TelemetryBatchReading>>();
+  for (const reading of readings) {
+    let sensors = latest.get(reading.equipmentId);
+    if (!sensors) {
+      sensors = new Map();
+      latest.set(reading.equipmentId, sensors);
+    }
+    const prior = sensors.get(reading.sensorType);
+    if (!prior || reading.timestamp.getTime() >= prior.timestamp.getTime()) {
+      sensors.set(reading.sensorType, reading);
+    }
+  }
+  return latest;
+}
 
 export interface TelemetryBatchReading {
   equipmentId: string;
@@ -167,14 +188,14 @@ export class TelemetryBatchWriter extends EventEmitter {
     super();
 
     this.config = {
-      batchIntervalMs: Number.parseInt(process.env['TELEMETRY_BATCH_INTERVAL_MS'] || "500", 10),
-      maxBufferSize: Number.parseInt(process.env['TELEMETRY_MAX_BUFFER_SIZE'] || "10000", 10),
-      evictionPercent: Number.parseFloat(process.env['TELEMETRY_EVICTION_PERCENT'] || "0.1"),
+      batchIntervalMs: Number.parseInt(process.env["TELEMETRY_BATCH_INTERVAL_MS"] || "500", 10),
+      maxBufferSize: Number.parseInt(process.env["TELEMETRY_MAX_BUFFER_SIZE"] || "10000", 10),
+      evictionPercent: Number.parseFloat(process.env["TELEMETRY_EVICTION_PERCENT"] || "0.1"),
       flushOnShutdown: true,
-      maxRetries: Number.parseInt(process.env['TELEMETRY_MAX_RETRIES'] || "3", 10),
+      maxRetries: Number.parseInt(process.env["TELEMETRY_MAX_RETRIES"] || "3", 10),
       dbInsertChunkSize: Number.parseInt(
-        process.env['TELEMETRY_DB_INSERT_CHUNK_SIZE'] || "500",
-        10,
+        process.env["TELEMETRY_DB_INSERT_CHUNK_SIZE"] || "500",
+        10
       ),
       ...config,
     };
@@ -281,7 +302,9 @@ export class TelemetryBatchWriter extends EventEmitter {
     buffer.push(reading);
     this.stats.totalQueued++;
 
-    const perVesselMax = Math.floor(this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1));
+    const perVesselMax = Math.floor(
+      this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1)
+    );
     if (buffer.length >= perVesselMax) {
       this.evictOldestFromVessel(vesselId);
     }
@@ -311,7 +334,9 @@ export class TelemetryBatchWriter extends EventEmitter {
       return;
     }
 
-    const perVesselMax = Math.floor(this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1));
+    const perVesselMax = Math.floor(
+      this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1)
+    );
     const evictCount = Math.floor(perVesselMax * this.config.evictionPercent);
     const evicted = buffer.splice(0, evictCount);
 
@@ -487,6 +512,90 @@ export class TelemetryBatchWriter extends EventEmitter {
       // count in writeBatch, preserving their current accepted-vs-dropped meaning.
       await dbTelemetryStorage.createTelemetryReadingsBulk(rows);
     }
+
+    // Post-commit enrichment on the deduped latest-per-(equipment, sensor)
+    // set — bounded by sensor count, not message rate, so a 2,000 msg/s
+    // flush still evaluates only a handful of readings:
+    //  1. Live push: the WebSocket layer already had a 250ms-throttled
+    //     telemetry channel (TelemetryThrottler → "telemetry_batch") with
+    //     no producer — this is the producer.
+    //  2. Alert thresholds: checkAndCreateAlerts existed but nothing on
+    //     the ingest path ever invoked it, so threshold breaches in
+    //     ingested telemetry never fired alerts.
+    // Both are best-effort by design: they must never fail a flush.
+    const latest = latestPerEquipmentSensor(readings);
+    this.broadcastFlushedReadings(latest);
+    void this.evaluateAlertsForFlushedReadings(latest);
+  }
+
+  /**
+   * Queue the latest committed reading per (equipment, sensor) onto the
+   * throttled WebSocket telemetry channel. Charts poll the history API;
+   * this push lets them refresh within ~250ms of a flush instead.
+   */
+  private broadcastFlushedReadings(latest: Map<string, Map<string, TelemetryBatchReading>>): void {
+    try {
+      const wsServer = getWebSocketServer();
+      if (!wsServer || wsServer.getConnectedClients() === 0) {
+        return;
+      }
+
+      for (const [equipmentId, sensors] of latest) {
+        wsServer.queueTelemetryUpdate(equipmentId, {
+          equipmentId,
+          readings: Array.from(sensors.values()).map((r) => ({
+            sensorType: r.sensorType,
+            value: r.value,
+            unit: r.unit ?? null,
+            ts: r.timestamp.toISOString(),
+          })),
+        });
+      }
+    } catch (err) {
+      logger.warn("TelemetryBatchWriter", "Live telemetry broadcast failed (non-fatal)", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /**
+   * Evaluate alert thresholds for the latest committed reading per
+   * (equipment, sensor), pinned to each reading's org so the RLS-scoped
+   * alert tables behave identically in dev and production. Fire-and-forget
+   * with a 10-minute dedup inside checkAndCreateAlerts; failures are
+   * logged, never propagated into the flush path.
+   */
+  private async evaluateAlertsForFlushedReadings(
+    latest: Map<string, Map<string, TelemetryBatchReading>>
+  ): Promise<void> {
+    try {
+      const { checkAndCreateAlerts } = await import("./services/telemetry-processing.js");
+      const { withTenantContext } = await import("./middleware/db-context.js");
+
+      for (const sensors of latest.values()) {
+        for (const reading of sensors.values()) {
+          const orgId = reading.orgId || "default-org-id";
+          await withTenantContext(orgId, () =>
+            checkAndCreateAlerts({
+              id: `flush-${reading.equipmentId}-${reading.sensorType}`,
+              orgId,
+              ts: reading.timestamp,
+              equipmentId: reading.equipmentId,
+              sensorType: reading.sensorType,
+              value: reading.value,
+              unit: reading.unit ?? null,
+              threshold: null,
+              status: "normal",
+              idempotencyKey: null,
+            })
+          );
+        }
+      }
+    } catch (err) {
+      logger.warn("TelemetryBatchWriter", "Post-flush alert evaluation failed (non-fatal)", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   /**
@@ -503,7 +612,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * want a quota-subsystem outage to silently halt ingestion.
    */
   private async filterOverQuotaReadings(
-    readings: TelemetryBatchReading[],
+    readings: TelemetryBatchReading[]
   ): Promise<TelemetryBatchReading[]> {
     if (readings.length === 0) {
       return readings;
@@ -526,7 +635,7 @@ export class TelemetryBatchWriter extends EventEmitter {
         } catch {
           // Fail-open per the doc comment above.
         }
-      }),
+      })
     );
 
     if (overQuotaOrgs.size === 0) {
@@ -553,7 +662,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     logger.warn(
       "TelemetryBatchWriter",
       `Quota: dropped ${totalDropped} readings across ${droppedPerOrg.size} over-limit org(s)`,
-      { perOrg: Object.fromEntries(droppedPerOrg) },
+      { perOrg: Object.fromEntries(droppedPerOrg) }
     );
     this.emit("quotaBlocked", {
       total: totalDropped,
@@ -575,7 +684,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    * @throws Error if source is not 'sqlite-bridge' in production
    */
   async writeBatch(readings: TelemetryBatchReading[], options: { source: string }): Promise<void> {
-    const isProduction = process.env['NODE_ENV'] === "production";
+    const isProduction = process.env["NODE_ENV"] === "production";
 
     if (isProduction && options.source !== "sqlite-bridge") {
       throw new Error(
@@ -662,7 +771,7 @@ export class TelemetryBatchWriter extends EventEmitter {
         Array.from(perOrg.entries()).map(async ([orgId, count]) => {
           try {
             await withQuotaTimeout(
-              quotaService.incrementUsage(orgId, "telemetry_rows_today", count),
+              quotaService.incrementUsage(orgId, "telemetry_rows_today", count)
             );
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
@@ -671,10 +780,10 @@ export class TelemetryBatchWriter extends EventEmitter {
             logger.warn(
               "TelemetryBatchWriter",
               "Quota increment failed; usage may be undercounted (ingest not blocked)",
-              { orgId, batchId, count, reason, error: message },
+              { orgId, batchId, count, reason, error: message }
             );
           }
-        }),
+        })
       );
 
       this.emit("batchWritten", {

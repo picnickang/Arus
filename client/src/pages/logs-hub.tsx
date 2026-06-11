@@ -9,7 +9,6 @@ const logsItems: GridItem[] = [
     description: "Compliance & governance",
     load: () => import("./compliance-consolidated"),
     loaderVariant: "cards",
-    legacyRoutes: ["/logs-compliance", "/governance", "/governance-dashboard"],
   },
   {
     id: "deck",
@@ -18,7 +17,6 @@ const logsItems: GridItem[] = [
     description: "Deck logbook & vessel track",
     load: () => import("./deck-log-consolidated"),
     loaderVariant: "table",
-    legacyRoutes: ["/deck-logbook", "/vessel-track-log"],
   },
   {
     id: "engine",
@@ -27,7 +25,6 @@ const logsItems: GridItem[] = [
     description: "Engine room & fuel",
     load: () => import("./engine-log-consolidated"),
     loaderVariant: "table",
-    legacyRoutes: ["/engine-logbook", "/fuel-emissions-log"],
   },
   {
     id: "equipment",
@@ -36,7 +33,6 @@ const logsItems: GridItem[] = [
     description: "Condition & decommissioned",
     load: () => import("./equipment-log-consolidated"),
     loaderVariant: "table",
-    legacyRoutes: ["/condition-monitoring-log", "/decommissioned-equipment-log"],
   },
 ];
 

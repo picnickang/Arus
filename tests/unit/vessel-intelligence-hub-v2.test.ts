@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "@jest/globals";
@@ -29,6 +29,10 @@ const REGISTRY_API_PATH = resolve(
 const REGISTRY_SCREENS_PATH = resolve(
   REPO_ROOT,
   "client/src/pages/vessel-intelligence/registry-screens.tsx"
+);
+const REGISTRY_SCREENS_DIR = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/registry-screens"
 );
 const SECTIONED_MAP_PATH = resolve(
   REPO_ROOT,
@@ -79,6 +83,16 @@ const EXPECTED_LEGACY_REDIRECTS: Record<string, string> = {
 
 async function load(path: string): Promise<string> {
   return readFile(path, "utf8");
+}
+
+/** The registry screens are split across the dispatcher module and one file
+ * per screen in registry-screens/; pin test ids against the whole family. */
+async function loadRegistryScreens(): Promise<string> {
+  const names = (await readdir(REGISTRY_SCREENS_DIR)).filter((name) => name.endsWith(".tsx"));
+  const parts = await Promise.all(
+    names.sort().map((name) => load(resolve(REGISTRY_SCREENS_DIR, name)))
+  );
+  return [await load(REGISTRY_SCREENS_PATH), ...parts].join("\n");
 }
 
 describe("Vessel Intelligence Hub v2 route contract", () => {
@@ -260,7 +274,7 @@ describe("Replaceable Diagram Registry controls", () => {
   });
 
   it("pins replacement options, critical test ids, and permission-denied UI", async () => {
-    const screens = await load(REGISTRY_SCREENS_PATH);
+    const screens = await loadRegistryScreens();
     const sectionMap = await load(SECTIONED_MAP_PATH);
     const fitControls = await load(SIDE_ELEVATION_FIT_CONTROLS_PATH);
     const calibration = await load(SIDE_ELEVATION_CALIBRATION_PATH);

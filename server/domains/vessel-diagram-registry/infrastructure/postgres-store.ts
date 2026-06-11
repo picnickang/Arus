@@ -1253,9 +1253,7 @@ function hydrateSection(
 }
 
 function notFound(message: string): Error & { statusCode: number } {
-  const error = new Error(message) as Error & { statusCode: number };
-  error.statusCode = 404;
-  return error;
+  return Object.assign(new Error(message), { statusCode: 404 });
 }
 
 export const postgresVesselDiagramRegistryStore = new PostgresVesselDiagramRegistryStore();

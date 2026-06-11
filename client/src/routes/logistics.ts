@@ -12,10 +12,12 @@ const ServiceRequestsPage = lazy(() =>
 );
 const OptimizationTools = lazy(() => import("@/pages/optimization-tools"));
 
+// NOTE: /inventory-management and /vendors are NOT registered here — their
+// `routeMigrations` redirects (→ /logistics?tab=…) mount before these routes
+// in App.tsx's <Switch>, so a registration here could never match
+// (see docs/UI-CONSOLIDATION-AUDIT.md §2.1).
 export const logisticsRoutes = [
   { path: "/logistics", component: LogisticsHub },
-  // /inventory-management and /vendors intentionally unregistered:
-  // routeMigrations sends them to /logistics?tab=…, which hosts the pages.
   { path: "/purchase-requests/:id", component: PRDetailPage },
   { path: "/service-orders", component: ServiceOrdersPage },
   { path: "/service-requests", component: ServiceRequestsPage },

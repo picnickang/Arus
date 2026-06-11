@@ -19,7 +19,6 @@ export interface GridItem {
   label: string;
   icon: LucideIcon;
   description?: string;
-  legacyRoutes?: string[];
   component?: ReactNode;
   load?: () => Promise<{ default: ComponentType<Record<string, never>> }>;
   loaderVariant?: "default" | "table" | "cards" | "form";
@@ -108,6 +107,16 @@ function GridItemCard({
   );
 }
 
+// One lazy component per loader function, created once and reused. Creating a
+// fresh `lazy()` on each selection made every tab revisit remount its content:
+// the Suspense fallback flashed, queries refetched, and filters/scroll reset.
+// Keyed by the loader (module-level stable) rather than item id so distinct
+// grids using the same ids can't collide.
+const lazyComponentCache = new WeakMap<
+  () => Promise<{ default: ComponentType<Record<string, never>> }>,
+  ComponentType<Record<string, never>>
+>();
+
 function useDeferredComponent(item: GridItem | undefined) {
   return useMemo(() => {
     if (!item) {
@@ -119,7 +128,11 @@ function useDeferredComponent(item: GridItem | undefined) {
     }
 
     if (item.load) {
-      const LazyComponent = lazy(item.load);
+      let LazyComponent = lazyComponentCache.get(item.load);
+      if (!LazyComponent) {
+        LazyComponent = lazy(item.load);
+        lazyComponentCache.set(item.load, LazyComponent);
+      }
       return (
         <Suspense fallback={<PageLoader variant={item.loaderVariant || "cards"} />}>
           <LazyComponent />
@@ -128,7 +141,7 @@ function useDeferredComponent(item: GridItem | undefined) {
     }
 
     return null;
-  }, [item?.id]);
+  }, [item]);
 }
 
 export function IconGridLayout({
@@ -283,21 +296,6 @@ export function IconGridLayout({
       </div>
     </div>
   );
-}
-
-export function createIconGridLegacyRedirects(
-  items: GridItem[],
-  baseRoute: string
-): Array<{ from: string; to: string }> {
-  const redirects: Array<{ from: string; to: string }> = [];
-  for (const item of items) {
-    if (item.legacyRoutes) {
-      for (const legacyRoute of item.legacyRoutes) {
-        redirects.push({ from: legacyRoute, to: `${baseRoute}?tab=${item.id}` });
-      }
-    }
-  }
-  return redirects;
 }
 
 export type { GridItem as IconGridItem };

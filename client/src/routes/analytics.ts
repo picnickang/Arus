@@ -24,8 +24,9 @@ export const analyticsRoutes = [
   { path: "/analytics/data-integrity", component: AnalyticsDataIntegrity },
   { path: "/knowledge-base", component: KnowledgeBasePage },
   { path: "/kb-analytics", component: RagAnalyticsDashboard },
-  // /governance-dashboard intentionally unregistered: routeMigrations sends it
-  // to /logs?tab=compliance, where the consolidated shell hosts the page.
+  // /governance-dashboard is redirect-only (routeMigrations → /logs?tab=compliance);
+  // its <Switch> registration here could never match. The page still renders as
+  // a tab inside compliance-consolidated.
   { path: "/scheduled-reports", component: ScheduledReports },
   { path: "/scheduled-reports-settings", component: ScheduledReportsSettings },
   { path: "/ai-health", component: AIHealthDashboard },

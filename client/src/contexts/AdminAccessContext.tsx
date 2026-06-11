@@ -156,41 +156,47 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   // Users will need to re-authenticate after page reload
   // This is a security vs. convenience trade-off in favor of security
 
-  // Enforce session expiry / idle timeout while unlocked. The checks run on an
-  // interval but do NOT touch state on each tick (the old per-second countdown
-  // state had no consumers and re-rendered the provider once a second), so the
-  // only render this effect ever causes is the lockAdmin() teardown itself.
-  // Skipped in dev so a real admin session used for local testing isn't torn
-  // down mid-session; production always enforces the cap. (The server token
-  // still expires regardless.)
+  // Enforce expiry and idle timeout. The interval only *checks* deadlines —
+  // it deliberately holds no per-tick React state, so the once-a-second tick
+  // never re-renders the provider (and with it every context consumer).
   useEffect(() => {
-    if (!isAdminUnlocked || !sessionExpiresAt || DEV_MODE) {
+    if (!isAdminUnlocked || !sessionExpiresAt) {
       return;
     }
 
-    const checkSessionTimeouts = () => {
+    const updateTimers = () => {
       const now = Date.now();
       const expiryMs = sessionExpiresAt.getTime() - now;
       const idleMs = IDLE_TIMEOUT_MS - (now - lastActivityRef.current);
 
-      if (expiryMs <= 0) {
+      // Auto-lock on expiry. Skipped in dev so a real admin session used for
+      // local testing isn't torn down mid-session; production always enforces
+      // the cap. (The server token still expires regardless.)
+      if (!DEV_MODE && expiryMs <= 0) {
         console.info("⏰ Session expired (max duration reached)");
         lockAdmin();
         return;
       }
 
-      if (idleMs <= 0) {
+      // Auto-lock on idle timeout (skipped in dev — see note above).
+      if (!DEV_MODE && idleMs <= 0) {
         console.info("⏰ Session expired (idle timeout)");
         lockAdmin();
+        return;
       }
     };
 
-    checkSessionTimeouts();
-    const timerId = setInterval(checkSessionTimeouts, 1000);
+    // Initial update
+    updateTimers();
+
+    // Update every second
+    const timerId = setInterval(updateTimers, 1000);
     expiryTimerRef.current = timerId;
 
     return () => {
-      clearInterval(timerId);
+      if (timerId) {
+        clearInterval(timerId);
+      }
     };
   }, [isAdminUnlocked, sessionExpiresAt, lockAdmin]);
 
@@ -217,8 +223,9 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     };
   }, [isAdminUnlocked, updateActivity]);
 
-  // Memoized so consumers only re-render on real session transitions.
-  const value: AdminAccessContextType = useMemo(
+  // Stable between real auth events: all callbacks are useCallback-stable, so
+  // consumers only re-render on lock/unlock/session changes.
+  const value = useMemo<AdminAccessContextType>(
     () => ({
       isAdminUnlocked,
       sessionToken,

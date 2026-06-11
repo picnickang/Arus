@@ -47,7 +47,9 @@ export function useInventoryParts(vesselId?: string) {
         "GET",
         `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`
       );
-      return Array.isArray(response) ? response : ((response as { items?: unknown[] } | null)?.items ?? []);
+      return Array.isArray(response)
+        ? response
+        : ((response as { items?: unknown[] } | null)?.items ?? []);
     },
   });
 }
@@ -55,7 +57,8 @@ export function useInventoryParts(vesselId?: string) {
 export function useStock(vesselId?: string) {
   return useQuery<Stock[]>({
     queryKey: inventoryKeys.stock(vesselId ?? "all"),
-    queryFn: () => apiRequest<Stock[]>("GET", `/api/stock${vesselId ? `?vesselId=${vesselId}` : ""}`),
+    queryFn: () =>
+      apiRequest<Stock[]>("GET", `/api/stock${vesselId ? `?vesselId=${vesselId}` : ""}`),
   });
 }
 
@@ -70,7 +73,10 @@ export function useInventoryMovements(partId?: string) {
   return useQuery<InventoryMovement[]>({
     queryKey: inventoryKeys.movements(partId ?? ""),
     queryFn: () =>
-      apiRequest<InventoryMovement[]>("GET", `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`),
+      apiRequest<InventoryMovement[]>(
+        "GET",
+        `/api/inventory-movements${partId ? `?partId=${partId}` : ""}`
+      ),
     enabled: !!partId,
   });
 }
@@ -85,7 +91,11 @@ export function useSuppliers() {
 export function usePurchaseOrders(status?: string) {
   return useQuery<PurchaseOrder[]>({
     queryKey: [...inventoryKeys.purchaseOrders(), status ?? "all"],
-    queryFn: () => apiRequest<PurchaseOrder[]>("GET", `/api/purchase-orders${status ? `?status=${status}` : ""}`),
+    queryFn: () =>
+      apiRequest<PurchaseOrder[]>(
+        "GET",
+        `/api/purchase-orders${status ? `?status=${status}` : ""}`
+      ),
   });
 }
 
@@ -112,42 +122,6 @@ export function useUpdatePart() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: inventoryKeys.partDetail(variables.id) });
       queryClient.invalidateQueries({ queryKey: inventoryKeys.parts() });
-    },
-  });
-}
-
-export function useAdjustStock() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: {
-      partId: string;
-      vesselId?: string;
-      adjustment: number;
-      reason: string;
-    }) => {
-      return apiRequest("POST", "/api/stock/adjust", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
-    },
-  });
-}
-
-export function useTransferStock() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: {
-      partId: string;
-      fromVesselId: string;
-      toVesselId: string;
-      quantity: number;
-    }) => {
-      return apiRequest("POST", "/api/stock/transfer", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
     },
   });
 }
