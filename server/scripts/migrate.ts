@@ -136,6 +136,7 @@ const REQUIRED_FKS: ReadonlyArray<{
 const REQUIRED_COLUMNS: ReadonlyArray<{ table: string; column: string; from: string }> = [
   { table: "roles", column: "hub_admin", from: "0033 role hub access" },
   { table: "roles", column: "hub_access", from: "0033 role hub access" },
+  { table: "system_settings", column: "openai_api_key_encrypted", from: "0043 secure settings" },
 ];
 
 /**

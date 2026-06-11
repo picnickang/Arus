@@ -19,7 +19,8 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     "/api/settings",
     requireOrgId,
     withErrorHandling("fetch settings", async (_req: Request, res: Response) => {
-      const settings = await dbSystemAdminStorage.getSettings();
+      // Secret columns never leave the server (0043) — hasOpenaiKey only.
+      const settings = await dbSystemAdminStorage.getPublicSettings();
       res.json(settings);
     })
   );
@@ -30,7 +31,8 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("update settings", async (req: Request, res: Response) => {
       const settingsData = insertSettingsSchema.partial().parse(req.body);
-      const settings = await dbSystemAdminStorage.updateSettings(settingsData);
+      await dbSystemAdminStorage.updateSettings(settingsData);
+      const settings = await dbSystemAdminStorage.getPublicSettings();
       res.json(settings);
     })
   );
@@ -41,8 +43,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     writeOperationRateLimit,
     withErrorHandling("validate OpenAI API key", async (_req: Request, res: Response) => {
       try {
-        const settings = await dbSystemAdminStorage.getSettings();
-        const dbKey = settings?.openaiApiKey || null;
+        const dbKey = await dbSystemAdminStorage.getDecryptedOpenAiKey();
         const envKey =
           process.env['OPENAI_API_KEY'] || process.env['AI_INTEGRATIONS_OPENAI_API_KEY'] || null;
         const effectiveKey = dbKey || envKey;
@@ -75,8 +76,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
           hasEnvKey: !!envKey,
         });
       } catch (error: unknown) {
-        const settings = await dbSystemAdminStorage.getSettings();
-        const dbKey = settings?.openaiApiKey || null;
+        const dbKey = await dbSystemAdminStorage.getDecryptedOpenAiKey();
         const envKey =
           process.env['OPENAI_API_KEY'] || process.env['AI_INTEGRATIONS_OPENAI_API_KEY'] || null;
         const source = dbKey ? "user_configured" : envKey ? "environment" : null;

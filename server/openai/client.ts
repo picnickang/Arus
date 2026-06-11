@@ -28,7 +28,11 @@ export async function getOpenAIApiKey(
   getSettingsFn?: SettingsAccessor
 ): Promise<string | undefined> {
   try {
-    const settingsAccessor = getSettingsFn || (async () => dbSystemAdminStorage.getSettings());
+    // Default accessor decrypts the stored key (0043) — raw rows no
+    // longer carry usable key material.
+    const settingsAccessor =
+      getSettingsFn ||
+      (async () => ({ openaiApiKey: await dbSystemAdminStorage.getDecryptedOpenAiKey() }));
     const settings = await settingsAccessor();
     if (settings?.openaiApiKey) {
       return settings.openaiApiKey;

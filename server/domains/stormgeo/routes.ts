@@ -49,6 +49,16 @@ const idParamSchema = z.object({ id: z.string().min(1) });
 const routeIdParamSchema = z.object({ routeId: z.string().min(1) });
 const settingsBodySchema = jsonRecordSchema;
 
+// Credentials are write-only: API responses carry hasApiKey/hasSftpPassword
+// booleans instead of the stored apiKey/sftpPassword values.
+function redactStormgeoSettings<T extends { apiKey?: string | null; sftpPassword?: string | null }>(
+  settings: T | null | undefined
+) {
+  if (!settings) return null;
+  const { apiKey, sftpPassword, ...rest } = settings;
+  return { ...rest, hasApiKey: Boolean(apiKey), hasSftpPassword: Boolean(sftpPassword) };
+}
+
 export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   const { writeOperationRateLimit } = config;
 
@@ -58,7 +68,8 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
       const orgId = req.orgId;
       const { vesselId } = vesselIdQuerySchema.parse(req.query);
       const settings = await dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
-      res.json(settings || null);
+      const row = Array.isArray(settings) ? settings[0] : settings;
+      res.json(redactStormgeoSettings(row));
     })
   );
 
@@ -72,7 +83,8 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
         ...body,
         orgId,
       } as Parameters<typeof stormgeoIntegrationService.upsertSettings>[0]);
-      res.json(settings);
+      const row = Array.isArray(settings) ? settings[0] : settings;
+      res.json(redactStormgeoSettings(row));
     })
   );
 

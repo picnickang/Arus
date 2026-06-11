@@ -24,6 +24,16 @@ import type {
   SystemPerformanceMetric,
 } from "@shared/schema";
 import type { SystemHealthResult } from "./types.js";
+import { encryptSecret, decryptSecret } from "../../lib/crypto-service";
+import { createLogger } from "../../lib/structured-logger";
+
+const settingsLogger = createLogger("Db:SystemSettings");
+
+/** Settings shape safe to return to clients: secret columns removed. */
+export type PublicSystemSettings = Omit<
+  Awaited<ReturnType<DbSettingsStorage["getSettings"]>>,
+  "openaiApiKey" | "openaiApiKeyEncrypted"
+> & { hasOpenaiKey: boolean };
 
 export class DbSettingsStorage {
   async getSettings() {
@@ -38,14 +48,54 @@ export class DbSettingsStorage {
     return created;
   }
 
+  /** Client-facing settings: never includes key material (0043). */
+  async getPublicSettings(): Promise<PublicSystemSettings> {
+    const { openaiApiKey, openaiApiKeyEncrypted, ...rest } = await this.getSettings();
+    return { ...rest, hasOpenaiKey: Boolean(openaiApiKeyEncrypted || openaiApiKey) };
+  }
+
+  /** Server-side only: the effective OpenAI key from the database. */
+  async getDecryptedOpenAiKey(): Promise<string | null> {
+    const settings = await this.getSettings();
+    if (settings?.openaiApiKeyEncrypted) {
+      return decryptSecret(settings.openaiApiKeyEncrypted);
+    }
+    // Pre-0043-backfill rows may still carry the legacy plaintext value.
+    return settings?.openaiApiKey || null;
+  }
+
   async updateSettings(updates: Record<string, unknown>) {
     await this.getSettings();
+    const set: Record<string, unknown> = { ...updates };
+    // openaiApiKey is write-only input: encrypt it, never store plaintext.
+    if (typeof set["openaiApiKey"] === "string") {
+      const key = set["openaiApiKey"] as string;
+      set["openaiApiKeyEncrypted"] = key ? encryptSecret(key) : null;
+      set["openaiApiKey"] = null;
+    }
     const [updated] = await db
       .update(systemSettings)
-      .set(updates)
+      .set(set)
       .where(eq(systemSettings.id, "system"))
       .returning();
     return updated;
+  }
+
+  /**
+   * 0043 one-shot backfill: move a legacy plaintext OpenAI key into the
+   * encrypted column. Idempotent; called from bootstrap.
+   */
+  async ensureSettingsSecretsMigrated(): Promise<void> {
+    const settings = await this.getSettings();
+    if (settings?.openaiApiKey && !settings.openaiApiKeyEncrypted) {
+      await db
+        .update(systemSettings)
+        .set({ openaiApiKeyEncrypted: encryptSecret(settings.openaiApiKey), openaiApiKey: null })
+        .where(eq(systemSettings.id, "system"));
+      settingsLogger.info(
+        "[0043] Migrated plaintext OpenAI API key to encrypted storage and cleared the legacy column"
+      );
+    }
   }
   async getAdminSystemSettings(orgId?: string, category?: string): Promise<AdminSystemSetting[]> {
     const conditions = [];

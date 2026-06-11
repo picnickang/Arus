@@ -51,7 +51,9 @@ export class EnhancedLLMService {
       }
 
       const settings = await dbSystemAdminStorage.getSettings();
-      this.openaiEnabled = Boolean(settings?.openaiApiKey || process.env['OPENAI_API_KEY']);
+      this.openaiEnabled = Boolean(
+        settings?.openaiApiKeyEncrypted || settings?.openaiApiKey || process.env['OPENAI_API_KEY']
+      );
 
       if (process.env['ANTHROPIC_API_KEY']) {
         this.anthropicClient = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });

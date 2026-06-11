@@ -42,6 +42,15 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
   async getSettings() {
     return this.s.getSettings();
   }
+  async getPublicSettings() {
+    return this.s.getPublicSettings();
+  }
+  async getDecryptedOpenAiKey() {
+    return this.s.getDecryptedOpenAiKey();
+  }
+  async ensureSettingsSecretsMigrated() {
+    return this.s.ensureSettingsSecretsMigrated();
+  }
   async updateSettings(updates: Record<string, unknown>) {
     return this.s.updateSettings(updates);
   }

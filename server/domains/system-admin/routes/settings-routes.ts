@@ -28,6 +28,18 @@ import {
 const SETTING_ORG = "system";
 const SETTING_CATEGORY = "ml-artifact-storage";
 const SETTING_KEY = "backend";
+
+// Settings whose key names look credential-like are write-only: GETs
+// replace their value with a masked marker so secrets stored in the
+// jsonb value column never reach clients or logs.
+const SECRET_SETTING_KEY_RE = /api[-_]?key|password|secret|token|credential/i;
+
+function redactSecretSetting<T extends { key?: string | null; value?: unknown }>(setting: T): T {
+  if (setting.key && SECRET_SETTING_KEY_RE.test(setting.key)) {
+    return { ...setting, value: { masked: true } };
+  }
+  return setting;
+}
 const VALID_BACKENDS = ["local", "replit-object-storage"] as const;
 
 const artifactBackendSettingPort: ArtifactBackendSettingPort = {
@@ -88,7 +100,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
         orgId as string,
         category as string
       );
-      res.json(settings);
+      res.json(settings.map(redactSecretSetting));
     })
   );
 
@@ -103,7 +115,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
       if (!setting) {
         return sendNotFound(res, "System setting");
       }
-      res.json(setting);
+      res.json(redactSecretSetting(setting));
     })
   );
 

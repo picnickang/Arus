@@ -91,7 +91,12 @@ export const systemSettings = pgTable("system_settings", {
   strictUnits: boolean("strict_units").default(false),
   llmEnabled: boolean("llm_enabled").default(true),
   llmModel: text("llm_model").default("gpt-4o-mini"),
+  // Legacy plaintext column — kept for 0043 rollback compatibility; the
+  // boot backfill moves any value into openaiApiKeyEncrypted and NULLs it.
   openaiApiKey: text("openai_api_key"),
+  // AES-256-GCM via server/lib/crypto-service.ts (0043). Never returned
+  // by the API; PUT /api/settings accepts a plaintext key and encrypts.
+  openaiApiKeyEncrypted: text("openai_api_key_encrypted"),
   aiInsightsThrottleMinutes: integer("ai_insights_throttle_minutes").default(2),
   timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5),
 });
@@ -221,7 +226,12 @@ export const setPasswordSchema = z.object({
   password: z.string().min(8).max(100),
 });
 
-export const insertSettingsSchema = createInsertSchema(systemSettings).omit({ id: true });
+// openaiApiKey stays accepted as WRITE-ONLY input (the storage layer
+// encrypts it); the encrypted column is never client-settable.
+export const insertSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  openaiApiKeyEncrypted: true,
+});
 
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings)
   .omit({ id: true, createdAt: true, updatedAt: true, lastTestAt: true, lastTestStatus: true })

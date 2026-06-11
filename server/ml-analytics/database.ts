@@ -67,15 +67,19 @@ export async function recordFailurePrediction(
 }
 
 export async function recordThresholdOptimization(
+  orgId: string,
   equipmentId: string,
   sensorType: string,
   currentThresholds: { warning: number; critical: number },
   optimizedThresholds: { warning: number; critical: number }
 ): Promise<void> {
+  if (!orgId) {
+    throw new Error("recordThresholdOptimization requires a non-empty orgId");
+  }
   await db.insert(thresholdOptimizations).values({
     equipmentId,
     sensorType,
-    orgId: "",
+    orgId,
     currentThresholds,
     optimizedThresholds,
     improvementMetrics: {
