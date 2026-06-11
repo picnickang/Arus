@@ -1,0 +1,10 @@
+# Single-writer surfaces: guard scripts, their baselines, and CI workflows.
+# Parallel agent sessions repeatedly rewrote baselines concurrently
+# (docs/UI-SCORECARD.md §11); routing review through the repo owner keeps
+# baseline edits serialized and visible.
+
+/scripts/*baseline*.json   @picnickang
+/scripts/check-*.mjs       @picnickang
+/scripts/check-*.ts        @picnickang
+/.github/                  @picnickang
+/docs/runbooks/            @picnickang
