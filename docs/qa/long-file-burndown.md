@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T20:28:27.278Z
+Generated: 2026-06-11T20:55:05.773Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `132` counted files.
-- The current counted inventory is `132` files.
+- The temporary ceiling is `129` counted files.
+- The current counted inventory is `129` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   132 |
-| Server                    |    50 |
-| Server route-like files   |    11 |
+| Total counted long files  |   129 |
+| Server                    |    47 |
+| Server route-like files   |    10 |
 | Server service-like files |    14 |
 | Client                    |    74 |
 | Client page files         |    28 |
@@ -52,6 +52,9 @@ Completed splits:
 - `server/websocket.ts` dropped below the threshold by moving upgrade auth, telemetry throttling, fanout delivery/replay, shared types, and broadcast payload helpers to sibling modules.
 - `server/domains/permissions/routes.ts` dropped below the threshold by moving role, user-admin/setup, and dev diagnostic route groups plus shared schemas to focused modules.
 - `server/pdm/routes.ts` dropped below the threshold by moving export, equipment/telemetry, analysis, and shared filter/CSV helpers to focused modules.
+- `server/config/default-role-templates.ts` dropped below the threshold by moving role-template groups and types to focused config modules.
+- `server/config/permission-registry.ts` dropped below the threshold by moving action, resource, category, and type definitions to focused config modules.
+- `server/domains/crew-admin/interfaces/routes.ts` dropped below the threshold by moving role, dashboard, user, credential, and account route groups to focused modules.
 
 ## Top 30 Longest Files
 
@@ -78,20 +81,20 @@ Completed splits:
 |   19 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
 |   20 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
 |   21 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   22 |   819 | `client/src/pages/inventory-management.tsx`                               |
-|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
-|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts`  |
-|   25 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
-|   26 |   791 | `server/routes/service-request-routes.ts`                                 |
-|   27 |   787 | `server/routes/rag-routes.ts`                                             |
-|   28 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
-|   29 |   782 | `server/domains/crew-admin/interfaces/routes.ts`                          |
-|   30 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
+|   22 |   819 | `client/src/pages/inventory-management.tsx` |
+|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
+|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
+|   25 |   809 | `client/src/pages/pdm-pack.tsx` |
+|   26 |   791 | `server/routes/service-request-routes.ts` |
+|   27 |   787 | `server/routes/rag-routes.ts` |
+|   28 |   786 | `client/src/pages/maintenance-schedules.tsx` |
+|   29 |   779 | `client/src/components/CrewDocumentsTab.tsx` |
+|   30 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx` |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize work-order service, workflow attention service, the remaining vessel diagram service, agent orchestration, and crew-admin routes.
+   - Prioritize work-order service, workflow attention service, the remaining vessel diagram service, agent orchestration, and equipment intelligence repositories.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -136,9 +139,7 @@ Completed splits:
 791 server/routes/service-request-routes.ts
 787 server/routes/rag-routes.ts
 786 client/src/pages/maintenance-schedules.tsx
-782 server/domains/crew-admin/interfaces/routes.ts
 779 client/src/components/CrewDocumentsTab.tsx
-770 server/config/default-role-templates.ts
 768 client/src/components/CrewNotificationSettingsTab.tsx
 758 shared/schema/admin.ts
 755 client/src/pages/organization-management.tsx
@@ -164,7 +165,6 @@ Completed splits:
 677 client/src/components/CrewScheduler.tsx
 672 client/src/components/equipment/EquipmentDecommissionDialog.tsx
 659 client/src/components/vessel/VesselSchematic/SchematicConfigPanel.tsx
-652 server/config/permission-registry.ts
 652 client/src/components/ai-health/InsightsTab.tsx
 651 server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts
 647 client/src/pages/vessel-management/index.tsx
