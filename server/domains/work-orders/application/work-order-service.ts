@@ -42,7 +42,7 @@ export class WorkOrderApplicationService {
   async listWorkOrders(
     equipmentId?: string,
     orgId?: string,
-    filters?: Record<string, unknown>,
+    filters?: Record<string, unknown>
   ): Promise<SelectWorkOrder[]> {
     return workOrderRepository.findAll(equipmentId, orgId, filters);
   }
@@ -52,7 +52,7 @@ export class WorkOrderApplicationService {
     orgId: string | undefined,
     limit: number,
     offset: number,
-    filters?: Record<string, unknown>,
+    filters?: Record<string, unknown>
   ): Promise<{ items: SelectWorkOrder[]; total: number }> {
     return workOrderRepository.findPaginated(equipmentId, orgId, limit, offset, filters);
   }
@@ -89,7 +89,9 @@ export class WorkOrderApplicationService {
       );
       return created;
     });
-    if (postCommit) {(postCommit as () => void)();}
+    if (postCommit) {
+      (postCommit as () => void)();
+    }
     // LR-3.5 / TX-1: WS "create" broadcast is now owned by the
     // application service rather than `DbWorkOrderCore.createWorkOrder`,
     // because the db-layer broadcast would fire pre-commit when called
@@ -197,10 +199,7 @@ export class WorkOrderApplicationService {
    * open assignments (anything not completed/cancelled) so the crew
    * member can see what they still need to acknowledge or work on.
    */
-  async getAssignmentsForUser(
-    userId: string,
-    orgId: string
-  ): Promise<SelectWorkOrder[]> {
+  async getAssignmentsForUser(userId: string, orgId: string): Promise<SelectWorkOrder[]> {
     const crewMember = await this.resolveCrewForUser(userId, orgId);
     if (!crewMember) {
       return [];
@@ -208,9 +207,7 @@ export class WorkOrderApplicationService {
     const assignments = await workOrderRepository.findAll(undefined, orgId, {
       assignedCrewId: crewMember.id,
     });
-    return assignments.filter(
-      (wo) => wo.status !== "completed" && wo.status !== "cancelled"
-    );
+    return assignments.filter((wo) => wo.status !== "completed" && wo.status !== "cancelled");
   }
 
   /**
@@ -267,7 +264,7 @@ export class WorkOrderApplicationService {
       response: response === "accept" ? "accepted" : "declined",
       crewId: crewMember.id,
       crewName: crewMember.name,
-      reason: response === "accept" ? null : reason ?? null,
+      reason: response === "accept" ? null : (reason ?? null),
       equipmentId: updated.equipmentId,
       woNumber: updated.woNumber ?? null,
     };
@@ -305,7 +302,7 @@ export class WorkOrderApplicationService {
     workOrderId: string,
     completionData: InsertWorkOrderCompletion,
     orgId?: string,
-    userId?: string,
+    userId?: string
   ): Promise<WorkOrderCompletion> {
     // Transactional-outbox: the completion write (work_orders update +
     // work_order_completions insert + inventory_movements rows) and the
@@ -350,40 +347,40 @@ export class WorkOrderApplicationService {
   async cloneWorkOrder(
     workOrderId: string,
     orgId: string,
-    options: Record<string, unknown>,
+    options: Record<string, unknown>
   ): Promise<SelectWorkOrder> {
     return workOrderRepository.cloneWorkOrder(workOrderId, orgId, options);
   }
 
   async getWorkOrderHistory(
     workOrderId: string,
-    orgId: string,
+    orgId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.getWorkOrderHistory>>> {
     return workOrderRepository.getWorkOrderHistory(workOrderId, orgId);
   }
 
   async getInventoryMovementsByWorkOrder(
     workOrderId: string,
-    orgId: string,
+    orgId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.getInventoryMovementsByWorkOrder>>> {
     return workOrderRepository.getInventoryMovementsByWorkOrder(workOrderId, orgId);
   }
 
   async createMaintenanceCost(
-    data: Parameters<typeof workOrderRepository.createMaintenanceCost>[0],
+    data: Parameters<typeof workOrderRepository.createMaintenanceCost>[0]
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.createMaintenanceCost>>> {
     return workOrderRepository.createMaintenanceCost(data);
   }
 
   async getMaintenanceCostsByWorkOrder(
-    workOrderId: string,
+    workOrderId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.getMaintenanceCostsByWorkOrder>>> {
     return workOrderRepository.getMaintenanceCostsByWorkOrder(workOrderId);
   }
 
   async getWorkOrderParts(
     workOrderId: string,
-    orgId: string,
+    orgId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.getWorkOrderParts>>> {
     return workOrderRepository.getWorkOrderParts(workOrderId, orgId);
   }
@@ -391,7 +388,7 @@ export class WorkOrderApplicationService {
   async addPartToWorkOrder(
     workOrderId: string,
     partsToAdd: Parameters<typeof workOrderRepository.addPartToWorkOrder>[1],
-    orgId: string,
+    orgId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.addPartToWorkOrder>>> {
     return workOrderRepository.addPartToWorkOrder(workOrderId, partsToAdd, orgId);
   }
@@ -399,14 +396,14 @@ export class WorkOrderApplicationService {
   async addBulkPartsAndReserveInventory(
     workOrderId: string,
     parts: Parameters<typeof workOrderRepository.addBulkPartsAndReserveInventory>[1],
-    orgId: string,
+    orgId: string
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.addBulkPartsAndReserveInventory>>> {
     return workOrderRepository.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
   }
 
   async updateWorkOrderPart(
     partId: string,
-    data: Parameters<typeof workOrderRepository.updateWorkOrderPart>[1],
+    data: Parameters<typeof workOrderRepository.updateWorkOrderPart>[1]
   ): Promise<Awaited<ReturnType<typeof workOrderRepository.updateWorkOrderPart>>> {
     return workOrderRepository.updateWorkOrderPart(partId, data);
   }
@@ -427,11 +424,16 @@ export class WorkOrderApplicationService {
     return workOrderRepository.getWorkOrderTasks(workOrderId, orgId);
   }
 
-  async createWorkOrderTask(data: Parameters<typeof workOrderRepository.createWorkOrderTask>[0]): Promise<unknown> {
+  async createWorkOrderTask(
+    data: Parameters<typeof workOrderRepository.createWorkOrderTask>[0]
+  ): Promise<unknown> {
     return workOrderRepository.createWorkOrderTask(data);
   }
 
-  async updateWorkOrderTask(id: string, data: Parameters<typeof workOrderRepository.updateWorkOrderTask>[1]): Promise<unknown> {
+  async updateWorkOrderTask(
+    id: string,
+    data: Parameters<typeof workOrderRepository.updateWorkOrderTask>[1]
+  ): Promise<unknown> {
     return workOrderRepository.updateWorkOrderTask(id, data);
   }
 
@@ -440,13 +442,13 @@ export class WorkOrderApplicationService {
   }
 
   async getCompletions(
-    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletions>[0],
+    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletions>[0]
   ): Promise<WorkOrderCompletion[]> {
     return workOrderRepository.getWorkOrderCompletions(filters);
   }
 
   async getWorkOrderCompletionAnalytics(
-    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletionAnalytics>[0],
+    filters: Parameters<typeof workOrderRepository.getWorkOrderCompletionAnalytics>[0]
   ): Promise<unknown> {
     return workOrderRepository.getWorkOrderCompletionAnalytics(filters);
   }

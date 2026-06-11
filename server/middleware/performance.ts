@@ -22,9 +22,9 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Middleware:Performance");
 
 // Environment configuration
-const PERF_DEBUG = process.env['PERF_DEBUG'] === "true";
+const PERF_DEBUG = process.env["PERF_DEBUG"] === "true";
 const SLOW_REQUEST_THRESHOLD_MS = Number.parseInt(
-  process.env['SLOW_REQUEST_THRESHOLD_MS'] || "200",
+  process.env["SLOW_REQUEST_THRESHOLD_MS"] || "200",
   10
 );
 
@@ -134,9 +134,14 @@ export function performanceMiddleware(req: Request, res: Response, next: NextFun
       });
 
       // Log slow request with context
-      logger.warn(`[PERF:SLOW] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`, { details: PERF_DEBUG
-          ? { query: req.query, body: typeof req.body === "object" ? "[object]" : undefined }
-          : "" });
+      logger.warn(
+        `[PERF:SLOW] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`,
+        {
+          details: PERF_DEBUG
+            ? { query: req.query, body: typeof req.body === "object" ? "[object]" : undefined }
+            : "",
+        }
+      );
     } else if (PERF_DEBUG && durationMs > 50) {
       // In debug mode, log all requests > 50ms
       logger.info(`[PERF] ${routeKey} - ${durationMs.toFixed(2)}ms (status: ${res.statusCode})`);
@@ -164,13 +169,16 @@ export function getRoutePerformanceStats(): Record<
     p95Ms: number;
   }
 > {
-  const result: Record<string, {
-    count: number;
-    avgMs: number;
-    minMs: number;
-    maxMs: number;
-    p95Ms: number;
-  }> = {};
+  const result: Record<
+    string,
+    {
+      count: number;
+      avgMs: number;
+      minMs: number;
+      maxMs: number;
+      p95Ms: number;
+    }
+  > = {};
 
   routeStats.forEach((stats, route) => {
     const avgMs = stats.count > 0 ? stats.totalMs / stats.count : 0;

@@ -91,11 +91,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("vessel_crew", vesselId);
 
-      const result = await dbStcwStorage.getVesselCrewRest(
-        vesselId,
-        Number.parseInt(year),
-        month
-      );
+      const result = await dbStcwStorage.getVesselCrewRest(vesselId, Number.parseInt(year), month);
 
       recordRangeQueryDuration("vessel_crew", Date.now() - startTime);
 

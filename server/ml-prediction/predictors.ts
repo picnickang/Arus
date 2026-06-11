@@ -44,7 +44,8 @@ export async function predictFailureWithLSTM(
       return null;
     }
     const endDate = new Date();
-    const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+    const lookbackDays =
+      (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
     const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
     const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       equipmentId,
@@ -111,7 +112,8 @@ export async function predictHealthWithRandomForest(
       }
       const model = await getModel(modelPath, "random_forest");
       const endDate = new Date();
-      const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+      const lookbackDays =
+        (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
       const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
       const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
         equipmentId,
@@ -130,7 +132,7 @@ export async function predictHealthWithRandomForest(
       const pressureStats = calculateStats(
         telemetry.filter((t) => t.sensorType.toLowerCase().includes("pressure")).map((t) => t.value)
       );
-      const features: ClassificationFeatures = ({
+      const features: ClassificationFeatures = {
         equipmentId,
         equipmentType: equipment.type,
         features: {
@@ -149,7 +151,7 @@ export async function predictHealthWithRandomForest(
         },
         label: "healthy",
         failureRisk: 0,
-      } as object as ClassificationFeatures);
+      } as object as ClassificationFeatures;
       const prediction = predictWithRandomForest(model, features);
       const failureProbability = prediction.failureRisk;
       let remainingDays = 90;
@@ -211,7 +213,8 @@ export async function predictHealthWithXGBoost(
     const { loadXGBoostModel } = await import("../ml-xgboost-model.js");
     const model = await loadXGBoostModel(modelPath);
     const endDate = new Date();
-    const lookbackDays = (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
+    const lookbackDays =
+      (equipment as { lookbackDays?: number }).lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
     const startDate = new Date(endDate.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
     const rawTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       equipmentId,

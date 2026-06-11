@@ -31,50 +31,44 @@ export function enhancedErrorHandler(err: Error, req: Request, res: Response, ne
         code: err.code,
         requestId,
         timestamp: new Date().toISOString(),
-        ...(process.env['NODE_ENV'] === "development" && { context: err.context }),
+        ...(process.env["NODE_ENV"] === "development" && { context: err.context }),
       },
     });
   }
 
   if (err instanceof z.ZodError) {
-    return res
-      .status(400)
-      .json({
-        error: {
-          message: "Validation failed",
-          code: "VALIDATION_ERROR",
-          requestId,
-          timestamp: new Date().toISOString(),
-          details: err.errors,
-        },
-      });
+    return res.status(400).json({
+      error: {
+        message: "Validation failed",
+        code: "VALIDATION_ERROR",
+        requestId,
+        timestamp: new Date().toISOString(),
+        details: err.errors,
+      },
+    });
   }
 
   if (err.message.includes("database") || err.message.includes("connection")) {
-    return res
-      .status(503)
-      .json({
-        error: {
-          message: "Database service temporarily unavailable",
-          code: "DATABASE_UNAVAILABLE",
-          requestId,
-          timestamp: new Date().toISOString(),
-        },
-      });
-  }
-
-  const isDevelopment = process.env['NODE_ENV'] === "development";
-  return res
-    .status(500)
-    .json({
+    return res.status(503).json({
       error: {
-        message: isDevelopment ? err.message : "Internal server error",
-        code: "INTERNAL_ERROR",
+        message: "Database service temporarily unavailable",
+        code: "DATABASE_UNAVAILABLE",
         requestId,
         timestamp: new Date().toISOString(),
-        ...(isDevelopment && { stack: err.stack }),
       },
     });
+  }
+
+  const isDevelopment = process.env["NODE_ENV"] === "development";
+  return res.status(500).json({
+    error: {
+      message: isDevelopment ? err.message : "Internal server error",
+      code: "INTERNAL_ERROR",
+      requestId,
+      timestamp: new Date().toISOString(),
+      ...(isDevelopment && { stack: err.stack }),
+    },
+  });
 }
 
 export function getErrorHandlingHealth() {

@@ -1,9 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-
-
-
 import {
   type ScheduleAssignment,
   type ConstraintResult,
@@ -12,13 +9,7 @@ import {
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
 
-
-import {
-  DetailsTab,
-  ConstraintsTab,
-  SuggestionsTab,
-} from "../schedule-planner-tabs";
-
+import { DetailsTab, ConstraintsTab, SuggestionsTab } from "../schedule-planner-tabs";
 
 import { ComplianceTab } from "./ComplianceTab";
 
@@ -140,4 +131,3 @@ export function AssignmentDrawerContent({
     </>
   );
 }
-

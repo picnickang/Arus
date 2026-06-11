@@ -50,9 +50,11 @@ export class VesselSimulator {
    * Simulate telemetry series for a vessel
    */
   async simulate(config: SimulationConfig): Promise<SimulationResult> {
-    logger.info(`[VesselSimulator] Starting simulation for ${config.vesselType} (${config.durationMinutes} min)`);
+    logger.info(
+      `[VesselSimulator] Starting simulation for ${config.vesselType} (${config.durationMinutes} min)`
+    );
 
-    const basePreset = VESSEL_TYPE_PRESETS[config.vesselType] || VESSEL_TYPE_PRESETS['tug']!;
+    const basePreset = VESSEL_TYPE_PRESETS[config.vesselType] || VESSEL_TYPE_PRESETS["tug"]!;
     const preset = {
       ...basePreset,
       ...config.customPreset,
@@ -225,7 +227,9 @@ export class VesselSimulator {
   async simulateAndIngest(config: SimulationConfig): Promise<SimulationResult> {
     const result = await this.simulate(config);
 
-    logger.info(`[VesselSimulator] Ingesting ${result.dataPoints.length} telemetry points to database...`);
+    logger.info(
+      `[VesselSimulator] Ingesting ${result.dataPoints.length} telemetry points to database...`
+    );
 
     let totalRecords = 0;
     const batchSize = 100;
@@ -244,17 +248,24 @@ export class VesselSimulator {
               sensorType,
               value: typeof value === "number" ? value : 0,
               unit,
-              ...({ deviceId: config.deviceId, metadata: { simulated: true, vesselType: config.vesselType } } as object as Record<string, unknown>),
+              ...({
+                deviceId: config.deviceId,
+                metadata: { simulated: true, vesselType: config.vesselType },
+              } as object as Record<string, unknown>),
             });
             totalRecords++;
           }
         }
       }
 
-      logger.info(`[VesselSimulator] Progress: ${Math.min(i + batchSize, result.dataPoints.length)}/${result.dataPoints.length} points`);
+      logger.info(
+        `[VesselSimulator] Progress: ${Math.min(i + batchSize, result.dataPoints.length)}/${result.dataPoints.length} points`
+      );
     }
 
-    logger.info(`[VesselSimulator] Successfully ingested ${totalRecords} telemetry records from ${result.dataPoints.length} data points`);
+    logger.info(
+      `[VesselSimulator] Successfully ingested ${totalRecords} telemetry records from ${result.dataPoints.length} data points`
+    );
 
     return result;
   }

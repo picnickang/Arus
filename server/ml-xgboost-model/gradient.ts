@@ -18,7 +18,9 @@ export function calculateGradients(
 
   for (let i = 0; i < numSamples; i++) {
     const logits = predictions[i];
-    if (!logits) {continue;}
+    if (!logits) {
+      continue;
+    }
     const maxLogit = Math.max(...logits);
     const expLogits = logits.map((l) => Math.exp(l - maxLogit));
     const sumExp = expLogits.reduce((a, b) => a + b, 0);
@@ -26,7 +28,9 @@ export function calculateGradients(
 
     const gradRow = gradients[i];
     const hessRow = hessians[i];
-    if (!gradRow || !hessRow) {continue;}
+    if (!gradRow || !hessRow) {
+      continue;
+    }
     for (let k = 0; k < numClasses; k++) {
       const yTrue = labels[i] === k ? 1 : 0;
       const yPred = probs[k] ?? 0;

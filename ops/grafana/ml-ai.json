@@ -5,7 +5,7 @@
   "tags": ["arus", "ml", "ai"],
   "time": { "from": "now-24h", "to": "now" },
   "refresh": "1m",
-  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "templating": { "list": [{ "name": "datasource", "type": "datasource", "query": "prometheus" }] },
   "panels": [
     {
       "id": 1,
@@ -13,7 +13,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum by (equipment_type) (rate(arus_ml_prediction_total[5m]))", "legendFormat": "{{equipment_type}}" }
+        {
+          "expr": "sum by (equipment_type) (rate(arus_ml_prediction_total[5m]))",
+          "legendFormat": "{{equipment_type}}"
+        }
       ]
     },
     {
@@ -22,7 +25,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum by (le) (rate(arus_ml_prediction_duration_seconds_bucket[5m])))", "legendFormat": "p95" }
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(arus_ml_prediction_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95"
+        }
       ]
     },
     {
@@ -31,7 +37,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum by (le, equipment_type) (rate(arus_ml_shadow_divergence_bucket[15m])))", "legendFormat": "{{equipment_type}}" }
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, equipment_type) (rate(arus_ml_shadow_divergence_bucket[15m])))",
+          "legendFormat": "{{equipment_type}}"
+        }
       ]
     },
     {
@@ -40,7 +49,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum(rate(arus_ml_shadow_comparisons_total[15m]))", "legendFormat": "comparisons/sec" }
+        {
+          "expr": "sum(rate(arus_ml_shadow_comparisons_total[15m]))",
+          "legendFormat": "comparisons/sec"
+        }
       ]
     },
     {
@@ -49,7 +61,9 @@
       "type": "stat",
       "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
       "targets": [
-        { "expr": "sum(rate(arus_ml_model_cache_hits_total[15m])) / clamp_min(sum(rate(arus_ml_model_cache_hits_total[15m])) + sum(rate(arus_ml_model_cache_misses_total[15m])), 1)" }
+        {
+          "expr": "sum(rate(arus_ml_model_cache_hits_total[15m])) / clamp_min(sum(rate(arus_ml_model_cache_hits_total[15m])) + sum(rate(arus_ml_model_cache_misses_total[15m])), 1)"
+        }
       ]
     },
     {
@@ -57,7 +71,7 @@
       "title": "Circuit breaker state",
       "type": "stat",
       "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 },
-      "targets": [ { "expr": "max(arus_ml_circuit_breaker_state)" } ]
+      "targets": [{ "expr": "max(arus_ml_circuit_breaker_state)" }]
     }
   ]
 }

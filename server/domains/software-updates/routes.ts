@@ -58,8 +58,7 @@ export function registerSoftwareUpdatesRoutes(
 
         return res.json({ available: true, manifest, patchId: patch.id });
       }
-        return res.json({ available: false });
-
+      return res.json({ available: false });
     })
   );
 
@@ -105,7 +104,7 @@ export function registerSoftwareUpdatesRoutes(
     withErrorHandling("download patch", async (req: Request, res: Response) => {
       const { getUpdateChecker } = await import("../../services/update-checker");
       const updateChecker = await getUpdateChecker();
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       const orgId = DEFAULT_ORG_ID;
 
       const patchPath = await updateChecker.downloadPatch(id, orgId);
@@ -124,7 +123,7 @@ export function registerSoftwareUpdatesRoutes(
     criticalOperationRateLimit,
     auditAdminAction("APPLY_PATCH"),
     async (req: Request, res: Response) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       try {
         const { getPatchApplicator } = await import("../../services/patch-applicator");
         const patchApplicator = getPatchApplicator();
@@ -204,7 +203,7 @@ export function registerSoftwareUpdatesRoutes(
     criticalOperationRateLimit,
     auditAdminAction("ROLLBACK_PATCH"),
     async (req: Request, res: Response) => {
-      const { backupId = '' } = req.params;
+      const { backupId = "" } = req.params;
       try {
         const { getPatchApplicator } = await import("../../services/patch-applicator");
         const patchApplicator = getPatchApplicator();

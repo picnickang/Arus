@@ -23,10 +23,11 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
 
       const enrichedModels = models.map((model) => {
         const hyperparams = (model.hyperparameters ?? {}) as Record<string, unknown>;
-        if (!hyperparams['dataQualityTier'] && hyperparams['lookbackDays']) {
-          const { tier, confidenceMultiplier } = adaptiveTrainingWindow.calculateTierFromLookbackDays(
-            Number(hyperparams['lookbackDays']),
-          );
+        if (!hyperparams["dataQualityTier"] && hyperparams["lookbackDays"]) {
+          const { tier, confidenceMultiplier } =
+            adaptiveTrainingWindow.calculateTierFromLookbackDays(
+              Number(hyperparams["lookbackDays"])
+            );
           return {
             ...model,
             hyperparameters: { ...hyperparams, dataQualityTier: tier, confidenceMultiplier },

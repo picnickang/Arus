@@ -43,7 +43,9 @@ export class DatabaseNotificationsStorage {
     settings: InsertNotificationSettings
   ): Promise<NotificationSettings> {
     const [n] = await db.insert(notificationSettings).values(settings).returning();
-    if (!n) {throw new Error("Failed to create notification settings");}
+    if (!n) {
+      throw new Error("Failed to create notification settings");
+    }
     return n;
   }
   async updateNotificationSettings(
@@ -106,7 +108,9 @@ export class DatabaseNotificationsStorage {
   }
   async createEmailQueueItem(item: InsertEmailQueue): Promise<EmailQueue> {
     const [n] = await db.insert(emailQueue).values(item).returning();
-    if (!n) {throw new Error("Failed to create email queue item");}
+    if (!n) {
+      throw new Error("Failed to create email queue item");
+    }
     return n;
   }
   async updateEmailQueueItem(
@@ -186,11 +190,11 @@ export class DatabaseNotificationsStorage {
     }
     return q;
   }
-  async createNotificationQueueItem(
-    item: InsertNotificationQueue
-  ): Promise<NotificationQueue> {
+  async createNotificationQueueItem(item: InsertNotificationQueue): Promise<NotificationQueue> {
     const [n] = await db.insert(notificationQueue).values(item).returning();
-    if (!n) {throw new Error("Failed to create notification queue item");}
+    if (!n) {
+      throw new Error("Failed to create notification queue item");
+    }
     return n;
   }
   async updateNotificationQueueItem(
@@ -201,11 +205,7 @@ export class DatabaseNotificationsStorage {
     const conditions = orgId
       ? and(eq(notificationQueue.id, id), eq(notificationQueue.orgId, orgId))
       : eq(notificationQueue.id, id);
-    const [u] = await db
-      .update(notificationQueue)
-      .set(updates)
-      .where(conditions)
-      .returning();
+    const [u] = await db.update(notificationQueue).set(updates).where(conditions).returning();
     if (!u) {
       throw new Error(`Notification queue item ${id} not found`);
     }

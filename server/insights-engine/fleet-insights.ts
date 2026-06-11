@@ -62,13 +62,17 @@ export async function generateFleetTechnicianInsights(
 
     recordFleetTechnicianInsight(orgId, result.length, duration, true);
 
-    logger.info(String(JSON.stringify({
-        msg: "fleet_insights_done",
-        orgId,
-        vesselFilter: vesselId ?? null,
-        groups: result.length,
-        t_ms: Date.now() - startTime,
-      })));
+    logger.info(
+      String(
+        JSON.stringify({
+          msg: "fleet_insights_done",
+          orgId,
+          vesselFilter: vesselId ?? null,
+          groups: result.length,
+          t_ms: Date.now() - startTime,
+        })
+      )
+    );
 
     return result;
   } catch (error) {

@@ -115,11 +115,15 @@ export class DualWriteAdapter {
 
       return result;
     } catch (error) {
-      logger.error(`[DualWrite:${this.config.domain}] Repository error, falling back to legacy`, undefined, {
-        operation: operation.operation,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+      logger.error(
+        `[DualWrite:${this.config.domain}] Repository error, falling back to legacy`,
+        undefined,
+        {
+          operation: operation.operation,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }
+      );
 
       // Fallback to legacy on repository error
       const legacyResult = await operation.legacyFn();

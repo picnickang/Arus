@@ -10,10 +10,7 @@ import type {
 } from "./types";
 
 export interface ISafetyBulletinRepository {
-  findAll(
-    orgId: string,
-    filters?: ListSafetyBulletinsFilters,
-  ): Promise<SafetyBulletinEntity[]>;
+  findAll(orgId: string, filters?: ListSafetyBulletinsFilters): Promise<SafetyBulletinEntity[]>;
 
   create(command: CreateSafetyBulletinCommand): Promise<SafetyBulletinEntity>;
 }

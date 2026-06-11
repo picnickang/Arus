@@ -18,26 +18,19 @@ import { randomUUID } from "node:crypto";
 
 const FIXTURE_DIR = join(process.cwd(), "tests", "fixtures", "imports");
 const VALID = readFileSync(join(FIXTURE_DIR, "shipmate-equipment-valid.csv"), "utf-8");
-const MALFORMED = readFileSync(
-  join(FIXTURE_DIR, "shipmate-equipment-malformed.csv"),
-  "utf-8",
-);
+const MALFORMED = readFileSync(join(FIXTURE_DIR, "shipmate-equipment-malformed.csv"), "utf-8");
 
 describe("SHIPMATE import — golden fixtures", () => {
   it("valid fixture imports 5 rows with zero errors (dry-run)", async () => {
     const { shipmateImport } = await import(
       "../../server/import-adapters/shipmate/import-service.js"
     );
-    const result = await shipmateImport.importFile(
-      `shipmate-test-${randomUUID()}`,
-      VALID,
-      {
-        module: "pms_equipment",
-        filename: "shipmate-equipment-valid.csv",
-        vesselId: randomUUID(), // bypass vessel-name lookup
-        dryRun: true,
-      },
-    );
+    const result = await shipmateImport.importFile(`shipmate-test-${randomUUID()}`, VALID, {
+      module: "pms_equipment",
+      filename: "shipmate-equipment-valid.csv",
+      vesselId: randomUUID(), // bypass vessel-name lookup
+      dryRun: true,
+    });
 
     expect(result.totalRows).toBe(5);
     expect(result.imported).toBe(5);
@@ -49,16 +42,12 @@ describe("SHIPMATE import — golden fixtures", () => {
     const { shipmateImport } = await import(
       "../../server/import-adapters/shipmate/import-service.js"
     );
-    const result = await shipmateImport.importFile(
-      `shipmate-test-${randomUUID()}`,
-      MALFORMED,
-      {
-        module: "pms_equipment",
-        filename: "shipmate-equipment-malformed.csv",
-        vesselId: randomUUID(),
-        dryRun: true,
-      },
-    );
+    const result = await shipmateImport.importFile(`shipmate-test-${randomUUID()}`, MALFORMED, {
+      module: "pms_equipment",
+      filename: "shipmate-equipment-malformed.csv",
+      vesselId: randomUUID(),
+      dryRun: true,
+    });
 
     expect(result.totalRows).toBe(4);
     expect(result.errors.length).toBeGreaterThanOrEqual(3);
@@ -69,42 +58,38 @@ describe("SHIPMATE import — golden fixtures", () => {
     }
   }, 30_000);
 
-  it(
-    "re-importing the same fixture is idempotent (upsert, not duplicate)",
-    async () => {
-      const orgId = `shipmate-idem-${randomUUID()}`;
-      const vesselId = randomUUID();
-      const { shipmateImport } = await import(
-        "../../server/import-adapters/shipmate/import-service.js"
-      );
-      const { db } = await import("../../server/db.js");
-      const { equipment, importManifest } = await import("../../shared/schema.js");
-      const { eq } = await import("drizzle-orm");
+  it("re-importing the same fixture is idempotent (upsert, not duplicate)", async () => {
+    const orgId = `shipmate-idem-${randomUUID()}`;
+    const vesselId = randomUUID();
+    const { shipmateImport } = await import(
+      "../../server/import-adapters/shipmate/import-service.js"
+    );
+    const { db } = await import("../../server/db.js");
+    const { equipment, importManifest } = await import("../../shared/schema.js");
+    const { eq } = await import("drizzle-orm");
 
-      try {
-        const first = await shipmateImport.importFile(orgId, VALID, {
-          module: "pms_equipment",
-          filename: "shipmate-equipment-valid.csv",
-          vesselId,
-          dryRun: false,
-        });
-        expect(first.errors).toHaveLength(0);
-        expect(first.imported + first.updated).toBe(5);
+    try {
+      const first = await shipmateImport.importFile(orgId, VALID, {
+        module: "pms_equipment",
+        filename: "shipmate-equipment-valid.csv",
+        vesselId,
+        dryRun: false,
+      });
+      expect(first.errors).toHaveLength(0);
+      expect(first.imported + first.updated).toBe(5);
 
-        const second = await shipmateImport.importFile(orgId, VALID, {
-          module: "pms_equipment",
-          filename: "shipmate-equipment-valid.csv",
-          vesselId,
-          dryRun: false,
-        });
-        expect(second.errors).toHaveLength(0);
-        expect(second.imported).toBe(0);
-        expect(second.updated).toBe(5);
-      } finally {
-        await db.delete(equipment).where(eq(equipment.orgId, orgId));
-        await db.delete(importManifest).where(eq(importManifest.orgId, orgId));
-      }
-    },
-    60_000,
-  );
+      const second = await shipmateImport.importFile(orgId, VALID, {
+        module: "pms_equipment",
+        filename: "shipmate-equipment-valid.csv",
+        vesselId,
+        dryRun: false,
+      });
+      expect(second.errors).toHaveLength(0);
+      expect(second.imported).toBe(0);
+      expect(second.updated).toBe(5);
+    } finally {
+      await db.delete(equipment).where(eq(equipment.orgId, orgId));
+      await db.delete(importManifest).where(eq(importManifest.orgId, orgId));
+    }
+  }, 60_000);
 });

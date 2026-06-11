@@ -165,8 +165,12 @@ export class FeatureFlagManager {
    * previous state and a single warn is logged — the resolver simply
    * falls through to env defaults.
    */
-  public async refresh(db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> }): Promise<void> {
-    if (this.refreshPromise) {return this.refreshPromise;}
+  public async refresh(db: {
+    execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown>;
+  }): Promise<void> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
     this.refreshPromise = (async () => {
       try {
         const { sql } = await import("drizzle-orm");
@@ -208,7 +212,10 @@ export class FeatureFlagManager {
    * stop function. If called more than once, the previous timer is
    * cleared first so callers cannot accidentally stack timers.
    */
-  public startAutoRefresh(db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> }, intervalMs = 60_000): () => void {
+  public startAutoRefresh(
+    db: { execute: (q: import("drizzle-orm").SQLWrapper) => Promise<unknown> },
+    intervalMs = 60_000
+  ): () => void {
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
       this.autoRefreshTimer = null;
@@ -388,13 +395,15 @@ export class TenantIsolationMetrics {
         status: success ? "success" : "error",
       });
 
-      logger.debug("[TENANT_METRICS]", { details: {
-        domain,
-        operation,
-        orgId,
-        duration,
-        success,
-      } });
+      logger.debug("[TENANT_METRICS]", {
+        details: {
+          domain,
+          operation,
+          orgId,
+          duration,
+          success,
+        },
+      });
     }
   }
 

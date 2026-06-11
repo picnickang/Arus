@@ -66,14 +66,20 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         if (q.source && (TASK_SOURCES as readonly string[]).includes(q.source)) {
           filter.source = q.source as AgentTaskFilter["source"];
         }
-        if (q.equipmentId) {filter.equipmentId = q.equipmentId;}
-        if (q.vesselId) {filter.vesselId = q.vesselId;}
+        if (q.equipmentId) {
+          filter.equipmentId = q.equipmentId;
+        }
+        if (q.vesselId) {
+          filter.vesselId = q.vesselId;
+        }
         filter.limit = Math.min(q.limit ?? 50, 200);
         filter.offset = Math.max(q.offset ?? 0, 0);
         const tasks = await taskService.list(orgId, filter);
         return res.json(tasks);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -94,7 +100,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         const task = await taskService.create({ ...parsed.data, orgId });
         return res.status(201).json(task);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -109,7 +117,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         const counts = await taskService.countByStatus(orgId);
         return res.json(counts);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -128,7 +138,9 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
         }
         return res.json(task);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -152,12 +164,18 @@ export function registerTasksRoutes(app: Express, deps: TasksRouteDeps) {
           return res.json(task);
         }
         const updateData: Record<string, unknown> = {};
-        if (title) {updateData['title'] = title;}
-        if (description !== undefined) {updateData['description'] = description;}
-        if (priority && (TASK_PRIORITIES as readonly string[]).includes(priority)) {
-          updateData['priority'] = priority;
+        if (title) {
+          updateData["title"] = title;
         }
-        if (outcome !== undefined) {updateData['outcome'] = outcome;}
+        if (description !== undefined) {
+          updateData["description"] = description;
+        }
+        if (priority && (TASK_PRIORITIES as readonly string[]).includes(priority)) {
+          updateData["priority"] = priority;
+        }
+        if (outcome !== undefined) {
+          updateData["outcome"] = outcome;
+        }
         const task = await taskService.update(id, orgId, updateData);
         return res.json(task);
       } catch (error: unknown) {

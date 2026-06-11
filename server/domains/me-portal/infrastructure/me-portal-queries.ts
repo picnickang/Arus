@@ -156,8 +156,8 @@ export async function updatePilotFeedbackReview(
   id: string,
   patch: {
     status: string;
-    resolutionNote?: string | null;
-    linkedWorkOrderId?: string | null;
+    resolutionNote?: string | null | undefined;
+    linkedWorkOrderId?: string | null | undefined;
   }
 ): Promise<PilotFeedback | undefined> {
   const [row] = await db

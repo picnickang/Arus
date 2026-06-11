@@ -15,10 +15,7 @@ import { crewTasks, type CrewTask, type InsertCrewTask } from "@shared/schema-ru
 import { and, desc, eq, ne, type SQL } from "drizzle-orm";
 
 export class CrewTaskRepositoryAdapter implements ICrewTaskRepository {
-  async findAll(
-    orgId: string,
-    filters?: ListCrewTasksFilters,
-  ): Promise<CrewTaskEntity[]> {
+  async findAll(orgId: string, filters?: ListCrewTasksFilters): Promise<CrewTaskEntity[]> {
     const conditions: SQL[] = [eq(crewTasks.orgId, orgId)];
 
     if (filters?.vesselId) {
@@ -80,32 +77,48 @@ export class CrewTaskRepositoryAdapter implements ICrewTaskRepository {
   async update(
     orgId: string,
     id: string,
-    patch: UpdateCrewTaskCommand,
+    patch: UpdateCrewTaskCommand
   ): Promise<CrewTaskEntity | null> {
     const updateValues: Partial<typeof crewTasks.$inferInsert> & {
       updatedAt: Date;
     } = { updatedAt: new Date() };
 
-    if (patch.vesselId !== undefined) {updateValues.vesselId = patch.vesselId;}
-    if (patch.assignedCrewId !== undefined)
-      {updateValues.assignedCrewId = patch.assignedCrewId;}
-    if (patch.title !== undefined) {updateValues.title = patch.title;}
-    if (patch.description !== undefined)
-      {updateValues.description = patch.description;}
-    if (patch.status !== undefined) {updateValues.status = patch.status;}
-    if (patch.priority !== undefined) {updateValues.priority = patch.priority;}
-    if (patch.dueDate !== undefined)
-      {updateValues.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;}
-    if (patch.blockedReason !== undefined)
-      {updateValues.blockedReason = patch.blockedReason;}
-    if (patch.assignedTo !== undefined)
-      {updateValues.assignedTo = patch.assignedTo;}
-    if (patch.linkedSourceType !== undefined)
-      {updateValues.linkedSourceType = patch.linkedSourceType;}
-    if (patch.linkedSourceId !== undefined)
-      {updateValues.linkedSourceId = patch.linkedSourceId;}
-    if (patch.linkedSourceLabel !== undefined)
-      {updateValues.linkedSourceLabel = patch.linkedSourceLabel;}
+    if (patch.vesselId !== undefined) {
+      updateValues.vesselId = patch.vesselId;
+    }
+    if (patch.assignedCrewId !== undefined) {
+      updateValues.assignedCrewId = patch.assignedCrewId;
+    }
+    if (patch.title !== undefined) {
+      updateValues.title = patch.title;
+    }
+    if (patch.description !== undefined) {
+      updateValues.description = patch.description;
+    }
+    if (patch.status !== undefined) {
+      updateValues.status = patch.status;
+    }
+    if (patch.priority !== undefined) {
+      updateValues.priority = patch.priority;
+    }
+    if (patch.dueDate !== undefined) {
+      updateValues.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
+    }
+    if (patch.blockedReason !== undefined) {
+      updateValues.blockedReason = patch.blockedReason;
+    }
+    if (patch.assignedTo !== undefined) {
+      updateValues.assignedTo = patch.assignedTo;
+    }
+    if (patch.linkedSourceType !== undefined) {
+      updateValues.linkedSourceType = patch.linkedSourceType;
+    }
+    if (patch.linkedSourceId !== undefined) {
+      updateValues.linkedSourceId = patch.linkedSourceId;
+    }
+    if (patch.linkedSourceLabel !== undefined) {
+      updateValues.linkedSourceLabel = patch.linkedSourceLabel;
+    }
 
     const [updated] = await db
       .update(crewTasks)

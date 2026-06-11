@@ -114,7 +114,10 @@ export async function evaluateHoRViolationAlerts(
   const results: CrewAlertResult[] = [];
   const now = ctx.now || new Date();
 
-  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, (ctx.vesselId ?? undefined));
+  const settings = await alertSettingsService.getCrewAlertSettings(
+    ctx.orgId,
+    ctx.vesselId ?? undefined
+  );
   if (!settings?.horViolationAlertsEnabled) {
     return results;
   }

@@ -1,100 +1,365 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css"><link rel="stylesheet" href="mobile.css">
-<style>
-  .flabel { font-size:11.5px; font-weight:600; color:#94a3b8; margin:12px 0 6px; display:block; }
-  .dinput { width:100%; background:rgba(255,255,255,.03); border:1px solid rgba(100,116,139,.35); border-radius:9px; padding:10px 12px; font-size:13px; color:#e2e8f0; }
-  .equip-chip { display:flex; align-items:center; gap:10px; background:rgba(56,189,248,.06); border:1px solid rgba(56,189,248,.3); border-radius:9px; padding:10px 12px; }
-  .seg { display:flex; border:1px solid rgba(100,116,139,.35); border-radius:9px; overflow:hidden; }
-  .seg span { flex:1; text-align:center; padding:9px 0; font-size:12px; font-weight:600; color:#94a3b8; border-right:1px solid rgba(100,116,139,.25); }
-  .seg span:last-child { border-right:none; }
-  .seg .on { background:rgba(234,179,8,.15); color:#facc15; }
-  .photo { display:flex; align-items:center; justify-content:center; gap:9px; border:1.5px dashed rgba(100,116,139,.4); border-radius:9px; padding:14px; color:#64748b; font-size:12px; font-weight:600; }
-  .photo svg { width:16px; height:16px; stroke-width:1.8; }
-  .ctx-banner { display:flex; align-items:center; gap:8px; background:hsl(197 71% 52% / .09); border:1px solid hsl(197 71% 52% / .3); border-radius:9px; padding:9px 11px; font-size:12px; font-weight:600; color:hsl(197 75% 30%); margin-bottom:12px; }
-  .prefill { border-color: hsl(142 71% 38% / .55) !important; background: hsl(142 71% 38% / .05) !important; }
-  .check { color: hsl(142 71% 32%); font-weight:700; }
-  .more { display:flex; align-items:center; justify-content:space-between; border:1px dashed var(--border); border-radius:9px; padding:10px 12px; font-size:12px; color:var(--muted-foreground); font-weight:600; margin-top:4px; }
-  .stickyfoot { position:absolute; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--border); padding:11px 16px 24px; z-index:50; }
-  .ring { position:relative; flex-shrink:0; }
-  .ring .v { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-</style></head>
-<body>
-<div class="mcanvas">
-  <div class="compare-title">Mobile — creating work: quick sheet first, full form prefilled</div>
-  <div class="compare-sub">Left: the deckhand path — QuickWorkOrderSheet as a bottom sheet with camera. Right: the planner path — the full form opens prefilled from the same context, required fields first.</div>
-  <div class="phones">
-
-    <!-- Phone A: quick sheet -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label after">Quick work order — bottom sheet</span></div>
-      <div class="phone dark intel">
-        <div class="statusbar" style="color:#e2e8f0">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg><span class="mtitle" style="font-size:15px">Main Engine #2</span></div>
-        <div class="mcontent">
-          <div class="icard" style="padding:14px; border-color:rgba(234,179,8,.25); background:rgba(234,179,8,.03)">
-            <div style="display:flex; gap:13px; align-items:center">
-              <div class="ring"><svg width="62" height="62" style="transform:rotate(-90deg)"><circle cx="31" cy="31" r="26" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"/><circle cx="31" cy="31" r="26" fill="none" stroke="#eab308" stroke-width="5" stroke-dasharray="163" stroke-dashoffset="62" stroke-linecap="round"/></svg><div class="v"><span style="font-size:15px;font-weight:800;color:#facc15">62</span></div></div>
-              <div>
-                <div style="font-size:14px; font-weight:700; color:#f1f5f9">Warning <span class="ibadge ibadge-warn" style="margin-left:4px">declining</span></div>
-                <div style="font-size:11px; color:#94a3b8; margin-top:4px">EGT cyl. 4 +18 °C vs baseline</div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <link rel="stylesheet" href="mobile.css" />
+    <style>
+      .flabel {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #94a3b8;
+        margin: 12px 0 6px;
+        display: block;
+      }
+      .dinput {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(100, 116, 139, 0.35);
+        border-radius: 9px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: #e2e8f0;
+      }
+      .equip-chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(56, 189, 248, 0.06);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 9px;
+        padding: 10px 12px;
+      }
+      .seg {
+        display: flex;
+        border: 1px solid rgba(100, 116, 139, 0.35);
+        border-radius: 9px;
+        overflow: hidden;
+      }
+      .seg span {
+        flex: 1;
+        text-align: center;
+        padding: 9px 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #94a3b8;
+        border-right: 1px solid rgba(100, 116, 139, 0.25);
+      }
+      .seg span:last-child {
+        border-right: none;
+      }
+      .seg .on {
+        background: rgba(234, 179, 8, 0.15);
+        color: #facc15;
+      }
+      .photo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 1.5px dashed rgba(100, 116, 139, 0.4);
+        border-radius: 9px;
+        padding: 14px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .photo svg {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.8;
+      }
+      .ctx-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: hsl(197 71% 52% / 0.09);
+        border: 1px solid hsl(197 71% 52% / 0.3);
+        border-radius: 9px;
+        padding: 9px 11px;
+        font-size: 12px;
+        font-weight: 600;
+        color: hsl(197 75% 30%);
+        margin-bottom: 12px;
+      }
+      .prefill {
+        border-color: hsl(142 71% 38% / 0.55) !important;
+        background: hsl(142 71% 38% / 0.05) !important;
+      }
+      .check {
+        color: hsl(142 71% 32%);
+        font-weight: 700;
+      }
+      .more {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px dashed var(--border);
+        border-radius: 9px;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      .stickyfoot {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-top: 1px solid var(--border);
+        padding: 11px 16px 24px;
+        z-index: 50;
+      }
+      .ring {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .ring .v {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mcanvas">
+      <div class="compare-title">
+        Mobile — creating work: quick sheet first, full form prefilled
+      </div>
+      <div class="compare-sub">
+        Left: the deckhand path — QuickWorkOrderSheet as a bottom sheet with camera. Right: the
+        planner path — the full form opens prefilled from the same context, required fields first.
+      </div>
+      <div class="phones">
+        <!-- Phone A: quick sheet -->
+        <div class="phone-wrap">
+          <div class="phone-label">
+            <span class="panel-label after">Quick work order — bottom sheet</span>
+          </div>
+          <div class="phone dark intel">
+            <div class="statusbar" style="color: #e2e8f0">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
               </div>
+            </div>
+            <div class="mtopbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m15 18-6-6 6-6" /></svg
+              ><span class="mtitle" style="font-size: 15px">Main Engine #2</span>
+            </div>
+            <div class="mcontent">
+              <div
+                class="icard"
+                style="
+                  padding: 14px;
+                  border-color: rgba(234, 179, 8, 0.25);
+                  background: rgba(234, 179, 8, 0.03);
+                "
+              >
+                <div style="display: flex; gap: 13px; align-items: center">
+                  <div class="ring">
+                    <svg width="62" height="62" style="transform: rotate(-90deg)">
+                      <circle
+                        cx="31"
+                        cy="31"
+                        r="26"
+                        fill="none"
+                        stroke="rgba(255,255,255,.05)"
+                        stroke-width="5"
+                      />
+                      <circle
+                        cx="31"
+                        cy="31"
+                        r="26"
+                        fill="none"
+                        stroke="#eab308"
+                        stroke-width="5"
+                        stroke-dasharray="163"
+                        stroke-dashoffset="62"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <div class="v">
+                      <span style="font-size: 15px; font-weight: 800; color: #facc15">62</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #f1f5f9">
+                      Warning
+                      <span class="ibadge ibadge-warn" style="margin-left: 4px">declining</span>
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 4px">
+                      EGT cyl. 4 +18 °C vs baseline
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dimphone"></div>
+            <div class="msheet">
+              <div class="grab"></div>
+              <div style="font-size: 15px; font-weight: 700; color: #f1f5f9">Quick work order</div>
+              <div style="font-size: 11.5px; color: #64748b; margin-top: 2px">
+                Capture it now — planners enrich it later
+              </div>
+              <label class="flabel">Equipment</label>
+              <div class="equip-chip">
+                <span style="color: #38bdf8">⚙</span>
+                <div>
+                  <div style="font-size: 13px; font-weight: 600; color: #e2e8f0">
+                    Main Engine #2
+                  </div>
+                  <div style="font-size: 10.5px; color: #64748b">M/V Northern Star · prefilled</div>
+                </div>
+                <span style="margin-left: auto; color: #22c55e; font-weight: 700">✓</span>
+              </div>
+              <label class="flabel">What's wrong? <span style="color: #f87171">*</span></label>
+              <div class="dinput" style="height: 72px">
+                Knocking noise near cyl. 4 rocker arm at 90+ RPM.<span
+                  class="caret"
+                  style="background: #38bdf8"
+                ></span>
+              </div>
+              <label class="flabel">Priority</label>
+              <div class="seg">
+                <span>Low</span><span>Medium</span><span class="on">High</span><span>Urgent</span>
+              </div>
+              <label class="flabel">Photo</label>
+              <div class="photo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+                  />
+                  <circle cx="12" cy="13" r="3" /></svg
+                >Take photo
+              </div>
+              <button
+                class="ibtn ibtn-primary"
+                style="
+                  width: 100%;
+                  justify-content: center;
+                  padding: 12px;
+                  font-size: 13.5px;
+                  margin-top: 14px;
+                "
+              >
+                Create work order
+              </button>
+              <div style="text-align: center; font-size: 11.5px; color: #64748b; margin-top: 9px">
+                Need scheduling, crew or costs?
+                <span style="color: #38bdf8; font-weight: 600">Full form →</span>
+              </div>
+            </div>
+            <div class="homebar" style="color: #e2e8f0; z-index: 60"></div>
+          </div>
+          <div class="anno anno-green" style="top: 300px; left: -206px">
+            <div class="anno-pill">1</div>
+            <div class="anno-card">
+              3 fields + camera, one thumb. Component already exists (QuickWorkOrderSheet.tsx) —
+              just unmounted
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 640px; left: -206px">
+            <div class="anno-pill">2</div>
+            <div class="anno-card">
+              Works offline — lands in the outbox and syncs when the vessel reconnects
             </div>
           </div>
         </div>
-        <div class="dimphone"></div>
-        <div class="msheet">
-          <div class="grab"></div>
-          <div style="font-size:15px; font-weight:700; color:#f1f5f9">Quick work order</div>
-          <div style="font-size:11.5px; color:#64748b; margin-top:2px">Capture it now — planners enrich it later</div>
-          <label class="flabel">Equipment</label>
-          <div class="equip-chip">
-            <span style="color:#38bdf8">⚙</span>
-            <div><div style="font-size:13px; font-weight:600; color:#e2e8f0">Main Engine #2</div><div style="font-size:10.5px; color:#64748b">M/V Northern Star · prefilled</div></div>
-            <span style="margin-left:auto; color:#22c55e; font-weight:700">✓</span>
-          </div>
-          <label class="flabel">What's wrong? <span style="color:#f87171">*</span></label>
-          <div class="dinput" style="height:72px">Knocking noise near cyl. 4 rocker arm at 90+ RPM.<span class="caret" style="background:#38bdf8"></span></div>
-          <label class="flabel">Priority</label>
-          <div class="seg"><span>Low</span><span>Medium</span><span class="on">High</span><span>Urgent</span></div>
-          <label class="flabel">Photo</label>
-          <div class="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Take photo</div>
-          <button class="ibtn ibtn-primary" style="width:100%; justify-content:center; padding:12px; font-size:13.5px; margin-top:14px">Create work order</button>
-          <div style="text-align:center; font-size:11.5px; color:#64748b; margin-top:9px">Need scheduling, crew or costs? <span style="color:#38bdf8; font-weight:600">Full form →</span></div>
-        </div>
-        <div class="homebar" style="color:#e2e8f0; z-index:60"></div>
-      </div>
-      <div class="anno anno-green" style="top:300px; left:-206px;"><div class="anno-pill">1</div><div class="anno-card">3 fields + camera, one thumb. Component already exists (QuickWorkOrderSheet.tsx) — just unmounted</div></div>
-      <div class="anno anno-green" style="top:640px; left:-206px;"><div class="anno-pill">2</div><div class="anno-card">Works offline — lands in the outbox and syncs when the vessel reconnects</div></div>
-    </div>
 
-    <!-- Phone B: full form prefilled -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label after">Full form — opens prefilled</span></div>
-      <div class="phone">
-        <div class="statusbar">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar"><span class="mtitle">Create work order</span><span style="color:var(--muted-foreground); font-size:19px">✕</span></div>
-        <div class="mcontent" style="padding-bottom:120px">
-          <div class="ctx-banner">⚙ From: <b>Main Engine #2 · M/V Northern Star</b><span style="margin-left:auto; font-weight:500; color:var(--muted-foreground)">change</span></div>
-          <label class="label">Vessel <span class="req">*</span></label>
-          <div class="select prefill" style="margin-bottom:11px">M/V Northern Star <span class="check">✓</span></div>
-          <label class="label">Equipment <span class="req">*</span></label>
-          <div class="select prefill" style="margin-bottom:11px">Main Engine #2 <span class="check">✓</span></div>
-          <label class="label">Apply template</label>
-          <div class="select" style="margin-bottom:11px; color:hsl(197 75% 34%); font-weight:600">★ ME exhaust valve inspection (suggested) ▾</div>
-          <label class="label">Priority</label>
-          <div class="select" style="margin-bottom:11px">High ▾</div>
-          <label class="label">Reason <span class="req">*</span></label>
-          <div class="textarea" style="height:64px; align-items:flex-start; color:var(--muted-foreground); margin-bottom:11px">EGT cyl. 4 +18 °C vs baseline — borescope exhaust valve<span class="caret"></span></div>
-          <div class="more">More options — schedule, crew, hours, costs (10) <span>▾</span></div>
+        <!-- Phone B: full form prefilled -->
+        <div class="phone-wrap">
+          <div class="phone-label">
+            <span class="panel-label after">Full form — opens prefilled</span>
+          </div>
+          <div class="phone">
+            <div class="statusbar">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
+              </div>
+            </div>
+            <div class="mtopbar">
+              <span class="mtitle">Create work order</span
+              ><span style="color: var(--muted-foreground); font-size: 19px">✕</span>
+            </div>
+            <div class="mcontent" style="padding-bottom: 120px">
+              <div class="ctx-banner">
+                ⚙ From: <b>Main Engine #2 · M/V Northern Star</b
+                ><span style="margin-left: auto; font-weight: 500; color: var(--muted-foreground)"
+                  >change</span
+                >
+              </div>
+              <label class="label">Vessel <span class="req">*</span></label>
+              <div class="select prefill" style="margin-bottom: 11px">
+                M/V Northern Star <span class="check">✓</span>
+              </div>
+              <label class="label">Equipment <span class="req">*</span></label>
+              <div class="select prefill" style="margin-bottom: 11px">
+                Main Engine #2 <span class="check">✓</span>
+              </div>
+              <label class="label">Apply template</label>
+              <div
+                class="select"
+                style="margin-bottom: 11px; color: hsl(197 75% 34%); font-weight: 600"
+              >
+                ★ ME exhaust valve inspection (suggested) ▾
+              </div>
+              <label class="label">Priority</label>
+              <div class="select" style="margin-bottom: 11px">High ▾</div>
+              <label class="label">Reason <span class="req">*</span></label>
+              <div
+                class="textarea"
+                style="
+                  height: 64px;
+                  align-items: flex-start;
+                  color: var(--muted-foreground);
+                  margin-bottom: 11px;
+                "
+              >
+                EGT cyl. 4 +18 °C vs baseline — borescope exhaust valve<span class="caret"></span>
+              </div>
+              <div class="more">
+                More options — schedule, crew, hours, costs (10) <span>▾</span>
+              </div>
+            </div>
+            <div class="stickyfoot">
+              <button
+                class="btn btn-primary"
+                style="width: 100%; justify-content: center; padding: 12px; font-size: 14px"
+              >
+                Create work order
+              </button>
+            </div>
+            <div class="homebar"></div>
+          </div>
+          <div class="anno anno-green" style="top: 160px; right: -206px">
+            <div class="anno-pill">3</div>
+            <div class="anno-card">
+              Same ?equipmentId= URL the equipment page already emits — now it actually prefills via
+              the dialog's existing props
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 520px; right: -206px">
+            <div class="anno-pill">4</div>
+            <div class="anno-card">
+              3 required fields on screen; the other 10 collapsed — no 16-field scroll on a phone
+            </div>
+          </div>
         </div>
-        <div class="stickyfoot">
-          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:12px; font-size:14px">Create work order</button>
-        </div>
-        <div class="homebar"></div>
       </div>
-      <div class="anno anno-green" style="top:160px; right:-206px;"><div class="anno-pill">3</div><div class="anno-card">Same ?equipmentId= URL the equipment page already emits — now it actually prefills via the dialog's existing props</div></div>
-      <div class="anno anno-green" style="top:520px; right:-206px;"><div class="anno-pill">4</div><div class="anno-card">3 required fields on screen; the other 10 collapsed — no 16-field scroll on a phone</div></div>
     </div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

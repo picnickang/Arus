@@ -81,8 +81,7 @@ const stcwTrendsQuerySchema = z.object({
 
 export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimiters): void {
   const passThrough: RequestHandler = (_req, _res, next) => next();
-  const writeOperationRateLimit: RateLimit =
-    rateLimiters?.writeOperationRateLimit ?? passThrough;
+  const writeOperationRateLimit: RateLimit = rateLimiters?.writeOperationRateLimit ?? passThrough;
   const criticalOperationRateLimit: RateLimit =
     rateLimiters?.criticalOperationRateLimit ?? passThrough;
 
@@ -137,7 +136,9 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
     withErrorHandling("acknowledge compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const { id } = idParamSchema.parse(req.params);
-      const { acknowledgedByUserId, acknowledgedByUserName } = acknowledgeBodySchema.parse(req.body);
+      const { acknowledgedByUserId, acknowledgedByUserName } = acknowledgeBodySchema.parse(
+        req.body
+      );
 
       const finding = await complianceRepo.acknowledgeComplianceFinding(
         id,
@@ -330,22 +331,22 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         vesselId,
         totalOpenFindings: findings.length,
         bySeverity: {
-          critical: findings.filter((f) => f['severity'] === "critical").length,
-          warning: findings.filter((f) => f['severity'] === "warning").length,
-          info: findings.filter((f) => f['severity'] === "info").length,
+          critical: findings.filter((f) => f["severity"] === "critical").length,
+          warning: findings.filter((f) => f["severity"] === "warning").length,
+          info: findings.filter((f) => f["severity"] === "info").length,
         },
         bySource: {
-          logbook_deck: findings.filter((f) => f['sourceType'] === "logbook_deck").length,
-          logbook_engine: findings.filter((f) => f['sourceType'] === "logbook_engine").length,
-          crew: findings.filter((f) => f['sourceType'] === "crew").length,
-          maintenance: findings.filter((f) => f['sourceType'] === "maintenance").length,
-          telemetry: findings.filter((f) => f['sourceType'] === "telemetry").length,
+          logbook_deck: findings.filter((f) => f["sourceType"] === "logbook_deck").length,
+          logbook_engine: findings.filter((f) => f["sourceType"] === "logbook_engine").length,
+          crew: findings.filter((f) => f["sourceType"] === "crew").length,
+          maintenance: findings.filter((f) => f["sourceType"] === "maintenance").length,
+          telemetry: findings.filter((f) => f["sourceType"] === "telemetry").length,
         },
         byCategory: {
-          operational: findings.filter((f) => f['category'] === "operational").length,
-          safety: findings.filter((f) => f['category'] === "safety").length,
-          data_integrity: findings.filter((f) => f['category'] === "data_integrity").length,
-          regulatory: findings.filter((f) => f['category'] === "regulatory").length,
+          operational: findings.filter((f) => f["category"] === "operational").length,
+          safety: findings.filter((f) => f["category"] === "safety").length,
+          data_integrity: findings.filter((f) => f["category"] === "data_integrity").length,
+          regulatory: findings.filter((f) => f["category"] === "regulatory").length,
         },
         recentFindings: findings.slice(0, 10),
       };

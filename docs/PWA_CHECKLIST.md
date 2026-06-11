@@ -5,6 +5,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 ## 📋 Core PWA Components
 
 ### ✅ Web App Manifest (`public/manifest.json`)
+
 - [x] Name and short name configured
 - [x] Description provided
 - [x] Start URL set to "/"
@@ -16,6 +17,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [x] Orientation preference set
 
 ### ✅ Service Worker (`public/service-worker.js`)
+
 - [x] Service worker registration code
 - [x] Install event handler
 - [x] Activate event handler
@@ -28,6 +30,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [x] Cache versioning and cleanup
 
 ### ✅ PWA Manager (`client/src/utils/pwa.ts`)
+
 - [x] Service worker registration
 - [x] Install prompt handling
 - [x] Installation detection
@@ -38,6 +41,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [x] Message passing with service worker
 
 ### ✅ HTML Meta Tags (`client/index.html`)
+
 - [x] Viewport meta tag
 - [x] Theme color meta tag
 - [x] Apple mobile web app capable
@@ -49,17 +53,20 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [x] Apple touch icons
 
 ### ✅ App Icons (`public/`)
+
 - [x] icon-192x192.png (192x192 pixels)
 - [x] icon-512x512.png (512x512 pixels)
 
 ## 🧪 Testing Checklist
 
 ### Development Environment
+
 - [x] Service worker skips registration in dev mode
 - [x] PWA manager initializes without errors
 - [x] App runs normally without service worker
 
 ### Production Testing (After Deployment)
+
 - [ ] Service worker registers successfully
 - [ ] Manifest.json is accessible at `/manifest.json`
 - [ ] Icons load correctly
@@ -70,6 +77,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [ ] Push notifications work (event listeners ready, implementation planned)
 
 ### iOS Testing
+
 - [ ] Safari shows "Add to Home Screen" option
 - [ ] App installs on iPhone home screen
 - [ ] Full-screen mode works (no Safari UI)
@@ -79,6 +87,7 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 - [ ] App updates automatically
 
 ### Android Testing
+
 - [ ] Install banner appears in Chrome
 - [ ] App installs successfully
 - [ ] Standalone mode works
@@ -89,11 +98,13 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 ## 📱 Installation Guides
 
 ### For Users
+
 - **iPhone/iPad**: See `IOS_INSTALL.md`
 - **Android**: Install prompt appears automatically in Chrome
 - **Desktop**: Install from browser menu (Chrome/Edge)
 
 ### For Developers
+
 1. **Production Build**: `npm run build`
 2. **Deploy**: Service worker only works over HTTPS
 3. **Test**: Visit deployed URL
@@ -102,16 +113,19 @@ This checklist confirms that ARUS Marine is fully configured as a Progressive We
 ## 🔍 Verification Commands
 
 ### Check Manifest
+
 ```bash
 curl https://your-domain.com/manifest.json
 ```
 
 ### Check Service Worker
+
 ```bash
 curl https://your-domain.com/service-worker.js
 ```
 
 ### Check Icons
+
 ```bash
 curl -I https://your-domain.com/icon-192x192.png
 curl -I https://your-domain.com/icon-512x512.png
@@ -120,6 +134,7 @@ curl -I https://your-domain.com/icon-512x512.png
 ## 🚀 Features Enabled
 
 ### ✅ Offline Functionality
+
 - Dashboard caching
 - Equipment data caching
 - Work orders caching
@@ -128,6 +143,7 @@ curl -I https://your-domain.com/icon-512x512.png
 - Network-first with fallback
 
 ### ✅ Installation Capabilities
+
 - Add to Home Screen (iOS/Android)
 - Install from browser (Chrome/Edge)
 - Standalone app mode
@@ -136,6 +152,7 @@ curl -I https://your-domain.com/icon-512x512.png
 - App shortcuts
 
 ### ✅ Currently Implemented
+
 - **Offline caching** - Dashboard, equipment, work orders (read-only)
 - **Persistent storage** - Cached data across sessions
 - **Online/offline detection** - Connection status indicators
@@ -143,41 +160,46 @@ curl -I https://your-domain.com/icon-512x512.png
 - **Storage management** - Automatic cache cleanup
 
 ### 🚧 Planned Features
+
 - **Background sync** - Offline work order edits (scaffolded)
 - **Push notifications** - Critical alerts (scaffolded)
 
 ## 📊 Browser Support
 
-| Browser | Platform | PWA Support | Notes |
-|---------|----------|-------------|-------|
-| Safari | iOS 16.4+ | ✅ Full | Add to Home Screen |
-| Safari | macOS | ⚠️ Limited | Basic features only |
-| Chrome | Android | ✅ Full | Install banner |
-| Chrome | Desktop | ✅ Full | Install from menu |
-| Edge | Desktop | ✅ Full | Install from menu |
-| Firefox | All | ⚠️ Limited | No install prompt |
+| Browser | Platform  | PWA Support | Notes               |
+| ------- | --------- | ----------- | ------------------- |
+| Safari  | iOS 16.4+ | ✅ Full     | Add to Home Screen  |
+| Safari  | macOS     | ⚠️ Limited  | Basic features only |
+| Chrome  | Android   | ✅ Full     | Install banner      |
+| Chrome  | Desktop   | ✅ Full     | Install from menu   |
+| Edge    | Desktop   | ✅ Full     | Install from menu   |
+| Firefox | All       | ⚠️ Limited  | No install prompt   |
 
 ## 🔧 Troubleshooting
 
 ### Service Worker Not Registering
+
 - Check HTTPS is enabled (required)
 - Verify service-worker.js is accessible
 - Check browser console for errors
 - Clear browser cache and retry
 
 ### Install Prompt Not Showing
+
 - Must be served over HTTPS
 - User must visit site multiple times
 - User engagement criteria must be met
 - Check browser DevTools > Application
 
 ### Offline Mode Not Working
+
 - Service worker must register first
 - User must visit pages while online
 - Cache takes 1-2 minutes to populate
 - Check cache in DevTools > Application > Cache Storage
 
 ### Icons Not Displaying
+
 - Verify icons exist in /public
 - Check manifest.json paths
 - Icons must be PNG format
@@ -199,6 +221,7 @@ ARUS Marine PWA is considered fully functional when:
 ## 📝 Maintenance
 
 ### Regular Checks
+
 - [ ] Test installation monthly
 - [ ] Verify offline mode works
 - [ ] Check for service worker errors
@@ -206,6 +229,7 @@ ARUS Marine PWA is considered fully functional when:
 - [ ] Monitor storage usage
 
 ### Updates
+
 - Service worker auto-updates on deployment
 - Users get latest version on app restart
 - No manual update required
@@ -220,6 +244,7 @@ ARUS Marine PWA is considered fully functional when:
 All components are implemented and ready for production deployment. The app will function as a full Progressive Web App once deployed to a production environment with HTTPS.
 
 **Next Steps:**
+
 1. Deploy to production environment (HTTPS required)
 2. Test installation on real devices
 3. Verify offline functionality (read-only access)
@@ -229,5 +254,5 @@ All components are implemented and ready for production deployment. The app will
 
 ---
 
-*Last Updated: October 2025*  
-*ARUS Marine Predictive Maintenance System*
+_Last Updated: October 2025_  
+_ARUS Marine Predictive Maintenance System_

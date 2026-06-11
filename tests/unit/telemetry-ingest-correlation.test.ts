@@ -25,7 +25,7 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { IngestTelemetryBatch } from "../../server/telemetry/application/ingest-batch";
 import type { RawFrame } from "../../server/telemetry/decode/types";
-import type { TelemetryReading } from "../../server/telemetry-batch-writer";
+import type { TelemetryBatchReading as TelemetryReading } from "../../server/telemetry-batch-writer";
 import type {
   ITelemetryPersistence,
   IDeadLetterQueue,
@@ -74,22 +74,24 @@ function buildStubs(persistenceImpl?: () => Promise<void>) {
 
   const dlqEntries: DeadLetterEntry<{ readings: TelemetryReading[]; frameIds: number[] }>[] = [];
   const dlq: IDeadLetterQueue<{ readings: TelemetryReading[]; frameIds: number[] }> = {
-    add: jest.fn((payload, error, source, metadata) => {
-      const entry: DeadLetterEntry<{
-        readings: TelemetryReading[];
-        frameIds: number[];
-      }> = {
-        id: `dlq-${dlqEntries.length + 1}`,
-        payload: payload as { readings: TelemetryReading[]; frameIds: number[] },
-        error,
-        source,
-        retryCount: 0,
-        createdAt: new Date(),
-        metadata,
-      };
-      dlqEntries.push(entry);
-      return entry;
-    }) as IDeadLetterQueue<{ readings: TelemetryReading[]; frameIds: number[] }>["add"],
+    add: jest.fn<IDeadLetterQueue<{ readings: TelemetryReading[]; frameIds: number[] }>["add"]>(
+      (payload, error, source, metadata) => {
+        const entry: DeadLetterEntry<{
+          readings: TelemetryReading[];
+          frameIds: number[];
+        }> = {
+          id: `dlq-${dlqEntries.length + 1}`,
+          payload,
+          error,
+          source,
+          retryCount: 0,
+          createdAt: new Date(),
+          metadata,
+        };
+        dlqEntries.push(entry);
+        return entry;
+      }
+    ),
     get: jest.fn(),
     list: jest.fn().mockReturnValue([]),
     replay: jest.fn(),
@@ -121,7 +123,9 @@ function buildStubs(persistenceImpl?: () => Promise<void>) {
   return { persistence, dlq, dlqEntries, metrics };
 }
 
-function buildProcessor(readingsPerFrame: (frame: RawFrame) => TelemetryReading[]): IBatchProcessor {
+function buildProcessor(
+  readingsPerFrame: (frame: RawFrame) => TelemetryReading[]
+): IBatchProcessor {
   return {
     process: jest.fn((frames: RawFrame[]) => frames.flatMap(readingsPerFrame)),
   };

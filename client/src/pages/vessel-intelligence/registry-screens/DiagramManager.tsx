@@ -128,8 +128,8 @@ export function DiagramTypeCard({
   onThumbnails,
 }: {
   type: DiagramTypeDefinition;
-  diagram?: RegistryDiagramRecord;
-  sectionMap?: RegistrySectionMapRecord;
+  diagram?: RegistryDiagramRecord | undefined;
+  sectionMap?: RegistrySectionMapRecord | undefined;
   permissions: PermissionSet;
   creating: boolean;
   onCreate: () => void;

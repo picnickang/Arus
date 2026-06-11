@@ -8,13 +8,13 @@ function extractTextFromXml(xml: string): string {
   let match;
 
   while ((match = wParagraphRegex.exec(xml)) !== null) {
-    const paragraphContent = match[1] ?? '';
+    const paragraphContent = match[1] ?? "";
     const textRegex = /<w:t[^>]*>([^<]*)<\/w:t>/gi;
     let textMatch;
     const texts: string[] = [];
 
     while ((textMatch = textRegex.exec(paragraphContent)) !== null) {
-      texts.push(textMatch[1] ?? '');
+      texts.push(textMatch[1] ?? "");
     }
 
     if (texts.length > 0) {

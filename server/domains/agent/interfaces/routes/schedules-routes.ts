@@ -28,7 +28,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         const schedules = await agentRepo.schedules.list(orgId);
         return res.json(schedules);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -50,7 +52,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         }
         return res.status(201).json(schedule);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -79,7 +83,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         }
         return res.json(schedule);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -100,7 +106,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         await agentRepo.schedules.delete(id);
         return res.json({ success: true });
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -120,7 +128,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         const runs = await agentRepo.schedules.getRuns(id);
         return res.json(runs);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -141,7 +151,9 @@ export function registerSchedulesRoutes(app: Express, deps: SchedulesRouteDeps) 
         await globalScheduler.executeSchedule(schedule);
         return res.json({ success: true, message: "Schedule run triggered" });
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

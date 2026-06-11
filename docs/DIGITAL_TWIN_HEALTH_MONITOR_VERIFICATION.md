@@ -1,4 +1,5 @@
 # Digital Twin & Health Monitor Verification Report
+
 **Date**: November 24, 2025  
 **Task**: Step 2 - Digital Twin & Health Monitor Verification  
 **Status**: ✅ **All Systems Operational**
@@ -24,6 +25,7 @@ The ARUS predictive maintenance system demonstrates **production-ready RUL (Rema
 ### Core Features
 
 **1. ML-Based Prediction Models**:
+
 ```typescript
 class RulEngine {
   async calculateRul(equipmentId: string, orgId: string): Promise<RulPrediction> {
@@ -38,31 +40,32 @@ class RulEngine {
 
 **2. v2.0 Enhancements** (All ✅ ACTIVE):
 
-| Enhancement | Status | Description |
-|---|---|---|
-| **Mode-Aware Predictions** | ✅ Active | Adjusts RUL based on operating mode (DP/Transit/Harbor/Cargo/Standby/Docking) |
-| **Data Quality Propagation** | ✅ Active | Confidence scores adjusted by data quality (completeness, freshness) |
-| **Repair Censoring** | ✅ Active | Filters degradation data before last repair (right-censoring) |
-| **Calibrated Probabilities** | ✅ Active | Adjusts failure probability using base rates |
+| Enhancement                  | Status    | Description                                                                   |
+| ---------------------------- | --------- | ----------------------------------------------------------------------------- |
+| **Mode-Aware Predictions**   | ✅ Active | Adjusts RUL based on operating mode (DP/Transit/Harbor/Cargo/Standby/Docking) |
+| **Data Quality Propagation** | ✅ Active | Confidence scores adjusted by data quality (completeness, freshness)          |
+| **Repair Censoring**         | ✅ Active | Filters degradation data before last repair (right-censoring)                 |
+| **Calibrated Probabilities** | ✅ Active | Adjusts failure probability using base rates                                  |
 
 **3. Health Index Calculation**:
+
 ```typescript
 interface RulPrediction {
   equipmentId: string;
-  remainingDays: number;          // Days until predicted failure
-  confidenceScore: number;        // 0-1 prediction confidence
-  healthIndex: number;            // 0-100 equipment health score
-  degradationRate: number;        // Health points lost per day
-  failureProbability: number;     // 0-1 failure probability
+  remainingDays: number; // Days until predicted failure
+  confidenceScore: number; // 0-1 prediction confidence
+  healthIndex: number; // 0-100 equipment health score
+  degradationRate: number; // Health points lost per day
+  failureProbability: number; // 0-1 failure probability
   riskLevel: "low" | "medium" | "high" | "critical";
   componentStatus: ComponentHealthStatus[];
-  
+
   // v2.0 enhancements
-  operatingMode?: OpMode;         // Current operating mode
-  dataQuality?: number;           // 0-1 data quality score
-  modeMultiplier?: number;        // RUL adjustment factor
-  calibrated?: boolean;           // Probability calibration applied
-  repairCensored?: boolean;       // Repair-aware filtering
+  operatingMode?: OpMode; // Current operating mode
+  dataQuality?: number; // 0-1 data quality score
+  modeMultiplier?: number; // RUL adjustment factor
+  calibrated?: boolean; // Probability calibration applied
+  repairCensored?: boolean; // Repair-aware filtering
 }
 ```
 
@@ -79,6 +82,7 @@ interface RulPrediction {
 ```
 
 **Analysis**:
+
 1. ✅ **Data Quality Scoring**: Confidence adjusted from 0.50 → 0.38 based on quality 0.40
 2. ✅ **Probability Calibration**: Raw probabilities (0.10, 0.49, 0.85) calibrated using base rate 0.05
 3. ✅ **Mode Adjustment**: STANDBY mode extends RUL by 1.2x multiplier (30d → 36d)
@@ -104,8 +108,8 @@ interface EquipmentHealth {
   vesselId: string;
   name: string;
   type: string;
-  healthIndex: number;         // 0-100 (0 = critical, 100 = perfect)
-  predictedDueDays: number;    // Days until next maintenance
+  healthIndex: number; // 0-100 (0 = critical, 100 = perfect)
+  predictedDueDays: number; // Days until next maintenance
   status: "critical" | "warning" | "good";
 }
 ```
@@ -120,6 +124,7 @@ GET /api/equipment/health 200 in 78ms
 ```
 
 **Analysis**:
+
 - ✅ **Consistent 200 OK responses** (no errors)
 - ✅ **Fast response times**: 69-78ms average
 - ✅ **Repository pattern working**: `[DualWrite:equipment] getHealth { success: true, durationMs: 50 }`
@@ -152,6 +157,7 @@ GET /api/equipment/health 200 in 78ms
 ```
 
 **Status Assessment**:
+
 - ✅ Equipment list returned correctly
 - ⚠️ All equipment showing `healthIndex: 0` and `status: "critical"`
 - ℹ️ This appears to be **test/seed data** with default values
@@ -165,13 +171,13 @@ GET /api/equipment/health 200 in 78ms
 
 ```typescript
 interface ComponentHealthStatus {
-  componentType: string;          // e.g., "bearing", "seal", "motor"
-  healthScore: number;            // 0-100
-  degradationMetric: number;      // Current degradation level
-  degradationRate: number;        // Health loss per day
-  predictedFailureDays: number;   // Component-specific RUL
-  confidence: number;             // Prediction confidence
-  criticalMetrics: string[];      // Metrics indicating failure risk
+  componentType: string; // e.g., "bearing", "seal", "motor"
+  healthScore: number; // 0-100
+  degradationMetric: number; // Current degradation level
+  degradationRate: number; // Health loss per day
+  predictedFailureDays: number; // Component-specific RUL
+  confidence: number; // Prediction confidence
+  criticalMetrics: string[]; // Metrics indicating failure risk
 }
 ```
 
@@ -188,6 +194,7 @@ const componentStatus = this.calculateComponentHealth(degradationDataFiltered);
 ```
 
 **Methods**:
+
 1. **Trend Analysis**: Linear regression on degradation metrics
 2. **Acceleration Detection**: Second-order derivative for rapid degradation
 3. **Volatility Scoring**: Variance in measurements indicates instability
@@ -202,18 +209,19 @@ const componentStatus = this.calculateComponentHealth(degradationDataFiltered);
 **File**: `server/digital-twin-service.ts`
 
 **Key Features**:
+
 ```typescript
 export class DigitalTwinService extends EventEmitter {
   private activeTwins: Map<string, DigitalTwin> = new Map();
   private simulationQueue: Map<string, TwinSimulation> = new Map();
-  
+
   constructor() {
     super();
     console.log("[Digital Twin] Service initialized");
     this.loadActiveTwins();
     this.startRealTimeUpdates();
   }
-  
+
   async createDigitalTwin(
     vesselId: string,
     twinType: string,
@@ -221,15 +229,13 @@ export class DigitalTwinService extends EventEmitter {
     specifications: VesselSpecifications,
     physicsModel?: PhysicsModel
   ): Promise<DigitalTwin>;
-  
-  async runSimulation(
-    twinId: string,
-    scenario: SimulationScenario
-  ): Promise<TwinSimulation>;
+
+  async runSimulation(twinId: string, scenario: SimulationScenario): Promise<TwinSimulation>;
 }
 ```
 
 **Capabilities**:
+
 1. ✅ **Physics-Based Simulation**:
    - Hydrodynamics (hull resistance, wave-making, friction)
    - Propulsion (efficiency, thrust curves, fuel consumption)
@@ -255,6 +261,7 @@ export class DigitalTwinService extends EventEmitter {
 ### Current Status
 
 **Startup Logs** (from earlier runs):
+
 ```
 [Digital Twin] Service initialized
 [Digital Twin] Loaded 0 active twins
@@ -262,6 +269,7 @@ export class DigitalTwinService extends EventEmitter {
 ```
 
 **Current Operation**:
+
 - ✅ Service initialized successfully
 - ✅ Real-time updates running
 - ℹ️ No active twins currently (expected for test environment)
@@ -274,6 +282,7 @@ export class DigitalTwinService extends EventEmitter {
 ### Scheduled Refresh Operations
 
 **Evidence from Logs**:
+
 ```
 [MaterializedView] Starting scheduled refresh...
 [MaterializedView] ✓ Refreshed mv_latest_equipment_telemetry
@@ -294,6 +303,7 @@ export class DigitalTwinService extends EventEmitter {
    - Columns: equipment_id, health_index, predicted_rul, status, last_updated
 
 **Performance**:
+
 - ✅ Fast refresh: 67ms for both views
 - ✅ Regular updates: 30-second interval
 - ✅ No refresh failures detected
@@ -327,6 +337,7 @@ export class DigitalTwinService extends EventEmitter {
 ### Current Telemetry Data
 
 **Latest Sensor Readings** (from logs):
+
 ```json
 [
   {
@@ -368,6 +379,7 @@ export class DigitalTwinService extends EventEmitter {
 ```
 
 **Analysis**:
+
 - ✅ Telemetry actively generating (simulator or real sensors)
 - ✅ All sensors reporting "normal" status
 - ✅ Values within acceptable thresholds
@@ -380,18 +392,20 @@ export class DigitalTwinService extends EventEmitter {
 ### Operating Mode Detection
 
 **Supported Modes**:
+
 ```typescript
-type OpMode = 
-  | "DP"           // Dynamic Positioning
-  | "TRANSIT"      // Vessel in transit
-  | "HARBOR"       // In port/harbor
-  | "CARGO_OPS"    // Loading/unloading cargo
-  | "STANDBY"      // Idle/standby mode
-  | "DOCKING"      // Docking operations
-  | "UNKNOWN";     // Cannot determine
+type OpMode =
+  | "DP" // Dynamic Positioning
+  | "TRANSIT" // Vessel in transit
+  | "HARBOR" // In port/harbor
+  | "CARGO_OPS" // Loading/unloading cargo
+  | "STANDBY" // Idle/standby mode
+  | "DOCKING" // Docking operations
+  | "UNKNOWN"; // Cannot determine
 ```
 
 **Detection Methods**:
+
 1. **Explicit Field**: Check `operating_mode` field in telemetry
 2. **Tags Array**: Parse mode from telemetry tags
 3. **ModeDetector Inference**: Analyze telemetry values (speed, power, etc.)
@@ -403,24 +417,26 @@ type OpMode =
 ```typescript
 export function modeThresholdMultiplier(mode: OpMode): number {
   const multipliers: Record<OpMode, number> = {
-    DP: 0.7,          // Intensive, high stress → reduce RUL 30%
-    TRANSIT: 1.0,     // Normal operations
-    HARBOR: 1.3,      // Light duty → extend RUL 30%
-    CARGO_OPS: 0.9,   // Moderate stress → reduce RUL 10%
-    STANDBY: 1.2,     // Minimal wear → extend RUL 20%
-    DOCKING: 1.0,     // Normal operations
-    UNKNOWN: 1.0,     // No adjustment
+    DP: 0.7, // Intensive, high stress → reduce RUL 30%
+    TRANSIT: 1.0, // Normal operations
+    HARBOR: 1.3, // Light duty → extend RUL 30%
+    CARGO_OPS: 0.9, // Moderate stress → reduce RUL 10%
+    STANDBY: 1.2, // Minimal wear → extend RUL 20%
+    DOCKING: 1.0, // Normal operations
+    UNKNOWN: 1.0, // No adjustment
   };
   return multipliers[mode];
 }
 ```
 
 **Evidence from Logs**:
+
 ```
 [RUL Engine] Mode adjustment (STANDBY): RUL 30d → 36d (1.2x)
 ```
 
 **Analysis**:
+
 - ✅ Mode detection working
 - ✅ STANDBY mode detected correctly
 - ✅ RUL extended from 30 → 36 days (1.2x multiplier applied)
@@ -436,39 +452,36 @@ export function modeThresholdMultiplier(mode: OpMode): number {
 
 ```typescript
 export function dataQualityScore(
-  n: number,           // Sample size
-  spanDays: number,    // Time span of data
-  missingPct: number,  // Percentage of missing data
+  n: number, // Sample size
+  spanDays: number, // Time span of data
+  missingPct: number, // Percentage of missing data
   stalenessMin: number // Minutes since last update
 ): number {
   // Sample size: Prefer 50+ points
   const sampleScore = Math.min(n / 50, 1.0);
-  
+
   // Span: Prefer 30+ days of history
   const spanScore = Math.min(spanDays / 30, 1.0);
-  
+
   // Completeness: Penalize missing data
   const completenessScore = 1.0 - missingPct;
-  
+
   // Freshness: Penalize stale data (>60 min)
   const freshnessScore = Math.max(0, 1.0 - stalenessMin / 60);
-  
+
   // Weighted average
-  return (
-    0.3 * sampleScore +
-    0.3 * spanScore +
-    0.2 * completenessScore +
-    0.2 * freshnessScore
-  );
+  return 0.3 * sampleScore + 0.3 * spanScore + 0.2 * completenessScore + 0.2 * freshnessScore;
 }
 ```
 
 **Evidence from Logs**:
+
 ```
 [RUL Engine] Data quality impact: confidence 0.50 → 0.38 (quality: 0.40)
 ```
 
 **Analysis**:
+
 - ✅ Quality scoring active
 - ✅ Data quality: 0.40 (40% - moderate quality)
 - ✅ Confidence adjusted: 0.50 → 0.38 (24% reduction due to quality)
@@ -484,20 +497,21 @@ export function dataQualityScore(
 
 ```typescript
 export function calibrateFailureProb(
-  rawProb: number,    // Raw ML prediction (0-1)
-  baseRate: number    // Historical failure rate (0-1)
+  rawProb: number, // Raw ML prediction (0-1)
+  baseRate: number // Historical failure rate (0-1)
 ): number {
   // Platt scaling: calibrate probabilities using base rate
   // Formula: P_calibrated = (P_raw * baseRate) / (P_raw * baseRate + (1 - P_raw) * (1 - baseRate))
-  
+
   const numerator = rawProb * baseRate;
   const denominator = numerator + (1 - rawProb) * (1 - baseRate);
-  
+
   return numerator / denominator;
 }
 ```
 
 **Evidence from Logs**:
+
 ```
 [RUL Engine] Probability calibration: 0.10 → 0.09 (base rate: 0.05)
 [RUL Engine] Probability calibration: 0.49 → 0.40 (base rate: 0.05)
@@ -505,6 +519,7 @@ export function calibrateFailureProb(
 ```
 
 **Analysis**:
+
 - ✅ Calibration active using base rate 0.05 (5% historical failure rate)
 - ✅ Low raw probability (0.10) → slightly lower (0.09)
 - ✅ Medium raw probability (0.49) → reduced to (0.40)
@@ -518,6 +533,7 @@ export function calibrateFailureProb(
 ### Digital Twin in Embedded/Vessel Mode
 
 **Startup Checks** (from `server/index.ts`):
+
 ```typescript
 // No "Digital Twin] Disabled: database not initialized" messages detected
 // Service starts regardless of deployment mode
@@ -526,12 +542,14 @@ export function calibrateFailureProb(
 **Status**: ✅ **Digital Twin works in embedded mode**
 
 **Evidence**:
+
 - ✅ No "disabled" messages in current logs
 - ✅ RUL Engine processing actively
 - ✅ Equipment health endpoint returning data
 - ✅ Materialized views refreshing
 
 **Embedded Mode Behavior**:
+
 1. ✅ Digital Twin service initializes
 2. ✅ RUL Engine operates normally
 3. ✅ Health scoring continues
@@ -544,19 +562,19 @@ export function calibrateFailureProb(
 
 ### API Response Times
 
-| Endpoint | Average | Min | Max |
-|---|---|---|---|
-| `/api/equipment/health` | 73ms | 69ms | 78ms |
-| `/api/telemetry/latest` | 57ms | 53ms | 61ms |
-| `/api/dashboard` | 250ms | 18ms | 551ms |
+| Endpoint                | Average | Min  | Max   |
+| ----------------------- | ------- | ---- | ----- |
+| `/api/equipment/health` | 73ms    | 69ms | 78ms  |
+| `/api/telemetry/latest` | 57ms    | 53ms | 61ms  |
+| `/api/dashboard`        | 250ms   | 18ms | 551ms |
 
 ### Background Processing
 
-| Operation | Duration |
-|---|---|
-| Materialized view refresh | 67ms (both views) |
-| RUL calculation per equipment | <5ms (estimated) |
-| DualWrite repository access | 50-57ms |
+| Operation                     | Duration          |
+| ----------------------------- | ----------------- |
+| Materialized view refresh     | 67ms (both views) |
+| RUL calculation per equipment | <5ms (estimated)  |
+| DualWrite repository access   | 50-57ms           |
 
 ### System Load
 
@@ -574,6 +592,7 @@ export function calibrateFailureProb(
 **1. All Equipment Showing Critical Status**
 
 **Current State**:
+
 ```json
 {
   "healthIndex": 0,
@@ -583,11 +602,13 @@ export function calibrateFailureProb(
 ```
 
 **Analysis**:
+
 - ℹ️ Appears to be **test/seed data** with default values
 - ✅ RUL Engine is active and processing
 - ℹ️ Awaiting **real telemetry data** for accurate health scores
 
 **Recommendation**:
+
 ```typescript
 // Option 1: Generate realistic test data
 async function seedRealisticEquipmentHealth() {
@@ -612,16 +633,19 @@ async function seedRealisticEquipmentHealth() {
 **2. Digital Twin Service: No Active Twins**
 
 **Current State**:
+
 ```
 [Digital Twin] Loaded 0 active twins
 ```
 
 **Analysis**:
+
 - ✅ Service initialized correctly
 - ℹ️ No vessel twins created yet (expected for test environment)
 - ℹ️ Service ready for twin creation
 
 **Recommendation**:
+
 ```typescript
 // Create sample digital twin for testing
 const twin = await digitalTwinService.createDigitalTwin(
@@ -674,6 +698,7 @@ const twin = await digitalTwinService.createDigitalTwin(
 **Overall Assessment**: ✅ **Digital Twin & Health Monitor Production-Ready**
 
 The ARUS predictive maintenance system demonstrates:
+
 1. ✅ Advanced RUL prediction engine (v2.0) fully operational
 2. ✅ Equipment health scoring working correctly
 3. ✅ Fast API performance (69-78ms)
@@ -686,6 +711,7 @@ The ARUS predictive maintenance system demonstrates:
 **No Critical Issues Detected** - System ready for production deployment.
 
 **Next Steps** (Optional):
+
 1. Generate realistic test data for equipment health
 2. Create vessel digital twins for simulation
 3. Add end-to-end tests for RUL prediction pipeline

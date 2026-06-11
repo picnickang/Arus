@@ -204,7 +204,7 @@ describe("Telemetry Pipeline Integration", () => {
 
       for (const reading of readings) {
         expect(reading.orgId).toBe(TEST_ORG_ID);
-        expect(reading.metadata?.idempotencyKey).toBeDefined();
+        expect(reading.metadata?.["idempotencyKey"]).toBeDefined();
       }
     });
 
@@ -231,7 +231,7 @@ describe("Telemetry Pipeline Integration", () => {
       const readings = processor.process(frames);
 
       expect(readings.length).toBe(1);
-      expect(readings[0].metadata?.idempotencyKey).toMatch(/^raw:/);
+      expect(readings[0].metadata?.["idempotencyKey"]).toMatch(/^raw:/);
     });
   });
 
@@ -253,7 +253,7 @@ describe("Telemetry Pipeline Integration", () => {
         }
 
         expect(checksums.has(frame.id)).toBe(true);
-        expect(reading.metadata?.idempotencyKey).toContain(`${frame.id}`);
+        expect(reading.metadata?.["idempotencyKey"]).toContain(`${frame.id}`);
       }
     });
 
@@ -277,7 +277,7 @@ describe("Telemetry Pipeline Integration", () => {
       for (const testCase of testCases) {
         const readings = processor.process(testCase.frames);
 
-        const idempotencyKeys = readings.map((r) => r.metadata?.idempotencyKey);
+        const idempotencyKeys = readings.map((r) => r.metadata?.["idempotencyKey"]);
         const uniqueKeys = new Set(idempotencyKeys);
 
         expect(readings.length).toBeGreaterThan(0);
@@ -289,7 +289,7 @@ describe("Telemetry Pipeline Integration", () => {
       const frames = createBatchOfFrames(700, 100);
       const readings = processor.process(frames);
 
-      const keys = readings.map((r) => r.metadata?.idempotencyKey);
+      const keys = readings.map((r) => r.metadata?.["idempotencyKey"]);
       const uniqueKeys = new Set(keys);
 
       expect(uniqueKeys.size).toBe(readings.length);
@@ -365,7 +365,7 @@ describe("Protocol-Specific Decoding", () => {
       const readings = decodeFrame(frame, { defaultEquipmentId: TEST_EQUIPMENT_ID });
 
       expect(readings.length).toBeGreaterThan(0);
-      expect(readings[0].metadata?.pgn).toBe(0xf004);
+      expect(readings[0].metadata?.["pgn"]).toBe(0xf004);
     });
 
     it("should handle different source addresses", () => {
@@ -380,8 +380,8 @@ describe("Protocol-Specific Decoding", () => {
       }
 
       expect(readings.length).toBe(2);
-      expect(readings[0].metadata?.source).toBe("CAN0");
-      expect(readings[1].metadata?.source).toBe("CAN1");
+      expect(readings[0].metadata?.["source"]).toBe("CAN0");
+      expect(readings[1].metadata?.["source"]).toBe("CAN1");
     });
   });
 
@@ -394,8 +394,8 @@ describe("Protocol-Specific Decoding", () => {
       expect(readings[0].sensorType).toBe("ENGINE_SPEED_RPM");
       expect(readings[0].value).toBeCloseTo(1500, -1);
       expect(readings[0].equipmentId).toBe(TEST_EQUIPMENT_ID);
-      expect(readings[0].metadata?.protocol).toBe("J1587");
-      expect(readings[0].metadata?.pid).toBe(190);
+      expect(readings[0].metadata?.["protocol"]).toBe("J1587");
+      expect(readings[0].metadata?.["pid"]).toBe(190);
     });
 
     it("should decode J1587 coolant temperature frames", () => {
@@ -406,8 +406,8 @@ describe("Protocol-Specific Decoding", () => {
       expect(readings[0].sensorType).toBe("ENGINE_COOLANT_TEMP_C");
       expect(readings[0].value).toBe(85);
       expect(readings[0].unit).toBe("C");
-      expect(readings[0].metadata?.protocol).toBe("J1587");
-      expect(readings[0].metadata?.pid).toBe(110);
+      expect(readings[0].metadata?.["protocol"]).toBe("J1587");
+      expect(readings[0].metadata?.["pid"]).toBe(110);
     });
 
     it("should decode J1587 oil pressure frames", () => {
@@ -418,8 +418,8 @@ describe("Protocol-Specific Decoding", () => {
       expect(readings[0].sensorType).toBe("ENGINE_OIL_PRESSURE_KPA");
       expect(readings[0].value).toBe(400);
       expect(readings[0].unit).toBe("kPa");
-      expect(readings[0].metadata?.protocol).toBe("J1587");
-      expect(readings[0].metadata?.pid).toBe(100);
+      expect(readings[0].metadata?.["protocol"]).toBe("J1587");
+      expect(readings[0].metadata?.["pid"]).toBe(100);
     });
 
     it("should reject J1587 frames with wrong payload version", () => {
@@ -446,8 +446,8 @@ describe("Protocol-Specific Decoding", () => {
 
       expect(allReadings.length).toBe(4);
 
-      const j1939Readings = allReadings.filter((r) => r.metadata?.pgn !== undefined);
-      const j1587Readings = allReadings.filter((r) => r.metadata?.protocol === "J1587");
+      const j1939Readings = allReadings.filter((r) => r.metadata?.["pgn"] !== undefined);
+      const j1587Readings = allReadings.filter((r) => r.metadata?.["protocol"] === "J1587");
 
       expect(j1939Readings.length).toBe(2);
       expect(j1587Readings.length).toBe(2);
@@ -470,8 +470,8 @@ describe("Protocol-Specific Decoding", () => {
       expect(readings.length).toBe(3);
       readings.forEach((r) => {
         expect(r.orgId).toBe(TEST_ORG_ID);
-        expect(r.metadata?.protocol).toBe("J1587");
-        expect(r.metadata?.idempotencyKey).toBeDefined();
+        expect(r.metadata?.["protocol"]).toBe("J1587");
+        expect(r.metadata?.["idempotencyKey"]).toBeDefined();
       });
     });
   });

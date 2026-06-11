@@ -54,16 +54,16 @@ This report documents the code audit findings and their resolution status. All c
 
 ### Production Quality Features
 
-| Feature | Status |
-|---------|--------|
-| Connection draining (graceful shutdown) | ✅ Implemented |
-| SLO monitoring (5 endpoints) | ✅ Active |
-| Request span tracking | ✅ Active |
-| Prometheus metrics | ✅ Exposed at /api/metrics |
-| Global error boundary (frontend) | ✅ Implemented |
-| OrgId validation (UUID/slug) | ✅ Enforced |
-| ML training queue with retries | ✅ Implemented |
-| External webhook handlers | ✅ Persist to storage |
+| Feature                                 | Status                     |
+| --------------------------------------- | -------------------------- |
+| Connection draining (graceful shutdown) | ✅ Implemented             |
+| SLO monitoring (5 endpoints)            | ✅ Active                  |
+| Request span tracking                   | ✅ Active                  |
+| Prometheus metrics                      | ✅ Exposed at /api/metrics |
+| Global error boundary (frontend)        | ✅ Implemented             |
+| OrgId validation (UUID/slug)            | ✅ Enforced                |
+| ML training queue with retries          | ✅ Implemented             |
+| External webhook handlers               | ✅ Persist to storage      |
 
 ### Codebase Modularization
 
@@ -98,13 +98,13 @@ This report documents the code audit findings and their resolution status. All c
 
 ## Test Coverage
 
-| Test Suite | Coverage |
-|------------|----------|
-| critical-path.test.ts | Multi-tenant isolation, telemetry, alerts |
-| webhook-integration.test.ts | Weather, vessel, port webhooks |
-| ml-queue.test.ts | Job submission, progress, shutdown |
-| graceful-shutdown.test.ts | Connection draining, phased shutdown |
-| security.test.ts | Tenant isolation, auth middleware |
+| Test Suite                  | Coverage                                  |
+| --------------------------- | ----------------------------------------- |
+| critical-path.test.ts       | Multi-tenant isolation, telemetry, alerts |
+| webhook-integration.test.ts | Weather, vessel, port webhooks            |
+| ml-queue.test.ts            | Job submission, progress, shutdown        |
+| graceful-shutdown.test.ts   | Connection draining, phased shutdown      |
+| security.test.ts            | Tenant isolation, auth middleware         |
 
 ---
 
@@ -113,7 +113,7 @@ This report documents the code audit findings and their resolution status. All c
 ### SLO Monitoring
 
 - dashboard_api: 100% availability
-- stcw_api: 100% availability  
+- stcw_api: 100% availability
 - equipment_api: 100% availability
 - work_orders_api: 100% availability
 - telemetry_api: 100% availability

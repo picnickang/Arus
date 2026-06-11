@@ -19,6 +19,7 @@ Retrieve all sensor configurations for specific equipment.
 **Endpoint**: `GET /api/equipment/:equipmentId/sensors`
 
 **Parameters**:
+
 - `equipmentId` (path, required): Equipment UUID
 
 **Response**: Array of sensor configurations
@@ -44,6 +45,7 @@ Retrieve all sensor configurations for specific equipment.
 ```
 
 **Use Cases**:
+
 - Equipment sensor configuration overview
 - Sensor health monitoring dashboard data source
 - Bulk operation target selection
@@ -57,33 +59,29 @@ Delete multiple sensor configurations in a single operation.
 **Endpoint**: `DELETE /api/equipment/:equipmentId/sensors/bulk`
 
 **Parameters**:
+
 - `equipmentId` (path, required): Equipment UUID
 
 **Request Body**:
+
 ```json
 {
-  "sensorIds": [
-    "sensor-uuid-1",
-    "sensor-uuid-2",
-    "sensor-uuid-3"
-  ]
+  "sensorIds": ["sensor-uuid-1", "sensor-uuid-2", "sensor-uuid-3"]
 }
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
   "deleted": 3,
-  "sensorIds": [
-    "sensor-uuid-1",
-    "sensor-uuid-2",
-    "sensor-uuid-3"
-  ]
+  "sensorIds": ["sensor-uuid-1", "sensor-uuid-2", "sensor-uuid-3"]
 }
 ```
 
 **Error Response** (if sensors not found):
+
 ```json
 {
   "error": "One or more sensors not found",
@@ -97,11 +95,13 @@ Delete multiple sensor configurations in a single operation.
 ```
 
 **Use Cases**:
+
 - Decommissioning multiple sensors during equipment overhaul
 - Removing duplicate or incorrect sensor configurations
 - Bulk cleanup operations during system maintenance
 
 **Safety Features**:
+
 - Validates all sensor IDs before deletion
 - Atomic operation (all or nothing)
 - Returns detailed error on partial failures
@@ -115,33 +115,31 @@ Enable or disable multiple sensor configurations simultaneously.
 **Endpoint**: `PATCH /api/equipment/:equipmentId/sensors/bulk`
 
 **Parameters**:
+
 - `equipmentId` (path, required): Equipment UUID
 
 **Request Body**:
+
 ```json
 {
-  "sensorIds": [
-    "sensor-uuid-1",
-    "sensor-uuid-2"
-  ],
+  "sensorIds": ["sensor-uuid-1", "sensor-uuid-2"],
   "enabled": false
 }
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
   "updated": 2,
-  "sensorIds": [
-    "sensor-uuid-1",
-    "sensor-uuid-2"
-  ],
+  "sensorIds": ["sensor-uuid-1", "sensor-uuid-2"],
   "enabled": false
 }
 ```
 
 **Error Response** (if sensors not found):
+
 ```json
 {
   "error": "One or more sensors not found",
@@ -155,12 +153,14 @@ Enable or disable multiple sensor configurations simultaneously.
 ```
 
 **Use Cases**:
+
 - Temporarily disable sensors during equipment maintenance
 - Enable sensors after installation or calibration
 - Mass configuration changes during system testing
 - Quick response to faulty sensor readings
 
 **Safety Features**:
+
 - Validates enabled field is boolean
 - Validates all sensor IDs before update
 - Atomic operation (all or nothing)
@@ -174,9 +174,11 @@ Retrieve aggregated health metrics for all sensors on specific equipment.
 **Endpoint**: `GET /api/equipment/:equipmentId/sensors/health`
 
 **Parameters**:
+
 - `equipmentId` (path, required): Equipment UUID
 
 **Response**:
+
 ```json
 {
   "totalSensors": 8,
@@ -193,8 +195,9 @@ Retrieve aggregated health metrics for all sensors on specific equipment.
 ```
 
 **Health Score Calculation**:
+
 ```
-overallHealthScore = (normalSensors × 100 + warningSensors × 70 + 
+overallHealthScore = (normalSensors × 100 + warningSensors × 70 +
                       criticalSensors × 30 + offlineSensors × 0) / totalSensors
 
 Weights:
@@ -221,6 +224,7 @@ The health endpoint uses intelligent aggregation to prevent "status fan-out" whe
    - Conservative counting (assumes lack of data = offline)
 
 **Example Scenario**:
+
 ```
 Equipment has 3 temperature sensor configs:
 - Temperature telemetry shows "critical" status
@@ -233,12 +237,14 @@ Equipment has 3 temperature sensor configs:
 **Telemetry Window**: Uses last 24 hours of telemetry data for status determination.
 
 **Use Cases**:
+
 - Equipment health dashboard visualization
 - Predictive maintenance trigger evaluation
 - Fleet-wide sensor health trending
 - Compliance reporting for sensor coverage
 
 **Performance**:
+
 - Cached with 5-minute TTL
 - Efficient Map-based aggregation
 - Single database query for telemetry lookups
@@ -260,6 +266,7 @@ All endpoints return consistent error responses:
 ```
 
 **Common Error Codes**:
+
 - `VALIDATION_ERROR` (400): Invalid request data
 - `NOT_FOUND` (404): Equipment or sensors not found
 - `FORBIDDEN` (403): Organization mismatch or access denied
@@ -277,6 +284,7 @@ Bulk operations fail atomically if ANY sensor ID is invalid. This prevents parti
 - **Burst Limit**: 20 requests per second
 
 Headers returned:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -288,15 +296,18 @@ X-RateLimit-Reset: 1699564800
 ## Performance Considerations
 
 **Caching**:
+
 - Sensor lists: Real-time (no cache)
 - Health metrics: 5-minute cache TTL
 - Telemetry data: Rolling 24-hour window
 
 **Batch Limits**:
+
 - Bulk delete: Max 100 sensors per request
 - Bulk enable/disable: Max 100 sensors per request
 
 **Concurrency**:
+
 - Bulk operations use mutation guards on frontend
 - Backend validates ownership before all operations
 - TanStack Query cache invalidation ensures UI consistency
@@ -378,21 +389,21 @@ done
 const deleteMutation = useMutation({
   mutationFn: async (sensorIds: string[]) => {
     return apiRequest(`/api/equipment/${equipmentId}/sensors/bulk`, {
-      method: 'DELETE',
-      body: JSON.stringify({ sensorIds })
+      method: "DELETE",
+      body: JSON.stringify({ sensorIds }),
     });
   },
   onSuccess: () => {
-    queryClient.invalidateQueries({ 
-      queryKey: ['/api/equipment', equipmentId, 'sensors'] 
+    queryClient.invalidateQueries({
+      queryKey: ["/api/equipment", equipmentId, "sensors"],
     });
     toast({ title: "Sensors deleted successfully" });
-  }
+  },
 });
 
 // Fetch health metrics
 const { data: healthMetrics } = useQuery({
-  queryKey: ['/api/equipment', equipmentId, 'sensors', 'health'],
+  queryKey: ["/api/equipment", equipmentId, "sensors", "health"],
   staleTime: 5 * 60 * 1000, // 5 minutes
 });
 ```
@@ -401,31 +412,29 @@ const { data: healthMetrics } = useQuery({
 
 ```typescript
 // Register sensor management routes
-app.delete('/api/equipment/:equipmentId/sensors/bulk', async (req, res) => {
+app.delete("/api/equipment/:equipmentId/sensors/bulk", async (req, res) => {
   const { equipmentId } = req.params;
   const { sensorIds } = req.body;
-  const orgId = req.headers['x-org-id'];
-  
+  const orgId = req.headers["x-org-id"];
+
   // Validate ownership
   const sensors = await db.query.sensorConfigs.findMany({
     where: and(
       eq(sensorConfigs.equipmentId, equipmentId),
       inArray(sensorConfigs.id, sensorIds),
       eq(sensorConfigs.orgId, orgId)
-    )
+    ),
   });
-  
+
   if (sensors.length !== sensorIds.length) {
-    return res.status(404).json({ 
-      error: "One or more sensors not found" 
+    return res.status(404).json({
+      error: "One or more sensors not found",
     });
   }
-  
+
   // Atomic delete
-  await db.delete(sensorConfigs).where(
-    inArray(sensorConfigs.id, sensorIds)
-  );
-  
+  await db.delete(sensorConfigs).where(inArray(sensorConfigs.id, sensorIds));
+
   res.json({ success: true, deleted: sensors.length });
 });
 ```
@@ -438,9 +447,15 @@ app.delete('/api/equipment/:equipmentId/sensors/bulk', async (req, res) => {
 
 ```typescript
 export const sensorConfigs = pgTable("sensor_configs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
-  equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  equipmentId: varchar("equipment_id")
+    .notNull()
+    .references(() => equipment.id),
   sensorType: text("sensor_type").notNull(),
   sensorName: text("sensor_name"),
   normalMin: real("normal_min"),
@@ -459,7 +474,9 @@ export const sensorConfigs = pgTable("sensor_configs", {
 
 ```typescript
 export const equipmentTelemetry = pgTable("equipment_telemetry", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   orgId: varchar("org_id").notNull(),
   ts: timestamp("ts").notNull().defaultNow(),
   equipmentId: varchar("equipment_id").notNull(),
@@ -478,6 +495,7 @@ export const equipmentTelemetry = pgTable("equipment_telemetry", {
 ## Changelog
 
 ### Version 1.0.0 (2025-11-11)
+
 - Initial release with 4 core endpoints
 - Bulk sensor delete operations
 - Bulk sensor enable/disable operations
@@ -491,6 +509,7 @@ export const equipmentTelemetry = pgTable("equipment_telemetry", {
 ## Support
 
 For API issues or feature requests:
+
 - GitHub Issues: https://github.com/your-org/arus/issues
 - Email: api-support@arus.com
 - Documentation: https://docs.arus.com/api/sensor-management

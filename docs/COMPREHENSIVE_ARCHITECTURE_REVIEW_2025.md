@@ -12,13 +12,15 @@ ARUS (Marine Predictive Maintenance & Scheduling) is an **enterprise-grade full-
 ### Platform Metrics
 
 **Codebase Scale:**
+
 - **145** TypeScript files (backend)
-- **170** TypeScript/TSX files (frontend)  
+- **170** TypeScript/TSX files (frontend)
 - **113 database tables** (PostgreSQL)
 - **77 tables** protected with Row-Level Security
 - **82 tables** with multi-tenant org_id column
 
 **Architecture Maturity: 9.0/10**
+
 - ✅ Domain-driven design in progress
 - ✅ Comprehensive security infrastructure (94% RLS coverage)
 - ✅ Advanced ML/AI integration (TensorFlow, OpenAI)
@@ -55,16 +57,19 @@ Global data like dtc_definitions, sensor_types, sync infrastructure
 ### Multi-Layer Defense Architecture
 
 **Layer 1: Authentication**
+
 - requireAuthentication middleware (server/security.ts)
 - Sets req.user = { id, orgId, email, role }
 - Development auto-auth active (MUST REMOVE FOR PRODUCTION)
 
 **Layer 2: Organization Validation**
+
 - requireOrgId middleware (server/middleware/auth.ts)
 - Validates user belongs to requested organization
 - Logs unauthorized cross-org attempts
 
 **Layer 3: Database RLS**
+
 - withDatabaseContext middleware (server/middleware/db-context.ts)
 - Sets PostgreSQL session: `SET LOCAL app.current_org_id = '<orgId>'`
 - RLS policies automatically filter all queries
@@ -81,6 +86,7 @@ HTTP Request → requireAuthentication → requireOrgId → withDatabaseContext 
 
 **Completed Protection:**
 All primary business tables with org_id column now have RLS policies:
+
 - Financial: cost_savings, expenses, llm_cost_tracking
 - ML/AI: anomaly_detections, failure_predictions, ml_models, prediction_feedback
 - Operations: work_orders, work_order_checklists, work_order_completions, work_order_parts
@@ -91,6 +97,7 @@ All primary business tables with org_id column now have RLS policies:
 
 **Remaining Gap (5 tables - 6%):**
 Relationship tables without direct org_id need join-based RLS:
+
 - crew_skill, crew_cert, crew_leave, crew_assignment, crew_rest_sheet
 
 **Recommended Fix:** Implement join-based RLS policies for relationship tables (2-4 hours effort)
@@ -111,10 +118,11 @@ Relationship tables without direct org_id need join-based RLS:
 ### Code Organization
 
 **Domain-Driven Design** (8 domains):
+
 ```
 server/domains/
 ├── alerts/       → Alert management
-├── crew/         → Crew scheduling  
+├── crew/         → Crew scheduling
 ├── devices/      → Device registry
 ├── equipment/    → Equipment tracking
 ├── inventory/    → Parts management
@@ -132,6 +140,7 @@ Each domain: `index.ts` + `routes.ts` + `service.ts` + `repository.ts`
 **Problem:** Single interface handles 80+ table interactions
 
 **Security Risk:**
+
 ```typescript
 // Many methods have OPTIONAL orgId
 async getVessels(orgId?: string) {
@@ -188,12 +197,14 @@ async getVessels(orgId?: string) {
 ### State Management Patterns
 
 **Centralized CRUD Mutations:**
+
 ```typescript
 useCrudMutations(entity) → { create, update, delete }
 // Automatic cache invalidation
 ```
 
 **Real-time WebSocket Sync:**
+
 ```typescript
 useWebSocket() → Updates TanStack Query cache live
 ```
@@ -212,17 +223,20 @@ useWebSocket() → Updates TanStack Query cache live
 ### CRITICAL PRIORITY (Next 7 Days)
 
 **1. Complete RLS for Relationship Tables** (4 hours) ✅ 94% COMPLETE
+
 - ✅ Applied RLS to 77 primary tables with org_id
 - ⚠️ Implement join-based RLS for 5 relationship tables
 - Verify with security integration tests
 
 **2. Production Authentication** (40 hours)
+
 - Replace development auto-auth
 - Implement JWT-based authentication
 - Add session management
 - Remove security.ts development bypass
 
 **3. Storage Layer Refactoring** (80 hours)
+
 - Make orgId REQUIRED in all storage methods
 - Extract domain-specific repositories
 - Remove 15K-line monolithic file
@@ -230,11 +244,13 @@ useWebSocket() → Updates TanStack Query cache live
 ### HIGH PRIORITY (Next 30 Days)
 
 **4. Testing Expansion**
+
 - Add E2E tests for critical paths
 - Unit tests for business logic
 - Load testing for scalability
 
 **5. Production Deployment**
+
 - Deployment runbook
 - Environment configuration guide
 - Monitoring/alerting setup
@@ -243,12 +259,14 @@ useWebSocket() → Updates TanStack Query cache live
 ### MEDIUM PRIORITY (Next 90 Days)
 
 **6. Performance Optimization**
+
 - Redis caching layer
 - CDN for static assets
 - Read replicas for analytics
 - Query optimization
 
 **7. Documentation**
+
 - OpenAPI/Swagger for APIs
 - Architecture diagrams
 - Developer onboarding guide

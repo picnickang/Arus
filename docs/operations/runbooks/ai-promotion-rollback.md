@@ -1,6 +1,7 @@
 # Runbook — AI Model Promotion / Rollback
 
 Trigger conditions:
+
 - Alert: `AiPromotionFailed`, `AiInferenceErrorRate`.
 - Field report: predictions are obviously wrong for an equipment
   class.
@@ -77,7 +78,7 @@ increments. Likely causes:
   model. Confirm via the `ml_models.org_id` column.
 - **Concurrent promotion.** Two promotes raced. The second one
   fails with a unique-constraint violation on `(org_id,
-  equipment_type, status='deployed')`. Retry once, then
+equipment_type, status='deployed')`. Retry once, then
   investigate.
 
 ## 5. Post-incident

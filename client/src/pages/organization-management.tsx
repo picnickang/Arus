@@ -110,62 +110,64 @@ export default function OrganizationManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {m.filteredOrganizations.map((org: (typeof m.filteredOrganizations)[number]) => (
-                        <TableRow
-                          key={org.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => m.setSelectedOrgId(org.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              m.setSelectedOrgId(org.id);
-                            }
-                          }}
-                          tabIndex={0}
-                          data-testid={`row-organization-${org.id}`}
-                        >
-                          <TableCell className="font-medium">{org.name}</TableCell>
-                          <TableCell className="font-mono text-sm">{org.slug}</TableCell>
-                          <TableCell>
-                            <Badge className={m.getTierColor(org.subscriptionTier)}>
-                              {org.subscriptionTier}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{org.maxUsers}</TableCell>
-                          <TableCell>{org.maxEquipment}</TableCell>
-                          <TableCell>
-                            <Badge variant={org.isActive ? "default" : "secondary"}>
-                              {org.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  m.openOrganizationDialog(org);
-                                }}
-                                data-testid={`button-edit-organization-${org.id}`}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  m.handleDeleteOrganization(org.id);
-                                }}
-                                data-testid={`button-delete-organization-${org.id}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {m.filteredOrganizations.map(
+                        (org: (typeof m.filteredOrganizations)[number]) => (
+                          <TableRow
+                            key={org.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => m.setSelectedOrgId(org.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                m.setSelectedOrgId(org.id);
+                              }
+                            }}
+                            tabIndex={0}
+                            data-testid={`row-organization-${org.id}`}
+                          >
+                            <TableCell className="font-medium">{org.name}</TableCell>
+                            <TableCell className="font-mono text-sm">{org.slug}</TableCell>
+                            <TableCell>
+                              <Badge className={m.getTierColor(org.subscriptionTier)}>
+                                {org.subscriptionTier}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{org.maxUsers}</TableCell>
+                            <TableCell>{org.maxEquipment}</TableCell>
+                            <TableCell>
+                              <Badge variant={org.isActive ? "default" : "secondary"}>
+                                {org.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    m.openOrganizationDialog(org);
+                                  }}
+                                  data-testid={`button-edit-organization-${org.id}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    m.handleDeleteOrganization(org.id);
+                                  }}
+                                  data-testid={`button-delete-organization-${org.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
                 </div>

@@ -46,7 +46,7 @@ type OffboardingRevocationStepState = OffboardingAccessRevocationResult["loginDi
 export class CrewAdminError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: string
   ) {
     super(message);
     this.name = "CrewAdminError";
@@ -128,10 +128,7 @@ export class CrewAdminApplicationService {
     // Deactivating an admin-capable role could strip the last admin pathway —
     // never let that happen via the role-lifecycle surface.
     if (patch.isActive === false && isAdminCapableRole(role.name)) {
-      throw new CrewAdminError(
-        "Admin-capable roles cannot be deactivated",
-        "ADMIN_ROLE_PROTECTED",
-      );
+      throw new CrewAdminError("Admin-capable roles cannot be deactivated", "ADMIN_ROLE_PROTECTED");
     }
     const updated = await this.repo.updateRole(orgId, id, patch);
     if (!updated) {
@@ -155,7 +152,7 @@ export class CrewAdminApplicationService {
     orgId: string,
     id: string,
     hubAdmin: boolean,
-    hubAccess: string[] | null,
+    hubAccess: string[] | null
   ): Promise<{
     role: RoleSummary;
     previousHubState: { hubAdmin: boolean; hubAccess: string[] | null };
@@ -167,13 +164,13 @@ export class CrewAdminApplicationService {
     if (isSuperAdminRole(role.name)) {
       throw new CrewAdminError(
         "System administrator roles always have full hub access",
-        "ADMIN_ROLE_PROTECTED",
+        "ADMIN_ROLE_PROTECTED"
       );
     }
     if (hubAdmin && !isAdminGrantEligibleRole(role.name)) {
       throw new CrewAdminError(
         "Only manager-or-above roles can be granted hub access",
-        "ROLE_NOT_ELIGIBLE",
+        "ROLE_NOT_ELIGIBLE"
       );
     }
     // Capture the before-state so the audit trail records before -> after,
@@ -187,7 +184,7 @@ export class CrewAdminApplicationService {
       orgId,
       id,
       normalized.hubAdmin,
-      normalized.hubAccess,
+      normalized.hubAccess
     );
     if (!updated) {
       throw new CrewAdminError("Role not found", "NOT_FOUND");
@@ -207,10 +204,7 @@ export class CrewAdminApplicationService {
       throw new CrewAdminError("Protected roles cannot be deleted", "PROTECTED_ROLE");
     }
     if (role.assignedUserCount > 0) {
-      throw new CrewAdminError(
-        "Reassign the users on this role before deleting it",
-        "ROLE_IN_USE",
-      );
+      throw new CrewAdminError("Reassign the users on this role before deleting it", "ROLE_IN_USE");
     }
     await this.repo.deleteConfig(orgId, id);
     await this.repo.deleteRole(orgId, id);
@@ -252,7 +246,7 @@ export class CrewAdminApplicationService {
     orgId: string,
     roleId: string,
     rawConfig: unknown,
-    updatedBy: string | undefined,
+    updatedBy: string | undefined
   ): Promise<RoleDashboardConfig> {
     const role = await this.repo.findRoleById(orgId, roleId);
     if (!role) {
@@ -317,7 +311,7 @@ export class CrewAdminApplicationService {
     for (const role of roles) {
       configByRoleName.set(
         role.name,
-        storedConfigs.get(role.id) ?? defaultConfigForRole(role.name),
+        storedConfigs.get(role.id) ?? defaultConfigForRole(role.name)
       );
     }
 
@@ -368,8 +362,8 @@ export class CrewAdminApplicationService {
         const effectiveRoleNames = [...new Set([user.role, ...user.assignedRoleNames])];
         const effectiveConfig = mergeDashboardConfigs(
           effectiveRoleNames.map(
-            (roleName) => configByRoleName.get(roleName) ?? defaultConfigForRole(roleName),
-          ),
+            (roleName) => configByRoleName.get(roleName) ?? defaultConfigForRole(roleName)
+          )
         );
         const activeAssignments = user.assignments.filter((assignment) => assignment.isActive);
         const hasFleetScope =
@@ -395,7 +389,7 @@ export class CrewAdminApplicationService {
           reasons.push(
             user.lastLoginAt
               ? "User must change their password before continuing."
-              : "Temporary password issued; user must change it on first login.",
+              : "Temporary password issued; user must change it on first login."
           );
         } else if (
           effectiveConfig.widgets.length === 0 &&
@@ -412,7 +406,9 @@ export class CrewAdminApplicationService {
           activeAssignments.some((assignment) => assignment.vesselId === null)
         ) {
           status = "fleet_scope_review";
-          reasons.push("Fleet-wide vessel access is configured; review that this scope is intended.");
+          reasons.push(
+            "Fleet-wide vessel access is configured; review that this scope is intended."
+          );
         }
 
         if (reasons.length === 0) {
@@ -478,12 +474,24 @@ export class CrewAdminApplicationService {
           isAdminGrantEligibleRole(user.role) ||
           user.assignedRoleNames.some((roleName) => isAdminGrantEligibleRole(roleName));
         const reasons: string[] = [];
-        if (user.isActive && user.loginEnabled) {reasons.push("Linked login is still enabled.");}
-        if (activeAssignments.length > 0) {reasons.push("Vessel or fleet scope remains assigned.");}
-        if (user.hubAdmin) {reasons.push("Admin-hub access remains granted.");}
-        if (user.assignedRoleNames.length > 0) {reasons.push("Additional roles remain assigned.");}
-        if (hasHighRiskRole) {reasons.push("High-risk role remains assigned.");}
-        if (reasons.length === 0) {reasons.push("No active access risk detected.");}
+        if (user.isActive && user.loginEnabled) {
+          reasons.push("Linked login is still enabled.");
+        }
+        if (activeAssignments.length > 0) {
+          reasons.push("Vessel or fleet scope remains assigned.");
+        }
+        if (user.hubAdmin) {
+          reasons.push("Admin-hub access remains granted.");
+        }
+        if (user.assignedRoleNames.length > 0) {
+          reasons.push("Additional roles remain assigned.");
+        }
+        if (hasHighRiskRole) {
+          reasons.push("High-risk role remains assigned.");
+        }
+        if (reasons.length === 0) {
+          reasons.push("No active access risk detected.");
+        }
 
         return {
           crewId: member.id,
@@ -518,7 +526,7 @@ export class CrewAdminApplicationService {
     orgId: string,
     userId: string,
     assignments: AssignmentInput[],
-    assignedBy: string | undefined,
+    assignedBy: string | undefined
   ): Promise<VesselAssignmentEntity[]> {
     const user = await this.repo.findUser(orgId, userId);
     if (!user) {
@@ -528,7 +536,7 @@ export class CrewAdminApplicationService {
       orgId,
       assignments
         .map((assignment) => assignment.vesselId)
-        .filter((vesselId): vesselId is string => typeof vesselId === "string"),
+        .filter((vesselId): vesselId is string => typeof vesselId === "string")
     );
     return this.repo.replaceAssignments(orgId, userId, assignments, assignedBy);
   }
@@ -547,7 +555,7 @@ export class CrewAdminApplicationService {
     orgId: string,
     userId: string,
     roleIds: string[],
-    assignedBy: string | undefined,
+    assignedBy: string | undefined
   ): Promise<void> {
     const user = await this.repo.findUser(orgId, userId);
     if (!user) {
@@ -572,7 +580,7 @@ export class CrewAdminApplicationService {
   async getEffectiveRoleNames(
     orgId: string,
     userId: string,
-    baseRoleName: string,
+    baseRoleName: string
   ): Promise<string[]> {
     const assigned = await this.repo.listAssignedRoleNames(orgId, userId);
     return [...new Set([baseRoleName, ...assigned])];
@@ -586,7 +594,7 @@ export class CrewAdminApplicationService {
   async resolveEffectiveConfigList(
     orgId: string,
     userId: string,
-    baseRoleName: string,
+    baseRoleName: string
   ): Promise<RoleDashboardConfig[]> {
     const names = await this.getEffectiveRoleNames(orgId, userId, baseRoleName);
     return Promise.all(names.map((name) => this.resolveConfigByRoleName(orgId, name)));
@@ -596,7 +604,7 @@ export class CrewAdminApplicationService {
   async resolveEffectiveConfig(
     orgId: string,
     userId: string,
-    baseRoleName: string,
+    baseRoleName: string
   ): Promise<RoleDashboardConfig> {
     const configs = await this.resolveEffectiveConfigList(orgId, userId, baseRoleName);
     return mergeDashboardConfigs(configs);
@@ -619,7 +627,7 @@ export class CrewAdminApplicationService {
   async setSupervisor(
     orgId: string,
     userId: string,
-    supervisorUserId: string | null,
+    supervisorUserId: string | null
   ): Promise<void> {
     const user = await this.repo.findUser(orgId, userId);
     if (!user) {
@@ -627,10 +635,7 @@ export class CrewAdminApplicationService {
     }
     if (supervisorUserId !== null) {
       if (supervisorUserId === userId) {
-        throw new CrewAdminError(
-          "A user cannot be their own supervisor",
-          "INVALID_SUPERVISOR",
-        );
+        throw new CrewAdminError("A user cannot be their own supervisor", "INVALID_SUPERVISOR");
       }
       const supervisor = await this.repo.findUser(orgId, supervisorUserId);
       if (!supervisor) {
@@ -653,7 +658,7 @@ export class CrewAdminApplicationService {
     orgId: string,
     userId: string,
     hubAdmin: boolean,
-    hubAccess: string[] | null,
+    hubAccess: string[] | null
   ): Promise<void> {
     const user = await this.repo.findUser(orgId, userId);
     if (!user) {
@@ -662,13 +667,13 @@ export class CrewAdminApplicationService {
     if (isSuperAdminRole(user.role)) {
       throw new CrewAdminError(
         "System administrators always have full hub access",
-        "ADMIN_ROLE_PROTECTED",
+        "ADMIN_ROLE_PROTECTED"
       );
     }
     if (hubAdmin && !isAdminGrantEligibleRole(user.role)) {
       throw new CrewAdminError(
         "Only manager-or-above roles can be granted hub access",
-        "ROLE_NOT_ELIGIBLE",
+        "ROLE_NOT_ELIGIBLE"
       );
     }
     const normalizedAccess = hubAdmin ? normalizeHubAccess(hubAccess) : null;
@@ -750,7 +755,9 @@ export class CrewAdminApplicationService {
     if (!member) {
       throw new CrewAdminError("Crew member not found", "NOT_FOUND");
     }
-    if (!member.userId) {return null;}
+    if (!member.userId) {
+      return null;
+    }
     const account = await this.repo.findUser(orgId, member.userId);
     return account ?? null;
   }
@@ -764,7 +771,7 @@ export class CrewAdminApplicationService {
     if (member.userId) {
       throw new CrewAdminError(
         "This crew member already has a login account",
-        "CREW_ALREADY_LINKED",
+        "CREW_ALREADY_LINKED"
       );
     }
 
@@ -782,19 +789,18 @@ export class CrewAdminApplicationService {
     if (!email) {
       throw new CrewAdminError(
         "An email address is required to create a login account",
-        "EMAIL_REQUIRED",
+        "EMAIL_REQUIRED"
       );
     }
 
     const role = (command.role ?? "viewer").trim();
     await this.assertAssignableRole(command.orgId, role);
 
-    const assignmentVesselId =
-      !command.skipVesselAssignment
-        ? command.vesselId !== undefined
-          ? command.vesselId
-          : member.vesselId ?? undefined
-        : undefined;
+    const assignmentVesselId = !command.skipVesselAssignment
+      ? command.vesselId !== undefined
+        ? command.vesselId
+        : (member.vesselId ?? undefined)
+      : undefined;
     if (typeof assignmentVesselId === "string") {
       await this.assertAssignableVessel(command.orgId, assignmentVesselId);
     }
@@ -820,7 +826,7 @@ export class CrewAdminApplicationService {
         command.orgId,
         userId,
         [{ vesselId: assignmentVesselId }],
-        command.assignedBy,
+        command.assignedBy
       );
     }
 
@@ -840,7 +846,7 @@ export class CrewAdminApplicationService {
     if (member.userId) {
       throw new CrewAdminError(
         "This crew member already has a login account",
-        "CREW_ALREADY_LINKED",
+        "CREW_ALREADY_LINKED"
       );
     }
     const user = await this.repo.findUser(orgId, userId);
@@ -851,7 +857,7 @@ export class CrewAdminApplicationService {
     if (otherCrew) {
       throw new CrewAdminError(
         "That login is already linked to another crew member",
-        "USER_ALREADY_LINKED",
+        "USER_ALREADY_LINKED"
       );
     }
     await this.repo.setCrewUserLink(orgId, crewId, userId);
@@ -878,7 +884,7 @@ export class CrewAdminApplicationService {
       endDutyStatus?: boolean | undefined;
       preserveRecords?: boolean | undefined;
     },
-    performedBy: string | undefined,
+    performedBy: string | undefined
   ): Promise<OffboardingAccessRevocationResult> {
     const account = await this.getCrewAccount(orgId, crewId);
     if (!account) {
@@ -889,7 +895,7 @@ export class CrewAdminApplicationService {
         dashboardAccessRemoved: "not_applicable",
         additionalRolesRemoved: "not_applicable",
         primaryRoleDowngraded: "not_applicable",
-        dutyEnded: options.endDutyStatus ?? true ? "yes" : "no",
+        dutyEnded: (options.endDutyStatus ?? true) ? "yes" : "no",
         recordsPreserved: "yes",
         previousRole: null,
         previousAdditionalRoles: [],
@@ -901,16 +907,17 @@ export class CrewAdminApplicationService {
 
     const result: OffboardingAccessRevocationResult = {
       userId: account.id,
-      loginDisabled: options.disableLogin ?? true ? "no" : "skipped",
-      vesselAccessRemoved: options.removeVesselAccess ?? true ? "no" : "skipped",
-      dashboardAccessRemoved: options.removeDashboardAccess ?? true ? "no" : "skipped",
-      additionalRolesRemoved: options.removeAdditionalRoles ?? true ? "no" : "skipped",
-      primaryRoleDowngraded: options.downgradePrimaryRole ?? true ? "no" : "skipped",
-      dutyEnded: options.endDutyStatus ?? true ? "yes" : "no",
+      loginDisabled: (options.disableLogin ?? true) ? "no" : "skipped",
+      vesselAccessRemoved: (options.removeVesselAccess ?? true) ? "no" : "skipped",
+      dashboardAccessRemoved: (options.removeDashboardAccess ?? true) ? "no" : "skipped",
+      additionalRolesRemoved: (options.removeAdditionalRoles ?? true) ? "no" : "skipped",
+      primaryRoleDowngraded: (options.downgradePrimaryRole ?? true) ? "no" : "skipped",
+      dutyEnded: (options.endDutyStatus ?? true) ? "yes" : "no",
       recordsPreserved: "yes",
       previousRole: account.role,
       previousAdditionalRoles: account.assignedRoleNames,
-      previousVesselAccessCount: account.assignments.filter((assignment) => assignment.isActive).length,
+      previousVesselAccessCount: account.assignments.filter((assignment) => assignment.isActive)
+        .length,
       previousHubAdmin: account.hubAdmin || isSuperAdminRole(account.role),
       failures: [],
     };
@@ -918,30 +925,32 @@ export class CrewAdminApplicationService {
     const runStep = async (
       label: string,
       assign: (value: OffboardingRevocationStepState) => void,
-      action: () => Promise<void>,
+      action: () => Promise<void>
     ) => {
       try {
         await action();
         assign("yes");
       } catch (error) {
         assign("failed");
-        result.failures.push(
-          `${label}: ${error instanceof Error ? error.message : "failed"}`,
-        );
+        result.failures.push(`${label}: ${error instanceof Error ? error.message : "failed"}`);
       }
     };
 
     if (options.disableLogin ?? true) {
-      await runStep("Disable login", (value) => (result.loginDisabled = value), () =>
-        this.setLoginEnabled(orgId, account.id, false),
+      await runStep(
+        "Disable login",
+        (value) => (result.loginDisabled = value),
+        () => this.setLoginEnabled(orgId, account.id, false)
       );
     }
     if (options.removeVesselAccess ?? true) {
       if (result.previousVesselAccessCount === 0) {
         result.vesselAccessRemoved = "not_applicable";
       } else {
-        await runStep("Remove vessel access", (value) => (result.vesselAccessRemoved = value), () =>
-          this.setAssignments(orgId, account.id, [], performedBy).then(() => undefined),
+        await runStep(
+          "Remove vessel access",
+          (value) => (result.vesselAccessRemoved = value),
+          () => this.setAssignments(orgId, account.id, [], performedBy).then(() => undefined)
         );
       }
     }
@@ -952,7 +961,7 @@ export class CrewAdminApplicationService {
         await runStep(
           "Remove dashboard/admin access",
           (value) => (result.dashboardAccessRemoved = value),
-          () => this.repo.setHubAccessGrant(orgId, account.id, false, null),
+          () => this.repo.setHubAccessGrant(orgId, account.id, false, null)
         );
       }
     }
@@ -963,7 +972,7 @@ export class CrewAdminApplicationService {
         await runStep(
           "Remove additional roles",
           (value) => (result.additionalRolesRemoved = value),
-          () => this.repo.replaceRoleAssignments(orgId, account.id, [], performedBy),
+          () => this.repo.replaceRoleAssignments(orgId, account.id, [], performedBy)
         );
       }
     }
@@ -974,7 +983,7 @@ export class CrewAdminApplicationService {
         await runStep(
           "Downgrade primary role",
           (value) => (result.primaryRoleDowngraded = value),
-          () => this.changeRole(orgId, account.id, OFFBOARDING_SAFE_ROLE),
+          () => this.changeRole(orgId, account.id, OFFBOARDING_SAFE_ROLE)
         );
       }
     }
@@ -994,9 +1003,13 @@ export class CrewAdminApplicationService {
     if (!name) {
       throw new CrewAdminError("A role is required", "INVALID_ROLE");
     }
-    if (isBuiltinRoleName(name)) {return;}
+    if (isBuiltinRoleName(name)) {
+      return;
+    }
     const custom = await this.repo.findRoleByName(orgId, name);
-    if (custom && custom.isActive) {return;}
+    if (custom && custom.isActive) {
+      return;
+    }
     throw new CrewAdminError("That role is not assignable", "INVALID_ROLE");
   }
 
@@ -1017,7 +1030,7 @@ export class CrewAdminApplicationService {
     if (remaining <= 0) {
       throw new CrewAdminError(
         "This is the last administrator that can sign in — keep at least one active admin login",
-        "ADMIN_LOCKOUT",
+        "ADMIN_LOCKOUT"
       );
     }
   }
@@ -1026,13 +1039,13 @@ export class CrewAdminApplicationService {
     if (password.length < MIN_PASSWORD_LENGTH) {
       throw new CrewAdminError(
         `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
-        "PASSWORD_TOO_SHORT",
+        "PASSWORD_TOO_SHORT"
       );
     }
     if (password.length > MAX_PASSWORD_LENGTH) {
       throw new CrewAdminError(
         `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
-        "PASSWORD_TOO_LONG",
+        "PASSWORD_TOO_LONG"
       );
     }
     if (/[\r\n\0]/.test(password)) {

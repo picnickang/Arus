@@ -303,7 +303,10 @@ export default function ConditionMonitoringLogPage() {
                         <div>
                           <p className="font-medium">{getEquipmentName(log.equipmentId ?? "")}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(log.periodStart as string | number | Date), "MMM dd, HH:mm")}
+                            {format(
+                              new Date(log.periodStart as string | number | Date),
+                              "MMM dd, HH:mm"
+                            )}
                           </p>
                         </div>
                       </div>
@@ -364,45 +367,48 @@ export default function ConditionMonitoringLogPage() {
                           dataQuality?: string | null;
                         };
                         return (
-                        <TableRow key={log.id} data-testid={`row-condition-log-${log.id}`}>
-                          <TableCell className="font-medium">
-                            {format(new Date(log.periodStart as string | number | Date), "MMM dd HH:mm")}
-                          </TableCell>
-                          <TableCell>{getEquipmentName(log.equipmentId ?? "")}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className={HealthGradeColors[log.healthGrade || "F"]}>
-                              {log.healthGrade}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {log.healthIndex?.toFixed(1)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {log.vibrationRmsAvg?.toFixed(2) || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {log.mlAnomalyScoreAvg === null || log.mlAnomalyScoreAvg === undefined
-                              ? "-"
-                              : `${(log.mlAnomalyScoreAvg * 100).toFixed(1)}%`}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {log.alertsCount || 0}
-                            {(log.criticalAlertsCount || 0) > 0 && (
-                              <Badge variant="destructive" className="ml-1 text-xs">
-                                {log.criticalAlertsCount}
+                          <TableRow key={log.id} data-testid={`row-condition-log-${log.id}`}>
+                            <TableCell className="font-medium">
+                              {format(
+                                new Date(log.periodStart as string | number | Date),
+                                "MMM dd HH:mm"
+                              )}
+                            </TableCell>
+                            <TableCell>{getEquipmentName(log.equipmentId ?? "")}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge className={HealthGradeColors[log.healthGrade || "F"]}>
+                                {log.healthGrade}
                               </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">{log.rulDays || "-"}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={log.dataQuality === "high" ? "default" : "outline"}
-                              className={log.dataQuality === "high" ? "bg-green-600" : ""}
-                            >
-                              {log.dataQuality}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {log.healthIndex?.toFixed(1)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {log.vibrationRmsAvg?.toFixed(2) || "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {log.mlAnomalyScoreAvg === null || log.mlAnomalyScoreAvg === undefined
+                                ? "-"
+                                : `${(log.mlAnomalyScoreAvg * 100).toFixed(1)}%`}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {log.alertsCount || 0}
+                              {(log.criticalAlertsCount || 0) > 0 && (
+                                <Badge variant="destructive" className="ml-1 text-xs">
+                                  {log.criticalAlertsCount}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">{log.rulDays || "-"}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={log.dataQuality === "high" ? "default" : "outline"}
+                                className={log.dataQuality === "high" ? "bg-green-600" : ""}
+                              >
+                                {log.dataQuality}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
                         );
                       })}
                     </TableBody>

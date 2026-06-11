@@ -109,7 +109,9 @@ export class DatabaseDigitalTwinStorage {
   }
   async createErrorLog(log: InsertErrorLog): Promise<ErrorLog> {
     const [n] = await db.insert(errorLogs).values(log).returning();
-    if (!n) {throw new Error("Failed to create error log");}
+    if (!n) {
+      throw new Error("Failed to create error log");
+    }
     return n;
   }
   async resolveErrorLog(id: string, resolvedBy: string): Promise<ErrorLog> {
@@ -173,7 +175,9 @@ export class DatabaseDigitalTwinStorage {
     metric: InsertSystemPerformanceMetric
   ): Promise<SystemPerformanceMetric> {
     const [n] = await db.insert(systemPerformanceMetrics).values(metric).returning();
-    if (!n) {throw new Error("Failed to create system performance metric");}
+    if (!n) {
+      throw new Error("Failed to create system performance metric");
+    }
     return n;
   }
   async getLatestMetricsByCategory(

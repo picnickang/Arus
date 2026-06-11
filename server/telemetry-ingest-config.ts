@@ -24,6 +24,10 @@ const logger = createLogger("TelemetryIngestConfig");
 
 const CONFIG_CACHE_TTL_MS = 30_000;
 
+type SensorConfigurationRow = Awaited<
+  ReturnType<typeof dbSensorsStorage.getSensorConfigurations>
+>[number];
+
 export interface SensorConfigLite {
   gain: number | null;
   offset: number | null;
@@ -112,6 +116,19 @@ interface CacheEntry {
 
 const orgConfigCache = new Map<string, CacheEntry>();
 
+function sensorConfigEntry(row: SensorConfigurationRow): [string, SensorConfigLite] {
+  return [
+    configKey(row.equipmentId, row.sensorType),
+    {
+      gain: row.gain ?? null,
+      offset: row.offset ?? null,
+      minValue: row.minValid ?? null,
+      maxValue: row.maxValid ?? null,
+      enabled: row.enabled ?? null,
+    },
+  ];
+}
+
 /**
  * Org-scoped config map with a 30s TTL. Fetched under the org's tenant
  * context (FORCE RLS on sensor_configurations means an unpinned read
@@ -135,18 +152,7 @@ export async function getOrgConfigMap(orgId: string): Promise<Map<string, Sensor
     // never existed on the row — so its below_min/above_max flags can
     // never fire; this module maps the actual columns instead of
     // inheriting that dead mapping.
-    configs = new Map(
-      (rows as Array<Record<string, unknown>>).map((row) => [
-        configKey(String(row["equipmentId"]), String(row["sensorType"])),
-        {
-          gain: (row["gain"] as number | null) ?? null,
-          offset: (row["offset"] as number | null) ?? null,
-          minValue: (row["minValid"] as number | null) ?? null,
-          maxValue: (row["maxValid"] as number | null) ?? null,
-          enabled: (row["enabled"] as boolean | null) ?? null,
-        },
-      ])
-    );
+    configs = new Map(rows.map(sensorConfigEntry));
   } catch (err) {
     logger.warn("Sensor-config fetch failed — ingest passes through unconfigured", {
       orgId,

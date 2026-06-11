@@ -1,7 +1,13 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../../../db";
 import { equipment, equipmentFeatures, predictionFeedback } from "@shared/schema";
-import type { EquipmentContext, EquipmentFeatureSnapshot, OperationalContextInput, NormalizedOperationalContext, PdmCalibrationSnapshot } from "../domain/types";
+import type {
+  EquipmentContext,
+  EquipmentFeatureSnapshot,
+  OperationalContextInput,
+  NormalizedOperationalContext,
+  PdmCalibrationSnapshot,
+} from "../domain/types";
 import type { OperationalContextPort, PdmContextPort, PdmCalibrationPort } from "../domain/ports";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -73,7 +79,9 @@ export class DrizzlePdmContextAdapter implements PdmContextPort {
         skewness: equipmentFeatures.skewness,
       })
       .from(equipmentFeatures)
-      .where(and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId)))
+      .where(
+        and(eq(equipmentFeatures.orgId, orgId), eq(equipmentFeatures.equipmentId, equipmentId))
+      )
       .orderBy(desc(equipmentFeatures.timestamp))
       .limit(Math.max(1, Math.min(limit, 96)));
   }
@@ -89,29 +97,39 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
 
     const operatingMode =
       override?.operatingMode ??
-      (stringFrom(params['operatingMode']) as NormalizedOperationalContext["operatingMode"] | null) ??
+      (stringFrom(params["operatingMode"]) as
+        | NormalizedOperationalContext["operatingMode"]
+        | null) ??
       "unknown";
-    const loadFactor = Math.max(0.05, Math.min(1.5, override?.loadFactor ?? numberFrom(params['loadFactor'], 0.65)!));
+    const loadFactor = Math.max(
+      0.05,
+      Math.min(1.5, override?.loadFactor ?? numberFrom(params["loadFactor"], 0.65)!)
+    );
     const weatherSeverity = Math.max(
       0,
-      Math.min(1, override?.weatherSeverity ?? numberFrom(params['weatherSeverity'], 0)!)
+      Math.min(1, override?.weatherSeverity ?? numberFrom(params["weatherSeverity"], 0)!)
     );
-    const seaState = Math.max(0, Math.min(12, override?.seaState ?? numberFrom(params['seaState'], 2)!));
+    const seaState = Math.max(
+      0,
+      Math.min(12, override?.seaState ?? numberFrom(params["seaState"], 2)!)
+    );
 
     if (!equipmentContext?.operatingParameters && !override) {
       notes.push("No operating context was provided; using conservative vessel-default context.");
     }
     if (operatingMode === "heavy_weather" || weatherSeverity >= 0.7 || seaState >= 6) {
-      notes.push("Heavy weather/load context is applied so PdM risk is not over-triggered by expected operating stress.");
+      notes.push(
+        "Heavy weather/load context is applied so PdM risk is not over-triggered by expected operating stress."
+      );
     }
 
     const contextInputs = [
-      override?.operatingMode ?? params['operatingMode'],
-      override?.loadFactor ?? params['loadFactor'],
-      override?.weatherSeverity ?? params['weatherSeverity'],
-      override?.seaState ?? params['seaState'],
-      override?.fuelBurnRate ?? params['fuelBurnRate'],
-      override?.shaftPower ?? params['shaftPower'],
+      override?.operatingMode ?? params["operatingMode"],
+      override?.loadFactor ?? params["loadFactor"],
+      override?.weatherSeverity ?? params["weatherSeverity"],
+      override?.seaState ?? params["seaState"],
+      override?.fuelBurnRate ?? params["fuelBurnRate"],
+      override?.shaftPower ?? params["shaftPower"],
     ].filter((value) => value !== undefined && value !== null).length;
 
     return {
@@ -119,18 +137,16 @@ export class EquipmentOperationalContextAdapter implements OperationalContextPor
       loadFactor,
       weatherSeverity,
       seaState,
-      speedOverGround: override?.speedOverGround ?? numberFrom(params['speedOverGround']),
-      fuelBurnRate: override?.fuelBurnRate ?? numberFrom(params['fuelBurnRate']),
-      shaftPower: override?.shaftPower ?? numberFrom(params['shaftPower']),
-      cargoLoadPercent: override?.cargoLoadPercent ?? numberFrom(params['cargoLoadPercent']),
-      routeSegment: override?.routeSegment ?? stringFrom(params['routeSegment']),
+      speedOverGround: override?.speedOverGround ?? numberFrom(params["speedOverGround"]),
+      fuelBurnRate: override?.fuelBurnRate ?? numberFrom(params["fuelBurnRate"]),
+      shaftPower: override?.shaftPower ?? numberFrom(params["shaftPower"]),
+      cargoLoadPercent: override?.cargoLoadPercent ?? numberFrom(params["cargoLoadPercent"]),
+      routeSegment: override?.routeSegment ?? stringFrom(params["routeSegment"]),
       contextConfidence: Math.max(0.25, Math.min(0.95, 0.25 + contextInputs * 0.11)),
       notes,
     };
   }
 }
-
-
 
 function clamp(value: number, min = 0, max = 1): number {
   return Math.max(min, Math.min(max, value));
@@ -160,7 +176,12 @@ export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
         confirmedFailure: sql<number>`sum(case when ${predictionFeedback.actualFailureDate} is not null then 1 else 0 end)`,
       })
       .from(predictionFeedback)
-      .where(and(eq(predictionFeedback.orgId, input.orgId), eq(predictionFeedback.equipmentId, input.equipmentId)));
+      .where(
+        and(
+          eq(predictionFeedback.orgId, input.orgId),
+          eq(predictionFeedback.equipmentId, input.equipmentId)
+        )
+      );
 
     const total = feedbackValue(row ?? {}, "total");
     if (!total) {
@@ -171,8 +192,10 @@ export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
     const falsePositiveRate = rate(feedbackValue(row ?? {}, "falsePositive"), total);
     const falseNegativeRate = rate(feedbackValue(row ?? {}, "falseNegative"), total);
     const confirmedFailureRate = rate(feedbackValue(row ?? {}, "confirmedFailure"), total);
-    const scoreBias = Math.round(clamp(falseNegativeRate - falsePositiveRate, -0.2, 0.2) * 1000) / 1000;
-    const confidenceMultiplier = Math.round(clamp(0.78 + accurateRate * 0.22, 0.65, 1.05) * 1000) / 1000;
+    const scoreBias =
+      Math.round(clamp(falseNegativeRate - falsePositiveRate, -0.2, 0.2) * 1000) / 1000;
+    const confidenceMultiplier =
+      Math.round(clamp(0.78 + accurateRate * 0.22, 0.65, 1.05) * 1000) / 1000;
 
     return {
       totalFeedback: total,
@@ -186,7 +209,9 @@ export class DrizzlePdmCalibrationAdapter implements PdmCalibrationPort {
       generatedAt: new Date().toISOString(),
       notes: [
         `Calibration derived from ${total} prediction feedback record(s) for this equipment.`,
-        input.equipmentType ? `Equipment type: ${input.equipmentType}.` : "Equipment type was not available.",
+        input.equipmentType
+          ? `Equipment type: ${input.equipmentType}.`
+          : "Equipment type was not available.",
       ],
     };
   }

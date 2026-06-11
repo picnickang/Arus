@@ -65,7 +65,7 @@ export function statusTone(status: string | undefined): {
 export interface ServiceCardData {
   key: string;
   label: string;
-  status?: string;
+  status?: string | undefined;
 }
 
 export function flattenServiceCards(health: HealthResponse | undefined): ServiceCardData[] {

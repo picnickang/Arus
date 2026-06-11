@@ -42,7 +42,7 @@ export function registerSafetyBulletinRoutes(
   rateLimit: {
     generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
     writeOperationRateLimit?: import("../../../lib/rate-limit-factory").RateLimit;
-  },
+  }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;
   const writeLimit = writeOperationRateLimit || generalApiRateLimit;
@@ -77,7 +77,7 @@ export function registerSafetyBulletinRoutes(
         ...(vesselId !== undefined && { vesselId }),
       });
       return res.json(bulletins);
-    }),
+    })
   );
 
   app.post(
@@ -94,6 +94,6 @@ export function registerSafetyBulletinRoutes(
         createdBy: authenticatedRequest(req).user?.id,
       });
       return res.status(201).json(bulletin);
-    }),
+    })
   );
 }

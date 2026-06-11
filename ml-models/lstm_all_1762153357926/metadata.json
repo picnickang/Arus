@@ -11,16 +11,10 @@
     "earlyStoppingPatience": 5,
     "verbose": true
   },
-  "featureNames": [
-    "oil_quality"
-  ],
+  "featureNames": ["oil_quality"],
   "normalizationParams": {
-    "mean": [
-      21.259956793395983
-    ],
-    "std": [
-      103.85668944711064
-    ]
+    "mean": [21.259956793395983],
+    "std": [103.85668944711064]
   },
   "trainingMetrics": {
     "loss": 0.1616382896900177,

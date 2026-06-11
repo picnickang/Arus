@@ -50,7 +50,12 @@ export interface UseMultiPartSelectorDataReturn {
   existingParts: unknown;
   filteredParts: Part[];
   hasStockWarnings: boolean;
-  addPartsMutation: ReturnType<typeof useCustomMutation<SelectedPart[], { summary?: { added: number; updated: number; errors: number } }>>;
+  addPartsMutation: ReturnType<
+    typeof useCustomMutation<
+      SelectedPart[],
+      { summary?: { added: number; updated: number; errors: number } }
+    >
+  >;
   removePartMutation: ReturnType<typeof useCustomMutation<string, void>>;
   addPartToSelection: (part: Part) => void;
   incrementPartQuantity: (partId: string) => void;

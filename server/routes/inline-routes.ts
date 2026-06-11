@@ -14,7 +14,7 @@ import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Routes:InlineRoutes");
 
 export function registerInlineRoutes(app: Express): void {
-  if (process.env['NODE_ENV'] === "development") {
+  if (process.env["NODE_ENV"] === "development") {
     app.post(
       "/api/dev/telemetry/stress-test",
       generalApiRateLimit,
@@ -28,7 +28,9 @@ export function registerInlineRoutes(app: Express): void {
             sensorTypes = ["temperature", "pressure", "vibration"],
           } = req.body;
 
-          logger.info(`[DEV] Starting batch writer stress test: ${messagesPerSecond} msg/sec for ${durationSeconds}s`);
+          logger.info(
+            `[DEV] Starting batch writer stress test: ${messagesPerSecond} msg/sec for ${durationSeconds}s`
+          );
 
           const startStats = telemetryBatchWriter.getStats();
           const startTime = Date.now();

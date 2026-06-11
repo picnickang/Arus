@@ -48,7 +48,9 @@ export function AttentionItemCard({ item }: { item: AttentionItem }) {
 
             <div className="mt-3 grid gap-2 text-sm md:grid-cols-3">
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Next action</div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Next action
+                </div>
                 <div className="font-medium">{item.recommendedAction}</div>
               </div>
               <div>

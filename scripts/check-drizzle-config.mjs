@@ -64,12 +64,8 @@ if (errors.length > 0) {
   for (const e of errors) {
     console.log(`  ✗ ${e}`);
   }
-  console.log(
-    "\nFix: every shared/schema/*.ts module that defines tables must be listed in"
-  );
-  console.log(
-    "drizzle.config.ts so `drizzle-kit push` can bootstrap it, and every config"
-  );
+  console.log("\nFix: every shared/schema/*.ts module that defines tables must be listed in");
+  console.log("drizzle.config.ts so `drizzle-kit push` can bootstrap it, and every config");
   console.log("entry must exist (non-existent entries are silently skipped).");
   process.exit(1);
 } else {

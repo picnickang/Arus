@@ -119,9 +119,7 @@ export interface ICrewStorage {
     userId?: string,
     notes?: string
   ): Promise<SelectCrewCertification>;
-  updateCertificationAlertFlags(
-    orgId: string
-  ): Promise<{
+  updateCertificationAlertFlags(orgId: string): Promise<{
     scanned: number;
     flagged: number;
     critical: number;
@@ -133,7 +131,10 @@ export interface ICrewStorage {
   getCrewDocuments(crewId: string): Promise<SelectCrewDocument[]>;
   getCrewDocumentById(id: string): Promise<SelectCrewDocument | undefined>;
   createCrewDocument(doc: InsertCrewDocument): Promise<SelectCrewDocument>;
-  updateCrewDocument(id: string, doc: WidenPartial<InsertCrewDocument>): Promise<SelectCrewDocument>;
+  updateCrewDocument(
+    id: string,
+    doc: WidenPartial<InsertCrewDocument>
+  ): Promise<SelectCrewDocument>;
   deleteCrewDocument(id: string): Promise<void>;
   getDocumentsExpiring(
     orgId: string,
@@ -145,9 +146,7 @@ export interface ICrewStorage {
     userId?: string,
     notes?: string
   ): Promise<SelectCrewDocument>;
-  updateDocumentAlertFlags(
-    orgId: string
-  ): Promise<{
+  updateDocumentAlertFlags(orgId: string): Promise<{
     scanned: number;
     flagged: number;
     critical: number;

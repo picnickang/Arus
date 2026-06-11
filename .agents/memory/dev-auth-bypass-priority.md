@@ -15,6 +15,7 @@ inherits full admin access — the dashboard, role, and permissions all disagree
 with who is actually signed in.
 
 **How to apply:**
+
 - Server and client share one kill switch: server reads `DEV_AUTH_BYPASS` (off
   when `=0`, only active in `NODE_ENV=development`); the client mirror is
   `VITE_DEV_AUTH_BYPASS`. Keep both in lockstep — disabling one without the

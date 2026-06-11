@@ -5,7 +5,13 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,11 +19,25 @@ import type { AttentionItem, BlockerResolutionRecord } from "../types";
 
 function blockerType(reason: string | null | undefined): string {
   const normalized = reason?.toLowerCase() ?? "";
-  if (normalized.includes("part") || normalized.includes("stock") || normalized.includes("inventory")) {return "Parts / inventory";}
-  if (normalized.includes("vendor") || normalized.includes("supplier")) {return "Vendor / supplier";}
-  if (normalized.includes("approval") || normalized.includes("sign")) {return "Approval";}
-  if (normalized.includes("weather")) {return "Weather";}
-  if (normalized.includes("crew") || normalized.includes("technician")) {return "Crew availability";}
+  if (
+    normalized.includes("part") ||
+    normalized.includes("stock") ||
+    normalized.includes("inventory")
+  ) {
+    return "Parts / inventory";
+  }
+  if (normalized.includes("vendor") || normalized.includes("supplier")) {
+    return "Vendor / supplier";
+  }
+  if (normalized.includes("approval") || normalized.includes("sign")) {
+    return "Approval";
+  }
+  if (normalized.includes("weather")) {
+    return "Weather";
+  }
+  if (normalized.includes("crew") || normalized.includes("technician")) {
+    return "Crew availability";
+  }
   return "Information needed";
 }
 
@@ -29,7 +49,9 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
   const isInventory = item.type === "inventory";
   const [owner, setOwner] = useState(item.lastResolution?.owner || item.owner || "");
   const [eta, setEta] = useState(item.lastResolution?.eta || "");
-  const [status, setStatus] = useState<BlockerResolutionRecord["status"]>(item.lastResolution?.status || "updated");
+  const [status, setStatus] = useState<BlockerResolutionRecord["status"]>(
+    item.lastResolution?.status || "updated"
+  );
   const [note, setNote] = useState(item.lastResolution?.note || "");
 
   const inventoryActions = useMemo(
@@ -65,12 +87,16 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/attention/items"] });
-      toast({ title: "Resolution saved", description: "The blocker update is now part of the workflow state." });
+      toast({
+        title: "Resolution saved",
+        description: "The blocker update is now part of the workflow state.",
+      });
     },
     onError: (error) => {
       toast({
         title: "Could not save blocker update",
-        description: error instanceof Error ? error.message : "The backend rejected the blocker update.",
+        description:
+          error instanceof Error ? error.message : "The backend rejected the blocker update.",
         variant: "destructive",
       });
     },
@@ -81,17 +107,21 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
       <CardHeader>
         <CardTitle className="text-base">Resolve blocker</CardTitle>
         <CardDescription>
-          Capture reason, owner, ETA, and resolution status so the blocker is more than a navigation link.
+          Capture reason, owner, ETA, and resolution status so the blocker is more than a navigation
+          link.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="rounded-lg border p-3">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Blocker type</div>
           <div className="font-semibold">{type}</div>
-          <p className="mt-1 text-sm text-muted-foreground">{reason || "No blocker reason captured yet."}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {reason || "No blocker reason captured yet."}
+          </p>
           {item.lastResolution && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Last update: {item.lastResolution.status} {item.lastResolution.eta ? `• ETA ${item.lastResolution.eta}` : ""} •{" "}
+              Last update: {item.lastResolution.status}{" "}
+              {item.lastResolution.eta ? `• ETA ${item.lastResolution.eta}` : ""} •{" "}
               {new Date(item.lastResolution.savedAt).toLocaleString()}
             </p>
           )}
@@ -108,11 +138,25 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-3">
-            <Button variant="outline" onClick={() => setLocation(`/logistics?tab=inventory&workflow=resolve-blocker&workOrderId=${item.sourceId ?? ""}`)}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setLocation(
+                  `/logistics?tab=inventory&workflow=resolve-blocker&workOrderId=${item.sourceId ?? ""}`
+                )
+              }
+            >
               <PackageSearch className="h-4 w-4" />
               Check parts
             </Button>
-            <Button variant="outline" onClick={() => setLocation(`/service-requests?workflow=work-order-blocker&workOrderId=${item.sourceId ?? ""}`)}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setLocation(
+                  `/service-requests?workflow=work-order-blocker&workOrderId=${item.sourceId ?? ""}`
+                )
+              }
+            >
               <ExternalLink className="h-4 w-4" />
               Vendor / PR
             </Button>
@@ -124,9 +168,20 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
         )}
 
         <div className="grid gap-3 md:grid-cols-3">
-          <Input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Owner / next action holder" />
-          <Input value={eta} onChange={(event) => setEta(event.target.value)} placeholder="ETA, due date, or next check" />
-          <Select value={status} onValueChange={(value) => setStatus(value as BlockerResolutionRecord["status"])}>
+          <Input
+            value={owner}
+            onChange={(event) => setOwner(event.target.value)}
+            placeholder="Owner / next action holder"
+          />
+          <Input
+            value={eta}
+            onChange={(event) => setEta(event.target.value)}
+            placeholder="ETA, due date, or next check"
+          />
+          <Select
+            value={status}
+            onValueChange={(value) => setStatus(value as BlockerResolutionRecord["status"])}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Resolution status" />
             </SelectTrigger>
@@ -152,7 +207,8 @@ export function ResolveBlockerPanel({ item }: { item: AttentionItem }) {
         <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            This records workflow state without requiring a risky work-order schema migration. A future migration can promote blocker reason/ETA to first-class work-order fields.
+            This records workflow state without requiring a risky work-order schema migration. A
+            future migration can promote blocker reason/ETA to first-class work-order fields.
           </span>
         </div>
       </CardContent>

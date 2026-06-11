@@ -89,7 +89,9 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
           windowDays,
         })
         .returning();
-      if (!result) {throw new Error("Failed to insert drift metric");}
+      if (!result) {
+        throw new Error("Failed to insert drift metric");
+      }
       results.push(result);
     }
 
@@ -119,8 +121,8 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
 
       if (version?.hyperparameters && typeof version.hyperparameters === "object") {
         const hp = version.hyperparameters as Record<string, unknown>;
-        if (hp['trainingStats'] && typeof hp['trainingStats'] === "object") {
-          for (const [key, val] of Object.entries(hp['trainingStats'] as Record<string, unknown>)) {
+        if (hp["trainingStats"] && typeof hp["trainingStats"] === "object") {
+          for (const [key, val] of Object.entries(hp["trainingStats"] as Record<string, unknown>)) {
             if (val && typeof val === "object" && "mean" in val && "std" in val) {
               const stats = val as { mean: number; std: number };
               ref[key] = { mean: stats.mean, std: stats.std };

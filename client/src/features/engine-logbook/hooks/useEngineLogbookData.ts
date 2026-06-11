@@ -96,7 +96,10 @@ export function useEngineLogbookData() {
     if (engineLogComplete) {
       const newHourlyMap = new Map<number, Partial<EngineLogHourly>>();
       engineLogComplete.hourly.forEach((entry) =>
-        newHourlyMap.set(entry.hour, normalizeHourlyEntry(entry as object as Parameters<typeof normalizeHourlyEntry>[0]))
+        newHourlyMap.set(
+          entry.hour,
+          normalizeHourlyEntry(entry as object as Parameters<typeof normalizeHourlyEntry>[0])
+        )
       );
       setHourlyEntries(newHourlyMap);
       setDailySummary({ ...engineLogComplete.daily });
@@ -218,11 +221,11 @@ export function useEngineLogbookData() {
       if (!selectedVesselId || !selectedDate) {
         throw new Error("Vessel and date required");
       }
-      return (await apiRequest("POST", "/api/logbook/engine/autofill", {
+      return await apiRequest("POST", "/api/logbook/engine/autofill", {
         vesselId: selectedVesselId,
         logDate: selectedDate,
         overwriteManual: false,
-      }));
+      });
     },
     onSuccess: (result) => {
       const { mainEngine, generators } = result;
@@ -378,7 +381,10 @@ export function useEngineLogbookData() {
     });
     setIsDirty(true);
   };
-  const updateDailySummary = (field: string, value: string | number | boolean | null | undefined) => {
+  const updateDailySummary = (
+    field: string,
+    value: string | number | boolean | null | undefined
+  ) => {
     setDailySummary((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };

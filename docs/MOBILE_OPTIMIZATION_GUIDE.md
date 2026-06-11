@@ -1,16 +1,20 @@
 # Mobile Optimization Guide - ARUS
 
 ## Overview
+
 This guide documents the mobile optimization patterns implemented in ARUS for converting desktop-centric UIs to mobile-friendly responsive interfaces.
 
 ## Phase 1: Foundation ✅
+
 **Goal:** Core mobile navigation and layout
 
 ### Components Created:
+
 - **BottomNavigation**: Mobile-optimized bottom tab bar
 - **Mobile CSS Utilities**: Touch targets, safe areas, scroll containers
 
 ### Key Features:
+
 - Thumb-zone optimized navigation (bottom 64px)
 - 44px+ minimum touch targets
 - FAB positioning above bottom nav
@@ -18,25 +22,30 @@ This guide documents the mobile optimization patterns implemented in ARUS for co
 - Safe area support for notched devices
 
 ### Usage:
+
 ```tsx
 // App.tsx automatically shows bottom nav on mobile (<768px)
 // Desktop users see the sidebar
 ```
 
-## Phase 2: Responsive Components ✅  
+## Phase 2: Responsive Components ✅
+
 **Goal:** Reusable mobile-adaptive UI patterns
 
 ### Components Created:
 
 #### 1. ResponsiveDialog
+
 Auto-converts between Dialog (desktop) and Sheet (mobile) based on viewport.
 
 **Import:**
+
 ```tsx
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 ```
 
 **Usage:**
+
 ```tsx
 <ResponsiveDialog
   open={isOpen}
@@ -59,29 +68,30 @@ import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 ```
 
 **Behavior:**
+
 - **Mobile (<768px)**: Bottom sheet, slides up, max-height 90vh, thumb-friendly
 - **Desktop (≥768px)**: Standard centered modal
 
 #### 2. useMediaQuery Hook
+
 React hook for responsive behavior.
 
 **Import:**
+
 ```tsx
 import { useMediaQuery } from "@/hooks/use-media-query";
 ```
 
 **Usage:**
+
 ```tsx
 const isMobile = useMediaQuery("(max-width: 768px)");
 
-return (
-  <div>
-    {isMobile ? <MobileLayout /> : <DesktopLayout />}
-  </div>
-);
+return <div>{isMobile ? <MobileLayout /> : <DesktopLayout />}</div>;
 ```
 
 **Features:**
+
 - Safe for SSR/test environments
 - Automatic cleanup
 - Re-renders on viewport change
@@ -91,6 +101,7 @@ return (
 Add these classes to form elements for mobile optimization:
 
 #### Form Fields:
+
 ```tsx
 <div className="mobile-form-field">
   <Label className="mobile-label">Field Name</Label>
@@ -99,6 +110,7 @@ Add these classes to form elements for mobile optimization:
 ```
 
 #### Available Classes:
+
 - `.mobile-form-field` - Extra spacing (mb-6 mobile, mb-4 desktop)
 - `.mobile-input` - Larger inputs (h-12/text-base mobile, h-10/text-sm desktop)
 - `.mobile-select` - Larger selects
@@ -106,30 +118,44 @@ Add these classes to form elements for mobile optimization:
 - `.mobile-label` - Larger labels (text-base mobile, text-sm desktop)
 
 #### Sticky Form Actions:
+
 ```tsx
-{/* Without bottom nav */}
+{
+  /* Without bottom nav */
+}
 <div className="sticky-form-actions">
   <Button>Submit</Button>
-</div>
+</div>;
 
-{/* With bottom nav - positions above it */}
+{
+  /* With bottom nav - positions above it */
+}
 <div className="sticky-form-actions-with-nav">
   <Button>Submit</Button>
-</div>
+</div>;
 ```
 
 **Behavior:**
+
 - **Mobile**: Sticks to bottom of screen with backdrop blur
 - **Desktop**: Static positioning in normal flow
 
 ## Phase 3: Data-Heavy Pages 🔄
+
 **Goal:** Optimize complex data displays for mobile
 
 ### Conversion Pattern: Dialog → ResponsiveDialog
 
 #### Before (Desktop-only Dialog):
+
 ```tsx
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 <Dialog open={isOpen} onOpenChange={setIsOpen}>
   <DialogContent>
@@ -137,18 +163,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
       <DialogTitle>Title</DialogTitle>
       <DialogDescription>Description</DialogDescription>
     </DialogHeader>
-    <div className="space-y-4">
-      {/* Form fields */}
-    </div>
+    <div className="space-y-4">{/* Form fields */}</div>
     <div className="flex justify-end space-x-2">
       <Button onClick={onCancel}>Cancel</Button>
       <Button onClick={onSubmit}>Submit</Button>
     </div>
   </DialogContent>
-</Dialog>
+</Dialog>;
 ```
 
 #### After (Mobile-Responsive):
+
 ```tsx
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 
@@ -175,15 +200,14 @@ import { ResponsiveDialog } from "@/components/ResponsiveDialog";
     </div>
     <div className="mobile-form-field">
       <Label className="mobile-label">Field 2</Label>
-      <Select className="mobile-select">
-        {/* options */}
-      </Select>
+      <Select className="mobile-select">{/* options */}</Select>
     </div>
   </div>
-</ResponsiveDialog>
+</ResponsiveDialog>;
 ```
 
 ### Key Improvements:
+
 1. **Auto-responsive**: No manual viewport checks needed
 2. **Larger touch targets**: Mobile-optimized input sizes
 3. **Sticky footer**: Buttons always visible on mobile
@@ -203,7 +227,9 @@ import { ResponsiveTable } from "@/components/shared/ResponsiveTable";
   renderRow={(item) => (
     <>
       <TableCell>{item.name}</TableCell>
-      <TableCell><Badge>{item.status}</Badge></TableCell>
+      <TableCell>
+        <Badge>{item.status}</Badge>
+      </TableCell>
       <TableCell>
         <Button size="sm">View</Button>
       </TableCell>
@@ -220,17 +246,19 @@ import { ResponsiveTable } from "@/components/shared/ResponsiveTable";
       </CardContent>
     </Card>
   )}
-/>
+/>;
 ```
 
 ## Breakpoint Strategy
 
 ### Viewports:
+
 - **Mobile**: < 768px (Tailwind `md` breakpoint)
 - **Tablet**: 768px - 1024px
 - **Desktop**: > 1024px (Tailwind `lg` breakpoint)
 
 ### CSS Breakpoints:
+
 ```css
 /* Mobile-first approach */
 .element {
@@ -254,6 +282,7 @@ import { ResponsiveTable } from "@/components/shared/ResponsiveTable";
 ```
 
 ### Tailwind Classes:
+
 ```tsx
 <div className="text-base md:text-sm lg:text-xs">
   Responsive text
@@ -269,6 +298,7 @@ import { ResponsiveTable } from "@/components/shared/ResponsiveTable";
 When implementing mobile optimizations:
 
 ### Manual Testing:
+
 - [ ] Test on mobile viewport (375x667 - iPhone SE)
 - [ ] Test on tablet viewport (768x1024 - iPad)
 - [ ] Test on desktop viewport (1920x1080)
@@ -278,6 +308,7 @@ When implementing mobile optimizations:
 - [ ] Verify no horizontal scroll on mobile
 
 ### E2E Testing:
+
 ```typescript
 // Example test plan
 1. [New Context] Mobile viewport (375x667)
@@ -295,6 +326,7 @@ When implementing mobile optimizations:
 ## Common Patterns
 
 ### Pattern 1: Create/Edit Forms
+
 ```tsx
 // Use ResponsiveDialog + mobile form classes
 <ResponsiveDialog
@@ -317,11 +349,12 @@ When implementing mobile optimizations:
 ```
 
 ### Pattern 2: Data Lists
+
 ```tsx
 // Horizontal scroll on mobile, grid on desktop
 <div className="mobile-scroll-container lg:overflow-visible">
   <div className="mobile-scroll-items lg:grid lg:grid-cols-3 lg:gap-6">
-    {items.map(item => (
+    {items.map((item) => (
       <div key={item.id} className="mobile-scroll-item">
         <Card>{/* item */}</Card>
       </div>
@@ -331,32 +364,34 @@ When implementing mobile optimizations:
 ```
 
 ### Pattern 3: Responsive Actions
+
 ```tsx
 // Stack buttons on mobile, inline on desktop
 <div className="flex flex-col gap-2 md:flex-row md:justify-end md:gap-0 md:space-x-2">
   <Button variant="outline" className="w-full md:w-auto">
     Cancel
   </Button>
-  <Button className="w-full md:w-auto">
-    Submit
-  </Button>
+  <Button className="w-full md:w-auto">Submit</Button>
 </div>
 ```
 
 ## Performance Considerations
 
 ### useMediaQuery Performance:
+
 - Uses native `matchMedia` API (very efficient)
 - Only re-renders when viewport crosses breakpoint
 - Automatic cleanup on unmount
 - Safe for SSR/test environments
 
 ### ResponsiveDialog Performance:
+
 - Only renders one component (Dialog OR Sheet, not both)
 - No layout shift during resize
 - Minimal re-renders
 
 ### CSS Utilities:
+
 - All styles in `@layer components` for proper cascade
 - Uses Tailwind's JIT for minimal CSS bundle
 - No runtime JS for styling
@@ -364,18 +399,21 @@ When implementing mobile optimizations:
 ## Migration Priority
 
 ### High Priority (Phase 3):
+
 1. ✅ Work Orders - Critical operational flow
 2. Hours of Rest - Compliance-critical table
 3. Crew Scheduler - Complex scheduling UI
 4. Inventory Management - Data-heavy forms
 
 ### Medium Priority (Phase 4):
+
 1. Equipment Registry
 2. Maintenance Templates
 3. Sensor Configuration
 4. Analytics Pages
 
 ### Low Priority:
+
 1. Settings pages (already mostly responsive)
 2. Read-only dashboards (horizontal scroll acceptable)
 
@@ -384,6 +422,7 @@ When implementing mobile optimizations:
 If mobile optimizations cause issues:
 
 ### Level 1 - Component Rollback (< 30 seconds):
+
 ```tsx
 // Replace ResponsiveDialog with Dialog
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -391,12 +430,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 ```
 
 ### Level 2 - CSS Rollback (< 1 minute):
+
 ```bash
 # Remove mobile CSS utilities from index.css
 # Lines 292-327
 ```
 
 ### Level 3 - Full Rollback (< 3 minutes):
+
 ```bash
 # Use Replit checkpoint restore
 # Navigate to: More → Checkpoints → Select pre-mobile version
@@ -405,6 +446,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 ## Support
 
 For issues or questions:
+
 1. Check this guide first
 2. Review test results in test logs
 3. Check architect reviews in task history

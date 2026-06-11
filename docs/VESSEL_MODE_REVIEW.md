@@ -42,12 +42,14 @@ The vessel mode implementation successfully extends ARUS to support offline-firs
 ### Schema Architecture
 
 **Sync Tables (4)** - `shared/schema-sqlite-sync.ts`:
+
 - `organizations` - Organization configuration
 - `users` - User accounts
 - `sync_journal` - Change tracking
 - `sync_outbox` - Event broadcasting
 
 **Vessel Operations (5)** - `shared/schema-sqlite-vessel.ts`:
+
 - `vessels` - Fleet management
 - `equipment` - Equipment registry
 - `devices` - IoT device management
@@ -60,21 +62,21 @@ The vessel mode implementation successfully extends ARUS to support offline-firs
 
 ### PostgreSQL → SQLite Mappings
 
-| PostgreSQL Type | SQLite Type | Implementation | Notes |
-|-----------------|-------------|----------------|-------|
-| `varchar(n)` | `text` | Direct mapping | No length limit in SQLite |
-| `timestamp` | `integer` | Unix timestamp | `{ mode: 'timestamp' }` for type safety |
-| `boolean` | `integer` | 0/1 values | `{ mode: 'boolean' }` for conversion |
-| `jsonb` | `text` | JSON string | Helper functions for serialization |
-| `numeric` | `real` | Floating point | Decimal precision preserved |
-| `serial` | N/A | UUID in text | Using `gen_random_uuid()` pattern |
+| PostgreSQL Type | SQLite Type | Implementation | Notes                                   |
+| --------------- | ----------- | -------------- | --------------------------------------- |
+| `varchar(n)`    | `text`      | Direct mapping | No length limit in SQLite               |
+| `timestamp`     | `integer`   | Unix timestamp | `{ mode: 'timestamp' }` for type safety |
+| `boolean`       | `integer`   | 0/1 values     | `{ mode: 'boolean' }` for conversion    |
+| `jsonb`         | `text`      | JSON string    | Helper functions for serialization      |
+| `numeric`       | `real`      | Floating point | Decimal precision preserved             |
+| `serial`        | N/A         | UUID in text   | Using `gen_random_uuid()` pattern       |
 
 ### JSON Handling
 
 ```typescript
 // Serialization helper
 export const sqliteJsonHelpers = {
-  stringify: (obj: any) => obj ? JSON.stringify(obj) : null,
+  stringify: (obj: any) => (obj ? JSON.stringify(obj) : null),
   parse: <T = any>(str: string | null): T | null => {
     if (!str) return null;
     try {
@@ -105,28 +107,34 @@ export const sqliteJsonHelpers = {
 ### Indexes Created (17) ✅
 
 **Sync Indexes (3)**:
+
 - `idx_sync_journal_entity` - (entity_type, entity_id)
 - `idx_sync_journal_status` - (sync_status)
 - `idx_sync_outbox_processed` - (processed)
 
 **Organization Indexes (1)**:
+
 - `idx_vessels_org` - (org_id)
 
 **Equipment Indexes (3)**:
+
 - `idx_equipment_org` - (org_id)
 - `idx_equipment_vessel` - (vessel_id)
 
 **Device Indexes (2)**:
+
 - `idx_devices_org` - (org_id)
 - `idx_devices_equipment` - (equipment_id)
 
 **Telemetry Indexes (4)**:
+
 - `idx_telemetry_org` - (org_id)
 - `idx_telemetry_equipment_ts` - (equipment_id, ts)
 - `idx_telemetry_sensor_ts` - (sensor_type, ts)
 - `idx_telemetry_status` - (status)
 
 **Downtime Indexes (4)**:
+
 - `idx_downtime_org` - (org_id)
 - `idx_downtime_work_order` - (work_order_id)
 - `idx_downtime_equipment` - (equipment_id)
@@ -208,6 +216,7 @@ export const sqliteJsonHelpers = {
 ## 🚀 Production Readiness
 
 ### Cloud Mode (Shore Office)
+
 - ✅ **Status**: Fully operational
 - ✅ **Features**: All 185+ tables available
 - ✅ **Performance**: Optimized with indexes
@@ -215,6 +224,7 @@ export const sqliteJsonHelpers = {
 - ✅ **Scalability**: Neon serverless scaling
 
 ### Vessel Mode (Offshore)
+
 - ✅ **Status**: Core operations ready
 - ✅ **Features**: 9 critical tables operational
 - ✅ **Performance**: 17 optimized indexes
@@ -261,7 +271,7 @@ export const sqliteJsonHelpers = {
 
 ### ⚠️ Recommendations
 
-1. **Schema Parity Automation**: 
+1. **Schema Parity Automation**:
    - Introduce automated checks between Drizzle schema and SQL init
    - Consider code generation to eliminate drift risk
 
@@ -310,18 +320,21 @@ export const sqliteJsonHelpers = {
 ## 🚀 Next Steps
 
 ### Immediate (Production Deployment)
+
 - ✅ System is production-ready for core vessel operations
 - ✅ Deploy to vessel environments
 - ✅ Monitor sync performance
 - ✅ Gather operational feedback
 
 ### Short-term (Next 176 Tables)
+
 - 🔲 Work orders & maintenance scheduling
-- 🔲 Inventory & parts management  
+- 🔲 Inventory & parts management
 - 🔲 Crew scheduling & compliance
 - 🔲 ML predictions & analytics
 
 ### Migration Strategy
+
 1. Identify table from PostgreSQL schema
 2. Convert types using proven mappings
 3. Add to SQLite schema file
@@ -333,17 +346,17 @@ export const sqliteJsonHelpers = {
 
 ## 📊 Final Statistics
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Total Tables (Cloud)** | 185+ | ✅ Operational |
-| **Total Tables (Vessel)** | 9 | ✅ Operational |
-| **Indexes Created** | 17 | ✅ Optimized |
-| **Type Conversions** | 6 types | ✅ Validated |
-| **Test Coverage** | 8 test suites | ✅ All passed |
-| **LSP Errors** | 0 | ✅ Clean |
-| **TypeScript Errors** | 0 | ✅ Clean |
-| **Security Issues** | 0 | ✅ Secure |
-| **Production Ready** | YES | ✅ Approved |
+| Metric                    | Value         | Status         |
+| ------------------------- | ------------- | -------------- |
+| **Total Tables (Cloud)**  | 185+          | ✅ Operational |
+| **Total Tables (Vessel)** | 9             | ✅ Operational |
+| **Indexes Created**       | 17            | ✅ Optimized   |
+| **Type Conversions**      | 6 types       | ✅ Validated   |
+| **Test Coverage**         | 8 test suites | ✅ All passed  |
+| **LSP Errors**            | 0             | ✅ Clean       |
+| **TypeScript Errors**     | 0             | ✅ Clean       |
+| **Security Issues**       | 0             | ✅ Secure      |
+| **Production Ready**      | YES           | ✅ Approved    |
 
 ---
 
@@ -352,6 +365,7 @@ export const sqliteJsonHelpers = {
 The vessel mode implementation represents a **significant architectural achievement** that enables ARUS to operate effectively in offline marine environments while maintaining full compatibility with cloud deployments.
 
 **Key Achievements**:
+
 - ✅ Dual-mode database architecture working flawlessly
 - ✅ Type-safe SQLite schema with proper conversions
 - ✅ Comprehensive testing validates all operations
@@ -364,5 +378,5 @@ The vessel mode implementation represents a **significant architectural achievem
 
 ---
 
-*Review conducted by AI Architect Agent*  
-*All tests passing • No critical issues • Production ready*
+_Review conducted by AI Architect Agent_  
+_All tests passing • No critical issues • Production ready_

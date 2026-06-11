@@ -83,7 +83,13 @@ async function importEntityFile(
 
 async function importTelemetryChunks(
   entity: string,
-  entityManifest: { chunked?: boolean | undefined; files?: string[] | undefined; count?: number; file?: string; chunkSize?: number | undefined },
+  entityManifest: {
+    chunked?: boolean | undefined;
+    files?: string[] | undefined;
+    count?: number;
+    file?: string;
+    chunkSize?: number | undefined;
+  },
   extractPath: string,
   targetOrgId: string,
   sourceOrgId: string,
@@ -213,11 +219,13 @@ export async function importData(
     }
 
     if (isRemapping) {
-      logger.info(`[DataImport] ID mappings created:`, { details: {
-        vessels: idMappings.vessels.size,
-        equipment: idMappings.equipment.size,
-        work_orders: idMappings.work_orders.size,
-      } });
+      logger.info(`[DataImport] ID mappings created:`, {
+        details: {
+          vessels: idMappings.vessels.size,
+          equipment: idMappings.equipment.size,
+          work_orders: idMappings.work_orders.size,
+        },
+      });
     }
 
     fs.rmSync(extractPath, { recursive: true });

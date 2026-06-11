@@ -14,20 +14,13 @@ import type {
 } from "./types";
 
 export interface ICrewTaskRepository {
-  findAll(
-    orgId: string,
-    filters?: ListCrewTasksFilters,
-  ): Promise<CrewTaskEntity[]>;
+  findAll(orgId: string, filters?: ListCrewTasksFilters): Promise<CrewTaskEntity[]>;
 
   findById(orgId: string, id: string): Promise<CrewTaskEntity | null>;
 
   create(command: CreateCrewTaskCommand): Promise<CrewTaskEntity>;
 
-  update(
-    orgId: string,
-    id: string,
-    patch: UpdateCrewTaskCommand,
-  ): Promise<CrewTaskEntity | null>;
+  update(orgId: string, id: string, patch: UpdateCrewTaskCommand): Promise<CrewTaskEntity | null>;
 
   delete(orgId: string, id: string): Promise<boolean>;
 }
@@ -52,7 +45,7 @@ export interface ICrewTaskEffects {
     before: CrewTaskEntity,
     after: CrewTaskEntity,
     changedFields: string[],
-    actor?: CrewTaskActor,
+    actor?: CrewTaskActor
   ): Promise<void>;
 
   onDeleted(task: CrewTaskEntity, actor?: CrewTaskActor): Promise<void>;
@@ -61,6 +54,6 @@ export interface ICrewTaskEffects {
   onCommented(
     task: CrewTaskEntity,
     event: CrewTaskEventEntity,
-    actor?: CrewTaskActor,
+    actor?: CrewTaskActor
   ): Promise<void>;
 }

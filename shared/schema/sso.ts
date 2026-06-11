@@ -26,7 +26,7 @@ export const ssoConfigs = pgTable(
   },
   (t) => ({
     orgProtoIdx: uniqueIndex("sso_configs_org_protocol_idx").on(t.orgId, t.protocol),
-  }),
+  })
 );
 
 export const ssoSamlConfigSchema = z.object({

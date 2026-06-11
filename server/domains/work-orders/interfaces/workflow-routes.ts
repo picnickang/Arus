@@ -1,5 +1,9 @@
 import type { Express, Request, Response } from "express";
-import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 import { withErrorHandling, sendCreated, sendNotFound } from "../../../lib/route-utils";
 import type { WorkOrderWorkflowService } from "../application/wo-workflow-service";
@@ -67,12 +71,7 @@ function getUserId(req: Request): string {
     user?: { id?: string };
   };
   const header = req.headers["x-user-id"];
-  return (
-    r.userId ||
-    r.user?.id ||
-    (Array.isArray(header) ? header[0] : header) ||
-    "unknown"
-  );
+  return r.userId || r.user?.id || (Array.isArray(header) ? header[0] : header) || "unknown";
 }
 
 export function registerWorkOrderWorkflowRoutes(
@@ -135,7 +134,7 @@ export function registerWorkOrderWorkflowRoutes(
     withErrorHandling("complete work order with feedback", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
-      const workOrderId = req.params['id'] ?? '';
+      const workOrderId = req.params["id"] ?? "";
 
       const parsed = completeWithFeedbackSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -144,7 +143,8 @@ export function registerWorkOrderWorkflowRoutes(
           details: parsed.error.flatten(),
         });
       }
-      const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } = parsed.data;
+      const { completionNotes, actualHours, actualDowntimeHours, closeout, predictionFeedback } =
+        parsed.data;
 
       // P2 #28 — Keep the explicit `!== undefined` pattern so that
       // explicit zeros and null clear-outs survive the spread. Zod
@@ -195,7 +195,7 @@ export function registerWorkOrderWorkflowRoutes(
     withErrorHandling("cancel work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
-      const workOrderId = req.params['id'] ?? '';
+      const workOrderId = req.params["id"] ?? "";
       const { reason } = req.body;
 
       if (!reason || reason.trim().length === 0) {
@@ -221,7 +221,7 @@ export function registerWorkOrderWorkflowRoutes(
     generalApiRateLimit,
     withErrorHandling("check if work order is predictive", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
-      const workOrderId = req.params['id'] ?? '';
+      const workOrderId = req.params["id"] ?? "";
 
       const isPredictive = await service.woRepo.isPredictive(workOrderId, orgId);
       return res.json({ workOrderId, isPredictive });

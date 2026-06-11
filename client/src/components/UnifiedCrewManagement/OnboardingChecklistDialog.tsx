@@ -57,14 +57,10 @@ export function OnboardingChecklistDialog({ d }: { d: UnifiedCrewData }) {
     access?.status === "password_change_required";
   const accessBlocking = access ? BLOCKING_ACCESS.includes(access.status) : !crew?.userId;
   const emergencyContactReady = !!crew?.emergencyContactName && !!crew?.emergencyContactPhone;
-  const profileReady =
-    !!crew &&
-    !!crew.vesselId &&
-    !!crew.rank &&
-    emergencyContactReady;
+  const profileReady = !!crew && !!crew.vesselId && !!crew.rank && emergencyContactReady;
   const accessStatusText = loginSkipped
     ? "Login intentionally skipped for now."
-    : access?.reasons[0] ?? "No login linked yet.";
+    : (access?.reasons[0] ?? "No login linked yet.");
 
   return (
     <ResponsiveDialog
@@ -102,14 +98,14 @@ export function OnboardingChecklistDialog({ d }: { d: UnifiedCrewData }) {
                   Skip Login for Now
                 </Button>
               )}
-            <Button
-              type="button"
-              onClick={() => d.openOnboardingProfileTab("access")}
-              data-testid="button-onboarding-access"
-            >
-              <KeyRound className="h-4 w-4 mr-1" />
-              Set Up Access
-            </Button>
+              <Button
+                type="button"
+                onClick={() => d.openOnboardingProfileTab("access")}
+                data-testid="button-onboarding-access"
+              >
+                <KeyRound className="h-4 w-4 mr-1" />
+                Set Up Access
+              </Button>
             </>
           )}
         </div>
@@ -131,13 +127,21 @@ export function OnboardingChecklistDialog({ d }: { d: UnifiedCrewData }) {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <ChecklistItem state="done" label="Crew profile created" detail="The roster record exists." />
+            <ChecklistItem
+              state="done"
+              label="Crew profile created"
+              detail="The roster record exists."
+            />
             <ChecklistItem
               state={crew.vesselId ? "done" : "missing"}
               label="Vessel assigned"
               detail={crew.vesselId ? d.getVesselName(crew.vesselId) : "Missing vessel assignment."}
             />
-            <ChecklistItem state={crew.rank ? "done" : "missing"} label="Role/rank selected" detail={crew.rank} />
+            <ChecklistItem
+              state={crew.rank ? "done" : "missing"}
+              label="Role/rank selected"
+              detail={crew.rank}
+            />
             <ChecklistItem
               state={emergencyContactReady ? "done" : "pending"}
               label="Emergency contact added"
@@ -150,7 +154,11 @@ export function OnboardingChecklistDialog({ d }: { d: UnifiedCrewData }) {
             <ChecklistItem
               state={loginCreated ? "done" : loginSkipped ? "not_required" : "missing"}
               label={loginSkipped ? "Login intentionally skipped" : "Login created"}
-              detail={loginSkipped ? "Access setup is deferred and not deployment-ready." : accessStatusText}
+              detail={
+                loginSkipped
+                  ? "Access setup is deferred and not deployment-ready."
+                  : accessStatusText
+              }
             />
             <ChecklistItem
               state={

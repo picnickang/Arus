@@ -48,7 +48,7 @@ export async function ensemblePredict(
 
   const weights = (ensembleConfig.useAdaptiveWeights
     ? await getAdaptiveWeights(orgId, equipmentType)
-    : STATIC_WEIGHTS['default']) ?? { lstm: 0.4, rf: 0.3, xgb: 0.3 };
+    : STATIC_WEIGHTS["default"]) ?? { lstm: 0.4, rf: 0.3, xgb: 0.3 };
 
   logger.debug(
     "MlEnsemble",
@@ -103,12 +103,16 @@ export async function ensemblePredict(
 
   let calibrationMethod: CalibrationMethod | null = null;
   try {
-    const calibrationCurves = await (dbMlAnalyticsStorage as object as { getCalibrationCurves: (orgId: string, modelId: string | undefined, equipmentId: string, status: string) => Promise<Array<{ method: CalibrationMethod; parameters: unknown }>> }).getCalibrationCurves(
-      orgId,
-      undefined,
-      equipmentId,
-      "active"
-    );
+    const calibrationCurves = await (
+      dbMlAnalyticsStorage as object as {
+        getCalibrationCurves: (
+          orgId: string,
+          modelId: string | undefined,
+          equipmentId: string,
+          status: string
+        ) => Promise<Array<{ method: CalibrationMethod; parameters: unknown }>>;
+      }
+    ).getCalibrationCurves(orgId, undefined, equipmentId, "active");
 
     const latestCurve = calibrationCurves[0];
     if (latestCurve) {

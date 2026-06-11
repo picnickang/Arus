@@ -90,9 +90,7 @@ export function deriveSafetyStatus(rows: RawSafetyBulletin[]): SafetyStatusSlot 
     return { level: "good", label: "Good", activeCount: 0 };
   }
 
-  const hasCritical = active.some(
-    (r) => (r.severity ?? "").toLowerCase() === "critical",
-  );
+  const hasCritical = active.some((r) => (r.severity ?? "").toLowerCase() === "critical");
 
   return hasCritical
     ? { level: "critical", label: "Action required", activeCount: active.length }
@@ -142,7 +140,7 @@ const MINUTES_PER_DAY = 24 * 60;
 export function deriveShiftStatus(
   now: Date,
   templates: RawShiftTemplate[] = [],
-  vesselId?: string,
+  vesselId?: string
 ): ShiftStatusSlot {
   const dateLabel = now.toLocaleDateString(undefined, {
     weekday: "short",
@@ -159,7 +157,7 @@ export function deriveShiftStatus(
     }))
     .filter(
       (t): t is { startMin: number; endMin: number; vesselId: string | null } =>
-        t.startMin !== null && t.endMin !== null && t.startMin !== t.endMin,
+        t.startMin !== null && t.endMin !== null && t.startMin !== t.endMin
     );
 
   // Prefer windows bound to the user's vessel (plus org-wide windows
@@ -170,44 +168,36 @@ export function deriveShiftStatus(
     : parsed;
   const usable = scoped.length > 0 ? scoped : parsed;
 
-  if (usable.length === 0) {
+  const [firstUsable] = usable;
+  if (!firstUsable) {
     return buildShiftSlot(
       minutesIntoDay,
       DEFAULT_SHIFT_START_MIN,
       DEFAULT_SHIFT_END_MIN,
       dateLabel,
-      "fallback",
+      "fallback"
     );
   }
 
   // A window the user is currently inside wins; otherwise show the
   // first configured window as the next/most-recent shift.
-  const active = usable.find((t) =>
-    isWithinShift(minutesIntoDay, t.startMin, t.endMin),
-  );
-  const chosen = active ?? usable[0];
-  return buildShiftSlot(
-    minutesIntoDay,
-    chosen.startMin,
-    chosen.endMin,
-    dateLabel,
-    "configured",
-  );
+  const active = usable.find((t) => isWithinShift(minutesIntoDay, t.startMin, t.endMin));
+  const chosen = active ?? firstUsable;
+  return buildShiftSlot(minutesIntoDay, chosen.startMin, chosen.endMin, dateLabel, "configured");
 }
 
 /** Parse "HH:MM" (or "H:MM", "HHMM") into minutes-into-day, or null. */
 function parseClockToMinutes(raw: string | null | undefined): number | null {
-  if (!raw) {return null;}
+  if (!raw) {
+    return null;
+  }
   const match = raw.match(/(\d{1,2})\s*:?\s*(\d{2})/);
-  if (!match) {return null;}
+  if (!match) {
+    return null;
+  }
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-  if (
-    Number.isNaN(hours) ||
-    Number.isNaN(minutes) ||
-    hours > 23 ||
-    minutes > 59
-  ) {
+  if (Number.isNaN(hours) || Number.isNaN(minutes) || hours > 23 || minutes > 59) {
     return null;
   }
   return hours * 60 + minutes;
@@ -219,16 +209,12 @@ function pad2(value: number): string {
 
 function formatWindow(startMin: number, endMin: number): string {
   return `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)} – ${pad2(
-    Math.floor(endMin / 60),
+    Math.floor(endMin / 60)
   )}:${pad2(endMin % 60)}`;
 }
 
 /** True when `minutesIntoDay` is inside [start, end), handling overnight. */
-function isWithinShift(
-  minutesIntoDay: number,
-  startMin: number,
-  endMin: number,
-): boolean {
+function isWithinShift(minutesIntoDay: number, startMin: number, endMin: number): boolean {
   if (endMin > startMin) {
     return minutesIntoDay >= startMin && minutesIntoDay < endMin;
   }
@@ -241,11 +227,10 @@ function buildShiftSlot(
   startMin: number,
   endMin: number,
   dateLabel: string,
-  source: ShiftStatusSource,
+  source: ShiftStatusSource
 ): ShiftStatusSlot {
   const windowLabel = formatWindow(startMin, endMin);
-  const total =
-    endMin > startMin ? endMin - startMin : MINUTES_PER_DAY - startMin + endMin;
+  const total = endMin > startMin ? endMin - startMin : MINUTES_PER_DAY - startMin + endMin;
 
   if (!isWithinShift(minutesIntoDay, startMin, endMin)) {
     return {
@@ -300,8 +285,11 @@ export function deriveAssignedSummary(rows: RawWorkOrder[]): AssignedSummary {
   let cancelled = 0;
   for (const r of rows) {
     const s = (r.status ?? "").trim().toLowerCase();
-    if (COMPLETED_STATUSES.has(s)) {completed += 1;}
-    else if (CANCELLED_STATUSES.has(s)) {cancelled += 1;}
+    if (COMPLETED_STATUSES.has(s)) {
+      completed += 1;
+    } else if (CANCELLED_STATUSES.has(s)) {
+      cancelled += 1;
+    }
   }
   const active = Math.max(0, rows.length - completed - cancelled);
   const total = active + completed;
@@ -319,11 +307,7 @@ export function deriveAssignedSummary(rows: RawWorkOrder[]): AssignedSummary {
  * boundary logic is unit-testable.
  */
 export function deriveMyTasks(rows: RawWorkOrder[], now: Date): MyTaskSlot[] {
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  ).getTime();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
   return rows.slice(0, 5).map<MyTaskSlot>((r) => ({
@@ -339,19 +323,25 @@ export function deriveMyTasks(rows: RawWorkOrder[], now: Date): MyTaskSlot[] {
 function dayPillFor(
   dueDate: string | null | undefined,
   startOfToday: number,
-  oneDay: number,
+  oneDay: number
 ): TaskDayPill {
-  if (!dueDate) {return null;}
+  if (!dueDate) {
+    return null;
+  }
   const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) {return null;}
-  const startOfDue = new Date(
-    due.getFullYear(),
-    due.getMonth(),
-    due.getDate(),
-  ).getTime();
+  if (Number.isNaN(due.getTime())) {
+    return null;
+  }
+  const startOfDue = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
   const diffDays = Math.round((startOfDue - startOfToday) / oneDay);
-  if (diffDays < 0) {return "overdue";}
-  if (diffDays === 0) {return "today";}
-  if (diffDays === 1) {return "tomorrow";}
+  if (diffDays < 0) {
+    return "overdue";
+  }
+  if (diffDays === 0) {
+    return "today";
+  }
+  if (diffDays === 1) {
+    return "tomorrow";
+  }
   return null;
 }

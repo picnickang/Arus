@@ -10,7 +10,7 @@ import type { LineageRecord, LineageDelta, ModelFamily, DeploymentStage } from "
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Governance:Lineage");
 
-const LINEAGE_FILE = process.env['LINEAGE_FILE'] ?? "./checkpoints/lineage.jsonl";
+const LINEAGE_FILE = process.env["LINEAGE_FILE"] ?? "./checkpoints/lineage.jsonl";
 
 /**
  * Compute SHA-256 hash of a file
@@ -69,7 +69,9 @@ export async function recordTraining(
   };
 
   await appendLineage(record);
-  logger.info(`[Lineage] Recorded training for model ${record.modelId} (${record.family}/${record.profile})`);
+  logger.info(
+    `[Lineage] Recorded training for model ${record.modelId} (${record.family}/${record.profile})`
+  );
 
   return record;
 }
@@ -108,7 +110,9 @@ export async function recordPromotion(params: {
   };
 
   await appendLineage(delta);
-  logger.info(`[Lineage] Promoted model ${params.modelId} to ${params.stage} by ${params.promotedBy} (org: ${params.orgId})`);
+  logger.info(
+    `[Lineage] Promoted model ${params.modelId} to ${params.stage} by ${params.promotedBy} (org: ${params.orgId})`
+  );
 }
 
 /**
@@ -125,7 +129,11 @@ export async function getLineageRecords(filters?: {
 }): Promise<LineageRecord[]> {
   try {
     const text = await fs.readFile(LINEAGE_FILE, "utf8");
-    const rows = text.trim().split("\n").filter(Boolean).map((l: string) => JSON.parse(l));
+    const rows = text
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l: string) => JSON.parse(l));
 
     // Separate base records and deltas
     const baseRecords = rows.filter((r: { type?: unknown }) => !r.type) as LineageRecord[];
@@ -144,7 +152,9 @@ export async function getLineageRecords(filters?: {
 
       // SECURITY: Ignore deltas from different organizations (prevent cross-tenant tampering)
       if (delta.orgId !== rec.orgId) {
-        logger.warn(`[Lineage] SECURITY: Ignoring cross-tenant delta for model ${delta.modelId} (delta org: ${delta.orgId}, model org: ${rec.orgId})`);
+        logger.warn(
+          `[Lineage] SECURITY: Ignoring cross-tenant delta for model ${delta.modelId} (delta org: ${delta.orgId}, model org: ${rec.orgId})`
+        );
         return;
       }
 

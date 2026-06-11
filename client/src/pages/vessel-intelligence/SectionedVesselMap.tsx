@@ -62,19 +62,19 @@ function sectionEquipmentItems(
 interface SectionedVesselMapProps {
   sectionMap: VesselSectionMapDefinition;
   selectedSectionKey: string;
-  baseImageUrl?: string;
+  baseImageUrl?: string | undefined;
   vesselId?: string;
   mapId?: string;
   canEditImageTransform?: boolean;
   vesselEquipment?: EquipmentRecord[];
-  manageAssignmentsHref?: string;
+  manageAssignmentsHref?: string | undefined;
   onSelectSection: (sectionKey: string) => void;
 }
 
 interface VesselSectionOverlayProps {
   sectionMap: VesselSectionMapDefinition;
   selectedSectionKey?: string;
-  baseImageUrl?: string;
+  baseImageUrl?: string | undefined;
   baseImageScaleX?: number;
   baseImageScaleY?: number;
   baseImageOffsetX?: number;

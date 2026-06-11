@@ -174,9 +174,7 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
   // for the "Today's Overview" completion tile. Kept separate from the
   // open-only `workOrders` read above so the "Assigned Tasks" list still
   // shows only actionable (open) items while the % reflects real progress.
-  const { data: allAssigned, isLoading: allAssignedLoading } = useQuery<
-    RawWorkOrderRow[]
-  >({
+  const { data: allAssigned, isLoading: allAssignedLoading } = useQuery<RawWorkOrderRow[]>({
     queryKey: ["/api/work-orders", { assignedToMe: "true" }],
     refetchInterval: 60000,
   });
@@ -192,43 +190,34 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
   });
 
   const currentVessel = useMemo<CurrentVesselSlot | undefined>(() => {
-    if (!Array.isArray(vessels) || vessels.length === 0) {return undefined;}
+    if (!Array.isArray(vessels)) {
+      return undefined;
+    }
     const first = vessels[0];
+    if (!first) {
+      return undefined;
+    }
     return { id: first.id, name: first.name, imo: first.imo ?? undefined };
   }, [vessels]);
 
-  const alertRows = useMemo(
-    () => (Array.isArray(alerts) ? alerts : []),
-    [alerts],
-  );
+  const alertRows = useMemo(() => (Array.isArray(alerts) ? alerts : []), [alerts]);
 
-  const { activeAlerts } = useMemo(
-    () => deriveAlertSlots(alertRows),
-    [alertRows],
-  );
+  const { activeAlerts } = useMemo(() => deriveAlertSlots(alertRows), [alertRows]);
 
-  const bulletinRows = useMemo(
-    () => (Array.isArray(bulletins) ? bulletins : []),
-    [bulletins],
-  );
+  const bulletinRows = useMemo(() => (Array.isArray(bulletins) ? bulletins : []), [bulletins]);
 
-  const safetyNotices = useMemo(
-    () => deriveSafetyNotices(bulletinRows),
-    [bulletinRows],
-  );
+  const safetyNotices = useMemo(() => deriveSafetyNotices(bulletinRows), [bulletinRows]);
 
-  const safetyStatus = useMemo(
-    () => deriveSafetyStatus(bulletinRows),
-    [bulletinRows],
-  );
+  const safetyStatus = useMemo(() => deriveSafetyStatus(bulletinRows), [bulletinRows]);
 
   const upcomingMaintenance = useMemo<UpcomingMaintenanceSlot[]>(() => {
-    if (!Array.isArray(maintenance)) {return [];}
+    if (!Array.isArray(maintenance)) {
+      return [];
+    }
     return maintenance.slice(0, 4).map((m) => ({
       id: m.id,
       title: m.title,
-      scheduledDate:
-        m.scheduledDate instanceof Date ? m.scheduledDate : new Date(m.scheduledDate),
+      scheduledDate: m.scheduledDate instanceof Date ? m.scheduledDate : new Date(m.scheduledDate),
       priority: m.priority,
     }));
   }, [maintenance]);
@@ -246,28 +235,24 @@ export function useUserDashboardViewModel(): UserDashboardViewModel {
       deriveShiftStatus(
         now,
         Array.isArray(shiftTemplates) ? shiftTemplates : [],
-        currentVessel?.id,
+        currentVessel?.id
       ),
-    [now, shiftTemplates, currentVessel?.id],
+    [now, shiftTemplates, currentVessel?.id]
   );
 
   const myTasks = useMemo<MyTaskSlot[]>(
     () => deriveMyTasks(Array.isArray(workOrders) ? workOrders : [], now),
-    [workOrders, now],
+    [workOrders, now]
   );
 
   const assignedSummary = useMemo<AssignedSummary>(
     () => deriveAssignedSummary(Array.isArray(allAssigned) ? allAssigned : []),
-    [allAssigned],
+    [allAssigned]
   );
 
   return {
     isLoading:
-      vesselsLoading ||
-      alertsLoading ||
-      tasksLoading ||
-      allAssignedLoading ||
-      maintLoading,
+      vesselsLoading || alertsLoading || tasksLoading || allAssignedLoading || maintLoading,
     currentVessel,
     activeAlerts,
     safetyNotices,

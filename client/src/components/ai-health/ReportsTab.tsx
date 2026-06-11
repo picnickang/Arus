@@ -30,11 +30,7 @@ import {
 } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ReportSummaryCards } from "@/components/ReportSummaryCards";
-import {
-  type ReportType,
-  type AudienceType,
-  useAiInsightsData,
-} from "@/features/ml-ai";
+import { type ReportType, type AudienceType, useAiInsightsData } from "@/features/ml-ai";
 import { formatNumber, formatDate } from "@/lib/formatters";
 
 export default function ReportsTab() {
@@ -123,7 +119,7 @@ export default function ReportsTab() {
                 <SelectContent>
                   {audiences.map((aud) => (
                     <SelectItem key={aud.id} value={aud.id}>
-                      {(typeof aud['name'] === "string" ? aud['name'] : null) ?? aud.label}
+                      {(typeof aud["name"] === "string" ? aud["name"] : null) ?? aud.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -142,7 +138,7 @@ export default function ReportsTab() {
                 <SelectContent>
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
-                      {Boolean(model['recommended']) && (
+                      {Boolean(model["recommended"]) && (
                         <Sparkles className="h-3 w-3 mr-1 inline text-yellow-500" />
                       )}
                       {model.name}
@@ -256,43 +252,45 @@ export default function ReportsTab() {
                               },
                               idx: number
                             ) => (
-                            <Card
-                              key={`scenario-${idx}`}
-                              className="border-l-4"
-                              style={{
-                                borderLeftColor:
-                                  scenario.impact === "critical"
-                                    ? "#ef4444"
-                                    : scenario.impact === "high"
-                                      ? "#f97316"
-                                      : scenario.impact === "medium"
-                                        ? "#eab308"
-                                        : "#3b82f6",
-                              }}
-                            >
-                              <CardContent className="pt-4">
-                                <div className="flex items-start gap-2 mb-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {scenario.impact.toUpperCase()}
-                                  </Badge>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {Math.round(scenario.probability * 100)}% probability
-                                  </Badge>
-                                </div>
-                                <p className="font-medium mb-2 text-sm">{scenario.scenario}</p>
-                                {scenario.recommendations.length > 0 && (
-                                  <ul className="space-y-1 mt-2">
-                                    {scenario.recommendations.map((rec: string, i: number) => (
-                                      <li key={i} className="flex items-start gap-2">
-                                        <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
-                                        <span className="text-xs text-muted-foreground">{rec}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </CardContent>
-                            </Card>
-                          )
+                              <Card
+                                key={`scenario-${idx}`}
+                                className="border-l-4"
+                                style={{
+                                  borderLeftColor:
+                                    scenario.impact === "critical"
+                                      ? "#ef4444"
+                                      : scenario.impact === "high"
+                                        ? "#f97316"
+                                        : scenario.impact === "medium"
+                                          ? "#eab308"
+                                          : "#3b82f6",
+                                }}
+                              >
+                                <CardContent className="pt-4">
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {scenario.impact.toUpperCase()}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {Math.round(scenario.probability * 100)}% probability
+                                    </Badge>
+                                  </div>
+                                  <p className="font-medium mb-2 text-sm">{scenario.scenario}</p>
+                                  {scenario.recommendations.length > 0 && (
+                                    <ul className="space-y-1 mt-2">
+                                      {scenario.recommendations.map((rec: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-2">
+                                          <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {rec}
+                                          </span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            )
                           )}
                         </div>
                       </CollapsibleContent>
@@ -378,22 +376,23 @@ export default function ReportsTab() {
                               citation: { relevance: number; source: string; snippet: string },
                               idx: number
                             ) => (
-                            <Card key={`citation-${idx}`}>
-                              <CardContent className="pt-3 pb-3">
-                                <div className="flex items-start gap-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {Math.round(citation.relevance * 100)}%
-                                  </Badge>
-                                  <div className="flex-1">
-                                    <p className="font-medium text-xs mb-1">{citation.source}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {citation.snippet}
-                                    </p>
+                              <Card key={`citation-${idx}`}>
+                                <CardContent className="pt-3 pb-3">
+                                  <div className="flex items-start gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {Math.round(citation.relevance * 100)}%
+                                    </Badge>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-xs mb-1">{citation.source}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {citation.snippet}
+                                      </p>
+                                    </div>
                                   </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                                </CardContent>
+                              </Card>
+                            )
+                          )}
                         </div>
                       </CollapsibleContent>
                     </Collapsible>

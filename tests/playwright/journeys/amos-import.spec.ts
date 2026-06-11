@@ -16,19 +16,16 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("AMOS import journey (UI)", () => {
-  test.fixme(
-    "uploads the valid fixture and confirms the preview matches",
-    async ({ page }) => {
-      // [LR-3] Requires /admin/import/amos to be reachable in the
-      // simplified-nav admin portal.
+  test.fixme("uploads the valid fixture and confirms the preview matches", async ({ page }) => {
+    // [LR-3] Requires /admin/import/amos to be reachable in the
+    // simplified-nav admin portal.
 
-      await page.goto("/admin/import/amos");
-      await expect(page.getByTestId("page-import-amos")).toBeVisible();
+    await page.goto("/admin/import/amos");
+    await expect(page.getByTestId("page-import-amos")).toBeVisible();
 
-      // setInputFiles → "Preview" → assert imported=5/skipped=0.
-      // Click "Import" → assert success toast + summary card.
+    // setInputFiles → "Preview" → assert imported=5/skipped=0.
+    // Click "Import" → assert success toast + summary card.
 
-      throw new Error("LR-3 /admin/import/amos page not yet on simplified nav");
-    },
-  );
+    throw new Error("LR-3 /admin/import/amos page not yet on simplified nav");
+  });
 });

@@ -138,9 +138,7 @@ export interface IAdminStorage {
     responseTime?: number
   ): Promise<SystemHealthCheck>;
   getFailingHealthChecks(orgId?: string): Promise<SystemHealthCheck[]>;
-  getSystemHealth(
-    orgId?: string
-  ): Promise<{
+  getSystemHealth(orgId?: string): Promise<{
     overall: "healthy" | "warning" | "critical";
     checks: { healthy: number; warning: number; critical: number };
     integrations: { healthy: number; unhealthy: number; unknown: number };

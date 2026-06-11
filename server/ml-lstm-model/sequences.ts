@@ -29,7 +29,9 @@ export function prepareSequences(
       for (let j = i - sequenceLength; j < i; j++) {
         const features: number[] = [];
         for (const featureName of featureNames) {
-          features.push((points[j] as object as { features: Record<string, number> }).features[featureName] ?? 0);
+          features.push(
+            (points[j] as object as { features: Record<string, number> }).features[featureName] ?? 0
+          );
         }
         sequence.push(features);
       }

@@ -45,9 +45,7 @@ describe("UI Align Phase 4 — user-portal page contract", () => {
     homeSrc = await readSrc("client/src/pages/home.tsx");
     // Isolate the UserPortalHome component body — the only place the
     // user-portal cards may legitimately render.
-    const match = homeSrc.match(
-      /function UserPortalHome\([\s\S]*?\n\}\n/,
-    );
+    const match = homeSrc.match(/function UserPortalHome\([\s\S]*?\n\}\n/);
     expect(match).not.toBeNull();
     userBranch = match![0];
   });
@@ -162,21 +160,19 @@ describe("UI Align Phase 4 — view-model derivers", () => {
   it("deriveSafetyStatus reports good / caution / critical from active bulletins", () => {
     expect(deriveSafetyStatus([])).toMatchObject({ level: "good", activeCount: 0 });
     expect(
-      deriveSafetyStatus([{ id: "x", title: "Advisory", severity: "advisory" }]),
+      deriveSafetyStatus([{ id: "x", title: "Advisory", severity: "advisory" }])
     ).toMatchObject({ level: "caution", activeCount: 1 });
     expect(
       deriveSafetyStatus([
         { id: "c", title: "Grounding risk", severity: "critical" },
         { id: "a", title: "Advisory", severity: "advisory" },
-      ]),
+      ])
     ).toMatchObject({ level: "critical", activeCount: 2 });
   });
 
   it("deriveSafetyStatus ignores inactive bulletins", () => {
     expect(
-      deriveSafetyStatus([
-        { id: "old", title: "Expired", severity: "critical", active: false },
-      ]),
+      deriveSafetyStatus([{ id: "old", title: "Expired", severity: "critical", active: false }])
     ).toMatchObject({ level: "good", activeCount: 0 });
   });
 

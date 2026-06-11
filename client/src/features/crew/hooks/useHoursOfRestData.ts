@@ -621,7 +621,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
         description: error instanceof Error ? error.message : "Failed to save rest data",
         variant: "destructive",
       });
-      setResult({ error: ((error instanceof Error ? error.message : String(error))) });
+      setResult({ error: error instanceof Error ? error.message : String(error) });
     }
   }, [isVesselSelected, isCrewSelected, rows, meta, queryClient, toast]);
 
@@ -642,7 +642,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
       });
     } catch (error) {
       toast({ title: "Compliance check failed", variant: "destructive" });
-      setResult({ error: ((error instanceof Error ? error.message : String(error))) });
+      setResult({ error: error instanceof Error ? error.message : String(error) });
     }
   }, [meta, toast]);
 

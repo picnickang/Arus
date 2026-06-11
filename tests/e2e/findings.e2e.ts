@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "@jest/globals";
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
+const BASE_URL = process.env["TEST_BASE_URL"] || "http://localhost:5000";
 
 async function fetchJson(path: string) {
   const res = await fetch(`${BASE_URL}${path}`, {

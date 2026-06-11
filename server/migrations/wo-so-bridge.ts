@@ -12,9 +12,9 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-export async function migrateWorkOrderServiceOrderBridge(
-  db: { execute: (q: SQL<unknown>) => Promise<unknown> }
-) {
+export async function migrateWorkOrderServiceOrderBridge(db: {
+  execute: (q: SQL<unknown>) => Promise<unknown>;
+}) {
   // 1. Add work_order_id column to service_orders if it doesn't exist
   await db.execute(sql`
     DO $$

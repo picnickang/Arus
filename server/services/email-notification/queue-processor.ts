@@ -24,7 +24,7 @@ export async function queueNotification(
 
 export async function processQueueItem(item: NotificationQueueItem): Promise<void> {
   const currentAttempt = (item.attemptCount ?? 0) + 1;
-  const maxAttempts = Number.parseInt(process.env['EMAIL_MAX_RETRIES'] || "3", 10) + 1;
+  const maxAttempts = Number.parseInt(process.env["EMAIL_MAX_RETRIES"] || "3", 10) + 1;
   const retryConfig = emailSender.getRetryConfig();
 
   const result = await emailSender.sendEmail({

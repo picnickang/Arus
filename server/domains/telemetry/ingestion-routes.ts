@@ -46,16 +46,8 @@ export function registerTelemetryIngestionRoutes(
   // protection lands automatically with the route. The middleware is a
   // no-op for the disabled handler (the 503 ships before any rows are
   // written), but the contract is documented at the route definition.
-  app.post(
-    "/api/telemetry/readings",
-    enforceQuota("telemetry_rows_today"),
-    phaseADisabledHandler,
-  );
-  app.post(
-    "/api/telemetry/bulk",
-    enforceQuota("telemetry_rows_today"),
-    phaseADisabledHandler,
-  );
+  app.post("/api/telemetry/readings", enforceQuota("telemetry_rows_today"), phaseADisabledHandler);
+  app.post("/api/telemetry/bulk", enforceQuota("telemetry_rows_today"), phaseADisabledHandler);
 
   logger.info(
     "TelemetryIngestion",

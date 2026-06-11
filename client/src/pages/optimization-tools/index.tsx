@@ -9,15 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Clock,
-  Play,
-  RefreshCw,
-  Search,
-  Settings,
-  Ship,
-  TrendingUp,
-} from "lucide-react";
+import { Clock, Play, RefreshCw, Search, Settings, Ship, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizationData } from "@/features/maintenance";
 import { apiRequest } from "@/lib/queryClient";
@@ -36,7 +28,10 @@ export default function OptimizationTools() {
   const { data: vessels } = useQuery<Array<{ id: string; name: string; active: boolean }>>({
     queryKey: ["/api/vessels"],
     queryFn: async () => {
-      return apiRequest<Array<{ id: string; name: string; active: boolean }>>("GET", "/api/vessels");
+      return apiRequest<Array<{ id: string; name: string; active: boolean }>>(
+        "GET",
+        "/api/vessels"
+      );
     },
   });
   const { data: crew } = useQuery<Array<{ id: string; name: string; active: boolean }>>({

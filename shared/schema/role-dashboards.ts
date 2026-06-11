@@ -49,7 +49,7 @@ export const roleDashboardConfigs = pgTable(
   (table) => ({
     orgRoleUnique: unique("uq_role_dashboard_org_role").on(table.orgId, table.roleId),
     orgIdx: index("idx_role_dashboard_org").on(table.orgId),
-  }),
+  })
 );
 
 export const userVesselAssignments = pgTable(
@@ -73,7 +73,7 @@ export const userVesselAssignments = pgTable(
   (table) => ({
     orgUserVesselUnique: unique("uq_user_vessel").on(table.orgId, table.userId, table.vesselId),
     orgUserIdx: index("idx_user_vessel_org_user").on(table.orgId, table.userId),
-  }),
+  })
 );
 
 /**
@@ -98,7 +98,7 @@ export const userDashboardPreferences = pgTable(
   (table) => ({
     orgUserUnique: unique("uq_user_dashboard_prefs").on(table.orgId, table.userId),
     orgUserIdx: index("idx_user_dashboard_prefs_org_user").on(table.orgId, table.userId),
-  }),
+  })
 );
 
 export const insertRoleDashboardConfigSchema = createInsertSchema(roleDashboardConfigs).omit({
@@ -107,7 +107,9 @@ export const insertRoleDashboardConfigSchema = createInsertSchema(roleDashboardC
   updatedAt: true,
 });
 
-export const insertUserDashboardPreferenceSchema = createInsertSchema(userDashboardPreferences).omit({
+export const insertUserDashboardPreferenceSchema = createInsertSchema(
+  userDashboardPreferences
+).omit({
   id: true,
   updatedAt: true,
 });

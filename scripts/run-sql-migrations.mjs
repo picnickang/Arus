@@ -39,9 +39,7 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const MIGRATIONS_DIR =
-  process.env.ARUS_MIGRATIONS_DIR ??
-  path.resolve(process.cwd(), "migrations");
+const MIGRATIONS_DIR = process.env.ARUS_MIGRATIONS_DIR ?? path.resolve(process.cwd(), "migrations");
 
 const TRACKER_DDL = `
   CREATE TABLE IF NOT EXISTS arus_migrations (
@@ -56,10 +54,7 @@ function listUpMigrations() {
   }
   return fs
     .readdirSync(MIGRATIONS_DIR)
-    .filter(
-      (f) =>
-        /^\d{4}_.*\.sql$/.test(f) && !f.endsWith(".down.sql"),
-    )
+    .filter((f) => /^\d{4}_.*\.sql$/.test(f) && !f.endsWith(".down.sql"))
     .sort();
 }
 
@@ -94,9 +89,7 @@ async function withAdvisoryLock(pool, fn) {
 }
 
 async function appliedSet(pool) {
-  const { rows } = await pool.query(
-    "SELECT filename FROM arus_migrations",
-  );
+  const { rows } = await pool.query("SELECT filename FROM arus_migrations");
   return new Set(rows.map((r) => r.filename));
 }
 
@@ -108,7 +101,7 @@ async function applyOne(pool, filename) {
     await client.query(sql);
     await client.query(
       "INSERT INTO arus_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING",
-      [filename],
+      [filename]
     );
     await client.query("COMMIT");
   } catch (err) {
@@ -125,7 +118,7 @@ async function revertOne(pool, filename) {
   if (!fs.existsSync(downPath)) {
     throw new Error(
       `Missing reverse migration: ${down} (required to revert ${filename}). ` +
-        `Every migration must ship with a matching .down.sql — see LR-1A.`,
+        `Every migration must ship with a matching .down.sql — see LR-1A.`
     );
   }
   const sql = fs.readFileSync(downPath, "utf8");
@@ -133,9 +126,7 @@ async function revertOne(pool, filename) {
   try {
     await client.query("BEGIN");
     await client.query(sql);
-    await client.query("DELETE FROM arus_migrations WHERE filename = $1", [
-      filename,
-    ]);
+    await client.query("DELETE FROM arus_migrations WHERE filename = $1", [filename]);
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
@@ -164,7 +155,7 @@ async function cmdDown(pool, count) {
   await ensureTracker(pool);
   const { rows } = await pool.query(
     "SELECT filename FROM arus_migrations ORDER BY applied_at DESC, filename DESC LIMIT $1",
-    [count],
+    [count]
   );
   if (rows.length === 0) {
     console.log("[arus-migrate down] nothing to revert");
@@ -183,7 +174,9 @@ async function cmdStatus(pool) {
   const all = listUpMigrations();
   const pending = all.filter((f) => !applied.has(f));
   const last = [...applied].sort().pop() ?? "(none)";
-  console.log(`[arus-migrate status] applied=${applied.size} pending=${pending.length} last=${last}`);
+  console.log(
+    `[arus-migrate status] applied=${applied.size} pending=${pending.length} last=${last}`
+  );
   if (pending.length > 0) {
     console.log("[arus-migrate status] pending:");
     for (const f of pending) console.log(`  - ${f}`);

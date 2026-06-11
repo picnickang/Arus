@@ -6,8 +6,11 @@ import {
 } from "@shared/schema-runtime";
 import { maintenanceService } from "../service";
 import { stripUndefined } from "../../../lib/strip-undefined";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -117,7 +120,9 @@ export function registerMaintenanceRoutes(
     withErrorHandling("update maintenance schedule", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      const scheduleData = stripUndefined(insertMaintenanceScheduleSchema.partial().parse(req.body));
+      const scheduleData = stripUndefined(
+        insertMaintenanceScheduleSchema.partial().parse(req.body)
+      );
       const schedule = await maintenanceService.updateSchedule(
         id,
         scheduleData,
@@ -136,11 +141,7 @@ export function registerMaintenanceRoutes(
     withErrorHandling("delete maintenance schedule", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      await maintenanceService.deleteSchedule(
-        id,
-        orgId,
-        authenticatedRequest(req).user?.id
-      );
+      await maintenanceService.deleteSchedule(id, orgId, authenticatedRequest(req).user?.id);
       sendDeleted(res);
     })
   );
@@ -236,7 +237,9 @@ export function registerMaintenanceRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      const templateData = stripUndefined(insertMaintenanceTemplateSchema.partial().parse(req.body));
+      const templateData = stripUndefined(
+        insertMaintenanceTemplateSchema.partial().parse(req.body)
+      );
       const template = await maintenanceService.updateTemplate(
         id,
         templateData,
@@ -256,11 +259,7 @@ export function registerMaintenanceRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
 
-      await maintenanceService.deleteTemplate(
-        id,
-        orgId,
-        authenticatedRequest(req).user?.id
-      );
+      await maintenanceService.deleteTemplate(id, orgId, authenticatedRequest(req).user?.id);
       sendDeleted(res);
     })
   );

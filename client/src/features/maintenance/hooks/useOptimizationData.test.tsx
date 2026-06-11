@@ -37,7 +37,12 @@ function useDashboardHandlers() {
       ])
     ),
     http.get("/api/equipment/:id/rul", () =>
-      HttpResponse.json({ riskLevel: "low", remainingDays: 120, healthIndex: 0.9, failureProbability: 0.05 })
+      HttpResponse.json({
+        riskLevel: "low",
+        remainingDays: 120,
+        healthIndex: 0.9,
+        failureProbability: 0.05,
+      })
     )
   );
   return () => dashboardRequests;

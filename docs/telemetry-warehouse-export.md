@@ -5,6 +5,7 @@ produced by the ARUS backend (Task #95). Use it to wire external tables
 in BigQuery, Athena, or Snowflake against the export bucket.
 
 Source code:
+
 - `server/services/telemetry-warehouse-export/parquet-exporter.ts` (schema + writer)
 - `server/services/telemetry-warehouse-export/storage-config.ts` (partition layout)
 - `server/services/telemetry-warehouse-export/manifest.ts` (per-org manifest)
@@ -37,6 +38,7 @@ The export lives under the app's Replit App Storage private prefix
 ```
 
 Notes:
+
 - `orgId` and `date` use Hive-style partition keys (`key=value`), so
   every major engine (Athena, BigQuery, Spark, DuckDB) can auto-detect
   partitions when pointed at `…/telemetry-warehouse/`.
@@ -55,23 +57,23 @@ Mirrors the columns the data team needs from `telemetry_aggregated`.
 Treat this as a stable contract: any change is a breaking bump for
 external tables.
 
-| Column         | Parquet type        | Nullable | Notes                                              |
-| -------------- | ------------------- | -------- | -------------------------------------------------- |
-| `org_id`       | `UTF8`              | no       | Same as the partition `orgId`.                     |
-| `equipment_id` | `UTF8`              | no       |                                                    |
-| `sensor_type`  | `UTF8`              | no       |                                                    |
-| `bucket_start` | `TIMESTAMP_MILLIS`  | no       | UTC, hour-aligned.                                 |
-| `bucket_size`  | `UTF8`              | no       | Always `"1_hour"` in this dataset.                 |
-| `count`        | `INT64`             | no       | Number of raw readings in the bucket.              |
-| `min_value`    | `DOUBLE`            | yes      |                                                    |
-| `max_value`    | `DOUBLE`            | yes      |                                                    |
-| `avg_value`    | `DOUBLE`            | yes      |                                                    |
-| `stddev_value` | `DOUBLE`            | yes      |                                                    |
-| `p50_value`    | `DOUBLE`            | yes      |                                                    |
-| `p95_value`    | `DOUBLE`            | yes      |                                                    |
-| `p99_value`    | `DOUBLE`            | yes      |                                                    |
-| `first_value`  | `DOUBLE`            | yes      |                                                    |
-| `last_value`   | `DOUBLE`            | yes      |                                                    |
+| Column         | Parquet type       | Nullable | Notes                                 |
+| -------------- | ------------------ | -------- | ------------------------------------- |
+| `org_id`       | `UTF8`             | no       | Same as the partition `orgId`.        |
+| `equipment_id` | `UTF8`             | no       |                                       |
+| `sensor_type`  | `UTF8`             | no       |                                       |
+| `bucket_start` | `TIMESTAMP_MILLIS` | no       | UTC, hour-aligned.                    |
+| `bucket_size`  | `UTF8`             | no       | Always `"1_hour"` in this dataset.    |
+| `count`        | `INT64`            | no       | Number of raw readings in the bucket. |
+| `min_value`    | `DOUBLE`           | yes      |                                       |
+| `max_value`    | `DOUBLE`           | yes      |                                       |
+| `avg_value`    | `DOUBLE`           | yes      |                                       |
+| `stddev_value` | `DOUBLE`           | yes      |                                       |
+| `p50_value`    | `DOUBLE`           | yes      |                                       |
+| `p95_value`    | `DOUBLE`           | yes      |                                       |
+| `p99_value`    | `DOUBLE`           | yes      |                                       |
+| `first_value`  | `DOUBLE`           | yes      |                                       |
+| `last_value`   | `DOUBLE`           | yes      |                                       |
 
 Per-object metadata (set on the storage object, not inside Parquet):
 
@@ -105,6 +107,7 @@ Shape:
 ```
 
 Properties:
+
 - `exports` is sorted by `date` descending (most recent first).
 - Re-running an export for a date replaces the existing entry in place
   (no duplicates).
@@ -138,13 +141,16 @@ Shape:
       "bytesExported": 1572864,
       "retentionDeleted": 0,
       "durationMs": 18342,
-      "perOrg": [ /* WarehouseExportRunSummary[] */ ]
+      "perOrg": [
+        /* WarehouseExportRunSummary[] */
+      ]
     }
   ]
 }
 ```
 
 Properties:
+
 - Capped at the last 14 run summaries (overwritten in place after every
   run, including the no-op summary written when org enumeration fails).
 - Powers the "Recent runs" table on `/admin/telemetry-warehouse` and

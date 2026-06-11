@@ -1,50 +1,57 @@
 # Database Transaction Audit
-*Last Updated: October 12, 2025*
+
+_Last Updated: October 12, 2025_
 
 ## Executive Summary
+
 This audit identifies all database write operations and categorizes them by transaction requirements to prevent race conditions and data inconsistency.
 
 ## Critical Operations Requiring Transactions ⚠️
 
 ### 1. Inventory Management (HIGH PRIORITY)
+
 **Status: ✅ FIXED**
 
-| Operation | Location | Transaction Status | Notes |
-|-----------|----------|-------------------|-------|
-| `addBulkPartsToWorkOrder` | storage.ts:9430-9554 | ✅ Wrapped in transaction | Fixed Oct 11, 2025 - Atomic inventory reservation + work order update |
-| `addPartToWorkOrder` | storage.ts:9336-9365 | ✅ Uses atomic SQL | Uses `SET quantityReserved = quantityReserved + X` with WHERE condition |
-| `returnPartFromWorkOrder` | storage.ts:9367-9392 | ✅ Uses atomic SQL | Atomically decreases reservation |
+| Operation                 | Location             | Transaction Status        | Notes                                                                   |
+| ------------------------- | -------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| `addBulkPartsToWorkOrder` | storage.ts:9430-9554 | ✅ Wrapped in transaction | Fixed Oct 11, 2025 - Atomic inventory reservation + work order update   |
+| `addPartToWorkOrder`      | storage.ts:9336-9365 | ✅ Uses atomic SQL        | Uses `SET quantityReserved = quantityReserved + X` with WHERE condition |
+| `returnPartFromWorkOrder` | storage.ts:9367-9392 | ✅ Uses atomic SQL        | Atomically decreases reservation                                        |
 
 **Risk Assessment:** LOW - All inventory operations now atomic
 
 ### 2. Financial Operations (MEDIUM PRIORITY)
+
 **Status: ⚠️ NEEDS REVIEW**
 
-| Operation | Location | Transaction Status | Notes |
-|-----------|----------|-------------------|-------|
-| `createMaintenanceCost` | storage.ts:2937 | ❌ No transaction | Single insert - low risk but should log failures |
-| `createExpense` | storage.ts:3097 | ❌ No transaction | Single insert - low risk |
-| `updateWorkOrder` (cost fields) | storage.ts:1952 | ❌ No transaction | Could race with cost calculations |
+| Operation                       | Location        | Transaction Status | Notes                                            |
+| ------------------------------- | --------------- | ------------------ | ------------------------------------------------ |
+| `createMaintenanceCost`         | storage.ts:2937 | ❌ No transaction  | Single insert - low risk but should log failures |
+| `createExpense`                 | storage.ts:3097 | ❌ No transaction  | Single insert - low risk                         |
+| `updateWorkOrder` (cost fields) | storage.ts:1952 | ❌ No transaction  | Could race with cost calculations                |
 
 **Risk Assessment:** MEDIUM - Single inserts are generally safe, but cost updates could race
 
-**Recommendation:** 
+**Recommendation:**
+
 - Add transaction for operations that update multiple cost-related tables
 - Consider using database constraints for cost validation
 
 ### 3. Work Order State Changes (MEDIUM PRIORITY)
+
 **Status: ✅ FIXED**
 
-| Operation | Location | Transaction Status | Notes |
-|-----------|----------|-------------------|-------|
-| `updateWorkOrder` | storage.ts:6184-6308 | ✅ Wrapped in transaction | Fixed Oct 12, 2025 - Atomic status changes with downtime tracking |
-| `closeWorkOrder` | storage.ts:6310-6420 | ✅ Wrapped in transaction | Fixed Oct 12, 2025 - Atomic close + inventory release + worklog creation |
-| `createWorkOrderWorklog` | storage.ts:3641 | ✅ Integrated | Now created atomically within closeWorkOrder transaction |
-| `createWorkOrderChecklist` | storage.ts:3601 | ❌ No transaction | Standalone - OK |
+| Operation                  | Location             | Transaction Status        | Notes                                                                    |
+| -------------------------- | -------------------- | ------------------------- | ------------------------------------------------------------------------ |
+| `updateWorkOrder`          | storage.ts:6184-6308 | ✅ Wrapped in transaction | Fixed Oct 12, 2025 - Atomic status changes with downtime tracking        |
+| `closeWorkOrder`           | storage.ts:6310-6420 | ✅ Wrapped in transaction | Fixed Oct 12, 2025 - Atomic close + inventory release + worklog creation |
+| `createWorkOrderWorklog`   | storage.ts:3641      | ✅ Integrated             | Now created atomically within closeWorkOrder transaction                 |
+| `createWorkOrderChecklist` | storage.ts:3601      | ❌ No transaction         | Standalone - OK                                                          |
 
 **Risk Assessment:** LOW - All critical state changes now atomic
 
 **Implementation Details:**
+
 - **updateWorkOrder()**: Full transaction with status validation, downtime tracking, and conflict detection
 - **closeWorkOrder()**: Atomic lifecycle with row-level locking (FOR UPDATE) following consistent lock order (parts_inventory → work_orders → work_order_parts) to prevent deadlocks
 - **Post-release invariant check**: Detects concurrent part additions during close, aborts transaction if snapshot changed
@@ -52,6 +59,7 @@ This audit identifies all database write operations and categorizes them by tran
 ## Operations That DON'T Need Transactions ✅
 
 ### Logging & Audit Operations (Safe as standalone)
+
 - `createPdmScore` (storage.ts:1875) - Analytics logging
 - `logComplianceAction` (storage.ts:2366) - Audit trail
 - `createAdminAuditEvent` (storage.ts:8187) - Admin logging
@@ -62,6 +70,7 @@ This audit identifies all database write operations and categorizes them by tran
 **Reasoning:** These are write-once, append-only operations. If they fail, retry logic handles it. No risk of inconsistency.
 
 ### Configuration & Reference Data (Safe as standalone)
+
 - `createOperatingParameter` (storage.ts:977) - Configuration
 - `createMaintenanceTemplate` (storage.ts:1010) - Templates
 - `createSkill` (storage.ts:6681) - Reference data
@@ -70,6 +79,7 @@ This audit identifies all database write operations and categorizes them by tran
 **Reasoning:** Single-table inserts with no cross-table dependencies. Idempotent operations.
 
 ### User & Organization Management (Safe as standalone)
+
 - `updateUser` (storage.ts:1770) - User profile updates
 - `updateOrganization` (storage.ts:1717) - Org settings
 - `createVessel` (storage.ts:7155) - Vessel registration
@@ -90,15 +100,16 @@ Critical operations with transactions: 3 (100%)
 
 ### Status: ALL CRITICAL QUERIES FIXED
 
-| Query Type | Missing JOINs | Status |
-|------------|---------------|--------|
-| Equipment Registry | ✅ FIXED | Now uses LEFT JOIN to vessels table (storage.ts:9669-9680) |
-| Work Order Parts | ✅ FIXED | Now uses LEFT JOIN to parts_inventory (storage.ts:9280-9326) |
-| All other queries | ✅ VERIFIED | All queries use appropriate JOINs |
+| Query Type         | Missing JOINs | Status                                                       |
+| ------------------ | ------------- | ------------------------------------------------------------ |
+| Equipment Registry | ✅ FIXED      | Now uses LEFT JOIN to vessels table (storage.ts:9669-9680)   |
+| Work Order Parts   | ✅ FIXED      | Now uses LEFT JOIN to parts_inventory (storage.ts:9280-9326) |
+| All other queries  | ✅ VERIFIED   | All queries use appropriate JOINs                            |
 
 ## Action Items
 
 ### Immediate (Critical - This Sprint)
+
 1. ✅ ~~Fix inventory atomic operations~~ - COMPLETED Oct 11, 2025
 2. ✅ ~~Fix equipment registry vessel names~~ - COMPLETED Oct 11, 2025
 3. ✅ ~~Fix work order parts display~~ - COMPLETED Oct 11, 2025
@@ -107,6 +118,7 @@ Critical operations with transactions: 3 (100%)
 6. ✅ ~~Audit all database writes~~ - COMPLETED Oct 12, 2025
 
 ### Short Term (Sprint 2) - ✅ COMPLETED Oct 12, 2025
+
 **Owner:** Agent | **Completed:** Oct 12, 2025 | **Priority:** MEDIUM
 
 1. ✅ **COMPLETED**: Review work order status change atomicity
@@ -144,11 +156,12 @@ Critical operations with transactions: 3 (100%)
    - **Result:** Comprehensive documentation of transaction patterns, locking strategies, and race condition fixes
 
 ### Long Term (Future Improvements) - BACKLOG
+
 **Status:** No timeline assigned | **Priority:** LOW
 
 1. 📊 Add monitoring for transaction failures
 2. 🔍 Implement distributed tracing for multi-step operations
-3. 🧪 Add load tests for concurrent inventory operations  
+3. 🧪 Add load tests for concurrent inventory operations
 4. 📚 Create runbook for handling transaction deadlocks
 
 **NOTE**: These are aspirational improvements, not committed deliverables.
@@ -156,6 +169,7 @@ Critical operations with transactions: 3 (100%)
 ## Transaction Design Patterns
 
 ### Pattern 1: Inventory Reservation (Current Implementation)
+
 ```typescript
 await db.transaction(async (tx) => {
   // 1. Check and reserve inventory atomically
@@ -166,33 +180,36 @@ await db.transaction(async (tx) => {
       sql`quantityOnHand - quantityReserved >= ${qty}` // Atomic check
     ))
     .returning();
-  
+
   if (!reserved.length) throw new Error("Insufficient stock");
-  
+
   // 2. Create work order part
   await tx.insert(workOrderParts).values({...});
-  
+
   // Transaction commits automatically if no errors
 });
 ```
 
 ### Pattern 2: Status Change with Side Effects (Recommended)
+
 ```typescript
 await db.transaction(async (tx) => {
   // 1. Update status
-  await tx.update(workOrders)
-    .set({ status: 'closed', closedAt: new Date() })
+  await tx
+    .update(workOrders)
+    .set({ status: "closed", closedAt: new Date() })
     .where(eq(workOrders.id, workOrderId));
-  
+
   // 2. Create worklog
   await tx.insert(workOrderWorklogs).values({
     workOrderId,
-    action: 'closed',
-    notes: '...'
+    action: "closed",
+    notes: "...",
   });
-  
+
   // 3. Release reserved inventory
-  await tx.update(partsInventory)
+  await tx
+    .update(partsInventory)
     .set({ quantityReserved: sql`quantityReserved - ${qty}` })
     .where(eq(partsInventory.id, partId));
 });
@@ -207,6 +224,7 @@ await db.transaction(async (tx) => {
 5. **Test under concurrent load** - Race conditions only appear with multiple users
 
 ## References
+
 - [Fixed Atomic Inventory Bug - Oct 11, 2025](../replit.md#bug-fix-session-3)
 - [Drizzle Transaction Docs](https://orm.drizzle.team/docs/transactions)
 - [PostgreSQL ACID Properties](https://www.postgresql.org/docs/current/tutorial-transactions.html)
@@ -248,18 +266,21 @@ await db.transaction(async (tx) => {
 ### Key Technical Decisions:
 
 **Locking Strategy:**
+
 - Use row-level locking (FOR UPDATE) for concurrent safety
 - Always lock in consistent order to prevent deadlocks
 - Lock inventory FIRST, then work orders, then parts
 - Validates post-operation to detect race conditions
 
 **Transaction Patterns:**
+
 - Keep transactions short and focused
 - Lock only what you need
 - Validate constraints at database level where possible
 - Use optimistic locking for UI conflicts, pessimistic for critical paths
 
 ### Testing & Verification:
+
 - ✅ Jest integration test framework configured
 - ✅ Atomic inventory test suite created
 - ✅ Architect review PASSED for all implementations
@@ -267,6 +288,7 @@ await db.transaction(async (tx) => {
 - ⏭️ CI integration recommended for automated regression testing
 
 ### Monitoring Recommendations:
+
 1. Track transaction failure rates in production
 2. Monitor for deadlock occurrences (should be zero now)
 3. Alert on CHECK constraint violations

@@ -37,10 +37,7 @@
  *     the single source of truth for what a role may see.
  */
 
-import {
-  ROLE_STORAGE_KEY,
-  BOTTOM_NAV_OVERRIDE_STORAGE_KEY,
-} from "@/config/roles";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 
 /** Read the persisted role hint, or `null` if absent / storage unavailable. */
 export function readUserRole(): string | null {
@@ -95,10 +92,7 @@ export function readNavOverride(): string[] | null {
   }
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (
-      Array.isArray(parsed) &&
-      parsed.every((v): v is string => typeof v === "string")
-    ) {
+    if (Array.isArray(parsed) && parsed.every((v): v is string => typeof v === "string")) {
       return parsed;
     }
   } catch {
@@ -123,10 +117,7 @@ export function writeNavOverride(ids: readonly string[]): void {
       localStorage.removeItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY);
       return;
     }
-    localStorage.setItem(
-      BOTTOM_NAV_OVERRIDE_STORAGE_KEY,
-      JSON.stringify([...ids]),
-    );
+    localStorage.setItem(BOTTOM_NAV_OVERRIDE_STORAGE_KEY, JSON.stringify([...ids]));
   } catch {
     /* storage unavailable — override is best-effort personalisation */
   }

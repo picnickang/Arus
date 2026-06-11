@@ -15,14 +15,14 @@
  * regressions only surface as 404s in production.
  *
  * Wire into CI as: `node scripts/check-boot-health.mjs`
- * Configure expected count via env: BOOT_EXPECTED_MODULES=111
+ * Configure expected count via env: BOOT_EXPECTED_MODULES=113
  * If DATABASE_URL is absent, the guard boots deterministic embedded mode so
  * route-registration health does not depend on ambient cloud credentials.
  */
 
 import { spawn } from "node:child_process";
 
-const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 111);
+const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 113);
 const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 60_000);
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const deterministicEmbeddedEnv = hasDatabaseUrl

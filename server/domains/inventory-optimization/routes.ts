@@ -33,7 +33,7 @@ export function registerInventoryOptimizationRoutes(
     "/api/parts/:id/sync-costs-legacy",
     writeOperationRateLimit,
     withErrorHandling("sync part costs", async (req, res) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       try {
         await dbInventoryStorage.syncPartCostToStock(id);
         res.json({
@@ -76,11 +76,11 @@ export function registerInventoryOptimizationRoutes(
       return cacheMiddleware({
         ttl: 900,
         keyGenerator: (r: Request) =>
-          `substitutions:${r.params['partNo']}:${authenticatedRequest(r).orgId}`,
+          `substitutions:${r.params["partNo"]}:${authenticatedRequest(r).orgId}`,
       })(req, res, next);
     },
     withErrorHandling("find part substitutions", async (req, res) => {
-      const { partNo = '' } = req.params;
+      const { partNo = "" } = req.params;
       const orgId = authenticatedRequest(req).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");

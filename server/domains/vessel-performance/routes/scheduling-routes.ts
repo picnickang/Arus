@@ -53,14 +53,12 @@ export function registerSchedulingRoutes(
           "OR-Tools crew scheduler not available (native bindings missing), falling back to greedy algorithm",
           error
         );
-        return res
-          .status(200)
-          .json({
-            scheduled: [],
-            unfilled: [],
-            warning:
-              "OR-Tools optimizer not available in this environment. Use the basic crew scheduler endpoint instead.",
-          });
+        return res.status(200).json({
+          scheduled: [],
+          unfilled: [],
+          warning:
+            "OR-Tools optimizer not available in this environment. Use the basic crew scheduler endpoint instead.",
+        });
       }
 
       const scheduleRequest: Parameters<typeof planWithEngine>[0] = {
@@ -107,7 +105,7 @@ export function registerSchedulingRoutes(
                   const restData = await dbStcwStorage.getCrewRestMonth(
                     crewId,
                     year,
-                    String(month),
+                    String(month)
                   );
                   if (restData?.days && restData.days.length > 0) {
                     results.push(...(restData.days as object as RestDay[]));
@@ -140,13 +138,16 @@ export function registerSchedulingRoutes(
               history: unknown[],
               plan: unknown[],
               startDate: string,
-              endDate: string,
+              endDate: string
             ) => RestDay[];
-            const mergedRows = mergeHistoryWithPlanFn(historyRows, crewAssignments, startDate, endDate);
+            const mergedRows = mergeHistoryWithPlanFn(
+              historyRows,
+              crewAssignments,
+              startDate,
+              endDate
+            );
             const crewCompliance = checkMonthCompliance(mergedRows);
-            const summarizeHoRContextFn = summarizeHoRContext as object as (
-              history: unknown[],
-            ) => {
+            const summarizeHoRContextFn = summarizeHoRContext as object as (history: unknown[]) => {
               min_rest_24: number;
               rest_7d: number;
               nights_this_week: number;

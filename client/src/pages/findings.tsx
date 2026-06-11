@@ -62,8 +62,6 @@ interface FindingsResponse {
   total: number;
 }
 
-
-
 function RunOutputDialog({
   item,
   open,
@@ -217,8 +215,13 @@ function OutcomeDialog({
   );
 }
 
-
-function SummaryStrip({ summary, isLoading }: { summary?: FindingsSummary | undefined; isLoading: boolean }) {
+function SummaryStrip({
+  summary,
+  isLoading,
+}: {
+  summary?: FindingsSummary | undefined;
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
       <div
@@ -390,7 +393,6 @@ function FilterBar({
     </div>
   );
 }
-
 
 export default function FindingsPage() {
   const { toast } = useToast();

@@ -9,9 +9,9 @@ import { sniffMimeFamily, pickSafeContentType } from "../../server/objectStorage
 describe("LR-3.5 OBJ-2 — sniffMimeFamily", () => {
   it("recognises JPEG / PNG / PDF / GLB / WebP / ZIP", () => {
     expect(sniffMimeFamily(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
-    expect(
-      sniffMimeFamily(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-    ).toBe("image/png");
+    expect(sniffMimeFamily(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
+      "image/png"
+    );
     expect(sniffMimeFamily(Buffer.from("%PDF-1.7"))).toBe("application/pdf");
     expect(sniffMimeFamily(Buffer.from("glTF\x02\x00\x00\x00"))).toBe("model/gltf-binary");
     const webp = Buffer.alloc(12);
@@ -65,7 +65,9 @@ describe("LR-3.5 OBJ-2 — pickSafeContentType", () => {
 
   it("honours PDF / GLB / DOCX (ZIP family) when sniff agrees", () => {
     expect(pickSafeContentType("application/pdf", "application/pdf").forceAttachment).toBe(false);
-    expect(pickSafeContentType("model/gltf-binary", "model/gltf-binary").forceAttachment).toBe(false);
+    expect(pickSafeContentType("model/gltf-binary", "model/gltf-binary").forceAttachment).toBe(
+      false
+    );
     expect(
       pickSafeContentType(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

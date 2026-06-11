@@ -29,9 +29,7 @@ export function partAndStockToPartsInventory(
   // defaults to 0, so averaging raw values lets a 0-cost stock row mask a real
   // catalog price — fall back to the part's standardCost whenever no stock row
   // carries a usable (> 0) unit cost.
-  const pricedStockCosts = rows
-    .map((r) => r.unitCost ?? 0)
-    .filter((cost) => cost > 0);
+  const pricedStockCosts = rows.map((r) => r.unitCost ?? 0).filter((cost) => cost > 0);
   const avgStockCost =
     pricedStockCosts.length > 0
       ? pricedStockCosts.reduce((sum, cost) => sum + cost, 0) / pricedStockCosts.length
@@ -104,7 +102,9 @@ export class DbPartsStorage {
       .insert(parts)
       .values({ id: randomUUID(), ...partData, createdAt: new Date(), updatedAt: new Date() })
       .returning();
-    if (!newPart) {throw new Error("Failed to create part");}
+    if (!newPart) {
+      throw new Error("Failed to create part");
+    }
     return newPart;
   }
   async updatePart(id: string, updates: Partial<InsertPart>, orgId?: string): Promise<Part> {
@@ -125,9 +125,7 @@ export class DbPartsStorage {
   }
   async deletePart(id: string, orgId?: string): Promise<void> {
     this.validateOrgId(orgId, "deletePart");
-    const partConditions = orgId
-      ? and(eq(parts.id, id), eq(parts.orgId, orgId))
-      : eq(parts.id, id);
+    const partConditions = orgId ? and(eq(parts.id, id), eq(parts.orgId, orgId)) : eq(parts.id, id);
     const stockConditions = orgId
       ? and(eq(stock.partId, id), eq(stock.orgId, orgId))
       : eq(stock.partId, id);
@@ -219,7 +217,9 @@ export class DbPartsStorage {
       })
       .returning();
 
-    if (!newPart) {throw new Error("Failed to create part for inventory");}
+    if (!newPart) {
+      throw new Error("Failed to create part for inventory");
+    }
     const [newStock] = await db
       .insert(stock)
       .values({
@@ -233,7 +233,9 @@ export class DbPartsStorage {
       })
       .returning();
 
-    if (!newStock) {throw new Error("Failed to create stock");}
+    if (!newStock) {
+      throw new Error("Failed to create stock");
+    }
     return partAndStockToPartsInventory(newPart, newStock);
   }
 

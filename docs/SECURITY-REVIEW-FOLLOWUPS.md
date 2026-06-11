@@ -193,10 +193,10 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
 
 - [ ] **Repo settings (owner actions, GitHub UI — not code).**
   - _Required status checks_ on `main`: at minimum `lint-and-typecheck`
-        (runs `check:guards`, closing the ratchet-race hole that let PRs #13/#15
-        merge red), `unit-tests`, `integration-tests`, `build`.
+    (runs `check:guards`, closing the ratchet-race hole that let PRs #13/#15
+    merge red), `unit-tests`, `integration-tests`, `build`.
   - _Dependency graph_ (Settings → Code security) so `dependency-review`
-        stops failing every PR; then flip the gate per the entry below.
+    stops failing every PR; then flip the gate per the entry below.
 
 ## C. Cosmetic
 

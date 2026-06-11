@@ -25,7 +25,13 @@ function summarize(handover: AttentionHandoverSummary, items: AttentionItem[]): 
   ].join("\n");
 }
 
-export function HandoverNotesPanel({ handover, items }: { handover: AttentionHandoverSummary; items: AttentionItem[] }) {
+export function HandoverNotesPanel({
+  handover,
+  items,
+}: {
+  handover: AttentionHandoverSummary;
+  items: AttentionItem[];
+}) {
   const { toast } = useToast();
   const [note, setNote] = useState("");
   const [watchLabel, setWatchLabel] = useState("");
@@ -49,7 +55,11 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored) as { note?: string; watchLabel?: string; savedAt?: string };
+        const parsed = JSON.parse(stored) as {
+          note?: string;
+          watchLabel?: string;
+          savedAt?: string;
+        };
         setNote(parsed.note ?? "");
         setWatchLabel(parsed.watchLabel ?? "");
         setSavedAt(parsed.savedAt ?? null);
@@ -69,19 +79,36 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
         status,
       }),
     onSuccess: (record) => {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ note, watchLabel, savedAt: record.savedAt }));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ note, watchLabel, savedAt: record.savedAt })
+      );
       setSavedAt(record.savedAt);
       queryClient.invalidateQueries({ queryKey: ["/api/attention/handover/latest"] });
-      const label = record.status === "acknowledged" ? "acknowledged" : record.status === "shared" ? "shared" : "saved";
-      toast({ title: `Handover ${label}`, description: "The handover record is saved on the backend and kept locally as a fallback." });
+      const label =
+        record.status === "acknowledged"
+          ? "acknowledged"
+          : record.status === "shared"
+            ? "shared"
+            : "saved";
+      toast({
+        title: `Handover ${label}`,
+        description: "The handover record is saved on the backend and kept locally as a fallback.",
+      });
     },
     onError: (error) => {
       const timestamp = new Date().toISOString();
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ note, watchLabel, savedAt: timestamp }));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ note, watchLabel, savedAt: timestamp })
+      );
       setSavedAt(timestamp);
       toast({
         title: "Saved locally",
-        description: error instanceof Error ? error.message : "Backend handover save failed; local draft was kept.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Backend handover save failed; local draft was kept.",
         variant: "destructive",
       });
     },
@@ -90,7 +117,10 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
   const copySummary = async () => {
     const text = `${generatedSummary}\n\nWatch/shift: ${watchLabel || "Not specified"}\nStatus: ${latestHandover?.status || "draft"}\n\nHandover note:\n${note || "No extra note."}`;
     await navigator.clipboard?.writeText(text);
-    toast({ title: "Briefing copied", description: "The handover briefing is ready to paste into an email, chat, or log note." });
+    toast({
+      title: "Briefing copied",
+      description: "The handover briefing is ready to paste into an email, chat, or log note.",
+    });
   };
 
   return (
@@ -98,7 +128,8 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
       <CardHeader>
         <CardTitle className="text-base">Handover note</CardTitle>
         <CardDescription>
-          Save the watch-change context to the backend so the next watch can recover it across sessions.
+          Save the watch-change context to the backend so the next watch can recover it across
+          sessions.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -115,7 +146,8 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
         />
         {latestHandover?.status && (
           <div className="rounded-md border bg-muted/30 p-3 text-sm">
-            Current handover status: <span className="font-medium capitalize">{latestHandover.status}</span>
+            Current handover status:{" "}
+            <span className="font-medium capitalize">{latestHandover.status}</span>
           </div>
         )}
         <div className="flex flex-wrap gap-2">
@@ -123,11 +155,19 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
             <Save className="h-4 w-4" />
             {saveMutation.isPending ? "Saving..." : "Save draft"}
           </Button>
-          <Button variant="outline" onClick={() => saveMutation.mutate("shared")} disabled={saveMutation.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => saveMutation.mutate("shared")}
+            disabled={saveMutation.isPending}
+          >
             <Send className="h-4 w-4" />
             Share handover
           </Button>
-          <Button variant="secondary" onClick={() => saveMutation.mutate("acknowledged")} disabled={saveMutation.isPending || latestHandover?.status !== "shared"}>
+          <Button
+            variant="secondary"
+            onClick={() => saveMutation.mutate("acknowledged")}
+            disabled={saveMutation.isPending || latestHandover?.status !== "shared"}
+          >
             <CheckCircle2 className="h-4 w-4" />
             Accept incoming watch
           </Button>
@@ -135,7 +175,10 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
             variant="outline"
             onClick={() => {
               setNote((current) => `${current}${current ? "\n" : ""}Clarification requested: `);
-              toast({ title: "Clarification note started", description: "Add the question, then share the handover again." });
+              toast({
+                title: "Clarification note started",
+                description: "Add the question, then share the handover again.",
+              });
             }}
           >
             <MessageSquare className="h-4 w-4" />
@@ -146,7 +189,11 @@ export function HandoverNotesPanel({ handover, items }: { handover: AttentionHan
             Copy briefing
           </Button>
         </div>
-        {savedAt && <p className="text-xs text-muted-foreground">Last saved {new Date(savedAt).toLocaleString()}.</p>}
+        {savedAt && (
+          <p className="text-xs text-muted-foreground">
+            Last saved {new Date(savedAt).toLocaleString()}.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

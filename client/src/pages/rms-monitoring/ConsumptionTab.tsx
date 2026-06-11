@@ -82,24 +82,16 @@ export function ConsumptionTab({
                         {c.hour && format(new Date(c.hour), "dd MMM HH:mm")}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {c.avg_flow_kg_per_h
-                          ? parseFloat(c.avg_flow_kg_per_h).toFixed(1)
-                          : "--"}
+                        {c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {c.main_engine_flow
-                          ? parseFloat(c.main_engine_flow).toFixed(1)
-                          : "--"}
+                        {c.main_engine_flow ? parseFloat(c.main_engine_flow).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {c.port_engine_flow
-                          ? parseFloat(c.port_engine_flow).toFixed(1)
-                          : "--"}
+                        {c.port_engine_flow ? parseFloat(c.port_engine_flow).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {c.stbd_engine_flow
-                          ? parseFloat(c.stbd_engine_flow).toFixed(1)
-                          : "--"}
+                        {c.stbd_engine_flow ? parseFloat(c.stbd_engine_flow).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {c.generator_flow ? parseFloat(c.generator_flow).toFixed(1) : "--"}
@@ -128,9 +120,7 @@ export function ConsumptionTab({
             <TrendingUp className="h-5 w-5 text-amber-600" />
             Daily Summary
           </CardTitle>
-          <CardDescription>
-            Daily consumption, running hours, and voyage data
-          </CardDescription>
+          <CardDescription>Daily consumption, running hours, and voyage data</CardDescription>
         </CardHeader>
         <CardContent>
           {dailyConsumption.length === 0 ? (
@@ -160,14 +150,10 @@ export function ConsumptionTab({
                         {d.day && format(new Date(d.day), "dd MMM yyyy")}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {d.avg_flow_kg_per_h
-                          ? parseFloat(d.avg_flow_kg_per_h).toFixed(1)
-                          : "--"}
+                        {d.avg_flow_kg_per_h ? parseFloat(d.avg_flow_kg_per_h).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {d.estimated_daily_mt
-                          ? parseFloat(d.estimated_daily_mt).toFixed(2)
-                          : "--"}
+                        {d.estimated_daily_mt ? parseFloat(d.estimated_daily_mt).toFixed(2) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {d.running_hours_delta
@@ -175,17 +161,13 @@ export function ConsumptionTab({
                           : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {d.est_distance_nm
-                          ? parseFloat(d.est_distance_nm).toFixed(1)
-                          : "--"}
+                        {d.est_distance_nm ? parseFloat(d.est_distance_nm).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {d.avg_sog ? parseFloat(d.avg_sog).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {d.main_engine_flow
-                          ? parseFloat(d.main_engine_flow).toFixed(1)
-                          : "--"}
+                        {d.main_engine_flow ? parseFloat(d.main_engine_flow).toFixed(1) : "--"}
                       </TableCell>
                       <TableCell className="text-right font-mono">
                         {d.generator_flow ? parseFloat(d.generator_flow).toFixed(1) : "--"}

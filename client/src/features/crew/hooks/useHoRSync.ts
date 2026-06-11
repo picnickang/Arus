@@ -171,8 +171,7 @@ export function useHoRSync(options: UseHoRSyncOptions = {}) {
 
         return response as ProjectionResult;
       } catch (error: unknown) {
-        const message =
-          (error instanceof Error && error.message) || "Failed to project compliance";
+        const message = (error instanceof Error && error.message) || "Failed to project compliance";
         setProjectionError(message);
 
         return {

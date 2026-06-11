@@ -15,14 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
-import {
-  ChevronDown,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Ship,
-  Settings2,
-} from "lucide-react";
+import { ChevronDown, AlertTriangle, CheckCircle, Clock, Ship, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
@@ -35,7 +28,6 @@ import type { SchedulerCrew } from "./scheduling/crew-scheduler-cards";
 import { EnhancedScheduleResultsCard } from "./scheduling/enhanced-schedule-results-card";
 
 export { CREW_CERTIFICATION_TYPES, getCertLabel };
-
 
 export function CrewScheduler() {
   const { toast } = useToast();

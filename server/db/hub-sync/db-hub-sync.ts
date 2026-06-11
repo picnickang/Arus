@@ -220,7 +220,9 @@ export class DatabaseHubSyncStorage {
         set: data,
       })
       .returning();
-    if (!r) {throw new Error("upsertDeviceRegistry: returned no row");}
+    if (!r) {
+      throw new Error("upsertDeviceRegistry: returned no row");
+    }
     return r;
   }
 
@@ -238,7 +240,9 @@ export class DatabaseHubSyncStorage {
 
   async createReplayRequest(data: InsertReplayIncoming): Promise<ReplayIncoming> {
     const [r] = await db.insert(replayIncoming).values(data).returning();
-    if (!r) {throw new Error("createReplayRequest: returned no row");}
+    if (!r) {
+      throw new Error("createReplayRequest: returned no row");
+    }
     return r;
   }
 
@@ -263,11 +267,7 @@ export class DatabaseHubSyncStorage {
 
   async getSheetLock(sheetType: string, sheetId: string): Promise<SheetLock | undefined> {
     const key = `${sheetType}:${sheetId}`;
-    const [r] = await db
-      .select()
-      .from(sheetLock)
-      .where(eq(sheetLock.sheetKey, key))
-      .limit(1);
+    const [r] = await db.select().from(sheetLock).where(eq(sheetLock.sheetKey, key)).limit(1);
     return r;
   }
 
@@ -280,7 +280,9 @@ export class DatabaseHubSyncStorage {
         set: data,
       })
       .returning();
-    if (!r) {throw new Error("acquireSheetLock: returned no row");}
+    if (!r) {
+      throw new Error("acquireSheetLock: returned no row");
+    }
     return r;
   }
 
@@ -295,11 +297,7 @@ export class DatabaseHubSyncStorage {
 
   async getSheetVersion(sheetType: string, sheetId: string): Promise<SheetVersion | undefined> {
     const key = `${sheetType}:${sheetId}`;
-    const [r] = await db
-      .select()
-      .from(sheetVersion)
-      .where(eq(sheetVersion.sheetKey, key))
-      .limit(1);
+    const [r] = await db.select().from(sheetVersion).where(eq(sheetVersion.sheetKey, key)).limit(1);
     return r;
   }
 
@@ -328,14 +326,18 @@ export class DatabaseHubSyncStorage {
         } as never)
         .where(eq(sheetVersion.sheetKey, key))
         .returning();
-      if (!r) {throw new Error("incrementSheetVersion: update returned no row");}
+      if (!r) {
+        throw new Error("incrementSheetVersion: update returned no row");
+      }
       return r;
     }
     const [r] = await db
       .insert(sheetVersion)
       .values({ ...data, sheetKey: key, version: 1 } as never)
       .returning();
-    if (!r) {throw new Error("incrementSheetVersion: insert returned no row");}
+    if (!r) {
+      throw new Error("incrementSheetVersion: insert returned no row");
+    }
     return r;
   }
 
@@ -355,9 +357,13 @@ export class DatabaseHubSyncStorage {
       // invalid query whenever a vesselId was supplied.
       c.push(eq(devices.vessel, vesselId));
     }
-    const q = c.length > 0
-      ? db.select().from(devices).where(and(...c))
-      : db.select().from(devices);
+    const q =
+      c.length > 0
+        ? db
+            .select()
+            .from(devices)
+            .where(and(...c))
+        : db.select().from(devices);
     // Order by `label` — the human-readable device name column.
     return q.orderBy(devices.label);
   }
@@ -382,7 +388,9 @@ export class DatabaseHubSyncStorage {
 
   async createDevice(device: InsertDevice): Promise<Device> {
     const [n] = await db.insert(devices).values(device).returning();
-    if (!n) {throw new Error("createDevice: returned no row");}
+    if (!n) {
+      throw new Error("createDevice: returned no row");
+    }
     return n;
   }
 

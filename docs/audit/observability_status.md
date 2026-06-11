@@ -13,12 +13,14 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 ### ✅ Operational Components
 
 **1. Metrics Endpoint**
+
 - URL: `/api/metrics`
 - Status: ✅ Operational
 - Format: Prometheus exposition format
 - Response time: <10ms p95
 
 **2. Platform Metrics (20+ metrics ACTIVE)**
+
 - ✅ `arus_http_requests_total` - HTTP traffic (LIVE data)
 - ✅ `arus_http_request_duration_seconds` - Latency histogram (LIVE data)
 - ✅ `arus_websocket_connections_active` - Value: 2 (LIVE)
@@ -31,10 +33,12 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 - ✅ `arus_alerts_*` - Alert metrics (defined)
 
 **3. Grafana Dashboards**
-- ✅ `docs/dashboards/grafana-arus-overview.json` - CORRECTED (uses arus_* metrics)
-- ⚠️  `docs/dashboards/grafana-ml-performance.json` - REQUIRES UPDATE (see below)
+
+- ✅ `docs/dashboards/grafana-arus-overview.json` - CORRECTED (uses arus\_\* metrics)
+- ⚠️ `docs/dashboards/grafana-ml-performance.json` - REQUIRES UPDATE (see below)
 
 **4. Evidence Artifacts**
+
 - ✅ `docs/audit/_artifacts/sample.prom` - 268 lines of ARUS metrics
 - ✅ Real data captured: WebSocket (2 connections, 3 messages), Fleet Health, Equipment
 
@@ -47,6 +51,7 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 **Source:** `server/ml-prometheus-metrics.ts`
 
 **Metrics Defined:**
+
 - `ml_predictions_total` - Prediction counter
 - `ml_prediction_errors_total` - Error tracking
 - `ml_prediction_duration_seconds` - Latency histogram
@@ -75,12 +80,14 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 **File:** `docs/dashboards/grafana-arus-overview.json`  
 **Status:** ✅ Production-ready  
 **Fixes Applied:**
+
 - ✅ All queries use correct `arus_*` metric names
 - ✅ Label names corrected (`status_code` not `status`, `path` not `route`)
 - ✅ Removed non-existent nodejs/process metrics
 - ✅ Added ARUS-specific panels (Fleet Health, Telemetry, WebSocket)
 
 **Panels (10 total):**
+
 1. API Request Rate - `sum(rate(arus_http_requests_total[5m]))`
 2. API Error Rate - `sum(rate(arus_http_requests_total{status_code=~"5.."}[5m]))`
 3. Active Alerts - `count(ALERTS{alertstate="firing"})`
@@ -99,6 +106,7 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 **Verification Method:** Cross-referenced every query with server/ml-prometheus-metrics.ts labelNames
 
 **Corrections Applied:**
+
 - ✅ Metric names: ml_model_accuracy_score → ml_model_accuracy
 - ✅ Metric names: ml_inference_duration_seconds → ml_prediction_duration_seconds
 - ✅ Labels: `model` → `method` (for ml_predictions_total)
@@ -106,8 +114,9 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 - ✅ Template variables: Added `method` and `model_type` filters
 
 **12 Production-Ready Panels:**
+
 1. Predictions (24h) - `sum(increase(ml_predictions_total[1h]))`
-2. Model Accuracy - `avg(ml_model_accuracy)` 
+2. Model Accuracy - `avg(ml_model_accuracy)`
 3. Circuit Breaker Trips - `sum(increase(ml_circuit_breaker_trips_total[24h]))`
 4. Cache Size - `ml_model_cache_size`
 5. Prediction Latency p95 - `histogram_quantile(0.95, ... ml_prediction_duration_seconds_bucket ...)`
@@ -128,6 +137,7 @@ ARUS platform has comprehensive observability infrastructure with 42+ Prometheus
 **File:** `docs/audit/_artifacts/sample.prom` (268 lines)
 
 **Real Data Captured:**
+
 ```prometheus
 # HTTP & API Metrics
 arus_http_requests_total{method="GET",path="/",status_code="404"} 1
@@ -175,9 +185,9 @@ arus_telemetry_errors_total (counter defined)
 
 - [x] Metrics endpoint accessible
 - [x] Sample metrics captured with real data
-- [x] Platform metrics (arus_*) defined and emitting
+- [x] Platform metrics (arus\_\*) defined and emitting
 - [x] Grafana overview dashboard corrected
-- [x] Dashboard uses correct metric names (arus_*)
+- [x] Dashboard uses correct metric names (arus\_\*)
 - [x] Dashboard uses correct label names (status_code, path)
 - [x] Non-existent metrics removed from dashboards
 - [x] WebSocket metrics showing live data (2 connections, 3 messages)
@@ -192,18 +202,20 @@ arus_telemetry_errors_total (counter defined)
 ### 1. Prometheus Configuration
 
 **Scrape Config:**
+
 ```yaml
 scrape_configs:
-  - job_name: 'arus-platform'
+  - job_name: "arus-platform"
     scrape_interval: 15s
     static_configs:
-      - targets: ['arus-api:5000']  # Your ARUS API endpoint
-    metrics_path: '/api/metrics'
+      - targets: ["arus-api:5000"] # Your ARUS API endpoint
+    metrics_path: "/api/metrics"
 ```
 
 ### 2. Grafana Dashboard Import
 
 **Import Overview Dashboard:**
+
 ```bash
 curl -X POST http://grafana:3000/api/dashboards/db \
   -H "Content-Type: application/json" \
@@ -217,6 +229,7 @@ Wait until ML operations are active, then verify metrics exist before importing 
 ### 3. Alerting Rules (Optional)
 
 **Create prometheus-alerts.yml:**
+
 ```yaml
 groups:
   - name: arus_critical
@@ -226,7 +239,7 @@ groups:
         for: 5m
         labels:
           severity: critical
-      
+
       - alert: FleetHealthDegradation
         expr: arus_fleet_health_score < 70
         for: 10m

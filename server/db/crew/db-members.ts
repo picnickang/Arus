@@ -61,10 +61,16 @@ export class DbCrewMembers {
         updatedAt: new Date(),
       })
       .returning();
-    if (!newCrew) {throw new Error("Failed to create crew member");}
+    if (!newCrew) {
+      throw new Error("Failed to create crew member");
+    }
     return newCrew;
   }
-  async updateCrewMember(id: string, updates: WidenPartial<InsertCrew>, orgId?: string): Promise<Crew> {
+  async updateCrewMember(
+    id: string,
+    updates: WidenPartial<InsertCrew>,
+    orgId?: string
+  ): Promise<Crew> {
     this.validateOrgId(orgId, "updateCrewMember");
     const conditions = orgId ? and(eq(crew.id, id), eq(crew.orgId, orgId)) : eq(crew.id, id);
     const [updated] = await db
@@ -103,7 +109,9 @@ export class DbCrewMembers {
       .insert(shiftTemplate)
       .values({ id: randomUUID(), ...data, createdAt: new Date() })
       .returning();
-    if (!result) {throw new Error("Failed to create shift template");}
+    if (!result) {
+      throw new Error("Failed to create shift template");
+    }
     return result;
   }
   async updateShiftTemplate(

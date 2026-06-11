@@ -115,7 +115,7 @@ function ActionTile({
   hint: string;
   onClick?: () => void;
   enabled?: boolean;
-  badgeCount?: number;
+  badgeCount?: number | undefined;
   testId: string;
 }) {
   if (!enabled) {

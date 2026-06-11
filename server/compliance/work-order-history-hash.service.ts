@@ -36,12 +36,14 @@ interface VerificationResult {
   isValid: boolean;
   totalEntries: number;
   verifiedCount: number;
-  firstInvalidEntry?: {
-    id: string;
-    sequenceNumber: number;
-    expectedHash: string;
-    actualHash: string;
-  } | undefined;
+  firstInvalidEntry?:
+    | {
+        id: string;
+        sequenceNumber: number;
+        expectedHash: string;
+        actualHash: string;
+      }
+    | undefined;
   chainStartDate?: Date | undefined;
   chainEndDate?: Date | undefined;
 }
@@ -195,7 +197,9 @@ class WorkOrderHistoryHashService {
       // STEP 4: Update the entry with the computed hash
       await tx.update(workOrderHistory).set({ entryHash }).where(eq(workOrderHistory.id, id));
 
-      logger.info(`[WorkOrderHistoryHash] Created entry (tx): org=${entry.orgId}, wo=${entry.workOrderId}, seq=${sequenceNumber}`);
+      logger.info(
+        `[WorkOrderHistoryHash] Created entry (tx): org=${entry.orgId}, wo=${entry.workOrderId}, seq=${sequenceNumber}`
+      );
 
       return { id, sequenceNumber, entryHash, previousHash };
     });

@@ -18,15 +18,17 @@ export function ArtifactsViewer({ modelVersionId }: { modelVersionId: string }) 
 
   return (
     <div className="space-y-2">
-      {(artifacts as Array<{
-        id: string;
-        artifactType: string;
-        framework?: string;
-        format?: string;
-        sizeBytes?: number | null;
-        sha256?: string;
-        status?: string;
-      }>).map((a) => (
+      {(
+        artifacts as Array<{
+          id: string;
+          artifactType: string;
+          framework?: string;
+          format?: string;
+          sizeBytes?: number | null;
+          sha256?: string;
+          status?: string;
+        }>
+      ).map((a) => (
         <div
           key={a.id}
           className="flex items-center justify-between p-3 rounded-lg border"

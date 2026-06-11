@@ -21,26 +21,26 @@ describe("Inventory forms — parts + suppliers CRUD + propagation", () => {
   let supplierId: string;
 
   afterAll(async () => {
-    if (partId) {await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});}
-    if (supplierId) {await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});}
+    if (partId) {
+      await pool.query("DELETE FROM parts_inventory WHERE id=$1", [partId]).catch(() => {});
+    }
+    if (supplierId) {
+      await pool.query("DELETE FROM suppliers WHERE id=$1", [supplierId]).catch(() => {});
+    }
     await cleanupByRunId(RUN_ID, ["parts_inventory", "suppliers"]);
   });
 
   describe("Suppliers", () => {
     it("creates a supplier", async () => {
-      const { status, data } = await api<{ id: string; name: string }>(
-        "POST",
-        "/api/suppliers",
-        {
-          name: `Supplier ${RUN_ID}`,
-          code: `SUP-${RUN_ID}`.slice(0, 32),
-          email: "qa@example.com",
-          type: "supplier",
-          isActive: true,
-          isPreferred: false,
-          notes: `forms test ${RUN_ID}`,
-        }
-      );
+      const { status, data } = await api<{ id: string; name: string }>("POST", "/api/suppliers", {
+        name: `Supplier ${RUN_ID}`,
+        code: `SUP-${RUN_ID}`.slice(0, 32),
+        email: "qa@example.com",
+        type: "supplier",
+        isActive: true,
+        isPreferred: false,
+        notes: `forms test ${RUN_ID}`,
+      });
       expect([200, 201]).toContain(status);
       expect(data?.id).toBeTruthy();
       supplierId = data.id;
@@ -55,10 +55,9 @@ describe("Inventory forms — parts + suppliers CRUD + propagation", () => {
     });
 
     it("supplier persists to DB with correct org scoping", async () => {
-      const { rows } = await pool.query(
-        "SELECT id, org_id, name FROM suppliers WHERE id=$1",
-        [supplierId]
-      );
+      const { rows } = await pool.query("SELECT id, org_id, name FROM suppliers WHERE id=$1", [
+        supplierId,
+      ]);
       expect(rows.length).toBe(1);
       expect(rows[0].org_id).toBe("default-org-id");
       expect(rows[0].name).toContain(RUN_ID);
@@ -67,22 +66,18 @@ describe("Inventory forms — parts + suppliers CRUD + propagation", () => {
 
   describe("Parts inventory", () => {
     it("creates a parts_inventory entry", async () => {
-      const { status, data } = await api<{ id: string }>(
-        "POST",
-        "/api/parts-inventory",
-        {
-          partNumber: `PN-${RUN_ID}`.slice(0, 32),
-          partName: `Test Bearing ${RUN_ID}`,
-          description: `forms test bearing ${RUN_ID}`,
-          category: "bearings",
-          minStockLevel: 2,
-          maxStockLevel: 20,
-          quantityOnHand: 5,
-          quantityReserved: 0,
-          unitCost: 12.5,
-          location: "WAREHOUSE-A",
-        }
-      );
+      const { status, data } = await api<{ id: string }>("POST", "/api/parts-inventory", {
+        partNumber: `PN-${RUN_ID}`.slice(0, 32),
+        partName: `Test Bearing ${RUN_ID}`,
+        description: `forms test bearing ${RUN_ID}`,
+        category: "bearings",
+        minStockLevel: 2,
+        maxStockLevel: 20,
+        quantityOnHand: 5,
+        quantityReserved: 0,
+        unitCost: 12.5,
+        location: "WAREHOUSE-A",
+      });
       if (status >= 400) {
         // eslint-disable-next-line no-console
         console.log("parts-inventory create returned", status, JSON.stringify(data).slice(0, 300));
@@ -101,11 +96,9 @@ describe("Inventory forms — parts + suppliers CRUD + propagation", () => {
     });
 
     it("PATCH stock updates the row", async () => {
-      const { status } = await api(
-        "PATCH",
-        `/api/parts-inventory/${partId}/stock`,
-        { quantityOnHand: 10 }
-      );
+      const { status } = await api("PATCH", `/api/parts-inventory/${partId}/stock`, {
+        quantityOnHand: 10,
+      });
       // some installs require a different body shape; accept 200/204/400
       expect([200, 204, 400]).toContain(status);
 

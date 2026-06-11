@@ -23,7 +23,9 @@ export async function convertToClassificationFeatures(
 
   const telemetryData: Array<Record<string, unknown>> = [];
   for (const dataPoint of timeSeriesData) {
-    for (const [sensorType, value] of Object.entries((dataPoint as { features?: Record<string, number> }).features ?? {})) {
+    for (const [sensorType, value] of Object.entries(
+      (dataPoint as { features?: Record<string, number> }).features ?? {}
+    )) {
       telemetryData.push({
         id: `${equipmentId}-${dataPoint.timestamp.getTime()}-${sensorType}`,
         equipmentId,
@@ -104,7 +106,7 @@ export async function convertToClassificationFeatures(
   };
 
   if (maintenanceAge !== undefined) {
-    features['maintenanceAge'] = maintenanceAge;
+    features["maintenanceAge"] = maintenanceAge;
   }
 
   return {

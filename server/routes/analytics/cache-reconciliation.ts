@@ -79,12 +79,10 @@ export function mountCacheReconciliationRoutes(router: Router) {
       const { dataReconciliationService } = await import("../../services/data-reconciliation.js");
       const report = dataReconciliationService.getLatestReport();
       if (!report) {
-        return res
-          .status(404)
-          .json({
-            error: { code: "NOT_FOUND", message: "No reconciliation report available yet" },
-            metadata: { orgId, timestamp: new Date(), version: "1.0" },
-          });
+        return res.status(404).json({
+          error: { code: "NOT_FOUND", message: "No reconciliation report available yet" },
+          metadata: { orgId, timestamp: new Date(), version: "1.0" },
+        });
       }
       const issueGroups = new Map<
         string,
@@ -102,7 +100,7 @@ export function mountCacheReconciliationRoutes(router: Router) {
         const frontendType = issueTypeMap[issue.type] ?? "unknown";
         const frontendSeverity =
           issue.severity === "low" ? "info" : issue.severity === "medium" ? "warning" : "critical";
-        const table = (issue.metadata?.['table'] as string) || "unknown";
+        const table = (issue.metadata?.["table"] as string) || "unknown";
         const groupKey = `${frontendType}:${frontendSeverity}:${table}`;
         if (issueGroups.has(groupKey)) {
           issueGroups.get(groupKey)!.count++;

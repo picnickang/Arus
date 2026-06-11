@@ -21,10 +21,4 @@ function percentageDollars(dollars, percentage) {
   const percentageCents = Math.round(centsAmount * (percentage / 100));
   return toDollars(percentageCents);
 }
-export {
-  addDollars,
-  multiplyDollars,
-  percentageDollars,
-  toCents,
-  toDollars
-};
+export { addDollars, multiplyDollars, percentageDollars, toCents, toDollars };

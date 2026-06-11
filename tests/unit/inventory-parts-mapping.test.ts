@@ -88,7 +88,9 @@ describe("partAndStockToPartsInventory", () => {
         minStockQty: null,
         maxStockQty: null,
         leadTimeDays: null,
-        isActive: null,
+        // `Part.isActive` is non-nullable in the schema; `undefined` drives
+        // the same `?? true` default branch in the mapper.
+        isActive: undefined,
       }),
       null
     );

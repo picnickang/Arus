@@ -34,13 +34,15 @@ export interface CrewRowPermissions {
 /** Two-letter initials for the avatar chip, derived from the crew name. */
 export function crewInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
+  const first = parts[0];
+  if (!first) {
     return "?";
   }
   if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
+    return first.slice(0, 2).toUpperCase();
   }
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const last = parts[parts.length - 1] ?? first;
+  return (first.charAt(0) + last.charAt(0)).toUpperCase();
 }
 
 const AVATAR_TONES = [
@@ -57,7 +59,7 @@ function avatarTone(seed: string): string {
   for (let i = 0; i < seed.length; i += 1) {
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return AVATAR_TONES[hash % AVATAR_TONES.length];
+  return AVATAR_TONES[hash % AVATAR_TONES.length] ?? "";
 }
 
 /**
@@ -112,7 +114,7 @@ export function CrewAvatar({
 }: {
   name: string;
   id: string;
-  photoPath?: string | null;
+  photoPath?: string | null | undefined;
 }) {
   const photoUrl = useAuthedObjectUrl(photoPath);
   if (photoUrl) {
@@ -128,7 +130,7 @@ export function CrewAvatar({
   return (
     <div
       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarTone(
-        id,
+        id
       )}`}
       aria-hidden="true"
       data-testid={`avatar-crew-${id}`}
@@ -183,7 +185,7 @@ export function CrewActionsMenu({
     crewId: string,
     crewName: string,
     vesselName?: string,
-    contractPenalty?: number,
+    contractPenalty?: number
   ) => void;
   perms: CrewRowPermissions;
 }) {
@@ -250,7 +252,7 @@ export function CrewActionsMenu({
                       member.id,
                       member.name,
                       member.vesselId ? d.getVesselName(member.vesselId) : undefined,
-                      member.contractPenalty,
+                      member.contractPenalty
                     )
                   }
                   data-testid={`action-retire-${member.id}`}
@@ -265,7 +267,7 @@ export function CrewActionsMenu({
                       member.id,
                       member.name,
                       member.vesselId ? d.getVesselName(member.vesselId) : undefined,
-                      member.contractPenalty,
+                      member.contractPenalty
                     )
                   }
                   className="text-destructive"

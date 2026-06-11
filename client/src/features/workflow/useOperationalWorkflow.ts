@@ -32,19 +32,29 @@ function normalizeWorkOrders(data: unknown): WorkflowWorkOrderRecord[] {
   return data
     .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
     .map((item) => ({
-      id: typeof item['id'] === "string" || typeof item['id'] === "number" ? item['id'] : String(Math.random()),
-      title: typeof item['title'] === "string" ? item['title'] : undefined,
-      status: typeof item['status'] === "string" ? item['status'] : undefined,
+      id:
+        typeof item["id"] === "string" || typeof item["id"] === "number"
+          ? item["id"]
+          : String(Math.random()),
+      title: typeof item["title"] === "string" ? item["title"] : undefined,
+      status: typeof item["status"] === "string" ? item["status"] : undefined,
       priority:
-        typeof item['priority'] === "number" || typeof item['priority'] === "string" ? item['priority'] : null,
-      dueDate: typeof item['dueDate'] === "string" ? item['dueDate'] : null,
-      blockedReason: typeof item['blockedReason'] === "string" ? item['blockedReason'] : null,
-      assignedCrewId: typeof item['assignedCrewId'] === "string" ? item['assignedCrewId'] : null,
-      assignedToName: typeof item['assignedToName'] === "string" ? item['assignedToName'] : null,
-      equipmentName: typeof item['equipmentName'] === "string" ? item['equipmentName'] : null,
+        typeof item["priority"] === "number" || typeof item["priority"] === "string"
+          ? item["priority"]
+          : null,
+      dueDate: typeof item["dueDate"] === "string" ? item["dueDate"] : null,
+      blockedReason: typeof item["blockedReason"] === "string" ? item["blockedReason"] : null,
+      assignedCrewId: typeof item["assignedCrewId"] === "string" ? item["assignedCrewId"] : null,
+      assignedToName: typeof item["assignedToName"] === "string" ? item["assignedToName"] : null,
+      equipmentName: typeof item["equipmentName"] === "string" ? item["equipmentName"] : null,
       equipment:
-        item['equipment'] && typeof item['equipment'] === "object"
-          ? { name: typeof (item['equipment'] as { name?: unknown }).name === "string" ? (item['equipment'] as { name: string }).name : null }
+        item["equipment"] && typeof item["equipment"] === "object"
+          ? {
+              name:
+                typeof (item["equipment"] as { name?: unknown }).name === "string"
+                  ? (item["equipment"] as { name: string }).name
+                  : null,
+            }
           : null,
     }));
 }
@@ -67,7 +77,9 @@ function isDueToday(dueDate: string | null | undefined): boolean {
 
 function isReadyToClose(status: string | undefined): boolean {
   const normalized = status?.toLowerCase().replace(/[_-]/g, " ") ?? "";
-  return normalized.includes("ready") || normalized.includes("verify") || normalized.includes("review");
+  return (
+    normalized.includes("ready") || normalized.includes("verify") || normalized.includes("review")
+  );
 }
 
 function isCompleted(status: string | undefined): boolean {
@@ -96,7 +108,10 @@ const emptyHandover: AttentionHandoverSummary = {
   suggestedSummary: [],
 };
 
-function fallbackQueues(summary: AttentionSummary | undefined, workOrders: WorkflowWorkOrderRecord[]): WorkflowQueue[] {
+function fallbackQueues(
+  summary: AttentionSummary | undefined,
+  workOrders: WorkflowWorkOrderRecord[]
+): WorkflowQueue[] {
   const overdue = numeric(summary?.overdueWorkOrders);
   const alerts = numeric(summary?.unacknowledgedAlerts);
   const highRisk = numeric(summary?.highRiskEquipment);
@@ -104,7 +119,9 @@ function fallbackQueues(summary: AttentionSummary | undefined, workOrders: Workf
   const dueToday = workOrders.filter((item) => isDueToday(item.dueDate)).length;
   const readyToClose = workOrders.filter((item) => isReadyToClose(item.status)).length;
   const completed = numeric(summary?.newSinceLastVisit?.completedWorkOrders);
-  const waitingParts = workOrders.filter((item) => item.blockedReason?.toLowerCase().includes("part")).length;
+  const waitingParts = workOrders.filter((item) =>
+    item.blockedReason?.toLowerCase().includes("part")
+  ).length;
   const openWorkAttention = workOrders.filter(
     (item) => Boolean(item.blockedReason) || isDueToday(item.dueDate) || isReadyToClose(item.status)
   ).length;
@@ -177,7 +194,10 @@ function fallbackQueues(summary: AttentionSummary | undefined, workOrders: Workf
   ];
 }
 
-function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrders: WorkflowWorkOrderRecord[]): AttentionItem[] {
+function fallbackAttentionItems(
+  summary: AttentionSummary | undefined,
+  workOrders: WorkflowWorkOrderRecord[]
+): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   const overdue = numeric(summary?.overdueWorkOrders);
@@ -206,7 +226,8 @@ function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrder
       title: `${highRisk} high-risk equipment item${highRisk === 1 ? "" : "s"}`,
       source: "PdM / Equipment",
       whyItMatters: "Risk scores should be converted into inspection or maintenance decisions.",
-      recommendedAction: "Open equipment intelligence and create an inspection work order where needed.",
+      recommendedAction:
+        "Open equipment intelligence and create an inspection work order where needed.",
       owner: "Chief Engineer",
       due: "Within 24 hours",
       href: "/equipment-intelligence",
@@ -232,7 +253,10 @@ function fallbackAttentionItems(summary: AttentionSummary | undefined, workOrder
   }
 
   workOrders
-    .filter((item) => Boolean(item.blockedReason) || isDueToday(item.dueDate) || isReadyToClose(item.status))
+    .filter(
+      (item) =>
+        Boolean(item.blockedReason) || isDueToday(item.dueDate) || isReadyToClose(item.status)
+    )
     .slice(0, 8)
     .forEach((item) => {
       const equipment = item.equipmentName || item.equipment?.name || "Unassigned equipment";
@@ -293,8 +317,14 @@ export function useOperationalWorkflow() {
   });
 
   const workOrders = useMemo(() => normalizeWorkOrders(workOrdersRaw), [workOrdersRaw]);
-  const fallbackItems = useMemo(() => fallbackAttentionItems(summary, workOrders), [summary, workOrders]);
-  const fallbackQueueData = useMemo(() => fallbackQueues(summary, workOrders), [summary, workOrders]);
+  const fallbackItems = useMemo(
+    () => fallbackAttentionItems(summary, workOrders),
+    [summary, workOrders]
+  );
+  const fallbackQueueData = useMemo(
+    () => fallbackQueues(summary, workOrders),
+    [summary, workOrders]
+  );
 
   const handover = useMemo<AttentionHandoverSummary>(() => {
     if (workflow?.handover) {
@@ -308,7 +338,9 @@ export function useOperationalWorkflow() {
       waitingOnParts: fallbackItems.filter((item) => item.queue === "waiting_parts").length,
       readyForCloseout: fallbackItems.filter((item) => item.queue === "ready_to_close").length,
       openWorkOrders: workOrders.length,
-      suggestedSummary: fallbackItems.slice(0, 5).map((item) => `${item.title}: ${item.recommendedAction}`),
+      suggestedSummary: fallbackItems
+        .slice(0, 5)
+        .map((item) => `${item.title}: ${item.recommendedAction}`),
     };
   }, [workflow, fallbackItems, workOrders.length]);
 

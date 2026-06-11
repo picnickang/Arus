@@ -23,7 +23,11 @@ export function evaluatePromotionGate(metrics: TrainerMetrics): PromotionGateDec
       ? ((metrics.productionMae - metrics.mae) / metrics.productionMae) * 100
       : undefined;
   if (!metrics.modelId) {
-    return { promote: false, improvementPct, skipped: "trainer did not register a candidate model" };
+    return {
+      promote: false,
+      improvementPct,
+      skipped: "trainer did not register a candidate model",
+    };
   }
   const maeOk = improvementPct != null && improvementPct >= MIN_MAE_IMPROVEMENT_PCT;
   if (!maeOk) {
@@ -48,15 +52,27 @@ export function parseTrainerMetrics(stdout: string): TrainerMetrics {
   const metrics: TrainerMetrics = {};
   for (const line of stdout.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed.startsWith("{")) {continue;}
+    if (!trimmed.startsWith("{")) {
+      continue;
+    }
     try {
       const json = JSON.parse(trimmed);
       if (json.stage === "metrics" || json.stage === "complete") {
-        if (typeof json.mae === "number") {metrics.mae = json.mae;}
-        if (typeof json.productionMae === "number") {metrics.productionMae = json.productionMae;}
-        if (typeof json.psi === "number") {metrics.psi = json.psi;}
-        if (typeof json.artifactPath === "string") {metrics.artifactPath = json.artifactPath;}
-        if (typeof json.modelId === "string") {metrics.modelId = json.modelId;}
+        if (typeof json.mae === "number") {
+          metrics.mae = json.mae;
+        }
+        if (typeof json.productionMae === "number") {
+          metrics.productionMae = json.productionMae;
+        }
+        if (typeof json.psi === "number") {
+          metrics.psi = json.psi;
+        }
+        if (typeof json.artifactPath === "string") {
+          metrics.artifactPath = json.artifactPath;
+        }
+        if (typeof json.modelId === "string") {
+          metrics.modelId = json.modelId;
+        }
       }
     } catch {
       // Ignore non-metrics JSON fragments and noisy trainer output.

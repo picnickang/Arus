@@ -11,16 +11,10 @@
     "earlyStoppingPatience": 5,
     "verbose": true
   },
-  "featureNames": [
-    "pressure"
-  ],
+  "featureNames": ["pressure"],
   "normalizationParams": {
-    "mean": [
-      6.36945669412828
-    ],
-    "std": [
-      52.36054877919471
-    ]
+    "mean": [6.36945669412828],
+    "std": [52.36054877919471]
   },
   "trainingMetrics": {
     "loss": 0.14902780950069427,

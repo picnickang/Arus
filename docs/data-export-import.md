@@ -5,6 +5,7 @@ This document describes the versioned data export/import system for ARUS Marine 
 ## Overview
 
 The data export/import system provides a robust way to:
+
 - **Export** all data for an organization to a portable archive
 - **Import** data from older app versions into newer versions
 - **Migrate** between deployment modes (vessel SQLite to cloud PostgreSQL)
@@ -94,6 +95,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -111,6 +113,7 @@ GET /api/admin/exports
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -150,6 +153,7 @@ conflictResolution: skip|upsert|replace (optional, default: upsert)
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -206,6 +210,7 @@ npm run import:data -- --file=./export.tar.gz --conflict=skip
 When upgrading ARUS to a new version:
 
 1. **Export data from old version:**
+
    ```bash
    npm run export:data -- --org-id=your-org-id --include-telemetry
    ```
@@ -213,6 +218,7 @@ When upgrading ARUS to a new version:
 2. **Install new version** (apply migrations automatically)
 
 3. **Import data into new version:**
+
    ```bash
    npm run import:data -- --file=./data-exports/export-2025-11-26.tar.gz
    ```
@@ -233,6 +239,7 @@ The system tracks schema versions to ensure safe imports:
 ### Current Schema Version
 
 The current schema version is `2025-11-26`. This is tracked in:
+
 - `server/services/data-export-import.ts` (CURRENT_SCHEMA_VERSION constant)
 - Export manifests (schemaVersion field)
 
@@ -240,11 +247,11 @@ The current schema version is `2025-11-26`. This is tracked in:
 
 When importing, conflicts can be handled in three ways:
 
-| Strategy | Behavior |
-|----------|----------|
-| `skip` | Skip records that already exist |
-| `upsert` | Update existing records, insert new ones (default) |
-| `replace` | Delete existing and insert fresh |
+| Strategy  | Behavior                                           |
+| --------- | -------------------------------------------------- |
+| `skip`    | Skip records that already exist                    |
+| `upsert`  | Update existing records, insert new ones (default) |
+| `replace` | Delete existing and insert fresh                   |
 
 ## Security Considerations
 
@@ -272,15 +279,18 @@ When importing, conflicts can be handled in three ways:
 ## Troubleshooting
 
 ### Export fails with timeout
+
 - Exclude telemetry for faster exports
 - Reduce telemetry days if included
 
 ### Import validation errors
+
 - Check schema version compatibility
 - Review manifest for missing entities
 - Ensure target org exists
 
 ### Partial import
+
 - Use `skip` conflict resolution to continue
 - Check warnings for skipped entities
 - Re-import specific entities if needed
@@ -288,6 +298,7 @@ When importing, conflicts can be handled in three ways:
 ## Cross-Organization Import
 
 The system supports importing data from one organization into a different target organization. This is useful for:
+
 - Migrating data between test and production environments
 - Consolidating data from multiple deployments
 - Creating isolated copies for testing
@@ -346,6 +357,7 @@ const CURRENT_SCHEMA_VERSION = "2025-11-26";
 ```
 
 **Best practices:**
+
 1. Update `CURRENT_SCHEMA_VERSION` when making breaking schema changes
 2. Add data transform logic in `applySchemaTransforms()` for older exports
 3. Document schema changes in the manifest
@@ -424,13 +436,13 @@ When adding new columns or tables:
 
 The export/import system is designed to work alongside:
 
-| System | Compatibility | Notes |
-|--------|---------------|-------|
-| MQTT Sync | ✅ Compatible | Export is independent of real-time sync |
-| Turso/libSQL | ✅ Compatible | Uses same storage abstraction |
-| Multi-tenant | ✅ Compatible | Respects org-id isolation |
-| WebSocket | ✅ Compatible | No broadcast during bulk import |
-| Cron Jobs | ✅ Compatible | Pause cron during large imports |
+| System       | Compatibility | Notes                                   |
+| ------------ | ------------- | --------------------------------------- |
+| MQTT Sync    | ✅ Compatible | Export is independent of real-time sync |
+| Turso/libSQL | ✅ Compatible | Uses same storage abstraction           |
+| Multi-tenant | ✅ Compatible | Respects org-id isolation               |
+| WebSocket    | ✅ Compatible | No broadcast during bulk import         |
+| Cron Jobs    | ✅ Compatible | Pause cron during large imports         |
 
 ### No Conflict with Sync Mechanisms
 

@@ -34,7 +34,10 @@ export function useRunInference() {
       equipmentId: string;
       modelVersionId?: string;
     }) => {
-      return apiRequest<PdmInferenceResult>("POST", "/api/pdm/infer", { equipmentId, modelVersionId });
+      return apiRequest<PdmInferenceResult>("POST", "/api/pdm/infer", {
+        equipmentId,
+        modelVersionId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pdm"] });
@@ -49,7 +52,7 @@ export function usePredictionExplanations(predictionId: number | null) {
     queryFn: async () =>
       apiRequest<PdmPredictionExplanation[]>(
         "GET",
-        `/api/pdm/infer/predictions/${predictionId}/explanations`,
+        `/api/pdm/infer/predictions/${predictionId}/explanations`
       ),
     enabled: predictionId != null && !!currentOrgId,
   });

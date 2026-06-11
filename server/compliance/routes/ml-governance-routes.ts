@@ -66,11 +66,15 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const orgId = DEFAULT_ORG_ID;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const override = await (dbMlAnalyticsStorage as object as { getEngineerOverrides: (id: string, orgId: string) => Promise<unknown> }).getEngineerOverrides(id, orgId);
+      const override = await (
+        dbMlAnalyticsStorage as object as {
+          getEngineerOverrides: (id: string, orgId: string) => Promise<unknown>;
+        }
+      ).getEngineerOverrides(id, orgId);
       if (!override) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
@@ -129,13 +133,11 @@ router.post(
         performedByType: "user",
         retentionRequired: true,
       });
-      return res
-        .status(201)
-        .json({
-          success: true,
-          data: override,
-          message: "Engineer override recorded and logged to provenance chain",
-        });
+      return res.status(201).json({
+        success: true,
+        data: override,
+        message: "Engineer override recorded and logged to provenance chain",
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
@@ -153,17 +155,21 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const orgId = DEFAULT_ORG_ID;
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       if (!orgId) {
         return res.status(401).json({ error: "Organization ID required" });
       }
-      const existingOverrideRaw = await (dbMlAnalyticsStorage as object as { getEngineerOverrides: (id: string, orgId: string) => Promise<unknown> }).getEngineerOverrides(id, orgId);
+      const existingOverrideRaw = await (
+        dbMlAnalyticsStorage as object as {
+          getEngineerOverrides: (id: string, orgId: string) => Promise<unknown>;
+        }
+      ).getEngineerOverrides(id, orgId);
       if (!existingOverrideRaw) {
         return res.status(404).json({ error: "Engineer override not found" });
       }
-      const existingOverride = (Array.isArray(existingOverrideRaw)
-        ? existingOverrideRaw[0]
-        : existingOverrideRaw) as
+      const existingOverride = (
+        Array.isArray(existingOverrideRaw) ? existingOverrideRaw[0] : existingOverrideRaw
+      ) as
         | {
             equipmentId: string;
             overrideType: string;

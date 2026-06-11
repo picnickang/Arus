@@ -85,6 +85,8 @@ function seedRole(overrides: Partial<Role> = {}): Role {
     permissions: overrides.permissions ?? null,
     isSystemRole: overrides.isSystemRole ?? false,
     isActive: overrides.isActive ?? true,
+    hubAdmin: overrides.hubAdmin ?? false,
+    hubAccess: overrides.hubAccess ?? null,
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
   };
@@ -122,6 +124,8 @@ const fakeRepository = new Proxy(
         permissions: data.permissions ?? null,
         isSystemRole: data.isSystemRole ?? false,
         isActive: data.isActive ?? true,
+        hubAdmin: data.hubAdmin ?? false,
+        hubAccess: data.hubAccess ?? null,
         createdAt: now,
         updatedAt: now,
       };

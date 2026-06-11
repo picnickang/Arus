@@ -28,7 +28,7 @@ export function initializeRagSecurity(config?: Partial<RagSecurityConfig>): RagS
   currentConfig = config ? mergeWithDefaults(config) : DEFAULT_RAG_SECURITY_CONFIG;
 
   // Allow header org ID in development
-  if (process.env['NODE_ENV'] === "development") {
+  if (process.env["NODE_ENV"] === "development") {
     currentConfig.auth.allowHeaderOrgId = true;
   }
 

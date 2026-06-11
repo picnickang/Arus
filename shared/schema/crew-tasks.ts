@@ -16,19 +16,9 @@ import { organizations } from "./core";
 import { vessels } from "./vessels";
 import { crew } from "./crew";
 
-export const CREW_TASK_STATUSES = [
-  "open",
-  "in_progress",
-  "blocked",
-  "done",
-] as const;
+export const CREW_TASK_STATUSES = ["open", "in_progress", "blocked", "done"] as const;
 
-export const CREW_TASK_PRIORITIES = [
-  "low",
-  "medium",
-  "high",
-  "urgent",
-] as const;
+export const CREW_TASK_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 
 /**
  * A task can reference an existing crew record (a crew document or a
@@ -36,10 +26,7 @@ export const CREW_TASK_PRIORITIES = [
  * We reuse the existing crew documents / certificates data rather than
  * inventing a new document store.
  */
-export const CREW_TASK_LINKED_SOURCE_TYPES = [
-  "crew_document",
-  "certificate",
-] as const;
+export const CREW_TASK_LINKED_SOURCE_TYPES = ["crew_document", "certificate"] as const;
 
 /** Activity-log event kinds (auto-created system events + user comments). */
 export const CREW_TASK_EVENT_TYPES = [
@@ -92,7 +79,7 @@ export const crewTasks = pgTable(
   (table) => ({
     orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_tasks_org_status ON crew_tasks (${table.orgId}, ${table.status}, ${table.dueDate})`,
     orgAssignedIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_tasks_org_assigned ON crew_tasks (${table.orgId}, ${table.assignedCrewId})`,
-  }),
+  })
 );
 
 export const insertCrewTaskSchema = createInsertSchema(crewTasks).omit({
@@ -105,8 +92,7 @@ export type CrewTask = typeof crewTasks.$inferSelect;
 export type InsertCrewTask = z.infer<typeof insertCrewTaskSchema>;
 export type CrewTaskStatus = (typeof CREW_TASK_STATUSES)[number];
 export type CrewTaskPriority = (typeof CREW_TASK_PRIORITIES)[number];
-export type CrewTaskLinkedSourceType =
-  (typeof CREW_TASK_LINKED_SOURCE_TYPES)[number];
+export type CrewTaskLinkedSourceType = (typeof CREW_TASK_LINKED_SOURCE_TYPES)[number];
 
 /**
  * Activity-log entry for a crew task: auto-created system events (created,
@@ -136,7 +122,7 @@ export const crewTaskEvents = pgTable(
   },
   (table) => ({
     taskIdx: sql`CREATE INDEX IF NOT EXISTS idx_crew_task_events_task ON crew_task_events (${table.taskId}, ${table.createdAt})`,
-  }),
+  })
 );
 
 export const insertCrewTaskEventSchema = createInsertSchema(crewTaskEvents).omit({

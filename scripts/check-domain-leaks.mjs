@@ -24,7 +24,11 @@ const SERVER_DIR = resolve("server");
 const DOMAINS_DIR = resolve("server/domains");
 const BASELINE_PATH = resolve("scripts/domain-leak-baseline.json");
 
-const SKIP_DIRS = new Set(["node_modules", "dist", "build", ".cache"]);
+// Test code is excluded: the ESM jest lane REQUIRES `await import()` after
+// `jest.unstable_mockModule` (see CLAUDE.md), so test files would inflate
+// category A with sanctioned imports that aren't production coupling.
+const SKIP_DIRS = new Set(["node_modules", "dist", "build", ".cache", "tests", "__tests__"]);
+const TEST_FILE_RE = /\.(test|spec)\.tsx?$/;
 
 const DB_STORAGE_RE = /\bdb[A-Z][A-Za-z]*Storage\b/g;
 const DYNAMIC_IMPORT_RE = /await\s+import\s*\(\s*["']([^"']+)["']\s*\)/g;
@@ -41,7 +45,8 @@ async function walkTs(dir) {
     if (SKIP_DIRS.has(e.name)) continue;
     const full = join(dir, e.name);
     if (e.isDirectory()) out.push(...(await walkTs(full)));
-    else if (e.name.endsWith(".ts") || e.name.endsWith(".tsx")) out.push(full);
+    else if ((e.name.endsWith(".ts") || e.name.endsWith(".tsx")) && !TEST_FILE_RE.test(e.name))
+      out.push(full);
   }
   return out;
 }

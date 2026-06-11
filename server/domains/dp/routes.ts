@@ -129,7 +129,7 @@ router.get("/systems/:id", requireOrgId, async (req: Request, res: Response) => 
     const result = await db.execute(sql`
       SELECT ds.*, v.name as vessel_name
       FROM dp_systems ds LEFT JOIN vessels v ON ds.vessel_id = v.id
-      WHERE ds.id = ${req.params['id']} AND ds.org_id = ${getOrgId(req)}
+      WHERE ds.id = ${req.params["id"]} AND ds.org_id = ${getOrgId(req)}
     `);
     const system = getFirstRow(result);
     if (!system) {
@@ -299,10 +299,10 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     return res.json({
       vessels: systems,
       totalVesselsWithDp: systems.length,
-      operational: systems.filter((s) => s['dp_status'] === "operational").length,
-      degraded: systems.filter((s) => s['dp_status'] === "degraded").length,
+      operational: systems.filter((s) => s["dp_status"] === "operational").length,
+      degraded: systems.filter((s) => s["dp_status"] === "degraded").length,
       trialsDueIn90Days: systems.filter((s) => {
-        const nxt = s['next_dp_trial_due'];
+        const nxt = s["next_dp_trial_due"];
         if (!nxt || (typeof nxt !== "string" && !(nxt instanceof Date))) {
           return false;
         }
@@ -310,7 +310,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
         return due <= new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       }).length,
       incidents90Days: incidents,
-      openIncidents: Number(getFirstRow(openIncidents)?.['count'] || 0),
+      openIncidents: Number(getFirstRow(openIncidents)?.["count"] || 0),
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to get DP summary" });

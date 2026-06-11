@@ -5,14 +5,16 @@
   "tags": ["arus", "telemetry"],
   "time": { "from": "now-6h", "to": "now" },
   "refresh": "30s",
-  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "templating": { "list": [{ "name": "datasource", "type": "datasource", "query": "prometheus" }] },
   "panels": [
     {
       "id": 1,
       "title": "Telemetry processed / sec",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
-      "targets": [ { "expr": "sum(rate(arus_telemetry_processed_total[5m]))", "legendFormat": "processed" } ]
+      "targets": [
+        { "expr": "sum(rate(arus_telemetry_processed_total[5m]))", "legendFormat": "processed" }
+      ]
     },
     {
       "id": 2,
@@ -20,7 +22,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum(rate(arus_telemetry_errors_total[5m])) / clamp_min(sum(rate(arus_telemetry_processed_total[5m])), 1)", "legendFormat": "error-ratio" }
+        {
+          "expr": "sum(rate(arus_telemetry_errors_total[5m])) / clamp_min(sum(rate(arus_telemetry_processed_total[5m])), 1)",
+          "legendFormat": "error-ratio"
+        }
       ]
     },
     {
@@ -28,7 +33,7 @@
       "title": "Channel freshness max (s)",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-      "targets": [ { "expr": "max(arus_dq_channel_freshness_seconds)", "legendFormat": "max-age" } ]
+      "targets": [{ "expr": "max(arus_dq_channel_freshness_seconds)", "legendFormat": "max-age" }]
     },
     {
       "id": 4,
@@ -36,8 +41,14 @@
       "type": "table",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "increase(arus_telemetry_warehouse_export_success_total[7d])", "legendFormat": "success" },
-        { "expr": "increase(arus_telemetry_warehouse_export_failure_total[7d])", "legendFormat": "failure" }
+        {
+          "expr": "increase(arus_telemetry_warehouse_export_success_total[7d])",
+          "legendFormat": "success"
+        },
+        {
+          "expr": "increase(arus_telemetry_warehouse_export_failure_total[7d])",
+          "legendFormat": "failure"
+        }
       ]
     },
     {
@@ -46,7 +57,10 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
       "targets": [
-        { "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total[10m]))", "legendFormat": "{{org_id}}" }
+        {
+          "expr": "sum by (org_id) (rate(arus_telemetry_batch_quota_blocked_total[10m]))",
+          "legendFormat": "{{org_id}}"
+        }
       ]
     },
     {
@@ -55,8 +69,14 @@
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "increase(arus_telemetry_batch_evicted_total[10m])", "legendFormat": "evicted (buffer overflow)" },
-        { "expr": "increase(arus_telemetry_batch_dropped_total[10m])", "legendFormat": "dropped (retries exhausted)" }
+        {
+          "expr": "increase(arus_telemetry_batch_evicted_total[10m])",
+          "legendFormat": "evicted (buffer overflow)"
+        },
+        {
+          "expr": "increase(arus_telemetry_batch_dropped_total[10m])",
+          "legendFormat": "dropped (retries exhausted)"
+        }
       ]
     },
     {
@@ -64,9 +84,7 @@
       "title": "Bridge backlog frames (alert: BridgeBacklogGrowing > 10k for 15m)",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
-      "targets": [
-        { "expr": "arus_bridge_backlog_frames", "legendFormat": "backlog" }
-      ]
+      "targets": [{ "expr": "arus_bridge_backlog_frames", "legendFormat": "backlog" }]
     }
   ]
 }

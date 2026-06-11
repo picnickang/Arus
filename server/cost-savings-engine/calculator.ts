@@ -53,7 +53,9 @@ export async function calculateWorkOrderSavings(
   let predictionId: number | null = null;
   let confidenceScore: number | null = null;
 
-  logger.info(`[Cost Savings Debug] Work Order ${workOrderId}: maintenanceType="${maintenanceType}", status="${workOrder.status}"`);
+  logger.info(
+    `[Cost Savings Debug] Work Order ${workOrderId}: maintenanceType="${maintenanceType}", status="${workOrder.status}"`
+  );
 
   const [linkedPrediction] = await db
     .select()
@@ -74,7 +76,9 @@ export async function calculateWorkOrderSavings(
   }
 
   if (maintenanceType === "corrective" || maintenanceType === "emergency") {
-    logger.info(`[Cost Savings Debug] Skipping work order ${workOrderId}: maintenanceType="${maintenanceType}" is corrective/emergency`);
+    logger.info(
+      `[Cost Savings Debug] Skipping work order ${workOrderId}: maintenanceType="${maintenanceType}" is corrective/emergency`
+    );
     return null;
   }
 

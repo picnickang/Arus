@@ -14,7 +14,7 @@
 import { jest, describe, it, expect, beforeEach, afterAll } from "@jest/globals";
 import type { WarehouseExportJobSummary } from "../../server/services/telemetry-warehouse-export/types";
 
-process.env.PRIVATE_OBJECT_DIR = "/test-bucket/.private";
+process.env["PRIVATE_OBJECT_DIR"] = "/test-bucket/.private";
 
 // ---------------------------------------------------------------------------
 // In-memory object-storage stand-in (same shape as the integration test).
@@ -26,7 +26,9 @@ const savedMetadata = new Map<string, unknown>();
 let failMode: "none" | "all" = "none";
 
 function maybeFail() {
-  if (failMode === "all") {throw new Error("object storage unavailable");}
+  if (failMode === "all") {
+    throw new Error("object storage unavailable");
+  }
 }
 
 function makeFakeFile(name: string) {
@@ -43,7 +45,9 @@ function makeFakeFile(name: string) {
     async save(body: string | Buffer, opts?: unknown) {
       maybeFail();
       storage.set(name, Buffer.isBuffer(body) ? body : Buffer.from(body));
-      if (opts !== undefined) {savedMetadata.set(name, opts);}
+      if (opts !== undefined) {
+        savedMetadata.set(name, opts);
+      }
     },
     async delete() {
       maybeFail();
@@ -60,10 +64,9 @@ const fakeObjectStorageClient = {
   },
 };
 
-jest.unstable_mockModule(
-  "../../server/replit_integrations/object_storage",
-  () => ({ objectStorageClient: fakeObjectStorageClient }),
-);
+jest.unstable_mockModule("../../server/replit_integrations/object_storage", () => ({
+  objectStorageClient: fakeObjectStorageClient,
+}));
 
 const { recordRun, getRecentRuns, __resetRecentRunsForTests } = await import(
   "../../server/services/telemetry-warehouse-export/last-run"
@@ -72,7 +75,7 @@ const { recordRun, getRecentRuns, __resetRecentRunsForTests } = await import(
 const RECENT_RUNS_KEY = ".private/telemetry-warehouse/_recent-runs.json";
 
 function makeSummary(
-  overrides: Partial<WarehouseExportJobSummary> = {},
+  overrides: Partial<WarehouseExportJobSummary> = {}
 ): WarehouseExportJobSummary {
   return {
     date: "2026-05-19",
@@ -91,7 +94,9 @@ function makeSummary(
 
 function readPersisted(): { updatedAt: string; runs: WarehouseExportJobSummary[] } {
   const buf = storage.get(RECENT_RUNS_KEY);
-  if (!buf) {throw new Error("recent-runs file not written");}
+  if (!buf) {
+    throw new Error("recent-runs file not written");
+  }
   return JSON.parse(buf.toString("utf-8")) as {
     updatedAt: string;
     runs: WarehouseExportJobSummary[];
@@ -106,7 +111,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  delete process.env.PRIVATE_OBJECT_DIR;
+  delete process.env["PRIVATE_OBJECT_DIR"];
 });
 
 describe("telemetry-warehouse-export last-run persistence", () => {
@@ -117,7 +122,7 @@ describe("telemetry-warehouse-export last-run persistence", () => {
         makeSummary({
           date: `2026-05-${String(i + 1).padStart(2, "0")}`,
           durationMs: 100 + i,
-        }),
+        })
       );
     }
 
@@ -144,11 +149,7 @@ describe("telemetry-warehouse-export last-run persistence", () => {
     __resetRecentRunsForTests();
 
     const runs = await getRecentRuns();
-    expect(runs.map((r) => r.date)).toEqual([
-      "2026-05-19",
-      "2026-05-18",
-      "2026-05-17",
-    ]);
+    expect(runs.map((r) => r.date)).toEqual(["2026-05-19", "2026-05-18", "2026-05-17"]);
 
     const limited = await getRecentRuns(2);
     expect(limited.map((r) => r.date)).toEqual(["2026-05-19", "2026-05-18"]);
@@ -165,9 +166,7 @@ describe("telemetry-warehouse-export last-run persistence", () => {
     ];
     storage.set(
       RECENT_RUNS_KEY,
-      Buffer.from(
-        JSON.stringify({ updatedAt: "2026-05-19T00:00:00.000Z", runs: persistedRuns }),
-      ),
+      Buffer.from(JSON.stringify({ updatedAt: "2026-05-19T00:00:00.000Z", runs: persistedRuns }))
     );
 
     // First call after a "restart" must hydrate and dedupe the repeat.
@@ -176,11 +175,7 @@ describe("telemetry-warehouse-export last-run persistence", () => {
     const identities = runs.map((r) => `${r.date}|${r.durationMs}|${r.orgsTotal}`);
     expect(new Set(identities).size).toBe(identities.length);
     // Newest-first ordering preserved (hydration keeps loaded order, getRecentRuns reverses).
-    expect(runs.map((r) => r.date)).toEqual([
-      "2026-05-19",
-      "2026-05-18",
-      "2026-05-17",
-    ]);
+    expect(runs.map((r) => r.date)).toEqual(["2026-05-19", "2026-05-18", "2026-05-17"]);
   });
 
   it("(d) keeps the in-memory ring buffer working when object storage throws", async () => {

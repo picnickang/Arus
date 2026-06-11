@@ -15,12 +15,7 @@ export function envelope<T>(data: T): { success: true; data: T } {
 }
 
 export function errorEnvelope(status: number, code: string, message: string) {
-  return HttpResponse.json(
-    { success: false, error: { code, message }, message },
-    { status }
-  );
+  return HttpResponse.json({ success: false, error: { code, message }, message }, { status });
 }
 
-export const handlers = [
-  http.post("/api/error-logs", () => HttpResponse.json({ ok: true })),
-];
+export const handlers = [http.post("/api/error-logs", () => HttpResponse.json({ ok: true }))];

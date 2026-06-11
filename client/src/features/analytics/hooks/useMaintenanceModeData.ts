@@ -139,9 +139,7 @@ export function useMaintenanceModeData() {
       workOrders.length > 0 ? (completedOrders.length / workOrders.length) * 100 : 0;
     const preventiveSavings = costSavings?.predictiveSavings || 0;
     const reactiveCost = costSavings?.totalDowntimePrevented || 0;
-    const highReactiveCostEquipment = equipmentHealth.filter(
-      (eq) => ((eq.healthIndex) ?? 100) < 60
-    );
+    const highReactiveCostEquipment = equipmentHealth.filter((eq) => (eq.healthIndex ?? 100) < 60);
     return {
       openOrders,
       overdueOrders,

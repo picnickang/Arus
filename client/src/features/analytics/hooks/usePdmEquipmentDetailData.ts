@@ -155,14 +155,16 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
       { sensorType: string; unit: string; data: { timestamp: Date; value: number }[] }
     > = {};
     telemetryHistory.forEach((reading) => {
-      if (!grouped[reading.sensorType]) {
-        grouped[reading.sensorType] = {
+      let group = grouped[reading.sensorType];
+      if (!group) {
+        group = {
           sensorType: reading.sensorType,
           unit: reading.unit || "",
           data: [],
         };
+        grouped[reading.sensorType] = group;
       }
-      grouped[reading.sensorType].data.push({
+      group.data.push({
         timestamp: new Date(reading.ts),
         value: reading.value,
       });

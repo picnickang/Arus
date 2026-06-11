@@ -31,9 +31,7 @@ export async function processAttachments(
   attachments: FileAttachment[],
   knowledgeBase?: KnowledgeBasePort
 ): Promise<ProcessedAttachments> {
-  const contentParts: LLMContentPart[] = [
-    { type: "text", text: sanitizedMessage },
-  ];
+  const contentParts: LLMContentPart[] = [{ type: "text", text: sanitizedMessage }];
   const fileDescriptions: string[] = [];
 
   for (const att of attachments) {
@@ -51,7 +49,8 @@ export async function processAttachments(
         const pdfModule = (await import("pdf-parse")) as {
           default?: LegacyPdfParse;
         } & Partial<Record<string, unknown>>;
-        const pdfParse = (pdfModule.default ?? (pdfModule as object as LegacyPdfParse)) as LegacyPdfParse;
+        const pdfParse = (pdfModule.default ??
+          (pdfModule as object as LegacyPdfParse)) as LegacyPdfParse;
         const pdfData = await pdfParse(pdfBuffer);
         const text = pdfData.text.slice(0, 12000);
         contentParts.push({
@@ -60,7 +59,9 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[PDF: ${att.filename}, ${pdfData.numpages} pages]`);
       } catch (err) {
-        logger.warn(`[Agent] Failed to parse PDF ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
+        logger.warn(`[Agent] Failed to parse PDF ${att.filename}:`, {
+          details: err instanceof Error ? err.message : "unknown",
+        });
         fileDescriptions.push(`[PDF: ${att.filename} (could not extract text)]`);
       }
     } else if (att.mimetype === "text/csv" || att.filename.endsWith(".csv")) {
@@ -97,7 +98,9 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[CSV: ${att.filename}, ${rowCount} rows]`);
       } catch (err) {
-        logger.warn(`[Agent] Failed to parse CSV ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
+        logger.warn(`[Agent] Failed to parse CSV ${att.filename}:`, {
+          details: err instanceof Error ? err.message : "unknown",
+        });
         const fallback = fs.readFileSync(att.path, "utf-8").slice(0, 10000);
         contentParts.push({
           type: "text",
@@ -114,7 +117,9 @@ export async function processAttachments(
         });
         fileDescriptions.push(`[File: ${att.filename}]`);
       } catch (err) {
-        logger.warn(`[Agent] Failed to read attachment ${att.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
+        logger.warn(`[Agent] Failed to read attachment ${att.filename}:`, {
+          details: err instanceof Error ? err.message : "unknown",
+        });
         fileDescriptions.push(`[File: ${att.filename} (could not read)]`);
       }
     }

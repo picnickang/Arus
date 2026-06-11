@@ -107,7 +107,11 @@ export function useStormGeoSettingsData(vesselId?: string) {
       console.error("Save settings error:", error);
     },
   });
-  const importMutation = useMutation<{ status: string; recordsCreated: number; recordsFailed: number }, Error, { vesselId: string; fileContent: string; fileName: string }>({
+  const importMutation = useMutation<
+    { status: string; recordsCreated: number; recordsFailed: number },
+    Error,
+    { vesselId: string; fileContent: string; fileName: string }
+  >({
     mutationFn: (async ({
       vesselId,
       fileContent,

@@ -15,19 +15,16 @@ import { requireAdminRole } from "../../server/security/authorization";
 function run(role?: string): { status?: number; nextCalled: boolean } {
   const result: { status?: number; nextCalled: boolean } = { nextCalled: false };
   const req = (role === undefined ? {} : { user: { role } }) as Request;
-  const res = {
-    status(code: number) {
-      result.status = code;
-      return this;
-    },
-    json() {
-      return this;
-    },
-  } as unknown as Response;
+  const res: Partial<Response> = {};
+  res.status = (code: number) => {
+    result.status = code;
+    return res as Response;
+  };
+  res.json = () => res as Response;
   const next: NextFunction = () => {
     result.nextCalled = true;
   };
-  requireAdminRole(req, res, next);
+  requireAdminRole(req, res as Response, next);
   return result;
 }
 

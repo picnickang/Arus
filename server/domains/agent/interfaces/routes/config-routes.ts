@@ -56,7 +56,9 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
           }
         );
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -83,13 +85,11 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
           const registeredNames = getRegisteredToolNames();
           const invalid = parsed.data.enabledTools.filter((t) => !registeredNames.includes(t));
           if (invalid.length > 0) {
-            return res
-              .status(400)
-              .json({
-                error: "Invalid tool names in enabledTools",
-                invalidTools: invalid,
-                validTools: registeredNames,
-              });
+            return res.status(400).json({
+              error: "Invalid tool names in enabledTools",
+              invalidTools: invalid,
+              validTools: registeredNames,
+            });
           }
         }
 
@@ -108,7 +108,9 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
 
         return res.json(config);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -140,7 +142,9 @@ export function registerConfigRoutes(app: Express, deps: ConfigRouteDeps) {
         const config = await agentRepo.config.upsert(defaults);
         return res.json(config);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

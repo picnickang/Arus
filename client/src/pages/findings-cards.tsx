@@ -336,9 +336,14 @@ export function FindingCard({
               </Badge>
             )}
             {item.source === "suggestion" &&
-              Boolean(item.context?.['costImpact']) &&
+              Boolean(item.context?.["costImpact"]) &&
               (() => {
-                const ci = (item.context as { costImpact?: { revenueImpact?: number; estimatedRepairCost?: number } }).costImpact ?? {};
+                const ci =
+                  (
+                    item.context as {
+                      costImpact?: { revenueImpact?: number; estimatedRepairCost?: number };
+                    }
+                  ).costImpact ?? {};
                 const atRisk = ci.revenueImpact ?? 0;
                 if (atRisk <= 0) {
                   return null;
@@ -597,11 +602,7 @@ export function TaskCard({
   );
 }
 
-export function TasksSection({
-  onOpenAssistant,
-}: {
-  onOpenAssistant: (task: AgentTask) => void;
-}) {
+export function TasksSection({ onOpenAssistant }: { onOpenAssistant: (task: AgentTask) => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");

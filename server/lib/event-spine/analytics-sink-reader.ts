@@ -47,9 +47,7 @@ function defaultBaseDir(): string {
   return path.resolve(process.cwd(), "data", "analytics", "telemetry");
 }
 
-export async function readTelemetryFromSink(
-  opts: ReadSinkOptions
-): Promise<SinkTelemetryRow[]> {
+export async function readTelemetryFromSink(opts: ReadSinkOptions): Promise<SinkTelemetryRow[]> {
   const base = opts.baseDir ?? defaultBaseDir();
   const orgDir = path.join(base, sanitizeOrgId(opts.orgId));
   const daysBack = Math.max(1, opts.daysBack ?? 7);
@@ -77,7 +75,9 @@ export async function readTelemetryFromSink(
 
   const rows: SinkTelemetryRow[] = [];
   for (const f of candidateFiles) {
-    if (rows.length >= limit) {break;}
+    if (rows.length >= limit) {
+      break;
+    }
     const full = path.join(orgDir, f);
     let body = "";
     try {
@@ -93,7 +93,9 @@ export async function readTelemetryFromSink(
     // newest first within file
     for (let i = lines.length - 1; i >= 0 && rows.length < limit; i--) {
       const line = lines[i];
-      if (!line) {continue;}
+      if (!line) {
+        continue;
+      }
       let parsed: { eventType?: string; payload?: Record<string, unknown> } | null = null;
       try {
         parsed = JSON.parse(line);
@@ -107,24 +109,30 @@ export async function readTelemetryFromSink(
         ? ((payload as { readings: unknown[] }).readings as Record<string, unknown>[])
         : [payload as Record<string, unknown>];
       for (const r of readings) {
-        const equipmentId = String(r['equipmentId'] ?? "");
-        if (equipmentId !== opts.equipmentId) {continue;}
-        const sensorType = String(r['sensorType'] ?? "");
-        if (opts.sensorType && sensorType !== opts.sensorType) {continue;}
+        const equipmentId = String(r["equipmentId"] ?? "");
+        if (equipmentId !== opts.equipmentId) {
+          continue;
+        }
+        const sensorType = String(r["sensorType"] ?? "");
+        if (opts.sensorType && sensorType !== opts.sensorType) {
+          continue;
+        }
         rows.push({
-          id: r['id'] != null ? String(r['id']) : undefined,
+          id: r["id"] != null ? String(r["id"]) : undefined,
           equipmentId,
           sensorType,
           value:
-            typeof r['value'] === "number"
-              ? r['value']
-              : r['value'] != null
-                ? Number(r['value'])
+            typeof r["value"] === "number"
+              ? r["value"]
+              : r["value"] != null
+                ? Number(r["value"])
                 : null,
-          ts: String(r['ts'] ?? r['occurredAt'] ?? new Date().toISOString()),
+          ts: String(r["ts"] ?? r["occurredAt"] ?? new Date().toISOString()),
           orgId: opts.orgId,
         });
-        if (rows.length >= limit) {break;}
+        if (rows.length >= limit) {
+          break;
+        }
       }
     }
   }
@@ -132,5 +140,5 @@ export async function readTelemetryFromSink(
 }
 
 export function analyticsReadMode(): "sink" | "oltp" {
-  return process.env['EVENT_SPINE_ANALYTICS_READ'] === "sink" ? "sink" : "oltp";
+  return process.env["EVENT_SPINE_ANALYTICS_READ"] === "sink" ? "sink" : "oltp";
 }

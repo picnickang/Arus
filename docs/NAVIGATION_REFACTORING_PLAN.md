@@ -38,6 +38,7 @@ interface NavigationCategory {
 #### **B. Navigation Data (95% Duplicated with inconsistencies)**
 
 **Sidebar.tsx has 6 categories with 23 total items:**
+
 ```typescript
 const navigationCategories: NavigationCategory[] = [
   {
@@ -45,7 +46,7 @@ const navigationCategories: NavigationCategory[] = [
     items: [
       { name: "Dashboard", href: "/", icon: Gauge },
       { name: "Alerts", href: "/alerts", icon: Bell },
-    ]
+    ],
   },
   {
     name: "Fleet Management",
@@ -54,7 +55,7 @@ const navigationCategories: NavigationCategory[] = [
       { name: "Equipment Registry", href: "/equipment-registry", icon: Server },
       { name: "Health Monitor", href: "/health", icon: Heart },
       { name: "Diagnostics", href: "/diagnostics", icon: AlertCircle }, // ❌ Missing in Mobile
-    ]
+    ],
   },
   {
     name: "Maintenance",
@@ -64,7 +65,7 @@ const navigationCategories: NavigationCategory[] = [
       { name: "PdM Pack", href: "/pdm-pack", icon: Zap },
       { name: "Inventory Management", href: "/inventory-management", icon: Package },
       { name: "Optimization Tools", href: "/optimization-tools", icon: Target },
-    ]
+    ],
   },
   {
     name: "Crew Operations",
@@ -72,7 +73,7 @@ const navigationCategories: NavigationCategory[] = [
       { name: "Crew Management", href: "/crew-management", icon: Users },
       { name: "Crew Scheduler", href: "/crew-scheduler", icon: CalendarCheck },
       { name: "Hours of Rest", href: "/hours-of-rest", icon: ClipboardCheck },
-    ]
+    ],
   },
   {
     name: "Analytics & Reports",
@@ -83,7 +84,7 @@ const navigationCategories: NavigationCategory[] = [
       { name: "Prediction Feedback", href: "/prediction-feedback", icon: MessageSquare }, // ❌ Missing in Mobile
       { name: "LLM Costs", href: "/llm-costs", icon: DollarSign }, // ❌ Missing in Mobile
       { name: "Reports", href: "/reports", icon: BarChart3 },
-    ]
+    ],
   },
   {
     name: "Configuration",
@@ -93,7 +94,7 @@ const navigationCategories: NavigationCategory[] = [
       { name: "AI Sensor Optimization", href: "/sensor-optimization", icon: Brain }, // ❌ Missing in Mobile
       { name: "Data Management", href: "/transport-settings", icon: Wifi },
       { name: "Operating Parameters", href: "/operating-parameters", icon: Sliders },
-    ]
+    ],
   },
 ];
 ```
@@ -101,6 +102,7 @@ const navigationCategories: NavigationCategory[] = [
 **MobileNavigation.tsx has 6 categories with 18 total items** (5 items missing)
 
 **⚠️ Data Inconsistency Issues:**
+
 - Sidebar has **5 navigation items** that Mobile doesn't have
 - This creates user confusion: features appear on desktop but not mobile
 - No clear strategy for which items should be mobile-accessible
@@ -112,11 +114,11 @@ const navigationCategories: NavigationCategory[] = [
 ```typescript
 // Sidebar.tsx - uses expandedCategories (Set)
 const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-  new Set(navigationCategories.map(cat => cat.name)) // All expanded by default
+  new Set(navigationCategories.map((cat) => cat.name)) // All expanded by default
 );
 
 const toggleCategory = (categoryName: string) => {
-  setExpandedCategories(prev => {
+  setExpandedCategories((prev) => {
     const next = new Set(prev);
     if (next.has(categoryName)) {
       next.delete(categoryName);
@@ -138,13 +140,14 @@ const toggleCategory = (categoryName: string) => {
     newCollapsed.add(categoryName);
   }
   setCollapsedCategories(newCollapsed);
-  localStorage.setItem('arus-mobile-collapsed-groups', JSON.stringify([...newCollapsed]));
+  localStorage.setItem("arus-mobile-collapsed-groups", JSON.stringify([...newCollapsed]));
 };
 ```
 
 **⚠️ Logic Inconsistency Issues:**
+
 - Sidebar uses `expandedCategories` (stores what's open)
-- Mobile uses `collapsedCategories` (stores what's closed) 
+- Mobile uses `collapsedCategories` (stores what's closed)
 - Same functionality, opposite implementation
 - Mobile persists to localStorage, desktop doesn't
 - Confusing for developers to maintain
@@ -162,7 +165,7 @@ useEffect(() => {
 
 ```typescript
 // IDENTICAL in both files
-const hasActiveItem = category.items.some(item => location === item.href);
+const hasActiveItem = category.items.some((item) => location === item.href);
 const isActive = location === item.href;
 ```
 
@@ -175,7 +178,7 @@ Both components render categories with collapsible items:
 {navigationCategories.map((category) => {
   const isExpanded = expandedCategories.has(category.name);
   const hasActiveItem = category.items.some(item => location === item.href);
-  
+
   return (
     <div key={category.name} className="mb-2">
       <button onClick={() => toggleCategory(category.name)}>
@@ -183,7 +186,7 @@ Both components render categories with collapsible items:
         <span>{category.name}</span>
         {isExpanded ? <ChevronDown /> : <ChevronRight />}
       </button>
-      
+
       {isExpanded && (
         <div>
           {category.items.map((item) => (
@@ -204,15 +207,14 @@ Both components render categories with collapsible items:
 ### 1.2 Unique Features (Must Preserve)
 
 #### **Sidebar.tsx Unique Features:**
+
 1. **Conflict Resolution System**
    - `usePendingConflicts()` hook integration
    - Conflict badge and modal
    - Sync conflict button with count
-   
 2. **System Status Display**
    - Health indicator
    - Last updated timestamp
-   
 3. **Desktop/Mobile Toggle Logic**
    - Mobile menu button with keyboard/click-outside handling
    - Body scroll lock when open
@@ -222,56 +224,56 @@ Both components render categories with collapsible items:
    - Always visible in sidebar
 
 #### **MobileNavigation.tsx Unique Features:**
+
 1. **PWA Features**
    - Install prompt modal
    - Offline indicator badge
    - Install button with benefits list
-   
 2. **Bottom Quick Access Navigation**
    - 4 quick-access items (Dashboard, Vessels, Work Orders, Health)
    - Fixed bottom bar for mobile
-   
 3. **Top Navigation Bar**
    - Fixed header with app branding
    - Search trigger button
    - Theme toggle
-   
 4. **Sheet Component Usage**
    - Uses shadcn Sheet for side drawer
    - Right-side slide-out
-   
 5. **Persistent State**
    - Saves collapsed categories to localStorage
 
 ### 1.3 Styling Differences
 
-| Aspect | Sidebar | MobileNavigation |
-|--------|---------|------------------|
-| **Container** | Fixed left sidebar (`w-64`) | Sheet drawer (right-side, `w-80`) |
-| **Visibility** | `hidden lg:flex` (desktop only) | `lg:hidden` (mobile only) |
-| **Overlay** | Custom backdrop | Sheet's built-in backdrop |
-| **Header** | App logo + theme toggle | Top bar with search + menu |
-| **Footer** | Conflict badge + status | PWA install prompt |
-| **Extra Nav** | None | Bottom navigation bar |
-| **Touch Targets** | Standard | `touch-manipulation` class |
-| **Scroll** | Standard overflow | `-webkit-overflow-scrolling: touch` |
+| Aspect            | Sidebar                         | MobileNavigation                    |
+| ----------------- | ------------------------------- | ----------------------------------- |
+| **Container**     | Fixed left sidebar (`w-64`)     | Sheet drawer (right-side, `w-80`)   |
+| **Visibility**    | `hidden lg:flex` (desktop only) | `lg:hidden` (mobile only)           |
+| **Overlay**       | Custom backdrop                 | Sheet's built-in backdrop           |
+| **Header**        | App logo + theme toggle         | Top bar with search + menu          |
+| **Footer**        | Conflict badge + status         | PWA install prompt                  |
+| **Extra Nav**     | None                            | Bottom navigation bar               |
+| **Touch Targets** | Standard                        | `touch-manipulation` class          |
+| **Scroll**        | Standard overflow               | `-webkit-overflow-scrolling: touch` |
 
 ---
 
 ## 2. Problems with Current Architecture
 
 ### 2.1 Maintenance Issues
+
 1. **Double Updates Required**: Any navigation change requires updating 2 files
 2. **Data Drift**: Navigation items already out of sync (5 missing items in mobile)
 3. **Inconsistent Logic**: Same functionality implemented differently (expanded vs collapsed)
 4. **Code Bloat**: ~400 lines of duplicated code across components
 
 ### 2.2 User Experience Issues
+
 1. **Feature Discoverability**: Users can't access all features from mobile devices
 2. **Inconsistent Behavior**: Desktop and mobile navigation behave differently
 3. **No Persistence on Desktop**: Desktop users lose expanded state on refresh
 
 ### 2.3 Developer Experience Issues
+
 1. **Cognitive Load**: Developers must understand 2 different implementations
 2. **Bug Risk**: Fixes must be applied in 2 places
 3. **Testing Overhead**: Need to test same logic in 2 contexts
@@ -319,20 +321,40 @@ Both components render categories with collapsible items:
 
 ```typescript
 import {
-  Gauge, Ship, Heart, Wrench, BarChart3, Settings,
-  Bell, Server, AlertCircle, Calendar, Zap, Package,
-  Target, Users, CalendarCheck, ClipboardCheck,
-  TrendingUp, Brain, MessageSquare, DollarSign,
-  FileText, Sliders, Wifi, LayoutDashboard, Cog
+  Gauge,
+  Ship,
+  Heart,
+  Wrench,
+  BarChart3,
+  Settings,
+  Bell,
+  Server,
+  AlertCircle,
+  Calendar,
+  Zap,
+  Package,
+  Target,
+  Users,
+  CalendarCheck,
+  ClipboardCheck,
+  TrendingUp,
+  Brain,
+  MessageSquare,
+  DollarSign,
+  FileText,
+  Sliders,
+  Wifi,
+  LayoutDashboard,
+  Cog,
 } from "lucide-react";
 
 export interface NavigationItem {
   name: string;
   href: string;
   icon: any;
-  mobileOnly?: boolean;      // Show only on mobile
-  desktopOnly?: boolean;     // Show only on desktop
-  feature?: string;          // Feature flag key (future use)
+  mobileOnly?: boolean; // Show only on mobile
+  desktopOnly?: boolean; // Show only on desktop
+  feature?: string; // Feature flag key (future use)
 }
 
 export interface NavigationCategory {
@@ -351,7 +373,7 @@ export const navigationCategories: NavigationCategory[] = [
     items: [
       { name: "Dashboard", href: "/", icon: Gauge },
       { name: "Alerts", href: "/alerts", icon: Bell },
-    ]
+    ],
   },
   {
     name: "Fleet Management",
@@ -361,7 +383,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Equipment Registry", href: "/equipment-registry", icon: Server },
       { name: "Health Monitor", href: "/health", icon: Heart },
       { name: "Diagnostics", href: "/diagnostics", icon: AlertCircle },
-    ]
+    ],
   },
   {
     name: "Maintenance",
@@ -372,7 +394,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "PdM Pack", href: "/pdm-pack", icon: Zap },
       { name: "Inventory Management", href: "/inventory-management", icon: Package },
       { name: "Optimization Tools", href: "/optimization-tools", icon: Target },
-    ]
+    ],
   },
   {
     name: "Crew Operations",
@@ -381,7 +403,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Crew Management", href: "/crew-management", icon: Users },
       { name: "Crew Scheduler", href: "/crew-scheduler", icon: CalendarCheck },
       { name: "Hours of Rest", href: "/hours-of-rest", icon: ClipboardCheck },
-    ]
+    ],
   },
   {
     name: "Analytics & Reports",
@@ -393,7 +415,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Prediction Feedback", href: "/prediction-feedback", icon: MessageSquare },
       { name: "LLM Costs", href: "/llm-costs", icon: DollarSign },
       { name: "Reports", href: "/reports", icon: FileText },
-    ]
+    ],
   },
   {
     name: "Configuration",
@@ -404,7 +426,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "AI Sensor Optimization", href: "/sensor-optimization", icon: Brain },
       { name: "Data Management", href: "/transport-settings", icon: Wifi },
       { name: "Operating Parameters", href: "/operating-parameters", icon: Sliders },
-    ]
+    ],
   },
 ];
 
@@ -419,20 +441,23 @@ export const quickAccessItems: NavigationItem[] = [
 // Helper to filter navigation by context
 export function filterNavigationForContext(
   categories: NavigationCategory[],
-  context: 'mobile' | 'desktop'
+  context: "mobile" | "desktop"
 ): NavigationCategory[] {
-  return categories.map(category => ({
-    ...category,
-    items: category.items.filter(item => {
-      if (context === 'mobile' && item.desktopOnly) return false;
-      if (context === 'desktop' && item.mobileOnly) return false;
-      return true;
-    })
-  })).filter(category => category.items.length > 0);
+  return categories
+    .map((category) => ({
+      ...category,
+      items: category.items.filter((item) => {
+        if (context === "mobile" && item.desktopOnly) return false;
+        if (context === "desktop" && item.mobileOnly) return false;
+        return true;
+      }),
+    }))
+    .filter((category) => category.items.length > 0);
 }
 ```
 
 **Benefits:**
+
 - ✅ Single source of truth
 - ✅ No more data drift
 - ✅ Easy to add new routes
@@ -446,25 +471,21 @@ export function filterNavigationForContext(
 **File: `client/src/hooks/useNavigationState.ts`**
 
 ```typescript
-import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'wouter';
-import type { NavigationCategory } from '@/config/navigationConfig';
+import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
+import type { NavigationCategory } from "@/config/navigationConfig";
 
 interface UseNavigationStateOptions {
-  persistKey?: string;           // localStorage key for persistence
-  defaultExpanded?: boolean;      // All expanded by default
-  closeOnRouteChange?: boolean;   // Close mobile menu on navigation
+  persistKey?: string; // localStorage key for persistence
+  defaultExpanded?: boolean; // All expanded by default
+  closeOnRouteChange?: boolean; // Close mobile menu on navigation
 }
 
 export function useNavigationState(
   categories: NavigationCategory[],
   options: UseNavigationStateOptions = {}
 ) {
-  const {
-    persistKey,
-    defaultExpanded = true,
-    closeOnRouteChange = true
-  } = options;
+  const { persistKey, defaultExpanded = true, closeOnRouteChange = true } = options;
 
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -476,24 +497,19 @@ export function useNavigationState(
         try {
           return new Set(JSON.parse(saved));
         } catch (e) {
-          console.error('Failed to parse navigation state', e);
+          console.error("Failed to parse navigation state", e);
         }
       }
     }
-    
+
     // Default: all expanded or all collapsed
-    return defaultExpanded 
-      ? new Set(categories.map(cat => cat.name))
-      : new Set();
+    return defaultExpanded ? new Set(categories.map((cat) => cat.name)) : new Set();
   });
 
   // Persist to localStorage when changed
   useEffect(() => {
     if (persistKey) {
-      localStorage.setItem(
-        persistKey,
-        JSON.stringify([...expandedCategories])
-      );
+      localStorage.setItem(persistKey, JSON.stringify([...expandedCategories]));
     }
   }, [expandedCategories, persistKey]);
 
@@ -505,7 +521,7 @@ export function useNavigationState(
   }, [location, closeOnRouteChange]);
 
   const toggleCategory = useCallback((categoryName: string) => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(categoryName)) {
         next.delete(categoryName);
@@ -521,14 +537,10 @@ export function useNavigationState(
     [expandedCategories]
   );
 
-  const isItemActive = useCallback(
-    (href: string) => location === href,
-    [location]
-  );
+  const isItemActive = useCallback((href: string) => location === href, [location]);
 
   const hasCategoryActiveItem = useCallback(
-    (category: NavigationCategory) => 
-      category.items.some(item => location === item.href),
+    (category: NavigationCategory) => category.items.some((item) => location === item.href),
     [location]
   );
 
@@ -546,6 +558,7 @@ export function useNavigationState(
 ```
 
 **Benefits:**
+
 - ✅ Unified state management
 - ✅ Built-in persistence
 - ✅ Consistent behavior
@@ -581,7 +594,7 @@ export function NavigationCategory({
   children
 }: NavigationCategoryProps) {
   const isMobile = variant === 'mobile';
-  
+
   return (
     <div className="mb-2">
       <button
@@ -612,14 +625,14 @@ export function NavigationCategory({
           <ChevronRight className="w-4 h-4" />
         )}
       </button>
-      
+
       {isExpanded && (
-        <div 
+        <div
           className={cn(
             "mt-1",
             variant === 'sidebar' ? "ml-3" : "ml-2"
           )}
-          role="group" 
+          role="group"
           aria-label={`${category.name} navigation items`}
         >
           {children}
@@ -689,6 +702,7 @@ export function NavigationItem({
 ```
 
 **Benefits:**
+
 - ✅ Consistent rendering
 - ✅ Shared styling logic
 - ✅ Variant support for different contexts
@@ -753,7 +767,7 @@ export function Sidebar() {
         </div>
         <CommandPalette />
       </div>
-      
+
       <nav className="px-3 pb-6 flex-1 overflow-y-auto">
         {navigationCategories.map((category) => (
           <NavigationCategory
@@ -775,7 +789,7 @@ export function Sidebar() {
           </NavigationCategory>
         ))}
       </nav>
-      
+
       <div className="px-6 py-4 border-t border-sidebar-border space-y-3">
         {hasConflicts && (
           <Button
@@ -794,7 +808,7 @@ export function Sidebar() {
             </Badge>
           </Button>
         )}
-        
+
         <div className="flex items-center text-sm text-muted-foreground">
           <div className="status-indicator status-healthy"></div>
           <span>System Healthy</span>
@@ -834,7 +848,7 @@ export function Sidebar() {
           </aside>
         </>
       )}
-      
+
       <ConflictResolutionModal
         open={conflictModalOpen}
         onOpenChange={setConflictModalOpen}
@@ -906,13 +920,13 @@ export function MobileNavigation() {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button variant="ghost" size="sm" onClick={() => setCommandPaletteOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
             <ThemeToggle />
-            
+
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -931,7 +945,7 @@ export function MobileNavigation() {
                     </Button>
                   </div>
                 </SheetHeader>
-                
+
                 {/* Grouped Navigation */}
                 <div className="flex-1 overflow-y-auto p-3">
                   {navigationCategories.map((category) => (
@@ -955,7 +969,7 @@ export function MobileNavigation() {
                     </NavigationCategory>
                   ))}
                 </div>
-                
+
                 {/* PWA Install */}
                 {canInstall && (
                   <div className="p-4 border-t">
@@ -976,7 +990,7 @@ export function MobileNavigation() {
           {quickAccessItems.map((item) => {
             const isActive = item.href === '/' ? location === '/' : location.startsWith(item.href);
             const Icon = item.icon;
-            
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
@@ -1006,6 +1020,7 @@ export function MobileNavigation() {
 ### 3.3 Migration Checklist
 
 #### **Step 1: Create Shared Infrastructure** ✅
+
 - [ ] Create `client/src/config/navigationConfig.ts`
 - [ ] Create `client/src/hooks/useNavigationState.ts`
 - [ ] Create `client/src/components/navigation/` directory
@@ -1013,6 +1028,7 @@ export function MobileNavigation() {
 - [ ] Create `NavigationItem.tsx` component
 
 #### **Step 2: Update Sidebar Component** ✅
+
 - [ ] Import shared navigation config
 - [ ] Replace inline types with shared types
 - [ ] Use `useNavigationState` hook
@@ -1024,6 +1040,7 @@ export function MobileNavigation() {
 - [ ] Verify keyboard navigation
 
 #### **Step 3: Update MobileNavigation Component** ✅
+
 - [ ] Import shared navigation config
 - [ ] Remove duplicate types
 - [ ] Use `useNavigationState` hook
@@ -1035,6 +1052,7 @@ export function MobileNavigation() {
 - [ ] Test touch interactions
 
 #### **Step 4: Cleanup & Testing** ✅
+
 - [ ] Remove duplicate icon imports
 - [ ] Verify all routes are accessible from both views
 - [ ] Test category expand/collapse persistence
@@ -1050,13 +1068,13 @@ export function MobileNavigation() {
 
 ### 4.1 Code Metrics
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Total Lines** | ~725 | ~480 | -34% |
-| **Duplicated Code** | ~400 lines | 0 lines | -100% |
-| **Files to Update** | 2 | 1 (config) | -50% |
-| **Test Coverage** | Fragmented | Centralized | +Better |
-| **Type Safety** | Duplicated | Shared | +Better |
+| Metric              | Before     | After       | Improvement |
+| ------------------- | ---------- | ----------- | ----------- |
+| **Total Lines**     | ~725       | ~480        | -34%        |
+| **Duplicated Code** | ~400 lines | 0 lines     | -100%       |
+| **Files to Update** | 2          | 1 (config)  | -50%        |
+| **Test Coverage**   | Fragmented | Centralized | +Better     |
+| **Type Safety**     | Duplicated | Shared      | +Better     |
 
 ### 4.2 Maintainability Improvements
 
@@ -1103,12 +1121,12 @@ export function MobileNavigation() {
 
 ### 5.1 Identified Risks
 
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|-------------|--------|---------------------|
-| **Breaking changes** | Medium | High | Incremental migration with feature flags |
-| **Lost unique features** | Low | High | Careful preservation of variant-specific logic |
-| **Regression bugs** | Medium | Medium | Comprehensive test suite + QA pass |
-| **Performance impact** | Low | Low | Bundle size monitoring + lazy loading |
+| Risk                     | Probability | Impact | Mitigation Strategy                            |
+| ------------------------ | ----------- | ------ | ---------------------------------------------- |
+| **Breaking changes**     | Medium      | High   | Incremental migration with feature flags       |
+| **Lost unique features** | Low         | High   | Careful preservation of variant-specific logic |
+| **Regression bugs**      | Medium      | Medium | Comprehensive test suite + QA pass             |
+| **Performance impact**   | Low         | Low    | Bundle size monitoring + lazy loading          |
 
 ### 5.2 Rollback Plan
 
@@ -1122,26 +1140,31 @@ export function MobileNavigation() {
 ## 6. Implementation Timeline
 
 ### **Phase 1: Foundation (Day 1)**
+
 - Create shared configuration file
 - Create navigation state hook
 - Write unit tests for hook
 
 ### **Phase 2: Components (Day 2)**
+
 - Build `NavigationCategory` component
 - Build `NavigationItem` component
 - Write component tests
 
 ### **Phase 3: Integration (Day 3)**
+
 - Refactor `Sidebar.tsx`
 - Test desktop functionality
 - Fix any regressions
 
 ### **Phase 4: Mobile (Day 4)**
+
 - Refactor `MobileNavigation.tsx`
 - Test mobile functionality
 - Test PWA features
 
 ### **Phase 5: Polish & Deploy (Day 5)**
+
 - Full QA pass
 - Accessibility audit
 - Performance testing
@@ -1155,18 +1178,21 @@ export function MobileNavigation() {
 ## 7. Success Metrics
 
 ### **Code Quality**
+
 - [ ] 0 duplicated navigation logic
 - [ ] 100% TypeScript type coverage
 - [ ] 90%+ test coverage for navigation
 - [ ] 0 ESLint warnings
 
 ### **User Experience**
+
 - [ ] All routes accessible from mobile
 - [ ] Category state persists on desktop
 - [ ] No navigation regressions
 - [ ] Lighthouse accessibility score 100
 
 ### **Performance**
+
 - [ ] Bundle size reduction ≥ 5KB
 - [ ] Navigation state updates < 16ms
 - [ ] First interaction < 100ms
@@ -1208,7 +1234,7 @@ The current navigation component duplication creates **maintenance burden**, **d
 ✅ **Standardizes** state management and persistence  
 ✅ **Preserves** unique desktop and mobile features  
 ✅ **Improves** developer experience and code maintainability  
-✅ **Enables** future enhancements like feature flags and role-based access  
+✅ **Enables** future enhancements like feature flags and role-based access
 
 **Recommendation:** Proceed with the phased implementation approach to minimize risk while maximizing benefits.
 
@@ -1219,7 +1245,7 @@ The current navigation component duplication creates **maintenance burden**, **d
 **Missing from MobileNavigation.tsx:**
 
 1. ❌ Diagnostics (`/diagnostics`) - Fleet Management
-2. ❌ Model Performance (`/model-performance`) - Analytics & Reports  
+2. ❌ Model Performance (`/model-performance`) - Analytics & Reports
 3. ❌ Prediction Feedback (`/prediction-feedback`) - Analytics & Reports
 4. ❌ LLM Costs (`/llm-costs`) - Analytics & Reports
 5. ❌ AI Sensor Optimization (`/sensor-optimization`) - Configuration

@@ -16,13 +16,7 @@
  * runs under `--experimental-vm-modules` (ESM).
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-} from "@jest/globals";
+import { jest, describe, it, expect, beforeAll } from "@jest/globals";
 
 const ORG = "test-org-audit-read";
 
@@ -66,7 +60,7 @@ const fixtures = [
 
 type GetPermissionAuditLog = (
   orgId: string,
-  limit?: number,
+  limit?: number
 ) => Promise<
   Array<{
     id: string;
@@ -83,17 +77,14 @@ type GetPermissionAuditLog = (
 let getPermissionAuditLog: GetPermissionAuditLog;
 
 beforeAll(async () => {
-  jest.unstable_mockModule(
-    "../../server/compliance/immutable-audit.service",
-    () => ({
-      auditService: {
-        queryEvents: async (options: QueryOptions) => {
-          lastQuery = options;
-          return fixtures;
-        },
+  jest.unstable_mockModule("../../server/compliance/immutable-audit.service", () => ({
+    auditService: {
+      queryEvents: async (options: QueryOptions) => {
+        lastQuery = options;
+        return fixtures;
       },
-    }),
-  );
+    },
+  }));
 
   // The read path goes through the audit service, not the db — stub the full
   // server/db re-export surface so module linking succeeds in the ESM sandbox.
@@ -105,9 +96,7 @@ beforeAll(async () => {
     libsqlClient: undefined,
   }));
 
-  const repo = await import(
-    "../../server/domains/permissions/repository"
-  );
+  const repo = await import("../../server/domains/permissions/repository");
   getPermissionAuditLog = repo.getPermissionAuditLog as GetPermissionAuditLog;
 });
 

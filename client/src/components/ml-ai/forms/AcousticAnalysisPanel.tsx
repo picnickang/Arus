@@ -27,10 +27,12 @@ export interface AcousticData {
   data: number[];
   sampleRate: number;
   rpm?: number | undefined;
-  metadata?: {
-    fileName?: string | undefined;
-    fileSize?: number | undefined;
-  } | undefined;
+  metadata?:
+    | {
+        fileName?: string | undefined;
+        fileSize?: number | undefined;
+      }
+    | undefined;
 }
 
 export interface AnalysisResult {

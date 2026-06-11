@@ -1,4 +1,5 @@
 # Step 0: Telemetry Architecture & Overlap Analysis
+
 **Date**: November 24, 2025  
 **Task**: Non-Destructive Telemetry Monitoring & Visualization Review  
 **Status**: ✅ **Architecture Scan Complete**
@@ -20,18 +21,21 @@ This document provides a comprehensive scan of the existing ARUS telemetry monit
 Based on previous comprehensive verification reports (`DATABASE_LAYER_VERIFICATION_REPORT.md`, `TELEMETRY_PIPELINE_VERIFICATION.md`), the following infrastructure is **confirmed operational**:
 
 **Telemetry Ingestion**:
+
 - ✅ **MQTT Reliable Sync** (QoS 1, durable sessions, message persistence)
 - ✅ **WebSocket Server** (real-time dashboard updates, < 5ms latency)
 - ✅ **REST API** (POST `/api/telemetry`, GET `/api/telemetry/latest`)
 - ✅ **Vessel Simulator** (11 vessel types, physics-based telemetry generation)
 
 **Telemetry Storage**:
+
 - ✅ **raw_telemetry table** (PostgreSQL + SQLite)
 - ✅ **Materialized views** (mv_latest_equipment_telemetry, mv_equipment_health)
 - ✅ **Auto-refresh** every 30 seconds
 - ✅ **Fast queries** (53-78ms response times)
 
 **Telemetry Schema**:
+
 ```typescript
 // From @shared/schema-runtime.ts
 raw_telemetry: {
@@ -48,6 +52,7 @@ raw_telemetry: {
 ```
 
 **Telemetry APIs** (from `server/routes.ts`):
+
 ```typescript
 GET  /api/telemetry/latest?vesselId&equipmentId&sensorType&limit
 GET  /api/telemetry/history/:equipmentId/:sensorType?hours=24
@@ -56,6 +61,7 @@ POST /api/telemetry
 ```
 
 **Performance Metrics** (from logs):
+
 - Telemetry ingestion: < 100ms per request
 - Latest telemetry query: 53-61ms
 - Materialized view refresh: 67ms
@@ -70,6 +76,7 @@ POST /api/telemetry
 **A. Main Dashboard** (`client/src/pages/dashboard.tsx` - 847 lines)
 
 **Features**:
+
 - ✅ Real-time metrics (30s refresh via WebSocket)
 - ✅ Vessel filter dropdown (all vessels + per-vessel view)
 - ✅ Equipment health overview
@@ -81,12 +88,14 @@ POST /api/telemetry
 - ✅ Insights overview component
 
 **Components Used**:
+
 - MetricCard (equipment count, alerts, work orders)
 - StatusIndicator (health status visualization)
 - InsightsOverview (AI-powered insights)
 - OperatingConditionAlertsPanel (threshold breaches)
 
 **Real-Time Features**:
+
 - WebSocket connection for dashboard updates
 - Auto-refresh every 30 seconds
 - Toast notifications for new alerts
@@ -95,6 +104,7 @@ POST /api/telemetry
 **B. Health Monitor** (`client/src/pages/health-monitor.tsx` - 385 lines)
 
 **Features**:
+
 - ✅ Fleet health percentage (average across all equipment)
 - ✅ Health distribution (healthy, warning, critical counts)
 - ✅ Equipment health cards with:
@@ -106,18 +116,21 @@ POST /api/telemetry
 - ✅ Equipment detail view with link to equipment page
 
 **Components Used**:
+
 - HealthLegend (explains health index scoring)
 - HealthIndexTooltip (interactive help)
 - Progress bars (visual health indicators)
 - Traffic-light status indicators (green/yellow/red)
 
 **Health Data Sources**:
+
 - `/api/equipment/health` (30s refresh)
 - `/api/pdm/scores` (predictive maintenance scores)
 
 **C. Fleet Overview** (`client/src/pages/FleetOverview.tsx` - 383 lines)
 
 **Features**:
+
 - ✅ Fleet-wide health insights
 - ✅ Technician-friendly insights (organized by vessel > system > component)
 - ✅ Status filters (all, critical, action required, monitor, normal)
@@ -125,11 +138,13 @@ POST /api/telemetry
 - ✅ Equipment detail navigation (click to health monitor with filter)
 
 **Components Used**:
+
 - TechnicianInsightCard (marine-specific insights)
 - Status badges (color-coded severity levels)
 - Tabbed interface (per-vessel organization)
 
 **Insight Types**:
+
 - Critical: Immediate action required
 - Action Required: Schedule maintenance soon
 - Monitor: Watch for degradation
@@ -138,6 +153,7 @@ POST /api/telemetry
 **D. AI Insights** (`client/src/pages/ai-insights.tsx` - 965 lines)
 
 **Features**:
+
 - ✅ AI-powered report generation (4 report types)
   - Health reports
   - Fleet reports
@@ -155,6 +171,7 @@ POST /api/telemetry
 - ✅ Report summary cards
 
 **Components Used**:
+
 - ReportSummaryCards (executive summary)
 - Collapsible sections (progressive disclosure)
 - Badge status indicators
@@ -163,6 +180,7 @@ POST /api/telemetry
 **E. Alerts** (`client/src/pages/alerts.tsx` - 758 lines)
 
 **Features**:
+
 - ✅ Alert configurations (create, edit, delete)
 - ✅ Alert notifications (real-time via WebSocket)
 - ✅ Severity-based filtering
@@ -172,12 +190,14 @@ POST /api/telemetry
 - ✅ Clear all alerts button
 
 **Components Used**:
+
 - Dialog (configuration modal)
 - Form (threshold configuration)
 - Badge (severity indicators)
 - WebSocket integration (real-time alerts)
 
 **Alert Types**:
+
 - Equipment threshold breaches
 - Health degradation
 - DTC fault codes
@@ -187,6 +207,7 @@ POST /api/telemetry
 **F. Diagnostics** (`client/src/pages/diagnostics.tsx` - 383 lines)
 
 **Features**:
+
 - ✅ DTC (Diagnostic Trouble Code) monitoring
 - ✅ ECM fault code display
 - ✅ Severity-based filtering (critical, high, moderate, low)
@@ -196,12 +217,14 @@ POST /api/telemetry
 - ✅ Fault definitions with descriptions
 
 **Components Used**:
+
 - Card layouts (statistics + fault list)
 - Badge (severity indicators)
 - Select dropdowns (filtering)
 - Search input (SPN/FMI lookup)
 
 **Diagnostic Data**:
+
 - SPN (Suspect Parameter Number)
 - FMI (Failure Mode Identifier)
 - Occurrence count
@@ -219,6 +242,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 **A. TimeSeriesChart** (`client/src/components/charts/TimeSeriesChart.tsx`)
 
 **Features**:
+
 - ✅ Line chart or area chart (configurable)
 - ✅ Time-based X-axis with date formatting
 - ✅ Custom tooltips with timestamp + value
@@ -227,6 +251,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 - ✅ Responsive design
 
 **Usage**:
+
 ```typescript
 <TimeSeriesChart
   data={telemetryHistory}
@@ -240,6 +265,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 **B. EquipmentHealthChart** (`client/src/components/charts/EquipmentHealthChart.tsx`)
 
 **Features**:
+
 - ✅ Bar chart (equipment count by health condition)
 - ✅ Color-coded health states (excellent, good, fair, poor, critical)
 - ✅ Custom tooltips
@@ -248,6 +274,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 **C. ChartWrapper** (`client/src/components/charts/ChartWrapper.tsx`)
 
 **Features**:
+
 - ✅ Consistent chart container
 - ✅ Loading skeletons
 - ✅ Error state handling
@@ -256,6 +283,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 - ✅ Responsive wrapper
 
 **D. Other Charts**:
+
 - ✅ DataQualityChart (data completeness visualization)
 - ✅ FinancialTrendsChart (cost savings over time)
 - ✅ IssueTypeChart (alert type distribution)
@@ -270,6 +298,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 ### RUL Engine v2.0 (Verified in `DIGITAL_TWIN_HEALTH_MONITOR_VERIFICATION.md`)
 
 **Features**:
+
 - ✅ Mode-aware predictions (6 operating modes)
   - DP (Dynamic Positioning): 0.85x multiplier
   - Transit: 1.0x baseline
@@ -284,6 +313,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 - ✅ Confidence levels (low, medium, high)
 
 **Evidence from API**:
+
 ```json
 {
   "equipmentId": "574d1d05-6708-46be-84df-6e33d4ec4072",
@@ -307,6 +337,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 ### ML Health Dashboard (`client/src/components/ml/MLHealthDashboard.tsx`)
 
 **Features**:
+
 - ✅ Model performance tracking
 - ✅ Accuracy trends over time
 - ✅ Training status indicators
@@ -315,6 +346,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 ### Vessel Intelligence
 
 **Features** (from `ai-insights.tsx`):
+
 - ✅ Historical patterns (frequency, last occurrence, significance)
 - ✅ Anomaly detection (type, severity, z-score)
 - ✅ Seasonal trends (season, trend, impact)
@@ -330,6 +362,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 ### WebSocket Architecture (Verified in `TELEMETRY_PIPELINE_VERIFICATION.md`)
 
 **Server** (`server/websocket.ts`):
+
 - ✅ WebSocket server on `/ws`
 - ✅ Channel-based subscriptions
 - ✅ Broadcast methods (broadcast, broadcastToAll, broadcastAlert)
@@ -337,6 +370,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 - ✅ Observability (connection count, message tracking)
 
 **Channels**:
+
 - `alerts`: Real-time alert notifications
 - `dashboard`: Dashboard metrics (30s refresh)
 - `data:work_orders`: Work order CRUD events
@@ -346,6 +380,7 @@ All charts use **Recharts** (React wrapper for D3.js) with custom theming.
 - `data:all`: All entity changes
 
 **Client Hook** (`client/src/hooks/useWebSocket.ts`):
+
 ```typescript
 const { isConnected, latestAlert, subscribe, unsubscribe } = useWebSocket({
   autoConnect: true,
@@ -364,6 +399,7 @@ useEffect(() => {
 ```
 
 **Real-Time Updates**:
+
 - ✅ Dashboard metrics (30s poll + WebSocket push)
 - ✅ Equipment health (30s poll + WebSocket push)
 - ✅ Alerts (WebSocket push only)
@@ -375,13 +411,14 @@ useEffect(() => {
 ```typescript
 // From client/src/lib/queryClient.ts
 export const CACHE_TIMES = {
-  REALTIME: 30_000,    // 30s - telemetry, health, dashboard
-  MODERATE: 300_000,   // 5min - work orders, devices
-  STABLE: 1_800_000,   // 30min - vessels, equipment registry
+  REALTIME: 30_000, // 30s - telemetry, health, dashboard
+  MODERATE: 300_000, // 5min - work orders, devices
+  STABLE: 1_800_000, // 30min - vessels, equipment registry
 };
 ```
 
 **Polling Strategy**:
+
 - ✅ Realtime data (30s): Telemetry, health, alerts, dashboard
 - ✅ Moderate data (5min): Work orders, devices, configurations
 - ✅ Stable data (30min): Vessels, equipment registry, crew
@@ -393,18 +430,21 @@ export const CACHE_TIMES = {
 ### Shared Components (`client/src/components/shared/`)
 
 **Status & Indicators**:
+
 - ✅ StatusBadge (health status visualization)
 - ✅ StatusIndicator (traffic-light indicators)
 - ✅ MetricCard (KPI cards with icons)
 - ✅ WebSocketStatus (connection indicator)
 
 **Selectors**:
+
 - ✅ VesselSelector (vessel dropdown with search)
 - ✅ EquipmentSelector (equipment dropdown with search)
 - ✅ NavigationCategory (sidebar navigation)
 - ✅ NavigationItem (individual nav links)
 
 **Data Display**:
+
 - ✅ ResponsiveTable (mobile-friendly tables)
 - ✅ TableSkeleton (loading skeletons)
 - ✅ EmptyState (no data states)
@@ -412,6 +452,7 @@ export const CACHE_TIMES = {
 - ✅ LoadingState (loading indicators)
 
 **Utilities**:
+
 - ✅ Breadcrumb (navigation breadcrumbs)
 - ✅ CollapsibleSection (expandable sections)
 - ✅ ConfirmDialog (confirmation modals)
@@ -419,6 +460,7 @@ export const CACHE_TIMES = {
 ### UI Library: shadcn/ui
 
 **Components in Use**:
+
 - ✅ Card, CardContent, CardHeader, CardTitle, CardDescription
 - ✅ Button, Badge, Alert
 - ✅ Dialog, Sheet, Drawer
@@ -435,6 +477,7 @@ export const CACHE_TIMES = {
 ### Equipment-Specific Monitoring
 
 **Supported Equipment Types** (from `client/src/constants/equipment.ts`):
+
 - ✅ Main Engine (diesel, gas, electric)
 - ✅ Auxiliary Engines (generators, APUs)
 - ✅ Thrusters (bow, stern, azimuth, tunnel)
@@ -450,6 +493,7 @@ export const CACHE_TIMES = {
 ### Marine-Specific Sensors
 
 **Sensor Types** (from schema + API):
+
 - ✅ Temperature (engine, exhaust, coolant, oil, bearing)
 - ✅ Pressure (fuel, oil, hydraulic, air)
 - ✅ Vibration (acceleration, velocity, displacement)
@@ -463,6 +507,7 @@ export const CACHE_TIMES = {
 ### Operating Modes (from RUL Engine v2.0)
 
 **Mode Detection**:
+
 - ✅ DP (Dynamic Positioning) - Offshore operations
 - ✅ Transit - Sailing between ports
 - ✅ Harbor - Maneuvering in port
@@ -471,6 +516,7 @@ export const CACHE_TIMES = {
 - ✅ Docking - Alongside berth
 
 **Mode-Aware RUL Adjustments**:
+
 - Different wear rates per operating mode
 - Multipliers applied to base failure rate
 - Logged in predictions table
@@ -478,10 +524,12 @@ export const CACHE_TIMES = {
 ### Marine Compliance
 
 **CII (Carbon Intensity Indicator)**:
+
 - ✅ CIIBadge component (compliance visualization)
 - ✅ Compliance reports (AI insights)
 
 **STCW Compliance**:
+
 - ✅ Hours of Rest tracking (`hours-of-rest.tsx`)
 - ✅ Crew scheduling (`crew-scheduler.tsx`)
 - ✅ Crew management (`crew-management.tsx`)
@@ -493,6 +541,7 @@ export const CACHE_TIMES = {
 ### Work Orders
 
 **Features** (`client/src/pages/work-orders.tsx`):
+
 - ✅ Create work orders from alerts
 - ✅ Link work orders to equipment
 - ✅ Status tracking (open, in progress, completed)
@@ -503,6 +552,7 @@ export const CACHE_TIMES = {
 - ✅ Notes/comments
 
 **API Endpoints**:
+
 ```typescript
 GET  /api/work-orders?equipmentId=...
 POST /api/work-orders
@@ -512,6 +562,7 @@ PUT  /api/work-orders/:id
 ### Maintenance Schedules
 
 **Features** (`client/src/pages/maintenance-schedules.tsx`):
+
 - ✅ Recurring maintenance tasks
 - ✅ Calendar view (schedule board)
 - ✅ Equipment-specific schedules
@@ -520,6 +571,7 @@ PUT  /api/work-orders/:id
 - ✅ Auto-scheduling based on RUL predictions
 
 **Maintenance Templates**:
+
 - ✅ Template creation/editing
 - ✅ Task checklists
 - ✅ Required parts/materials
@@ -533,6 +585,7 @@ PUT  /api/work-orders/:id
 ### Inventory Management
 
 **Features** (`client/src/pages/inventory-management.tsx`):
+
 - ✅ Parts catalog
 - ✅ Stock levels (min/max thresholds)
 - ✅ Location tracking (vessel, warehouse, supplier)
@@ -542,6 +595,7 @@ PUT  /api/work-orders/:id
 - ✅ Equipment associations
 
 **Integration with Maintenance**:
+
 - ✅ Link parts to equipment
 - ✅ Auto-suggest parts for work orders
 - ✅ Track parts consumption
@@ -553,6 +607,7 @@ PUT  /api/work-orders/:id
 ### Savings Dashboard
 
 **Features** (`client/src/pages/savings-dashboard.tsx`):
+
 - ✅ Cost avoidance tracking (prevented failures)
 - ✅ Downtime reduction metrics
 - ✅ Maintenance cost trends
@@ -560,6 +615,7 @@ PUT  /api/work-orders/:id
 - ✅ Financial reports
 
 **Cost Categories**:
+
 - ✅ Preventive maintenance costs
 - ✅ Corrective maintenance costs
 - ✅ Parts/materials costs
@@ -574,6 +630,7 @@ PUT  /api/work-orders/:id
 ### Dual-Mode Architecture
 
 **From `DATABASE_LAYER_VERIFICATION_REPORT.md`**:
+
 - ✅ 132/132 tables with 100% schema parity
 - ✅ PostgreSQL (cloud mode) + SQLite (vessel/desktop mode)
 - ✅ Database Proxy pattern (`server/db-config.ts`)
@@ -584,6 +641,7 @@ PUT  /api/work-orders/:id
 ### Telemetry-Related Tables
 
 **Core Tables**:
+
 - ✅ raw_telemetry (timestamped sensor readings)
 - ✅ equipment_telemetry (legacy, may be deprecated)
 - ✅ sensor_templates (sensor configuration)
@@ -593,10 +651,12 @@ PUT  /api/work-orders/:id
 - ✅ operating_condition_alerts (threshold violations)
 
 **Views**:
+
 - ✅ mv_latest_equipment_telemetry (materialized, 30s refresh)
 - ✅ mv_equipment_health (materialized, 30s refresh)
 
 **ML/Analytics Tables**:
+
 - ✅ ml_models (stored models with org isolation)
 - ✅ ml_model_accuracy_history (performance tracking)
 - ✅ predictions (RUL predictions log)
@@ -604,6 +664,7 @@ PUT  /api/work-orders/:id
 - ✅ failure_predictions (failure forecasts)
 
 **Sync Tables**:
+
 - ✅ sync_log (vessel ↔ cloud sync tracking)
 - ✅ conflict_log (conflict resolution)
 - ✅ mqtt_message_queue (offline queue)
@@ -615,6 +676,7 @@ PUT  /api/work-orders/:id
 ### Rate Limiting
 
 **From `RATE_LIMITING_TENANT_MIDDLEWARE_VERIFICATION.md`**:
+
 - ✅ General writes: 10,000 req/min (dev/embedded), 300 (prod)
 - ✅ Telemetry: 10,000 req/min (dev/embedded), 600 (prod)
 - ✅ Bulk operations: 100 req/5min (dev/embedded), 10 (prod)
@@ -623,12 +685,14 @@ PUT  /api/work-orders/:id
 ### Tenant Isolation
 
 **Middleware**:
+
 - ✅ requireOrgId (strict validation)
 - ✅ requireOrgIdAndValidateBody (header + body validation)
 - ✅ optionalOrgId (flexible validation)
 - ✅ Development mode bypass (NODE_ENV=development)
 
 **Evidence**:
+
 - ✅ 50+ successful tenant isolation checks in logs
 - ✅ Zero violations detected
 - ✅ All queries org-scoped
@@ -640,6 +704,7 @@ PUT  /api/work-orders/:id
 ### Electron Desktop App
 
 **Features**:
+
 - ✅ SQLite local database (offline-first)
 - ✅ MQTT sync when connected
 - ✅ Conflict resolution UI
@@ -648,6 +713,7 @@ PUT  /api/work-orders/:id
 ### Capacitor iOS/iPadOS App
 
 **Features**:
+
 - ✅ Same SQLite backend as desktop
 - ✅ Touch-optimized UI
 - ✅ Offline-first architecture
@@ -656,6 +722,7 @@ PUT  /api/work-orders/:id
 ### Progressive Web App (PWA)
 
 **Features**:
+
 - ✅ PWA install prompt
 - ✅ Service worker caching
 - ✅ Offline fallback
@@ -668,24 +735,28 @@ PUT  /api/work-orders/:id
 ### Potential Areas for Improvement
 
 **A. Telemetry Visualization**:
+
 - ❓ Single-vessel "bridge" style view (like a ship's bridge display)
 - ❓ Multi-sensor time-series overlay (compare multiple sensors on one chart)
 - ❓ Live telemetry streaming (current polling + WebSocket push)
 - ❓ Sensor-specific units and thresholds (marine-oriented)
 
 **B. Actionable Insights**:
+
 - ❓ "Top 5 risks" aggregated view per vessel/fleet
 - ❓ Clear linking from alert → equipment → work order → parts
 - ❓ Risk levels combining multiple signals (trend + threshold + RUL)
 - ❓ "What happens if I ignore this?" impact analysis
 
 **C. UX/Clarity**:
+
 - ❓ Better wording/structure of insight panels
 - ❓ Marine terminology consistency (e.g., "main engine" vs "prime mover")
 - ❓ Progressive disclosure for complex data
 - ❓ Responsive design for smaller viewports
 
 **D. Database/Schema**:
+
 - ❓ Any schema mismatches between code and DB (check logs)
 - ❓ Rate limiting / 429 errors (check logs)
 - ❓ Missing tables (e.g., update_settings vs schema definitions)
@@ -697,6 +768,7 @@ PUT  /api/work-orders/:id
 ### Step 1: Overlap & Value Check
 
 **Before implementing ANY changes**:
+
 1. ✅ List existing visualizations (DONE in this document)
 2. ❓ For each proposed improvement, answer:
    - Does this feature already exist under a different name?
@@ -708,6 +780,7 @@ PUT  /api/work-orders/:id
 ### Step 2: Telemetry Monitoring & Visualization Review
 
 **Focus Areas**:
+
 - ✅ Confirm telemetry flow (simulator/MQTT → ingestion → DB → digital twin → API → React)
 - ❓ Evaluate real-time dashboards (bridge view, fleet overview)
 - ❓ Evaluate time-series charts (per sensor, per equipment)
@@ -717,6 +790,7 @@ PUT  /api/work-orders/:id
 ### Step 3: Actionable Insights Evaluation
 
 **Marine PdM-Specific**:
+
 - ❓ Which equipment needs attention this week and why?
 - ❓ Risk of failure before next port call/dry-dock?
 - ❓ Impact of ignoring this alert (cost, downtime, safety)?
@@ -725,6 +799,7 @@ PUT  /api/work-orders/:id
 ### Step 4: Database + Schema Sanity
 
 **Check Logs For**:
+
 - ❓ Rate limiting / 429 errors on telemetry/alerts endpoints
 - ❓ Unauthorized / missing x-org-id issues
 - ❓ Health check functions using wrong DB client
@@ -733,6 +808,7 @@ PUT  /api/work-orders/:id
 ### Step 5: Multi-Device & Offline-First
 
 **Verify**:
+
 - ✅ Offline-first respected (MQTT/cloud optional)
 - ❓ Graceful degradation when services unavailable
 - ❓ No catastrophic breakage on small viewports
@@ -740,6 +816,7 @@ PUT  /api/work-orders/:id
 ### Step 6: Reporting Back
 
 **Final Deliverables**:
+
 - ❓ Architecture-aware summary (what exists, what not to touch, what changed)
 - ❓ Grouped changes (telemetry UI, insights UX, DB/schema fixes)
 - ❓ High-priority follow-up items (product/architecture decisions)
@@ -762,6 +839,7 @@ PUT  /api/work-orders/:id
 10. ✅ **Offline-first** (Electron desktop, Capacitor mobile, PWA)
 
 **Before making ANY changes**, we must:
+
 1. Identify genuine gaps (not duplications)
 2. Validate proposed improvements add marine PdM value
 3. Ensure no regressions or conflicts with architecture

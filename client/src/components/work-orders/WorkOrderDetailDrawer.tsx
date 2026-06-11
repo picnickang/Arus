@@ -27,7 +27,10 @@ import { WorkOrderHistoryTab } from "./WorkOrderHistoryTab";
 import { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
 import { LinkTemplateDialog } from "./LinkTemplateDialog";
 import { LinkedServiceOrdersPanel } from "./LinkedServiceOrdersPanel";
-import { WorkOrderCloseoutWizard, type CloseoutPredictionFeedback } from "./WorkOrderCloseoutWizard";
+import {
+  WorkOrderCloseoutWizard,
+  type CloseoutPredictionFeedback,
+} from "./WorkOrderCloseoutWizard";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { cn } from "@/lib/utils";
 import { useWorkOrderDetailData } from "@/features/work-orders";
@@ -70,8 +73,13 @@ interface WorkOrderDetailDrawerProps {
   isCompleting?: boolean;
 }
 
+const DEFAULT_STATUS_CONFIG = {
+  label: "Open",
+  className: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
+};
+
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-blue-500/20 text-blue-700 dark:text-blue-300" },
+  open: DEFAULT_STATUS_CONFIG,
   in_progress: {
     label: "In Progress",
     className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
@@ -91,13 +99,15 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
 };
 
+const DEFAULT_PRIORITY_CONFIG = {
+  label: "Medium Priority",
+  className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
+};
+
 const PRIORITY_CONFIG: Record<number, { label: string; className: string }> = {
   1: { label: "Critical", className: "bg-red-500/20 text-red-700 dark:text-red-300" },
   2: { label: "High Priority", className: "bg-orange-500/20 text-orange-700 dark:text-orange-300" },
-  3: {
-    label: "Medium Priority",
-    className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
-  },
+  3: DEFAULT_PRIORITY_CONFIG,
   4: { label: "Low Priority", className: "bg-green-500/20 text-green-700 dark:text-green-300" },
 };
 
@@ -176,8 +186,8 @@ export function WorkOrderDetailDrawer({
   const calculatedLaborCost =
     assignedCrewRate && workOrder.laborHours ? assignedCrewRate * workOrder.laborHours : null;
 
-  const statusConfig = STATUS_CONFIG[workOrder.status] || STATUS_CONFIG['open'];
-  const priorityConfig = PRIORITY_CONFIG[workOrder.priority] || PRIORITY_CONFIG[3];
+  const statusConfig = STATUS_CONFIG[workOrder.status] || DEFAULT_STATUS_CONFIG;
+  const priorityConfig = PRIORITY_CONFIG[workOrder.priority] || DEFAULT_PRIORITY_CONFIG;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -293,9 +303,7 @@ export function WorkOrderDetailDrawer({
                           )}
                         {workOrder.assignmentRespondedAt && (
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            {workOrder.assignmentStatus === "declined"
-                              ? "Declined "
-                              : "Responded "}
+                            {workOrder.assignmentStatus === "declined" ? "Declined " : "Responded "}
                             {formatDistanceToNow(new Date(workOrder.assignmentRespondedAt), {
                               addSuffix: true,
                             })}
@@ -447,7 +455,6 @@ export function WorkOrderDetailDrawer({
                 workOrderNumber={workOrder.woNumber || workOrder.id.slice(0, 8)}
                 workOrderStatus={workOrder.status}
               />
-
             </TabsContent>
 
             <TabsContent value="parts" className="mt-0 p-4 sm:p-6">

@@ -59,10 +59,7 @@ const PARTS_MANAGEMENT_ROLES: AuthCrewRole[] = ["chief_engineer", "second_engine
  * the gate, and a runtime config rotation would not take effect).
  */
 function devBypassAllowed(): boolean {
-  return (
-    process.env['RBAC_DEV_NO_AUTH'] === "1" &&
-    process.env['NODE_ENV'] !== "production"
-  );
+  return process.env["RBAC_DEV_NO_AUTH"] === "1" && process.env["NODE_ENV"] !== "production";
 }
 
 export function requireRole(...allowedRoles: AuthCrewRole[]) {

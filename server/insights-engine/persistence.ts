@@ -34,7 +34,10 @@ export async function persistSnapshot(
     return { id: snapshot.id, createdAt: snapshot.createdAt as object as Date };
   } catch (error) {
     logger.error("Failed to persist insight snapshot:", undefined, error);
-    logger.error("Bundle data that failed:", undefined, JSON.stringify(
+    logger.error(
+      "Bundle data that failed:",
+      undefined,
+      JSON.stringify(
         {
           scope,
           orgId,
@@ -48,7 +51,8 @@ export async function persistSnapshot(
         },
         null,
         2
-      ));
+      )
+    );
     throw new Error("Snapshot persistence failed");
   }
 }

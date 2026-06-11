@@ -31,7 +31,9 @@ export interface ICertificateRepository {
   findExpiring(
     orgId: string,
     days: number
-  ): Promise<Array<CertificateEntity & { vesselName?: string | undefined; daysUntilExpiry: number | null }>>;
+  ): Promise<
+    Array<CertificateEntity & { vesselName?: string | undefined; daysUntilExpiry: number | null }>
+  >;
 
   getSummary(orgId: string, vesselId?: string): Promise<CertificateSummary>;
 

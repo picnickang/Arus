@@ -36,9 +36,9 @@ function daysFromNow(days: number): Date {
 }
 
 function makeStubStorage(rows: Row[]) {
-  const getCrewComplianceRows = jest.fn<
-    CrewComplianceRowsPort["getCrewComplianceRows"]
-  >().mockResolvedValue(rows);
+  const getCrewComplianceRows = jest
+    .fn<CrewComplianceRowsPort["getCrewComplianceRows"]>()
+    .mockResolvedValue(rows);
   const stub: CrewComplianceRowsPort = { getCrewComplianceRows };
   return { stub, getCrewComplianceRows };
 }
@@ -51,11 +51,7 @@ describe("LR-3.5 / PERF — crew compliance single-join", () => {
     await gen.generate(ORG, null);
 
     expect(getCrewComplianceRows).toHaveBeenCalledTimes(1);
-    expect(getCrewComplianceRows).toHaveBeenCalledWith(
-      ORG,
-      null,
-      expect.any(Date)
-    );
+    expect(getCrewComplianceRows).toHaveBeenCalledWith(ORG, null, expect.any(Date));
   });
 
   it("projection is byte-equivalent across passing / failing / mixed crews", async () => {
@@ -117,9 +113,24 @@ describe("LR-3.5 / PERF — crew compliance single-join", () => {
       }))
     ).toEqual([
       { crewId: "c-mix", crewName: "Mixed Mate", vesselName: "MV Mixed", cert: "Expired STCW" },
-      { crewId: "c-fail", crewName: "Failing Cook", vesselName: "MV Failing", cert: "STCW Basic Safety" },
-      { crewId: "c-fail", crewName: "Failing Cook", vesselName: "MV Failing", cert: "Medical Fitness" },
-      { crewId: "c-mix", crewName: "Mixed Mate", vesselName: "MV Mixed", cert: "Tanker Endorsement" },
+      {
+        crewId: "c-fail",
+        crewName: "Failing Cook",
+        vesselName: "MV Failing",
+        cert: "STCW Basic Safety",
+      },
+      {
+        crewId: "c-fail",
+        crewName: "Failing Cook",
+        vesselName: "MV Failing",
+        cert: "Medical Fitness",
+      },
+      {
+        crewId: "c-mix",
+        crewName: "Mixed Mate",
+        vesselName: "MV Mixed",
+        cert: "Tanker Endorsement",
+      },
     ]);
     const days = result.expiringCertifications.map((a) => a.daysUntilExpiry);
     expect([...days].sort((a, b) => a - b)).toEqual(days);
@@ -160,11 +171,7 @@ describe("LR-3.5 / PERF — crew compliance single-join", () => {
     const { stub, getCrewComplianceRows } = makeStubStorage([]);
     const gen = new CrewComplianceGenerator(stub);
     await gen.generate(ORG, ["v-1", "v-2"]);
-    expect(getCrewComplianceRows).toHaveBeenCalledWith(
-      ORG,
-      ["v-1", "v-2"],
-      expect.any(Date)
-    );
+    expect(getCrewComplianceRows).toHaveBeenCalledWith(ORG, ["v-1", "v-2"], expect.any(Date));
   });
 
   it("treats vesselIds=[] as an explicit empty selection (no broadening)", async () => {

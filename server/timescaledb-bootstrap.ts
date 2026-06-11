@@ -6,7 +6,9 @@ const logger = createLogger("TimescaledbBootstrap");
 
 function requirePool(): Pool {
   if (!pool) {
-    throw new Error("TimescaleDB bootstrap requires a PostgreSQL pool (local mode or missing DATABASE_URL)");
+    throw new Error(
+      "TimescaleDB bootstrap requires a PostgreSQL pool (local mode or missing DATABASE_URL)"
+    );
   }
   return pool as object as Pool;
 }
@@ -58,13 +60,11 @@ interface HypertableStatus {
 }
 
 function isTimescaleEnabled(): boolean {
-  return process.env['TIMESCALEDB_ENABLED'] === "true";
+  return process.env["TIMESCALEDB_ENABLED"] === "true";
 }
 
 async function extensionInstalled(pg: Pool): Promise<boolean> {
-  const res = await pg.query(
-    "SELECT 1 FROM pg_extension WHERE extname = 'timescaledb' LIMIT 1",
-  );
+  const res = await pg.query("SELECT 1 FROM pg_extension WHERE extname = 'timescaledb' LIMIT 1");
   return res.rowCount !== null && res.rowCount > 0;
 }
 
@@ -82,7 +82,7 @@ async function inspectHypertable(pg: Pool, table: string): Promise<HypertableSta
   const ht = await pg.query(
     `SELECT 1 FROM timescaledb_information.hypertables
      WHERE hypertable_schema = 'public' AND hypertable_name = $1 LIMIT 1`,
-    [table],
+    [table]
   );
   const isHypertable = ht.rowCount !== null && ht.rowCount > 0;
 
@@ -93,7 +93,7 @@ async function inspectHypertable(pg: Pool, table: string): Promise<HypertableSta
   const policies = await pg.query(
     `SELECT proc_name FROM timescaledb_information.jobs
      WHERE hypertable_schema = 'public' AND hypertable_name = $1`,
-    [table],
+    [table]
   );
   const procNames = policies.rows.map((r: { proc_name: string }) => r.proc_name);
   return {
@@ -104,10 +104,14 @@ async function inspectHypertable(pg: Pool, table: string): Promise<HypertableSta
   };
 }
 
-async function applyPolicies(pg: Pool, cfg: HypertableConfig, status: HypertableStatus): Promise<void> {
+async function applyPolicies(
+  pg: Pool,
+  cfg: HypertableConfig,
+  status: HypertableStatus
+): Promise<void> {
   if (!status.isHypertable) {
     logger.warn(
-      `[TimescaleDB] ${cfg.table} is NOT a hypertable. Run 'node scripts/timescale-init-hypertables.mjs' as an operator to convert it (requires PK migration).`,
+      `[TimescaleDB] ${cfg.table} is NOT a hypertable. Run 'node scripts/timescale-init-hypertables.mjs' as an operator to convert it (requires PK migration).`
     );
     return;
   }
@@ -115,13 +119,15 @@ async function applyPolicies(pg: Pool, cfg: HypertableConfig, status: Hypertable
   if (cfg.compressAfter && !status.hasCompression) {
     try {
       await pg.query(
-        `ALTER TABLE ${cfg.table} SET (timescaledb.compress, timescaledb.compress_segmentby = '')`,
+        `ALTER TABLE ${cfg.table} SET (timescaledb.compress, timescaledb.compress_segmentby = '')`
       );
       await pg.query(
         `SELECT add_compression_policy($1, INTERVAL '${cfg.compressAfter}', if_not_exists => true)`,
-        [cfg.table],
+        [cfg.table]
       );
-      logger.info(`[TimescaleDB] ${cfg.table}: compression policy set (after ${cfg.compressAfter})`);
+      logger.info(
+        `[TimescaleDB] ${cfg.table}: compression policy set (after ${cfg.compressAfter})`
+      );
     } catch (err) {
       logger.warn(`[TimescaleDB] ${cfg.table}: compression policy failed`, { details: err });
     }
@@ -131,7 +137,7 @@ async function applyPolicies(pg: Pool, cfg: HypertableConfig, status: Hypertable
     try {
       await pg.query(
         `SELECT add_retention_policy($1, INTERVAL '${cfg.retention}', if_not_exists => true)`,
-        [cfg.table],
+        [cfg.table]
       );
       logger.info(`[TimescaleDB] ${cfg.table}: retention policy set (${cfg.retention})`);
     } catch (err) {
@@ -160,10 +166,14 @@ export async function runTimescaleBootstrap(): Promise<void> {
     const hypertables = statuses.filter((s) => s.isHypertable).length;
     const pending = statuses.filter((s) => !s.isHypertable).length;
     logger.info(
-      `[TimescaleDB] Bootstrap complete — ${hypertables}/${statuses.length} tables are hypertables, ${pending} pending operator init`,
+      `[TimescaleDB] Bootstrap complete — ${hypertables}/${statuses.length} tables are hypertables, ${pending} pending operator init`
     );
   } catch (err) {
-    logger.error("[TimescaleDB] Bootstrap failed (non-fatal, continuing in standard PG mode)", undefined, err);
+    logger.error(
+      "[TimescaleDB] Bootstrap failed (non-fatal, continuing in standard PG mode)",
+      undefined,
+      err
+    );
   }
 }
 
@@ -173,7 +183,7 @@ export async function initializeTimescaleDB(): Promise<void> {
 
 export async function createTimescaleHypertables(): Promise<void> {
   logger.warn(
-    "[TimescaleDB] createTimescaleHypertables() is a no-op; use 'node scripts/timescale-init-hypertables.mjs' for safe conversion.",
+    "[TimescaleDB] createTimescaleHypertables() is a no-op; use 'node scripts/timescale-init-hypertables.mjs' for safe conversion."
   );
 }
 

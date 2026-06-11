@@ -343,6 +343,9 @@ export default function GovernanceDashboard() {
                       {provenanceEvents.map((event, index) => {
                         const config =
                           EVENT_TYPE_CONFIG[event.type] || EVENT_TYPE_CONFIG["prediction"];
+                        if (!config) {
+                          return null;
+                        }
                         const Icon = config.icon;
                         return (
                           <div

@@ -84,7 +84,9 @@ export class DatabaseAnalyticsStorage {
 
   async createMaintenanceCost(cost: InsertMaintenanceCost): Promise<MaintenanceCost> {
     const [n] = await db.insert(maintenanceCosts).values(cost).returning();
-    if (!n) {throw new Error("createMaintenanceCost: no row returned");}
+    if (!n) {
+      throw new Error("createMaintenanceCost: no row returned");
+    }
     return n;
   }
 
@@ -327,7 +329,9 @@ export class DatabaseAnalyticsStorage {
 
   async createLaborRate(rate: InsertLaborRate): Promise<LaborRate> {
     const [n] = await db.insert(laborRates).values(rate).returning();
-    if (!n) {throw new Error("createLaborRate: no row returned");}
+    if (!n) {
+      throw new Error("createLaborRate: no row returned");
+    }
     return n;
   }
 
@@ -351,7 +355,9 @@ export class DatabaseAnalyticsStorage {
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
     const [n] = await db.insert(expenses).values(expense).returning();
-    if (!n) {throw new Error("createExpense: no row returned");}
+    if (!n) {
+      throw new Error("createExpense: no row returned");
+    }
     return n;
   }
 
@@ -397,7 +403,9 @@ export class DatabaseAnalyticsStorage {
       return this.updateEquipmentLifecycle(existingFirst.id, lifecycle);
     }
     const [n] = await db.insert(equipmentLifecycle).values(lifecycle).returning();
-    if (!n) {throw new Error("upsertEquipmentLifecycle: no row returned");}
+    if (!n) {
+      throw new Error("upsertEquipmentLifecycle: no row returned");
+    }
     return n;
   }
 
@@ -460,7 +468,9 @@ export class DatabaseAnalyticsStorage {
 
   async createPerformanceMetric(metric: InsertPerformanceMetric): Promise<PerformanceMetric> {
     const [n] = await db.insert(performanceMetrics).values(metric).returning();
-    if (!n) {throw new Error("createPerformanceMetric: no row returned");}
+    if (!n) {
+      throw new Error("createPerformanceMetric: no row returned");
+    }
     return n;
   }
 

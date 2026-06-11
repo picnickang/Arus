@@ -1,8 +1,6 @@
 {
   "_comment": "Domain repositories import baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-repositories-imports.mjs --write-baseline",
-  "generatedAt": "2026-06-11T09:20:40.022Z",
-  "count": 1,
-  "files": [
-    "server/domains/maintenance/interfaces/checklist-routes.ts"
-  ]
+  "generatedAt": "2026-06-11T11:36:11.428Z",
+  "count": 0,
+  "files": []
 }

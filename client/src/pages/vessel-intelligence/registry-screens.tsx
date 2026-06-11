@@ -14,9 +14,9 @@ import { type PermissionSet } from "./registry-screens/shared";
 
 interface RegistryRouteScreenProps {
   vesselId: string;
-  diagramId?: string;
-  mapId?: string;
-  selectedVessel?: VesselRecord;
+  diagramId?: string | undefined;
+  mapId?: string | undefined;
+  selectedVessel?: VesselRecord | undefined;
   equipment: EquipmentRecord[];
 }
 

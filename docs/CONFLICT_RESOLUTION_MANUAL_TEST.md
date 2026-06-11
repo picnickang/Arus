@@ -90,7 +90,7 @@ INSERT INTO sync_conflicts (
 ### 3. Verify Resolution
 
 ```sql
-SELECT 
+SELECT
   field_name,
   resolved,
   resolved_value,
@@ -107,7 +107,7 @@ Both should show `resolved=true` with appropriate `resolved_value`.
 ✅ **Auto-Resolvable Conflicts**: Automatically resolved using strategy (max_value, latest_timestamp, etc.)  
 ✅ **Mixed Conflicts**: Can resolve all at once - manual selections + auto-resolution  
 ✅ **Value Parsing**: Handles strings, numbers, JSON objects, empty strings, null correctly  
-✅ **UI Feedback**: Toast notifications, modal close, badge update  
+✅ **UI Feedback**: Toast notifications, modal close, badge update
 
 ## Implementation Notes
 

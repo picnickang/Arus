@@ -183,7 +183,7 @@ export function registerIotProcessingRoutes(app: Express, deps: IotProcessingDep
     "/api/digital-twins/:twinId/simulate",
     writeOperationRateLimit,
     withErrorHandling("run simulation", async (req: Request, res: Response) => {
-      const twinId = req.params['twinId'] ?? '';
+      const twinId = req.params["twinId"] ?? "";
       const { scenarioName, scenario } = req.body;
 
       const simulation = await digitalTwinService.runSimulation(twinId, scenarioName, scenario);

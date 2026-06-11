@@ -8,11 +8,11 @@
 
 ## Quick Stats
 
-| Test Scenario | Users | Requests | Success Rate | Throughput | Avg Response |
-|---------------|-------|----------|--------------|------------|--------------|
-| **Light Load** | 30 | 360 | **100%** | 30 req/s | 115ms |
-| **Moderate Load** | 50 | 900 | **83%** | 40 req/s | 234ms |
-| **Heavy Load** | 100 | 3,000 | **60%** | 65 req/s | 395ms |
+| Test Scenario     | Users | Requests | Success Rate | Throughput | Avg Response |
+| ----------------- | ----- | -------- | ------------ | ---------- | ------------ |
+| **Light Load**    | 30    | 360      | **100%**     | 30 req/s   | 115ms        |
+| **Moderate Load** | 50    | 900      | **83%**      | 40 req/s   | 234ms        |
+| **Heavy Load**    | 100   | 3,000    | **60%**      | 65 req/s   | 395ms        |
 
 ✅ **Zero actual errors** - All failures are rate limiting (429), which is expected and by design
 
@@ -61,14 +61,14 @@
 
 ### Response Time Targets
 
-| Endpoint | Current (50 users) | Current (100 users) | Target | Status |
-|----------|-------------------|---------------------|--------|--------|
-| Dashboard | 575ms | 1,171ms | < 500ms | ⚠️ NEEDS OPTIMIZATION |
-| Equipment Health | 334ms | 336ms | < 500ms | ✅ GOOD |
-| Work Orders | 129ms | 261ms | < 300ms | ✅ EXCELLENT |
-| Telemetry | 123ms | 253ms | < 300ms | ✅ EXCELLENT |
-| Equipment | 122ms | 175ms | < 300ms | ✅ EXCELLENT |
-| Vessels | 119ms | 170ms | < 300ms | ✅ EXCELLENT |
+| Endpoint         | Current (50 users) | Current (100 users) | Target  | Status                |
+| ---------------- | ------------------ | ------------------- | ------- | --------------------- |
+| Dashboard        | 575ms              | 1,171ms             | < 500ms | ⚠️ NEEDS OPTIMIZATION |
+| Equipment Health | 334ms              | 336ms               | < 500ms | ✅ GOOD               |
+| Work Orders      | 129ms              | 261ms               | < 300ms | ✅ EXCELLENT          |
+| Telemetry        | 123ms              | 253ms               | < 300ms | ✅ EXCELLENT          |
+| Equipment        | 122ms              | 175ms               | < 300ms | ✅ EXCELLENT          |
+| Vessels          | 119ms              | 170ms               | < 300ms | ✅ EXCELLENT          |
 
 ### Throughput
 
@@ -92,6 +92,7 @@
 **Problem:** Dashboard endpoint 2-5x slower than others
 
 **Solution:**
+
 ```typescript
 // Add Redis caching with 5-10s TTL
 const cachedDashboard = await redis.get(`dashboard:${orgId}`);
@@ -103,6 +104,7 @@ return dashboard;
 ```
 
 **Impact:**
+
 - Response time: 1,171ms → < 300ms (4x improvement)
 - Database load: 70% reduction
 - User experience: Significantly improved
@@ -112,6 +114,7 @@ return dashboard;
 **Problem:** Heavy rate limiting under load
 
 **Solution:**
+
 ```typescript
 // Cache equipment health for 30-60 seconds
 const cachedHealth = await redis.get(`equipment:health:${orgId}`);
@@ -123,6 +126,7 @@ return health;
 ```
 
 **Impact:**
+
 - Rate limiting: 80% → < 10% at 100 users
 - Throughput: 5-10x increase
 - Server load: 90% reduction
@@ -132,6 +136,7 @@ return health;
 **Problem:** Too aggressive on read-only endpoints
 
 **Solution:**
+
 ```typescript
 // Increase limits for read-only endpoints
 const readOnlyLimits = {
@@ -141,6 +146,7 @@ const readOnlyLimits = {
 ```
 
 **Impact:**
+
 - 429 errors: 40% → < 5% at 100 users
 - Better user experience
 - Still protects against abuse
@@ -149,13 +155,13 @@ const readOnlyLimits = {
 
 ## Production Readiness
 
-| Scenario | Users | Status | Notes |
-|----------|-------|--------|-------|
-| **Development/Testing** | Any | ✅ READY | No issues |
-| **Internal Use** | 1-50 | ✅ READY | Excellent performance |
-| **Production** | 50-100 | ✅ READY | Monitor dashboard endpoint |
-| **High Scale** | 100-500 | ⚠️ OPTIMIZE FIRST | Implement caching |
-| **Enterprise Scale** | 500+ | ⚠️ SCALE OUT | Add horizontal scaling |
+| Scenario                | Users   | Status            | Notes                      |
+| ----------------------- | ------- | ----------------- | -------------------------- |
+| **Development/Testing** | Any     | ✅ READY          | No issues                  |
+| **Internal Use**        | 1-50    | ✅ READY          | Excellent performance      |
+| **Production**          | 50-100  | ✅ READY          | Monitor dashboard endpoint |
+| **High Scale**          | 100-500 | ⚠️ OPTIMIZE FIRST | Implement caching          |
+| **Enterprise Scale**    | 500+    | ⚠️ SCALE OUT      | Add horizontal scaling     |
 
 ---
 
@@ -164,11 +170,12 @@ const readOnlyLimits = {
 **Location:** `server/tests/load-test.ts`
 
 **Usage:**
+
 ```bash
 # Quick test (30 users)
 CONCURRENT_USERS=30 REQUESTS_PER_USER=2 npx tsx server/tests/load-test.ts
 
-# Standard test (50 users)  
+# Standard test (50 users)
 CONCURRENT_USERS=50 REQUESTS_PER_USER=3 npx tsx server/tests/load-test.ts
 
 # Stress test (100 users)
@@ -176,6 +183,7 @@ CONCURRENT_USERS=100 REQUESTS_PER_USER=5 npx tsx server/tests/load-test.ts
 ```
 
 **Features:**
+
 - ✅ Realistic user behavior simulation
 - ✅ Gradual ramp-up (prevents thundering herd)
 - ✅ Detailed metrics (avg, min, max, P50, P95, P99)

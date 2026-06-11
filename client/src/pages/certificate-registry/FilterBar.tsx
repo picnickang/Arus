@@ -109,12 +109,7 @@ export function FilterBar({
             </SelectContent>
           </Select>
           {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClear}
-              data-testid="button-clear-filters"
-            >
+            <Button variant="ghost" size="sm" onClick={onClear} data-testid="button-clear-filters">
               <X className="h-4 w-4 mr-1" />
               Clear
             </Button>

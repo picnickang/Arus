@@ -82,18 +82,22 @@ export function planPdmBackfill(
   templates: readonly PlannerTemplate[],
   existingRoles: readonly PlannerRole[],
   grantsByRoleId: ReadonlyMap<string, readonly PlannerGrant[]>,
-  apply: boolean,
+  apply: boolean
 ): PdmBackfillRoleResult[] {
   const results: PdmBackfillRoleResult[] = [];
 
   for (const roleName of PDM_BACKFILL_ROLE_NAMES) {
     const template = templates.find((t) => t.name === roleName);
-    if (!template) {continue;}
+    if (!template) {
+      continue;
+    }
 
     const pdmPerms = (
       JSON.parse(template.permissions) as Array<{ resource: string; action: string }>
     ).filter((p) => p.resource === PDM_RESOURCE_CODE);
-    if (pdmPerms.length === 0) {continue;}
+    if (pdmPerms.length === 0) {
+      continue;
+    }
 
     // Prefer an exact templateId match. Only fall back to name-matching for
     // legacy roles that predate templateId tracking (templateId is null) — this

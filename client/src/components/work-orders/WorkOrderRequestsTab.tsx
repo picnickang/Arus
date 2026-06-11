@@ -98,7 +98,13 @@ export function WorkOrderRequestsTab({
 
   const handleCreatePurchaseRequest = (data: {
     notes?: string | undefined;
-    items: Array<{ partId?: string | undefined; description: string; quantity: number; notes?: string | undefined; supplierId?: string | undefined }>;
+    items: Array<{
+      partId?: string | undefined;
+      description: string;
+      quantity: number;
+      notes?: string | undefined;
+      supplierId?: string | undefined;
+    }>;
   }) => {
     createPurchaseRequest(data, {
       onSuccess: () => setPrDialogOpen(false),
@@ -297,15 +303,27 @@ export function WorkOrderRequestsTab({
       <EnhancedServiceRequestDialog
         open={soDialogOpen}
         onOpenChange={handleSoDialogClose}
-        onSubmit={handleCreateServiceOrder as object as Parameters<typeof EnhancedServiceRequestDialog>[0]["onSubmit"]}
+        onSubmit={
+          handleCreateServiceOrder as object as Parameters<
+            typeof EnhancedServiceRequestDialog
+          >[0]["onSubmit"]
+        }
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
         {...(editingSO && {
           initialData: {
-            ...(editingSO.serviceProviderId !== undefined && { serviceProviderId: editingSO.serviceProviderId }),
+            ...(editingSO.serviceProviderId !== undefined && {
+              serviceProviderId: editingSO.serviceProviderId,
+            }),
             ...(editingSO.scope !== undefined && { scope: editingSO.scope }),
-            ...(editingSO.scheduledStartDate !== undefined && { scheduledStartDate: editingSO.scheduledStartDate }),
-            ...(editingSO.scheduledEndDate !== undefined && { scheduledEndDate: editingSO.scheduledEndDate }),
-            ...(editingSO.estimatedDurationHours !== undefined && { estimatedDurationHours: editingSO.estimatedDurationHours }),
+            ...(editingSO.scheduledStartDate !== undefined && {
+              scheduledStartDate: editingSO.scheduledStartDate,
+            }),
+            ...(editingSO.scheduledEndDate !== undefined && {
+              scheduledEndDate: editingSO.scheduledEndDate,
+            }),
+            ...(editingSO.estimatedDurationHours !== undefined && {
+              estimatedDurationHours: editingSO.estimatedDurationHours,
+            }),
           },
         })}
         isEditing={!!editingSO}

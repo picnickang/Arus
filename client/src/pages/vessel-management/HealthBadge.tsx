@@ -11,7 +11,7 @@ export function HealthBadge({ health }: { health?: EquipmentHealth | undefined }
       </Badge>
     );
   }
-  const healthIndex = (health['healthIndex'] as number | undefined) ?? 0;
+  const healthIndex = (health["healthIndex"] as number | undefined) ?? 0;
   const status = health.status;
   if (status === "critical" || healthIndex < 30) {
     return (

@@ -127,13 +127,11 @@ describe("LR-3.5 TEN-5 — downloadObject fail-closed ownership perimeter", () =
       file as unknown as Parameters<typeof svc.downloadObject>[0],
       res as unknown as Parameters<typeof svc.downloadObject>[1],
       3600,
-      { orgId: ORG_B, userId: "u-2" },
+      { orgId: ORG_B, userId: "u-2" }
     );
 
     expect(res.statusCode).toBe(403);
-    expect((res.body as { code?: string } | undefined)?.code).toBe(
-      "OBJECT_CROSS_ORG_FORBIDDEN",
-    );
+    expect((res.body as { code?: string } | undefined)?.code).toBe("OBJECT_CROSS_ORG_FORBIDDEN");
     // Critical: ownership check fires BEFORE any GCS I/O.
     expect(file.getMetadataCalls).toBe(0);
     expect(file.createReadStreamCalls).toBe(0);
@@ -146,12 +144,10 @@ describe("LR-3.5 TEN-5 — downloadObject fail-closed ownership perimeter", () =
       file as unknown as Parameters<typeof svc.downloadObject>[0],
       res as unknown as Parameters<typeof svc.downloadObject>[1],
       3600,
-      { orgId: ORG_A },
+      { orgId: ORG_A }
     );
     expect(res.statusCode).toBe(403);
-    expect((res.body as { code?: string } | undefined)?.code).toBe(
-      "OBJECT_CROSS_ORG_FORBIDDEN",
-    );
+    expect((res.body as { code?: string } | undefined)?.code).toBe("OBJECT_CROSS_ORG_FORBIDDEN");
   });
 
   it("same-org caller → no 403, metadata fetched, stream initiated", async () => {
@@ -161,12 +157,12 @@ describe("LR-3.5 TEN-5 — downloadObject fail-closed ownership perimeter", () =
       file as unknown as Parameters<typeof svc.downloadObject>[0],
       res as unknown as Parameters<typeof svc.downloadObject>[1],
       3600,
-      { orgId: ORG_A, userId: "u-1" },
+      { orgId: ORG_A, userId: "u-1" }
     );
     // No 403 / no error JSON written.
     expect(res.statusCode).not.toBe(403);
     expect((res.body as { code?: string } | undefined)?.code).not.toBe(
-      "OBJECT_CROSS_ORG_FORBIDDEN",
+      "OBJECT_CROSS_ORG_FORBIDDEN"
     );
     expect(file.getMetadataCalls).toBeGreaterThan(0);
   });
@@ -178,7 +174,7 @@ describe("LR-3.5 TEN-5 — downloadObject fail-closed ownership perimeter", () =
       file as unknown as Parameters<typeof svc.downloadObject>[0],
       res as unknown as Parameters<typeof svc.downloadObject>[1],
       3600,
-      { orgId: ORG_A },
+      { orgId: ORG_A }
     );
     expect(res.statusCode).not.toBe(403);
     expect(file.getMetadataCalls).toBeGreaterThan(0);
@@ -189,7 +185,7 @@ describe("LR-3.5 TEN-5 — downloadObject fail-closed ownership perimeter", () =
     const res = makeMockRes();
     await svc.downloadObject(
       file as unknown as Parameters<typeof svc.downloadObject>[0],
-      res as unknown as Parameters<typeof svc.downloadObject>[1],
+      res as unknown as Parameters<typeof svc.downloadObject>[1]
     );
     expect(res.statusCode).not.toBe(403);
   });

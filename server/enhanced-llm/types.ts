@@ -15,18 +15,22 @@ export interface ModelConfig {
 export interface EnhancedAnalysisOutput {
   analysis: string;
   confidence: number;
-  scenarios?: {
-    scenario: string;
-    probability: number;
-    impact: "low" | "medium" | "high" | "critical";
-    recommendations: string[];
-  }[] | undefined;
-  roi?: {
-    estimatedSavings: number;
-    investmentRequired: number;
-    paybackPeriod: number;
-    riskReduction: number;
-  } | undefined;
+  scenarios?:
+    | {
+        scenario: string;
+        probability: number;
+        impact: "low" | "medium" | "high" | "critical";
+        recommendations: string[];
+      }[]
+    | undefined;
+  roi?:
+    | {
+        estimatedSavings: number;
+        investmentRequired: number;
+        paybackPeriod: number;
+        riskReduction: number;
+      }
+    | undefined;
   citations: {
     source: string;
     relevance: number;

@@ -17,6 +17,7 @@ catalog) working with a "Other"/fallback grouping, and avoids a schema migration
 the rank column.
 
 **How to apply:**
+
 - Renaming a role MUST update every `crew.rank` on the old name to the new name,
   in the same transaction as the `crew_roles` update — otherwise crew detach into
   uncategorized legacy text and the delete guard stops seeing them.

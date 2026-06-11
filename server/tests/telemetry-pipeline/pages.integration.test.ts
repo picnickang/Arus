@@ -199,7 +199,7 @@ describe("Page-Level Telemetry Integration", () => {
 
       for (const reading of readings) {
         expect(reading.metadata).toBeDefined();
-        expect(reading.metadata?.source).toBeDefined();
+        expect(reading.metadata?.["source"]).toBeDefined();
       }
     });
 
@@ -208,8 +208,8 @@ describe("Page-Level Telemetry Integration", () => {
       const readings = processor.process(frames);
 
       for (const reading of readings) {
-        expect(reading.metadata?.idempotencyKey).toBeDefined();
-        expect(typeof reading.metadata?.idempotencyKey).toBe("string");
+        expect(reading.metadata?.["idempotencyKey"]).toBeDefined();
+        expect(typeof reading.metadata?.["idempotencyKey"]).toBe("string");
       }
     });
 
@@ -217,8 +217,8 @@ describe("Page-Level Telemetry Integration", () => {
       const frame = createJ1939EngineSpeedFrame(3200, 1500);
       const readings = processor.process([frame]);
 
-      expect(readings[0].metadata?.pgn).toBeDefined();
-      expect(typeof readings[0].metadata?.pgn).toBe("number");
+      expect(readings[0].metadata?.["pgn"]).toBeDefined();
+      expect(typeof readings[0].metadata?.["pgn"]).toBe("number");
     });
   });
 

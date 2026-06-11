@@ -11,16 +11,10 @@
     "earlyStoppingPatience": 5,
     "verbose": true
   },
-  "featureNames": [
-    "vibration"
-  ],
+  "featureNames": ["vibration"],
   "normalizationParams": {
-    "mean": [
-      0.001583011583011583
-    ],
-    "std": [
-      0.04409759995092939
-    ]
+    "mean": [0.001583011583011583],
+    "std": [0.04409759995092939]
   },
   "trainingMetrics": {
     "loss": 0.4652058482170105,

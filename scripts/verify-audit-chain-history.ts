@@ -51,13 +51,16 @@ async function main(): Promise<void> {
     ORDER BY org_id
   `);
 
-  const rows = (stats as unknown as { rows?: Array<Record<string, string>> }).rows
-    ?? (stats as unknown as Array<Record<string, string>>);
+  const rows =
+    (stats as unknown as { rows?: Array<Record<string, string>> }).rows ??
+    (stats as unknown as Array<Record<string, string>>);
 
   const reports: OrgReport[] = [];
   for (const row of rows) {
     const orgId = row.org_id;
-    if (!orgId) {continue;}
+    if (!orgId) {
+      continue;
+    }
     const result = await verifyAuditChain(orgId);
     reports.push({
       orgId,
@@ -74,30 +77,40 @@ async function main(): Promise<void> {
   const totalV2 = reports.reduce((acc, r) => acc + r.v2Count, 0);
 
   if (jsonOut) {
-    console.log(JSON.stringify({
-      ok: failed.length === 0,
-      orgsScanned: reports.length,
-      totalRows,
-      totalV1,
-      totalV2,
-      failed: failed.map((r) => ({
-        orgId: r.orgId,
-        rowCount: r.rowCount,
-        v1Count: r.v1Count,
-        v2Count: r.v2Count,
-        brokenAt: r.result.brokenAt,
-        brokenRecordId: r.result.brokenRecordId,
-        error: r.result.error,
-      })),
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          ok: failed.length === 0,
+          orgsScanned: reports.length,
+          totalRows,
+          totalV1,
+          totalV2,
+          failed: failed.map((r) => ({
+            orgId: r.orgId,
+            rowCount: r.rowCount,
+            v1Count: r.v1Count,
+            v2Count: r.v2Count,
+            brokenAt: r.result.brokenAt,
+            brokenRecordId: r.result.brokenRecordId,
+            error: r.result.error,
+          })),
+        },
+        null,
+        2
+      )
+    );
   } else {
-    console.log(`Scanned ${reports.length} org chain(s), ${totalRows} row(s) total (v1=${totalV1}, v2=${totalV2}).`);
+    console.log(
+      `Scanned ${reports.length} org chain(s), ${totalRows} row(s) total (v1=${totalV1}, v2=${totalV2}).`
+    );
     for (const r of reports) {
       const tag = r.result.valid ? "OK" : "FAIL";
       const detail = r.result.valid
         ? `${r.result.recordsVerified}/${r.rowCount} verified`
         : `broken at #${r.result.brokenAt} (${r.result.brokenRecordId}): ${r.result.error}`;
-      console.log(`  [${tag}] org=${r.orgId} rows=${r.rowCount} v1=${r.v1Count} v2=${r.v2Count} — ${detail}`);
+      console.log(
+        `  [${tag}] org=${r.orgId} rows=${r.rowCount} v1=${r.v1Count} v2=${r.v2Count} — ${detail}`
+      );
     }
     if (failed.length > 0) {
       console.error(`\n${failed.length} org chain(s) FAILED verification.`);

@@ -27,9 +27,7 @@ const eventsQuerySchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
 });
-const eventCreateBodySchema = z
-  .object({ dayId: z.string().min(1) })
-  .and(jsonRecordSchema);
+const eventCreateBodySchema = z.object({ dayId: z.string().min(1) }).and(jsonRecordSchema);
 
 type DeckLogHourlyInput = Parameters<typeof deckLogStorage.upsertDeckLogHourly>[0];
 type DeckLogHourlyBulkInput = Parameters<typeof deckLogStorage.bulkUpsertDeckLogHourly>[0];

@@ -29,10 +29,7 @@ import { test, expect, type ConsoleMessage, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import {
-  navigationCategories,
-  migrateRoute,
-} from "../../client/src/config/navigationConfig";
+import { navigationCategories, migrateRoute } from "../../client/src/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
 
 type RoleKey = "system_admin" | "deck_officer";
@@ -91,7 +88,9 @@ function buildTargets(): NavTarget[] {
     }
     for (const child of cat.children) {
       const resolvedChild = migrateRoute(child.href);
-      if (seen.has(resolvedChild)) {continue;}
+      if (seen.has(resolvedChild)) {
+        continue;
+      }
       seen.add(resolvedChild);
       out.push({
         label: child.name,
@@ -113,21 +112,27 @@ const NAV_TARGETS = buildTargets();
  * inherits the same blast radius — never broaden without review.
  */
 function isBenignConsoleError(text: string): boolean {
-  if (text.includes("Failed to load resource") && text.includes("favicon")) {return true;}
-  if (text.includes("[vite] connecting...")) {return true;}
-  if (text.includes("[vite] connected.")) {return true;}
+  if (text.includes("Failed to load resource") && text.includes("favicon")) {
+    return true;
+  }
+  if (text.includes("[vite] connecting...")) {
+    return true;
+  }
+  if (text.includes("[vite] connected.")) {
+    return true;
+  }
   return false;
 }
 
-function attachErrorListeners(
-  page: Page,
-  consoleErrors: string[],
-  pageErrors: string[],
-) {
+function attachErrorListeners(page: Page, consoleErrors: string[], pageErrors: string[]) {
   const onConsole = (msg: ConsoleMessage) => {
-    if (msg.type() !== "error") {return;}
+    if (msg.type() !== "error") {
+      return;
+    }
     const text = msg.text();
-    if (isBenignConsoleError(text)) {return;}
+    if (isBenignConsoleError(text)) {
+      return;
+    }
     consoleErrors.push(text);
   };
   const onPageError = (err: Error) => {
@@ -148,7 +153,7 @@ async function seedRole(page: Page, role: RoleKey): Promise<void> {
         /* private mode — fine */
       }
     },
-    { key: ROLE_STORAGE_KEY, value: role },
+    { key: ROLE_STORAGE_KEY, value: role }
   );
 }
 
@@ -164,7 +169,7 @@ async function expectRouteRendered(page: Page, target: NavTarget): Promise<void>
   const notFound = page.getByText("404 Page Not Found", { exact: false });
   await expect(
     notFound,
-    `nav target "${target.label}" (${target.href}) landed on NotFound`,
+    `nav target "${target.label}" (${target.href}) landed on NotFound`
   ).toHaveCount(0);
 
   // The shell mounts under `#root`; pages usually render a `<main>`.
@@ -199,9 +204,13 @@ test.describe("UI nav regression matrix", () => {
           const stepConsole: string[] = [];
           const stepPage: string[] = [];
           const onConsole = (msg: ConsoleMessage) => {
-            if (msg.type() !== "error") {return;}
+            if (msg.type() !== "error") {
+              return;
+            }
             const text = msg.text();
-            if (isBenignConsoleError(text)) {return;}
+            if (isBenignConsoleError(text)) {
+              return;
+            }
             stepConsole.push(text);
           };
           const onPage = (err: Error) => {
@@ -213,48 +222,39 @@ test.describe("UI nav regression matrix", () => {
           let stepStatus: MatrixResult["status"] = "pass";
           let finalUrl = "";
           try {
-            await test.step(
-              `${target.kind} "${target.label}" → ${target.resolved}`,
-              async () => {
-                const response = await page.goto(target.href, {
-                  waitUntil: "domcontentloaded",
-                });
-                expect(
-                  response,
-                  `navigation response for ${target.href}`,
-                ).not.toBeNull();
-                expect(
-                  response!.status(),
-                  `${target.href} HTTP status`,
-                ).toBeLessThan(500);
+            await test.step(`${target.kind} "${target.label}" → ${target.resolved}`, async () => {
+              const response = await page.goto(target.href, {
+                waitUntil: "domcontentloaded",
+              });
+              expect(response, `navigation response for ${target.href}`).not.toBeNull();
+              expect(response!.status(), `${target.href} HTTP status`).toBeLessThan(500);
 
-                await expectRouteRendered(page, target);
+              await expectRouteRendered(page, target);
 
-                const url = new URL(page.url());
-                finalUrl = url.pathname + url.search;
+              const url = new URL(page.url());
+              finalUrl = url.pathname + url.search;
 
-                // The URL after navigation should equal either the
-                // declared href OR its migrated target — legacyRedirects
-                // rewrites the legacy href on commit.
-                const expectedPaths = new Set([
-                  target.href.split("?")[0],
-                  target.resolved.split("?")[0],
-                ]);
-                expect(
-                  expectedPaths.has(url.pathname),
-                  `expected ${url.pathname} ∈ {${[...expectedPaths].join(", ")}}`,
-                ).toBe(true);
+              // The URL after navigation should equal either the
+              // declared href OR its migrated target — legacyRedirects
+              // rewrites the legacy href on commit.
+              const expectedPaths = new Set([
+                target.href.split("?")[0],
+                target.resolved.split("?")[0],
+              ]);
+              expect(
+                expectedPaths.has(url.pathname),
+                `expected ${url.pathname} ∈ {${[...expectedPaths].join(", ")}}`
+              ).toBe(true);
 
-                expect(
-                  stepConsole,
-                  `console errors on ${target.href}:\n${stepConsole.join("\n")}`,
-                ).toEqual([]);
-                expect(
-                  stepPage,
-                  `uncaught page errors on ${target.href}:\n${stepPage.join("\n")}`,
-                ).toEqual([]);
-              },
-            );
+              expect(
+                stepConsole,
+                `console errors on ${target.href}:\n${stepConsole.join("\n")}`
+              ).toEqual([]);
+              expect(
+                stepPage,
+                `uncaught page errors on ${target.href}:\n${stepPage.join("\n")}`
+              ).toEqual([]);
+            });
           } catch (err) {
             stepStatus = "fail";
             const msg = err instanceof Error ? err.message : String(err);
@@ -276,8 +276,9 @@ test.describe("UI nav regression matrix", () => {
 
         if (failures.length > 0) {
           throw new Error(
-            `${failures.length} nav target(s) failed for ${role} @ ${viewport.name}:\n${
-              failures.map((f) => `  - ${f}`).join("\n")}`,
+            `${failures.length} nav target(s) failed for ${role} @ ${viewport.name}:\n${failures
+              .map((f) => `  - ${f}`)
+              .join("\n")}`
           );
         }
       });
@@ -285,7 +286,9 @@ test.describe("UI nav regression matrix", () => {
   }
 
   test.afterAll(async () => {
-    if (results.length === 0) {return;}
+    if (results.length === 0) {
+      return;
+    }
     const totalsByStatus = results.reduce<Record<string, number>>((acc, r) => {
       acc[r.status] = (acc[r.status] ?? 0) + 1;
       return acc;
@@ -296,9 +299,7 @@ test.describe("UI nav regression matrix", () => {
       "| --- | --- | --- | --- | --- | --- | --- | --- |";
     const rows = results
       .map((r) => {
-        const errs = r.consoleErrors.length
-          ? r.consoleErrors.length.toString()
-          : "0";
+        const errs = r.consoleErrors.length ? r.consoleErrors.length.toString() : "0";
         return `| ${r.role} | ${r.viewport} | ${r.target.kind} | ${r.target.label} | \`${r.target.href}\` | \`${r.finalUrl}\` | ${r.status} | ${errs} |`;
       })
       .join("\n");
@@ -310,8 +311,8 @@ test.describe("UI nav regression matrix", () => {
       "Do not edit by hand — re-run `npx playwright test nav-matrix` to refresh.",
       "",
       `- Total checks: **${results.length}**`,
-      `- Passed: **${totalsByStatus.pass ?? 0}**`,
-      `- Failed: **${totalsByStatus.fail ?? 0}**`,
+      `- Passed: **${totalsByStatus["pass"] ?? 0}**`,
+      `- Failed: **${totalsByStatus["fail"] ?? 0}**`,
       `- Roles: ${ROLES.join(", ")}`,
       `- Viewports: ${VIEWPORTS.map((v) => `${v.name} ${v.width}x${v.height}`).join(", ")}`,
       `- Nav targets: ${NAV_TARGETS.length}`,

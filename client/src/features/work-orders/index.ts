@@ -15,9 +15,7 @@ export {
   type WorkOrderFilters,
   type UseWorkOrderFilterDataReturn,
 } from "./hooks/useWorkOrderFilterData";
-export {
-  useWorkOrderDetailData,
-} from "./hooks/useWorkOrderDetailData";
+export { useWorkOrderDetailData } from "./hooks/useWorkOrderDetailData";
 export type {
   WorkOrderCost,
   ProcurementCosts,

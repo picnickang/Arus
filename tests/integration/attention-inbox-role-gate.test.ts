@@ -82,7 +82,9 @@ describe("Task #217 — Attention Inbox role gate", () => {
   });
 
   it("GET /api/attention/items rejects deck_officer with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .get("/api/attention/items")
       .set("x-test-user", "user-deck:deck_officer");
@@ -91,7 +93,9 @@ describe("Task #217 — Attention Inbox role gate", () => {
   });
 
   it("GET /api/attention/items rejects viewer with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .get("/api/attention/items")
       .set("x-test-user", "user-viewer:viewer");
@@ -100,14 +104,18 @@ describe("Task #217 — Attention Inbox role gate", () => {
   });
 
   it("GET /api/attention/items rejects unauthenticated with 401", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app).get("/api/attention/items");
     expect(res.status).toBe(401);
     expect(res.body?.code).toBe("AUTH_REQUIRED");
   });
 
   it("POST /api/attention/handover rejects deck_officer with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/attention/handover")
       .set("x-test-user", "user-deck:deck_officer")
@@ -117,7 +125,9 @@ describe("Task #217 — Attention Inbox role gate", () => {
   });
 
   it("POST /api/attention/blocker-resolutions rejects viewer with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/attention/blocker-resolutions")
       .set("x-test-user", "user-viewer:viewer")
@@ -127,7 +137,9 @@ describe("Task #217 — Attention Inbox role gate", () => {
   });
 
   it("POST /api/attention/issues rejects deck_officer with 403", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app)
       .post("/api/attention/issues")
       .set("x-test-user", "user-deck:deck_officer")
@@ -145,7 +157,9 @@ describe("Task #217 — Attention Inbox role gate", () => {
     "admin",
   ]) {
     it(`GET /api/attention/items passes the gate for ${role}`, async () => {
-      if (mountError) {throw new Error(mountError);}
+      if (mountError) {
+        throw new Error(mountError);
+      }
       const res = await request(app)
         .get("/api/attention/items")
         .set("x-test-user", `ok-${role}:${role}`);

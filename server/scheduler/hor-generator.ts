@@ -148,7 +148,9 @@ export function getDatesInRange(start: Date, end: Date): string[] {
 
   while (current <= endDate) {
     const iso = current.toISOString().split("T")[0];
-    if (iso) {dates.push(iso);}
+    if (iso) {
+      dates.push(iso);
+    }
     current.setDate(current.getDate() + 1);
   }
 

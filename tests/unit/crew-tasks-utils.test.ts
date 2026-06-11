@@ -57,6 +57,10 @@ function makeTask(overrides: Partial<CrewTaskView> = {}): CrewTaskView {
     priority: "medium",
     dueDate: null,
     blockedReason: null,
+    assignedTo: null,
+    linkedSourceType: null,
+    linkedSourceId: null,
+    linkedSourceLabel: null,
     createdBy: null,
     createdAt: null,
     updatedAt: null,
@@ -156,14 +160,14 @@ describe("filterTasks", () => {
 
   it("by_vessel filters to the chosen vessel", () => {
     expect(
-      filterTasks(tasks, { filter: "by_vessel", vesselId: "v2", now: NOW }).map((t) => t.id),
+      filterTasks(tasks, { filter: "by_vessel", vesselId: "v2", now: NOW }).map((t) => t.id)
     ).toEqual(["v2"]);
   });
 
   it("search matches title or description, case-insensitive", () => {
-    expect(filterTasks(tasks, { filter: "all", search: "epirb", now: NOW }).map((t) => t.id)).toEqual(
-      ["v2"],
-    );
+    expect(
+      filterTasks(tasks, { filter: "all", search: "epirb", now: NOW }).map((t) => t.id)
+    ).toEqual(["v2"]);
   });
 });
 

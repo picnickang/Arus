@@ -65,22 +65,17 @@ export function BunkeringTab({
                 {bunkerings.map((b) => {
                   const durationMin = b.ended_at
                     ? Math.round(
-                        (new Date(b.ended_at).getTime() - new Date(b.started_at).getTime()) /
-                          60000
+                        (new Date(b.ended_at).getTime() - new Date(b.started_at).getTime()) / 60000
                       )
                     : null;
                   return (
                     <TableRow key={b.id} data-testid={`bunkering-row-${b.id}`}>
-                      <TableCell className="font-medium">
-                        {b.vessel_name || b.vessel_id}
-                      </TableCell>
+                      <TableCell className="font-medium">{b.vessel_name || b.vessel_id}</TableCell>
                       <TableCell>{format(new Date(b.started_at), "dd MMM HH:mm")}</TableCell>
                       <TableCell>
                         {b.ended_at ? format(new Date(b.ended_at), "dd MMM HH:mm") : "--"}
                       </TableCell>
-                      <TableCell>
-                        {durationMin != null ? `${durationMin} min` : "--"}
-                      </TableCell>
+                      <TableCell>{durationMin != null ? `${durationMin} min` : "--"}</TableCell>
                       <TableCell>
                         <Badge
                           variant={

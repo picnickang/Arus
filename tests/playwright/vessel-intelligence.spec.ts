@@ -3,13 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-const sectionMap = JSON.parse(
+const sectionMap: {
+  coordinateMode: string;
+  diagramWidth: number;
+  diagramHeight: number;
+  diagramKind: string;
+  sections: Array<Record<string, unknown>>;
+} = JSON.parse(
   fs.readFileSync(
     path.join(repoRoot, "docs/design/vessel-intelligence-v2/tokens/data/section_mapping.json"),
     "utf8"
   )
 );
-const equipmentSeed = JSON.parse(
+const equipmentSeed: { equipment: Array<Record<string, string>> } = JSON.parse(
   fs.readFileSync(
     path.join(repoRoot, "docs/design/vessel-intelligence-v2/tokens/data/equipment_mapping.json"),
     "utf8"
@@ -21,17 +27,17 @@ const BASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 895 420">
 function makeFixtures(options?: { viewer?: boolean }) {
   const viewer = options?.viewer === true;
   const equipment = equipmentSeed.equipment.map((item: Record<string, string>, index: number) => ({
-    id: item.equipmentId || `equipment-${index + 1}`,
-    equipmentId: item.equipmentId,
+    id: item["equipmentId"] || `equipment-${index + 1}`,
+    equipmentId: item["equipmentId"],
     vesselId: "vessel-1",
-    name: item.name,
-    equipmentName: item.name,
-    assetCode: item.assetCode,
-    tagNumber: item.assetCode,
-    system: item.system,
-    status: item.status,
-    healthStatus: item.status,
-    sectionKey: item.sectionKey,
+    name: item["name"],
+    equipmentName: item["name"],
+    assetCode: item["assetCode"],
+    tagNumber: item["assetCode"],
+    system: item["system"],
+    status: item["status"],
+    healthStatus: item["status"],
+    sectionKey: item["sectionKey"],
   }));
 
   const activeSectionMap = {
@@ -47,15 +53,15 @@ function makeFixtures(options?: { viewer?: boolean }) {
     diagramKind: sectionMap.diagramKind,
     imageTransform: { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
     sections: sectionMap.sections.map((section: Record<string, unknown>, sectionIndex: number) => ({
-      id: `section-${section.sectionKey}`,
-      sectionKey: section.sectionKey,
-      sectionNo: section.sectionNo,
-      name: section.name,
-      color: section.color,
-      polygonNormalized: section.polygonNormalized,
-      labelNormalized: section.labelNormalized,
-      thumbnailFallback: section.thumbnailFallback,
-      equipment: (section.equipment as string[]).map((name, itemIndex) => ({
+      id: `section-${section["sectionKey"]}`,
+      sectionKey: section["sectionKey"],
+      sectionNo: section["sectionNo"],
+      name: section["name"],
+      color: section["color"],
+      polygonNormalized: section["polygonNormalized"],
+      labelNormalized: section["labelNormalized"],
+      thumbnailFallback: section["thumbnailFallback"],
+      equipment: (section["equipment"] as string[]).map((name, itemIndex) => ({
         id: `assignment-${sectionIndex + 1}-${itemIndex + 1}`,
         equipmentId:
           equipment.find((item) => item.name === name || item.assetCode === name)?.id ?? null,
@@ -231,7 +237,9 @@ async function installVesselFixtures(page: Page, options?: { viewer?: boolean })
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(versions[0]),
+        body: JSON.stringify(
+          fixtures["/api/vessel-intelligence/vessel-1/diagrams/diagram-side-elevation/versions"][0]
+        ),
       });
       return;
     }

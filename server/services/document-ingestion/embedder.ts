@@ -21,10 +21,17 @@ export async function embedChunks(
   const results: ChunkWithEmbedding[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i] ?? '';
+    const chunk = chunks[i] ?? "";
     logger.info(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
 
-    const embedFn = generateEmbedding as object as (text: string, opts?: { useOpenAIFallback?: boolean | undefined; openAiKey?: string | undefined; orgId?: string | undefined }) => Promise<number[]>;
+    const embedFn = generateEmbedding as object as (
+      text: string,
+      opts?: {
+        useOpenAIFallback?: boolean | undefined;
+        openAiKey?: string | undefined;
+        orgId?: string | undefined;
+      }
+    ) => Promise<number[]>;
     const embedding = await embedFn(chunk, {
       useOpenAIFallback: !!openAiKey,
       openAiKey,

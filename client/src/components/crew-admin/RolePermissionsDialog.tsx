@@ -194,7 +194,7 @@ export function RolePermissionsDialog({
     return set;
   }, [grants]);
 
-  const isChecked = (key: string) => (key in draft ? draft[key] : original.has(key));
+  const isChecked = (key: string) => draft[key] ?? original.has(key);
 
   const toggle = (key: string) => {
     setDraft((prev) => ({ ...prev, [key]: !isChecked(key) }));

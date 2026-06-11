@@ -1,94 +1,294 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css">
-<style>
-  .compare-wrap { padding: 26px 252px !important; }
-  .anno { max-width: 225px !important; }
-  body { background: hsl(222 25% 12%); }
-  .panel { position:relative; margin-bottom:28px; }
-  .screen { background:hsl(220 14% 99%); border-radius:12px; box-shadow:var(--shadow-2xl); margin-top:12px; padding:20px 24px; border:1px solid rgba(51,65,85,.6); }
-  .grid8 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-  .tile { background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 15px; box-shadow:var(--shadow-sm); }
-  .tile svg { width:18px; height:18px; stroke-width:1.8; color:var(--muted-foreground); margin-bottom:8px; }
-  .tile .t { font-weight:600; font-size:13.5px; }
-  .tile .d { font-size:11.5px; color:var(--muted-foreground); margin-top:2px; }
-  .group { background:#fff; border:1px solid var(--border); border-radius:11px; box-shadow:var(--shadow-sm); padding:14px 16px; }
-  .group .gt { font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:8px; margin-bottom:9px; }
-  .group .gt svg { width:16px; height:16px; stroke-width:1.9; color:hsl(197 75% 38%); }
-  .gi { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted-foreground); padding:5px 0; border-bottom:1px solid hsl(220 7% 94%); font-weight:500; }
-  .gi:last-child { border-bottom:none; }
-  .gi .chev { margin-left:auto; color:hsl(220 7% 75%); }
-  .grid5 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-  .anno-card { background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-2xl); }
-</style></head>
-<body>
-<div class="compare-wrap">
-  <div class="compare-title">System hub — 8 flat peers → 5 purpose-named groups</div>
-  <div class="compare-sub">Largest child list of any hub (8 items vs 3–6 elsewhere). "Configuration" vs "System Admin" vs "System Health" gives a new admin no scent of where things live; a single vendor integration (StormGeo) ranks equal to all of Configuration.</div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <style>
+      .compare-wrap {
+        padding: 26px 252px !important;
+      }
+      .anno {
+        max-width: 225px !important;
+      }
+      body {
+        background: hsl(222 25% 12%);
+      }
+      .panel {
+        position: relative;
+        margin-bottom: 28px;
+      }
+      .screen {
+        background: hsl(220 14% 99%);
+        border-radius: 12px;
+        box-shadow: var(--shadow-2xl);
+        margin-top: 12px;
+        padding: 20px 24px;
+        border: 1px solid rgba(51, 65, 85, 0.6);
+      }
+      .grid8 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .tile {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 15px;
+        box-shadow: var(--shadow-sm);
+      }
+      .tile svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 1.8;
+        color: var(--muted-foreground);
+        margin-bottom: 8px;
+      }
+      .tile .t {
+        font-weight: 600;
+        font-size: 13.5px;
+      }
+      .tile .d {
+        font-size: 11.5px;
+        color: var(--muted-foreground);
+        margin-top: 2px;
+      }
+      .group {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        box-shadow: var(--shadow-sm);
+        padding: 14px 16px;
+      }
+      .group .gt {
+        font-weight: 700;
+        font-size: 13.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 9px;
+      }
+      .group .gt svg {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.9;
+        color: hsl(197 75% 38%);
+      }
+      .gi {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: var(--muted-foreground);
+        padding: 5px 0;
+        border-bottom: 1px solid hsl(220 7% 94%);
+        font-weight: 500;
+      }
+      .gi:last-child {
+        border-bottom: none;
+      }
+      .gi .chev {
+        margin-left: auto;
+        color: hsl(220 7% 75%);
+      }
+      .grid5 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .anno-card {
+        background: #fff;
+        border-radius: 9px;
+        padding: 8px 11px;
+        box-shadow: var(--shadow-2xl);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="compare-wrap">
+      <div class="compare-title">System hub — 8 flat peers → 5 purpose-named groups</div>
+      <div class="compare-sub">
+        Largest child list of any hub (8 items vs 3–6 elsewhere). "Configuration" vs "System Admin"
+        vs "System Health" gives a new admin no scent of where things live; a single vendor
+        integration (StormGeo) ranks equal to all of Configuration.
+      </div>
 
-  <!-- BEFORE -->
-  <div class="panel">
-    <span class="panel-label before">Today — 8 equal tiles</span>
-    <div class="screen">
-      <div style="font-size:16px; font-weight:700; margin-bottom:3px">System</div>
-      <div style="font-size:12px; color:var(--muted-foreground); margin-bottom:14px">Platform administration &amp; configuration</div>
-      <div class="grid8">
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="t">Configuration</div><div class="d">System settings</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><div class="t">Notifications</div><div class="d">Channels &amp; rules</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg><div class="t">Organizations</div><div class="d">Tenants &amp; orgs</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></svg><div class="t">Sensor Templates</div><div class="d">Template library</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg><div class="t">Sensors</div><div class="d">Mapping &amp; optimization</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9"/><path d="M12 12v9M8 17l4 4 4-4"/></svg><div class="t">StormGeo</div><div class="d">Weather integration</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div class="t">System Admin</div><div class="d">Users, audit, patches</div></div>
-        <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div class="t">System Health</div><div class="d">Diagnostics</div></div>
+      <!-- BEFORE -->
+      <div class="panel">
+        <span class="panel-label before">Today — 8 equal tiles</span>
+        <div class="screen">
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 3px">System</div>
+          <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 14px">
+            Platform administration &amp; configuration
+          </div>
+          <div class="grid8">
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                />
+              </svg>
+              <div class="t">Configuration</div>
+              <div class="d">System settings</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              <div class="t">Notifications</div>
+              <div class="d">Channels &amp; rules</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" />
+              </svg>
+              <div class="t">Organizations</div>
+              <div class="d">Tenants &amp; orgs</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M7 7h10M7 12h10M7 17h6" />
+              </svg>
+              <div class="t">Sensor Templates</div>
+              <div class="d">Template library</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M2 12h4l3-9 4 18 3-9h6" />
+              </svg>
+              <div class="t">Sensors</div>
+              <div class="d">Mapping &amp; optimization</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M17.5 19a4.5 4.5 0 1 0 0-9h-1.8A7 7 0 1 0 4 14.9" />
+                <path d="M12 12v9M8 17l4 4 4-4" />
+              </svg>
+              <div class="t">StormGeo</div>
+              <div class="d">Weather integration</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <div class="t">System Admin</div>
+              <div class="d">Users, audit, patches</div>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              <div class="t">System Health</div>
+              <div class="d">Diagnostics</div>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno-red" style="top: 120px; right: -242px">
+          <div class="anno-pill">!</div>
+          <div class="anno-card">
+            Where do email templates live? Permissions? Audit logs? Three of these tiles are
+            plausible answers for each
+          </div>
+        </div>
+      </div>
+
+      <!-- AFTER -->
+      <div class="panel" style="margin-bottom: 8px">
+        <span class="panel-label after"
+          >Proposed — the audit's target grouping (≤6, purpose-named)</span
+        >
+        <div class="screen">
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 3px">System</div>
+          <div style="font-size: 12px; color: var(--muted-foreground); margin-bottom: 14px">
+            Platform administration &amp; configuration
+          </div>
+          <div class="grid5">
+            <div class="group">
+              <div class="gt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg
+                >Health &amp; Audit
+              </div>
+              <div class="gi">
+                Service status <span class="badge badge-green" style="margin-left: 6px">All OK</span
+                ><span class="chev">›</span>
+              </div>
+              <div class="gi">Diagnostics &amp; test suites<span class="chev">›</span></div>
+              <div class="gi">Audit log<span class="chev">›</span></div>
+            </div>
+            <div class="group">
+              <div class="gt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg
+                >Users &amp; Access
+              </div>
+              <div class="gi">Organizations &amp; tenants<span class="chev">›</span></div>
+              <div class="gi">Roles &amp; permissions<span class="chev">›</span></div>
+              <div class="gi">Hub access grants<span class="chev">›</span></div>
+            </div>
+            <div class="group">
+              <div class="gt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                  /></svg
+                >Configuration
+              </div>
+              <div class="gi">System settings<span class="chev">›</span></div>
+              <div class="gi">Notifications &amp; email<span class="chev">›</span></div>
+              <div class="gi">Operating parameters<span class="chev">›</span></div>
+              <div class="gi">Storage &amp; transport<span class="chev">›</span></div>
+            </div>
+            <div class="group">
+              <div class="gt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M2 12h4l3-9 4 18 3-9h6" /></svg
+                >Integrations
+              </div>
+              <div class="gi">Sensors &amp; mapping<span class="chev">›</span></div>
+              <div class="gi">Sensor templates<span class="chev">›</span></div>
+              <div class="gi">StormGeo weather<span class="chev">›</span></div>
+              <div class="gi">Telemetry upload<span class="chev">›</span></div>
+            </div>
+            <div class="group">
+              <div class="gt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="m12 14 4-4" />
+                  <path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg
+                >Advanced
+              </div>
+              <div class="gi">Telemetry warehouse<span class="chev">›</span></div>
+              <div class="gi">Copilot admin<span class="chev">›</span></div>
+              <div class="gi">Agent activity<span class="chev">›</span></div>
+              <div class="gi" style="color: hsl(220 9% 60%)">
+                Software updates
+                <span class="badge badge-gray" style="margin-left: 6px">unavailable</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 120px; left: -242px">
+          <div class="anno-pill">1</div>
+          <div class="anno-card">
+            Groups answer the question users actually arrive with: "is it healthy?", "who can do
+            what?", "how do I change a setting?"
+          </div>
+        </div>
+        <div class="anno anno-green" style="top: 300px; right: -242px">
+          <div class="anno-pill">2</div>
+          <div class="anno-card">
+            Vendor &amp; pipeline tooling demoted into Integrations / Advanced — reachable, not in
+            the operator's face. Honest "unavailable" state kept from Phase 2
+          </div>
+        </div>
       </div>
     </div>
-    <div class="anno anno-red" style="top:120px; right:-242px;"><div class="anno-pill">!</div><div class="anno-card">Where do email templates live? Permissions? Audit logs? Three of these tiles are plausible answers for each</div></div>
-  </div>
-
-  <!-- AFTER -->
-  <div class="panel" style="margin-bottom:8px">
-    <span class="panel-label after">Proposed — the audit's target grouping (≤6, purpose-named)</span>
-    <div class="screen">
-      <div style="font-size:16px; font-weight:700; margin-bottom:3px">System</div>
-      <div style="font-size:12px; color:var(--muted-foreground); margin-bottom:14px">Platform administration &amp; configuration</div>
-      <div class="grid5">
-        <div class="group">
-          <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health &amp; Audit</div>
-          <div class="gi">Service status <span class="badge badge-green" style="margin-left:6px">All OK</span><span class="chev">›</span></div>
-          <div class="gi">Diagnostics &amp; test suites<span class="chev">›</span></div>
-          <div class="gi">Audit log<span class="chev">›</span></div>
-        </div>
-        <div class="group">
-          <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users &amp; Access</div>
-          <div class="gi">Organizations &amp; tenants<span class="chev">›</span></div>
-          <div class="gi">Roles &amp; permissions<span class="chev">›</span></div>
-          <div class="gi">Hub access grants<span class="chev">›</span></div>
-        </div>
-        <div class="group">
-          <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuration</div>
-          <div class="gi">System settings<span class="chev">›</span></div>
-          <div class="gi">Notifications &amp; email<span class="chev">›</span></div>
-          <div class="gi">Operating parameters<span class="chev">›</span></div>
-          <div class="gi">Storage &amp; transport<span class="chev">›</span></div>
-        </div>
-        <div class="group">
-          <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>Integrations</div>
-          <div class="gi">Sensors &amp; mapping<span class="chev">›</span></div>
-          <div class="gi">Sensor templates<span class="chev">›</span></div>
-          <div class="gi">StormGeo weather<span class="chev">›</span></div>
-          <div class="gi">Telemetry upload<span class="chev">›</span></div>
-        </div>
-        <div class="group">
-          <div class="gt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Advanced</div>
-          <div class="gi">Telemetry warehouse<span class="chev">›</span></div>
-          <div class="gi">Copilot admin<span class="chev">›</span></div>
-          <div class="gi">Agent activity<span class="chev">›</span></div>
-          <div class="gi" style="color:hsl(220 9% 60%)">Software updates <span class="badge badge-gray" style="margin-left:6px">unavailable</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="anno anno-green" style="top:120px; left:-242px;"><div class="anno-pill">1</div><div class="anno-card">Groups answer the question users actually arrive with: "is it healthy?", "who can do what?", "how do I change a setting?"</div></div>
-    <div class="anno anno-green" style="top:300px; right:-242px;"><div class="anno-pill">2</div><div class="anno-card">Vendor &amp; pipeline tooling demoted into Integrations / Advanced — reachable, not in the operator's face. Honest "unavailable" state kept from Phase 2</div></div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

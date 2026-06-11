@@ -55,15 +55,15 @@ router.post("/compliance/equipment-pdf", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance PDF Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance PDF Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
-    logger.info(`[Beast Mode API] Equipment compliance PDF generation for ${equipmentIds.length} units`);
+    logger.info(
+      `[Beast Mode API] Equipment compliance PDF generation for ${equipmentIds.length} units`
+    );
     const pdfData = await getCompliancePDFGenerator().generateEquipmentCompliancePDF(
       orgId,
       equipmentIds,
@@ -88,13 +88,10 @@ router.post("/compliance/equipment-pdf", async (req, res) => {
     return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment compliance PDF error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during PDF generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error during PDF generation",
+    });
   }
 });
 
@@ -111,13 +108,11 @@ router.post("/compliance/maintenance-pdf", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance PDF Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance PDF Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Maintenance compliance PDF generation for vessel: ${vesselId}`);
     const pdfData = await getCompliancePDFGenerator().generateMaintenanceCompliancePDF(
@@ -141,13 +136,10 @@ router.post("/compliance/maintenance-pdf", async (req, res) => {
     return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Maintenance compliance PDF error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during PDF generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error during PDF generation",
+    });
   }
 });
 
@@ -160,24 +152,22 @@ router.post("/compliance/regulatory-pdf", async (req, res) => {
     }
     const validFrameworks = ["IMO", "ABS", "DNV", "USCG"];
     if (!regulatoryFramework || !validFrameworks.includes(regulatoryFramework)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `Invalid regulatory framework. Must be one of: ${validFrameworks.join(", ")}`,
-        });
+      return res.status(400).json({
+        success: false,
+        error: `Invalid regulatory framework. Must be one of: ${validFrameworks.join(", ")}`,
+      });
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance PDF Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance PDF Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
-    logger.info(`[Beast Mode API] Regulatory compliance PDF generation for framework: ${regulatoryFramework}`);
+    logger.info(
+      `[Beast Mode API] Regulatory compliance PDF generation for framework: ${regulatoryFramework}`
+    );
     const pdfData = await getCompliancePDFGenerator().generateRegulatoryCompliancePDF(
       orgId,
       regulatoryFramework,
@@ -195,13 +185,10 @@ router.post("/compliance/regulatory-pdf", async (req, res) => {
     return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Regulatory compliance PDF error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during PDF generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error during PDF generation",
+    });
   }
 });
 
@@ -214,13 +201,11 @@ router.post("/compliance/fleet-pdf", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance PDF Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance PDF Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Fleet compliance PDF generation for org: ${orgId}`);
     const pdfData = await getCompliancePDFGenerator().generateFleetComplianceOverviewPDF(orgId, {
@@ -235,13 +220,10 @@ router.post("/compliance/fleet-pdf", async (req, res) => {
     return res.send(Buffer.from(pdfData));
   } catch (error) {
     logger.error(`[Beast Mode API] Fleet compliance PDF error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during PDF generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error during PDF generation",
+    });
   }
 });
 
@@ -258,15 +240,15 @@ router.post("/compliance/equipment-excel", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance Export Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance Export Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
-    logger.info(`[Beast Mode API] Equipment compliance Excel generation for ${equipmentIds.length} units`);
+    logger.info(
+      `[Beast Mode API] Equipment compliance Excel generation for ${equipmentIds.length} units`
+    );
     const excelData = await getComplianceExcelGenerator().generateEquipmentComplianceExcel(
       orgId,
       equipmentIds,
@@ -294,13 +276,11 @@ router.post("/compliance/equipment-excel", async (req, res) => {
     return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment compliance Excel error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during Excel generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Internal server error during Excel generation",
+    });
   }
 });
 
@@ -324,13 +304,11 @@ router.post("/compliance/maintenance-excel", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance Export Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance Export Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Maintenance compliance Excel generation for vessel: ${vesselId}`);
     const excelData = await getComplianceExcelGenerator().generateMaintenanceComplianceExcel(
@@ -357,13 +335,11 @@ router.post("/compliance/maintenance-excel", async (req, res) => {
     return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Maintenance compliance Excel error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during Excel generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Internal server error during Excel generation",
+    });
   }
 });
 
@@ -375,24 +351,22 @@ router.post("/compliance/regulatory-excel", async (req, res) => {
     }
     const validFrameworks = ["IMO", "ABS", "DNV", "USCG"];
     if (!regulatoryFramework || !validFrameworks.includes(regulatoryFramework)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `Invalid regulatory framework. Must be one of: ${validFrameworks.join(", ")}`,
-        });
+      return res.status(400).json({
+        success: false,
+        error: `Invalid regulatory framework. Must be one of: ${validFrameworks.join(", ")}`,
+      });
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance Export Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance Export Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
-    logger.info(`[Beast Mode API] Regulatory compliance Excel generation for framework: ${regulatoryFramework}`);
+    logger.info(
+      `[Beast Mode API] Regulatory compliance Excel generation for framework: ${regulatoryFramework}`
+    );
     const excelData = await getComplianceExcelGenerator().generateRegulatoryComplianceExcel(
       orgId,
       regulatoryFramework,
@@ -413,13 +387,11 @@ router.post("/compliance/regulatory-excel", async (req, res) => {
     return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Regulatory compliance Excel error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during Excel generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Internal server error during Excel generation",
+    });
   }
 });
 
@@ -431,13 +403,11 @@ router.post("/compliance/fleet-excel", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Compliance Export Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Compliance Export Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Fleet compliance Excel generation for org: ${orgId}`);
     const excelData = await getComplianceExcelGenerator().generateFleetComplianceOverviewExcel(
@@ -458,13 +428,11 @@ router.post("/compliance/fleet-excel", async (req, res) => {
     return res.send(excelData);
   } catch (error) {
     logger.error(`[Beast Mode API] Fleet compliance Excel error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error during Excel generation",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Internal server error during Excel generation",
+    });
   }
 });
 

@@ -1,125 +1,469 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css"><link rel="stylesheet" href="mobile.css">
-<style>
-  .sec { margin-bottom: 8px; padding: 9px 11px; }
-  .row { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #94a3b8; padding: 3.5px 0; border-bottom: 1px solid rgba(51,65,85,.25); }
-  .row:last-child { border-bottom: none; }
-  .dot { width: 6px; height: 6px; border-radius: 99px; flex-shrink: 0; }
-  .sec-t { font-size: 11.5px; font-weight: 700; color: #cbd5e1; }
-  .ring { position: relative; flex-shrink: 0; }
-  .ring .v { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .chip { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.03); border:1px solid rgba(100,116,139,.25); border-radius:8px; padding:5px 9px; font-size:11px; color:#94a3b8; white-space:nowrap; }
-  .chip b { color:#e2e8f0; font-weight:600; }
-  .fadeout { position:absolute; bottom:0; left:0; right:0; height:120px; background:linear-gradient(to bottom, transparent, #080e1a 75%); z-index:40; display:flex; align-items:flex-end; justify-content:center; padding-bottom:18px; color:#64748b; font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
-  .itab { padding: 9px 11px; font-size: 12.5px; }
-</style></head>
-<body>
-<div class="mcanvas">
-  <div class="compare-title">Mobile — equipment detail</div>
-  <div class="compare-sub">This is where the 12-section stack hurts most: on a phone it's ~6 screens of thumb-scrolling, and the action buttons depend on a sticky bar over content.</div>
-  <div class="phones">
-
-    <!-- BEFORE -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label before">Today — screen 1 of ~6</span></div>
-      <div class="phone dark intel">
-        <div class="statusbar" style="color:#e2e8f0">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg><span class="mtitle" style="font-size:15px">Main Engine #2</span></div>
-        <div class="mcontent">
-          <div class="sec" style="display:flex; gap:12px; align-items:center; padding-left:0; padding-top:2px">
-            <div class="ring"><svg width="54" height="54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="23" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"/><circle cx="27" cy="27" r="23" fill="none" stroke="#eab308" stroke-width="5" stroke-dasharray="144" stroke-dashoffset="55" stroke-linecap="round"/></svg><div class="v"><span style="font-size:13px;font-weight:800;color:#facc15">62</span></div></div>
-            <div>
-              <div style="font-size:14.5px; font-weight:700; color:#f1f5f9">Main Engine #2 <span class="ibadge ibadge-warn" style="margin-left:4px">Warning</span></div>
-              <div style="font-size:10px; color:#64748b; margin-top:3px">M/V Northern Star · RUL 38d · Conf 81% · ↘ declining</div>
-            </div>
-          </div>
-          <div class="sec icard" style="display:flex; gap:6px; align-items:center; overflow:hidden">
-            <button class="ibtn ibtn-primary" style="font-size:11px; padding:6px 9px">Create Work Order</button><button class="ibtn" style="font-size:11px; padding:6px 9px">Acknowledge</button><button class="ibtn" style="font-size:11px; padding:6px 9px">Assi…</button>
-          </div>
-          <div class="sec icard"><div class="ilabel">AI Assessment</div>
-            <div style="font-size:11px; color:#94a3b8; margin-top:4px">Exhaust gas temperature on cylinder 4 has deviated +18&nbsp;°C from the fleet baseline over 14 days. Pattern is consistent with early exhaust valve seat wear…</div>
-            <div style="font-size:11px; margin-top:5px; color:#facc15"><b>Recommended:</b> borescope inspection of cyl. 4 exhaust valve within 14 days</div>
-          </div>
-          <div class="sec" style="display:grid; grid-template-columns:1fr 1fr; gap:7px; padding-left:0; padding-right:0">
-            <div class="icard" style="padding:7px 9px"><div class="ilabel">Vessel status</div><div style="font-size:11px;color:#e2e8f0;margin-top:2px">Underway</div></div>
-            <div class="icard" style="padding:7px 9px"><div class="ilabel">Next port</div><div style="font-size:11px;color:#e2e8f0;margin-top:2px">Rotterdam · Jun 14</div></div>
-            <div class="icard" style="padding:7px 9px"><div class="ilabel">Parts</div><div style="font-size:11px;color:#e2e8f0;margin-top:2px">Valve kit: 1 aboard</div></div>
-            <div class="icard" style="padding:7px 9px"><div class="ilabel">Maint. window</div><div style="font-size:11px;color:#e2e8f0;margin-top:2px">Jun 14–16 (port)</div></div>
-          </div>
-          <div class="sec icard"><div class="ilabel">Needs action</div>
-            <div style="display:flex; gap:5px; margin-top:5px; overflow:hidden">
-              <span class="ibadge ibadge-crit" style="white-space:nowrap">Borescope cyl. 4</span><span class="ibadge ibadge-warn" style="white-space:nowrap">Order valve kit</span><span class="ibadge ibadge-warn" style="white-space:nowrap">Schedule po…</span>
-            </div>
-          </div>
-          <div class="sec icard"><div class="sec-t">Evidence &amp; signals</div>
-            <div class="row"><span class="dot" style="background:#ef4444"></span>EGT cyl. 4: +18 °C vs baseline (14d)</div>
-            <div class="row"><span class="dot" style="background:#eab308"></span>Scavenge air pressure variance ↑ 6%</div>
-            <div class="row"><span class="dot" style="background:#22c55e"></span>Lube oil Fe ppm within limits</div>
-          </div>
-          <div class="sec icard"><div class="sec-t">Work orders</div>
-            <div class="row">WO-2836 · Cyl. 4 exhaust valve <span class="ibadge ibadge-warn" style="margin-left:auto">Open</span></div>
-            <div class="row">WO-2791 · ME performance check <span class="ibadge ibadge-ok" style="margin-left:auto">Done</span></div>
-          </div>
-        </div>
-        <div class="fadeout">▼ 9 more sections below</div>
-        <div class="homebar" style="color:#e2e8f0"></div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <link rel="stylesheet" href="mobile.css" />
+    <style>
+      .sec {
+        margin-bottom: 8px;
+        padding: 9px 11px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        color: #94a3b8;
+        padding: 3.5px 0;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+      }
+      .row:last-child {
+        border-bottom: none;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 99px;
+        flex-shrink: 0;
+      }
+      .sec-t {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #cbd5e1;
+      }
+      .ring {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .ring .v {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(100, 116, 139, 0.25);
+        border-radius: 8px;
+        padding: 5px 9px;
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+      }
+      .chip b {
+        color: #e2e8f0;
+        font-weight: 600;
+      }
+      .fadeout {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 120px;
+        background: linear-gradient(to bottom, transparent, #080e1a 75%);
+        z-index: 40;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 18px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .itab {
+        padding: 9px 11px;
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mcanvas">
+      <div class="compare-title">Mobile — equipment detail</div>
+      <div class="compare-sub">
+        This is where the 12-section stack hurts most: on a phone it's ~6 screens of
+        thumb-scrolling, and the action buttons depend on a sticky bar over content.
       </div>
-      <div class="anno anno-red" style="top:150px; left:-206px;"><div class="anno-pill">!</div><div class="anno-card">Action buttons truncate on a 390px screen and scroll away with the sticky bar</div></div>
-      <div class="anno anno-red" style="top:430px; left:-206px;"><div class="anno-pill">!</div><div class="anno-card">~6 screens of thumb-scroll; work orders, diagnostics and timeline live "somewhere down there"</div></div>
-    </div>
-
-    <!-- AFTER -->
-    <div class="phone-wrap">
-      <div class="phone-label"><span class="panel-label after">Proposed — one screen + tabs</span></div>
-      <div class="phone dark intel">
-        <div class="statusbar" style="color:#e2e8f0">9:41<div class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="batt"><i></i></span></div></div>
-        <div class="mtopbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg><span class="mtitle" style="font-size:15px">Main Engine #2</span>
-          <div class="iconbtn" style="color:#94a3b8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
-        </div>
-        <div class="mcontent">
-          <div class="icard" style="padding:15px 15px; border-color:rgba(234,179,8,.25); background:rgba(234,179,8,.03)">
-            <div style="display:flex; gap:14px; align-items:center">
-              <div class="ring"><svg width="70" height="70" style="transform:rotate(-90deg)"><circle cx="35" cy="35" r="30" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="6"/><circle cx="35" cy="35" r="30" fill="none" stroke="#eab308" stroke-width="6" stroke-dasharray="188" stroke-dashoffset="71" stroke-linecap="round"/></svg><div class="v"><span style="font-size:18px;font-weight:800;color:#facc15">62</span><span style="font-size:7.5px;color:#64748b;letter-spacing:.08em">HEALTH</span></div></div>
-              <div>
-                <div style="display:flex; align-items:center; gap:7px"><span style="font-size:15.5px; font-weight:700; color:#f1f5f9">Warning</span><span class="ibadge ibadge-warn">declining</span></div>
-                <div style="display:flex; gap:6px; margin-top:7px"><span class="chip">RUL <b>38 d</b></span><span class="chip">Conf <b>81%</b></span></div>
+      <div class="phones">
+        <!-- BEFORE -->
+        <div class="phone-wrap">
+          <div class="phone-label">
+            <span class="panel-label before">Today — screen 1 of ~6</span>
+          </div>
+          <div class="phone dark intel">
+            <div class="statusbar" style="color: #e2e8f0">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
               </div>
             </div>
-            <div style="font-size:12px; color:#94a3b8; margin-top:11px; line-height:1.5">
-              <b style="color:#e2e8f0">Top finding:</b> EGT cyl. 4 is +18&nbsp;°C vs baseline, drifting 14 days.<br>
-              <b style="color:#facc15">Do next:</b> borescope cyl. 4 exhaust valve in the Rotterdam window (Jun 14–16) — valve kit aboard.
+            <div class="mtopbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m15 18-6-6 6-6" /></svg
+              ><span class="mtitle" style="font-size: 15px">Main Engine #2</span>
             </div>
-            <button class="ibtn ibtn-primary" style="width:100%; justify-content:center; margin-top:12px; padding:11px; font-size:13px">⚡ Quick work order</button>
-            <div style="display:flex; gap:7px; margin-top:8px">
-              <button class="ibtn" style="flex:1; justify-content:center">Acknowledge</button>
-              <button class="ibtn" style="flex:1; justify-content:center">Assign</button>
-              <button class="ibtn" style="padding:7px 11px">⋯</button>
+            <div class="mcontent">
+              <div
+                class="sec"
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  padding-left: 0;
+                  padding-top: 2px;
+                "
+              >
+                <div class="ring">
+                  <svg width="54" height="54" style="transform: rotate(-90deg)">
+                    <circle
+                      cx="27"
+                      cy="27"
+                      r="23"
+                      fill="none"
+                      stroke="rgba(255,255,255,.05)"
+                      stroke-width="5"
+                    />
+                    <circle
+                      cx="27"
+                      cy="27"
+                      r="23"
+                      fill="none"
+                      stroke="#eab308"
+                      stroke-width="5"
+                      stroke-dasharray="144"
+                      stroke-dashoffset="55"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <div class="v">
+                    <span style="font-size: 13px; font-weight: 800; color: #facc15">62</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size: 14.5px; font-weight: 700; color: #f1f5f9">
+                    Main Engine #2
+                    <span class="ibadge ibadge-warn" style="margin-left: 4px">Warning</span>
+                  </div>
+                  <div style="font-size: 10px; color: #64748b; margin-top: 3px">
+                    M/V Northern Star · RUL 38d · Conf 81% · ↘ declining
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sec icard"
+                style="display: flex; gap: 6px; align-items: center; overflow: hidden"
+              >
+                <button class="ibtn ibtn-primary" style="font-size: 11px; padding: 6px 9px">
+                  Create Work Order</button
+                ><button class="ibtn" style="font-size: 11px; padding: 6px 9px">Acknowledge</button
+                ><button class="ibtn" style="font-size: 11px; padding: 6px 9px">Assi…</button>
+              </div>
+              <div class="sec icard">
+                <div class="ilabel">AI Assessment</div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px">
+                  Exhaust gas temperature on cylinder 4 has deviated +18&nbsp;°C from the fleet
+                  baseline over 14 days. Pattern is consistent with early exhaust valve seat wear…
+                </div>
+                <div style="font-size: 11px; margin-top: 5px; color: #facc15">
+                  <b>Recommended:</b> borescope inspection of cyl. 4 exhaust valve within 14 days
+                </div>
+              </div>
+              <div
+                class="sec"
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 7px;
+                  padding-left: 0;
+                  padding-right: 0;
+                "
+              >
+                <div class="icard" style="padding: 7px 9px">
+                  <div class="ilabel">Vessel status</div>
+                  <div style="font-size: 11px; color: #e2e8f0; margin-top: 2px">Underway</div>
+                </div>
+                <div class="icard" style="padding: 7px 9px">
+                  <div class="ilabel">Next port</div>
+                  <div style="font-size: 11px; color: #e2e8f0; margin-top: 2px">
+                    Rotterdam · Jun 14
+                  </div>
+                </div>
+                <div class="icard" style="padding: 7px 9px">
+                  <div class="ilabel">Parts</div>
+                  <div style="font-size: 11px; color: #e2e8f0; margin-top: 2px">
+                    Valve kit: 1 aboard
+                  </div>
+                </div>
+                <div class="icard" style="padding: 7px 9px">
+                  <div class="ilabel">Maint. window</div>
+                  <div style="font-size: 11px; color: #e2e8f0; margin-top: 2px">
+                    Jun 14–16 (port)
+                  </div>
+                </div>
+              </div>
+              <div class="sec icard">
+                <div class="ilabel">Needs action</div>
+                <div style="display: flex; gap: 5px; margin-top: 5px; overflow: hidden">
+                  <span class="ibadge ibadge-crit" style="white-space: nowrap"
+                    >Borescope cyl. 4</span
+                  ><span class="ibadge ibadge-warn" style="white-space: nowrap"
+                    >Order valve kit</span
+                  ><span class="ibadge ibadge-warn" style="white-space: nowrap">Schedule po…</span>
+                </div>
+              </div>
+              <div class="sec icard">
+                <div class="sec-t">Evidence &amp; signals</div>
+                <div class="row">
+                  <span class="dot" style="background: #ef4444"></span>EGT cyl. 4: +18 °C vs
+                  baseline (14d)
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #eab308"></span>Scavenge air pressure
+                  variance ↑ 6%
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #22c55e"></span>Lube oil Fe ppm within limits
+                </div>
+              </div>
+              <div class="sec icard">
+                <div class="sec-t">Work orders</div>
+                <div class="row">
+                  WO-2836 · Cyl. 4 exhaust valve
+                  <span class="ibadge ibadge-warn" style="margin-left: auto">Open</span>
+                </div>
+                <div class="row">
+                  WO-2791 · ME performance check
+                  <span class="ibadge ibadge-ok" style="margin-left: auto">Done</span>
+                </div>
+              </div>
+            </div>
+            <div class="fadeout">▼ 9 more sections below</div>
+            <div class="homebar" style="color: #e2e8f0"></div>
+          </div>
+          <div class="anno anno-red" style="top: 150px; left: -206px">
+            <div class="anno-pill">!</div>
+            <div class="anno-card">
+              Action buttons truncate on a 390px screen and scroll away with the sticky bar
             </div>
           </div>
-          <div class="itabs" style="margin-top:13px">
-            <span class="itab active">Overview</span><span class="itab">Work <span style="background:rgba(234,179,8,.15); color:#facc15; border-radius:99px; padding:0 5px; font-size:9.5px">2</span></span><span class="itab">Diagnostics</span><span class="itab">Histo…</span>
-          </div>
-          <div class="icard" style="padding:11px 13px; margin-top:11px">
-            <div class="ilabel">EGT cyl. 4 — 30 days vs baseline</div>
-            <svg style="width:100%; height:42px" viewBox="0 0 300 46" preserveAspectRatio="none"><path d="M0 30 L40 31 L80 29 L120 28 L160 25 L200 20 L240 15 L300 8" fill="none" stroke="#f87171" stroke-width="2"/><path d="M0 31 L300 31" stroke="rgba(148,163,184,.35)" stroke-width="1" stroke-dasharray="4 4"/></svg>
-          </div>
-          <div class="icard" style="padding:11px 13px; margin-top:9px">
-            <div class="ilabel">Evidence (3)</div>
-            <div class="row"><span class="dot" style="background:#ef4444"></span>EGT cyl. 4 +18 °C</div>
-            <div class="row"><span class="dot" style="background:#eab308"></span>Scav. air variance ↑ 6%</div>
-            <div class="row"><span class="dot" style="background:#22c55e"></span>Lube oil Fe OK</div>
-          </div>
-          <div class="icard" style="padding:10px 13px; margin-top:9px; display:flex; gap:6px; align-items:center; overflow:hidden">
-            <span class="ibadge ibadge-crit" style="white-space:nowrap">Borescope cyl. 4</span><span class="ibadge ibadge-warn" style="white-space:nowrap">WO-2836 unassigned</span>
-            <span style="margin-left:auto; font-size:11px; color:#38bdf8; font-weight:600; white-space:nowrap">All →</span>
+          <div class="anno anno-red" style="top: 430px; left: -206px">
+            <div class="anno-pill">!</div>
+            <div class="anno-card">
+              ~6 screens of thumb-scroll; work orders, diagnostics and timeline live "somewhere down
+              there"
+            </div>
           </div>
         </div>
-        <div class="homebar" style="color:#e2e8f0"></div>
+
+        <!-- AFTER -->
+        <div class="phone-wrap">
+          <div class="phone-label">
+            <span class="panel-label after">Proposed — one screen + tabs</span>
+          </div>
+          <div class="phone dark intel">
+            <div class="statusbar" style="color: #e2e8f0">
+              9:41
+              <div class="sicons">
+                <span class="sig"
+                  ><i style="height: 4px"></i><i style="height: 6px"></i><i style="height: 8px"></i
+                  ><i style="height: 10px"></i></span
+                ><span class="batt"><i></i></span>
+              </div>
+            </div>
+            <div class="mtopbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m15 18-6-6 6-6" /></svg
+              ><span class="mtitle" style="font-size: 15px">Main Engine #2</span>
+              <div class="iconbtn" style="color: #94a3b8">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </div>
+            </div>
+            <div class="mcontent">
+              <div
+                class="icard"
+                style="
+                  padding: 15px 15px;
+                  border-color: rgba(234, 179, 8, 0.25);
+                  background: rgba(234, 179, 8, 0.03);
+                "
+              >
+                <div style="display: flex; gap: 14px; align-items: center">
+                  <div class="ring">
+                    <svg width="70" height="70" style="transform: rotate(-90deg)">
+                      <circle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        fill="none"
+                        stroke="rgba(255,255,255,.05)"
+                        stroke-width="6"
+                      />
+                      <circle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        fill="none"
+                        stroke="#eab308"
+                        stroke-width="6"
+                        stroke-dasharray="188"
+                        stroke-dashoffset="71"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <div class="v">
+                      <span style="font-size: 18px; font-weight: 800; color: #facc15">62</span
+                      ><span style="font-size: 7.5px; color: #64748b; letter-spacing: 0.08em"
+                        >HEALTH</span
+                      >
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 7px">
+                      <span style="font-size: 15.5px; font-weight: 700; color: #f1f5f9"
+                        >Warning</span
+                      ><span class="ibadge ibadge-warn">declining</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 7px">
+                      <span class="chip">RUL <b>38 d</b></span
+                      ><span class="chip">Conf <b>81%</b></span>
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: #94a3b8; margin-top: 11px; line-height: 1.5">
+                  <b style="color: #e2e8f0">Top finding:</b> EGT cyl. 4 is +18&nbsp;°C vs baseline,
+                  drifting 14 days.<br />
+                  <b style="color: #facc15">Do next:</b> borescope cyl. 4 exhaust valve in the
+                  Rotterdam window (Jun 14–16) — valve kit aboard.
+                </div>
+                <button
+                  class="ibtn ibtn-primary"
+                  style="
+                    width: 100%;
+                    justify-content: center;
+                    margin-top: 12px;
+                    padding: 11px;
+                    font-size: 13px;
+                  "
+                >
+                  ⚡ Quick work order
+                </button>
+                <div style="display: flex; gap: 7px; margin-top: 8px">
+                  <button class="ibtn" style="flex: 1; justify-content: center">Acknowledge</button>
+                  <button class="ibtn" style="flex: 1; justify-content: center">Assign</button>
+                  <button class="ibtn" style="padding: 7px 11px">⋯</button>
+                </div>
+              </div>
+              <div class="itabs" style="margin-top: 13px">
+                <span class="itab active">Overview</span
+                ><span class="itab"
+                  >Work
+                  <span
+                    style="
+                      background: rgba(234, 179, 8, 0.15);
+                      color: #facc15;
+                      border-radius: 99px;
+                      padding: 0 5px;
+                      font-size: 9.5px;
+                    "
+                    >2</span
+                  ></span
+                ><span class="itab">Diagnostics</span><span class="itab">Histo…</span>
+              </div>
+              <div class="icard" style="padding: 11px 13px; margin-top: 11px">
+                <div class="ilabel">EGT cyl. 4 — 30 days vs baseline</div>
+                <svg
+                  style="width: 100%; height: 42px"
+                  viewBox="0 0 300 46"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M0 30 L40 31 L80 29 L120 28 L160 25 L200 20 L240 15 L300 8"
+                    fill="none"
+                    stroke="#f87171"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M0 31 L300 31"
+                    stroke="rgba(148,163,184,.35)"
+                    stroke-width="1"
+                    stroke-dasharray="4 4"
+                  />
+                </svg>
+              </div>
+              <div class="icard" style="padding: 11px 13px; margin-top: 9px">
+                <div class="ilabel">Evidence (3)</div>
+                <div class="row">
+                  <span class="dot" style="background: #ef4444"></span>EGT cyl. 4 +18 °C
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #eab308"></span>Scav. air variance ↑ 6%
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #22c55e"></span>Lube oil Fe OK
+                </div>
+              </div>
+              <div
+                class="icard"
+                style="
+                  padding: 10px 13px;
+                  margin-top: 9px;
+                  display: flex;
+                  gap: 6px;
+                  align-items: center;
+                  overflow: hidden;
+                "
+              >
+                <span class="ibadge ibadge-crit" style="white-space: nowrap">Borescope cyl. 4</span
+                ><span class="ibadge ibadge-warn" style="white-space: nowrap"
+                  >WO-2836 unassigned</span
+                >
+                <span
+                  style="
+                    margin-left: auto;
+                    font-size: 11px;
+                    color: #38bdf8;
+                    font-weight: 600;
+                    white-space: nowrap;
+                  "
+                  >All →</span
+                >
+              </div>
+            </div>
+            <div class="homebar" style="color: #e2e8f0"></div>
+          </div>
+          <div class="anno anno-green" style="top: 160px; right: -206px">
+            <div class="anno-pill">1</div>
+            <div class="anno-card">
+              Severity, cause, next step and the primary action — all reachable without scrolling
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 430px; right: -206px">
+            <div class="anno-pill">2</div>
+            <div class="anno-card">
+              Thumb-width buttons; quick work order is the default, full detail behind tabs
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 600px; right: -206px">
+            <div class="anno-pill">3</div>
+            <div class="anno-card">
+              Overview = decision evidence only; everything else swipes in via tabs
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="anno anno-green" style="top:160px; right:-206px;"><div class="anno-pill">1</div><div class="anno-card">Severity, cause, next step and the primary action — all reachable without scrolling</div></div>
-      <div class="anno anno-green" style="top:430px; right:-206px;"><div class="anno-pill">2</div><div class="anno-card">Thumb-width buttons; quick work order is the default, full detail behind tabs</div></div>
-      <div class="anno anno-green" style="top:600px; right:-206px;"><div class="anno-pill">3</div><div class="anno-card">Overview = decision evidence only; everything else swipes in via tabs</div></div>
     </div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

@@ -1,7 +1,8 @@
 # Phase 2: Backend Fixes - Applied Changes
 
 **Date**: November 5, 2025  
-**Files Modified**: 
+**Files Modified**:
+
 - `server/crew-scheduler-ortools.ts`
 - `server/crew-scheduler.ts`
 
@@ -12,10 +13,12 @@
 ## Summary of Fixes
 
 ### ✅ Fix 2.1: Drydock Precedence Bug
+
 **Problem**: Port calls checked before drydocks, causing incorrect precedence  
 **Impact**: Shifts could be scheduled during drydock if port call also overlapped
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 // 1. Check port calls first → return true if overlap
@@ -44,10 +47,12 @@ return true;
 ---
 
 ### ✅ Fix 2.2: Helper Functions Added
+
 **Problem**: Duplicate overlap detection logic, no midnight crossover handling  
 **Impact**: Code duplication, potential inconsistencies
 
 **Added**:
+
 ```typescript
 /**
  * Helper: Check if two time intervals overlap
@@ -69,17 +74,18 @@ function toUtc(day: string, timeHHmm: string): Date {
 function shiftWindow(day: string, startTime: string, endTime: string): { start: Date; end: Date } {
   const start = toUtc(day, startTime);
   let end = toUtc(day, endTime);
-  
+
   // Handle midnight crossover (e.g., 22:00 - 06:00)
   if (end <= start) {
     end = new Date(end.getTime() + 24 * 3600 * 1000);
   }
-  
+
   return { start, end };
 }
 ```
 
 **Benefits**:
+
 - Consistent overlap detection across all checks
 - Proper midnight crossover handling (e.g., 22:00-06:00 shifts)
 - DRY principle - reused in drydock, port call, leave, cert checks
@@ -89,16 +95,17 @@ function shiftWindow(day: string, startTime: string, endTime: string): { start: 
 ---
 
 ### ✅ Fix 2.3: Leave Overlap Check
+
 **Problem**: Only checked shift START date, not full shift duration  
 **Impact**: Crew could be scheduled even if leave overlapped part of shift
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
-const isOnLeave = leaves.some(leave => {
-  return crewMember.id === leave.crewId && 
-         shiftDate >= leaveStart && shiftDate <= leaveEnd;
-         // ❌ Only checks single point in time (shift start)
+const isOnLeave = leaves.some((leave) => {
+  return crewMember.id === leave.crewId && shiftDate >= leaveStart && shiftDate <= leaveEnd;
+  // ❌ Only checks single point in time (shift start)
 });
 
 // AFTER (FIXED):
@@ -108,7 +115,7 @@ function leaveOverlaps(
   shiftEnd: Date,
   leaves: SelectCrewLeave[]
 ): boolean {
-  return leaves.some(leave => {
+  return leaves.some((leave) => {
     if (leave.crewId !== crewId) return false;
     const leaveStart = new Date(leave.start);
     const leaveEnd = new Date(leave.end);
@@ -124,16 +131,19 @@ if (leaveOverlaps(crewMember.id, shiftStart, shiftEnd, leaves)) {
 }
 ```
 
-**Files**: 
+**Files**:
+
 - `server/crew-scheduler-ortools.ts` (lines 105-120, 294-302)
 
 ---
 
 ### ✅ Fix 2.4: Certification Validity Check
+
 **Problem**: Only checked cert valid at shift START, not shift END  
 **Impact**: Crew could be scheduled for shifts ending after cert expires
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 function hasValidCertification(
@@ -147,7 +157,8 @@ function hasValidCertification(
   for (const cert of crewCerts) {
     if (cert.cert === requiredCert) {
       const expiryDate = new Date(cert.expiresAt);
-      if (expiryDate >= shiftDate) { // ❌ Only checks start
+      if (expiryDate >= shiftDate) {
+        // ❌ Only checks start
         return true;
       }
     }
@@ -169,7 +180,8 @@ function hasValidCertification(
     if (cert.cert === requiredCert) {
       const expiryDate = new Date(cert.expiresAt);
       // Cert must be valid at least through shift END
-      if (expiryDate >= shiftEnd) { // ✅ Checks through end
+      if (expiryDate >= shiftEnd) {
+        // ✅ Checks through end
         return true;
       }
     }
@@ -178,30 +190,35 @@ function hasValidCertification(
 }
 
 // Call site updated:
-if (shift.certRequired && !hasValidCertification(
-  crewMember, shift.certRequired, shiftStart, shiftEnd, certifications
-)) {
+if (
+  shift.certRequired &&
+  !hasValidCertification(crewMember, shift.certRequired, shiftStart, shiftEnd, certifications)
+) {
   return false;
 }
 ```
 
-**Files**: 
+**Files**:
+
 - `server/crew-scheduler-ortools.ts` (lines 177-203, 324)
 
 ---
 
 ### ✅ Fix 2.5: Field Name Alignment
+
 **Problem**: Code used `shift.skillRequired` but schema field is `shift.requiredSkills`  
 **Impact**: Skill requirements ignored, incorrect scheduling
 
 **Schema Verification**:
+
 ```sql
-SELECT column_name, data_type FROM information_schema.columns 
+SELECT column_name, data_type FROM information_schema.columns
 WHERE table_name='shift_template' AND column_name='required_skills';
 -- Result: required_skills | text (single string, NOT array)
 ```
 
 **Schema Definition** (shared/schema.ts line 1951):
+
 ```typescript
 export const shiftTemplate = pgTable("shift_template", {
   // ...
@@ -213,6 +230,7 @@ export const shiftTemplate = pgTable("shift_template", {
 ```
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 const skillRequired = shift.skillRequired; // ❌ Wrong field name
@@ -228,6 +246,7 @@ if (requiredSkills && !crewMember.skills.includes(requiredSkills)) {
 ```
 
 **Files Modified**:
+
 - `server/crew-scheduler-ortools.ts` (lines 308, 426)
 - `server/crew-scheduler.ts` (lines 154, 184)
 
@@ -238,10 +257,12 @@ if (requiredSkills && !crewMember.skills.includes(requiredSkills)) {
 ## Verification Checklist
 
 ### LSP Checks:
+
 - ✅ No TypeScript errors in `server/crew-scheduler-ortools.ts`
 - ✅ No TypeScript errors in `server/crew-scheduler.ts`
 
 ### Architect Review:
+
 - ✅ Drydock precedence: Blocks checked first, eliminating precedence bug
 - ✅ Helper utilities: Correctly normalize time windows with midnight crossover
 - ✅ Leave overlap: Full shift window compared against crew leave intervals
@@ -249,6 +270,7 @@ if (requiredSkills && !crewMember.skills.includes(requiredSkills)) {
 - ✅ Field alignment: Both schedulers reference shift.requiredSkills matching schema
 
 ### Next Steps:
+
 1. ✅ Restart workflow to apply changes
 2. [ ] Run regression tests (if available)
 3. [ ] Add targeted tests for drydock precedence, leave overlap, cert expiry
@@ -259,6 +281,7 @@ if (requiredSkills && !crewMember.skills.includes(requiredSkills)) {
 ## Impact Summary
 
 **Lines Changed**:
+
 - `server/crew-scheduler-ortools.ts`: ~50 lines modified/added
 - `server/crew-scheduler.ts`: ~2 lines modified
 

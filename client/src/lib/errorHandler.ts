@@ -157,7 +157,7 @@ export function initializeGlobalErrorHandlers() {
 
       return response;
     } catch (error) {
-      const errMsg = ((error instanceof Error ? error.message : String(error))) || "";
+      const errMsg = (error instanceof Error ? error.message : String(error)) || "";
       if (errMsg === "Load failed" || errMsg === "Failed to fetch") {
         throw error;
       }
@@ -169,7 +169,7 @@ export function initializeGlobalErrorHandlers() {
         "error",
         "api",
         `Network Error: ${errMsg}`,
-        ((error instanceof Error ? error.stack : undefined)),
+        error instanceof Error ? error.stack : undefined,
         {
           url,
           method: typeof args[1] === "object" ? args[1]?.method : "GET",

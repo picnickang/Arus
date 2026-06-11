@@ -32,7 +32,9 @@ export async function tryGetFMCCData(
 
     return null;
   } catch (error) {
-    logger.warn("[FuelEmissions] FMCC data fetch failed, falling back to telemetry:", { details: error });
+    logger.warn("[FuelEmissions] FMCC data fetch failed, falling back to telemetry:", {
+      details: error,
+    });
     return null;
   }
 }

@@ -56,7 +56,9 @@ describe("Vessel schematic-layout forms — zone CRUD", () => {
   });
 
   it("DELETE removes the zone", async () => {
-    if (!zoneId) {return;}
+    if (!zoneId) {
+      return;
+    }
     const { status } = await api(
       "DELETE",
       `/api/vessels/${vesselId}/schematic-layout/zones/${zoneId}`

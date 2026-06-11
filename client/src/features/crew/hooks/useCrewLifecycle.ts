@@ -136,7 +136,7 @@ export function useRetireCrew() {
         description: formatOffboardingResult(
           typeof data === "object" && data !== null && "offboardingResult" in data
             ? (data.offboardingResult as OffboardingResult)
-            : undefined,
+            : undefined
         ),
       });
     },
@@ -203,7 +203,7 @@ export function useCancelContract() {
         description: formatOffboardingResult(
           typeof data === "object" && data !== null && "offboardingResult" in data
             ? (data.offboardingResult as OffboardingResult)
-            : undefined,
+            : undefined
         ),
       });
     },

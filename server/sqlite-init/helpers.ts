@@ -13,17 +13,11 @@ function isSqliteDomainName(name: string): name is SqliteDomainName {
 }
 
 export function getTableCount(): number {
-  return Object.values(domains).reduce(
-    (sum, domain) => sum + domain.tables.length,
-    0
-  );
+  return Object.values(domains).reduce((sum, domain) => sum + domain.tables.length, 0);
 }
 
 export function getIndexCount(): number {
-  return Object.values(domains).reduce(
-    (sum, domain) => sum + domain.indexes.length,
-    0
-  );
+  return Object.values(domains).reduce((sum, domain) => sum + domain.indexes.length, 0);
 }
 
 export function getTablesByDomain(domain: SqliteDomainName): readonly string[] {

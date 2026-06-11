@@ -22,13 +22,16 @@ import request from "supertest";
 // surface to no-ops so the 403 gate fires before any DB call. The
 // `requireRole` middleware runs ahead of every handler, so even
 // completely empty stubs are sufficient for this test.
-jest.mock("../../server/repositories.js", () => new Proxy({}, {
-  get: () =>
+jest.mock(
+  "../../server/repositories.js",
+  () =>
     new Proxy(
-      () => undefined,
-      { get: () => async () => null },
-    ),
-}));
+      {},
+      {
+        get: () => new Proxy(() => undefined, { get: () => async () => null }),
+      }
+    )
+);
 
 type RouteSpec = {
   method: "get" | "post" | "patch" | "delete";
@@ -41,14 +44,44 @@ type RouteSpec = {
 
 const ROUTES: RouteSpec[] = [
   // vessel-3d-routes: requireRole("admin", "chief_engineer")
-  { label: "vessel-3d upload", method: "post", path: "/api/v1/vessels/v1/3d-model", wrongRole: "second_officer" },
-  { label: "vessel-3d patch pins", method: "patch", path: "/api/v1/vessels/3d-model/m1/pins", wrongRole: "able_seaman" },
-  { label: "vessel-3d delete", method: "delete", path: "/api/v1/vessels/v1/3d-model", wrongRole: "cook" },
+  {
+    label: "vessel-3d upload",
+    method: "post",
+    path: "/api/v1/vessels/v1/3d-model",
+    wrongRole: "second_officer",
+  },
+  {
+    label: "vessel-3d patch pins",
+    method: "patch",
+    path: "/api/v1/vessels/3d-model/m1/pins",
+    wrongRole: "able_seaman",
+  },
+  {
+    label: "vessel-3d delete",
+    method: "delete",
+    path: "/api/v1/vessels/v1/3d-model",
+    wrongRole: "cook",
+  },
 
   // equipment-dependencies-routes: requireRole("admin", "chief_engineer")
-  { label: "eqdep POST /equipment-dependencies", method: "post", path: "/api/equipment-dependencies", wrongRole: "viewer" },
-  { label: "eqdep PATCH /equipment-dependencies/:id", method: "patch", path: "/api/equipment-dependencies/dep-1", wrongRole: "second_officer" },
-  { label: "eqdep DELETE /equipment-dependencies/:id", method: "delete", path: "/api/equipment-dependencies/dep-1", wrongRole: "third_officer" },
+  {
+    label: "eqdep POST /equipment-dependencies",
+    method: "post",
+    path: "/api/equipment-dependencies",
+    wrongRole: "viewer",
+  },
+  {
+    label: "eqdep PATCH /equipment-dependencies/:id",
+    method: "patch",
+    path: "/api/equipment-dependencies/dep-1",
+    wrongRole: "second_officer",
+  },
+  {
+    label: "eqdep DELETE /equipment-dependencies/:id",
+    method: "delete",
+    path: "/api/equipment-dependencies/dep-1",
+    wrongRole: "third_officer",
+  },
 ];
 
 let app: Express;
@@ -88,7 +121,8 @@ beforeAll(async () => {
       (vessel3d as { vessel3DRoutes?: unknown }).vessel3DRoutes ??
       (vessel3d as { router?: unknown }).router;
     const eqDepsRouter =
-      (eqDeps as { default?: unknown; equipmentDependenciesRoutes?: unknown; router?: unknown }).default ??
+      (eqDeps as { default?: unknown; equipmentDependenciesRoutes?: unknown; router?: unknown })
+        .default ??
       (eqDeps as { equipmentDependenciesRoutes?: unknown }).equipmentDependenciesRoutes ??
       (eqDeps as { router?: unknown }).router;
 
@@ -111,11 +145,11 @@ describe("LR-1C — wrong-role → 403 matrix", () => {
   for (const r of ROUTES) {
     it(`${r.label} (${r.method.toUpperCase()} ${r.path}) rejects role=${r.wrongRole} with 403`, async () => {
       if (!mountedOk) {
-
         console.warn("[lr1c-role-403] router import shape changed — skipping");
         return;
       }
-      const res = await (request(app) as unknown as Record<string, (p: string) => request.Test>)[r.method](r.path)
+      const agent = request(app) as unknown as Record<string, (p: string) => request.Test>;
+      const res = await agent[r.method](r.path)
         .set("x-test-user", `wrong-${r.wrongRole}:${r.wrongRole}`)
         .send({});
 
@@ -128,7 +162,9 @@ describe("LR-1C — wrong-role → 403 matrix", () => {
   }
 
   it("a correct-role caller is NOT 403 (positive control)", async () => {
-    if (!mountedOk) {return;}
+    if (!mountedOk) {
+      return;
+    }
     const res = await request(app)
       .post("/api/equipment-dependencies")
       .set("x-test-user", "admin-ok:admin")

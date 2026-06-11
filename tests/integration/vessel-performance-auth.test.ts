@@ -25,14 +25,12 @@ const VESSEL_OWNER_ORG = "vp-auth-owner-org";
 const OTHER_ORG = "vp-auth-other-org";
 const VESSEL_ID = "vp-auth-vessel-1";
 
-const getVesselMock = jest.fn(
-  async (vesselId: string, orgId: string) => {
-    if (orgId === VESSEL_OWNER_ORG && vesselId === VESSEL_ID) {
-      return { id: VESSEL_ID, name: "Owner Vessel", orgId };
-    }
-    return null;
-  },
-);
+const getVesselMock = jest.fn(async (vesselId: string, orgId: string) => {
+  if (orgId === VESSEL_OWNER_ORG && vesselId === VESSEL_ID) {
+    return { id: VESSEL_ID, name: "Owner Vessel", orgId };
+  }
+  return null;
+});
 
 const getEquipmentByVesselMock = jest.fn(async () => []);
 const getEquipmentRegistryMock = jest.fn(async () => []);

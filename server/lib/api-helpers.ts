@@ -122,19 +122,17 @@ export function validateParams<T>(req: Request, schema: ZodSchema<T>): Validatio
  *
  * Returns the parsed (and possibly stripped) data on success.
  */
-export function validateResponse<T>(
-  schema: ZodSchema<T>,
-  payload: unknown,
-  context: string
-): T {
+export function validateResponse<T>(schema: ZodSchema<T>, payload: unknown, context: string): T {
   const result = schema.safeParse(payload);
-  if (result.success) {return result.data;}
+  if (result.success) {
+    return result.data;
+  }
 
   const message = `Response contract violation in ${context}: ${result.error.issues
     .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
     .join("; ")}`;
 
-  if (process.env['NODE_ENV'] === "production") {
+  if (process.env["NODE_ENV"] === "production") {
     // P2 #25 — Tolerant in prod: log + counter, ship the payload
     // anyway so live traffic isn't broken by a contract drift. Tests
     // and dev keep the throw-on-mismatch behaviour below.
@@ -245,8 +243,8 @@ export function parseDateRange(query: Record<string, unknown>): {
   startDate?: string;
   endDate?: string;
 } {
-  const startDate = typeof query['startDate'] === "string" ? query['startDate'] : undefined;
-  const endDate = typeof query['endDate'] === "string" ? query['endDate'] : undefined;
+  const startDate = typeof query["startDate"] === "string" ? query["startDate"] : undefined;
+  const endDate = typeof query["endDate"] === "string" ? query["endDate"] : undefined;
   return {
     ...(startDate !== undefined && { startDate }),
     ...(endDate !== undefined && { endDate }),

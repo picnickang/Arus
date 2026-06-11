@@ -45,12 +45,14 @@ DASHBOARD_TTL_MS=60000
 ### Toggling Features
 
 **To disable a feature:**
+
 1. Set environment variable to `false` in `.env`
 2. Restart application: `npm run dev` or restart production workflow
 3. Verify in logs: Look for `[RUL v2.0 Feature Flags]` log entry
 4. Monitor metrics: Specific feature metrics will stop incrementing
 
 **To re-enable a feature:**
+
 1. Set environment variable to `true` in `.env`
 2. Restart application
 3. Verify feature is active via logs and metrics
@@ -81,6 +83,7 @@ RUL_CALIBRATION=false
 ```
 
 **Expected behavior after rollback:**
+
 - RUL predictions revert to v1.0 logic (simple degradation slope calculation)
 - Confidence scores remain at 0.85 (no quality adjustment)
 - No mode-aware threshold adjustments
@@ -88,6 +91,7 @@ RUL_CALIBRATION=false
 - No probability calibration
 
 **Verification:**
+
 ```bash
 # Check metrics endpoint - v2.0 metrics should stop incrementing
 curl http://localhost:5000/api/metrics | grep rul_
@@ -99,18 +103,21 @@ grep "RUL v2.0 Feature Flags" /tmp/logs/Start_application_*.log
 ### Partial Rollback (Individual Features)
 
 **Scenario: Mode detection causing issues**
+
 ```bash
 RUL_MODE_AWARE=false  # Disable only mode-aware predictions
 # Keep other features enabled
 ```
 
 **Scenario: Calibration too aggressive**
+
 ```bash
 RUL_CALIBRATION=false  # Disable probability calibration
 # Keep quality scoring, mode awareness, repair censoring
 ```
 
 **Scenario: Data quality scoring too strict**
+
 ```bash
 RUL_QUALITY_SCORING=false  # Disable quality-based confidence adjustment
 # Keep mode awareness, repair censoring, calibration
@@ -134,17 +141,20 @@ ADD COLUMN repair_type TEXT;  -- 'preventive', 'corrective', 'emergency'
 **Migration Steps:**
 
 1. **Backup database** (CRITICAL - do not skip):
+
    ```bash
    pg_dump $DATABASE_URL > rul_v2_backup_$(date +%Y%m%d).sql
    ```
 
 2. **Push schema changes**:
+
    ```bash
    npm run db:push
    # If data-loss warning appears, review carefully before using --force
    ```
 
 3. **Verify schema**:
+
    ```sql
    SELECT column_name, data_type, is_nullable
    FROM information_schema.columns
@@ -165,6 +175,7 @@ ADD COLUMN repair_type TEXT;  -- 'preventive', 'corrective', 'emergency'
 ### Backward Compatibility
 
 **Application handles missing schema gracefully:**
+
 - If schema not pushed, RUL engine uses fallback values
 - `status` defaults to `'open'`
 - `resolved_at` defaults to `null`
@@ -172,6 +183,7 @@ ADD COLUMN repair_type TEXT;  -- 'preventive', 'corrective', 'emergency'
 - No errors or crashes
 
 **Safe deployment order:**
+
 1. Deploy code first (with fallback logic)
 2. Push schema changes second
 3. Populate historical data third
@@ -183,12 +195,14 @@ ADD COLUMN repair_type TEXT;  -- 'preventive', 'corrective', 'emergency'
 ### Caching Strategy
 
 **Dashboard Cache:**
+
 - **TTL**: 60 seconds (configurable via `DASHBOARD_TTL_MS`)
 - **Impact**: 98% latency reduction (826ms → 18ms)
 - **Cache Key**: `dashboard-aggregation`
 - **Trade-off**: Dashboard data may be up to 60 seconds stale
 
 **Base Failure Rate Cache:**
+
 - **TTL**: 30 minutes
 - **Impact**: Reduces DB queries by 90%+
 - **Cache Key**: `base-failure-rate-${equipmentType}-${orgId}`
@@ -198,13 +212,14 @@ ADD COLUMN repair_type TEXT;  -- 'preventive', 'corrective', 'emergency'
 
 **Expected Latencies (p95):**
 
-| Operation | v1.0 (ms) | v2.0 (ms) | Change |
-|-----------|-----------|-----------|--------|
-| Single RUL prediction | 150 | 180 | +20% (4 new queries) |
-| Dashboard aggregation | 826 | 18 | -98% (caching) |
-| Batched query fetch | N/A | 50 | New (Phase 3) |
+| Operation             | v1.0 (ms) | v2.0 (ms) | Change               |
+| --------------------- | --------- | --------- | -------------------- |
+| Single RUL prediction | 150       | 180       | +20% (4 new queries) |
+| Dashboard aggregation | 826       | 18        | -98% (caching)       |
+| Batched query fetch   | N/A       | 50        | New (Phase 3)        |
 
 **Query Optimization:**
+
 - **Before Phase 3**: 4 sequential DB queries (telemetry, repairs, failures, base rate)
 - **After Phase 3**: 1 batched parallel query using `Promise.allSettled`
 - **Performance gain**: ~75% reduction in RUL calculation time
@@ -264,6 +279,7 @@ Set alerts on these Prometheus metrics:
 **Location:** `docs/dashboards/grafana-rul-v2.json`
 
 **Import to Grafana:**
+
 1. Open Grafana → Dashboards → Import
 2. Upload `grafana-rul-v2.json`
 3. Select Prometheus data source
@@ -327,26 +343,31 @@ rul_remaining_days_bucket{risk_level, le}
 ### Log Patterns
 
 **Feature flag initialization:**
+
 ```
 [RUL v2.0 Feature Flags] Mode-aware: true, Quality: true, Repair: true, Calibration: true
 ```
 
 **Successful prediction:**
+
 ```
 [DEBUG] RUL prediction for equipment_id={id} mode={mode} quality={score} rul={days}d confidence={conf}
 ```
 
 **Repair censoring applied:**
+
 ```
 [INFO] Repair censoring: Excluded {count} failure records before {date} for equipment {id}
 ```
 
 **Base rate cache hit:**
+
 ```
 [DEBUG] Base rate cache hit for {equipment_type}
 ```
 
 **Calibration applied:**
+
 ```
 [DEBUG] Calibrated probability: raw={raw} → calibrated={cal} (delta={delta})
 ```
@@ -358,11 +379,13 @@ rul_remaining_days_bucket{risk_level, le}
 ### Issue: RUL predictions unchanged after v2.0 upgrade
 
 **Symptoms:**
+
 - Metrics show predictions happening
 - But RUL values identical to v1.0
 - No calibration delta in metrics
 
 **Diagnosis:**
+
 ```bash
 # Check feature flags
 grep "RUL v2.0 Feature Flags" /tmp/logs/Start_application_*.log
@@ -372,6 +395,7 @@ curl http://localhost:5000/api/metrics | grep rul_predictions_total
 ```
 
 **Solutions:**
+
 1. Verify feature flags are `true` in `.env`
 2. Restart application to pick up env changes
 3. Check for errors in application logs
@@ -382,27 +406,31 @@ curl http://localhost:5000/api/metrics | grep rul_predictions_total
 ### Issue: Low data quality scores
 
 **Symptoms:**
+
 - `rul_data_quality_score` consistently < 0.5
 - Confidence scores very low
 - Many predictions marked as uncertain
 
 **Diagnosis:**
+
 ```promql
 # Check quality score distribution
 sum(rate(rul_data_quality_score_sum[5m])) / sum(rate(rul_data_quality_score_count[5m]))
 
 # Check by equipment
-sum(rate(rul_data_quality_score_sum[5m])) by (equipment_type) 
+sum(rate(rul_data_quality_score_sum[5m])) by (equipment_type)
 / sum(rate(rul_data_quality_score_count[5m])) by (equipment_type)
 ```
 
 **Root Causes:**
+
 1. **Insufficient telemetry data**: Equipment has < 10 data points
 2. **Short time span**: Telemetry covers < 7 days
 3. **High missing data rate**: > 20% NULL values
 4. **Stale data**: No telemetry in past 24 hours
 
 **Solutions:**
+
 1. Increase telemetry collection frequency
 2. Ensure devices are reporting consistently
 3. Check for connectivity issues with edge devices
@@ -413,11 +441,13 @@ sum(rate(rul_data_quality_score_sum[5m])) by (equipment_type)
 ### Issue: High calibration delta divergence
 
 **Symptoms:**
+
 - `rul_calibration_delta` > 0.3 consistently
 - Predictions being heavily adjusted
 - User reports unexpected RUL changes
 
 **Diagnosis:**
+
 ```promql
 # Check calibration delta by equipment type
 sum(rate(rul_calibration_delta_sum[5m])) by (equipment_type)
@@ -425,11 +455,13 @@ sum(rate(rul_calibration_delta_sum[5m])) by (equipment_type)
 ```
 
 **Root Causes:**
+
 1. **Inaccurate base failure rates**: Equipment failure history incomplete
 2. **Model drift**: ML model out of date with current fleet behavior
 3. **Calibration too aggressive**: Isotonic regression over-correcting
 
 **Solutions:**
+
 1. Review equipment failure history completeness
 2. Re-train ML models with recent failure data
 3. Temporarily disable calibration: `RUL_CALIBRATION=false`
@@ -440,11 +472,13 @@ sum(rate(rul_calibration_delta_sum[5m])) by (equipment_type)
 ### Issue: Poor cache hit rate
 
 **Symptoms:**
+
 - `rul_base_rate_cache_hits_total / (hits + misses)` < 0.5
 - High database load
 - Slow RUL predictions
 
 **Diagnosis:**
+
 ```promql
 # Cache hit rate
 sum(rate(rul_base_rate_cache_hits_total[5m]))
@@ -453,11 +487,13 @@ sum(rate(rul_base_rate_cache_hits_total[5m]))
 ```
 
 **Root Causes:**
+
 1. **Cache TTL too short**: 30min default may be too aggressive
 2. **High equipment type diversity**: Many unique equipment types
 3. **Memory pressure**: Cache being evicted prematurely
 
 **Solutions:**
+
 1. Monitor cache size and memory usage
 2. Consider increasing TTL for stable equipment types
 3. Optimize cache key structure
@@ -468,22 +504,26 @@ sum(rate(rul_base_rate_cache_hits_total[5m]))
 ### Issue: Mode detection failures
 
 **Symptoms:**
+
 - Most predictions show `operating_mode=UNKNOWN`
 - Mode multipliers not being applied
 - `rul_mode_multiplier` metrics empty
 
 **Diagnosis:**
+
 ```bash
 # Check mode distribution
 curl http://localhost:5000/api/metrics | grep 'rul_predictions_total.*operating_mode'
 ```
 
 **Root Causes:**
+
 1. **Missing telemetry data**: Not enough recent telemetry for mode detection
 2. **Sensor failures**: Speed, power, or position sensors offline
 3. **Mode detector thresholds too strict**: Edge cases not handled
 
 **Solutions:**
+
 1. Verify telemetry data availability for equipment
 2. Check sensor health in equipment monitoring dashboard
 3. Review mode detection thresholds in `server/context/mode-detector.ts`
@@ -553,11 +593,13 @@ When filing a support ticket, include:
 ### Phase 3 Performance Optimization Results
 
 **Dashboard API Latency:**
+
 - Before: 826ms (p95)
 - After: 18ms (p95)
 - **Improvement: 98% faster**
 
 **RUL Prediction Latency:**
+
 - Before Phase 3: ~200ms (4 sequential queries)
 - After Phase 3: ~50ms (1 batched parallel query)
 - **Improvement: 75% faster**
@@ -565,10 +607,12 @@ When filing a support ticket, include:
 ### Expected Accuracy Improvements
 
 **Target (from design specs):**
+
 - Prediction accuracy: +10-15% improvement
 - False alarm reduction: -20%
 
 **Validation required:**
+
 - Deploy to production fleet
 - Collect 30 days of predictions
 - Compare against actual failures
@@ -578,10 +622,10 @@ When filing a support ticket, include:
 
 ## Change Log
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 2.0 | 2025-11-04 | Initial v2.0 release with 4 major enhancements |
-| 1.0 | 2025-10-01 | Original RUL engine baseline |
+| Version | Date       | Changes                                        |
+| ------- | ---------- | ---------------------------------------------- |
+| 2.0     | 2025-11-04 | Initial v2.0 release with 4 major enhancements |
+| 1.0     | 2025-10-01 | Original RUL engine baseline                   |
 
 ---
 

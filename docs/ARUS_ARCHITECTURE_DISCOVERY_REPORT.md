@@ -1,4 +1,5 @@
 # ARUS Architecture Discovery Report
+
 **Date**: November 24, 2025  
 **Purpose**: Comprehensive architecture review and verification of dual-deployment system  
 **Status**: ✅ **System Operational** - Architecture review complete
@@ -10,6 +11,7 @@
 The ARUS (Marine Predictive Maintenance & Scheduling) system is a **production-ready dual-deployment architecture** supporting both cloud-based (PostgreSQL) and vessel/desktop-based (SQLite) deployments with clean mode switching and graceful degradation.
 
 **Current Status**: ✅ **All critical systems operational**
+
 - Database layer: Clean mode switching between PostgreSQL and SQLite ✅
 - Digital Twin: Functional in embedded mode ✅
 - Telemetry pipeline: Active with MQTT offline graceful handling ✅
@@ -96,7 +98,7 @@ The ARUS (Marine Predictive Maintenance & Scheduling) system is a **production-r
 
 ### Key Entry Points
 
-1. **Electron Main Process**: 
+1. **Electron Main Process**:
    - ❌ **Not Found** - No dedicated Electron main process file detected
    - **Note**: User's task document mentions Electron, but no electron-main.ts/js found
    - **Recommendation**: If Electron deployment needed, create electron/main.ts
@@ -123,6 +125,7 @@ The ARUS (Marine Predictive Maintenance & Scheduling) system is a **production-r
 ### Single Source of Truth: `server/config/runtimeEnv.ts`
 
 **Mode Flags**:
+
 ```typescript
 // Environment Variables
 LOCAL_MODE      = "true" | "false"
@@ -136,21 +139,22 @@ isCloudMode   = !isLocalMode
 ```
 
 **Current Detection Logic** (✅ Working):
+
 ```typescript
 // server/config/runtimeEnv.ts lines 23-43
-export const isLocalMode = 
-  process.env.LOCAL_MODE === "true" || 
+export const isLocalMode =
+  process.env.LOCAL_MODE === "true" ||
   process.env.EMBEDDED_MODE === "true" ||
   process.env.DEPLOYMENT_MODE === "VESSEL";
 
 export const isVesselMode =
-  process.env.DEPLOYMENT_MODE === "VESSEL" ||
-  process.env.EMBEDDED_MODE === "true";
+  process.env.DEPLOYMENT_MODE === "VESSEL" || process.env.EMBEDDED_MODE === "true";
 
 export const isCloudMode = !isLocalMode;
 ```
 
 **Auto-Fallback Logic** (✅ Working):
+
 ```typescript
 // server/db-config.ts lines 43-47
 const isEmbedded = process.env.EMBEDDED_MODE === "true";
@@ -161,6 +165,7 @@ if (isEmbedded && !process.env.DATABASE_URL && process.env.LOCAL_MODE !== "true"
 ```
 
 **Feature Flags by Mode**:
+
 ```typescript
 // Cloud-Only Features
 cloudOnlyFeatures = {
@@ -168,17 +173,17 @@ cloudOnlyFeatures = {
   timescaleDbOptimization: hasPostgresFeatures,
   materializedViewScheduler: hasPostgresFeatures,
   vectorSearch: hasPostgresFeatures,
-  updateScheduler: isCloudMode,  // ✅ Prevents vessel mode issues
+  updateScheduler: isCloudMode, // ✅ Prevents vessel mode issues
   syncManager: isCloudMode,
   telemetryPruning: hasPostgresFeatures,
-}
+};
 
 // Vessel-Only Features
 vesselOnlyFeatures = {
   offlineBuffering: isVesselMode,
   localMqttBroker: isVesselMode,
   syncConflictResolution: isVesselMode,
-}
+};
 ```
 
 ---
@@ -190,6 +195,7 @@ vesselOnlyFeatures = {
 **File**: `server/db-config.ts`
 
 **Cloud Mode (PostgreSQL)**:
+
 ```typescript
 // Lines 61-100
 if (!isLocalMode) {
@@ -199,40 +205,41 @@ if (!isLocalMode) {
     idleTimeoutMillis: 60000,
     connectionTimeoutMillis: 5000,
   });
-  
+
   cloudDatabase = drizzlePg(pgPool, { schema });
   console.log("✓ Cloud PostgreSQL: Connected");
 }
 ```
 
 **Vessel Mode (SQLite/libSQL)**:
+
 ```typescript
 // Lines 106-175
 if (isLocalMode) {
   const localDbPath = path.join(dataDir, "vessel-local.db");
-  
+
   // With Turso Sync (if configured)
   if (hasSyncUrl && hasAuthToken) {
     localClient = createClient({
       url: `file:${localDbPath}`,
       syncUrl: process.env.TURSO_SYNC_URL,
       authToken: process.env.TURSO_AUTH_TOKEN,
-      syncInterval: 0,  // Sync Manager controls timing
+      syncInterval: 0, // Sync Manager controls timing
     });
-  } 
+  }
   // Offline-only (no sync)
   else {
     localClient = createClient({
       url: `file:${localDbPath}`,
     });
   }
-  
+
   // SQLite optimizations
   await localClient.execute("PRAGMA journal_mode=WAL");
   await localClient.execute("PRAGMA synchronous=NORMAL");
   await localClient.execute("PRAGMA cache_size=-64000");
   await localClient.execute("PRAGMA foreign_keys=ON");
-  
+
   localDatabase = drizzleSqlite(localClient, { schema: schemaSqliteVessel });
 }
 ```
@@ -242,17 +249,20 @@ if (isLocalMode) {
 **Status**: ✅ **100% Parity Achieved** (132 tables)
 
 **Schema Files**:
+
 1. `shared/schema.ts` - PostgreSQL schema (cloud mode)
 2. `shared/schema-sqlite-vessel.ts` - SQLite schema (vessel mode)
 3. `shared/schema-runtime.ts` - Runtime unified exports (mode-aware)
 4. `server/sqlite-init.ts` - SQLite database initialization (132 tables)
 
 **Recent Fix** (November 24, 2025):
+
 - ✅ Added `update_settings` table to `server/sqlite-init.ts`
 - ✅ Table count updated: 131 → 132 tables
 - ✅ Documentation: `docs/UPDATE_SETTINGS_TABLE_FIX.md`
 
 **Critical Tables for Core Features**:
+
 ```
 Equipment & Assets:      vessels, equipment, sensors, sensor_bundles
 Telemetry:              raw_telemetry, telemetry_buffer, sensor_readings
@@ -270,6 +280,7 @@ Updates:                update_settings (now included in SQLite)
 **Current Status**: ⚠️ **No Unified Abstraction Layer**
 
 **Finding**: Different parts of the codebase use different client methods:
+
 - Drizzle ORM: `.select()`, `.insert()`, `.update()`, `.delete()`
 - libSQL client: `.execute()`, `.batch()`
 - PostgreSQL pool: `.query()`
@@ -277,6 +288,7 @@ Updates:                update_settings (now included in SQLite)
 **Issue**: The error "db.execute is not a function" mentioned in the task document suggests some code expects libSQL-specific methods on a Drizzle instance.
 
 **Recommendation**: Create a thin DB abstraction layer:
+
 ```typescript
 // server/db-abstraction.ts (PROPOSED)
 interface UnifiedDbClient {
@@ -298,6 +310,7 @@ interface UnifiedDbClient {
 **Status**: ✅ **Functional in Embedded Mode**
 
 **Key Features**:
+
 - Physics-based vessel simulation
 - Equipment health monitoring
 - Real-time state updates
@@ -305,6 +318,7 @@ interface UnifiedDbClient {
 - Visualization asset management
 
 **Initialization**:
+
 ```typescript
 // Lines 109-115
 constructor() {
@@ -316,11 +330,13 @@ constructor() {
 ```
 
 **Health Monitoring Integration**:
+
 - Endpoint: `GET /api/equipment/health`
 - Returns: Equipment list with health scores, status, predicted RUL
 - **Current Logs**: ✅ Returning 200 OK with equipment data
 
 **Database Dependency**:
+
 - Uses Drizzle ORM with `@shared/schema-runtime` imports
 - Works in both PostgreSQL and SQLite modes
 - No mode-specific database access issues detected
@@ -336,20 +352,34 @@ constructor() {
 **Status**: ✅ **Graceful Offline Handling**
 
 **Architecture**:
+
 ```typescript
 // Dual-topic design
 topics = {
-  state: {              // Retained snapshots for late joiners
-    workOrders, alerts, equipment, crew, maintenance
+  state: {
+    // Retained snapshots for late joiners
+    workOrders,
+    alerts,
+    equipment,
+    crew,
+    maintenance,
   },
-  events: {             // Sequenced deltas for ordered replay
-    workOrders, alerts, equipment, crew, maintenance
+  events: {
+    // Sequenced deltas for ordered replay
+    workOrders,
+    alerts,
+    equipment,
+    crew,
+    maintenance,
   },
-  system, conflicts, catchup
-}
+  system,
+  conflicts,
+  catchup,
+};
 ```
 
 **Offline Behavior** (✅ Working):
+
 ```javascript
 // Lines 112-125
 constructor(config) {
@@ -363,11 +393,13 @@ constructor(config) {
 ```
 
 **Current Logs**: "Broker connection timeout - running in offline mode"
+
 - ✅ **Expected behavior** in desktop/testing mode
 - ✅ No crash or spam logs
 - ✅ System continues operating without MQTT
 
 **Features**:
+
 - Message persistence (JSONL queue)
 - QoS 1/2 support (guaranteed delivery)
 - Automatic reconnection with exponential backoff
@@ -381,6 +413,7 @@ constructor(config) {
 **Status**: ✅ **Active and Generating Data**
 
 **Evidence from Logs**:
+
 ```
 GET /api/telemetry/latest 200 in 61ms
 [
@@ -393,6 +426,7 @@ GET /api/telemetry/latest 200 in 61ms
 ```
 
 **Capabilities**:
+
 - Synthetic telemetry for engines, gearboxes, pumps, generators
 - Realistic noise and drift patterns
 - Configurable frequency and parameters
@@ -405,6 +439,7 @@ GET /api/telemetry/latest 200 in 61ms
 **Status**: ✅ **Real-time Updates Working**
 
 **Current Logs**:
+
 ```
 9:55:07 PM [websocket] Client client_xxx subscribed to alerts
 9:55:07 PM [websocket] Client client_xxx subscribed to dashboard
@@ -412,12 +447,14 @@ GET /api/telemetry/latest 200 in 61ms
 ```
 
 **Topics**:
+
 - `alerts` - Real-time alert notifications
 - `dashboard` - Dashboard metric updates
 - `telemetry` - Live telemetry streams
 - `data:all` - All data changes (catchall)
 
 **REST Endpoints**:
+
 - `GET /api/equipment/health` - Equipment health scores ✅ 200 OK
 - `GET /api/telemetry/latest` - Latest telemetry ✅ 200 OK
 - `GET /api/dashboard` - Dashboard stats ✅ 200 OK (304 cached)
@@ -436,6 +473,7 @@ GET /api/telemetry/latest 200 in 61ms
 **Status**: ✅ **Relaxed for Embedded/Development**
 
 **Configuration**:
+
 ```typescript
 // Lines 7-10
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -462,6 +500,7 @@ export const bulkLimiter = rateLimit({
 ```
 
 **Current Logs**: ✅ **No 429 errors detected**
+
 - Frontend polling not triggering rate limits
 - Embedded mode limits working correctly
 
@@ -472,6 +511,7 @@ export const bulkLimiter = rateLimit({
 **Status**: ✅ **Working with Development Fallback**
 
 **Key Logic**:
+
 ```typescript
 // Lines 74-82
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -489,6 +529,7 @@ if (!user) {
 ```
 
 **Current Logs**:
+
 ```
 [TENANT_ISOLATION_SUCCESS] {
   timestamp: '2025-11-24T21:55:07.108Z',
@@ -499,11 +540,13 @@ if (!user) {
 ```
 
 **Frontend Integration**:
+
 - Frontend sets `x-org-id: default-org-id` via global interceptor
 - Source: `client/src/utils/orgContext.ts`
 - ✅ No 401 MISSING_ORG_ID errors in current logs
 
 **Exempt Paths**:
+
 - `/api/healthz`, `/api/readyz`, `/api/health`, `/api/metrics`
 - `/api/admin/auth/verify`
 
@@ -516,6 +559,7 @@ if (!user) {
 **Vite Config**: `vite.config.ts`
 
 **Build Output**:
+
 ```typescript
 build: {
   outDir: path.resolve(import.meta.dirname, "dist/public"),
@@ -524,6 +568,7 @@ build: {
 ```
 
 **Server Static Config**: `server/index.ts`
+
 ```typescript
 // Serves static files from dist/public
 app.use(express.static(distPath));
@@ -535,6 +580,7 @@ app.get("*", (req, res) => {
 ```
 
 **Current Status**: ✅ **CSS/JS bundles loading correctly**
+
 - Browser console shows no 404 errors
 - No text/html MIME type issues
 - Vite dev server WebSocket errors (expected in development)
@@ -542,6 +588,7 @@ app.get("*", (req, res) => {
 ### 6.2 Real-time UI Behavior
 
 **WebSocket Subscriptions** (from logs):
+
 ```
 [websocket] Client subscribed to data:all
 [websocket] Client subscribed to alerts
@@ -549,11 +596,13 @@ app.get("*", (req, res) => {
 ```
 
 **Polling Fallback**:
+
 - Equipment health: Polling every 30s
 - Dashboard stats: Polling every 30s
 - Telemetry latest: Polling every 30s
 
 **Dashboard Rendering**: ✅ **Working with data**
+
 ```json
 {
   "activeDevices": 40,
@@ -564,6 +613,7 @@ app.get("*", (req, res) => {
 ```
 
 **Empty State Handling**: ✅ Present
+
 - Equipment registry shows empty state when no equipment
 - Dashboard shows 0 values when no data
 
@@ -574,11 +624,13 @@ app.get("*", (req, res) => {
 ### Sync Design Overview
 
 **Local SQLite** (Vessel/Desktop):
+
 - File: `data/vessel-local.db`
 - Drizzle ORM with libSQL client
 - Optional Turso cloud sync
 
 **Cloud PostgreSQL** (Fleet-wide):
+
 - Neon serverless PostgreSQL
 - Full feature set
 - Multi-device access
@@ -601,6 +653,7 @@ app.get("*", (req, res) => {
    - Disabled in vessel mode via feature flag
 
 **Graceful Degradation**: ✅ **Working**
+
 - Vessel mode runs fully offline
 - No crashes when cloud unavailable
 - Clear logging of offline status
@@ -617,18 +670,20 @@ app.get("*", (req, res) => {
 **Guards** (Triple Protection):
 
 **Guard #1** - Runtime feature flags:
+
 ```typescript
 // server/config/runtimeEnv.ts line 101
 cloudOnlyFeatures = {
-  updateScheduler: isCloudMode,  // false in vessel mode
-}
+  updateScheduler: isCloudMode, // false in vessel mode
+};
 ```
 
 **Guard #2** - Setup function:
+
 ```typescript
 // Assumed in server/services/update-scheduler.ts
 export function setupUpdateScheduler(): void {
-  if (!isCloudMode || !canUseCloudFeature('updateScheduler')) {
+  if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
     console.log("[UpdateScheduler] Disabled - cloud-only");
     return;
   }
@@ -637,6 +692,7 @@ export function setupUpdateScheduler(): void {
 ```
 
 **Guard #3** - Try-catch wrapper:
+
 ```typescript
 // server/index.ts (assumed)
 try {
@@ -654,6 +710,7 @@ try {
 **Status**: ✅ **Present in SQLite Schema** (as of Nov 24, 2025)
 
 **Schema**:
+
 ```sql
 -- server/sqlite-init.ts lines 3154-3180
 CREATE TABLE IF NOT EXISTS update_settings (
@@ -711,7 +768,7 @@ CREATE TABLE IF NOT EXISTS update_settings (
    - **Status**: Not critical for core operations
    - **Note**: LLM features gracefully degraded in offline mode (expected)
 
-6. ✅ **GET /api/* 429 :: {"code":"RATE_LIMIT_GENERAL"}**
+6. ✅ **GET /api/\* 429 :: {"code":"RATE_LIMIT_GENERAL"}**
    - **Status**: Not detected in current logs
    - **Fix**: Rate limits relaxed to 10,000/min in embedded/development mode
 
@@ -837,6 +894,7 @@ The following areas would benefit from end-to-end playwright testing:
 The ARUS system demonstrates a **well-architected dual-deployment solution** with clean separation of concerns, robust error handling, and graceful degradation. All critical issues mentioned in the task document have been resolved, and the system is operating correctly in the current deployment.
 
 **Key Achievements**:
+
 1. ✅ Database layer working in both modes
 2. ✅ Digital Twin functional
 3. ✅ Telemetry pipeline active
@@ -846,6 +904,7 @@ The ARUS system demonstrates a **well-architected dual-deployment solution** wit
 7. ✅ Schema parity complete (132/132 tables)
 
 **Recommended Next Steps**:
+
 1. Create Electron main process if desktop deployment needed
 2. Add database abstraction layer for consistency
 3. Implement end-to-end tests for critical flows

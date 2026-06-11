@@ -11,15 +11,17 @@ agent shell. For a new isolated table, either apply the DDL directly (SQL) for d
 **always also add a committed migration** so deployed environments get it.
 
 **Why:** prod does not run `db:push`. Two migration paths run on deploy/boot:
+
 1. Drizzle migrations in `migrations/` (via `db:migrate` / `db:migrate:deploy`).
 2. Supplemental idempotent SQL files in `server/migrations/*.sql`, run in sorted order
    and tracked in the `arus_sql_migrations` table. Also triggered at boot when
    `MIGRATE_ON_BOOT=true` (`server/scripts/migrate.ts` → `runBootMigrations`).
 
 **How to apply:** add `server/migrations/NNN-name.sql` with `CREATE TABLE IF NOT EXISTS`
-+ `CREATE INDEX IF NOT EXISTS` (idempotent, so it co-exists with a dev table created by
-hand). Match the drizzle schema's column types (e.g. `timestamp` without tz when the
-schema uses `timestamp({ mode: "date" })`).
+
+- `CREATE INDEX IF NOT EXISTS` (idempotent, so it co-exists with a dev table created by
+  hand). Match the drizzle schema's column types (e.g. `timestamp` without tz when the
+  schema uses `timestamp({ mode: "date" })`).
 
 # Cloud-only (PostgreSQL-only) domains
 

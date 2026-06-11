@@ -9,11 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type {
-  CrewTaskStatus,
-  CrewTaskPriority,
-  CrewTaskLinkedSourceType,
-} from "@shared/schema";
+import type { CrewTaskStatus, CrewTaskPriority, CrewTaskLinkedSourceType } from "@shared/schema";
 import type { CrewTaskView, CrewTaskEventView } from "../lib/crewTaskUtils";
 
 const TASKS_KEY = "/api/crew-tasks";
@@ -31,12 +27,22 @@ function buildListKey(filters?: CrewTaskListFilters) {
 }
 
 function buildQueryString(filters?: CrewTaskListFilters): string {
-  if (!filters) {return "";}
+  if (!filters) {
+    return "";
+  }
   const params = new URLSearchParams();
-  if (filters.vesselId) {params.set("vesselId", filters.vesselId);}
-  if (filters.assignedCrewId) {params.set("assignedCrewId", filters.assignedCrewId);}
-  if (filters.status) {params.set("status", filters.status);}
-  if (filters.includeDone) {params.set("includeDone", "true");}
+  if (filters.vesselId) {
+    params.set("vesselId", filters.vesselId);
+  }
+  if (filters.assignedCrewId) {
+    params.set("assignedCrewId", filters.assignedCrewId);
+  }
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+  if (filters.includeDone) {
+    params.set("includeDone", "true");
+  }
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -66,9 +72,9 @@ export interface CreateCrewTaskInput {
   dueDate?: string;
   blockedReason?: string;
   assignedTo?: string;
-  linkedSourceType?: CrewTaskLinkedSourceType;
+  linkedSourceType?: CrewTaskLinkedSourceType | undefined;
   linkedSourceId?: string;
-  linkedSourceLabel?: string;
+  linkedSourceLabel?: string | undefined;
 }
 
 export interface UpdateCrewTaskInput {
@@ -94,8 +100,7 @@ function invalidateTaskQueries(client: ReturnType<typeof useQueryClient>) {
 export function useCreateCrewTask() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateCrewTaskInput) =>
-      apiRequest<CrewTaskView>("POST", TASKS_KEY, input),
+    mutationFn: (input: CreateCrewTaskInput) => apiRequest<CrewTaskView>("POST", TASKS_KEY, input),
     onSuccess: () => invalidateTaskQueries(client),
   });
 }
@@ -130,11 +135,7 @@ export function useAddCrewTaskComment(id: string | null) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (message: string) =>
-      apiRequest<CrewTaskEventView>(
-        "POST",
-        `${TASKS_KEY}/${id}/comments`,
-        { message },
-      ),
+      apiRequest<CrewTaskEventView>("POST", `${TASKS_KEY}/${id}/comments`, { message }),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: [TASKS_KEY, id, "events"] });
     },

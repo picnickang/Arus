@@ -19,11 +19,27 @@ const SQLITE_TYPES = "text|integer|real|blob|numeric";
 const ALL_TYPES = [...new Set([...PG_TYPES.split("|"), ...SQLITE_TYPES.split("|")])].join("|");
 
 const PG_TO_NORMALIZED = {
-  varchar: "text", text: "text", char: "text",
-  integer: "integer", serial: "integer", bigint: "integer", smallint: "integer", boolean: "integer",
-  real: "real", numeric: "real", decimal: "real", doublePrecision: "real",
-  timestamp: "timestamp", date: "timestamp", time: "text", interval: "text",
-  json: "text", jsonb: "text", uuid: "text", blob: "blob", customType: "text",
+  varchar: "text",
+  text: "text",
+  char: "text",
+  integer: "integer",
+  serial: "integer",
+  bigint: "integer",
+  smallint: "integer",
+  boolean: "integer",
+  real: "real",
+  numeric: "real",
+  decimal: "real",
+  doublePrecision: "real",
+  timestamp: "timestamp",
+  date: "timestamp",
+  time: "text",
+  interval: "text",
+  json: "text",
+  jsonb: "text",
+  uuid: "text",
+  blob: "blob",
+  customType: "text",
   timestampInt: "timestamp",
 };
 const normalizeType = (t) => PG_TO_NORMALIZED[t] || t;
@@ -36,10 +52,14 @@ function extractColumns(src) {
   while ((header = headerRe.exec(src)) !== null) {
     const [varName, tableName] = [header[1], header[2]];
     const openBrace = header.index + header[0].length - 1;
-    let depth = 0, end = -1;
+    let depth = 0,
+      end = -1;
     for (let i = openBrace; i < src.length; i++) {
       if (src[i] === "{") depth++;
-      else if (src[i] === "}" && --depth === 0) { end = i; break; }
+      else if (src[i] === "}" && --depth === 0) {
+        end = i;
+        break;
+      }
     }
     if (end === -1) continue;
     const body = src.slice(openBrace, end + 1);
@@ -49,10 +69,17 @@ function extractColumns(src) {
     while ((cm = colRe.exec(body)) !== null) {
       const [, name, type] = cm;
       const openIdx = cm.index + cm[0].length - 1;
-      let d = 0, args = "";
+      let d = 0,
+        args = "";
       for (let i = openIdx; i < body.length; i++) {
         if (body[i] === "(") d++;
-        else if (body[i] === ")") { d--; if (d === 0) { args = body.slice(openIdx + 1, i); break; } }
+        else if (body[i] === ")") {
+          d--;
+          if (d === 0) {
+            args = body.slice(openIdx + 1, i);
+            break;
+          }
+        }
       }
       let eff = type;
       if (type === "integer" && /mode\s*:\s*["']timestamp["']/.test(args)) eff = "timestampInt";
@@ -101,8 +128,14 @@ const missingTables = [];
 for (const pair of switchedPairs) {
   const pg = pgTables[pair.pgExport];
   const sq = sqliteTables[pair.sqliteExport];
-  if (pg && !sq) { missingTables.push(pair.name); continue; }
-  if (!pg && sq) { missingTables.push(pair.name); continue; }
+  if (pg && !sq) {
+    missingTables.push(pair.name);
+    continue;
+  }
+  if (!pg && sq) {
+    missingTables.push(pair.name);
+    continue;
+  }
   if (!pg || !sq || pg.columns.size === 0 || sq.columns.size === 0) continue;
   const pgCols = new Set(pg.columns.keys());
   const sqCols = new Set(sq.columns.keys());
@@ -134,4 +167,6 @@ const out = {
 };
 
 writeFileSync(resolve(root, "scripts/drift-baseline.json"), JSON.stringify(out, null, 2) + "\n");
-console.log(`Regenerated baseline: ${Object.keys(columnDrift).length} drifted tables, ${missingTables.length} missing`);
+console.log(
+  `Regenerated baseline: ${Object.keys(columnDrift).length} drifted tables, ${missingTables.length} missing`
+);

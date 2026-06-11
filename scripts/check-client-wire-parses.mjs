@@ -139,20 +139,18 @@ function main() {
 
   if (total > baseline) {
     console.error(
-      `\n✗ Client wire-parse regression in ${SCAN_ROOT}: ${baseline} → ${total} (+${total - baseline})`,
+      `\n✗ Client wire-parse regression in ${SCAN_ROOT}: ${baseline} → ${total} (+${total - baseline})`
     );
     console.error(
-      `  Every await fetch(...) / await apiRequest(...) result must flow through a Zod parse.`,
+      `  Every await fetch(...) / await apiRequest(...) result must flow through a Zod parse.`
     );
-    console.error(
-      `  Run \`node ${relative(ROOT, process.argv[1])} --report\` to see offenders.`,
-    );
+    console.error(`  Run \`node ${relative(ROOT, process.argv[1])} --report\` to see offenders.`);
     process.exit(1);
   }
 
   if (total < baseline) {
     console.log(
-      `✓ Reduction: ${baseline} → ${total} (-${baseline - total}). Consider regenerating the baseline.`,
+      `✓ Reduction: ${baseline} → ${total} (-${baseline - total}). Consider regenerating the baseline.`
     );
   } else {
     console.log(`✓ Client wire-parse count at baseline: ${total}`);

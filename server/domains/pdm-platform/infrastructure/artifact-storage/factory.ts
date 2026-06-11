@@ -51,7 +51,7 @@ export function configureArtifactBackendSettingPort(port: ArtifactBackendSetting
 const VALID: readonly ArtifactBackend[] = ["local", "replit-object-storage"] as const;
 
 function defaultBackend(): ArtifactBackend {
-  return process.env['DEFAULT_OBJECT_STORAGE_BUCKET_ID'] && process.env['PRIVATE_OBJECT_DIR']
+  return process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"] && process.env["PRIVATE_OBJECT_DIR"]
     ? "replit-object-storage"
     : "local";
 }
@@ -61,7 +61,9 @@ const adapterCache = new Map<ArtifactBackend, ArtifactStoragePort>();
 
 function buildAdapter(backend: ArtifactBackend): ArtifactStoragePort {
   let a = adapterCache.get(backend);
-  if (a) {return a;}
+  if (a) {
+    return a;
+  }
   if (backend === "replit-object-storage") {
     a = new ReplitObjectStorageArtifactStorage();
   } else {
@@ -73,7 +75,9 @@ function buildAdapter(backend: ArtifactBackend): ArtifactStoragePort {
 
 /** Adapter selected for NEW artifact writes (admin setting). */
 export async function getWriteAdapter(): Promise<ArtifactStoragePort> {
-  if (cachedWriteBackend) {return buildAdapter(cachedWriteBackend);}
+  if (cachedWriteBackend) {
+    return buildAdapter(cachedWriteBackend);
+  }
   if (!settingPort) {
     cachedWriteBackend = defaultBackend();
     return buildAdapter(cachedWriteBackend);
@@ -103,7 +107,7 @@ export async function setArtifactBackendSetting(backend: ArtifactBackend): Promi
   }
   if (!settingPort) {
     throw new Error(
-      "ArtifactBackendSettingPort not configured — call configureArtifactBackendSettingPort at boot",
+      "ArtifactBackendSettingPort not configured — call configureArtifactBackendSettingPort at boot"
     );
   }
   await settingPort.write(backend);

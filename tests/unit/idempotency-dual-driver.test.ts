@@ -106,7 +106,12 @@ describe("idempotency durable store — dual-driver parity", () => {
   it("expiry filtering excludes expired rows on real sqlite", async () => {
     const now = new Date();
     const expired = buildIdempotencyInsertValues(
-      sampleEntry({ fullKey: "expired-key", idempotencyKey: "k-exp", requestHash: "h-exp", ttlMs: -1_000 }),
+      sampleEntry({
+        fullKey: "expired-key",
+        idempotencyKey: "k-exp",
+        requestHash: "h-exp",
+        ttlMs: -1_000,
+      }),
       true,
       now
     );
@@ -125,7 +130,7 @@ describe("idempotency durable store — dual-driver parity", () => {
   });
 
   it("pg insert compiles with the cloud-shaped values", () => {
-    const pgDb = drizzlePg({} as unknown as Parameters<typeof drizzlePg>[0]);
+    const pgDb = drizzlePg("postgresql://localhost/arus_compile_only");
     const values = buildIdempotencyInsertValues(sampleEntry(), false);
     const { sql, params } = pgDb
       .insert(requestIdempotency)

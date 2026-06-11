@@ -10,10 +10,7 @@ export function EmptyState({ onSelectPrompt }: { onSelectPrompt: (prompt: string
         <p className="font-medium text-sm" data-testid="text-welcome">
           ARUS Copilot
         </p>
-        <p
-          className="text-xs text-muted-foreground mt-1"
-          data-testid="text-welcome-description"
-        >
+        <p className="text-xs text-muted-foreground mt-1" data-testid="text-welcome-description">
           Ask about equipment, maintenance, alerts, or request work orders
         </p>
       </div>

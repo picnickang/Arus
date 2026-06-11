@@ -159,14 +159,10 @@ export async function applyOptimisticUpdate(
   return applyWorkOrderUpdate(input);
 }
 
-async function applyWorkOrderUpdate(
-  input: ApplyUpdateInput
-): Promise<ApplyConflictOutcome> {
+async function applyWorkOrderUpdate(input: ApplyUpdateInput): Promise<ApplyConflictOutcome> {
   const parsed = workOrderUpdateSchema.safeParse(input.data);
   if (!parsed.success) {
-    throw new ConflictPayloadError(
-      `Invalid work order update payload: ${parsed.error.message}`
-    );
+    throw new ConflictPayloadError(`Invalid work order update payload: ${parsed.error.message}`);
   }
   const updateData = parsed.data;
 
@@ -201,9 +197,7 @@ async function applyWorkOrderUpdate(
     const [current] = await tx
       .select()
       .from(workOrders)
-      .where(
-        and(eq(workOrders.id, input.recordId), eq(workOrders.orgId, input.orgId))
-      );
+      .where(and(eq(workOrders.id, input.recordId), eq(workOrders.orgId, input.orgId)));
 
     if (!current) {
       return { status: "not_found" };

@@ -16,7 +16,7 @@ const samples = {
   text: Buffer.from("<html><script>alert('x')</script></html>"),
 };
 
-let tempFiles: string[] = [];
+const tempFiles: string[] = [];
 
 async function writeTempFile(buffer: Buffer): Promise<string> {
   const dir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "kb-upload-validation-"));

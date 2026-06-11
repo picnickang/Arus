@@ -17,10 +17,14 @@ Phase 3 successfully implemented the database schema foundation for comprehensiv
 **Implementation**: `shared/schema.ts` lines 2160-2232
 
 **Tables Created**:
+
 1. **scheduler_runs** - Tracks each scheduler execution
+
    ```typescript
    export const schedulerRuns = pgTable("scheduler_runs", {
-     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+     id: varchar("id")
+       .primaryKey()
+       .default(sql`gen_random_uuid()`),
      orgId: varchar("org_id").notNull(),
      fromDate: date("from_date", { mode: "date" }).notNull(),
      toDate: date("to_date", { mode: "date" }).notNull(),
@@ -35,10 +39,15 @@ Phase 3 successfully implemented the database schema foundation for comprehensiv
    ```
 
 2. **schedule_assignments** - Stores proposed crew assignments
+
    ```typescript
    export const scheduleAssignments = pgTable("schedule_assignments", {
-     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-     runId: varchar("run_id").notNull().references(() => schedulerRuns.id, { onDelete: "cascade" }),
+     id: varchar("id")
+       .primaryKey()
+       .default(sql`gen_random_uuid()`),
+     runId: varchar("run_id")
+       .notNull()
+       .references(() => schedulerRuns.id, { onDelete: "cascade" }),
      orgId: varchar("org_id").notNull(),
      crewId: varchar("crew_id").notNull(),
      vesselId: varchar("vessel_id"),
@@ -54,8 +63,12 @@ Phase 3 successfully implemented the database schema foundation for comprehensiv
 3. **schedule_unfilled** - Records unfilled shifts with reasons
    ```typescript
    export const scheduleUnfilled = pgTable("schedule_unfilled", {
-     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-     runId: varchar("run_id").notNull().references(() => schedulerRuns.id, { onDelete: "cascade" }),
+     id: varchar("id")
+       .primaryKey()
+       .default(sql`gen_random_uuid()`),
+     runId: varchar("run_id")
+       .notNull()
+       .references(() => schedulerRuns.id, { onDelete: "cascade" }),
      orgId: varchar("org_id").notNull(),
      day: date("day", { mode: "date" }).notNull(),
      shiftId: varchar("shift_id").notNull(),
@@ -65,11 +78,13 @@ Phase 3 successfully implemented the database schema foundation for comprehensiv
    ```
 
 **Type Exports Added**:
+
 - `InsertSchedulerRun`, `SelectSchedulerRun`
 - `InsertScheduleAssignment`, `SelectScheduleAssignment`
 - `InsertScheduleUnfilled`, `SelectScheduleUnfilled`
 
 **Zod Schemas Added**:
+
 - `insertSchedulerRunSchema`
 - `insertScheduleAssignmentSchema`
 - `insertScheduleUnfilledSchema`
@@ -83,6 +98,7 @@ Phase 3 successfully implemented the database schema foundation for comprehensiv
 **Implementation**: `server/storage.ts`
 
 **IStorage Interface Methods Added** (lines 751-764):
+
 ```typescript
 // Scheduler Run Management (audit trail)
 createSchedulerRun(run: InsertSchedulerRun): Promise<SelectSchedulerRun>;
@@ -101,12 +117,14 @@ getScheduleUnfilled(orgId: string, runId?: string): Promise<SelectScheduleUnfill
 ```
 
 **DatabaseStorage Implementation** (lines 12182-12267):
+
 - Full CRUD operations for scheduler runs (create, update, get, getAll)
 - Bulk insert operations for efficient batch processing
 - Query filtering by organization, date range, and run ID
 - Proper error handling and type safety
 
 **MemStorage Stub Implementation** (lines 5861-5904):
+
 - All 10 scheduler methods implemented as stubs
 - Returns empty arrays for read operations
 - Throws descriptive errors for write operations (not supported in memory storage)
@@ -121,6 +139,7 @@ getScheduleUnfilled(orgId: string, runId?: string): Promise<SelectScheduleUnfill
 **Implementation**: Direct SQL table creation (bypassed drizzle-kit push interactive prompt issues)
 
 **Tables Created Successfully**:
+
 ```sql
 CREATE TABLE scheduler_runs (
   id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -162,6 +181,7 @@ CREATE TABLE schedule_unfilled (
 ```
 
 **Drizzle-Kit Verification**:
+
 ```bash
 $ npx drizzle-kit generate --name add-scheduler-tables
 154 tables
@@ -184,6 +204,7 @@ No schema changes, nothing to migrate 😴
 **Implementation**: Performance indexes for optimal query patterns
 
 **Indexes Created**:
+
 ```sql
 -- Scheduler runs: Query by organization and execution time
 CREATE INDEX idx_scheduler_runs_org_started ON scheduler_runs(org_id, started_at DESC);
@@ -198,6 +219,7 @@ CREATE INDEX idx_schedule_unfilled_org_day ON schedule_unfilled(org_id, day);
 ```
 
 **Index Rationale**:
+
 1. **idx_scheduler_runs_org_started**: Optimizes "get recent runs" queries with DESC ordering
 2. **idx_schedule_assignments_run**: Fast retrieval of all assignments for a specific scheduler run
 3. **idx_schedule_assignments_org_date**: Efficient date-range queries for schedule calendar views
@@ -211,21 +233,27 @@ CREATE INDEX idx_schedule_unfilled_org_day ON schedule_unfilled(org_id, day);
 ## Design Decisions
 
 ### 1. Foreign Keys with CASCADE Delete
+
 **Decision**: All child tables reference `scheduler_runs` with `ON DELETE CASCADE`
 
 **Rationale**: When a scheduler run is deleted (e.g., cleanup of old audit data), automatically remove associated assignments and unfilled records to maintain referential integrity and prevent orphaned data.
 
 **Implementation**:
+
 ```typescript
-runId: varchar("run_id").notNull().references(() => schedulerRuns.id, { onDelete: "cascade" })
+runId: varchar("run_id")
+  .notNull()
+  .references(() => schedulerRuns.id, { onDelete: "cascade" });
 ```
 
 ### 2. Bulk Insert Methods
+
 **Decision**: Separate `createBulkScheduleAssignments` and `createBulkScheduleUnfilled` methods
 
 **Rationale**: Each scheduler run may generate 100+ assignments and 10+ unfilled records. Bulk insert operations reduce database round-trips from O(n) to O(1), dramatically improving performance for large schedules.
 
 **Implementation**:
+
 ```typescript
 async createBulkScheduleAssignments(assignments: InsertScheduleAssignment[]): Promise<void> {
   if (assignments.length === 0) return;
@@ -234,26 +262,32 @@ async createBulkScheduleAssignments(assignments: InsertScheduleAssignment[]): Pr
 ```
 
 ### 3. Separate Unfilled Table
+
 **Decision**: Create dedicated `schedule_unfilled` table instead of nullable assignments
 
-**Rationale**: 
+**Rationale**:
+
 - Enables explicit gap analysis and reporting
-- Captures the *reason* for unfilled shifts (no qualified crew, leave conflicts, rest violations)
+- Captures the _reason_ for unfilled shifts (no qualified crew, leave conflicts, rest violations)
 - Simplifies queries for "what couldn't be scheduled" vs "what was scheduled"
 
 ### 4. Status Fields for Workflow Tracking
+
 **Decision**: Add `status` field to both `scheduler_runs` and `schedule_assignments`
 
 **Rationale**:
+
 - **scheduler_runs.status**: Tracks execution lifecycle (running → completed/failed)
 - **schedule_assignments.status**: Tracks approval workflow (proposed → accepted/rejected)
 - Enables future PdM integration where assignments can be auto-accepted based on prediction confidence
 
 **Possible Values**:
+
 - scheduler_runs: `running`, `completed`, `failed`
 - schedule_assignments: `proposed`, `accepted`, `rejected`
 
 ### 5. JSONB Summary Field
+
 **Decision**: Store scheduler run summary as JSONB in `scheduler_runs.summary`
 
 **Rationale**: Flexible storage for diverse metrics (objective value breakdown, constraint satisfaction scores, fairness metrics) without schema changes for new analytics.
@@ -263,21 +297,25 @@ async createBulkScheduleAssignments(assignments: InsertScheduleAssignment[]): Pr
 ## Technical Achievements
 
 ### 1. TypeScript Type Safety ✅
+
 - **0 LSP Errors**: All code compiles cleanly
 - Full type coverage from database → API → frontend
 - Zod schemas ensure runtime validation matches compile-time types
 
 ### 2. Database Schema Consistency ✅
+
 - **Drizzle-Kit Verification**: "No schema changes, nothing to migrate 😴"
 - Perfect sync between `shared/schema.ts` and PostgreSQL database
 - Fresh environments can use `npm run db:push` for automated provisioning
 
 ### 3. Storage Layer Completeness ✅
+
 - **IStorage Interface**: 10 new methods fully documented
 - **DatabaseStorage**: Full implementations with error handling
 - **MemStorage**: Explicit stubs maintaining interface compliance
 
 ### 4. Performance Optimization ✅
+
 - **5 Strategic Indexes**: Optimized for expected query patterns
 - **Bulk Insert Methods**: O(1) database operations for large batches
 - **Composite Indexes**: Multi-column indexes for common filter combinations
@@ -289,6 +327,7 @@ async createBulkScheduleAssignments(assignments: InsertScheduleAssignment[]): Pr
 **Recommended Approach**: Use `npm run db:push` for schema management (per project conventions)
 
 **Steps for Fresh Environments** (CI/Production):
+
 ```bash
 # 1. Clone repository with updated shared/schema.ts
 git clone <repo>
@@ -306,6 +345,7 @@ npm run db:push --force
 **Result**: Drizzle-kit detects missing tables in schema.ts, generates CREATE TABLE statements, and applies them to the database. All 3 scheduler tables with indexes will be provisioned automatically.
 
 **Verification**:
+
 ```bash
 $ npx drizzle-kit generate
 154 tables
@@ -322,18 +362,21 @@ No schema changes, nothing to migrate 😴
 **Phase 4 Focus**: PdM Integration Planning
 
 **Available Audit Data**:
+
 1. **Scheduler Execution History**: Query `scheduler_runs` to analyze past scheduling decisions
 2. **Assignment Proposals**: Analyze which crew/shift combinations were proposed
 3. **Unfilled Shift Patterns**: Identify recurring gaps (e.g., certain shifts never filled)
 4. **Objective Value Trends**: Track optimization quality over time
 
 **PdM Integration Opportunities**:
+
 1. **Predictive Crew Availability**: Use failure predictions to proactively mark crew unavailable
 2. **Maintenance-Aware Scheduling**: Block crew assignments when equipment predictions indicate upcoming downtime
 3. **Auto-Accept Assignments**: Automatically approve scheduler proposals when confidence is high
 4. **Gap Prediction**: Predict which shifts are likely to remain unfilled based on historical patterns
 
 **Data Flow for PdM**:
+
 ```
 Failure Prediction → Scheduler Run → Schedule Assignments → Audit Trail
        ↓                    ↓                   ↓                ↓
@@ -349,6 +392,7 @@ Failure Prediction → Scheduler Run → Schedule Assignments → Audit Trail
 **Verdict**: ✅ **PASS** - "Scheduler audit trail support and storage stubs meet the stated Phase 3 objectives with no blocking defects observed."
 
 **Key Findings**:
+
 1. ✅ **Schema Definitions**: Correctly implemented with proper types and Zod schemas
 2. ✅ **TypeScript Compliance**: 0 LSP errors, full interface conformance
 3. ✅ **Database Sync**: Drizzle-kit confirms perfect sync between schema.ts and database
@@ -356,6 +400,7 @@ Failure Prediction → Scheduler Run → Schedule Assignments → Audit Trail
 5. ✅ **Storage Layer Complete**: DatabaseStorage fully implemented, MemStorage stubs prevent compilation errors
 
 **Recommendations for Future Phases**:
+
 1. Run `npm run db:push --force` in clean environment to validate end-to-end provisioning
 2. Exercise scheduler CRUD paths against DatabaseStorage to confirm runtime behavior
 3. Proceed to Phase 4 planning for PdM integration architecture
@@ -365,30 +410,34 @@ Failure Prediction → Scheduler Run → Schedule Assignments → Audit Trail
 ## Metrics & Evidence
 
 **Code Quality**:
+
 - **LSP Diagnostics**: 0 errors
 - **TypeScript Compilation**: ✅ Pass
 - **Interface Compliance**: 100% (IStorage fully implemented)
 
 **Database Verification**:
+
 ```sql
 -- Verify tables exist
-SELECT table_name FROM information_schema.tables 
+SELECT table_name FROM information_schema.tables
 WHERE table_name IN ('scheduler_runs', 'schedule_assignments', 'schedule_unfilled');
 
 Result: 3 rows (all tables present)
 
--- Verify indexes exist  
-SELECT indexname FROM pg_indexes 
+-- Verify indexes exist
+SELECT indexname FROM pg_indexes
 WHERE tablename IN ('scheduler_runs', 'schedule_assignments', 'schedule_unfilled');
 
 Result: 5 rows (all indexes present)
 ```
 
 **Drizzle-Kit Verification**:
+
 ```bash
 $ npx drizzle-kit generate --name add-scheduler-tables
 No schema changes, nothing to migrate 😴
 ```
+
 **Interpretation**: Schema and database are perfectly synchronized
 
 ---
@@ -396,6 +445,7 @@ No schema changes, nothing to migrate 😴
 ## Files Modified
 
 ### Core Implementation
+
 1. **shared/schema.ts** (lines 2160-2232)
    - Added 3 tables: scheduler_runs, schedule_assignments, schedule_unfilled
    - Added 6 type exports (Insert/Select for each table)
@@ -407,10 +457,11 @@ No schema changes, nothing to migrate 😴
    - MemStorage: Added 14 stub methods - 4 drydock + 10 scheduler (lines 5839-5904)
 
 ### Documentation
+
 3. **replit.md** (line 37)
    - Updated Crew Scheduling feature description with Phase 3 completion note
 
-4. **docs/audit/_artifacts/phase3-scheduler-audit-trail-complete.md** (this file)
+4. **docs/audit/\_artifacts/phase3-scheduler-audit-trail-complete.md** (this file)
    - Comprehensive evidence-based documentation of all Phase 3 work
 
 ---
@@ -420,12 +471,14 @@ No schema changes, nothing to migrate 😴
 **Objective**: Design PdM integration architecture connecting failure predictions to scheduler
 
 **Key Questions to Answer**:
+
 1. How should failure predictions influence crew availability constraints?
 2. Should scheduler auto-block crew when equipment predictions indicate maintenance?
 3. What confidence threshold should trigger automatic assignment acceptance?
 4. How to handle conflict resolution when PdM and scheduler disagree?
 
 **Phase 4 Deliverables** (from implementation plan):
+
 1. PdM-Scheduler integration architecture document
 2. Data flow diagrams
 3. API contract definitions

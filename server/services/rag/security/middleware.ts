@@ -28,7 +28,7 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
   const { config, tokenService, auditLogger } = getRagSecurityServices();
 
   // For development mode, allow header-based org ID
-  const isDev = process.env['NODE_ENV'] === "development";
+  const isDev = process.env["NODE_ENV"] === "development";
 
   // Try to get auth context from session first
   const session = authenticatedRequest(req).session;
@@ -37,7 +37,7 @@ export function ragAuthMiddleware(req: RagSecuredRequest, res: Response, next: N
   let authenticated = !!session?.orgId;
 
   // Check for streaming token in query params (for EventSource)
-  const streamingToken = req.query['token'] as string;
+  const streamingToken = req.query["token"] as string;
   if (streamingToken) {
     const tokenPayload = tokenService.validateToken(streamingToken);
     if (tokenPayload) {
@@ -161,7 +161,7 @@ export function ragInputSanitizationMiddleware(
   }
 
   // Get query from body (POST) or query params (GET)
-  const query = req.body?.query || req.query?.['query'];
+  const query = req.body?.query || req.query?.["query"];
 
   if (!query || typeof query !== "string") {
     next();

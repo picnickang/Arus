@@ -31,10 +31,7 @@ export function simulateMaintenanceScenario(
     const completionRatio = Math.min(1, timeElapsed / (maintenanceParams.duration ?? 480));
     for (const engine of Object.values(state.machinery.engines)) {
       const e = engine as { efficiency?: number };
-      e.efficiency = Math.min(
-        0.95,
-        (e.efficiency ?? 0.85) + 0.4 * completionRatio
-      );
+      e.efficiency = Math.min(0.95, (e.efficiency ?? 0.85) + 0.4 * completionRatio);
       engine.temperature = Math.max(80, engine.temperature - 20 * completionRatio);
     }
   }
@@ -60,7 +57,7 @@ export function simulateFailureScenario(
       state.speed = Math.max(0, state.speed * 0.4);
     },
     cooling_pump: () => {
-      const coolingPump = state.machinery.pumps['COOLING_PUMP_01'];
+      const coolingPump = state.machinery.pumps["COOLING_PUMP_01"];
       if (coolingPump) {
         coolingPump.status = "failed";
         coolingPump.flow = 0;

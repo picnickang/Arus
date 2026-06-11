@@ -16,7 +16,7 @@ export function withQuotaTimeout<T>(p: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(
       () => reject(new Error(`quota_increment_timeout_${QUOTA_INCREMENT_TIMEOUT_MS}ms`)),
-      QUOTA_INCREMENT_TIMEOUT_MS,
+      QUOTA_INCREMENT_TIMEOUT_MS
     );
     p.then(
       (v) => {
@@ -26,7 +26,7 @@ export function withQuotaTimeout<T>(p: Promise<T>): Promise<T> {
       (e) => {
         clearTimeout(t);
         reject(e);
-      },
+      }
     );
   });
 }

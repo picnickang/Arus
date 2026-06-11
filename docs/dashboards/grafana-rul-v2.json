@@ -18,14 +18,14 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
         "options": {
           "graphMode": "area",
           "colorMode": "value"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
@@ -40,7 +40,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
         "options": {
           "graphMode": "none",
           "colorMode": "value"
@@ -48,13 +48,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "percentunit",
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "red"},
-                {"value": 0.5, "color": "yellow"},
-                {"value": 0.8, "color": "green"}
+                { "value": null, "color": "red" },
+                { "value": 0.5, "color": "yellow" },
+                { "value": 0.8, "color": "green" }
               ]
             },
             "min": 0,
@@ -73,14 +73,14 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
         "options": {
           "graphMode": "area",
           "colorMode": "value"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {"mode": "palette-classic"}
+            "color": { "mode": "palette-classic" }
           }
         }
       },
@@ -95,7 +95,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
         "options": {
           "graphMode": "none",
           "colorMode": "value"
@@ -103,13 +103,13 @@
         "fieldConfig": {
           "defaults": {
             "unit": "percentunit",
-            "color": {"mode": "thresholds"},
+            "color": { "mode": "thresholds" },
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "red"},
-                {"value": 0.5, "color": "yellow"},
-                {"value": 0.8, "color": "green"}
+                { "value": null, "color": "red" },
+                { "value": 0.5, "color": "yellow" },
+                { "value": 0.8, "color": "green" }
               ]
             },
             "min": 0,
@@ -128,7 +128,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
         "yaxes": [
           {
             "label": "Latency (seconds)",
@@ -165,7 +165,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
         "yaxes": [
           {
             "label": "Latency (seconds)",
@@ -201,7 +201,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
         "color": {
           "mode": "spectrum",
           "cardColor": "#b4ff00",
@@ -229,7 +229,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
         "color": {
           "mode": "spectrum",
           "cardColor": "#b4ff00",
@@ -257,7 +257,7 @@
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
         "yaxes": [
           {
             "label": "Delta",
@@ -300,7 +300,7 @@
             "refId": "B"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
         "yaxes": [
           {
             "label": "Confidence",
@@ -354,7 +354,7 @@
             "refId": "D"
           }
         ],
-        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
         "yaxes": [
           {
             "label": "Days",
@@ -410,7 +410,7 @@
             "instant": true
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
         "transform": "table",
         "styles": [
           {
@@ -424,7 +424,11 @@
             "alias": "Predictions",
             "decimals": 0,
             "colorMode": "cell",
-            "colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(245, 54, 54, 0.9)"],
+            "colors": [
+              "rgba(50, 172, 45, 0.97)",
+              "rgba(237, 129, 40, 0.89)",
+              "rgba(245, 54, 54, 0.9)"
+            ],
             "thresholds": ["10", "100"]
           }
         ]
@@ -447,7 +451,7 @@
             "instant": true
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
         "transform": "table",
         "styles": [
           {

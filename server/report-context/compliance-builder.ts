@@ -45,18 +45,16 @@ export async function buildComplianceContext(
     vessels = await vesselService.getVessels();
     crew = await dbCrewStorage.getCrew();
     certifications = await getCrewCertifications(crew.map((c) => c.id));
-    restSheets = await (dbStcwStorage as object as { getCrewRestRange: () => Promise<unknown[]> }).getCrewRestRange();
+    restSheets = await (
+      dbStcwStorage as object as { getCrewRestRange: () => Promise<unknown[]> }
+    ).getCrewRestRange();
     complianceLogs = await getComplianceLogs(start, end);
   }
 
   const workOrders = await workOrderService.getWorkOrdersWithDetails();
   const filteredOrders = workOrders.filter((wo) => {
     const created = new Date(wo.createdAt ?? 0);
-    return (
-      created >= start &&
-      created <= end &&
-      (vesselId ? wo.vesselId === vesselId : true)
-    );
+    return created >= start && created <= end && (vesselId ? wo.vesselId === vesselId : true);
   });
 
   const citations = buildCitations(vessels[0], crew, filteredOrders);

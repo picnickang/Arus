@@ -37,7 +37,8 @@ export function useServiceRequests(filters: SRFilters = {}) {
 
   return useQuery<ServiceRequest[]>({
     queryKey: srKeys.list(filters),
-    queryFn: () => apiRequest<ServiceRequest[]>("GET", `/api/service-requests${qs ? `?${qs}` : ""}`),
+    queryFn: () =>
+      apiRequest<ServiceRequest[]>("GET", `/api/service-requests${qs ? `?${qs}` : ""}`),
   });
 }
 

@@ -20,10 +20,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import {
-  crewStatusLabel,
-  CREW_STATUSES,
-} from "@/features/crew/lib/crewManagementUtils";
+import { crewStatusLabel, CREW_STATUSES } from "@/features/crew/lib/crewManagementUtils";
 
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
@@ -59,7 +56,8 @@ describe("source-scan: profile status surfaces the enum label", () => {
   it("header chip + Overview render crewStatusLabel(crew.status), not a bare flag", () => {
     // Both the header chip and the Overview Status field must route through the
     // enum label (only collapsing to Inactive when the member is inactive).
-    const occurrences = src.split('crew.active ? crewStatusLabel(crew.status) : "Inactive"').length - 1;
+    const occurrences =
+      src.split('crew.active ? crewStatusLabel(crew.status) : "Inactive"').length - 1;
     expect(occurrences).toBeGreaterThanOrEqual(2);
     expect(src).toContain('data-testid="chip-status"');
   });

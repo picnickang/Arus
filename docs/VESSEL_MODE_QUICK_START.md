@@ -3,12 +3,14 @@
 ## Overview
 
 ARUS now supports **dual-mode deployment**:
+
 - **Cloud Mode**: Full features for shore offices (PostgreSQL)
 - **Vessel Mode**: Core operations for offline vessels (SQLite)
 
 ## Quick Setup
 
 ### Option 1: Cloud Mode (Default)
+
 No configuration needed. Uses PostgreSQL via DATABASE_URL.
 
 ```bash
@@ -18,22 +20,26 @@ npm run dev
 ### Option 2: Vessel Mode (Offline-First)
 
 1. **Set environment variable**:
+
 ```bash
 export LOCAL_MODE=true
 ```
 
 2. **Optional: Enable cloud sync** (recommended):
+
 ```bash
 export TURSO_SYNC_URL=your_turso_url
 export TURSO_AUTH_TOKEN=your_auth_token
 ```
 
 3. **Start the application**:
+
 ```bash
 npm run dev
 ```
 
 The system will automatically:
+
 - ✅ Create `data/vessel-local.db` SQLite database
 - ✅ Initialize 9 core operational tables
 - ✅ Set up auto-sync (if configured)
@@ -41,12 +47,14 @@ The system will automatically:
 ## What's Included in Vessel Mode
 
 ### Tables (9)
+
 - Organizations, Users (auth/config)
 - Sync Journal, Sync Outbox (synchronization)
 - Vessels, Equipment, Devices (operations)
 - Equipment Telemetry, Downtime Events (monitoring)
 
 ### Features
+
 - ✅ Fleet management
 - ✅ Equipment tracking
 - ✅ Real-time telemetry
@@ -57,6 +65,7 @@ The system will automatically:
 ## Verify Installation
 
 Check vessel mode status:
+
 ```bash
 ls -lh data/vessel-local.db  # Should show database file
 ```
@@ -75,15 +84,18 @@ See `docs/VESSEL_MODE_REVIEW.md` for full details.
 ## Troubleshooting
 
 **Database not created?**
+
 - Check `LOCAL_MODE=true` is set
 - Ensure `data/` directory is writable
 
 **Sync not working?**
+
 - Verify `TURSO_SYNC_URL` and `TURSO_AUTH_TOKEN`
 - Check network connectivity
 - Review logs for sync errors
 
 **Missing features?**
+
 - Current vessel mode: 9 tables (core operations)
 - Remaining features: 176 tables (to be migrated)
 - Cloud mode: All features available

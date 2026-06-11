@@ -7,13 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -42,7 +36,17 @@ import {
   type TaskSourceKey,
   type VisibilityScope,
 } from "@shared/role-dashboard";
-import { Plus, Settings2, Trash2, Pencil, RotateCcw, ShieldCheck, Shield, Users, Lock } from "lucide-react";
+import {
+  Plus,
+  Settings2,
+  Trash2,
+  Pencil,
+  RotateCcw,
+  ShieldCheck,
+  Shield,
+  Users,
+  Lock,
+} from "lucide-react";
 import { RolePermissionsDialog } from "./RolePermissionsDialog";
 import {
   AlertDialog,
@@ -221,12 +225,14 @@ export function RolesDashboardsTab() {
             quickActions: [],
             filters: {},
             highImpactQuestions: {},
-          },
+          }
     );
   }
 
   function toggleWidget(widget: WidgetKey) {
-    if (!draftConfig) {return;}
+    if (!draftConfig) {
+      return;
+    }
     const has = draftConfig.widgets.includes(widget);
     setDraftConfig({
       ...draftConfig,
@@ -237,7 +243,9 @@ export function RolesDashboardsTab() {
   }
 
   function toggleSource(source: TaskSourceKey) {
-    if (!draftConfig) {return;}
+    if (!draftConfig) {
+      return;
+    }
     const has = draftConfig.taskSources.includes(source);
     setDraftConfig({
       ...draftConfig,
@@ -398,16 +406,12 @@ export function RolesDashboardsTab() {
         <CardHeader>
           <CardTitle className="text-base">Access &amp; Permission Activity</CardTitle>
           <CardDescription>
-            Recent changes to roles, hub access, and permission grants across the
-            organization.
+            Recent changes to roles, hub access, and permission grants across the organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {auditLog.length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="text-audit-empty"
-            >
+            <p className="text-sm text-muted-foreground" data-testid="text-audit-empty">
               No recent permission activity.
             </p>
           ) : (
@@ -422,9 +426,7 @@ export function RolesDashboardsTab() {
                     <p className="text-sm font-medium">{entry.action}</p>
                     {(entry.targetType || entry.targetId) && (
                       <p className="truncate text-xs text-muted-foreground">
-                        {[entry.targetType, entry.targetId]
-                          .filter(Boolean)
-                          .join(": ")}
+                        {[entry.targetType, entry.targetId].filter(Boolean).join(": ")}
                       </p>
                     )}
                   </div>
@@ -532,9 +534,7 @@ export function RolesDashboardsTab() {
               <Input
                 id="edit-role-name"
                 value={editRoleForm.displayName}
-                onChange={(e) =>
-                  setEditRoleForm({ ...editRoleForm, displayName: e.target.value })
-                }
+                onChange={(e) => setEditRoleForm({ ...editRoleForm, displayName: e.target.value })}
                 data-testid="input-edit-role-name"
               />
             </div>
@@ -543,9 +543,7 @@ export function RolesDashboardsTab() {
               <Input
                 id="edit-role-dept"
                 value={editRoleForm.department}
-                onChange={(e) =>
-                  setEditRoleForm({ ...editRoleForm, department: e.target.value })
-                }
+                onChange={(e) => setEditRoleForm({ ...editRoleForm, department: e.target.value })}
                 placeholder="Leave blank for none"
                 data-testid="input-edit-role-dept"
               />
@@ -553,10 +551,7 @@ export function RolesDashboardsTab() {
           </div>
           <DialogFooter>
             <Button
-              onClick={() =>
-                editRoleId &&
-                editRole.mutate({ id: editRoleId, ...editRoleForm })
-              }
+              onClick={() => editRoleId && editRole.mutate({ id: editRoleId, ...editRoleForm })}
               disabled={editRole.isPending || editRoleForm.displayName.trim().length < 2}
               data-testid="button-save-edit-role"
             >
@@ -566,16 +561,13 @@ export function RolesDashboardsTab() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={resetRoleId !== null}
-        onOpenChange={(o) => !o && setResetRoleId(null)}
-      >
+      <AlertDialog open={resetRoleId !== null} onOpenChange={(o) => !o && setResetRoleId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset dashboard to default?</AlertDialogTitle>
             <AlertDialogDescription>
-              This discards all custom widgets, task sources and visibility settings for this
-              role and restores the built-in default dashboard.
+              This discards all custom widgets, task sources and visibility settings for this role
+              and restores the built-in default dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -603,9 +595,7 @@ export function RolesDashboardsTab() {
       >
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Dashboard — {editingRole?.displayName ?? "Role"}
-            </DialogTitle>
+            <DialogTitle>Dashboard — {editingRole?.displayName ?? "Role"}</DialogTitle>
             <DialogDescription>
               Choose the widgets, task sources and visibility this role's User page shows.
             </DialogDescription>
@@ -628,8 +618,7 @@ export function RolesDashboardsTab() {
                       <span className="text-sm">
                         <span className="font-medium">{WIDGET_LABELS[w]}</span>
                         <span className="block text-xs text-muted-foreground">
-                          {draftConfig.highImpactQuestions?.[w] ??
-                            WIDGET_HIGH_IMPACT_QUESTIONS[w]}
+                          {draftConfig.highImpactQuestions?.[w] ?? WIDGET_HIGH_IMPACT_QUESTIONS[w]}
                         </span>
                       </span>
                     </label>

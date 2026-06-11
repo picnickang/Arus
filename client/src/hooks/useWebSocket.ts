@@ -163,7 +163,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
     intentionalCloseRef.current = false;
     setIsConnecting(true);
-    setConnectionState((prev) => (prev === "connected" || prev === "disconnected" ? "connecting" : prev));
+    setConnectionState((prev) =>
+      prev === "connected" || prev === "disconnected" ? "connecting" : prev
+    );
 
     try {
       // Push B2 — propagate the session token on the upgrade URL so the

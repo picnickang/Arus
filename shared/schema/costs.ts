@@ -148,11 +148,23 @@ export const costModel = pgTable(
       .notNull()
       .references(() => organizations.id),
     currency: text("currency").notNull().default("USD"),
-    laborRatePerHour: numeric("labor_rate_per_hour", { precision: 12, scale: 2, mode: "number" }).notNull().default(50),
-    downtimePerHour: numeric("downtime_per_hour", { precision: 12, scale: 2, mode: "number" }).notNull().default(1000),
+    laborRatePerHour: numeric("labor_rate_per_hour", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(50),
+    downtimePerHour: numeric("downtime_per_hour", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(1000),
     fuelCostPerLiter: numeric("fuel_cost_per_liter", { precision: 12, scale: 2, mode: "number" }),
-    inspectionCostPerHour: numeric("inspection_cost_per_hour", { precision: 12, scale: 2, mode: "number" }),
-    emergencyMultiplier: numeric("emergency_multiplier", { precision: 6, scale: 3, mode: "number" }).default(2),
+    inspectionCostPerHour: numeric("inspection_cost_per_hour", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }),
+    emergencyMultiplier: numeric("emergency_multiplier", {
+      precision: 6,
+      scale: 3,
+      mode: "number",
+    }).default(2),
     description: text("description"),
     isActive: boolean("is_active").default(true),
     effectiveFrom: timestamp("effective_from", { mode: "date" }).defaultNow(),
@@ -196,18 +208,40 @@ export const costSavings = pgTable(
       onDelete: "set null",
     }),
     maintenanceType: text("maintenance_type").notNull(),
-    actualCost: numeric("actual_cost", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
-    avoidedCost: numeric("avoided_cost", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
-    totalSavings: numeric("total_savings", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
+    actualCost: numeric("actual_cost", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    avoidedCost: numeric("avoided_cost", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    totalSavings: numeric("total_savings", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
     laborSavings: numeric("labor_savings", { precision: 12, scale: 2, mode: "number" }).default(0),
     partsSavings: numeric("parts_savings", { precision: 12, scale: 2, mode: "number" }).default(0),
-    downtimeSavings: numeric("downtime_savings", { precision: 12, scale: 2, mode: "number" }).default(0),
+    downtimeSavings: numeric("downtime_savings", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
     estimatedDowntimePrevented: real("estimated_downtime_prevented").default(0),
-    downtimeCostPerHour: numeric("downtime_cost_per_hour", { precision: 12, scale: 2, mode: "number" }).default(0),
+    downtimeCostPerHour: numeric("downtime_cost_per_hour", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }).default(0),
     triggeredBy: text("triggered_by"),
     confidenceScore: real("confidence_score"),
-    emergencyLaborMultiplier: numeric("emergency_labor_multiplier", { precision: 6, scale: 3, mode: "number" }).default(3),
-    emergencyPartsMultiplier: numeric("emergency_parts_multiplier", { precision: 6, scale: 3, mode: "number" }).default(1.5),
+    emergencyLaborMultiplier: numeric("emergency_labor_multiplier", {
+      precision: 6,
+      scale: 3,
+      mode: "number",
+    }).default(3),
+    emergencyPartsMultiplier: numeric("emergency_parts_multiplier", {
+      precision: 6,
+      scale: 3,
+      mode: "number",
+    }).default(1.5),
     validationStatus: varchar("validation_status", { length: 20 }).default("valid").notNull(),
     validationChangedBy: text("validation_changed_by"),
     validationChangedAt: timestamp("validation_changed_at", { mode: "date" }),

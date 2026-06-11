@@ -110,4 +110,3 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor("audio-playback-processor", AudioPlaybackProcessor);
-

@@ -1,7 +1,8 @@
 {
-  "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-06-04T21:12:18.903Z",
+  "_comment": "Type-cast burndown baseline. `total` (production scan dirs) and `testsTotal` (root tests/ + client/tests/) must each monotonically decrease — one may not be traded against the other. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. No directories are exempt (the former adapter-boundary exemptions reached zero and were removed).",
+  "generatedAt": "2026-06-11T07:06:17.762Z",
   "total": 4,
+  "testsTotal": 83,
   "summary": {
     "byTopFiles": {
       "server/domains/work-orders/application/work-order-service.ts": 1,
@@ -14,6 +15,31 @@
       "server/objectStorage.ts": 1,
       "server/replit_integrations": 1,
       "server/services": 1
+    }
+  },
+  "testsSummary": {
+    "byTopFiles": {
+      "tests/unit/lr35-pdm-tenancy-hardening.test.ts": 12,
+      "tests/unit/lr35-download-object-fail-closed.test.ts": 10,
+      "tests/unit/crew-admin-last-admin-guard.test.ts": 5,
+      "tests/unit/lr35-role-auth-dev-bypass.test.ts": 5,
+      "tests/unit/telemetry-ingest-correlation.test.ts": 5,
+      "tests/setup.ts": 4,
+      "tests/unit/dual-driver-query-parity.test.ts": 4,
+      "tests/unit/ml-training-eval-gate.test.ts": 3,
+      "tests/integration/crew-suite/rbac-negative-matrix.test.ts": 2,
+      "tests/integration/vessel-performance-auth.test.ts": 2,
+      "tests/unit/lr35-launch-readiness-wave.test.ts": 2,
+      "tests/unit/lr35-ui-align-feedback-flow.test.ts": 2,
+      "tests/unit/middleware.test.ts": 2,
+      "tests/unit/session-cache.test.ts": 2,
+      "tests/unit/websocket-fanout.test.ts": 2
+    },
+    "byTopDirs": {
+      "tests/unit": 64,
+      "tests/integration": 14,
+      "tests/setup.ts": 4,
+      "tests/playwright": 1
     }
   }
 }

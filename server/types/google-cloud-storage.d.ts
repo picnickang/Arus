@@ -35,7 +35,10 @@ declare module "@google-cloud/storage" {
     setMetadata(metadata: Partial<FileMetadata>): Promise<unknown>;
     getSignedUrl(options: SignedUrlOptions): Promise<[string]>;
     createReadStream(): NodeJS.ReadableStream;
-    createWriteStream(options?: { metadata?: FileMetadata; resumable?: boolean }): NodeJS.WritableStream;
+    createWriteStream(options?: {
+      metadata?: FileMetadata;
+      resumable?: boolean;
+    }): NodeJS.WritableStream;
     save(data: Buffer | string, options?: { metadata?: FileMetadata }): Promise<unknown>;
   }
 

@@ -73,7 +73,9 @@ export async function ingestFilesToKB(
       );
       results.push({ filename: file.filename, chunkCount: result.chunkCount });
     } catch (err) {
-      logger.warn(`[KBIngestion] Ingestion failed for ${file.filename}:`, { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn(`[KBIngestion] Ingestion failed for ${file.filename}:`, {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
   }
 

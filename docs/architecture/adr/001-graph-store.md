@@ -16,7 +16,7 @@ cannot answer at speed. The substrate must:
    stack (every row carries `org_id`; see `middleware/db-context.ts` and
    the Wave 6.6 GDPR allowlist).
 2. Stay transactionally consistent with the relational source — the graph
-   is a *read-side projection*, never the system of record.
+   is a _read-side projection_, never the system of record.
 3. Add minimal operational burden. ARUS already runs Postgres + Redis +
    optional TimescaleDB. A separate graph cluster would be the second-
    most operationally expensive thing in the system after the OLTP DB.
@@ -47,7 +47,7 @@ cannot answer at speed. The substrate must:
 
 - Industry-standard graph store. Mature Cypher implementation,
   excellent traversal performance, large ecosystem (Bloom, GDS).
-- Tenant isolation is a *label* property (`(:Equipment {orgId: $1})`)
+- Tenant isolation is a _label_ property (`(:Equipment {orgId: $1})`)
   filtered in every query. One bad query = cross-tenant leak. This
   re-introduces the exact failure mode RLS (Push B1) is being added to
   eliminate.
@@ -67,7 +67,7 @@ cannot answer at speed. The substrate must:
 
 **Adopt Apache AGE (Option A).** The decisive factor is tenant
 isolation: putting each tenant in its own named graph makes
-cross-tenant leak *physically impossible* rather than relying on every
+cross-tenant leak _physically impossible_ rather than relying on every
 query to remember a `WHERE orgId = $1`. That property matters more than
 the marginal traversal-performance advantage Neo4j would offer at our
 scale.

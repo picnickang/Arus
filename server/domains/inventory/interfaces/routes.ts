@@ -9,8 +9,11 @@ import { inventorySupplierRouter } from "./supplier-routes";
 import { supplierPerformanceRouter } from "./supplier-performance-routes";
 import { replenishmentRouter } from "./replenishment-routes";
 import { insertPartsInventorySchema } from "@shared/schema-runtime";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -60,23 +63,22 @@ const createPartsInventoryBodySchema = z.object({
   leadTimeDays: z.number().optional(),
 });
 
-const updatePartsInventoryBodySchema = z
-  .object({
-    partNumber: z.string().optional(),
-    partName: z.string().optional(),
-    description: z.string().nullable().optional(),
-    category: z.string().nullable().optional(),
-    manufacturer: z.string().nullable().optional(),
-    unitCost: z.number().nullable().optional(),
-    quantityOnHand: z.number().optional(),
-    minStockLevel: z.number().nullable().optional(),
-    maxStockLevel: z.number().nullable().optional(),
-    location: z.string().nullable().optional(),
-    supplierName: z.string().nullable().optional(),
-    supplierPartNumber: z.string().nullable().optional(),
-    leadTimeDays: z.number().nullable().optional(),
-    isActive: z.boolean().optional(),
-  });
+const updatePartsInventoryBodySchema = z.object({
+  partNumber: z.string().optional(),
+  partName: z.string().optional(),
+  description: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  manufacturer: z.string().nullable().optional(),
+  unitCost: z.number().nullable().optional(),
+  quantityOnHand: z.number().optional(),
+  minStockLevel: z.number().nullable().optional(),
+  maxStockLevel: z.number().nullable().optional(),
+  location: z.string().nullable().optional(),
+  supplierName: z.string().nullable().optional(),
+  supplierPartNumber: z.string().nullable().optional(),
+  leadTimeDays: z.number().nullable().optional(),
+  isActive: z.boolean().optional(),
+});
 
 const updateCostBodySchema = z.object({
   unitCost: z.number().nonnegative(),
@@ -422,11 +424,7 @@ export function registerInventoryRoutes(
     withErrorHandling("update part cost", async (req: Request, res: Response) => {
       const { id } = idParamSchema.parse(req.params);
       const { unitCost, supplier } = updateCostBodySchema.parse(req.body);
-      const item = await inventoryService.updatePartCost(
-        id,
-        { unitCost, supplier },
-        req.user?.id
-      );
+      const item = await inventoryService.updatePartCost(id, { unitCost, supplier }, req.user?.id);
       if (!item) {
         return sendNotFound(res, "Part");
       }
@@ -443,16 +441,16 @@ export function registerInventoryRoutes(
       const body = updateStockBodySchema.parse(req.body);
       const updateData: Record<string, number> = {};
       if (body.quantityOnHand !== undefined) {
-        updateData['quantityOnHand'] = body.quantityOnHand;
+        updateData["quantityOnHand"] = body.quantityOnHand;
       }
       if (body.quantityReserved !== undefined) {
-        updateData['quantityReserved'] = body.quantityReserved;
+        updateData["quantityReserved"] = body.quantityReserved;
       }
       if (body.minStockLevel !== undefined) {
-        updateData['minStockLevel'] = body.minStockLevel;
+        updateData["minStockLevel"] = body.minStockLevel;
       }
       if (body.maxStockLevel !== undefined) {
-        updateData['maxStockLevel'] = body.maxStockLevel;
+        updateData["maxStockLevel"] = body.maxStockLevel;
       }
 
       const item = await inventoryService.updatePartStock(id, updateData, req.user?.id);

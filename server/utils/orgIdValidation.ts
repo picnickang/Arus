@@ -37,7 +37,6 @@ export function extractOrgIdFromHeader(
   return DEFAULT_ORG_ID;
 }
 
-
 export async function verifyDeviceOwnership(deviceId: string, orgId: string): Promise<void> {
   try {
     const device = await dbDevicesStorage.getDevice(deviceId);
@@ -47,7 +46,9 @@ export async function verifyDeviceOwnership(deviceId: string, orgId: string): Pr
     }
 
     if (device.orgId !== orgId) {
-      logger.error(`[SECURITY] Device ${deviceId} attempted to send data to unauthorized org ${orgId} (belongs to ${device.orgId})`);
+      logger.error(
+        `[SECURITY] Device ${deviceId} attempted to send data to unauthorized org ${orgId} (belongs to ${device.orgId})`
+      );
       throw new OrgIdValidationError(
         "Forbidden: Device does not belong to specified organization",
         "ORG_ACCESS_DENIED",
@@ -81,7 +82,9 @@ export async function verifyEquipmentOwnership(equipmentId: string, orgId: strin
     }
 
     if (equipment.orgId !== orgId) {
-      logger.error(`[SECURITY] Equipment ${equipmentId} org mismatch: expected ${orgId}, got ${equipment.orgId}`);
+      logger.error(
+        `[SECURITY] Equipment ${equipmentId} org mismatch: expected ${orgId}, got ${equipment.orgId}`
+      );
       throw new OrgIdValidationError(
         "Forbidden: Equipment does not belong to specified organization",
         "ORG_ACCESS_DENIED",
@@ -93,7 +96,11 @@ export async function verifyEquipmentOwnership(equipmentId: string, orgId: strin
       throw error;
     }
 
-    logger.error(`[SECURITY] Failed to verify equipment ownership for ${equipmentId}:`, undefined, error);
+    logger.error(
+      `[SECURITY] Failed to verify equipment ownership for ${equipmentId}:`,
+      undefined,
+      error
+    );
     throw new OrgIdValidationError(
       "Failed to verify equipment ownership",
       "OWNERSHIP_VERIFICATION_FAILED",
@@ -108,7 +115,9 @@ export async function validateMqttClientOrg(
 ): Promise<string> {
   try {
     const devices = await dbDevicesStorage.getDevices(claimedOrgId);
-    const device = (devices as object as Array<{ mqttClientId?: string; deviceId?: string }>).find((d) => d.mqttClientId === mqttClientId);
+    const device = (devices as object as Array<{ mqttClientId?: string; deviceId?: string }>).find(
+      (d) => d.mqttClientId === mqttClientId
+    );
 
     if (!device) {
       logger.error(`[SECURITY] Unregistered MQTT client attempted connection: ${mqttClientId}`);
@@ -143,7 +152,9 @@ export function validateImportOrgId(
   authenticatedOrgId: string
 ): void {
   if (importOrgId && importOrgId !== authenticatedOrgId) {
-    logger.error(`[SECURITY] Import org mismatch: data claims ${importOrgId}, authenticated as ${authenticatedOrgId}`);
+    logger.error(
+      `[SECURITY] Import org mismatch: data claims ${importOrgId}, authenticated as ${authenticatedOrgId}`
+    );
     throw new OrgIdValidationError(
       "Forbidden: Cannot import data for a different organization",
       "IMPORT_ORG_MISMATCH",

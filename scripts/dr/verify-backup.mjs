@@ -106,7 +106,13 @@ async function fetchBackup(url, destDir) {
 
 async function restoreDump(dumpPath, verifyUrl) {
   log("Wiping scratch DB schema...");
-  await run("psql", [verifyUrl, "-v", "ON_ERROR_STOP=1", "-c", "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"]);
+  await run("psql", [
+    verifyUrl,
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-c",
+    "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;",
+  ]);
   log(`Restoring ${dumpPath} into scratch DB...`);
   // --no-owner / --no-privileges keep the restore portable across role layouts.
   // Custom format is required; pg_restore will error helpfully if it isn't.
@@ -115,7 +121,8 @@ async function restoreDump(dumpPath, verifyUrl) {
     "--no-privileges",
     "--clean",
     "--if-exists",
-    "--dbname", verifyUrl,
+    "--dbname",
+    verifyUrl,
     dumpPath,
   ]);
   log("Restore complete.");
@@ -124,7 +131,9 @@ async function restoreDump(dumpPath, verifyUrl) {
 async function listTables(url) {
   const { stdout } = await run("psql", [
     url,
-    "-At", "-F", "|",
+    "-At",
+    "-F",
+    "|",
     "-c",
     `SELECT table_name FROM information_schema.tables
      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -136,7 +145,9 @@ async function listTables(url) {
 async function columnSignature(url, table) {
   const { stdout } = await run("psql", [
     url,
-    "-At", "-F", "|",
+    "-At",
+    "-F",
+    "|",
     "-c",
     `SELECT column_name || ':' || data_type
      FROM information_schema.columns
@@ -150,7 +161,8 @@ async function rowCount(url, table) {
   const { stdout } = await run("psql", [
     url,
     "-At",
-    "-c", `SELECT count(*) FROM "${table.replace(/"/g, '""')}"`,
+    "-c",
+    `SELECT count(*) FROM "${table.replace(/"/g, '""')}"`,
   ]);
   return Number(stdout.trim());
 }
@@ -166,7 +178,8 @@ async function main() {
   const verify = process.env.VERIFY_DATABASE_URL;
   if (!live) die(2, "DATABASE_URL is required (read-only live DB for parity reference)");
   if (!verify) die(2, "VERIFY_DATABASE_URL is required (scratch DB to restore into)");
-  if (live === verify) die(2, "VERIFY_DATABASE_URL must differ from DATABASE_URL — refusing to restore over live");
+  if (live === verify)
+    die(2, "VERIFY_DATABASE_URL must differ from DATABASE_URL — refusing to restore over live");
 
   const path = process.env.BACKUP_PATH;
   const url = process.env.BACKUP_URL;
@@ -178,7 +191,8 @@ async function main() {
     if (!dumpPath) dumpPath = await fetchBackup(url, tmpDir);
     const dumpStat = await stat(dumpPath).catch(() => null);
     if (!dumpStat) die(2, `Backup file not found: ${dumpPath}`);
-    if (dumpStat.size < 1024) die(1, `Backup is suspiciously small (${dumpStat.size} bytes) — refusing to validate`);
+    if (dumpStat.size < 1024)
+      die(1, `Backup is suspiciously small (${dumpStat.size} bytes) — refusing to validate`);
 
     const startedAt = Date.now();
     await restoreDump(dumpPath, verify);
@@ -186,10 +200,7 @@ async function main() {
     log(`Restore took ${restoreSeconds.toFixed(1)}s`);
 
     log("Comparing schema...");
-    const [liveTables, restoredTables] = await Promise.all([
-      listTables(live),
-      listTables(verify),
-    ]);
+    const [liveTables, restoredTables] = await Promise.all([listTables(live), listTables(verify)]);
     const liveSet = new Set(liveTables);
     const restoredSet = new Set(restoredTables);
 

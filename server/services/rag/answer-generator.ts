@@ -157,7 +157,7 @@ export class AnswerGenerator {
     let match;
 
     while ((match = citationPattern.exec(answer)) !== null) {
-      usedIndices.add(parseInt(match[1] ?? '0', 10));
+      usedIndices.add(parseInt(match[1] ?? "0", 10));
     }
 
     const citations: Citation[] = [];

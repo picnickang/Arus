@@ -21,10 +21,16 @@ describe("PdM Repository CRUD Tests", () => {
 
   const mockFleetHealthKpis: FleetHealthKpis = {
     fleetHealthScore: 82,
+    fleetHealthChange: 2.5,
+    fleetHealthPeriod: "last week",
+    activeAlertsTotal: 8,
+    criticalAlertsCount: 2,
     assetsAtRisk: 3,
     assetsRulUnder14Days: 2,
-    maintenanceForecast30Days: 45000,
-    totalAvoidedDowntimeHours: 120,
+    avoidedDowntimeHours: 120,
+    avoidedDowntimePeriod: "Last 30 Days",
+    maintenanceForecastCost: 45000,
+    maintenanceForecastPeriod: "Next 30 Days",
   };
 
   const mockTelemetryCoverage: TelemetryCoverage = {
@@ -143,8 +149,8 @@ describe("PdM Repository CRUD Tests", () => {
         expect(kpis).toHaveProperty("fleetHealthScore");
         expect(kpis).toHaveProperty("assetsAtRisk");
         expect(kpis).toHaveProperty("assetsRulUnder14Days");
-        expect(kpis).toHaveProperty("maintenanceForecast30Days");
-        expect(kpis).toHaveProperty("totalAvoidedDowntimeHours");
+        expect(kpis).toHaveProperty("maintenanceForecastCost");
+        expect(kpis).toHaveProperty("avoidedDowntimeHours");
         expect(kpis.fleetHealthScore).toBeGreaterThanOrEqual(0);
         expect(kpis.fleetHealthScore).toBeLessThanOrEqual(100);
       });

@@ -331,13 +331,21 @@ export function useFinanceModeData() {
 
   const exportCostTrendsData = useMemo(
     () =>
-      costTrendsData.map((trend: { month: string; totalCost: number; labor: number; parts: number; downtime: number }) => ({
-        month: trend.month,
-        totalCost: formatCurrency(trend.totalCost),
-        labor: formatCurrency(trend.labor),
-        parts: formatCurrency(trend.parts),
-        downtime: formatCurrency(trend.downtime),
-      })),
+      costTrendsData.map(
+        (trend: {
+          month: string;
+          totalCost: number;
+          labor: number;
+          parts: number;
+          downtime: number;
+        }) => ({
+          month: trend.month,
+          totalCost: formatCurrency(trend.totalCost),
+          labor: formatCurrency(trend.labor),
+          parts: formatCurrency(trend.parts),
+          downtime: formatCurrency(trend.downtime),
+        })
+      ),
     [costTrendsData]
   );
 

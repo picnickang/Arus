@@ -8,7 +8,11 @@
 import { db } from "../db";
 import { telemetryAggregates } from "@shared/schema-runtime";
 import { eq, and, gte, asc } from "drizzle-orm";
-import type { FailurePredictionResult, DegradationMetrics, MlAnalyticsTelemetryReading } from "./types";
+import type {
+  FailurePredictionResult,
+  DegradationMetrics,
+  MlAnalyticsTelemetryReading,
+} from "./types";
 import {
   calculateTrend,
   calculateVariability,
@@ -37,7 +41,9 @@ export async function getMultiSensorData(
   return data as MlAnalyticsTelemetryReading[];
 }
 
-export function calculateDegradationMetrics(data: MlAnalyticsTelemetryReading[]): DegradationMetrics {
+export function calculateDegradationMetrics(
+  data: MlAnalyticsTelemetryReading[]
+): DegradationMetrics {
   const sensorGroups = data.reduce(
     (groups, reading) => {
       if (!groups[reading.sensorType]) {

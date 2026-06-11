@@ -11,10 +11,9 @@ export function useWorkOrderRequests(workOrderId: string) {
     queryKey: ["/api/work-orders", workOrderId, "service-orders"],
     queryFn: async () => {
       // Backend wraps the array as { workOrderId, serviceOrders, count }.
-      const resp = await apiRequest<{ serviceOrders?: ServiceOrderCardData[] } | ServiceOrderCardData[]>(
-        "GET",
-        `/api/work-orders/${workOrderId}/service-orders`,
-      );
+      const resp = await apiRequest<
+        { serviceOrders?: ServiceOrderCardData[] } | ServiceOrderCardData[]
+      >("GET", `/api/work-orders/${workOrderId}/service-orders`);
       return Array.isArray(resp) ? resp : (resp?.serviceOrders ?? []);
     },
   });
@@ -27,24 +26,24 @@ export function useWorkOrderRequests(workOrderId: string) {
   const createServiceOrderMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => {
       const payload = {
-        serviceProviderId: data['serviceProviderId'],
-        scheduledStartDate: data['scheduledStartDate'] ?? data['requestedStartDate'],
-        scheduledEndDate: data['scheduledEndDate'] ?? data['requestedEndDate'],
-        scope: data['symptomDescription'] || data['scope'],
+        serviceProviderId: data["serviceProviderId"],
+        scheduledStartDate: data["scheduledStartDate"] ?? data["requestedStartDate"],
+        scheduledEndDate: data["scheduledEndDate"] ?? data["requestedEndDate"],
+        scope: data["symptomDescription"] || data["scope"],
         serviceDetails: {
-          equipmentIds: data['equipmentIds'],
-          severity: data['severity'],
-          assistanceTags: data['assistanceTags'],
-          probableCause: data['probableCause'],
-          actionTakenSoFar: data['actionTakenSoFar'],
-          isRecurringDefect: data['isRecurringDefect'],
-          mocRequired: data['mocRequired'],
-          mocNumber: data['mocNumber'],
-          certificateItems: data['certificateItems'],
+          equipmentIds: data["equipmentIds"],
+          severity: data["severity"],
+          assistanceTags: data["assistanceTags"],
+          probableCause: data["probableCause"],
+          actionTakenSoFar: data["actionTakenSoFar"],
+          isRecurringDefect: data["isRecurringDefect"],
+          mocRequired: data["mocRequired"],
+          mocNumber: data["mocNumber"],
+          certificateItems: data["certificateItems"],
         },
-        estimatedDurationHours: data['estimatedDurationHours'],
-        quotedAmount: data['quotedAmount'],
-        specialRequirements: data['specialRequirements'] ?? data['notes'],
+        estimatedDurationHours: data["estimatedDurationHours"],
+        quotedAmount: data["quotedAmount"],
+        specialRequirements: data["specialRequirements"] ?? data["notes"],
       };
       return apiRequest("POST", `/api/work-orders/${workOrderId}/service-orders`, payload);
     },
@@ -68,7 +67,13 @@ export function useWorkOrderRequests(workOrderId: string) {
   const createPurchaseRequestMutation = useMutation({
     mutationFn: (data: {
       notes?: string | undefined;
-      items: Array<{ partId?: string | undefined; description: string; quantity: number; notes?: string | undefined; supplierId?: string | undefined }>;
+      items: Array<{
+        partId?: string | undefined;
+        description: string;
+        quantity: number;
+        notes?: string | undefined;
+        supplierId?: string | undefined;
+      }>;
     }) => apiRequest("POST", `/api/work-orders/${workOrderId}/purchase-requests`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -131,7 +136,12 @@ export function useWorkOrderRequests(workOrderId: string) {
       prId: string;
       itemId: string;
       quantity: number;
-    }) => apiRequest<Record<string, unknown>>("POST", `/api/purchase-requests/${prId}/items/${itemId}/fulfill`, { quantityToFulfill: quantity }),
+    }) =>
+      apiRequest<Record<string, unknown>>(
+        "POST",
+        `/api/purchase-requests/${prId}/items/${itemId}/fulfill`,
+        { quantityToFulfill: quantity }
+      ),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],
@@ -139,9 +149,9 @@ export function useWorkOrderRequests(workOrderId: string) {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Item Fulfilled",
-        description: data['inventoryUpdated']
-          ? `Fulfilled ${data['quantityFulfilled']} units. Stock updated to ${data['newStockLevel']}.`
-          : `Fulfilled ${data['quantityFulfilled']} units.`,
+        description: data["inventoryUpdated"]
+          ? `Fulfilled ${data["quantityFulfilled"]} units. Stock updated to ${data["newStockLevel"]}.`
+          : `Fulfilled ${data["quantityFulfilled"]} units.`,
       });
     },
     onError: (err) =>
@@ -165,49 +175,49 @@ export function useWorkOrderRequests(workOrderId: string) {
     mutationFn: async ({ soId, data }: { soId: string; data: Record<string, unknown> }) => {
       const payload: Record<string, unknown> = {};
 
-      if (data['serviceProviderId']) {
-        payload['serviceProviderId'] = data['serviceProviderId'];
+      if (data["serviceProviderId"]) {
+        payload["serviceProviderId"] = data["serviceProviderId"];
       }
-      if (data['requestedStartDate']) {
-        payload['scheduledStartDate'] = data['requestedStartDate'];
+      if (data["requestedStartDate"]) {
+        payload["scheduledStartDate"] = data["requestedStartDate"];
       }
-      if (data['requestedEndDate']) {
-        payload['scheduledEndDate'] = data['requestedEndDate'];
+      if (data["requestedEndDate"]) {
+        payload["scheduledEndDate"] = data["requestedEndDate"];
       }
-      if (data['symptomDescription'] || data['scope']) {
-        payload['scope'] = data['symptomDescription'] || data['scope'];
+      if (data["symptomDescription"] || data["scope"]) {
+        payload["scope"] = data["symptomDescription"] || data["scope"];
       }
-      if (data['estimatedDurationHours']) {
-        payload['estimatedDurationHours'] = data['estimatedDurationHours'];
+      if (data["estimatedDurationHours"]) {
+        payload["estimatedDurationHours"] = data["estimatedDurationHours"];
       }
-      if (data['quotedAmount']) {
-        payload['quotedAmount'] = data['quotedAmount'];
+      if (data["quotedAmount"]) {
+        payload["quotedAmount"] = data["quotedAmount"];
       }
-      if (data['notes']) {
-        payload['specialRequirements'] = data['notes'];
+      if (data["notes"]) {
+        payload["specialRequirements"] = data["notes"];
       }
 
       if (
-        data['equipmentIds'] ||
-        data['severity'] ||
-        data['assistanceTags'] ||
-        data['probableCause'] ||
-        data['actionTakenSoFar'] ||
-        data['isRecurringDefect'] !== undefined ||
-        data['mocRequired'] !== undefined ||
-        data['mocNumber'] ||
-        data['certificateItems']
+        data["equipmentIds"] ||
+        data["severity"] ||
+        data["assistanceTags"] ||
+        data["probableCause"] ||
+        data["actionTakenSoFar"] ||
+        data["isRecurringDefect"] !== undefined ||
+        data["mocRequired"] !== undefined ||
+        data["mocNumber"] ||
+        data["certificateItems"]
       ) {
-        payload['serviceDetails'] = {
-          equipmentIds: data['equipmentIds'],
-          severity: data['severity'],
-          assistanceTags: data['assistanceTags'],
-          probableCause: data['probableCause'],
-          actionTakenSoFar: data['actionTakenSoFar'],
-          isRecurringDefect: data['isRecurringDefect'],
-          mocRequired: data['mocRequired'],
-          mocNumber: data['mocNumber'],
-          certificateItems: data['certificateItems'],
+        payload["serviceDetails"] = {
+          equipmentIds: data["equipmentIds"],
+          severity: data["severity"],
+          assistanceTags: data["assistanceTags"],
+          probableCause: data["probableCause"],
+          actionTakenSoFar: data["actionTakenSoFar"],
+          isRecurringDefect: data["isRecurringDefect"],
+          mocRequired: data["mocRequired"],
+          mocNumber: data["mocNumber"],
+          certificateItems: data["certificateItems"],
         };
       }
 
@@ -248,7 +258,11 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeleteServiceOrdersMutation = useMutation({
-    mutationFn: async () => apiRequest<{ deletedCount: number; skippedCount: number }>("DELETE", `/api/service-orders/bulk/by-work-order/${workOrderId}`),
+    mutationFn: async () =>
+      apiRequest<{ deletedCount: number; skippedCount: number }>(
+        "DELETE",
+        `/api/service-orders/bulk/by-work-order/${workOrderId}`
+      ),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "service-orders"],
@@ -268,7 +282,11 @@ export function useWorkOrderRequests(workOrderId: string) {
   });
 
   const bulkDeletePurchaseRequestsMutation = useMutation({
-    mutationFn: async () => apiRequest<{ deletedCount: number; skippedCount: number }>("DELETE", `/api/purchase-requests/bulk/by-work-order/${workOrderId}`),
+    mutationFn: async () =>
+      apiRequest<{ deletedCount: number; skippedCount: number }>(
+        "DELETE",
+        `/api/purchase-requests/bulk/by-work-order/${workOrderId}`
+      ),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/work-orders", workOrderId, "purchase-requests"],

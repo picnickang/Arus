@@ -11,7 +11,7 @@ repeated reconnects, exercising both the live `Pub/Sub` path and the
   `:5002`) sharing one Redis. Each VU subscribes to channel
   `loadtest`.
 - An out-of-band emitter publishes numbered events (`{ tag: 0, 1, 2,
-  ... }`) on that channel via Redis using the exact wire format from
+... }`) on that channel via Redis using the exact wire format from
   `server/websocket-fanout-redis.ts` (`arus:wsstream:<org>:<channel>`
   stream + `arus:ws:<org>:<channel>` pub/sub).
 - Each VU reconnects `WS_RECONNECTS` times during its iteration,
@@ -70,17 +70,17 @@ WS_URL_1=ws://localhost:5001/ws WS_URL_2=ws://localhost:5002/ws \
 
 ## Tuning knobs
 
-| Env var                  | Default            | Meaning                                  |
-| ------------------------ | ------------------ | ---------------------------------------- |
-| `WS_VUS`                 | `20`               | k6 virtual users (split across servers). |
-| `WS_RECONNECTS`          | `3`                | Reconnect cycles per VU iteration.       |
-| `WS_HOLD_MS`             | `20000`            | Connection lifetime per cycle (ms).      |
-| `WS_RECONNECT_GAP_MS`    | `500`              | Dead-time between cycles (must be ≪ 5min). |
-| `WS_CHANNEL`             | `loadtest`         | Fan-out channel name.                    |
-| `WS_ORG`                 | `default-org-id`   | Tenant the emitter publishes under.      |
-| `EMIT_RATE_HZ`           | `10`               | Events per second from the emitter.      |
-| `EMIT_DURATION_MS`       | `120000`           | Emitter runtime; must exceed k6 runtime. |
-| `WS_TENANT_STRICT_MODE`  | `false`            | Set `true` to rerun with Task 91 strict mode (clients only subscribe to their own tenant — the emitter publishes to that tenant so delivery still passes). |
+| Env var                 | Default          | Meaning                                                                                                                                                    |
+| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WS_VUS`                | `20`             | k6 virtual users (split across servers).                                                                                                                   |
+| `WS_RECONNECTS`         | `3`              | Reconnect cycles per VU iteration.                                                                                                                         |
+| `WS_HOLD_MS`            | `20000`          | Connection lifetime per cycle (ms).                                                                                                                        |
+| `WS_RECONNECT_GAP_MS`   | `500`            | Dead-time between cycles (must be ≪ 5min).                                                                                                                 |
+| `WS_CHANNEL`            | `loadtest`       | Fan-out channel name.                                                                                                                                      |
+| `WS_ORG`                | `default-org-id` | Tenant the emitter publishes under.                                                                                                                        |
+| `EMIT_RATE_HZ`          | `10`             | Events per second from the emitter.                                                                                                                        |
+| `EMIT_DURATION_MS`      | `120000`         | Emitter runtime; must exceed k6 runtime.                                                                                                                   |
+| `WS_TENANT_STRICT_MODE` | `false`          | Set `true` to rerun with Task 91 strict mode (clients only subscribe to their own tenant — the emitter publishes to that tenant so delivery still passes). |
 
 ## Interpreting results
 
@@ -154,22 +154,22 @@ at `downAt`.
 
 ### Chaos-specific knobs
 
-| Env var               | Default   | Meaning                                                                                                  |
-| --------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
-| `CHAOS_AT_MS`         | `20000`   | Offset from emitter start when the outage begins.                                                        |
-| `CHAOS_DURATION_MS`   | `5000`    | How long Redis stays offline.                                                                            |
-| `CHAOS_GRACE_MS`      | `1500`    | Slack added to each side of the outage window when classifying events. Covers in-flight publishes.       |
-| `CHAOS_MODE`          | `pause`   | `pause` → `DEBUG SLEEP <s>` (stalls every command server-side). `kill` → `CLIENT KILL TYPE NORMAL+PUBSUB` (drops connections only — gentler, exercises the resubscribe handler in isolation). |
-| `EMIT_DURATION_MS`    | `60000`   | Must comfortably exceed `CHAOS_AT_MS + CHAOS_DURATION_MS` plus k6 hold time so a healthy post-outage tail exists. |
+| Env var             | Default | Meaning                                                                                                                                                                                       |
+| ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CHAOS_AT_MS`       | `20000` | Offset from emitter start when the outage begins.                                                                                                                                             |
+| `CHAOS_DURATION_MS` | `5000`  | How long Redis stays offline.                                                                                                                                                                 |
+| `CHAOS_GRACE_MS`    | `1500`  | Slack added to each side of the outage window when classifying events. Covers in-flight publishes.                                                                                            |
+| `CHAOS_MODE`        | `pause` | `pause` → `DEBUG SLEEP <s>` (stalls every command server-side). `kill` → `CLIENT KILL TYPE NORMAL+PUBSUB` (drops connections only — gentler, exercises the resubscribe handler in isolation). |
+| `EMIT_DURATION_MS`  | `60000` | Must comfortably exceed `CHAOS_AT_MS + CHAOS_DURATION_MS` plus k6 hold time so a healthy post-outage tail exists.                                                                             |
 
 ### Pass criteria
 
 Each VU classifies every received event by its emitter-stamped
 `emittedAtMs`:
 
-- `pre`    — `emittedAtMs < downAt - GRACE` → contiguity required.
+- `pre` — `emittedAtMs < downAt - GRACE` → contiguity required.
 - `outage` — inside `[downAt - GRACE, upAt + GRACE]` → loss permitted.
-- `post`   — `emittedAtMs > upAt + GRACE` → contiguity required.
+- `post` — `emittedAtMs > upAt + GRACE` → contiguity required.
 
 Thresholds:
 
@@ -208,7 +208,7 @@ independently. The job:
    the archived artifacts without re-running the proof.
 4. Uploads `artifacts/ws-fanout-chaos/` as a per-mode workflow artifact
    (`ws-fanout-chaos-<mode>-<run_id>`, 30-day retention) on every run.
-5. On a *scheduled* failure (not `workflow_dispatch`), opens a GitHub
+5. On a _scheduled_ failure (not `workflow_dispatch`), opens a GitHub
    issue tagged `area/ws-bus` + `alert/scheduled-proof` so whoever
    owns `server/websocket-fanout-redis.ts` is paged through normal
    issue-triage.

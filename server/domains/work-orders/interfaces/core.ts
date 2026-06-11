@@ -10,8 +10,11 @@ import { jsonRecordSchema } from "@shared/validation/json";
 import { insertWorkOrderSchema, updateWorkOrderSchema } from "@shared/schema-runtime";
 import { workOrderAppService as workOrderService } from "../application";
 import { safeDbOperation } from "../../../error-handling";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import {
   withErrorHandling,
   sendNotFound,
@@ -192,7 +195,10 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         case "ok":
           return res.json(result.workOrder);
         case "not_crew":
-          return sendForbidden(res, "You are not registered as a crew member for this organization");
+          return sendForbidden(
+            res,
+            "You are not registered as a crew member for this organization"
+          );
         case "not_found":
           return sendNotFound(res, "Work order");
         case "no_assignment":
@@ -229,10 +235,10 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
         v == null ? undefined : new Date(v as string | number | Date);
       const processedBody = {
         ...rawBody,
-        scheduledDate: toDate(rawBody['scheduledDate']),
-        completedDate: toDate(rawBody['completedDate']),
-        plannedStartDate: toDate(rawBody['plannedStartDate']),
-        plannedEndDate: toDate(rawBody['plannedEndDate']),
+        scheduledDate: toDate(rawBody["scheduledDate"]),
+        completedDate: toDate(rawBody["completedDate"]),
+        plannedStartDate: toDate(rawBody["plannedStartDate"]),
+        plannedEndDate: toDate(rawBody["plannedEndDate"]),
       };
 
       const orderData = insertWorkOrderSchema.parse(processedBody);
@@ -307,11 +313,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     withErrorHandling("delete work order", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
       const { id } = idParamSchema.parse(req.params);
-      await workOrderService.deleteWorkOrder(
-        id,
-        orgId,
-        authenticatedRequest(req).user?.id
-      );
+      await workOrderService.deleteWorkOrder(id, orgId, authenticatedRequest(req).user?.id);
       sendDeleted(res);
     })
   );

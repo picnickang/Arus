@@ -14,12 +14,7 @@ import { sql, pgTable, text, varchar, timestamp, boolean, createInsertSchema, z 
 import { organizations } from "./core";
 import { vessels } from "./vessels";
 
-export const SAFETY_BULLETIN_SEVERITIES = [
-  "info",
-  "advisory",
-  "warning",
-  "critical",
-] as const;
+export const SAFETY_BULLETIN_SEVERITIES = ["info", "advisory", "warning", "critical"] as const;
 
 export const safetyBulletins = pgTable(
   "safety_bulletins",
@@ -51,7 +46,7 @@ export const safetyBulletins = pgTable(
   (table) => ({
     orgActiveIdx: sql`CREATE INDEX IF NOT EXISTS idx_safety_bulletins_org_active ON safety_bulletins (${table.orgId}, ${table.active}, ${table.effectiveDate} DESC)`,
     orgVesselIdx: sql`CREATE INDEX IF NOT EXISTS idx_safety_bulletins_org_vessel ON safety_bulletins (${table.orgId}, ${table.vesselId})`,
-  }),
+  })
 );
 
 export const insertSafetyBulletinSchema = createInsertSchema(safetyBulletins).omit({

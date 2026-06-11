@@ -28,7 +28,7 @@ export interface ICrewAdminRepository {
     orgId: string,
     id: string,
     hubAdmin: boolean,
-    hubAccess: string[] | null,
+    hubAccess: string[] | null
   ): Promise<RoleSummary | undefined>;
 
   // Dashboard configs (raw row, undefined when no override stored)
@@ -38,7 +38,7 @@ export interface ICrewAdminRepository {
     orgId: string,
     roleId: string,
     config: RoleDashboardConfig,
-    updatedBy: string | undefined,
+    updatedBy: string | undefined
   ): Promise<void>;
   deleteConfig(orgId: string, roleId: string): Promise<void>;
 
@@ -51,7 +51,7 @@ export interface ICrewAdminRepository {
     orgId: string,
     userId: string,
     assignments: AssignmentInput[],
-    assignedBy: string | undefined,
+    assignedBy: string | undefined
   ): Promise<VesselAssignmentEntity[]>;
 
   // Multi-role assignments (additive secondary roles, stored in user_role_assignments)
@@ -61,7 +61,7 @@ export interface ICrewAdminRepository {
     orgId: string,
     userId: string,
     roleIds: string[],
-    assignedBy: string | undefined,
+    assignedBy: string | undefined
   ): Promise<void>;
 
   // Credentials
@@ -71,7 +71,7 @@ export interface ICrewAdminRepository {
   setCredentials(
     orgId: string,
     userId: string,
-    patch: { username?: string; passwordHash?: string; loginEnabled?: boolean },
+    patch: { username?: string; passwordHash?: string; loginEnabled?: boolean }
   ): Promise<void>;
   setMustChangePassword(orgId: string, userId: string, value: boolean): Promise<void>;
   /** Persist a user's hub-admin grant + allow-list (null hubAccess = all hubs). */
@@ -79,7 +79,7 @@ export interface ICrewAdminRepository {
     orgId: string,
     userId: string,
     hubAdmin: boolean,
-    hubAccess: string[] | null,
+    hubAccess: string[] | null
   ): Promise<void>;
   invalidateUserSessions(userId: string): Promise<void>;
 

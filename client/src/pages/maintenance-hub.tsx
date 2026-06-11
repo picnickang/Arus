@@ -176,9 +176,7 @@ export default function MaintenanceHub() {
 
   const rawHealth = pdmQ.data?.kpis?.fleetHealthScore;
   const healthPct =
-    pdmQ.isLoading || pdmQ.isError || rawHealth == null
-      ? null
-      : `${Math.round(rawHealth)}%`;
+    pdmQ.isLoading || pdmQ.isError || rawHealth == null ? null : `${Math.round(rawHealth)}%`;
 
   const anyError =
     summaryQ.isError ||
@@ -197,7 +195,9 @@ export default function MaintenanceHub() {
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-maintenance-title">
             Maintenance
           </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Overview &amp; operational insights</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Overview &amp; operational insights
+          </p>
         </header>
 
         {anyError && (

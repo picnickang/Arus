@@ -11,16 +11,10 @@
     "earlyStoppingPatience": 5,
     "verbose": true
   },
-  "featureNames": [
-    "flow_rate"
-  ],
+  "featureNames": ["flow_rate"],
   "normalizationParams": {
-    "mean": [
-      10.944751517341082
-    ],
-    "std": [
-      36.996962007667705
-    ]
+    "mean": [10.944751517341082],
+    "std": [36.996962007667705]
   },
   "trainingMetrics": {
     "loss": 0.17807160317897797,

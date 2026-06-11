@@ -35,7 +35,7 @@ export function sanitizeRequestData(req: Request, res: Response, next: NextFunct
       } else if (Array.isArray(value)) {
         req.query[key] = value.map((v) =>
           typeof v === "string" ? sanitizeInput(v, isTelemetryEndpoint) : v
-        ) as object as typeof req.query[string];
+        ) as object as (typeof req.query)[string];
       }
     }
   }

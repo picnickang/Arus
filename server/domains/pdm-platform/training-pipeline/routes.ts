@@ -121,7 +121,7 @@ router.post("/runs", async (req: AuthenticatedRequest, res: Response) => {
     return res.status(201).json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    if ((message).includes("not found")) {
+    if (message.includes("not found")) {
       return res.status(404).json({ error: message });
     }
     return res.status(500).json({ error: message });
@@ -162,31 +162,29 @@ router.get("/runs/:id", async (req: AuthenticatedRequest, res: Response) => {
 // behind the `predictive_maintenance:manage_config` permission grant
 // (parallel to /api/ml/models/:id/promote and the frontend
 // `predictive_maintenance` resource gate; no hardcoded role list).
-router.post("/runs/:id/promote", requirePermission("predictive_maintenance", "manage_config"), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orgId = getOrgId(req);
-    const parsed = promoteSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+router.post(
+  "/runs/:id/promote",
+  requirePermission("predictive_maintenance", "manage_config"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const orgId = getOrgId(req);
+      const parsed = promoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+      }
+      const { modelId, version, changelog } = parsed.data;
+      const { id } = idParamSchema.parse(req.params);
+      const result = await service.promoteModelVersion(orgId, id, modelId, version, changelog);
+      return res.status(201).json(result);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("not found") || message.includes("not completed")) {
+        return res.status(400).json({ error: message });
+      }
+      return res.status(500).json({ error: message });
     }
-    const { modelId, version, changelog } = parsed.data;
-    const { id } = idParamSchema.parse(req.params);
-    const result = await service.promoteModelVersion(
-      orgId,
-      id,
-      modelId,
-      version,
-      changelog
-    );
-    return res.status(201).json(result);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    if ((message).includes("not found") || (message).includes("not completed")) {
-      return res.status(400).json({ error: message });
-    }
-    return res.status(500).json({ error: message });
   }
-});
+);
 
 router.get("/artifacts", async (req: AuthenticatedRequest, res: Response) => {
   try {

@@ -84,7 +84,11 @@ export function useVesselTrackData() {
     refetchInterval: 30000,
   });
 
-  const processTelemetryMutation = useMutation<{ recordsCreated?: number; recordsSkipped?: number }, Error, string>({
+  const processTelemetryMutation = useMutation<
+    { recordsCreated?: number; recordsSkipped?: number },
+    Error,
+    string
+  >({
     mutationFn: (async (vesselId: string) =>
       apiRequest("/api/logbook/track/process-telemetry", {
         method: "POST",
@@ -93,7 +97,9 @@ export function useVesselTrackData() {
           startDate: dateParams.start.toISOString(),
           endDate: dateParams.end.toISOString(),
         }),
-      })) as object as (vesselId: string) => Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
+      })) as object as (
+      vesselId: string
+    ) => Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Track Processing Complete",

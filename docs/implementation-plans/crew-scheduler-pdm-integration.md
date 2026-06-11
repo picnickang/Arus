@@ -14,12 +14,14 @@
 **MUST complete before starting:**
 
 ### 1. Environment Verification
+
 - [ ] Database connection active (PostgreSQL)
 - [ ] OpenAI API key configured (for testing reports)
 - [ ] Workflow running without errors
 - [ ] All existing tests passing
 
 ### 2. Baseline Metrics Capture
+
 ```bash
 # Capture current state for comparison
 npm run test 2>&1 | tee docs/audit/_artifacts/baseline_tests.log
@@ -27,6 +29,7 @@ curl http://localhost:5000/api/metrics | tee docs/audit/_artifacts/baseline_metr
 ```
 
 ### 3. Git Checkpoint
+
 ```bash
 # Create safety checkpoint before changes
 git add -A
@@ -42,31 +45,37 @@ git commit -m "Pre-implementation checkpoint: Crew scheduler baseline"
 ### Tasks
 
 #### 1.1 Fix Certifications Payload Shape
+
 **File**: `client/src/components/CrewScheduler.tsx`
 
 **Current (BROKEN)**:
+
 ```typescript
 certifications: certifications.reduce((acc: any, cert: any) => {
   if (!acc[cert.crewId]) acc[cert.crewId] = [];
   acc[cert.crewId].push(cert.cert); // ❌ Only sending cert name
   return acc;
-}, {})
+}, {});
 ```
 
 **Fixed**:
+
 ```typescript
 certifications: certifications.reduce((acc: any, cert: CrewCertification) => {
   (acc[cert.crewId] ||= []).push(cert); // ✅ Send full object with expiresAt
   return acc;
-}, {})
+}, {});
 ```
 
 #### 1.2 Fix Field Name Mismatch (requiredSkills → skillRequired)
-**Files**: 
+
+**Files**:
+
 - `client/src/components/CrewScheduler.tsx` (form defaults, fields, display)
 - Verify: `server/crew-scheduler.ts` expects `skillRequired`
 
 **Changes**:
+
 ```typescript
 // Form defaults
 - requiredSkills: '',
@@ -82,38 +91,48 @@ certifications: certifications.reduce((acc: any, cert: CrewCertification) => {
 ```
 
 #### 1.3 Fix Time Display Bug
+
 **File**: `client/src/components/CrewScheduler.tsx`
 
 **Current (BROKEN)**:
+
 ```typescript
-{getShiftTime(assignment.start, assignment.end)}
+{
+  getShiftTime(assignment.start, assignment.end);
+}
 // Passes ISO timestamps to function expecting HH:mm format
 ```
 
 **Fixed**:
+
 ```typescript
-{getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19))}
+{
+  getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19));
+}
 // Extract time portion: "2025-11-05T08:00:00Z" → "08:00:00"
 ```
 
 #### 1.4 Enable Leaves Query
+
 **File**: `client/src/components/CrewScheduler.tsx`
 
 **Current (BROKEN)**:
+
 ```typescript
 const { data: leaves = [] } = useQuery({
-  queryKey: ['/api/crew/leave'],
-  queryFn: () => apiRequest('/api/crew/leave'),
-  enabled: false // ❌ Query disabled!
+  queryKey: ["/api/crew/leave"],
+  queryFn: () => apiRequest("/api/crew/leave"),
+  enabled: false, // ❌ Query disabled!
 });
 ```
 
 **Fixed**:
+
 ```typescript
 const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery({
-  queryKey: ['/api/crew/leave'],
-  queryFn: () => apiRequest('GET', '/api/crew/leave'),
-  refetchInterval: 60000
+  queryKey: ["/api/crew/leave"],
+  queryFn: () => apiRequest("GET", "/api/crew/leave"),
+  refetchInterval: 60000,
 });
 
 // Add loading guard in handleEnhancedPlanSchedule:
@@ -124,19 +143,22 @@ if (isLoadingLeaves) {
 ```
 
 #### 1.5 Fix Drydock Schema Mismatch
+
 **File**: `client/src/components/CrewScheduler.tsx`
 
 **Current (BROKEN)**:
+
 ```typescript
 const drydockData = {
   vesselId: newDrydock.vesselId,
   yard: newDrydock.description, // ❌ Mapping to wrong field
   start: newDrydock.start,
-  end: newDrydock.end
+  end: newDrydock.end,
 };
 ```
 
 **Fixed** (verify schema first):
+
 ```typescript
 // Check shared/schema.ts for correct field name
 // If schema uses 'description', use:
@@ -144,20 +166,23 @@ const drydockData = {
   vesselId: newDrydock.vesselId,
   description: newDrydock.description, // ✅ Correct mapping
   start: newDrydock.start,
-  end: newDrydock.end
+  end: newDrydock.end,
 };
 ```
 
 #### 1.6 Fix Shared State Bug
+
 **File**: `client/src/components/CrewScheduler.tsx`
 
 **Current (BROKEN)**:
+
 ```typescript
 const [isDetailsOpen, setIsDetailsOpen] = useState(true);
 // Used for BOTH enhanced and basic results
 ```
 
 **Fixed**:
+
 ```typescript
 const [isEnhancedDetailsOpen, setIsEnhancedDetailsOpen] = useState(true);
 const [isBasicDetailsOpen, setIsBasicDetailsOpen] = useState(true);
@@ -165,6 +190,7 @@ const [isBasicDetailsOpen, setIsBasicDetailsOpen] = useState(true);
 ```
 
 ### Verification Checkpoint 1 ✅
+
 ```bash
 # Manual testing checklist:
 # [ ] Create shift with skillRequired field
@@ -187,9 +213,11 @@ npm run lint
 ### Tasks
 
 #### 2.1 Fix Drydock/Port-Call Precedence Bug
+
 **File**: `server/crew-scheduler-ortools.ts` (or create if needed)
 
 **Create helper functions**:
+
 ```typescript
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
   return Math.max(aStart.getTime(), bStart.getTime()) < Math.min(aEnd.getTime(), bEnd.getTime());
@@ -218,14 +246,16 @@ function isWindowAllowed(
   // 1) DRYDOCK BLOCKS (highest priority)
   for (const d of drydocks) {
     if (d.vesselId !== vesselId) continue;
-    const ds = new Date(d.start), de = new Date(d.end);
+    const ds = new Date(d.start),
+      de = new Date(d.end);
     if (overlaps(shiftStart, shiftEnd, ds, de)) return false; // ❌ Blocked
   }
 
   // 2) PORT CALLS ALLOW (if overlapping)
   for (const p of portCalls) {
     if (p.vesselId !== vesselId) continue;
-    const ps = new Date(p.start), pe = new Date(p.end);
+    const ps = new Date(p.start),
+      pe = new Date(p.end);
     if (overlaps(shiftStart, shiftEnd, ps, pe)) return true; // ✅ Allowed
   }
 
@@ -235,26 +265,24 @@ function isWindowAllowed(
 ```
 
 #### 2.2 Fix Leave/Certification Checks (Full Shift Duration)
+
 **File**: `server/crew-scheduler-ortools.ts`
 
 **Add interval overlap checks**:
+
 ```typescript
 function shiftWindow(day: string, startTime: string, endTime: string) {
   const start = toUtc(day, startTime);
   let end = toUtc(day, endTime);
-  if (end <= start) end = new Date(end.getTime() + 24*3600*1000);
+  if (end <= start) end = new Date(end.getTime() + 24 * 3600 * 1000);
   return { start, end };
 }
 
-function leaveOverlaps(
-  crewId: string, 
-  start: Date, 
-  end: Date, 
-  leaves: SelectCrewLeave[]
-): boolean {
-  return leaves.some(l => {
+function leaveOverlaps(crewId: string, start: Date, end: Date, leaves: SelectCrewLeave[]): boolean {
+  return leaves.some((l) => {
     if (l.crewId !== crewId) return false;
-    const ls = new Date(l.start), le = new Date(l.end);
+    const ls = new Date(l.start),
+      le = new Date(l.end);
     return overlaps(start, end, ls, le);
   });
 }
@@ -269,18 +297,19 @@ function hasValidCertification(
   if (!requiredCert) return true;
   const crewCerts = certifications[crew.id] || [];
   // Cert must be valid at least through shift end
-  return crewCerts.some(c => 
-    c.cert === requiredCert && new Date(c.expiresAt) >= shiftEnd
-  );
+  return crewCerts.some((c) => c.cert === requiredCert && new Date(c.expiresAt) >= shiftEnd);
 }
 ```
 
 #### 2.3 Add Missing Constraints (Rest, Hours, Overlap)
-**Files**: 
+
+**Files**:
+
 - `server/crew-scheduler-ortools.ts`
 - Update `ConstraintScheduleRequest` interface
 
 **Extend interface**:
+
 ```typescript
 export interface ConstraintScheduleRequest {
   engine: string;
@@ -297,23 +326,27 @@ export interface ConstraintScheduleRequest {
 ```
 
 **Add constraint checks**:
+
 ```typescript
 function restOk(
-  assignments: Assignment[], 
-  existing: SelectCrewAssignment[], 
-  crewId: string, 
-  start: Date, 
+  assignments: Assignment[],
+  existing: SelectCrewAssignment[],
+  crewId: string,
+  start: Date,
   minRestH: number
 ): boolean {
   let lastEnd: Date | null = null;
-  
+
   // Check both current run and existing assignments
-  const allAssignments = [...assignments, ...existing.map(e => ({
-    crewId: e.crewId,
-    start: e.start.toISOString(),
-    end: e.end.toISOString()
-  }))];
-  
+  const allAssignments = [
+    ...assignments,
+    ...existing.map((e) => ({
+      crewId: e.crewId,
+      start: e.start.toISOString(),
+      end: e.end.toISOString(),
+    })),
+  ];
+
   for (const a of allAssignments) {
     if (a.crewId !== crewId) continue;
     const end = new Date(a.end);
@@ -321,7 +354,7 @@ function restOk(
       lastEnd = end;
     }
   }
-  
+
   if (lastEnd === null) return true;
   const restHours = (start.getTime() - lastEnd.getTime()) / (1000 * 60 * 60);
   return restHours >= minRestH;
@@ -335,13 +368,16 @@ function hoursInRange(
   weekEnd: Date
 ): number {
   let total = 0;
-  
-  const allAssignments = [...assignments, ...existing.map(e => ({
-    crewId: e.crewId,
-    start: e.start.toISOString(),
-    end: e.end.toISOString()
-  }))];
-  
+
+  const allAssignments = [
+    ...assignments,
+    ...existing.map((e) => ({
+      crewId: e.crewId,
+      start: e.start.toISOString(),
+      end: e.end.toISOString(),
+    })),
+  ];
+
   for (const a of allAssignments) {
     if (a.crewId !== crewId) continue;
     const start = new Date(a.start);
@@ -352,19 +388,20 @@ function hoursInRange(
       total += (hi.getTime() - lo.getTime()) / (1000 * 60 * 60);
     }
   }
-  
+
   return total;
 }
 ```
 
 ### Verification Checkpoint 2 ✅
+
 ```bash
 # Unit tests for constraint logic
 npm run test -- crew-scheduler
 
 # Integration test:
 # [ ] Create drydock window overlapping shift
-# [ ] Create port call overlapping shift  
+# [ ] Create port call overlapping shift
 # [ ] Verify drydock blocks, port call doesn't override
 # [ ] Create crew leave spanning shift
 # [ ] Verify shift not assigned during leave
@@ -381,13 +418,17 @@ npm run test -- crew-scheduler
 ### Tasks
 
 #### 3.1 Add Drizzle Schema
+
 **File**: `shared/schema.ts`
 
 **Add tables**:
+
 ```typescript
 // Scheduler run audit trail
 export const schedulerRuns = pgTable("scheduler_runs", {
-  id: varchar("id").primaryKey().$defaultFn(() => randomUUID()),
+  id: varchar("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   orgId: varchar("org_id").notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -400,11 +441,13 @@ export const schedulerRuns = pgTable("scheduler_runs", {
     reasons: Array<{ reason: string; count: number }>;
   }>(),
   success: boolean("success").default(true),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const scheduleAssignments = pgTable("schedule_assignments", {
-  id: varchar("id").primaryKey().$defaultFn(() => randomUUID()),
+  id: varchar("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   runId: varchar("run_id").notNull(),
   orgId: varchar("org_id").notNull(),
   date: varchar("date").notNull(), // YYYY-MM-DD
@@ -415,18 +458,20 @@ export const scheduleAssignments = pgTable("schedule_assignments", {
   end: timestamp("end", { withTimezone: true }).notNull(),
   role: varchar("role"),
   executed: boolean("executed").default(false),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const scheduleUnfilled = pgTable("schedule_unfilled", {
-  id: varchar("id").primaryKey().$defaultFn(() => randomUUID()),
+  id: varchar("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   runId: varchar("run_id").notNull(),
   orgId: varchar("org_id").notNull(),
   day: varchar("day").notNull(),
   shiftId: varchar("shift_id").notNull(),
   need: integer("need").notNull(),
   reason: varchar("reason").notNull(),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Export types
@@ -444,9 +489,11 @@ export const insertScheduleUnfilledSchema = createInsertSchema(scheduleUnfilled)
 ```
 
 #### 3.2 Add Storage Methods
+
 **File**: `server/storage.ts`
 
 **Add to IStorage interface**:
+
 ```typescript
 // Scheduler run management
 createSchedulerRun(run: InsertSchedulerRun): Promise<SelectSchedulerRun>;
@@ -464,6 +511,7 @@ getScheduleUnfilled(orgId: string, runId?: string): Promise<SelectScheduleUnfill
 ```
 
 #### 3.3 Push Schema to Database
+
 ```bash
 # Sync schema changes
 npm run db:push
@@ -473,21 +521,23 @@ npm run db:push --force
 ```
 
 #### 3.4 Add Indexes
+
 **File**: `server/db-indexes.ts` (or create migration)
 
 ```typescript
 // Add indexes for scheduler queries
-CREATE INDEX IF NOT EXISTS idx_schedule_assignments_org_vessel_start 
+CREATE INDEX IF NOT EXISTS idx_schedule_assignments_org_vessel_start
   ON schedule_assignments(org_id, vessel_id, start);
 
-CREATE INDEX IF NOT EXISTS idx_scheduler_runs_org_started 
+CREATE INDEX IF NOT EXISTS idx_scheduler_runs_org_started
   ON scheduler_runs(org_id, started_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_schedule_unfilled_org_day 
+CREATE INDEX IF NOT EXISTS idx_schedule_unfilled_org_day
   ON schedule_unfilled(org_id, day);
 ```
 
 ### Verification Checkpoint 3 ✅
+
 ```bash
 # Verify schema deployed
 npm run db:push
@@ -510,14 +560,15 @@ psql $DATABASE_URL -c "\d schedule_unfilled"
 ### Tasks
 
 #### 4.1 Create Event Bus
+
 **File**: `server/events/scheduler-bus.ts` (NEW)
 
 ```typescript
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
-export type SchedulerEventName = 
-  | "pdm.rul.updated" 
-  | "pdm.anomaly.created" 
+export type SchedulerEventName =
+  | "pdm.rul.updated"
+  | "pdm.anomaly.created"
   | "pdm.maintenance.window"
   | "scheduler.run.started"
   | "scheduler.run.completed"
@@ -528,7 +579,7 @@ export interface RulUpdatedEvent {
   vesselId: string;
   equipmentId: string;
   remainingDays: number;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskLevel: "low" | "medium" | "high" | "critical";
   operatingMode?: string;
 }
 
@@ -536,7 +587,7 @@ export interface AnomalyCreatedEvent {
   orgId: string;
   vesselId: string;
   equipmentId: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   anomalyType: string;
   window?: { start: Date; end: Date };
 }
@@ -557,27 +608,27 @@ class SchedulerEventBus extends EventEmitter {
   }
 
   emitRulUpdate(event: RulUpdatedEvent): void {
-    this.emit('pdm.rul.updated', event);
+    this.emit("pdm.rul.updated", event);
   }
 
   emitAnomalyCreated(event: AnomalyCreatedEvent): void {
-    this.emit('pdm.anomaly.created', event);
+    this.emit("pdm.anomaly.created", event);
   }
 
   emitMaintenanceWindow(event: MaintenanceWindowEvent): void {
-    this.emit('pdm.maintenance.window', event);
+    this.emit("pdm.maintenance.window", event);
   }
 
   onRulUpdate(handler: (event: RulUpdatedEvent) => Promise<void> | void): void {
-    this.on('pdm.rul.updated', handler);
+    this.on("pdm.rul.updated", handler);
   }
 
   onAnomalyCreated(handler: (event: AnomalyCreatedEvent) => Promise<void> | void): void {
-    this.on('pdm.anomaly.created', handler);
+    this.on("pdm.anomaly.created", handler);
   }
 
   onMaintenanceWindow(handler: (event: MaintenanceWindowEvent) => Promise<void> | void): void {
-    this.on('pdm.maintenance.window', handler);
+    this.on("pdm.maintenance.window", handler);
   }
 }
 
@@ -585,11 +636,13 @@ export const schedulerEventBus = new SchedulerEventBus();
 ```
 
 #### 4.2 Wire RUL Engine to Emit Events
+
 **File**: `server/rul-engine.ts`
 
 **Add to updateEquipmentRulPrediction function**:
+
 ```typescript
-import { schedulerEventBus } from './events/scheduler-bus';
+import { schedulerEventBus } from "./events/scheduler-bus";
 
 // After RUL calculation and storage (line ~XXX)
 const riskLevel = determineRiskLevel(remainingDays, confidence);
@@ -597,54 +650,59 @@ const riskLevel = determineRiskLevel(remainingDays, confidence);
 // Emit event for scheduler integration
 schedulerEventBus.emitRulUpdate({
   orgId: orgId,
-  vesselId: equipment.vesselId || 'unknown',
+  vesselId: equipment.vesselId || "unknown",
   equipmentId: equipmentId,
   remainingDays: remainingDays,
   riskLevel: riskLevel,
-  operatingMode: operatingMode
+  operatingMode: operatingMode,
 });
 ```
 
 #### 4.3 Wire Anomaly Detection to Emit Events
+
 **File**: `server/routes.ts` (alert creation endpoint)
 
 **Find alert creation endpoint and add**:
+
 ```typescript
-import { schedulerEventBus } from './events/scheduler-bus';
+import { schedulerEventBus } from "./events/scheduler-bus";
 
 // After alert created (line ~XXXX in POST /api/alerts)
-if (alert.severity === 'high' || alert.severity === 'critical') {
+if (alert.severity === "high" || alert.severity === "critical") {
   const equipment = await storage.getEquipment(alert.equipmentId);
   schedulerEventBus.emitAnomalyCreated({
-    orgId: alert.orgId || 'default-org',
-    vesselId: equipment?.vesselId || 'unknown',
+    orgId: alert.orgId || "default-org",
+    vesselId: equipment?.vesselId || "unknown",
     equipmentId: alert.equipmentId,
-    severity: alert.severity as 'low' | 'medium' | 'high' | 'critical',
-    anomalyType: alert.type
+    severity: alert.severity as "low" | "medium" | "high" | "critical",
+    anomalyType: alert.type,
   });
 }
 ```
 
 #### 4.4 Wire Maintenance Scheduling to Emit Events
+
 **File**: `server/routes.ts` (maintenance schedule creation)
 
 **Find maintenance schedule creation and add**:
+
 ```typescript
-import { schedulerEventBus } from './events/scheduler-bus';
+import { schedulerEventBus } from "./events/scheduler-bus";
 
 // After maintenance schedule created (line ~XXXX in POST /api/maintenance/schedule)
 const equipment = await storage.getEquipment(schedule.equipmentId);
 schedulerEventBus.emitMaintenanceWindow({
-  orgId: schedule.orgId || 'default-org',
-  vesselId: equipment?.vesselId || 'unknown',
+  orgId: schedule.orgId || "default-org",
+  vesselId: equipment?.vesselId || "unknown",
   equipmentId: schedule.equipmentId,
   start: new Date(schedule.scheduledDate),
   end: new Date(schedule.estimatedCompletion || schedule.scheduledDate),
-  priority: schedule.priority
+  priority: schedule.priority,
 });
 ```
 
 ### Verification Checkpoint 4 ✅
+
 ```bash
 # Test event bus in isolation
 npm run test -- scheduler-bus
@@ -667,11 +725,17 @@ npm run test -- scheduler-bus
 ### Tasks
 
 #### 5.1 Create Auto-Replan Policy
+
 **File**: `server/scheduler/auto-replan-policy.ts` (NEW)
 
 ```typescript
-import { schedulerEventBus, RulUpdatedEvent, AnomalyCreatedEvent, MaintenanceWindowEvent } from '../events/scheduler-bus';
-import { planAndMaybeExecute } from './scheduler-controller';
+import {
+  schedulerEventBus,
+  RulUpdatedEvent,
+  AnomalyCreatedEvent,
+  MaintenanceWindowEvent,
+} from "../events/scheduler-bus";
+import { planAndMaybeExecute } from "./scheduler-controller";
 
 // Configuration from environment
 const RUL_DAYS_CRITICAL = Number(process.env.SCHED_RUL_DAYS_CRITICAL ?? 9);
@@ -683,23 +747,24 @@ function riskToRank(r: string): number {
     low: 0,
     medium: 1,
     high: 2,
-    critical: 3
+    critical: 3,
   };
   return ranks[r] ?? 0;
 }
 
 // Initialize auto-replan listeners
 export function initializeAutoReplanPolicy(): void {
-  
   // RUL-triggered replanning
   schedulerEventBus.onRulUpdate(async (event: RulUpdatedEvent) => {
-    const shouldReplan = 
-      event.remainingDays <= RUL_DAYS_CRITICAL || 
+    const shouldReplan =
+      event.remainingDays <= RUL_DAYS_CRITICAL ||
       riskToRank(event.riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
-    
+
     if (shouldReplan) {
-      console.log(`[Auto-Replan] RUL trigger: vessel=${event.vesselId}, remainingDays=${event.remainingDays}, risk=${event.riskLevel}`);
-      
+      console.log(
+        `[Auto-Replan] RUL trigger: vessel=${event.vesselId}, remainingDays=${event.remainingDays}, risk=${event.riskLevel}`
+      );
+
       try {
         await planAndMaybeExecute({
           orgId: event.orgId,
@@ -710,20 +775,22 @@ export function initializeAutoReplanPolicy(): void {
           triggerContext: {
             equipmentId: event.equipmentId,
             remainingDays: event.remainingDays,
-            riskLevel: event.riskLevel
-          }
+            riskLevel: event.riskLevel,
+          },
         });
       } catch (error) {
-        console.error('[Auto-Replan] Failed to replan from RUL trigger:', error);
+        console.error("[Auto-Replan] Failed to replan from RUL trigger:", error);
       }
     }
   });
 
   // Anomaly-triggered replanning
   schedulerEventBus.onAnomalyCreated(async (event: AnomalyCreatedEvent) => {
-    if (event.severity === 'high' || event.severity === 'critical') {
-      console.log(`[Auto-Replan] Anomaly trigger: vessel=${event.vesselId}, severity=${event.severity}`);
-      
+    if (event.severity === "high" || event.severity === "critical") {
+      console.log(
+        `[Auto-Replan] Anomaly trigger: vessel=${event.vesselId}, severity=${event.severity}`
+      );
+
       try {
         await planAndMaybeExecute({
           orgId: event.orgId,
@@ -734,11 +801,11 @@ export function initializeAutoReplanPolicy(): void {
           triggerContext: {
             equipmentId: event.equipmentId,
             severity: event.severity,
-            anomalyType: event.anomalyType
-          }
+            anomalyType: event.anomalyType,
+          },
         });
       } catch (error) {
-        console.error('[Auto-Replan] Failed to replan from anomaly trigger:', error);
+        console.error("[Auto-Replan] Failed to replan from anomaly trigger:", error);
       }
     }
   });
@@ -746,7 +813,7 @@ export function initializeAutoReplanPolicy(): void {
   // Maintenance window replanning
   schedulerEventBus.onMaintenanceWindow(async (event: MaintenanceWindowEvent) => {
     console.log(`[Auto-Replan] Maintenance window trigger: vessel=${event.vesselId}`);
-    
+
     try {
       await planAndMaybeExecute({
         orgId: event.orgId,
@@ -758,35 +825,36 @@ export function initializeAutoReplanPolicy(): void {
           equipmentId: event.equipmentId,
           start: event.start.toISOString(),
           end: event.end.toISOString(),
-          priority: event.priority
-        }
+          priority: event.priority,
+        },
       });
     } catch (error) {
-      console.error('[Auto-Replan] Failed to replan from maintenance window:', error);
+      console.error("[Auto-Replan] Failed to replan from maintenance window:", error);
     }
   });
 
-  console.log('[Auto-Replan] Policy initialized with config:', {
+  console.log("[Auto-Replan] Policy initialized with config:", {
     RUL_DAYS_CRITICAL,
     RISK_REPLAN_LEVEL,
-    AUTO_REPLAN_DAYS
+    AUTO_REPLAN_DAYS,
   });
 }
 ```
 
 #### 5.2 Create Scheduler Controller
+
 **File**: `server/scheduler/scheduler-controller.ts` (NEW)
 
 ```typescript
 import crypto from "node:crypto";
 import { storage } from "../storage";
 import { planShifts, generateDays } from "../crew-scheduler";
-import { 
-  InsertSchedulerRun, 
-  InsertScheduleAssignment, 
+import {
+  InsertSchedulerRun,
+  InsertScheduleAssignment,
   InsertScheduleUnfilled,
-  SelectCrewAssignment 
-} from '@shared/schema';
+  SelectCrewAssignment,
+} from "@shared/schema";
 
 interface PlanParams {
   orgId: string;
@@ -805,7 +873,7 @@ export async function planAndMaybeExecute({
   vessels,
   mode = "dry_run",
   trigger,
-  triggerContext
+  triggerContext,
 }: PlanParams) {
   const since = from ?? new Date().toISOString().slice(0, 10);
   const daysArr = generateDays(since, days);
@@ -831,7 +899,7 @@ export async function planAndMaybeExecute({
     startedAt: new Date(),
     mode,
     inputHash,
-    stats: trigger ? { trigger, triggerContext } : undefined
+    stats: trigger ? { trigger, triggerContext } : undefined,
   };
 
   const run = await storage.createSchedulerRun(runData);
@@ -844,7 +912,7 @@ export async function planAndMaybeExecute({
 
     // Persist results
     if (mode === "execute" || mode === "auto") {
-      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map(a => ({
+      const assignmentRecords: InsertScheduleAssignment[] = scheduled.map((a) => ({
         runId: run.id,
         orgId,
         date: a.date,
@@ -854,20 +922,20 @@ export async function planAndMaybeExecute({
         start: new Date(a.start),
         end: new Date(a.end),
         role: a.role,
-        executed: true
+        executed: true,
       }));
 
       await storage.createBulkScheduleAssignments(assignmentRecords);
     }
 
     // Always persist unfilled data for analysis
-    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map(u => ({
+    const unfilledRecords: InsertScheduleUnfilled[] = unfilled.map((u) => ({
       runId: run.id,
       orgId,
       day: u.day,
       shiftId: u.shiftId,
       need: u.need,
-      reason: u.reason
+      reason: u.reason,
     }));
 
     await storage.createBulkScheduleUnfilled(unfilledRecords);
@@ -877,28 +945,29 @@ export async function planAndMaybeExecute({
       duration_ms: durationMs,
       assigned: scheduled.length,
       unfilled: unfilled.reduce((sum, u) => sum + u.need, 0),
-      reasons: aggregateReasons(unfilled.map(u => u.reason)),
+      reasons: aggregateReasons(unfilled.map((u) => u.reason)),
       trigger,
-      triggerContext
+      triggerContext,
     };
 
     // Update run with results
     await storage.updateSchedulerRun(run.id, {
       finishedAt: new Date(),
       success: true,
-      stats
+      stats,
     });
 
-    console.log(`[Scheduler] Run completed: mode=${mode}, assigned=${scheduled.length}, unfilled=${stats.unfilled}, duration=${durationMs}ms`);
+    console.log(
+      `[Scheduler] Run completed: mode=${mode}, assigned=${scheduled.length}, unfilled=${stats.unfilled}, duration=${durationMs}ms`
+    );
 
     return { runId: run.id, mode, stats, scheduled, unfilled };
-
   } catch (error) {
     // Mark run as failed
     await storage.updateSchedulerRun(run.id, {
       finishedAt: new Date(),
       success: false,
-      stats: { error: error instanceof Error ? error.message : 'Unknown error' }
+      stats: { error: error instanceof Error ? error.message : "Unknown error" },
     });
     throw error;
   }
@@ -908,15 +977,15 @@ export async function planAndMaybeExecute({
 async function loadShiftTemplates(orgId: string, vessels?: string[]) {
   const allShifts = await storage.getShiftTemplates();
   if (!vessels || vessels.length === 0) return allShifts;
-  return allShifts.filter(s => !s.vesselId || vessels.includes(s.vesselId));
+  return allShifts.filter((s) => !s.vesselId || vessels.includes(s.vesselId));
 }
 
 async function loadCrewWithSkills(orgId: string) {
   const crew = await storage.getCrew();
   const crewWithSkills = await Promise.all(
-    crew.map(async c => {
+    crew.map(async (c) => {
       const skills = await storage.getCrewSkills(c.id);
-      return { ...c, skills: skills.map(s => s.skill) };
+      return { ...c, skills: skills.map((s) => s.skill) };
     })
   );
   return crewWithSkills;
@@ -925,22 +994,20 @@ async function loadCrewWithSkills(orgId: string) {
 async function loadCrewLeaves(orgId: string) {
   // Get all crew, then get their leaves
   const crew = await storage.getCrew();
-  const allLeaves = await Promise.all(
-    crew.map(c => storage.getCrewLeave(c.id))
-  );
+  const allLeaves = await Promise.all(crew.map((c) => storage.getCrewLeave(c.id)));
   return allLeaves.flat();
 }
 
 async function loadPortCalls(orgId: string, vessels?: string[]) {
   const allPortCalls = await storage.getPortCalls();
   if (!vessels || vessels.length === 0) return allPortCalls;
-  return allPortCalls.filter(pc => vessels.includes(pc.vesselId));
+  return allPortCalls.filter((pc) => vessels.includes(pc.vesselId));
 }
 
 async function loadDrydocks(orgId: string, vessels?: string[]) {
   const allDrydocks = await storage.getDrydockWindows();
   if (!vessels || vessels.length === 0) return allDrydocks;
-  return allDrydocks.filter(d => vessels.includes(d.vesselId));
+  return allDrydocks.filter((d) => vessels.includes(d.vesselId));
 }
 
 async function loadCertifications(orgId: string) {
@@ -952,7 +1019,11 @@ async function loadCertifications(orgId: string) {
   return certsMap;
 }
 
-async function loadExistingAssignments(orgId: string, from: string, to: string): Promise<SelectCrewAssignment[]> {
+async function loadExistingAssignments(
+  orgId: string,
+  from: string,
+  to: string
+): Promise<SelectCrewAssignment[]> {
   return await storage.getCrewAssignmentsByDateRange(new Date(from), new Date(to));
 }
 
@@ -966,19 +1037,21 @@ function aggregateReasons(reasons: string[]): Array<{ reason: string; count: num
 ```
 
 #### 5.3 Initialize Auto-Replan on Startup
+
 **File**: `server/index.ts`
 
 ```typescript
-import { initializeAutoReplanPolicy } from './scheduler/auto-replan-policy';
+import { initializeAutoReplanPolicy } from "./scheduler/auto-replan-policy";
 
 // Add after route registration (line ~XXX)
-if (process.env.ENABLE_AUTO_REPLAN !== 'false') {
+if (process.env.ENABLE_AUTO_REPLAN !== "false") {
   initializeAutoReplanPolicy();
-  console.log('✓ Auto-replan policy initialized');
+  console.log("✓ Auto-replan policy initialized");
 }
 ```
 
 ### Verification Checkpoint 5 (MANDATORY GATE) ✅
+
 ```bash
 # Critical validation - MUST PASS to continue
 npm run test -- scheduler-controller
@@ -1007,6 +1080,7 @@ grep "Auto-Replan" /tmp/logs/Start_application_*.log | tail -20
 ### Tasks
 
 #### 6.1 Create Scheduler Metrics
+
 **File**: `server/observability/scheduler-metrics.ts` (NEW)
 
 ```typescript
@@ -1017,102 +1091,106 @@ export const schedRunDuration = new client.Histogram({
   name: "arus_scheduler_run_duration_ms",
   help: "Scheduler run duration in milliseconds",
   buckets: [50, 100, 250, 500, 1000, 2000, 4000, 8000],
-  labelNames: ["org_id", "mode", "trigger"]
+  labelNames: ["org_id", "mode", "trigger"],
 });
 
 // Unfilled positions counter
 export const schedUnfilledTotal = new client.Counter({
   name: "arus_scheduler_unfilled_total",
   help: "Total unfilled positions across all runs",
-  labelNames: ["org_id", "vessel_id"]
+  labelNames: ["org_id", "vessel_id"],
 });
 
 // Unfilled by reason
 export const schedUnfilledReason = new client.Counter({
   name: "arus_scheduler_unfilled_reason_total",
   help: "Unfilled positions grouped by reason",
-  labelNames: ["org_id", "reason"]
+  labelNames: ["org_id", "reason"],
 });
 
 // Scheduler runs total
 export const schedRunsTotal = new client.Counter({
   name: "arus_scheduler_runs_total",
   help: "Total scheduler runs",
-  labelNames: ["org_id", "mode", "trigger", "status"]
+  labelNames: ["org_id", "mode", "trigger", "status"],
 });
 
 // Assigned shifts
 export const schedAssignedShifts = new client.Counter({
   name: "arus_scheduler_assigned_shifts_total",
   help: "Total shifts successfully assigned",
-  labelNames: ["org_id", "vessel_id"]
+  labelNames: ["org_id", "vessel_id"],
 });
 
 // Auto-replan triggers
 export const schedAutoReplanTriggers = new client.Counter({
   name: "arus_scheduler_auto_replan_triggers_total",
   help: "Count of auto-replan triggers by source",
-  labelNames: ["org_id", "trigger_type"]
+  labelNames: ["org_id", "trigger_type"],
 });
 
 // Coverage percentage gauge
 export const schedCoveragePercent = new client.Gauge({
   name: "arus_scheduler_coverage_percent",
   help: "Percentage of shifts successfully assigned in last run",
-  labelNames: ["org_id"]
+  labelNames: ["org_id"],
 });
 ```
 
 #### 6.2 Instrument Controller
+
 **File**: `server/scheduler/scheduler-controller.ts`
 
 **Add metrics collection**:
+
 ```typescript
-import { 
-  schedRunDuration, 
-  schedUnfilledTotal, 
+import {
+  schedRunDuration,
+  schedUnfilledTotal,
   schedUnfilledReason,
   schedRunsTotal,
   schedAssignedShifts,
-  schedCoveragePercent
-} from '../observability/scheduler-metrics';
+  schedCoveragePercent,
+} from "../observability/scheduler-metrics";
 
 // After scheduling completes (in try block):
-schedRunDuration.labels(orgId, mode, trigger || 'manual').observe(durationMs);
-schedRunsTotal.labels(orgId, mode, trigger || 'manual', 'success').inc();
+schedRunDuration.labels(orgId, mode, trigger || "manual").observe(durationMs);
+schedRunsTotal.labels(orgId, mode, trigger || "manual", "success").inc();
 
 for (const assignment of scheduled) {
-  schedAssignedShifts.labels(orgId, assignment.vesselId || 'unassigned').inc();
+  schedAssignedShifts.labels(orgId, assignment.vesselId || "unassigned").inc();
 }
 
 for (const u of unfilled) {
-  schedUnfilledTotal.labels(orgId, u.vesselId || 'unknown').inc(u.need);
+  schedUnfilledTotal.labels(orgId, u.vesselId || "unknown").inc(u.need);
 }
 
 for (const { reason, count } of stats.reasons) {
   schedUnfilledReason.labels(orgId, reason).inc(count);
 }
 
-const coverage = scheduled.length / (shifts.length * days.length) * 100;
+const coverage = (scheduled.length / (shifts.length * days.length)) * 100;
 schedCoveragePercent.labels(orgId).set(coverage);
 
 // In catch block:
-schedRunsTotal.labels(orgId, mode, trigger || 'manual', 'failed').inc();
+schedRunsTotal.labels(orgId, mode, trigger || "manual", "failed").inc();
 ```
 
 #### 6.3 Instrument Auto-Replan
+
 **File**: `server/scheduler/auto-replan-policy.ts`
 
 ```typescript
-import { schedAutoReplanTriggers } from '../observability/scheduler-metrics';
+import { schedAutoReplanTriggers } from "../observability/scheduler-metrics";
 
 // Before each replan attempt:
-schedAutoReplanTriggers.labels(event.orgId, 'rul_critical').inc();
-schedAutoReplanTriggers.labels(event.orgId, 'anomaly_detected').inc();
-schedAutoReplanTriggers.labels(event.orgId, 'maintenance_scheduled').inc();
+schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
+schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
+schedAutoReplanTriggers.labels(event.orgId, "maintenance_scheduled").inc();
 ```
 
 ### Verification
+
 ```bash
 # Trigger scheduler run
 curl -X POST http://localhost:5000/api/schedule/plan \
@@ -1137,12 +1215,14 @@ curl http://localhost:5000/api/metrics | grep arus_scheduler
 ### Tasks
 
 #### 7.1 Create Scheduler Routes
+
 **File**: `server/routes.ts`
 
 **Add routes** (around line 12700 after existing crew endpoints):
+
 ```typescript
-import { planAndMaybeExecute } from './scheduler/scheduler-controller';
-import { insertSchedulerRunSchema, insertScheduleAssignmentSchema } from '@shared/schema';
+import { planAndMaybeExecute } from "./scheduler/scheduler-controller";
+import { insertSchedulerRunSchema, insertScheduleAssignmentSchema } from "@shared/schema";
 
 // ==================== Scheduler API ====================
 
@@ -1150,25 +1230,25 @@ import { insertSchedulerRunSchema, insertScheduleAssignmentSchema } from '@share
 app.post("/api/schedule/plan", crewOperationRateLimit, async (req, res) => {
   try {
     const { orgId, from, days, vessels, mode } = req.body;
-    
+
     if (!orgId) {
       return res.status(400).json({ error: "orgId is required" });
     }
-    
+
     const result = await planAndMaybeExecute({
       orgId,
       from,
       days: days || 7,
       vessels,
-      mode: mode || "dry_run"
+      mode: mode || "dry_run",
     });
-    
+
     res.json(result);
   } catch (error) {
     console.error("Failed to plan schedule:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Failed to plan schedule",
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -1177,16 +1257,16 @@ app.post("/api/schedule/plan", crewOperationRateLimit, async (req, res) => {
 app.get("/api/schedule/runs", async (req, res) => {
   try {
     const { orgId, limit } = req.query;
-    
+
     if (!orgId) {
       return res.status(400).json({ error: "orgId is required" });
     }
-    
+
     const runs = await storage.getSchedulerRuns(
-      orgId as string, 
+      orgId as string,
       limit ? parseInt(limit as string) : 50
     );
-    
+
     res.json(runs);
   } catch (error) {
     console.error("Failed to fetch scheduler runs:", error);
@@ -1198,11 +1278,11 @@ app.get("/api/schedule/runs", async (req, res) => {
 app.get("/api/schedule/runs/:id", async (req, res) => {
   try {
     const run = await storage.getSchedulerRun(req.params.id);
-    
+
     if (!run) {
       return res.status(404).json({ error: "Scheduler run not found" });
     }
-    
+
     res.json(run);
   } catch (error) {
     console.error("Failed to fetch scheduler run:", error);
@@ -1214,19 +1294,19 @@ app.get("/api/schedule/runs/:id", async (req, res) => {
 app.get("/api/schedule/assignments", async (req, res) => {
   try {
     const { orgId, from, to } = req.query;
-    
+
     if (!orgId || !from || !to) {
-      return res.status(400).json({ 
-        error: "orgId, from, and to dates are required" 
+      return res.status(400).json({
+        error: "orgId, from, and to dates are required",
       });
     }
-    
+
     const assignments = await storage.getScheduleAssignments(
       orgId as string,
       new Date(from as string),
       new Date(to as string)
     );
-    
+
     res.json(assignments);
   } catch (error) {
     console.error("Failed to fetch schedule assignments:", error);
@@ -1238,16 +1318,16 @@ app.get("/api/schedule/assignments", async (req, res) => {
 app.get("/api/schedule/unfilled", async (req, res) => {
   try {
     const { orgId, runId } = req.query;
-    
+
     if (!orgId) {
       return res.status(400).json({ error: "orgId is required" });
     }
-    
+
     const unfilled = await storage.getScheduleUnfilled(
       orgId as string,
       runId as string | undefined
     );
-    
+
     res.json(unfilled);
   } catch (error) {
     console.error("Failed to fetch unfilled shifts:", error);
@@ -1257,6 +1337,7 @@ app.get("/api/schedule/unfilled", async (req, res) => {
 ```
 
 ### Verification
+
 ```bash
 # Test all endpoints
 # 1. Plan schedule
@@ -1286,6 +1367,7 @@ curl "http://localhost:5000/api/schedule/unfilled?orgId=test-org"
 ### Tasks
 
 #### 8.1 Create Schedule Board View
+
 **File**: `client/src/pages/schedule-board.tsx` (NEW)
 
 ```typescript
@@ -1308,7 +1390,7 @@ export default function ScheduleBoard() {
   const [days, setDays] = useState(7);
   const [vessels, setVessels] = useState<string[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  
+
   const from = format(new Date(), 'yyyy-MM-dd');
   const to = format(addDays(new Date(), days), 'yyyy-MM-dd');
 
@@ -1326,7 +1408,7 @@ export default function ScheduleBoard() {
   const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery({
     queryKey: ['/api/schedule/assignments', orgId, from, to],
     queryFn: async () => {
-      const response = await apiRequest('GET', 
+      const response = await apiRequest('GET',
         `/api/schedule/assignments?orgId=${orgId}&from=${from}&to=${to}`
       );
       return response;
@@ -1338,7 +1420,7 @@ export default function ScheduleBoard() {
   const { data: unfilled = [], isLoading: isLoadingUnfilled } = useQuery({
     queryKey: ['/api/schedule/unfilled', orgId, selectedRunId],
     queryFn: async () => {
-      const url = selectedRunId 
+      const url = selectedRunId
         ? `/api/schedule/unfilled?orgId=${orgId}&runId=${selectedRunId}`
         : `/api/schedule/unfilled?orgId=${orgId}`;
       const response = await apiRequest('GET', url);
@@ -1362,14 +1444,14 @@ export default function ScheduleBoard() {
       queryClient.invalidateQueries({ queryKey: ['/api/schedule/runs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/schedule/assignments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/schedule/unfilled'] });
-      
+
       const coveragePercent = (data.stats.assigned / (data.stats.assigned + data.stats.unfilled)) * 100;
-      
+
       toast({
         title: "Schedule Generated",
         description: `Assigned ${data.stats.assigned} shifts (${coveragePercent.toFixed(1)}% coverage) in ${data.stats.duration_ms}ms`
       });
-      
+
       setSelectedRunId(data.runId);
     },
     onError: (error: any) => {
@@ -1392,7 +1474,7 @@ export default function ScheduleBoard() {
             <p className="text-muted-foreground">PdM-driven intelligent crew planning</p>
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             onClick={() => planMutation.mutate('dry_run')}
@@ -1435,7 +1517,7 @@ export default function ScheduleBoard() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex-1">
             <label className="text-sm font-medium">Date Range</label>
             <div className="text-sm text-muted-foreground mt-2">
@@ -1491,7 +1573,7 @@ export default function ScheduleBoard() {
                   </TableHeader>
                   <TableBody>
                     {runs.map((run: any) => (
-                      <TableRow 
+                      <TableRow
                         key={run.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => setSelectedRunId(run.id)}
@@ -1502,8 +1584,8 @@ export default function ScheduleBoard() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            run.mode === 'execute' ? 'default' : 
-                            run.mode === 'auto' ? 'destructive' : 
+                            run.mode === 'execute' ? 'default' :
+                            run.mode === 'auto' ? 'destructive' :
                             'outline'
                           }>
                             {run.mode}
@@ -1665,6 +1747,7 @@ export default function ScheduleBoard() {
 ```
 
 #### 8.2 Register Route
+
 **File**: `client/src/App.tsx`
 
 ```typescript
@@ -1675,6 +1758,7 @@ import ScheduleBoard from './pages/schedule-board';
 ```
 
 #### 8.3 Add to Navigation
+
 **File**: `client/src/config/navigationConfig.ts`
 
 ```typescript
@@ -1688,6 +1772,7 @@ import ScheduleBoard from './pages/schedule-board';
 ```
 
 ### Verification
+
 ```bash
 # Manual UI testing:
 # [ ] Navigate to /ops/schedule
@@ -1707,33 +1792,37 @@ import ScheduleBoard from './pages/schedule-board';
 ### Tasks
 
 #### 9.1 Add Crew Overlay to RUL Chart
+
 **File**: Find the vessel RUL chart component (likely `client/src/components/RulChart.tsx` or similar)
 
 **Add query for crew assignments**:
+
 ```typescript
 // Fetch crew assignments for this vessel
 const { data: crewAssignments = [] } = useQuery({
-  queryKey: ['/api/schedule/assignments', orgId, vesselId, dateRange],
+  queryKey: ["/api/schedule/assignments", orgId, vesselId, dateRange],
   queryFn: async () => {
-    const from = format(new Date(), 'yyyy-MM-dd');
-    const to = format(addDays(new Date(), 30), 'yyyy-MM-dd');
-    const response = await apiRequest('GET',
+    const from = format(new Date(), "yyyy-MM-dd");
+    const to = format(addDays(new Date(), 30), "yyyy-MM-dd");
+    const response = await apiRequest(
+      "GET",
       `/api/schedule/assignments?orgId=${orgId}&from=${from}&to=${to}`
     );
     // Filter for this vessel
     return response.filter((a: any) => a.vesselId === vesselId);
   },
-  enabled: !!vesselId && showCrewOverlay
+  enabled: !!vesselId && showCrewOverlay,
 });
 ```
 
 **Add overlay toggle**:
+
 ```typescript
 const [showCrewOverlay, setShowCrewOverlay] = useState(false);
 
 // In UI:
 <div className="flex items-center gap-2">
-  <Checkbox 
+  <Checkbox
     checked={showCrewOverlay}
     onCheckedChange={setShowCrewOverlay}
     id="crew-overlay"
@@ -1743,36 +1832,40 @@ const [showCrewOverlay, setShowCrewOverlay] = useState(false);
 ```
 
 **Add overlay visualization** (in chart configuration):
+
 ```typescript
 // Add crew availability bands to RUL timeline chart
 const crewOverlayData = crewAssignments.map((a: any) => ({
   start: new Date(a.start),
   end: new Date(a.end),
   crewId: a.crewId,
-  role: a.role
+  role: a.role,
 }));
 
 // Render as colored bands above/below RUL line
 ```
 
 #### 9.2 Add RUL Context to Schedule Board
+
 **File**: `client/src/pages/schedule-board.tsx`
 
 **Add RUL data query**:
+
 ```typescript
 // Fetch RUL predictions for vessels with critical equipment
 const { data: rulAlerts = [] } = useQuery({
-  queryKey: ['/api/rul/critical', orgId],
+  queryKey: ["/api/rul/critical", orgId],
   queryFn: async () => {
-    const response = await apiRequest('GET', '/api/equipment-health');
+    const response = await apiRequest("GET", "/api/equipment-health");
     // Filter for critical RUL (≤9 days)
     return response.filter((e: any) => e.remainingDays && e.remainingDays <= 9);
   },
-  refetchInterval: 60000
+  refetchInterval: 60000,
 });
 ```
 
 **Add alert banner**:
+
 ```typescript
 {rulAlerts.length > 0 && (
   <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
@@ -1793,7 +1886,7 @@ const { data: rulAlerts = [] } = useQuery({
           </div>
         ))}
       </div>
-      <Button 
+      <Button
         className="mt-4"
         onClick={() => planMutation.mutate('auto')}
         variant="destructive"
@@ -1807,6 +1900,7 @@ const { data: rulAlerts = [] } = useQuery({
 ```
 
 ### Verification
+
 ```bash
 # Integration test:
 # [ ] Trigger RUL calculation showing critical equipment
@@ -1827,133 +1921,160 @@ const { data: rulAlerts = [] } = useQuery({
 ### Tasks
 
 #### 10.1 Unit Tests for Constraints
+
 **File**: `server/tests/scheduler-constraints.test.ts` (NEW)
 
 ```typescript
-import { describe, it, expect } from '@jest/globals';
-import { overlaps, isWindowAllowed, leaveOverlaps, hasValidCertification } from '../crew-scheduler-ortools';
+import { describe, it, expect } from "@jest/globals";
+import {
+  overlaps,
+  isWindowAllowed,
+  leaveOverlaps,
+  hasValidCertification,
+} from "../crew-scheduler-ortools";
 
-describe('Scheduler Constraint Logic', () => {
-  describe('overlaps', () => {
-    it('should detect overlapping time windows', () => {
-      const a = { start: new Date('2025-11-05T08:00:00Z'), end: new Date('2025-11-05T16:00:00Z') };
-      const b = { start: new Date('2025-11-05T12:00:00Z'), end: new Date('2025-11-05T20:00:00Z') };
+describe("Scheduler Constraint Logic", () => {
+  describe("overlaps", () => {
+    it("should detect overlapping time windows", () => {
+      const a = { start: new Date("2025-11-05T08:00:00Z"), end: new Date("2025-11-05T16:00:00Z") };
+      const b = { start: new Date("2025-11-05T12:00:00Z"), end: new Date("2025-11-05T20:00:00Z") };
       expect(overlaps(a.start, a.end, b.start, b.end)).toBe(true);
     });
 
-    it('should not detect non-overlapping windows', () => {
-      const a = { start: new Date('2025-11-05T08:00:00Z'), end: new Date('2025-11-05T16:00:00Z') };
-      const b = { start: new Date('2025-11-05T17:00:00Z'), end: new Date('2025-11-05T20:00:00Z') };
+    it("should not detect non-overlapping windows", () => {
+      const a = { start: new Date("2025-11-05T08:00:00Z"), end: new Date("2025-11-05T16:00:00Z") };
+      const b = { start: new Date("2025-11-05T17:00:00Z"), end: new Date("2025-11-05T20:00:00Z") };
       expect(overlaps(a.start, a.end, b.start, b.end)).toBe(false);
     });
   });
 
-  describe('isWindowAllowed', () => {
-    it('should block shifts during drydock', () => {
-      const drydocks = [{
-        vesselId: 'vessel-1',
-        start: '2025-11-05T00:00:00Z',
-        end: '2025-11-10T00:00:00Z'
-      }];
-      
+  describe("isWindowAllowed", () => {
+    it("should block shifts during drydock", () => {
+      const drydocks = [
+        {
+          vesselId: "vessel-1",
+          start: "2025-11-05T00:00:00Z",
+          end: "2025-11-10T00:00:00Z",
+        },
+      ];
+
       const result = isWindowAllowed(
-        '2025-11-06',
-        '08:00',
-        '16:00',
-        'vessel-1',
+        "2025-11-06",
+        "08:00",
+        "16:00",
+        "vessel-1",
         [],
         drydocks as any
       );
-      
+
       expect(result).toBe(false);
     });
 
-    it('should allow shifts during port calls', () => {
-      const portCalls = [{
-        vesselId: 'vessel-1',
-        start: '2025-11-05T00:00:00Z',
-        end: '2025-11-10T00:00:00Z'
-      }];
-      
+    it("should allow shifts during port calls", () => {
+      const portCalls = [
+        {
+          vesselId: "vessel-1",
+          start: "2025-11-05T00:00:00Z",
+          end: "2025-11-10T00:00:00Z",
+        },
+      ];
+
       const result = isWindowAllowed(
-        '2025-11-06',
-        '08:00',
-        '16:00',
-        'vessel-1',
+        "2025-11-06",
+        "08:00",
+        "16:00",
+        "vessel-1",
         portCalls as any,
         []
       );
-      
+
       expect(result).toBe(true);
     });
 
-    it('should prioritize drydock over port call', () => {
-      const drydocks = [{ vesselId: 'vessel-1', start: '2025-11-05T00:00:00Z', end: '2025-11-10T00:00:00Z' }];
-      const portCalls = [{ vesselId: 'vessel-1', start: '2025-11-05T00:00:00Z', end: '2025-11-10T00:00:00Z' }];
-      
-      const result = isWindowAllowed('2025-11-06', '08:00', '16:00', 'vessel-1', portCalls as any, drydocks as any);
-      
+    it("should prioritize drydock over port call", () => {
+      const drydocks = [
+        { vesselId: "vessel-1", start: "2025-11-05T00:00:00Z", end: "2025-11-10T00:00:00Z" },
+      ];
+      const portCalls = [
+        { vesselId: "vessel-1", start: "2025-11-05T00:00:00Z", end: "2025-11-10T00:00:00Z" },
+      ];
+
+      const result = isWindowAllowed(
+        "2025-11-06",
+        "08:00",
+        "16:00",
+        "vessel-1",
+        portCalls as any,
+        drydocks as any
+      );
+
       expect(result).toBe(false); // Drydock blocks even with port call
     });
   });
 
-  describe('leaveOverlaps', () => {
-    it('should detect leave overlapping shift', () => {
-      const leaves = [{
-        crewId: 'crew-1',
-        start: '2025-11-05T00:00:00Z',
-        end: '2025-11-10T00:00:00Z'
-      }];
-      
+  describe("leaveOverlaps", () => {
+    it("should detect leave overlapping shift", () => {
+      const leaves = [
+        {
+          crewId: "crew-1",
+          start: "2025-11-05T00:00:00Z",
+          end: "2025-11-10T00:00:00Z",
+        },
+      ];
+
       const result = leaveOverlaps(
-        'crew-1',
-        new Date('2025-11-06T08:00:00Z'),
-        new Date('2025-11-06T16:00:00Z'),
+        "crew-1",
+        new Date("2025-11-06T08:00:00Z"),
+        new Date("2025-11-06T16:00:00Z"),
         leaves as any
       );
-      
+
       expect(result).toBe(true);
     });
   });
 
-  describe('hasValidCertification', () => {
-    it('should validate certification expiry', () => {
-      const crew = { id: 'crew-1', skills: ['navigation'] };
+  describe("hasValidCertification", () => {
+    it("should validate certification expiry", () => {
+      const crew = { id: "crew-1", skills: ["navigation"] };
       const certifications = {
-        'crew-1': [{
-          cert: 'STCW_OOW',
-          expiresAt: '2025-12-31T00:00:00Z'
-        }]
+        "crew-1": [
+          {
+            cert: "STCW_OOW",
+            expiresAt: "2025-12-31T00:00:00Z",
+          },
+        ],
       };
-      
+
       const result = hasValidCertification(
         crew as any,
-        'STCW_OOW',
-        new Date('2025-11-06T08:00:00Z'),
-        new Date('2025-11-06T16:00:00Z'),
+        "STCW_OOW",
+        new Date("2025-11-06T08:00:00Z"),
+        new Date("2025-11-06T16:00:00Z"),
         certifications as any
       );
-      
+
       expect(result).toBe(true);
     });
 
-    it('should reject expired certification', () => {
-      const crew = { id: 'crew-1', skills: ['navigation'] };
+    it("should reject expired certification", () => {
+      const crew = { id: "crew-1", skills: ["navigation"] };
       const certifications = {
-        'crew-1': [{
-          cert: 'STCW_OOW',
-          expiresAt: '2025-11-01T00:00:00Z' // Expired
-        }]
+        "crew-1": [
+          {
+            cert: "STCW_OOW",
+            expiresAt: "2025-11-01T00:00:00Z", // Expired
+          },
+        ],
       };
-      
+
       const result = hasValidCertification(
         crew as any,
-        'STCW_OOW',
-        new Date('2025-11-06T08:00:00Z'),
-        new Date('2025-11-06T16:00:00Z'),
+        "STCW_OOW",
+        new Date("2025-11-06T08:00:00Z"),
+        new Date("2025-11-06T16:00:00Z"),
         certifications as any
       );
-      
+
       expect(result).toBe(false);
     });
   });
@@ -1961,61 +2082,62 @@ describe('Scheduler Constraint Logic', () => {
 ```
 
 #### 10.2 Integration Tests for Auto-Replan
+
 **File**: `server/tests/auto-replan-integration.test.ts` (NEW)
 
 ```typescript
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { schedulerEventBus } from '../events/scheduler-bus';
-import { initializeAutoReplanPolicy } from '../scheduler/auto-replan-policy';
+import { describe, it, expect, beforeEach } from "@jest/globals";
+import { schedulerEventBus } from "../events/scheduler-bus";
+import { initializeAutoReplanPolicy } from "../scheduler/auto-replan-policy";
 
-describe('Auto-Replan Integration', () => {
+describe("Auto-Replan Integration", () => {
   beforeEach(() => {
     // Reset event bus
     schedulerEventBus.removeAllListeners();
   });
 
-  it('should trigger replan on critical RUL', async () => {
+  it("should trigger replan on critical RUL", async () => {
     let replanTriggered = false;
-    
+
     // Mock planAndMaybeExecute
-    jest.mock('../scheduler/scheduler-controller', () => ({
+    jest.mock("../scheduler/scheduler-controller", () => ({
       planAndMaybeExecute: async () => {
         replanTriggered = true;
-        return { runId: 'test-run', stats: {} };
-      }
+        return { runId: "test-run", stats: {} };
+      },
     }));
 
     initializeAutoReplanPolicy();
 
     // Emit RUL event
     schedulerEventBus.emitRulUpdate({
-      orgId: 'test-org',
-      vesselId: 'vessel-1',
-      equipmentId: 'engine-1',
+      orgId: "test-org",
+      vesselId: "vessel-1",
+      equipmentId: "engine-1",
       remainingDays: 5, // Critical
-      riskLevel: 'high'
+      riskLevel: "high",
     });
 
     // Wait for async handler
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(replanTriggered).toBe(true);
   });
 
-  it('should not trigger replan on non-critical RUL', async () => {
+  it("should not trigger replan on non-critical RUL", async () => {
     let replanTriggered = false;
-    
+
     initializeAutoReplanPolicy();
 
     schedulerEventBus.emitRulUpdate({
-      orgId: 'test-org',
-      vesselId: 'vessel-1',
-      equipmentId: 'engine-1',
+      orgId: "test-org",
+      vesselId: "vessel-1",
+      equipmentId: "engine-1",
       remainingDays: 30, // Not critical
-      riskLevel: 'low'
+      riskLevel: "low",
     });
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(replanTriggered).toBe(false);
   });
@@ -2023,6 +2145,7 @@ describe('Auto-Replan Integration', () => {
 ```
 
 #### 10.3 E2E Tests for UI Workflows
+
 **File**: `e2e/schedule-board.spec.ts` (NEW) - Use with run_test tool
 
 ```typescript
@@ -2045,6 +2168,7 @@ Test Plan:
 ```
 
 ### Verification Checkpoint (CRITICAL GATE) ✅
+
 ```bash
 # Run all tests
 npm run test
@@ -2074,6 +2198,7 @@ npm run test -- --coverage
 ### Tasks
 
 #### 11.1 API Reference
+
 **File**: `docs/api/scheduler-api.md` (NEW)
 
 ````markdown
@@ -2082,9 +2207,11 @@ npm run test -- --coverage
 ## Endpoints
 
 ### POST /api/schedule/plan
+
 Plan crew schedule with optional execution.
 
 **Request:**
+
 ```json
 {
   "orgId": "string (required)",
@@ -2096,6 +2223,7 @@ Plan crew schedule with optional execution.
 ```
 
 **Response:**
+
 ```json
 {
   "runId": "uuid",
@@ -2115,49 +2243,60 @@ Plan crew schedule with optional execution.
 ```
 
 ### GET /api/schedule/runs
+
 Fetch scheduler run history.
 
 **Query Parameters:**
+
 - `orgId` (required): Organization ID
 - `limit` (optional): Max runs to return (default 50)
 
 ### GET /api/schedule/assignments
+
 Get crew assignments for date range.
 
 **Query Parameters:**
+
 - `orgId` (required)
 - `from` (required): Start date (YYYY-MM-DD)
 - `to` (required): End date (YYYY-MM-DD)
 
 ### GET /api/schedule/unfilled
+
 Get unfilled shifts.
 
 **Query Parameters:**
+
 - `orgId` (required)
 - `runId` (optional): Filter by specific run
 ````
 
 #### 11.2 PdM Integration Guide
+
 **File**: `docs/guides/pdm-scheduler-integration.md` (NEW)
 
 ````markdown
 # PdM-Scheduler Integration Guide
 
 ## Overview
+
 The crew scheduler automatically replans shifts when predictive maintenance detects critical equipment conditions.
 
 ## Auto-Replan Triggers
 
 ### 1. RUL Critical Threshold
+
 When RUL Engine predicts equipment failure within configured threshold:
 
 **Configuration:**
+
 ```bash
 SCHED_RUL_DAYS_CRITICAL=9  # Trigger replan when ≤9 days remaining
 SCHED_RISK_REPLAN_LEVEL=high  # Minimum risk level to trigger
 ```
 
 **Example:**
+
 ```
 RUL Engine: Engine #3 has 7 days remaining (risk: high)
 ↓
@@ -2169,14 +2308,17 @@ Scheduler: Adjust shifts to accommodate upcoming maintenance
 ```
 
 ### 2. Anomaly Detection
+
 High/critical severity anomalies trigger immediate replan.
 
 ### 3. Maintenance Windows
+
 When maintenance is scheduled, crew is automatically reallocated.
 
 ## Viewing Integration Status
 
 **Metrics:**
+
 ```bash
 curl http://localhost:5000/api/metrics | grep arus_scheduler_auto_replan
 # arus_scheduler_auto_replan_triggers_total{org_id="...",trigger_type="rul_critical"} 3
@@ -2188,6 +2330,7 @@ Navigate to Schedule Board → Run History → Look for mode="auto"
 ## Configuration
 
 Add to `.env`:
+
 ```bash
 # Auto-replan policy
 ENABLE_AUTO_REPLAN=true
@@ -2198,6 +2341,7 @@ SCHED_AUTO_REPLAN_DAYS=7
 ````
 
 #### 11.3 Troubleshooting Runbook
+
 **File**: `docs/operations/scheduler-runbook.md` (NEW)
 
 ````markdown
@@ -2208,10 +2352,12 @@ SCHED_AUTO_REPLAN_DAYS=7
 ### Issue: Auto-replan not triggering
 
 **Symptoms:**
+
 - RUL predictions show critical equipment
 - No scheduler runs with mode="auto"
 
 **Diagnosis:**
+
 ```bash
 # Check if auto-replan is enabled
 grep "Auto-Replan.*initialized" logs/Start_application_*.log
@@ -2221,6 +2367,7 @@ curl http://localhost:5000/api/metrics | grep arus_rul_remaining_days
 ```
 
 **Resolution:**
+
 1. Verify `ENABLE_AUTO_REPLAN=true` in environment
 2. Check `SCHED_RUL_DAYS_CRITICAL` threshold
 3. Restart application to reload config
@@ -2228,10 +2375,12 @@ curl http://localhost:5000/api/metrics | grep arus_rul_remaining_days
 ### Issue: High unfilled shift count
 
 **Symptoms:**
+
 - `arus_scheduler_unfilled_total` metric high
 - Unfilled tab shows many gaps
 
 **Diagnosis:**
+
 ```bash
 curl http://localhost:5000/api/schedule/unfilled?orgId=xxx
 
@@ -2243,6 +2392,7 @@ curl http://localhost:5000/api/schedule/unfilled?orgId=xxx
 ```
 
 **Resolution:**
+
 1. insufficient_skills → Add qualified crew or reduce shift requirements
 2. on_leave → Adjust planning horizon or hire temporary crew
 3. rest_violation → Reduce shift density or add rest periods
@@ -2251,10 +2401,12 @@ curl http://localhost:5000/api/schedule/unfilled?orgId=xxx
 ### Issue: Scheduler performance degradation
 
 **Symptoms:**
+
 - `arus_scheduler_run_duration_ms` increasing
 - Timeouts on `/api/schedule/plan`
 
 **Diagnosis:**
+
 ```bash
 # Check metrics
 curl http://localhost:5000/api/metrics | grep arus_scheduler_run_duration
@@ -2263,6 +2415,7 @@ curl http://localhost:5000/api/metrics | grep arus_scheduler_run_duration
 ```
 
 **Resolution:**
+
 1. Reduce planning horizon (30 days → 14 days)
 2. Filter to specific vessels
 3. Enable database query optimization
@@ -2270,19 +2423,21 @@ curl http://localhost:5000/api/metrics | grep arus_scheduler_run_duration
 
 ## Metrics Reference
 
-| Metric | Description | Alert Threshold |
-|--------|-------------|----------------|
-| `arus_scheduler_run_duration_ms` | Scheduler execution time | p95 > 5000ms |
-| `arus_scheduler_unfilled_total` | Unfilled positions | > 20% of total shifts |
-| `arus_scheduler_runs_total{status="failed"}` | Failed runs | > 5% failure rate |
-| `arus_scheduler_auto_replan_triggers_total` | Auto-replan count | Monitor for unexpected spikes |
+| Metric                                       | Description              | Alert Threshold               |
+| -------------------------------------------- | ------------------------ | ----------------------------- |
+| `arus_scheduler_run_duration_ms`             | Scheduler execution time | p95 > 5000ms                  |
+| `arus_scheduler_unfilled_total`              | Unfilled positions       | > 20% of total shifts         |
+| `arus_scheduler_runs_total{status="failed"}` | Failed runs              | > 5% failure rate             |
+| `arus_scheduler_auto_replan_triggers_total`  | Auto-replan count        | Monitor for unexpected spikes |
 ````
 
 #### 11.4 Update Main README
+
 **File**: `replit.md`
 
 Add section:
-```markdown
+
+````markdown
 ## Crew Scheduler PdM Integration (November 2025)
 
 **Status**: Production-ready ✅
@@ -2290,6 +2445,7 @@ Add section:
 Intelligent crew scheduling system integrated with RUL Engine v2.0 for predictive maintenance-driven crew planning.
 
 **Key Features:**
+
 - Auto-replan triggers from RUL predictions, anomalies, and maintenance windows
 - Comprehensive constraint enforcement (drydock priority, leave overlap, certification validation)
 - Full audit trail with run history and unfilled analysis
@@ -2298,24 +2454,29 @@ Intelligent crew scheduling system integrated with RUL Engine v2.0 for predictiv
 - Schedule Board UI with dry-run and execute modes
 
 **Architecture:**
+
 - Event-driven integration via scheduler event bus
 - Dry-run/execute/auto modes for different workflows
 - Database audit trail in `scheduler_runs`, `schedule_assignments`, `schedule_unfilled` tables
 - 4 REST endpoints for planning and analytics
 
 **Configuration:**
+
 ```bash
 ENABLE_AUTO_REPLAN=true
 SCHED_RUL_DAYS_CRITICAL=9
 SCHED_RISK_REPLAN_LEVEL=high
 SCHED_AUTO_REPLAN_DAYS=7
 ```
+````
 
 **Documentation:**
+
 - API Reference: `docs/api/scheduler-api.md`
 - Integration Guide: `docs/guides/pdm-scheduler-integration.md`
 - Operations Runbook: `docs/operations/scheduler-runbook.md`
-```
+
+````
 
 ### Verification
 ```bash
@@ -2326,7 +2487,7 @@ ls -la docs/operations/scheduler-runbook.md
 
 # Test docs build (if using doc generator)
 npm run docs:build
-```
+````
 
 ---
 
@@ -2337,12 +2498,13 @@ npm run docs:build
 ### Tasks
 
 #### 12.1 Final Test Suite
+
 ```bash
 # 1. Unit tests
 npm run test -- scheduler
 # Expected: All passing
 
-# 2. Integration tests  
+# 2. Integration tests
 npm run test -- auto-replan
 # Expected: All passing
 
@@ -2360,6 +2522,7 @@ npm run db:push
 ```
 
 #### 12.2 End-to-End Validation Workflow
+
 **Manual test checklist:**
 
 1. **Frontend Critical Fixes** ✅
@@ -2408,6 +2571,7 @@ npm run db:push
    - [ ] Check logs for successful completion messages
 
 #### 12.3 Performance Validation
+
 ```bash
 # Capture performance metrics
 curl -X POST http://localhost:5000/api/schedule/plan \
@@ -2424,6 +2588,7 @@ curl http://localhost:5000/api/metrics | grep arus_scheduler_run_duration_ms_buc
 ```
 
 #### 12.4 Security Audit
+
 ```bash
 # Check for exposed secrets
 grep -r "API_KEY\|SECRET\|PASSWORD" server/ client/ --exclude-dir=node_modules
@@ -2441,6 +2606,7 @@ curl -X POST http://localhost:5000/api/schedule/plan \
 #### 12.5 Final Polish
 
 **Code cleanup:**
+
 ```bash
 # Remove console.logs (keep structured logging only)
 grep -r "console.log" server/ --exclude-dir=node_modules | grep -v "//"
@@ -2453,6 +2619,7 @@ npm run format
 ```
 
 **UI polish:**
+
 - [ ] Verify all buttons have loading states
 - [ ] Verify all forms have validation
 - [ ] Verify all tables have empty states
@@ -2460,6 +2627,7 @@ npm run format
 - [ ] Verify dark mode works on all new components
 
 ### Final Verification Checkpoint (PRODUCTION GATE) ✅
+
 ```bash
 # Complete test suite
 npm run test -- --coverage
@@ -2490,6 +2658,7 @@ echo "✅ Docs complete" || echo "❌ Docs missing"
 ```
 
 **GO/NO-GO Decision Criteria:**
+
 - ✅ All tests passing (unit + integration + e2e)
 - ✅ Code coverage >80%
 - ✅ All 9 critical bugs fixed
@@ -2530,12 +2699,14 @@ ENABLE_SCHEDULER_AUDIT_TRAIL=true
 ### If issues discovered during implementation:
 
 **Phase 1-3 rollback:**
+
 ```bash
 git revert <commit-sha>
 npm run db:push -- --force  # Revert schema changes
 ```
 
 **Phase 4-6 rollback:**
+
 ```bash
 # Disable auto-replan
 export ENABLE_AUTO_REPLAN=false
@@ -2544,6 +2715,7 @@ npm run dev
 ```
 
 **Phase 7-9 rollback:**
+
 ```bash
 # Comment out route registration
 # Remove UI components from navigation
@@ -2551,6 +2723,7 @@ git checkout -- client/src/App.tsx
 ```
 
 **Complete rollback:**
+
 ```bash
 git reset --hard <pre-implementation-commit>
 npm run db:push --force
@@ -2563,16 +2736,16 @@ npm run dev
 
 **Implementation complete when:**
 
-| Metric | Target | Validation |
-|--------|--------|------------|
-| Critical bugs fixed | 9/9 | Manual testing checklist |
-| Test coverage | >80% | `npm run test -- --coverage` |
-| API endpoints | 4/4 working | curl tests passing |
-| UI components | 1 page + 1 integration | Manual navigation |
-| Documentation | 3 docs complete | File existence check |
-| PdM integration | Auto-replan functional | Trigger RUL → verify replan |
-| Observability | 6+ metrics exposed | `/api/metrics` check |
-| Performance | p95 < 5000ms | Prometheus histogram |
+| Metric              | Target                 | Validation                   |
+| ------------------- | ---------------------- | ---------------------------- |
+| Critical bugs fixed | 9/9                    | Manual testing checklist     |
+| Test coverage       | >80%                   | `npm run test -- --coverage` |
+| API endpoints       | 4/4 working            | curl tests passing           |
+| UI components       | 1 page + 1 integration | Manual navigation            |
+| Documentation       | 3 docs complete        | File existence check         |
+| PdM integration     | Auto-replan functional | Trigger RUL → verify replan  |
+| Observability       | 6+ metrics exposed     | `/api/metrics` check         |
+| Performance         | p95 < 5000ms           | Prometheus histogram         |
 
 ---
 
@@ -2591,12 +2764,14 @@ npm run dev
 ## Support & Escalation
 
 **If blocked:**
+
 1. Check troubleshooting runbook: `docs/operations/scheduler-runbook.md`
 2. Review metrics: `curl http://localhost:5000/api/metrics | grep arus_scheduler`
 3. Check logs: `grep "Auto-Replan\|Scheduler" /tmp/logs/Start_application_*.log`
 4. Rollback if critical: See "Rollback Procedures" above
 
 **Production incident response:**
+
 1. Disable auto-replan: `ENABLE_AUTO_REPLAN=false`
 2. Switch to manual mode only
 3. Investigate root cause via audit trail

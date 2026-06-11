@@ -74,7 +74,9 @@ function evaluateThresholds(
   if (criticalThreshold != null && warningThreshold != null) {
     const thresholdOrderIndicatesLowIsBad = criticalThreshold < warningThreshold;
     if (isLowIsBad !== thresholdOrderIndicatesLowIsBad) {
-      logger.warn(`Threshold order mismatch for ${equipmentId} ${sensorType}: expected ${isLowIsBad ? "critical < warning" : "critical > warning"}`);
+      logger.warn(
+        `Threshold order mismatch for ${equipmentId} ${sensorType}: expected ${isLowIsBad ? "critical < warning" : "critical > warning"}`
+      );
     }
     isLowIsBad = thresholdOrderIndicatesLowIsBad;
   }
@@ -237,7 +239,11 @@ export async function applySensorConfiguration(
 
     return { processedValue, shouldKeep: true, flags };
   } catch (error) {
-    logger.error(`Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`, undefined, error);
+    logger.error(
+      `Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`,
+      undefined,
+      error
+    );
     return { processedValue, shouldKeep: true, flags: ["config_error"] };
   }
 }
@@ -303,16 +309,17 @@ export async function checkAndScheduleAutomaticMaintenance(
 ): Promise<void> {
   const settings = (await dbSystemAdminStorage.getSettings()) as Record<string, unknown>;
 
-  if (!settings['autoScheduleMaintenance']) {
+  if (!settings["autoScheduleMaintenance"]) {
     return;
   }
 
-  const healthScore = (telemetryReading as typeof telemetryReading & { pdmScore?: number | null }).pdmScore;
+  const healthScore = (telemetryReading as typeof telemetryReading & { pdmScore?: number | null })
+    .pdmScore;
   if (healthScore === null || healthScore === undefined) {
     return;
   }
 
-  const autoScheduleThreshold = (settings['autoScheduleThreshold'] as number | undefined) || 60;
+  const autoScheduleThreshold = (settings["autoScheduleThreshold"] as number | undefined) || 60;
   if (healthScore >= autoScheduleThreshold) {
     return;
   }
@@ -321,8 +328,7 @@ export async function checkAndScheduleAutomaticMaintenance(
     telemetryReading.equipmentId
   );
   const hasUpcoming = existingSchedules.some(
-    (s) =>
-      s.status === "pending" && s.scheduledDate && new Date(s.scheduledDate) > new Date()
+    (s) => s.status === "pending" && s.scheduledDate && new Date(s.scheduledDate) > new Date()
   );
 
   if (!hasUpcoming) {

@@ -57,11 +57,21 @@ interface Ctx {
 }
 
 function resolve(ctx: Ctx): unknown[] {
-  if (ctx.op === "update" && ctx.table === workOrders) {return scenario.guardedUpdate;}
-  if (ctx.op === "select" && ctx.table === workOrders) {return scenario.currentWorkOrder;}
-  if (ctx.op === "insert" && ctx.table === syncConflicts) {return scenario.insertedConflict;}
-  if (ctx.op === "select" && ctx.table === syncConflicts) {return scenario.selectConflicts;}
-  if (ctx.op === "update" && ctx.table === syncConflicts) {return scenario.updateConflict;}
+  if (ctx.op === "update" && ctx.table === workOrders) {
+    return scenario.guardedUpdate;
+  }
+  if (ctx.op === "select" && ctx.table === workOrders) {
+    return scenario.currentWorkOrder;
+  }
+  if (ctx.op === "insert" && ctx.table === syncConflicts) {
+    return scenario.insertedConflict;
+  }
+  if (ctx.op === "select" && ctx.table === syncConflicts) {
+    return scenario.selectConflicts;
+  }
+  if (ctx.op === "update" && ctx.table === syncConflicts) {
+    return scenario.updateConflict;
+  }
   return [];
 }
 
@@ -69,11 +79,15 @@ function resolve(ctx: Ctx): unknown[] {
 function chainFor(ctx: Ctx): any {
   const chain: any = {
     set: (arg: Record<string, unknown>) => {
-      if (ctx.table === syncConflicts) {capturedUpdateSet.push(arg);}
+      if (ctx.table === syncConflicts) {
+        capturedUpdateSet.push(arg);
+      }
       return chain;
     },
     values: (arg: Record<string, unknown>) => {
-      if (ctx.table === syncConflicts) {capturedInsertValues.push(arg);}
+      if (ctx.table === syncConflicts) {
+        capturedInsertValues.push(arg);
+      }
       return chain;
     },
     from: (t: unknown) => {
@@ -106,17 +120,29 @@ jest.unstable_mockModule("../../server/db", () => ({
 
 // Recursively scan a drizzle SQL/condition object for a literal value.
 function sqlContainsValue(node: unknown, target: string, depth = 0): boolean {
-  if (depth > 8 || node == null) {return false;}
-  if (typeof node === "string") {return node === target;}
-  if (typeof node !== "object") {return false;}
+  if (depth > 8 || node == null) {
+    return false;
+  }
+  if (typeof node === "string") {
+    return node === target;
+  }
+  if (typeof node !== "object") {
+    return false;
+  }
   const obj = node as Record<string, unknown>;
-  if ("value" in obj && obj["value"] === target) {return true;}
+  if ("value" in obj && obj["value"] === target) {
+    return true;
+  }
   for (const key of ["queryChunks", "value", "left", "right", "params", "list"]) {
     const v = obj[key];
     if (Array.isArray(v)) {
-      if (v.some((x) => sqlContainsValue(x, target, depth + 1))) {return true;}
+      if (v.some((x) => sqlContainsValue(x, target, depth + 1))) {
+        return true;
+      }
     } else if (v && typeof v === "object") {
-      if (sqlContainsValue(v, target, depth + 1)) {return true;}
+      if (sqlContainsValue(v, target, depth + 1)) {
+        return true;
+      }
     }
   }
   return false;
@@ -252,7 +278,13 @@ describe("applyOptimisticUpdate", () => {
     scenario.guardedUpdate = [];
     scenario.currentWorkOrder = [{ id: "wo1", version: 5, updatedAt: new Date() }];
     scenario.insertedConflict = [
-      { id: "c2", tableName: "work_orders", recordId: "wo1", isSafetyCritical: false, createdAt: new Date() },
+      {
+        id: "c2",
+        tableName: "work_orders",
+        recordId: "wo1",
+        isSafetyCritical: false,
+        createdAt: new Date(),
+      },
     ];
 
     const outcome = await service.applyOptimisticUpdate({

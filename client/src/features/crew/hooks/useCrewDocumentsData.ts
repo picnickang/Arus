@@ -106,7 +106,7 @@ export function useCrewDocumentsData(crewId: string) {
   const raiseRenewalTask = useCallback(
     async (
       doc: { id: string; documentType: string; documentNumber?: string; expiresAt?: string },
-      leadDays: number = DEFAULT_REMINDER_LEAD_DAYS,
+      leadDays: number = DEFAULT_REMINDER_LEAD_DAYS
     ) => {
       if (!doc.expiresAt) {
         return;
@@ -131,7 +131,8 @@ export function useCrewDocumentsData(crewId: string) {
       if (!decision.shouldRaise) {
         return;
       }
-      const label = DOCUMENT_TYPES.find((d) => d.value === doc.documentType)?.label ?? doc.documentType;
+      const label =
+        DOCUMENT_TYPES.find((d) => d.value === doc.documentType)?.label ?? doc.documentType;
       const when = format(new Date(doc.expiresAt), "MMM d, yyyy");
       createTaskMutation.mutate({
         title: `Renew ${label}`,
@@ -183,8 +184,15 @@ export function useCrewDocumentsData(crewId: string) {
         body: formData,
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: unknown; message?: string } | null;
-        throw new Error(payload?.message || (typeof payload?.error === "string" ? payload.error : undefined) || `File upload failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as {
+          error?: unknown;
+          message?: string;
+        } | null;
+        throw new Error(
+          payload?.message ||
+            (typeof payload?.error === "string" ? payload.error : undefined) ||
+            `File upload failed (${res.status}).`
+        );
       }
     },
     [crewId]
@@ -305,8 +313,7 @@ export function useCrewDocumentsData(crewId: string) {
         setIsSaving(false);
         toast({
           title: "Error",
-          description:
-            error instanceof Error ? error.message : "Failed to save document",
+          description: error instanceof Error ? error.message : "Failed to save document",
           variant: "destructive",
         });
         return;
@@ -318,9 +325,7 @@ export function useCrewDocumentsData(crewId: string) {
         } catch (error) {
           setIsSaving(false);
           queryClient.invalidateQueries({ queryKey: ["/api/crew", crewId, "documents"] });
-          setUploadError(
-            error instanceof Error ? error.message : "File upload failed."
-          );
+          setUploadError(error instanceof Error ? error.message : "File upload failed.");
           return;
         }
       }

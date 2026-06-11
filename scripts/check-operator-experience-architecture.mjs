@@ -23,29 +23,39 @@ function rel(file) {
   return path.relative(root, file).replaceAll(path.sep, "/");
 }
 
-const backendFiles = walk(path.join(root, "server/domains/workflow/operator-experience"), (file) => file.endsWith(".ts"));
+const backendFiles = walk(path.join(root, "server/domains/workflow/operator-experience"), (file) =>
+  file.endsWith(".ts")
+);
 const routeFiles = backendFiles.filter((file) => rel(file).includes("/interfaces/"));
 const appDomainFiles = backendFiles.filter((file) => /\/(domain|application)\//.test(rel(file)));
-const frontendUiFiles = walk(path.join(root, "client/src/features/operator-experience"), (file) => file.endsWith(".tsx"));
+const frontendUiFiles = walk(path.join(root, "client/src/features/operator-experience"), (file) =>
+  file.endsWith(".tsx")
+);
 
 for (const file of routeFiles) {
   const source = read(file);
   if (/from\s+["'].*\b(db|repositories)\b/.test(source) || /@shared\/schema/.test(source)) {
-    failures.push(`${rel(file)}: route/interface code must not import db/repositories/schema directly`);
+    failures.push(
+      `${rel(file)}: route/interface code must not import db/repositories/schema directly`
+    );
   }
 }
 
 for (const file of appDomainFiles) {
   const source = read(file);
   if (/from\s+["'].*\b(db|repositories)\b/.test(source) || /@shared\/schema/.test(source)) {
-    failures.push(`${rel(file)}: domain/application code must stay independent from database/schema imports`);
+    failures.push(
+      `${rel(file)}: domain/application code must stay independent from database/schema imports`
+    );
   }
 }
 
 for (const file of frontendUiFiles) {
   const source = read(file);
   if (/apiRequest\s*\(/.test(source) || /\bfetch\s*\(/.test(source)) {
-    failures.push(`${rel(file)}: React UI components/pages must call shared hooks, not apiRequest/fetch directly`);
+    failures.push(
+      `${rel(file)}: React UI components/pages must call shared hooks, not apiRequest/fetch directly`
+    );
   }
 }
 

@@ -109,10 +109,38 @@ const CREW_FIXTURE = [
  * the chart. Reports must render Chief Engineer → Second Officer → Able Seaman.
  */
 const CREW_ROLES_FIXTURE = [
-  { id: "role-cap", orgId: "org-test", name: "Captain", category: "Deck", sortOrder: 10, active: true },
-  { id: "role-ce", orgId: "org-test", name: "Chief Engineer", category: "Engine", sortOrder: 20, active: true },
-  { id: "role-2o", orgId: "org-test", name: "Second Officer", category: "Deck", sortOrder: 30, active: true },
-  { id: "role-ab", orgId: "org-test", name: "Able Seaman", category: "Deck", sortOrder: 40, active: true },
+  {
+    id: "role-cap",
+    orgId: "org-test",
+    name: "Captain",
+    category: "Deck",
+    sortOrder: 10,
+    active: true,
+  },
+  {
+    id: "role-ce",
+    orgId: "org-test",
+    name: "Chief Engineer",
+    category: "Engine",
+    sortOrder: 20,
+    active: true,
+  },
+  {
+    id: "role-2o",
+    orgId: "org-test",
+    name: "Second Officer",
+    category: "Deck",
+    sortOrder: 30,
+    active: true,
+  },
+  {
+    id: "role-ab",
+    orgId: "org-test",
+    name: "Able Seaman",
+    category: "Deck",
+    sortOrder: 40,
+    active: true,
+  },
 ];
 
 /**
@@ -202,31 +230,31 @@ async function stubCrewApis(page: Page, crew: unknown[] = CREW_FIXTURE): Promise
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(CREW_ROLES_FIXTURE),
-    }),
+    })
   );
   await page.route("**/api/vessels*", (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(VESSELS_FIXTURE),
-    }),
+    })
   );
   await page.route("**/api/crew-documents/expiring*", (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ documents: [] }),
-    }),
+    })
   );
   await page.route("**/api/crew-certifications/expiring*", (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ certifications: [] }),
-    }),
+    })
   );
   await page.route("**/api/permissions/me*", (route: Route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: permissionsBody() }),
+    route.fulfill({ status: 200, contentType: "application/json", body: permissionsBody() })
   );
 }
 
@@ -251,7 +279,9 @@ async function openOrgChartEmpty(page: Page): Promise<void> {
 }
 
 test.describe("Crew org chart", () => {
-  test("renders reports under a manager in role order with a report-count pill", async ({ page }) => {
+  test("renders reports under a manager in role order with a report-count pill", async ({
+    page,
+  }) => {
     await stubCrewApis(page);
     await openOrgChart(page);
 
@@ -284,7 +314,7 @@ test.describe("Crew org chart", () => {
     await page.getByTestId(`orgnode-toggle-${MANAGER_ID}`).click();
     await expect(page.getByTestId(`orgnode-toggle-${MANAGER_ID}`)).toHaveAttribute(
       "aria-expanded",
-      "false",
+      "false"
     );
     await expect(page.getByTestId(`orgnode-${REPORT_CHIEF}`)).toHaveCount(0);
     await expect(page.getByTestId(`orgnode-${REPORT_SECOND}`)).toHaveCount(0);
@@ -294,7 +324,7 @@ test.describe("Crew org chart", () => {
     await page.getByTestId(`orgnode-toggle-${MANAGER_ID}`).click();
     await expect(page.getByTestId(`orgnode-toggle-${MANAGER_ID}`)).toHaveAttribute(
       "aria-expanded",
-      "true",
+      "true"
     );
     await expect(page.getByTestId(`orgnode-${REPORT_CHIEF}`)).toBeVisible();
     await expect(page.getByTestId(`orgnode-${REPORT_SECOND}`)).toBeVisible();

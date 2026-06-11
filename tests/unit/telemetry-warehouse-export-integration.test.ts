@@ -18,8 +18,8 @@
 import * as fs from "node:fs";
 import { jest, describe, it, expect, beforeEach, afterAll } from "@jest/globals";
 
-process.env.PRIVATE_OBJECT_DIR = "/test-bucket/.private";
-process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS = "0";
+process.env["PRIVATE_OBJECT_DIR"] = "/test-bucket/.private";
+process.env["TELEMETRY_WAREHOUSE_RETENTION_DAYS"] = "0";
 
 // ---------------------------------------------------------------------------
 // In-memory object-storage stand-in: a single map from object key -> Buffer.
@@ -227,8 +227,8 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  delete process.env.PRIVATE_OBJECT_DIR;
-  delete process.env.TELEMETRY_WAREHOUSE_RETENTION_DAYS;
+  delete process.env["PRIVATE_OBJECT_DIR"];
+  delete process.env["TELEMETRY_WAREHOUSE_RETENTION_DAYS"];
 });
 
 describe("runTelemetryWarehouseExport (integration)", () => {
@@ -268,11 +268,11 @@ describe("runTelemetryWarehouseExport (integration)", () => {
     const allBatches = [...writerRowsByPath.values()];
     expect(allBatches.length).toBe(2);
     for (const rows of allBatches) {
-      const uniqueOrgIds = new Set(rows.map((r) => r.org_id));
+      const uniqueOrgIds = new Set(rows.map((r) => r["org_id"]));
       expect(uniqueOrgIds.size).toBe(1);
     }
 
-    const orgIdsSeen = allBatches.map((b) => b[0].org_id).sort();
+    const orgIdsSeen = allBatches.map((b) => b[0]["org_id"]).sort();
     expect(orgIdsSeen).toEqual(["org-a", "org-b"]);
   });
 

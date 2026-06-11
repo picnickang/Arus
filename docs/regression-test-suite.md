@@ -1,12 +1,15 @@
 # Regression Test Suite
-*Last Updated: October 12, 2025*
+
+_Last Updated: October 12, 2025_
 
 ## Purpose
+
 Document all critical bugs that were fixed and their corresponding regression tests to prevent them from reoccurring.
 
 ## Critical Bug Fixes - Test Coverage
 
 ### Bug #1: Equipment Registry Null Vessel Names
+
 **Discovered:** Oct 11, 2025  
 **Severity:** HIGH - Data display issue  
 **Fix Location:** server/storage.ts:9669-9680
@@ -15,6 +18,7 @@ Document all critical bugs that were fixed and their corresponding regression te
 Equipment registry was showing null vessel names even when equipment had valid `vesselId` references. The query was not JOINing with the vessels table.
 
 **Fix Applied:**
+
 ```typescript
 // BEFORE: Simple SELECT without JOIN
 const equipment = await db.select().from(equipment).where(...);
@@ -29,6 +33,7 @@ const results = await db.select({
 ```
 
 **Regression Test Scenarios:**
+
 1. ✅ Create equipment with vesselId assigned
 2. ✅ Fetch equipment registry
 3. ✅ Verify vesselName field is populated (not null)
@@ -36,6 +41,7 @@ const results = await db.select({
 5. ✅ Test equipment without vessel assignment (should be null, not error)
 
 **Test Command:**
+
 ```bash
 # Manual verification
 curl http://localhost:5000/api/equipment-registry?orgId=default-org-id | jq '.[0] | {equipmentName, vesselId, vesselName}'
@@ -44,6 +50,7 @@ curl http://localhost:5000/api/equipment-registry?orgId=default-org-id | jq '.[0
 ---
 
 ### Bug #2: Alerts Acknowledge Mutation Error
+
 **Discovered:** Oct 11, 2025  
 **Severity:** HIGH - Feature broken  
 **Fix Location:** client/src/pages/alerts.tsx:172-189
@@ -52,23 +59,25 @@ curl http://localhost:5000/api/equipment-registry?orgId=default-org-id | jq '.[0
 TanStack Query v5 migration broke alert acknowledgment. The mutation signature changed from 3-arg pattern to options object, causing "No mutationFn found" errors.
 
 **Fix Applied:**
+
 ```typescript
 // BEFORE: TanStack Query v4 signature
 const mutation = useCustomMutation(
-  async (alertId: string) => apiRequest('POST', `/api/alerts/${alertId}/acknowledge`),
-  ['/api/alerts'],
+  async (alertId: string) => apiRequest("POST", `/api/alerts/${alertId}/acknowledge`),
+  ["/api/alerts"],
   { onSuccess: () => toast({ title: "Alert acknowledged" }) }
 );
 
 // AFTER: TanStack Query v5 signature
 const mutation = useCustomMutation({
-  mutationFn: async (alertId: string) => apiRequest('POST', `/api/alerts/${alertId}/acknowledge`),
-  invalidateKeys: ['/api/alerts'],
-  onSuccess: () => toast({ title: "Alert acknowledged" })
+  mutationFn: async (alertId: string) => apiRequest("POST", `/api/alerts/${alertId}/acknowledge`),
+  invalidateKeys: ["/api/alerts"],
+  onSuccess: () => toast({ title: "Alert acknowledged" }),
 });
 ```
 
 **Regression Test Scenarios:**
+
 1. ✅ Create test alert
 2. ✅ Click acknowledge button
 3. ✅ Verify mutation executes without "No mutationFn found" error
@@ -77,6 +86,7 @@ const mutation = useCustomMutation({
 6. ✅ Test clear all alerts mutation (same fix pattern)
 
 **Test Command:**
+
 ```bash
 # E2E test via Playwright
 npm run test:e2e -- --grep "acknowledge alert"
@@ -85,17 +95,20 @@ npm run test:e2e -- --grep "acknowledge alert"
 ---
 
 ### Bug #3: Work Order Atomic Inventory Reservations
+
 **Discovered:** Oct 11, 2025  
 **Severity:** CRITICAL - Data consistency & race conditions  
 **Fix Location:** server/storage.ts:9430-9554
 
 **Bug Description:**
 Inventory reservation and work order part creation were NOT atomic. Two separate database operations meant:
+
 - Race condition: Multiple users could over-commit inventory
 - Partial failures: Inventory reserved but work order part not created (or vice versa)
 - Data inconsistency: quantityReserved could become out of sync
 
 **Fix Applied:**
+
 ```typescript
 // BEFORE: Separate operations (NOT atomic)
 const updateResult = await db.update(partsInventory)
@@ -113,17 +126,18 @@ await db.transaction(async (tx) => {
       eq(partsInventory.id, partId),
       sql`quantityOnHand - quantityReserved >= ${qty}` // Atomic stock check
     ));
-  
+
   if (!updateResult.length) throw new Error("Insufficient stock");
-  
+
   // Create work order part
   await tx.insert(workOrderParts).values({...});
-  
+
   // If any operation fails, transaction rolls back atomically
 });
 ```
 
 **Regression Test Scenarios:**
+
 1. ✅ Create part with known stock (e.g., 100 on hand, 35 reserved = 65 available)
 2. ✅ Add part to work order with quantity within available stock
 3. ✅ Verify inventory quantityReserved increases atomically
@@ -133,12 +147,14 @@ await db.transaction(async (tx) => {
 7. ✅ Verify existing part updates (deduplication) also atomic
 
 **Test Command:**
+
 ```bash
 # Integration test
 npm run test:integration -- --grep "atomic inventory"
 ```
 
 **Concurrent Load Test:**
+
 ```bash
 # Simulate 10 concurrent users adding same part
 for i in {1..10}; do
@@ -155,6 +171,7 @@ curl http://localhost:5000/api/parts-inventory/abc-123 | jq '{quantityOnHand, qu
 ---
 
 ### Bug #4: Cache Invalidation Not Working
+
 **Discovered:** Oct 10, 2025  
 **Severity:** HIGH - UI not updating  
 **Fix Location:** client/src/hooks/useCrudMutations.ts (multiple lines)
@@ -163,18 +180,20 @@ curl http://localhost:5000/api/parts-inventory/abc-123 | jq '{quantityOnHand, qu
 TanStack Query v5 changed `invalidateQueries()` to use exact matching by default. Invalidating `/api/parts-inventory` did NOT invalidate `['/api/parts-inventory', searchTerm]` queries.
 
 **Fix Applied:**
+
 ```typescript
 // BEFORE: Exact match only (v5 default)
-queryClient.invalidateQueries({ queryKey: ['/api/parts-inventory'] });
+queryClient.invalidateQueries({ queryKey: ["/api/parts-inventory"] });
 
 // AFTER: Prefix matching
-queryClient.invalidateQueries({ 
-  queryKey: ['/api/parts-inventory'],
-  exact: false  // Invalidates all queries starting with this key
+queryClient.invalidateQueries({
+  queryKey: ["/api/parts-inventory"],
+  exact: false, // Invalidates all queries starting with this key
 });
 ```
 
 **Regression Test Scenarios:**
+
 1. ✅ Add part to work order
 2. ✅ Verify parts inventory list refreshes (with search term)
 3. ✅ Verify parts inventory detail refreshes
@@ -182,6 +201,7 @@ queryClient.invalidateQueries({
 5. ✅ Test all CRUD operations invalidate correctly
 
 **Test Command:**
+
 ```bash
 # E2E test - verify UI updates after mutation
 npm run test:e2e -- --grep "cache invalidation"
@@ -191,19 +211,20 @@ npm run test:e2e -- --grep "cache invalidation"
 
 ## Test Execution Matrix
 
-| Bug | Unit Test | Integration Test | E2E Test | Load Test | Status |
-|-----|-----------|------------------|----------|-----------|--------|
-| Equipment Registry Vessel Names | N/A | ✅ Manual | ✅ Playwright | N/A | ✅ PASS |
-| Alerts Acknowledge Mutation | ✅ Jest | ✅ API Test | ✅ Playwright | N/A | 🔄 TODO |
-| Atomic Inventory Reservations | ✅ Jest | ✅ API Test | ✅ Playwright | ✅ Concurrent | 🔄 TODO |
-| Cache Invalidation | ✅ Jest | N/A | ✅ Playwright | N/A | 🔄 TODO |
+| Bug                             | Unit Test | Integration Test | E2E Test      | Load Test     | Status  |
+| ------------------------------- | --------- | ---------------- | ------------- | ------------- | ------- |
+| Equipment Registry Vessel Names | N/A       | ✅ Manual        | ✅ Playwright | N/A           | ✅ PASS |
+| Alerts Acknowledge Mutation     | ✅ Jest   | ✅ API Test      | ✅ Playwright | N/A           | 🔄 TODO |
+| Atomic Inventory Reservations   | ✅ Jest   | ✅ API Test      | ✅ Playwright | ✅ Concurrent | 🔄 TODO |
+| Cache Invalidation              | ✅ Jest   | N/A              | ✅ Playwright | N/A           | 🔄 TODO |
 
 ## Test Data Setup
 
 ### Prerequisites for Regression Tests
+
 ```sql
 -- Equipment with vessel assignment
-INSERT INTO equipment (id, name, vessel_id, org_id) 
+INSERT INTO equipment (id, name, vessel_id, org_id)
 VALUES ('test-equip-1', 'Test Engine', 'test-vessel-1', 'default-org-id');
 
 -- Parts inventory with known stock
@@ -222,23 +243,23 @@ VALUES ('test-alert-1', 'test-equip-1', 'Test alert', 'pending', 'default-org-id
 ## Automated Test Suite (TODO)
 
 ### File: `tests/regression/critical-bugs.spec.ts`
+
 ```typescript
-describe('Critical Bug Regression Tests', () => {
-  
-  describe('Bug #3: Atomic Inventory Reservations', () => {
-    it('should reserve inventory and create work order part atomically', async () => {
+describe("Critical Bug Regression Tests", () => {
+  describe("Bug #3: Atomic Inventory Reservations", () => {
+    it("should reserve inventory and create work order part atomically", async () => {
       // Test atomic success
     });
-    
-    it('should rollback entire operation if insufficient stock', async () => {
+
+    it("should rollback entire operation if insufficient stock", async () => {
       // Test atomic rollback
     });
-    
-    it('should prevent over-commitment under concurrent load', async () => {
+
+    it("should prevent over-commitment under concurrent load", async () => {
       // Test race condition prevention
     });
   });
-  
+
   // ... more tests
 });
 ```
@@ -246,12 +267,14 @@ describe('Critical Bug Regression Tests', () => {
 ## Continuous Monitoring
 
 ### Metrics to Track
+
 1. **Transaction Failure Rate** - Alert if > 1%
 2. **Cache Invalidation Timing** - Alert if > 500ms
 3. **Concurrent Inventory Operations** - Monitor for deadlocks
 4. **Database Constraint Violations** - Track quantityReserved > quantityOnHand
 
 ### Alerts
+
 ```yaml
 - name: inventory_over_commitment
   condition: quantityReserved > quantityOnHand
@@ -267,6 +290,7 @@ describe('Critical Bug Regression Tests', () => {
 ## Manual Testing Checklist
 
 Before each release, manually verify:
+
 - [ ] Equipment registry shows vessel names (not null)
 - [ ] Alert acknowledge/clear buttons work without errors
 - [ ] Adding parts to work orders updates inventory atomically
@@ -276,6 +300,7 @@ Before each release, manually verify:
 - [ ] Network tab shows no failed mutations
 
 ## References
+
 - [Bug Fix Session 3 Documentation](../replit.md#bug-fix-session-3)
 - [Database Transaction Audit](./database-transaction-audit.md)
 - [TanStack Query v5 Migration Guide](https://tanstack.com/query/latest/docs/react/guides/migrating-to-v5)

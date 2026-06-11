@@ -94,14 +94,18 @@ async function main() {
       params
     );
 
-    console.log(JSON.stringify({
-      stage: "complete",
-      org: args.org ?? "(all)",
-      inserted: result.rowCount,
-      limit,
-    }));
+    console.log(
+      JSON.stringify({
+        stage: "complete",
+        org: args.org ?? "(all)",
+        inserted: result.rowCount,
+        limit,
+      })
+    );
   } catch (err) {
-    console.error(JSON.stringify({ stage: "error", message: err instanceof Error ? err.message : String(err) }));
+    console.error(
+      JSON.stringify({ stage: "error", message: err instanceof Error ? err.message : String(err) })
+    );
     exit(1);
   } finally {
     await client.end().catch(() => undefined);

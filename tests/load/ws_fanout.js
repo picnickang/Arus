@@ -129,9 +129,7 @@ export default function () {
       if (tags[i] !== expected) {
         const missing = tags[i] - expected;
         gaps += missing;
-        console.error(
-          `[vu ${__VU}] gap at tag ${expected}..${tags[i] - 1} (missing ${missing})`,
-        );
+        console.error(`[vu ${__VU}] gap at tag ${expected}..${tags[i] - 1} (missing ${missing})`);
       }
     }
     if (gaps > 0) {

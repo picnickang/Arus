@@ -48,10 +48,10 @@ export interface UploadDiagramVersionInput {
   diagramId: string;
   file: File;
   replacementBehavior?: ReplacementBehavior;
-  sourceVesselId?: string;
-  sourceMapId?: string;
-  templateId?: string;
-  mapName?: string;
+  sourceVesselId?: string | undefined;
+  sourceMapId?: string | undefined;
+  templateId?: string | undefined;
+  mapName?: string | undefined;
 }
 
 export interface UploadDiagramVersionResult {
@@ -405,7 +405,12 @@ export function useAssignEquipmentToSection() {
       vesselId: string;
       mapId: string;
       sectionId: string;
-      payload: { equipmentId?: string; equipmentName: string; assetCode?: string; system?: string };
+      payload: {
+        equipmentId?: string | undefined;
+        equipmentName: string;
+        assetCode?: string | undefined;
+        system?: string | undefined;
+      };
     }) =>
       apiRequest<RegistrySectionAssignmentRecord>(
         "POST",

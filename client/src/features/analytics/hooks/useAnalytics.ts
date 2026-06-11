@@ -22,7 +22,8 @@ export const analyticsKeys = {
 export function useAnalyticsDashboard(period: TrendPeriod = "30d") {
   return useQuery<AnalyticsDashboard>({
     queryKey: analyticsKeys.dashboard(period),
-    queryFn: () => apiRequest<AnalyticsDashboard>("GET", `/api/analytics/dashboard?period=${period}`),
+    queryFn: () =>
+      apiRequest<AnalyticsDashboard>("GET", `/api/analytics/dashboard?period=${period}`),
     staleTime: 60000,
   });
 }
@@ -52,7 +53,10 @@ export function useAnomalyDetections(filters?: { equipmentId?: string; isAcknowl
   return useQuery<AnomalyDetection[]>({
     queryKey: [...analyticsKeys.anomalies(), filterKey],
     queryFn: () =>
-      apiRequest<AnomalyDetection[]>("GET", `/api/analytics/anomaly-detections${queryString ? `?${queryString}` : ""}`),
+      apiRequest<AnomalyDetection[]>(
+        "GET",
+        `/api/analytics/anomaly-detections${queryString ? `?${queryString}` : ""}`
+      ),
   });
 }
 

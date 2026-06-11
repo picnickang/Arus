@@ -133,7 +133,10 @@ function envelopeFor(event: WorkOrderDomainEvent): {
   }
 }
 
-function emitInProcess(built: { name: DomainEventName; envelope: DomainEventMap[DomainEventName] }) {
+function emitInProcess(built: {
+  name: DomainEventName;
+  envelope: DomainEventMap[DomainEventName];
+}) {
   try {
     domainEventBus.emit(built.name, built.envelope as DomainEventMap[DomainEventName]);
     logger.info("Published work order domain event", { eventType: built.name });
@@ -159,12 +162,11 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
    * fast path: enqueue on the default connection and emit inline
    * (returns null because there is nothing to defer).
    */
-  async publish(
-    event: WorkOrderDomainEvent,
-    tx?: unknown
-  ): Promise<PostCommitEmit | null> {
+  async publish(event: WorkOrderDomainEvent, tx?: unknown): Promise<PostCommitEmit | null> {
     const built = envelopeFor(event);
-    if (!built) {return null;}
+    if (!built) {
+      return null;
+    }
     try {
       await enqueueOutboxFromEnvelope(built.envelope, tx as TxOrDb | undefined);
     } catch (error) {
@@ -183,18 +185,21 @@ export const workOrderEventPublisher: IWorkOrderEventPublisher = {
     return () => emitInProcess(built);
   },
 
-  async publishBatch(
-    events: WorkOrderDomainEvent[],
-    tx?: unknown
-  ): Promise<PostCommitEmit | null> {
+  async publishBatch(events: WorkOrderDomainEvent[], tx?: unknown): Promise<PostCommitEmit | null> {
     const deferred: PostCommitEmit[] = [];
     for (const event of events) {
       const post = await this.publish(event, tx);
-      if (post) {deferred.push(post);}
+      if (post) {
+        deferred.push(post);
+      }
     }
-    if (deferred.length === 0) {return null;}
+    if (deferred.length === 0) {
+      return null;
+    }
     return () => {
-      for (const fn of deferred) {fn();}
+      for (const fn of deferred) {
+        fn();
+      }
     };
   },
 };

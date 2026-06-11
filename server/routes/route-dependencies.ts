@@ -146,7 +146,10 @@ const dataImportUploadDir = "/tmp/data-imports";
 fs.mkdirSync(dataImportUploadDir, { recursive: true });
 
 function sanitizeUploadFilename(originalName: string): string {
-  const baseName = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 160);
+  const baseName = path
+    .basename(originalName)
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .slice(0, 160);
   return `${Date.now()}-${randomUUID()}-${baseName || "import.tar.gz"}`;
 }
 

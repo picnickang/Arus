@@ -247,7 +247,11 @@ async function processAndStorePrediction(
   equipment: Equipment,
   equipmentId: string,
   orgId: string
-): Promise<{ prediction: MLPredictionResult; explanation: Explanation | null; predictionId: number }> {
+): Promise<{
+  prediction: MLPredictionResult;
+  explanation: Explanation | null;
+  predictionId: number;
+}> {
   const riskLevel = calculateRiskLevel(pred.failureProbability);
   let storedPrediction: FailurePrediction | null = null;
   let explanation: Explanation | null = null;

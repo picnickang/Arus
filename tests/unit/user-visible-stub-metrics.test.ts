@@ -13,14 +13,9 @@ import {
   userVisibleStubInvokedTotal,
 } from "../../server/observability/security-metrics.js";
 
-async function readMetric(
-  workflow: string,
-  stub: string
-): Promise<number> {
+async function readMetric(workflow: string, stub: string): Promise<number> {
   const metric = await userVisibleStubInvokedTotal.get();
-  const found = metric.values.find(
-    (v) => v.labels.workflow === workflow && v.labels.stub === stub
-  );
+  const found = metric.values.find((v) => v.labels.workflow === workflow && v.labels.stub === stub);
   return found?.value ?? 0;
 }
 

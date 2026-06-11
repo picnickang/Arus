@@ -3,6 +3,7 @@
 ## Before vs After Comparison
 
 ### BEFORE: Technical ML Output ❌
+
 ```
 Equipment: eq-12345
 Failure Probability: 0.1482
@@ -10,7 +11,9 @@ Confidence: 0.8888
 Health Score: 74
 Recommendation: "Schedule preventive maintenance within 7 days"
 ```
+
 **Problems:**
+
 - What equipment is this?
 - What does 0.1482 mean in practical terms?
 - Why is the system recommending this?
@@ -19,6 +22,7 @@ Recommendation: "Schedule preventive maintenance within 7 days"
 ---
 
 ### AFTER: Technician-Friendly Insight ✅
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 🟧 ACTION REQUIRED                              URGENT       │
@@ -81,25 +85,28 @@ Fleet Overview
 
 ## Color-Coded Status System
 
-| Color | Status | Meaning | Technician Action |
-|-------|--------|---------|-------------------|
-| 🟢 **Green** | Normal | Equipment operating within normal parameters | Continue routine operations |
-| 🟡 **Yellow** | Monitor | Minor deviation detected | Watch closely, no immediate action |
-| 🟧 **Orange** | Action Required | Schedule maintenance within timeframe | Plan inspection/maintenance |
-| 🔴 **Red** | Critical | Immediate attention required | Stop equipment, inspect immediately |
+| Color         | Status          | Meaning                                      | Technician Action                   |
+| ------------- | --------------- | -------------------------------------------- | ----------------------------------- |
+| 🟢 **Green**  | Normal          | Equipment operating within normal parameters | Continue routine operations         |
+| 🟡 **Yellow** | Monitor         | Minor deviation detected                     | Watch closely, no immediate action  |
+| 🟧 **Orange** | Action Required | Schedule maintenance within timeframe        | Plan inspection/maintenance         |
+| 🔴 **Red**    | Critical        | Immediate attention required                 | Stop equipment, inspect immediately |
 
 ---
 
 ## Translation Examples
 
 ### Example 1: Bearing Failure
+
 **Technical Output:**
+
 ```
 failureProbability: 0.72
 trigger: vibration > threshold
 ```
 
 **Technician Insight:**
+
 ```
 Status: 🔴 CRITICAL
 Summary: Critical bearing failure imminent on Main Engine Turbocharger
@@ -110,7 +117,9 @@ Action: Stop equipment immediately and inspect bearing (ASAP)
 ---
 
 ### Example 2: Temperature Warning
+
 **Technical Output:**
+
 ```
 failureProbability: 0.38
 trigger: temperature elevation
@@ -118,6 +127,7 @@ confidence: 0.91
 ```
 
 **Technician Insight:**
+
 ```
 Status: 🟧 ACTION REQUIRED
 Summary: Elevated temperature on Generator A
@@ -128,7 +138,9 @@ Action: Monitor cooling system and schedule inspection (48 hours)
 ---
 
 ### Example 3: Oil Pressure
+
 **Technical Output:**
+
 ```
 failureProbability: 0.15
 trigger: oil_pressure low
@@ -136,6 +148,7 @@ confidence: 0.67
 ```
 
 **Technician Insight:**
+
 ```
 Status: 🟡 MONITOR
 Summary: Oil pressure slightly below normal on Hydraulic Pump
@@ -185,26 +198,32 @@ Action: Check oil level at next scheduled maintenance (routine)
 ## Key Improvements
 
 ### 1. Hierarchical Context
+
 ✅ **Fleet → Vessel → System → Component**  
 Every alert shows exactly where the issue is in your fleet
 
 ### 2. Plain Language
+
 ❌ Before: "Failure probability: 0.1482"  
 ✅ After: "Possible bearing wear detected"
 
 ### 3. Clear Actions
+
 ❌ Before: "Schedule preventive maintenance"  
-✅ After: 
+✅ After:
+
 - Schedule inspection within 72 hours
-- Review maintenance logs  
+- Review maintenance logs
 - Check spare parts inventory
 
 ### 4. Visual Clarity
+
 ✅ Color-coded status (Green/Yellow/Orange/Red)  
 ✅ Icons for quick scanning  
 ✅ Priority badges (Immediate/Urgent/Scheduled)
 
 ### 5. AI Transparency
+
 ✅ Shows what triggered the alert  
 ✅ Explains confidence level  
 ✅ Shows trend direction
@@ -262,4 +281,4 @@ Every alert shows exactly where the issue is in your fleet
 
 ---
 
-*This transformation makes AI predictions actionable for the people who matter most: the technicians keeping vessels running safely.*
+_This transformation makes AI predictions actionable for the people who matter most: the technicians keeping vessels running safely._

@@ -158,7 +158,8 @@ export function EquipmentDecommissionDialog({
     if (!equipment.orgId) {
       toast({
         title: "Cannot decommission equipment",
-        description: "Equipment is missing an organization assignment. Please contact an administrator.",
+        description:
+          "Equipment is missing an organization assignment. Please contact an administrator.",
         variant: "destructive",
       });
       return;

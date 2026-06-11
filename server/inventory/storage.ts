@@ -101,7 +101,9 @@ export class InventoryStorageAdapter implements InventoryStorage {
     const partsPromises = partNos.map((partNo) => this.storage.getPartByPartNo(partNo, orgId));
 
     const parts = await Promise.all(partsPromises);
-    return parts.filter((part: Part | undefined | null): part is Part => part !== undefined && part !== null);
+    return parts.filter(
+      (part: Part | undefined | null): part is Part => part !== undefined && part !== null
+    );
   }
 
   /**
@@ -162,7 +164,11 @@ export class InventoryStorageAdapter implements InventoryStorage {
     if (!part) {
       return [];
     }
-    return (this.storage as object as { getPartSubstitutions: (id: string, orgId: string) => Promise<PartSubstitution[]> }).getPartSubstitutions(part.id, orgId);
+    return (
+      this.storage as object as {
+        getPartSubstitutions: (id: string, orgId: string) => Promise<PartSubstitution[]>;
+      }
+    ).getPartSubstitutions(part.id, orgId);
   }
 
   /**

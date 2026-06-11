@@ -18,25 +18,27 @@
 
 ### Artifacts Generated
 
-| Artifact | Path | Lines | Description |
-|----------|------|-------|-------------|
-| Client API calls | `docs/audit/_artifacts/client_calls.json` | 890 | 127 client API endpoint references |
-| Server routes | `docs/audit/_artifacts/api_routes.json` | 3655 | 608 server route definitions |
-| Contract matches | `docs/audit/_artifacts/contract_matches.json` | 1526 | Match results with status |
-| API Contract Matrix | `docs/audit/api_contract_matrix.md` | N/A | Human-readable report with file links |
-| Missing Routes Backlog | `docs/audit/missing_routes_backlog.csv` | 32 | Prioritized implementation plan |
+| Artifact               | Path                                          | Lines | Description                           |
+| ---------------------- | --------------------------------------------- | ----- | ------------------------------------- |
+| Client API calls       | `docs/audit/_artifacts/client_calls.json`     | 890   | 127 client API endpoint references    |
+| Server routes          | `docs/audit/_artifacts/api_routes.json`       | 3655  | 608 server route definitions          |
+| Contract matches       | `docs/audit/_artifacts/contract_matches.json` | 1526  | Match results with status             |
+| API Contract Matrix    | `docs/audit/api_contract_matrix.md`           | N/A   | Human-readable report with file links |
+| Missing Routes Backlog | `docs/audit/missing_routes_backlog.csv`       | 32    | Prioritized implementation plan       |
 
 ### Verification Script Enhanced
 
 **File:** `scripts/verify-api-contract.ts`
 
 **Improvements Made:**
+
 1. ✅ Path normalization - Strip query params (`?key=value`)
 2. ✅ Param normalization - Convert `:id`, `:equipmentId`, `${varName}` → `:param`
 3. ✅ JSON artifact generation - Machine-readable outputs
 4. ✅ Deduplication - Accurate unique route counts
 
 **Before → After:**
+
 - Missing routes: 42 → **6** (86% reduction!)
 - Partial routes: 52 → 83 (more accurate detection)
 - False positives eliminated via normalization
@@ -64,14 +66,14 @@ Total Server Routes: 608
 
 ## 6 Truly Missing Routes
 
-| Priority | Method | Path | Used By | Effort |
-|----------|--------|------|---------|--------|
-| P2-MEDIUM | GET | `/api/reports/generate/pdf` | reports.tsx | 2h |
-| P2-MEDIUM | POST | `/api/beast/lp/optimize` | optimization-tools.tsx | 2h |
-| P1-HIGH | GET | `/api/llm/vessel/:param/intelligence` | ai-insights.tsx | 2h |
-| P1-HIGH | GET | `/api/crew/:param/toggle-duty` | UnifiedCrewManagement.tsx | 1h |
-| P1-HIGH | GET | `/api/stcw/import` | HoursOfRestGrid.tsx + HoursOfRest.tsx | 1.5h |
-| P2-MEDIUM | GET | `/api/digital-twins/:param/simulate` | DigitalTwinViewer.tsx | 2h |
+| Priority  | Method | Path                                  | Used By                               | Effort |
+| --------- | ------ | ------------------------------------- | ------------------------------------- | ------ |
+| P2-MEDIUM | GET    | `/api/reports/generate/pdf`           | reports.tsx                           | 2h     |
+| P2-MEDIUM | POST   | `/api/beast/lp/optimize`              | optimization-tools.tsx                | 2h     |
+| P1-HIGH   | GET    | `/api/llm/vessel/:param/intelligence` | ai-insights.tsx                       | 2h     |
+| P1-HIGH   | GET    | `/api/crew/:param/toggle-duty`        | UnifiedCrewManagement.tsx             | 1h     |
+| P1-HIGH   | GET    | `/api/stcw/import`                    | HoursOfRestGrid.tsx + HoursOfRest.tsx | 1.5h   |
+| P2-MEDIUM | GET    | `/api/digital-twins/:param/simulate`  | DigitalTwinViewer.tsx                 | 2h     |
 
 **Total Implementation Effort:** ~10.5 hours
 
@@ -81,7 +83,8 @@ Total Server Routes: 608
 
 **Impact:** 65.4% of client API calls hit routes without input validation
 
-**Risk:** 
+**Risk:**
+
 - Unvalidated inputs could cause 400/500 errors
 - No schema enforcement
 - Security risk (injection, malformed data)
@@ -99,19 +102,21 @@ Total Server Routes: 608
 **Root Cause:** Poor path extraction captured query params and template literals as distinct routes
 
 **Examples:**
+
 - `/api/analytics/anomalies?hours=1&threshold=2.5` vs `/api/analytics/anomalies`
 - `/api/equipment/${equipmentId}/rul` vs `/api/equipment/:id/rul`
 
 **Solution:** Path normalization function:
+
 ```typescript
 function normalizePath(rawPath: string): string {
   // Strip query params
-  let normalized = rawPath.split('?')[0];
-  
+  let normalized = rawPath.split("?")[0];
+
   // Normalize all params to :param
-  normalized = normalized.replace(/\$\{[^}]+\}/g, ':param');
-  normalized = normalized.replace(/:[a-zA-Z_][a-zA-Z0-9_.]*(?=\/|$)/g, ':param');
-  
+  normalized = normalized.replace(/\$\{[^}]+\}/g, ":param");
+  normalized = normalized.replace(/:[a-zA-Z_][a-zA-Z0-9_.]*(?=\/|$)/g, ":param");
+
   return normalized;
 }
 ```
@@ -141,11 +146,13 @@ function normalizePath(rawPath: string): string {
 ## Next Steps (Task 1: Implement Missing Routes)
 
 ### Batch 1 - High Priority (6 hours)
+
 1. `GET /api/llm/vessel/:param/intelligence` (2h)
 2. `GET /api/crew/:param/toggle-duty` (1h)
 3. `GET /api/stcw/import` (1.5h)
 
 **Quality Gate:** Each route implemented with:
+
 - ✅ Route handler in `server/routes.ts`
 - ✅ Zod request/response schemas
 - ✅ RBAC guard (if admin/manager)
@@ -153,6 +160,7 @@ function normalizePath(rawPath: string): string {
 - ✅ Manual curl validation
 
 ### Batch 2 - Medium Priority (4.5 hours)
+
 4. `GET /api/reports/generate/pdf` (2h)
 5. `POST /api/beast/lp/optimize` (2h)
 6. `GET /api/digital-twins/:param/simulate` (2h)

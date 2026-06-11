@@ -61,16 +61,22 @@ async function readSource(rel: string): Promise<string> {
   return fs.readFile(path.join(process.cwd(), rel), "utf8");
 }
 
-function buildRes(): { status: jest.Mock; json: jest.Mock; statusCode?: number; body?: unknown } {
-  const res: { status: jest.Mock; json: jest.Mock; statusCode?: number; body?: unknown } = {
-    status: jest.fn(),
-    json: jest.fn(),
+type TestRes = {
+  status: jest.Mock<(code: number) => unknown>;
+  json: jest.Mock<(body?: unknown) => unknown>;
+  statusCode?: number;
+  body?: unknown;
+};
+function buildRes(): TestRes {
+  const res: TestRes = {
+    status: jest.fn<(code: number) => unknown>(),
+    json: jest.fn<(body?: unknown) => unknown>(),
   };
   res.status.mockImplementation((code: number) => {
     res.statusCode = code;
     return res;
   });
-  res.json.mockImplementation((body: unknown) => {
+  res.json.mockImplementation((body?: unknown) => {
     res.body = body;
     return res;
   });
@@ -91,7 +97,9 @@ describe("LR-3.5 PdM tenancy — source-file invariants", () => {
     // Every previous DEFAULT_ORG_ID usage site (8 of them) must now source
     // orgId from the authenticated request. The shared `getOrgId(req)`
     // helper is the canonical funnel; assert it's defined and used.
-    expect(src).toMatch(/function getOrgId\(req: AuthenticatedRequest\): string \{\s*return req\.orgId;/);
+    expect(src).toMatch(
+      /function getOrgId\(req: AuthenticatedRequest\): string \{\s*return req\.orgId;/
+    );
     expect(src.match(/getOrgId\(req\)/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
   });
 
@@ -99,7 +107,9 @@ describe("LR-3.5 PdM tenancy — source-file invariants", () => {
     const src = await readSource(MODEL_REGISTRY_ROUTES_PATH);
     expect(src).not.toMatch(/DEFAULT_ORG_ID/);
     expect(src).not.toMatch(/const\s+orgId\s*=\s*DEFAULT_ORG_ID/);
-    expect(src).toMatch(/function getOrgId\(req: AuthenticatedRequest\): string \{\s*return req\.orgId;/);
+    expect(src).toMatch(
+      /function getOrgId\(req: AuthenticatedRequest\): string \{\s*return req\.orgId;/
+    );
     // 7 previous DEFAULT_ORG_ID usage sites in model-registry routes.
     expect(src.match(/getOrgId\(req\)/g)?.length ?? 0).toBeGreaterThanOrEqual(7);
   });
@@ -147,7 +157,7 @@ describe("LR-3.5 PdM tenancy — requireOrgId middleware contract", () => {
   });
 
   it("rejects authenticated-but-missing-claim under REQUIRE_TENANT_AUTH=true with 401 TENANT_CLAIM_MISSING", async () => {
-    process.env['REQUIRE_TENANT_AUTH'] = "true";
+    process.env["REQUIRE_TENANT_AUTH"] = "true";
     const req = {
       headers: {},
       method: "GET",
@@ -162,7 +172,7 @@ describe("LR-3.5 PdM tenancy — requireOrgId middleware contract", () => {
   });
 
   it("populates req.orgId from the authenticated user claim (org A vs org B)", async () => {
-    process.env['REQUIRE_TENANT_AUTH'] = "true";
+    process.env["REQUIRE_TENANT_AUTH"] = "true";
 
     const reqA = {
       headers: {},
@@ -191,7 +201,7 @@ describe("LR-3.5 PdM tenancy — requireOrgId middleware contract", () => {
     // will receive the caller's own org, not DEFAULT_ORG_ID and not
     // some other tenant's id.
     expect((reqA as unknown as AuthenticatedRequest).orgId).not.toBe(
-      (reqB as unknown as AuthenticatedRequest).orgId,
+      (reqB as unknown as AuthenticatedRequest).orgId
     );
   });
 });
@@ -224,10 +234,8 @@ describe("LR-3.5 PdM tenancy — ModelRegistryAdapter.rollback orgId scoping", (
     // Count predicate sites touching modelDeployments.id (current
     // implementation: select-by-id, update-by-id deprecate, update-by-
     // previous.id restore = 3).
-    const idPredicateCount =
-      body.match(/eq\(modelDeployments\.id,/g)?.length ?? 0;
-    const orgIdPredicateCount =
-      body.match(/eq\(modelDeployments\.orgId,\s*orgId\)/g)?.length ?? 0;
+    const idPredicateCount = body.match(/eq\(modelDeployments\.id,/g)?.length ?? 0;
+    const orgIdPredicateCount = body.match(/eq\(modelDeployments\.orgId,\s*orgId\)/g)?.length ?? 0;
 
     expect(idPredicateCount).toBeGreaterThanOrEqual(2);
     // At minimum, the orgId predicate count must match the id

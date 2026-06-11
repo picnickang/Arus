@@ -7,6 +7,7 @@ This document describes how database indexes are managed in ARUS following **Opt
 ### Why Option A?
 
 **Production boot MUST NOT perform heavy DDL work.** Creating indexes on large tables during application startup can:
+
 - Cause long startup delays
 - Lock tables and block queries
 - Create race conditions if multiple instances start simultaneously
@@ -31,12 +32,14 @@ migrations/
 When the application starts, `server/db-indexes.ts` verifies that required indexes exist:
 
 **In Production (NODE_ENV=production)**:
+
 - Checks if indexes exist using `pg_class`
 - Logs an ERROR if any are missing
 - Does NOT create indexes (avoids heavy DDL)
 - Returns remediation instructions
 
 **In Development**:
+
 - Same verification check
 - If `DEV_SELF_HEAL=true`, auto-creates missing indexes
 - Otherwise logs a warning with `npm run db:migrate` instructions
@@ -77,25 +80,28 @@ npm run db:migrate:deploy
 
 ## Current Indexes
 
-| Index Name | Table | Columns | Purpose |
-|------------|-------|---------|---------|
-| `idx_equipment_vessel_created` | equipment | vessel_id, created_at DESC | Equipment lists by vessel |
-| `idx_maintenance_records_equipment_date` | maintenance_records | equipment_id, actual_start_time DESC | Maintenance history |
-| `idx_maintenance_records_org_id` | maintenance_records | org_id | Org-scoped queries |
-| `idx_raw_telemetry_equipment_ts` | raw_telemetry | src, ts DESC | Telemetry time-series |
-| `idx_ml_models_org_status` | ml_models | org_id, status | Active model lookups |
-| `idx_pdm_alerts_asset_time` | pdm_alerts | asset_id, at DESC | Alert history by asset |
-| `idx_pdm_alerts_vessel` | pdm_alerts | vessel_name, at DESC | Fleet-wide alert views |
+| Index Name                               | Table               | Columns                              | Purpose                   |
+| ---------------------------------------- | ------------------- | ------------------------------------ | ------------------------- |
+| `idx_equipment_vessel_created`           | equipment           | vessel_id, created_at DESC           | Equipment lists by vessel |
+| `idx_maintenance_records_equipment_date` | maintenance_records | equipment_id, actual_start_time DESC | Maintenance history       |
+| `idx_maintenance_records_org_id`         | maintenance_records | org_id                               | Org-scoped queries        |
+| `idx_raw_telemetry_equipment_ts`         | raw_telemetry       | src, ts DESC                         | Telemetry time-series     |
+| `idx_ml_models_org_status`               | ml_models           | org_id, status                       | Active model lookups      |
+| `idx_pdm_alerts_asset_time`              | pdm_alerts          | asset_id, at DESC                    | Alert history by asset    |
+| `idx_pdm_alerts_vessel`                  | pdm_alerts          | vessel_name, at DESC                 | Fleet-wide alert views    |
 
 ## Adding New Indexes
 
 1. Create a new migration file:
+
    ```bash
    npm run db:generate
    ```
+
    Or manually create `migrations/NNNN_description.sql`
 
 2. Add your index creation SQL:
+
    ```sql
    CREATE INDEX IF NOT EXISTS idx_my_new_index ON my_table(column1, column2 DESC);
    ```

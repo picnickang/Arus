@@ -34,13 +34,13 @@
 
 ### A01:2021 - Broken Access Control ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Multi-tenant isolation | ✅ Complete | Org-scoped queries at all layers |
-| Session management | ✅ Complete | PostgreSQL-backed sessions |
+| Control                        | Status      | Implementation                        |
+| ------------------------------ | ----------- | ------------------------------------- |
+| Multi-tenant isolation         | ✅ Complete | Org-scoped queries at all layers      |
+| Session management             | ✅ Complete | PostgreSQL-backed sessions            |
 | Cross-tenant access prevention | ✅ Complete | Middleware validation + audit logging |
-| API authorization | ✅ Complete | requireAuthentication middleware |
-| RBAC definitions | ⚠️ Partial | Roles defined, enforcement incomplete |
+| API authorization              | ✅ Complete | requireAuthentication middleware      |
+| RBAC definitions               | ⚠️ Partial  | Roles defined, enforcement incomplete |
 
 **Implementation Details:**
 
@@ -48,18 +48,18 @@
 // Tenant Isolation - Defense in Depth
 export async function requireOrgId(req: Request, res: Response, next: NextFunction) {
   const user = req.user;
-  const orgId = req.headers['x-org-id'] as string;
-  
+  const orgId = req.headers["x-org-id"] as string;
+
   // SECURITY: Validate user belongs to requested org
   if (user.orgId !== orgId) {
     TenantIsolationLogger.logViolation({
       userId: user.id,
       requestedOrgId: orgId,
-      actualOrgId: user.orgId
+      actualOrgId: user.orgId,
     });
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: "Forbidden" });
   }
-  
+
   req.orgId = orgId;
   next();
 }
@@ -68,39 +68,42 @@ export async function requireOrgId(req: Request, res: Response, next: NextFuncti
 **Status:** ✅ **SECURE**
 
 **Remaining Work:**
+
 - ⚠️ Complete RBAC route enforcement (Operator/Engineer/Manager/Admin)
 
 ---
 
 ### A02:2021 - Cryptographic Failures ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| HTTPS in production | ✅ Complete | Enforced via Render platform |
-| Session encryption | ✅ Complete | Encrypted session store |
-| Password hashing | ✅ Complete | bcrypt with salt rounds |
-| SHA-256 audit chain | ✅ Complete | Provenance verification |
-| Secrets management | ✅ Complete | Environment variables (never committed) |
+| Control             | Status      | Implementation                          |
+| ------------------- | ----------- | --------------------------------------- |
+| HTTPS in production | ✅ Complete | Enforced via Render platform            |
+| Session encryption  | ✅ Complete | Encrypted session store                 |
+| Password hashing    | ✅ Complete | bcrypt with salt rounds                 |
+| SHA-256 audit chain | ✅ Complete | Provenance verification                 |
+| Secrets management  | ✅ Complete | Environment variables (never committed) |
 
 **Implementation Details:**
 
 ```typescript
 // Session Encryption
-app.use(session({
-  store: new PgSession({
-    pool: pgPool,
-    createTableIfMissing: true
-  }),
-  secret: process.env.SESSION_SECRET, // 32-byte random string
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only
-    httpOnly: true,                                 // No JS access
-    maxAge: 24 * 60 * 60 * 1000,                   // 24 hours
-    sameSite: 'strict'                              // CSRF protection
-  }
-}));
+app.use(
+  session({
+    store: new PgSession({
+      pool: pgPool,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET, // 32-byte random string
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // HTTPS only
+      httpOnly: true, // No JS access
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: "strict", // CSRF protection
+    },
+  })
+);
 ```
 
 **Status:** ✅ **SECURE**
@@ -109,34 +112,37 @@ app.use(session({
 
 ### A03:2021 - Injection ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Parameterized queries | ✅ Complete | Drizzle ORM (no raw SQL) |
-| Input validation | ✅ Complete | Zod schemas on all inputs |
-| SQL injection prevention | ✅ Complete | ORM prevents direct SQL |
-| NoSQL injection prevention | ✅ N/A | Not using NoSQL |
+| Control                      | Status      | Implementation                   |
+| ---------------------------- | ----------- | -------------------------------- |
+| Parameterized queries        | ✅ Complete | Drizzle ORM (no raw SQL)         |
+| Input validation             | ✅ Complete | Zod schemas on all inputs        |
+| SQL injection prevention     | ✅ Complete | ORM prevents direct SQL          |
+| NoSQL injection prevention   | ✅ N/A      | Not using NoSQL                  |
 | Command injection prevention | ✅ Complete | No shell execution of user input |
 
 **Implementation Details:**
 
 ```typescript
 // Parameterized Queries (Drizzle ORM)
-const devices = await db.select()
+const devices = await db
+  .select()
   .from(devicesTable)
-  .where(and(
-    eq(devicesTable.orgId, orgId),          // Safe parameter binding
-    eq(devicesTable.vesselId, vesselId)     // No string concatenation
-  ));
+  .where(
+    and(
+      eq(devicesTable.orgId, orgId), // Safe parameter binding
+      eq(devicesTable.vesselId, vesselId) // No string concatenation
+    )
+  );
 
 // Input Validation (Zod)
 const createDeviceSchema = z.object({
   vesselId: z.string().uuid(),
   name: z.string().min(1).max(255),
-  type: z.enum(['edge', 'sensor', 'gateway']),
-  orgId: z.string().uuid()
+  type: z.enum(["edge", "sensor", "gateway"]),
+  orgId: z.string().uuid(),
 });
 
-app.post('/api/devices', async (req, res) => {
+app.post("/api/devices", async (req, res) => {
   const validated = createDeviceSchema.parse(req.body); // Throws on invalid
   // ... safe to use validated data
 });
@@ -145,6 +151,7 @@ app.post('/api/devices', async (req, res) => {
 **Status:** ✅ **SECURE**
 
 **Validation Coverage:**
+
 - ✅ 33/127 endpoints have full zod validation (26%)
 - ⚠️ 52/127 endpoints need validation added (41%)
 - ✅ 42/127 endpoints are missing server implementation (33%)
@@ -155,36 +162,36 @@ app.post('/api/devices', async (req, res) => {
 
 ### A04:2021 - Insecure Design ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Threat modeling | ✅ Complete | Multi-tenant risks identified |
-| Secure architecture patterns | ✅ Complete | Defense-in-depth design |
-| Rate limiting | ✅ Complete | Tiered limits per endpoint type |
-| Audit logging | ✅ Complete | Immutable JSONL logs |
-| Provenance chain | ✅ Complete | SHA-256 hash verification |
+| Control                      | Status      | Implementation                  |
+| ---------------------------- | ----------- | ------------------------------- |
+| Threat modeling              | ✅ Complete | Multi-tenant risks identified   |
+| Secure architecture patterns | ✅ Complete | Defense-in-depth design         |
+| Rate limiting                | ✅ Complete | Tiered limits per endpoint type |
+| Audit logging                | ✅ Complete | Immutable JSONL logs            |
+| Provenance chain             | ✅ Complete | SHA-256 hash verification       |
 
 **Rate Limiting Configuration:**
 
 ```typescript
 // Telemetry Ingestion (High Volume)
 const telemetryRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,     // 1 minute
-  max: 600,                     // 10 per second sustained
-  message: { error: "Rate limit exceeded" }
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 600, // 10 per second sustained
+  message: { error: "Rate limit exceeded" },
 });
 
 // Bulk Operations (Resource Intensive)
 const bulkImportRateLimit = rateLimit({
-  windowMs: 5 * 60 * 1000,     // 5 minutes
-  max: 10,                      // Prevent abuse
-  message: { error: "Bulk import rate limit exceeded" }
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // Prevent abuse
+  message: { error: "Bulk import rate limit exceeded" },
 });
 
 // Critical Operations (Destructive)
 const criticalOperationRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,    // 15 minutes
-  max: 5,                       // Very conservative
-  message: { error: "Critical operation rate limit exceeded" }
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Very conservative
+  message: { error: "Critical operation rate limit exceeded" },
 });
 ```
 
@@ -194,60 +201,65 @@ const criticalOperationRateLimit = rateLimit({
 
 ### A05:2021 - Security Misconfiguration ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Helmet.js security headers | ✅ Complete | CSP, HSTS, X-Frame-Options |
-| CORS configuration | ✅ Complete | Allowlist for production |
-| Error message sanitization | ✅ Complete | No stack traces to client |
-| Debug mode disabled in prod | ✅ Complete | NODE_ENV check |
-| Default passwords changed | ✅ Complete | Enforced unique secrets |
+| Control                     | Status      | Implementation             |
+| --------------------------- | ----------- | -------------------------- |
+| Helmet.js security headers  | ✅ Complete | CSP, HSTS, X-Frame-Options |
+| CORS configuration          | ✅ Complete | Allowlist for production   |
+| Error message sanitization  | ✅ Complete | No stack traces to client  |
+| Debug mode disabled in prod | ✅ Complete | NODE_ENV check             |
+| Default passwords changed   | ✅ Complete | Enforced unique secrets    |
 
 **Implementation Details:**
 
 ```typescript
 // Helmet Security Headers
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
     },
-  },
-  hsts: {
-    maxAge: 31536000,           // 1 year
-    includeSubDomains: true,
-    preload: true
-  },
-}));
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
 
 // CORS Allowlist
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://arus.example.com', 'https://app.arus.example.com']
-  : ['http://localhost:5000', 'http://localhost:3000'];
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://arus.example.com", "https://app.arus.example.com"]
+    : ["http://localhost:5000", "http://localhost:3000"];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Error Sanitization
 app.use((err, req, res, next) => {
   console.error(err); // Log full error server-side
-  
+
   const status = err.status || 500;
-  const message = status < 500 ? err.message : 'Internal server error';
-  
+  const message = status < 500 ? err.message : "Internal server error";
+
   res.status(status).json({
     error: message,
-    code: err.code || 'UNKNOWN_ERROR',
+    code: err.code || "UNKNOWN_ERROR",
     // Never expose: err.stack, sensitive config, database errors
   });
 });
@@ -259,12 +271,12 @@ app.use((err, req, res, next) => {
 
 ### A06:2021 - Vulnerable and Outdated Components ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Dependency scanning | ✅ Complete | npm audit passing |
-| Production vulnerabilities | ✅ Zero | All runtime deps secure |
-| Dev dependencies | ⚠️ 5 moderate | esbuild (acceptable risk) |
-| Automated updates | ⚠️ Partial | Dependabot configured |
+| Control                    | Status        | Implementation            |
+| -------------------------- | ------------- | ------------------------- |
+| Dependency scanning        | ✅ Complete   | npm audit passing         |
+| Production vulnerabilities | ✅ Zero       | All runtime deps secure   |
+| Dev dependencies           | ⚠️ 5 moderate | esbuild (acceptable risk) |
+| Automated updates          | ⚠️ Partial    | Dependabot configured     |
 
 **Vulnerability Scan Results:**
 
@@ -285,13 +297,13 @@ found 5 moderate severity vulnerabilities (dev dependencies only)
 
 ### A07:2021 - Identification and Authentication Failures ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Session management | ✅ Complete | PostgreSQL-backed sessions |
-| Session timeout | ✅ Complete | 24-hour expiry |
-| Secure session cookies | ✅ Complete | httpOnly, secure, sameSite |
-| HMAC device authentication | ✅ Complete | SHA-256 signatures |
-| Admin authentication | ✅ Complete | Token-based with validation |
+| Control                    | Status      | Implementation              |
+| -------------------------- | ----------- | --------------------------- |
+| Session management         | ✅ Complete | PostgreSQL-backed sessions  |
+| Session timeout            | ✅ Complete | 24-hour expiry              |
+| Secure session cookies     | ✅ Complete | httpOnly, secure, sameSite  |
+| HMAC device authentication | ✅ Complete | SHA-256 signatures          |
+| Admin authentication       | ✅ Complete | Token-based with validation |
 
 **Implementation Details:**
 
@@ -302,36 +314,33 @@ function validateHMAC(payload: string, signature: string, deviceId: string): boo
   if (!device || !device.hmacKey) {
     return false;
   }
-  
+
   const expectedSignature = crypto
-    .createHmac('sha256', device.hmacKey)
+    .createHmac("sha256", device.hmacKey)
     .update(payload)
-    .digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+    .digest("hex");
+
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 // Admin Token Authentication
 async function requireAuthentication(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
-  
+
   const token = authHeader.substring(7);
   const validToken = process.env.ADMIN_TOKEN;
-  
+
   if (!validToken) {
-    return res.status(503).json({ error: 'Admin service unavailable' });
+    return res.status(503).json({ error: "Admin service unavailable" });
   }
-  
+
   if (token !== validToken) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: "Invalid token" });
   }
-  
+
   next();
 }
 ```
@@ -342,13 +351,13 @@ async function requireAuthentication(req, res, next) {
 
 ### A08:2021 - Software and Data Integrity Failures ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Provenance chain | ✅ Complete | SHA-256 hash chain |
-| Chain verification | ✅ Complete | Tamper detection |
-| Immutable logs | ✅ Complete | JSONL append-only |
-| Model lineage | ✅ Complete | Training artifacts tracked |
-| Code signing | ❌ Not Implemented | Recommended for 3-tier patching |
+| Control            | Status             | Implementation                  |
+| ------------------ | ------------------ | ------------------------------- |
+| Provenance chain   | ✅ Complete        | SHA-256 hash chain              |
+| Chain verification | ✅ Complete        | Tamper detection                |
+| Immutable logs     | ✅ Complete        | JSONL append-only               |
+| Model lineage      | ✅ Complete        | Training artifacts tracked      |
+| Code signing       | ❌ Not Implemented | Recommended for 3-tier patching |
 
 **Implementation Details:**
 
@@ -358,17 +367,17 @@ function verifyProvenanceChain(events: ProvenanceEvent[]): VerificationResult {
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
     const expectedPrevHash = i > 0 ? events[i - 1].currentEventHash : undefined;
-    
+
     if (event.previousEventHash !== expectedPrevHash) {
-      return { valid: false, brokenAt: event.id, reason: 'Chain linkage broken' };
+      return { valid: false, brokenAt: event.id, reason: "Chain linkage broken" };
     }
-    
+
     const recalculatedHash = calculateEventHash(event);
     if (event.currentEventHash !== recalculatedHash) {
-      return { valid: false, brokenAt: event.id, reason: 'Hash mismatch (tampered)' };
+      return { valid: false, brokenAt: event.id, reason: "Hash mismatch (tampered)" };
     }
   }
-  
+
   return { valid: true, totalEvents: events.length };
 }
 ```
@@ -381,27 +390,27 @@ function verifyProvenanceChain(events: ProvenanceEvent[]): VerificationResult {
 
 ### A09:2021 - Security Logging and Monitoring Failures ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| Security event logging | ✅ Complete | Cross-tenant attempts, failures |
-| Audit trail | ✅ Complete | Immutable JSONL logs |
-| Prometheus metrics | ✅ Complete | 50+ metrics exported |
-| Grafana dashboards | ✅ Complete | 2 production-ready dashboards |
-| Alerting | ⚠️ Partial | Metrics exist, alert rules needed |
+| Control                | Status      | Implementation                    |
+| ---------------------- | ----------- | --------------------------------- |
+| Security event logging | ✅ Complete | Cross-tenant attempts, failures   |
+| Audit trail            | ✅ Complete | Immutable JSONL logs              |
+| Prometheus metrics     | ✅ Complete | 50+ metrics exported              |
+| Grafana dashboards     | ✅ Complete | 2 production-ready dashboards     |
+| Alerting               | ⚠️ Partial  | Metrics exist, alert rules needed |
 
 **Security Event Logging:**
 
 ```typescript
 // Cross-Tenant Access Attempt
 TenantIsolationLogger.logViolation({
-  domain: 'middleware',
-  operation: 'requireOrgId',
+  domain: "middleware",
+  operation: "requireOrgId",
   requestedOrgId: trimmedOrgId,
   actualOrgId: user.orgId,
   userId: user.id,
 });
 
-console.warn('[SECURITY] Cross-tenant access attempt blocked', {
+console.warn("[SECURITY] Cross-tenant access attempt blocked", {
   userId: user.id,
   userEmail: user.email,
   userOrg: user.orgId,
@@ -409,7 +418,7 @@ console.warn('[SECURITY] Cross-tenant access attempt blocked', {
   endpoint: req.path,
   method: req.method,
   ip: req.ip,
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
 });
 ```
 
@@ -417,12 +426,12 @@ console.warn('[SECURITY] Cross-tenant access attempt blocked', {
 
 ```typescript
 const securityEvents = new client.Counter({
-  name: 'arus_security_events_total',
-  help: 'Total security events',
-  labelNames: ['event_type', 'severity']
+  name: "arus_security_events_total",
+  help: "Total security events",
+  labelNames: ["event_type", "severity"],
 });
 
-securityEvents.inc({ event_type: 'cross_tenant_access', severity: 'high' });
+securityEvents.inc({ event_type: "cross_tenant_access", severity: "high" });
 ```
 
 **Status:** ✅ **SECURE**
@@ -433,30 +442,30 @@ securityEvents.inc({ event_type: 'cross_tenant_access', severity: 'high' });
 
 ### A10:2021 - Server-Side Request Forgery (SSRF) ✅ PROTECTED
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| URL validation | ✅ Complete | Allowlist for external APIs |
-| IP range blocking | ⚠️ Partial | Private IP blocking recommended |
-| Network segmentation | ✅ Complete | Database on private network |
-| DNS rebinding protection | ✅ Complete | HTTPS validation |
+| Control                  | Status      | Implementation                  |
+| ------------------------ | ----------- | ------------------------------- |
+| URL validation           | ✅ Complete | Allowlist for external APIs     |
+| IP range blocking        | ⚠️ Partial  | Private IP blocking recommended |
+| Network segmentation     | ✅ Complete | Database on private network     |
+| DNS rebinding protection | ✅ Complete | HTTPS validation                |
 
 **Implementation Details:**
 
 ```typescript
 // External API Allowlist
 const ALLOWED_EXTERNAL_APIS = [
-  'https://api.openweathermap.org',
-  'https://api.openai.com',
-  'https://api.github.com'
+  "https://api.openweathermap.org",
+  "https://api.openai.com",
+  "https://api.github.com",
 ];
 
 async function fetchExternalData(url: string) {
   const parsedUrl = new URL(url);
-  
-  if (!ALLOWED_EXTERNAL_APIS.some(allowed => parsedUrl.origin === new URL(allowed).origin)) {
-    throw new Error('External API not allowed');
+
+  if (!ALLOWED_EXTERNAL_APIS.some((allowed) => parsedUrl.origin === new URL(allowed).origin)) {
+    throw new Error("External API not allowed");
   }
-  
+
   return fetch(url);
 }
 ```
@@ -471,27 +480,27 @@ async function fetchExternalData(url: string) {
 
 ### Vessel Communication Security
 
-| Control | Status | Implementation |
-|---------|--------|---------------|
-| HMAC authentication | ✅ Complete | SHA-256 signatures for J1939 |
-| Satellite link encryption | ✅ Complete | TLS 1.3 for MQTT |
-| Intermittent connectivity handling | ✅ Complete | QoS 1, dead-letter queues |
-| Replay attack prevention | ✅ Complete | Timestamp validation |
+| Control                            | Status      | Implementation               |
+| ---------------------------------- | ----------- | ---------------------------- |
+| HMAC authentication                | ✅ Complete | SHA-256 signatures for J1939 |
+| Satellite link encryption          | ✅ Complete | TLS 1.3 for MQTT             |
+| Intermittent connectivity handling | ✅ Complete | QoS 1, dead-letter queues    |
+| Replay attack prevention           | ✅ Complete | Timestamp validation         |
 
 **HMAC Authentication for Marine Protocols:**
 
 ```typescript
 // J1939 CAN Bus Message Authentication
-app.post('/api/telemetry/j1939', async (req, res) => {
-  const signature = req.headers['x-hmac-signature'] as string;
-  const deviceId = req.headers['x-device-id'] as string;
-  
+app.post("/api/telemetry/j1939", async (req, res) => {
+  const signature = req.headers["x-hmac-signature"] as string;
+  const deviceId = req.headers["x-device-id"] as string;
+
   const payload = JSON.stringify(req.body);
-  
+
   if (!validateHMAC(payload, signature, deviceId)) {
-    return res.status(401).json({ error: 'Invalid HMAC signature' });
+    return res.status(401).json({ error: "Invalid HMAC signature" });
   }
-  
+
   // Process telemetry...
 });
 ```
@@ -504,33 +513,33 @@ app.post('/api/telemetry/j1939', async (req, res) => {
 
 ### SOC 2 Type II
 
-| Control | Requirement | Status |
-|---------|------------|--------|
-| CC6.1 | Logical access controls | ✅ Session management |
-| CC6.2 | Access authorization | ✅ RBAC (partial enforcement) |
-| CC6.3 | Privileged access | ✅ Admin token validation |
-| CC6.6 | Logical access removal | ✅ Session expiry |
-| CC7.2 | Change management | ✅ Model lineage tracking |
-| CC7.3 | Monitoring activities | ✅ Prometheus + Grafana |
+| Control | Requirement             | Status                        |
+| ------- | ----------------------- | ----------------------------- |
+| CC6.1   | Logical access controls | ✅ Session management         |
+| CC6.2   | Access authorization    | ✅ RBAC (partial enforcement) |
+| CC6.3   | Privileged access       | ✅ Admin token validation     |
+| CC6.6   | Logical access removal  | ✅ Session expiry             |
+| CC7.2   | Change management       | ✅ Model lineage tracking     |
+| CC7.3   | Monitoring activities   | ✅ Prometheus + Grafana       |
 
 ### ISO 27001
 
-| Control | Requirement | Status |
-|---------|------------|--------|
-| A.9.4.2 | Secure log-on | ✅ Session-based auth |
-| A.9.4.3 | Password management | ✅ bcrypt hashing |
-| A.12.4.1 | Event logging | ✅ Immutable audit logs |
-| A.12.4.3 | Administrator logs | ✅ Admin audit trail |
-| A.14.2.7 | Secure development | ✅ Input validation, ORM |
+| Control  | Requirement         | Status                   |
+| -------- | ------------------- | ------------------------ |
+| A.9.4.2  | Secure log-on       | ✅ Session-based auth    |
+| A.9.4.3  | Password management | ✅ bcrypt hashing        |
+| A.12.4.1 | Event logging       | ✅ Immutable audit logs  |
+| A.12.4.3 | Administrator logs  | ✅ Admin audit trail     |
+| A.14.2.7 | Secure development  | ✅ Input validation, ORM |
 
 ### GDPR
 
-| Control | Requirement | Status |
-|---------|------------|--------|
-| Art. 25 | Privacy by design | ✅ Tenant isolation |
-| Art. 32 | Security measures | ✅ Encryption, access control |
+| Control | Requirement         | Status                             |
+| ------- | ------------------- | ---------------------------------- |
+| Art. 25 | Privacy by design   | ✅ Tenant isolation                |
+| Art. 32 | Security measures   | ✅ Encryption, access control      |
 | Art. 33 | Breach notification | ⚠️ Process defined (not automated) |
-| Art. 35 | Impact assessment | ✅ Threat modeling complete |
+| Art. 35 | Impact assessment   | ✅ Threat modeling complete        |
 
 ---
 
@@ -544,12 +553,12 @@ app.post('/api/telemetry/j1939', async (req, res) => {
 **Findings:**
 
 | Severity | Count | Remediated |
-|----------|-------|------------|
-| Critical | 0 | N/A |
-| High | 0 | N/A |
-| Medium | 2 | 0 |
-| Low | 3 | 1 |
-| Info | 8 | N/A |
+| -------- | ----- | ---------- |
+| Critical | 0     | N/A        |
+| High     | 0     | N/A        |
+| Medium   | 2     | 0          |
+| Low      | 3     | 1          |
+| Info     | 8     | N/A        |
 
 **Medium Severity Issues:**
 
@@ -634,6 +643,7 @@ app.post('/api/telemetry/j1939', async (req, res) => {
 ### Code Review Checklist
 
 Before merging:
+
 - [ ] Input validation on all user inputs
 - [ ] Parameterized queries (no string concatenation)
 - [ ] Multi-tenant isolation enforced
@@ -646,12 +656,14 @@ Before merging:
 ### Security Testing
 
 Automated:
+
 - [x] npm audit (CI/CD pipeline)
 - [x] Zod schema validation tests
 - [ ] OWASP ZAP integration (recommended)
 - [ ] SQL injection fuzzing (recommended)
 
 Manual:
+
 - [x] Penetration testing (quarterly)
 - [x] Threat modeling (annual)
 - [ ] Security code review (every major release)

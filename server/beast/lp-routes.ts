@@ -36,13 +36,11 @@ router.post("/lp/optimize", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
     if (!config?.enabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "LP Optimizer feature is not enabled for this organization",
-          feature: "lp_optimizer",
-        });
+      return res.status(403).json({
+        success: false,
+        error: "LP Optimizer feature is not enabled for this organization",
+        feature: "lp_optimizer",
+      });
     }
     logger.info(`[Beast Mode API] Starting LP optimization for org ${orgId}`);
     const constraints = optimizationConstraintsSchema.parse(req.body);
@@ -69,12 +67,10 @@ router.get("/lp/results/:resultId", async (req, res) => {
     const orgId = DEFAULT_ORG_ID;
     const config = await beastModeManager.getFeatureConfig(orgId, "lp_optimizer");
     if (!config?.enabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "LP Optimizer feature is not enabled for this organization",
-        });
+      return res.status(403).json({
+        success: false,
+        error: "LP Optimizer feature is not enabled for this organization",
+      });
     }
     logger.info(`[Beast Mode API] Retrieving optimization result ${resultId} for org ${orgId}`);
     const optimizer = new LinearProgrammingOptimizer(orgId);
@@ -90,23 +86,23 @@ router.get("/lp/results/:resultId", async (req, res) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error(`[Beast Mode API] Error retrieving optimization result ${req.params.resultId}:`, undefined, error);
+    logger.error(
+      `[Beast Mode API] Error retrieving optimization result ${req.params.resultId}:`,
+      undefined,
+      error
+    );
     if (message.includes("not found")) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error: `Optimization result ${req.params.resultId} not found`,
-          resultId: req.params.resultId,
-        });
-    }
-    return res
-      .status(500)
-      .json({
+      return res.status(404).json({
         success: false,
-        error: "Failed to retrieve optimization results",
+        error: `Optimization result ${req.params.resultId} not found`,
         resultId: req.params.resultId,
       });
+    }
+    return res.status(500).json({
+      success: false,
+      error: "Failed to retrieve optimization results",
+      resultId: req.params.resultId,
+    });
   }
 });
 

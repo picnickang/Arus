@@ -1,4 +1,5 @@
 # Dashboard UX/UI Improvement Strategy
+
 ## Simplify Interface While Retaining Depth
 
 ---
@@ -6,6 +7,7 @@
 ## 📊 Current Dashboard Analysis
 
 ### **Current Structure:**
+
 1. Alert Banner (dynamic)
 2. Header (title, vessel filter, refresh, status)
 3. 5 Metric Cards (horizontal scroll on mobile)
@@ -44,6 +46,7 @@
 ```
 
 **Benefits:**
+
 - Reduces cognitive load by showing one context at a time
 - Retains all functionality through tabs
 - Cleaner visual hierarchy
@@ -76,6 +79,7 @@
 ```
 
 **Benefits:**
+
 - Reduces visual clutter
 - User controls information depth
 - Faster page scanning
@@ -106,6 +110,7 @@
 ```
 
 **Visual Weight Adjustments:**
+
 - **Critical alerts:** Red, larger, pulsing indicator
 - **Metrics:** Bold numbers, subtle backgrounds
 - **Tables:** Muted colors, compact rows
@@ -123,7 +128,7 @@
 
 // Focus Mode - Shows only critical issues
 - Critical equipment alerts
-- Overdue work orders  
+- Overdue work orders
 - Active risk alerts
 
 // Overview - Balanced view (current default)
@@ -138,6 +143,7 @@
 ```
 
 **Benefits:**
+
 - User chooses their information density
 - Faster problem identification (Focus Mode)
 - Detailed analysis when needed (Deep Dive)
@@ -163,6 +169,7 @@
 ```
 
 **Quick Action Bubbles:**
+
 - Shows count of critical issues
 - One-click access to common actions
 - Appears only when needed (smart hiding)
@@ -196,6 +203,7 @@
 ```
 
 **Benefits:**
+
 - Instant status overview
 - Faster pattern recognition
 - Details available on demand
@@ -208,7 +216,7 @@
 
 ```typescript
 interface DashboardPreferences {
-  defaultView: 'focus' | 'overview' | 'deepdive';
+  defaultView: "focus" | "overview" | "deepdive";
   collapsedSections: string[];
   pinnedMetrics: string[];
   vesselFilter: string;
@@ -218,6 +226,7 @@ interface DashboardPreferences {
 ```
 
 **Features:**
+
 - Remember user's collapsed sections
 - Save preferred vessel filter
 - Customize metric card order
@@ -245,6 +254,7 @@ Mobile View:
 ```
 
 **Mobile Patterns:**
+
 - Cards stack by priority
 - Bottom sheet for tables
 - Thumb-friendly action buttons
@@ -259,11 +269,9 @@ Mobile View:
 1. ✅ **Add collapsible sections**
    - Collapse Device Status, Telemetry tables by default
    - Summary count visible when collapsed
-   
 2. ✅ **Improve visual hierarchy**
    - Reduce metric card border/shadow weight
    - Increase critical alert prominence
-   
 3. ✅ **Smart empty states**
    - Hide sections with no data
    - Show "All Clear" message for alerts
@@ -277,11 +285,9 @@ Mobile View:
 4. ✅ **Implement tab navigation**
    - Overview / Devices / Maintenance tabs
    - Reduce initial page load complexity
-   
 5. ✅ **Add Focus Mode**
    - Filter view to show only critical issues
    - Toggle button in header
-   
 6. ✅ **Enhanced mobile experience**
    - Bottom sheet for detailed tables
    - Better touch targets
@@ -295,11 +301,9 @@ Mobile View:
 7. ✅ **Personalization system**
    - Save user preferences
    - Customizable dashboard layout
-   
 8. ✅ **Visual data representations**
    - Replace tables with visual grids
    - Interactive hover states
-   
 9. ✅ **Floating action bar**
    - Context-aware quick actions
    - Smart visibility rules
@@ -313,6 +317,7 @@ Mobile View:
 ### **1. Metrics Cards - Reduce Visual Noise**
 
 **Before:**
+
 ```tsx
 <MetricCard
   title="Active Devices"
@@ -324,18 +329,20 @@ Mobile View:
 ```
 
 **After:**
+
 ```tsx
 <MetricCard
   title="Active Devices"
   value={27}
   icon={Cpu}
-  variant="minimal"  // Cleaner design
+  variant="minimal" // Cleaner design
   trend={trend}
-  onClick={expandDetails}  // Make cards interactive
+  onClick={expandDetails} // Make cards interactive
 />
 ```
 
 **Changes:**
+
 - Remove colorful gradients (use subtle backgrounds)
 - Smaller icons
 - Trends as small badges instead of full text
@@ -352,9 +359,9 @@ Mobile View:
 <Table variant="condensed">
   <TableRow>
     <TableCell>
-      <DeviceStatusBadge 
-        online={5} 
-        offline={0} 
+      <DeviceStatusBadge
+        online={5}
+        offline={0}
       />
     </TableCell>
   </TableRow>
@@ -366,8 +373,8 @@ Mobile View:
 </Table>
 
 // Toggle Button
-<Button 
-  variant="ghost" 
+<Button
+  variant="ghost"
   size="sm"
   onClick={() => setExpanded(!expanded)}
 >
@@ -388,11 +395,11 @@ Mobile View:
   <AlertGroup severity="critical" count={3}>
     {/* Critical alerts - always expanded */}
   </AlertGroup>
-  
+
   <AlertGroup severity="warning" count={5} collapsed>
     {/* Warning alerts - collapsed by default */}
   </AlertGroup>
-  
+
   <AlertGroup severity="info" count={12} collapsed>
     {/* Info alerts - hidden by default */}
   </AlertGroup>
@@ -414,12 +421,13 @@ Mobile View:
   insight={{
     trend: "↓ 12% this week",
     recommendation: "3 vessels need attention",
-    action: () => navigateTo('/analytics?filter=critical')
+    action: () => navigateTo("/analytics?filter=critical"),
   }}
 />
 ```
 
 **Benefits:**
+
 - Reduces vertical scrolling
 - Contextual insights next to metrics
 - Direct actions from cards
@@ -436,15 +444,15 @@ Mobile View:
 
 const colors = {
   // Status Colors (Semantic)
-  critical: 'hsl(0 84% 60%)',     // Red
-  warning: 'hsl(38 92% 50%)',     // Orange
-  healthy: 'hsl(142 76% 36%)',    // Green
-  info: 'hsl(217 91% 60%)',       // Blue
-  
+  critical: "hsl(0 84% 60%)", // Red
+  warning: "hsl(38 92% 50%)", // Orange
+  healthy: "hsl(142 76% 36%)", // Green
+  info: "hsl(217 91% 60%)", // Blue
+
   // Neutral Colors (Background)
-  surface: 'hsl(0 0% 98%)',       // Very light gray
-  card: 'hsl(0 0% 100%)',         // White
-  border: 'hsl(0 0% 89%)',        // Light gray
+  surface: "hsl(0 0% 98%)", // Very light gray
+  card: "hsl(0 0% 100%)", // White
+  border: "hsl(0 0% 89%)", // Light gray
 };
 ```
 
@@ -452,11 +460,26 @@ const colors = {
 
 ```css
 /* Clear hierarchy */
-.metric-value { font-size: 2rem; font-weight: 700; }
-.metric-label { font-size: 0.875rem; font-weight: 500; }
-.section-title { font-size: 1.125rem; font-weight: 600; }
-.body-text { font-size: 0.875rem; font-weight: 400; }
-.caption { font-size: 0.75rem; font-weight: 400; }
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.metric-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.body-text {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.caption {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
 ```
 
 ---
@@ -464,21 +487,25 @@ const colors = {
 ## 💡 Interaction Patterns
 
 ### **1. Card Expansion**
+
 - Click card → Expands to show details
 - Escape or click outside → Collapses
 - Smooth height animation
 
 ### **2. Table Sorting**
+
 - Click column header → Sort
 - Visual indicator for current sort
 - Remember user's preference
 
 ### **3. Quick Actions**
+
 - Hover over equipment → Show quick actions
 - Right-click → Context menu
 - Keyboard shortcuts for power users
 
 ### **4. Refresh Behavior**
+
 - Auto-refresh with visual indicator
 - Manual refresh button
 - Optimistic UI updates (show change immediately)
@@ -491,9 +518,9 @@ const colors = {
 // Tailored experiences for each viewport
 
 const breakpoints = {
-  mobile: '< 640px',    // Single column, bottom sheet
-  tablet: '640-1024px', // 2 columns, some collapsing
-  desktop: '> 1024px',  // Full layout, all features
+  mobile: "< 640px", // Single column, bottom sheet
+  tablet: "640-1024px", // 2 columns, some collapsing
+  desktop: "> 1024px", // Full layout, all features
 };
 
 // Mobile: Priority-based stacking
@@ -513,6 +540,7 @@ Test these variations to measure impact:
 4. **Auto-refresh ON vs. OFF** default setting
 
 **Metrics to Track:**
+
 - Time to identify critical issues
 - Number of clicks to complete actions
 - User satisfaction scores
@@ -523,12 +551,14 @@ Test these variations to measure impact:
 ## 🎯 Success Metrics
 
 ### **Quantitative Metrics:**
+
 - ⬇️ Reduce time to critical issue identification by 50%
 - ⬇️ Decrease cognitive load (fewer sections visible)
 - ⬆️ Increase action completion rate by 30%
 - ⬇️ Reduce page scroll depth by 60%
 
 ### **Qualitative Metrics:**
+
 - User reports dashboard as "easier to scan"
 - Reduced support tickets for "finding information"
 - Positive feedback on mobile experience
@@ -547,6 +577,7 @@ Test these variations to measure impact:
 6. **Week 6:** Gather feedback and iterate
 
 **Rollback Plan:**
+
 - Keep "Classic View" toggle for 2 months
 - Monitor analytics for drop in usage
 - Quick revert option if issues arise
@@ -583,16 +614,15 @@ Test these variations to measure impact:
 1. **🎯 Focus Mode** - Filters to critical issues only
    - Biggest impact for operational efficiency
    - Simple toggle implementation
-   
 2. **📦 Collapsible Sections** - Reduce visual clutter
    - Show summaries, expand on demand
    - Progressive disclosure at its best
-   
 3. **📊 Tabbed Organization** - Overview/Devices/Maintenance
    - Reduces page height by 60%
    - Clear mental model
 
 ### **Don't Implement (Yet):**
+
 - ❌ Custom dashboard builder (too complex)
 - ❌ Drag-and-drop widgets (nice-to-have, not essential)
 - ❌ Advanced filtering (use Focus Mode instead)
@@ -603,6 +633,6 @@ Test these variations to measure impact:
 
 ---
 
-*Created: October 13, 2025*  
-*For: ARUS Marine Dashboard*  
-*Focus: UX/UI Optimization*
+_Created: October 13, 2025_  
+_For: ARUS Marine Dashboard_  
+_Focus: UX/UI Optimization_

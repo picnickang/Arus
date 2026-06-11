@@ -28,6 +28,7 @@ Comprehensive review of I/O operations and storage infrastructure reveals **opti
 | insight_snapshots | 136 KB | 88 KB | 48 KB | - |
 
 **Analysis:**
+
 - ✅ Excellent table/index ratio (work_orders: 9:1 index/data ratio = heavily optimized for queries)
 - ✅ Smart indexing strategy - indexes larger than data for query performance
 - ✅ No bloat detected
@@ -36,6 +37,7 @@ Comprehensive review of I/O operations and storage infrastructure reveals **opti
 ### Storage Health
 
 **Database Statistics:**
+
 - **Total capacity:** PostgreSQL via Neon (serverless - auto-scaling)
 - **Current usage:** 42 MB of unlimited capacity
 - **Growth rate:** Sustainable (< 1MB/day based on current activity)
@@ -43,6 +45,7 @@ Comprehensive review of I/O operations and storage infrastructure reveals **opti
 - **Fragmentation:** None detected
 
 **Row Counts (Data-Heavy Tables):**
+
 - DTC definitions: 765 rows (fault code reference data)
 - Error logs: 242 rows (monitoring/debugging)
 - Work orders: 37 rows (operational data)
@@ -60,6 +63,7 @@ Comprehensive review of I/O operations and storage infrastructure reveals **opti
 **Status:** ✅ Initialized and operational
 
 **Initialization Log:**
+
 ```
 ✓ Object storage client initialized (Replit environment)
 ```
@@ -68,15 +72,16 @@ Comprehensive review of I/O operations and storage infrastructure reveals **opti
 
 The system supports multiple storage backends:
 
-| Provider | Status | Use Case |
-|----------|--------|----------|
-| **GCS (Google Cloud)** | ✅ Active | Primary object storage |
-| **AWS S3** | ⚙️ Configured | Alternative/backup |
-| **Azure Blob** | ⚙️ Configured | Enterprise integration |
-| **Google Drive** | ⚙️ Configured | Document storage |
-| **SFTP** | ⚙️ Configured | Legacy system integration |
+| Provider               | Status        | Use Case                  |
+| ---------------------- | ------------- | ------------------------- |
+| **GCS (Google Cloud)** | ✅ Active     | Primary object storage    |
+| **AWS S3**             | ⚙️ Configured | Alternative/backup        |
+| **Azure Blob**         | ⚙️ Configured | Enterprise integration    |
+| **Google Drive**       | ⚙️ Configured | Document storage          |
+| **SFTP**               | ⚙️ Configured | Legacy system integration |
 
 **Features:**
+
 - Public object search paths (configurable)
 - Private object directory (secure storage)
 - ACL (Access Control List) support
@@ -86,6 +91,7 @@ The system supports multiple storage backends:
 ### Object Storage Service
 
 **Key Capabilities:**
+
 1. **Public Object Search** - Multi-path search for shared resources
 2. **Private Object Storage** - Secure document/file storage
 3. **ACL Management** - Fine-grained access control
@@ -93,6 +99,7 @@ The system supports multiple storage backends:
 5. **Provider Testing** - Health checks for all storage backends
 
 **Code Quality:**
+
 - ✅ Proper error handling
 - ✅ Environment detection (Replit vs local)
 - ✅ Lazy initialization (only loads when needed)
@@ -105,6 +112,7 @@ The system supports multiple storage backends:
 ### Disk Space Analysis
 
 **Current Usage:**
+
 ```
 Filesystem              Size  Used  Avail  Use%
 Main (overlay)          50GB  35GB  13GB   73%   (System files)
@@ -113,8 +121,9 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ```
 
 **Application Code Size:**
+
 - Server code: 3.0 MB
-- Client code: 2.4 MB  
+- Client code: 2.4 MB
 - Shared code: 364 KB
 - **Total:** 5.8 MB (extremely efficient)
 
@@ -132,6 +141,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 | Sensor data | 2 | sensor-routes.ts, j1939-collector.ts |
 
 **Design Philosophy:** ✅ Database-first (minimal file I/O)
+
 - Most data stored in PostgreSQL
 - File operations only for:
   - Backups and exports
@@ -146,6 +156,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ### Database Query Performance
 
 **Response Times (from live monitoring):**
+
 - Simple queries (telemetry, jobs): 15-50ms
 - Equipment health aggregation: 130-170ms
 - Dashboard analytics: 200-450ms
@@ -156,11 +167,13 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ### Index Efficiency
 
 **Smart Indexing Strategy:**
+
 - Work orders: 9:1 index-to-data ratio (optimized for lookups)
 - Equipment: 17:1 index-to-data ratio (frequent queries)
 - Error logs: 0.45:1 ratio (write-heavy, few lookups)
 
 **Materialized Views:**
+
 - ✅ `mv_latest_equipment_telemetry` - Auto-refreshed every 5 minutes
 - ✅ `mv_equipment_health` - Cached health calculations
 - ✅ Reduces query time from 450ms → 150ms
@@ -170,6 +183,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 **Read-Heavy Workload:** 95% reads, 5% writes (typical for monitoring system)
 
 **Observed I/O:**
+
 - Equipment health: Polled every 30 seconds
 - Dashboard: Polled every 30 seconds
 - Telemetry: Real-time ingestion (MQTT)
@@ -186,6 +200,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 **Provider:** Neon (PostgreSQL-compatible serverless)
 
 **Features:**
+
 - ✅ Automatic backups
 - ✅ Point-in-time recovery
 - ✅ Connection pooling
@@ -193,6 +208,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 - ✅ 99.95% uptime SLA
 
 **Current Status:**
+
 - Connection stable (zero timeouts in logs)
 - Query execution: 100% success rate
 - No connection pool exhaustion
@@ -201,6 +217,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ### Backup Strategy
 
 **Implemented:**
+
 1. **Database Backups** (server/db-backup.ts)
    - Automated SQL dumps
    - Configurable retention
@@ -219,6 +236,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ### Data Durability
 
 **Guarantees:**
+
 - PostgreSQL: ACID compliance, write-ahead logging
 - GCS: 99.999999999% (11 nines) durability
 - Sync infrastructure: Optimistic locking + conflict resolution
@@ -230,6 +248,7 @@ Main (overlay)          50GB  35GB  13GB   73%   (System files)
 ### Automatic Cleanup
 
 **Telemetry Pruning Service:**
+
 ```
 Retention periods:
   • Raw telemetry: 90 days
@@ -238,6 +257,7 @@ Retention periods:
 ```
 
 **Benefits:**
+
 - Prevents database bloat
 - Maintains optimal query performance
 - Regulatory compliance (data retention policies)
@@ -245,6 +265,7 @@ Retention periods:
 ### Index Maintenance
 
 **Automatic:**
+
 - PostgreSQL auto-vacuum running
 - Index statistics updated
 - Dead tuple cleanup
@@ -253,6 +274,7 @@ Retention periods:
 ### Space Efficiency
 
 **Current Metrics:**
+
 - Database: 42 MB for 1,200+ rows across 113 tables = **35 KB/table average**
 - Code: 5.8 MB for full-stack app = Extremely efficient
 - Object storage: < 1 MB (minimal file storage)
@@ -264,11 +286,13 @@ Retention periods:
 ### Current Capacity
 
 **Database:**
+
 - Current: 42 MB
 - Neon limit: Unlimited (serverless auto-scaling)
 - Headroom: Infinite
 
 **Disk Space:**
+
 - /tmp: 32 GB available (99.9% free)
 - Main: 13 GB available (73% used by system)
 - Code: 5.8 MB (negligible)
@@ -276,6 +300,7 @@ Retention periods:
 ### Growth Projections
 
 **Conservative estimate (1 year):**
+
 - Telemetry data: 10 MB/month = 120 MB/year (with pruning)
 - Work orders: 100/month = 1,200/year = ~10 MB
 - Equipment: Minimal growth (< 1 MB)
@@ -284,6 +309,7 @@ Retention periods:
 **Total 1-year projection:** 42 MB → ~175 MB (still tiny)
 
 **Scaling triggers:**
+
 - Database > 10 GB: Consider read replicas
 - Query times > 1s: Add materialized views
 - Object storage > 100 GB: Review retention policies
@@ -297,18 +323,21 @@ Retention periods:
 ### Storage Access Control
 
 **Database:**
+
 - ✅ Row-Level Security on 77 tables
 - ✅ Org-scoped queries via session variables
 - ✅ FORCE RLS prevents bypass
 - ✅ Connection string secured (env vars)
 
 **Object Storage:**
+
 - ✅ ACL policies implemented
 - ✅ Public/private directory separation
 - ✅ Replit authentication (OAuth tokens)
 - ✅ Per-object permissions
 
 **File System:**
+
 - ✅ No world-writable files
 - ✅ /tmp ephemeral (cleared on restart)
 - ✅ Sensitive data in database (not files)
@@ -316,11 +345,13 @@ Retention periods:
 ### Data Encryption
 
 **At Rest:**
+
 - Database: Neon provides transparent encryption
 - Object storage: GCS encrypts by default
 - Files: Ephemeral (no long-term file storage)
 
 **In Transit:**
+
 - Database: TLS/SSL connections
 - Object storage: HTTPS only
 - API: HTTPS (Replit provides TLS)
@@ -332,17 +363,20 @@ Retention periods:
 ### Current Monitoring
 
 **Database Performance:**
+
 ```
 🔍 Database performance monitoring started
 ```
 
 **Metrics Tracked:**
+
 - Query execution time
 - Connection pool status
 - Slow query detection (> 1s logged)
 - Database size growth
 
 **Storage Health:**
+
 - Disk space: Monitored by Replit
 - Object storage: GCS built-in monitoring
 - Backup status: Via sync infrastructure
@@ -350,12 +384,14 @@ Retention periods:
 ### Recommended Alerts
 
 **High Priority:**
+
 - Database size > 5 GB
 - Query time > 2 seconds
 - Connection pool exhaustion
 - Backup failures
 
 **Medium Priority:**
+
 - Disk usage > 90%
 - Object storage > 10 GB
 - Index bloat detected
@@ -367,6 +403,7 @@ Retention periods:
 ### ✅ NO ISSUES FOUND
 
 **Positive Findings:**
+
 1. ✅ Database extremely lean (42 MB)
 2. ✅ Excellent query performance (all < 500ms)
 3. ✅ Smart indexing strategy
@@ -385,18 +422,21 @@ Retention periods:
 ## 11. Best Practices Observed ✅
 
 **Database Design:**
+
 - ✅ Normalized schema (no data duplication)
 - ✅ Proper indexing (index-heavy for read optimization)
 - ✅ Materialized views for expensive queries
 - ✅ Automatic cleanup (telemetry pruning)
 
 **Storage Architecture:**
+
 - ✅ Database-first (not file-based)
 - ✅ Object storage for large files (PDFs, ML models)
 - ✅ Multi-provider support (no vendor lock-in)
 - ✅ Graceful degradation (works offline)
 
 **I/O Patterns:**
+
 - ✅ Minimal file operations (15 instances)
 - ✅ Streaming for large files
 - ✅ Connection pooling
@@ -409,6 +449,7 @@ Retention periods:
 **VERDICT: EXCELLENT I/O & STORAGE INFRASTRUCTURE**
 
 The ARUS platform demonstrates **production-grade storage engineering** with:
+
 - Lean, efficient database (42 MB for full system)
 - Optimal query performance (all < 500ms)
 - Multi-provider object storage

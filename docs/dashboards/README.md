@@ -5,9 +5,11 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 ## Available Dashboards
 
 ### 1. grafana-arus-overview.json
+
 **Purpose**: Overall platform health and performance monitoring
 
 **Key Metrics**:
+
 - API request rate and error rate
 - HTTP latency (p50, p95, p99)
 - Memory usage and event loop lag
@@ -20,6 +22,7 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 **Time Range**: Last 6 hours (configurable)
 
 **Use Cases**:
+
 - Daily operational monitoring
 - Incident detection and triage
 - Performance regression identification
@@ -28,9 +31,11 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 ---
 
 ### 2. grafana-ml-performance.json
+
 **Purpose**: ML model performance and governance monitoring
 
 **Key Metrics**:
+
 - Prediction rate and count
 - ML inference latency by model (LSTM, XGBoost, Random Forest)
 - Model accuracy scores
@@ -46,6 +51,7 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 **Time Range**: Last 6 hours (configurable)
 
 **Use Cases**:
+
 - ML model performance monitoring
 - Governance compliance verification
 - Model drift detection
@@ -56,6 +62,7 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 ## Installation
 
 ### Prerequisites
+
 - Grafana 9.0+ installed
 - Prometheus data source configured
 - ARUS `/api/metrics` endpoint accessible
@@ -63,6 +70,7 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 ### Import Dashboards
 
 #### Option 1: Grafana UI
+
 1. Open Grafana
 2. Navigate to Dashboards → Import
 3. Upload the JSON file or paste the content
@@ -70,6 +78,7 @@ This directory contains Grafana dashboard definitions for monitoring the ARUS pl
 5. Click "Import"
 
 #### Option 2: Provisioning
+
 Add to your Grafana provisioning configuration:
 
 ```yaml
@@ -77,9 +86,9 @@ Add to your Grafana provisioning configuration:
 apiVersion: 1
 
 providers:
-  - name: 'ARUS Dashboards'
+  - name: "ARUS Dashboards"
     orgId: 1
-    folder: 'ARUS'
+    folder: "ARUS"
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10
@@ -89,6 +98,7 @@ providers:
 ```
 
 #### Option 3: API
+
 ```bash
 # Import overview dashboard
 curl -X POST http://localhost:3000/api/dashboards/import \
@@ -112,10 +122,12 @@ curl -X POST http://localhost:3000/api/dashboards/import \
 The dashboards expect the following Prometheus metrics from `/api/metrics`:
 
 #### Standard HTTP Metrics
+
 - `http_requests_total` - Total HTTP requests (labels: status, route, method)
 - `http_request_duration_seconds_bucket` - Request duration histogram
 
 #### Node.js Metrics
+
 - `nodejs_heap_size_total_bytes` - Total heap size
 - `nodejs_heap_size_used_bytes` - Used heap size
 - `nodejs_eventloop_lag_seconds` - Event loop lag
@@ -123,6 +135,7 @@ The dashboards expect the following Prometheus metrics from `/api/metrics`:
 - `process_resident_memory_bytes` - RSS memory
 
 #### ML Custom Metrics
+
 - `ml_predictions_total` - Total predictions (label: model)
 - `ml_inference_duration_seconds_bucket` - Inference latency histogram
 - `ml_model_accuracy_score` - Model accuracy
@@ -137,9 +150,11 @@ The dashboards expect the following Prometheus metrics from `/api/metrics`:
 - `ml_model_lineage_records_total` - Lineage records count
 
 #### Background Job Metrics
+
 - `background_job_queue_depth` - Job queue depth
 
 #### Security & Tenant Isolation Metrics
+
 - `arus_tenant_isolation_denied_total` - Cross-tenant access attempts blocked (labels: org_requested, user_org)
 - `arus_auth_failure_total` - Authentication failures (labels: reason - missing_org_id, invalid_org_id_format, unauthenticated)
 - `arus_cross_org_access_blocked_total` - Cross-organization access attempts blocked
@@ -152,11 +167,11 @@ Add to your `prometheus.yml`:
 
 ```yaml
 scrape_configs:
-  - job_name: 'arus'
+  - job_name: "arus"
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:5000']
-    metrics_path: '/api/metrics'
+      - targets: ["localhost:5000"]
+    metrics_path: "/api/metrics"
 ```
 
 ---
@@ -277,6 +292,7 @@ groups:
 ### Add Custom Panels
 
 Both dashboards support customization:
+
 1. Edit the JSON file
 2. Add new panels to the `panels` array
 3. Update panel IDs sequentially
@@ -285,9 +301,11 @@ Both dashboards support customization:
 ### Variables
 
 **Overview Dashboard**:
+
 - `datasource` - Prometheus data source selector
 
 **ML Dashboard**:
+
 - `datasource` - Prometheus data source selector
 - `model` - Filter by specific ML model (All, LSTM, XGBoost, Random Forest)
 
@@ -310,12 +328,14 @@ Customize in JSON: `"refresh": "30s"`
 ### No Data Showing
 
 1. **Verify Prometheus is scraping**:
+
    ```bash
    curl http://localhost:9090/api/v1/targets
    # Check if ARUS target is "UP"
    ```
 
 2. **Test metrics endpoint**:
+
    ```bash
    curl http://localhost:5000/api/metrics
    # Should return Prometheus format
@@ -328,6 +348,7 @@ Customize in JSON: `"refresh": "30s"`
 ### Missing Metrics
 
 Some metrics only appear after certain events:
+
 - `ml_predictions_total` - After first ML prediction
 - `ml_model_training_total` - After first training run
 - `ml_provenance_chain_verified` - After running verification script
@@ -335,6 +356,7 @@ Some metrics only appear after certain events:
 ### High Memory Usage in Grafana
 
 Reduce time range or increase refresh interval:
+
 ```json
 "time": {"from": "now-1h", "to": "now"},
 "refresh": "1m"
@@ -357,6 +379,7 @@ Reduce time range or increase refresh interval:
 ## Changelog
 
 ### November 27, 2025
+
 - Added `arus_security` alert group with tenant isolation monitoring
 - Added security metrics documentation (auth failures, cross-org access, injection detection)
 - New alerts: TenantIsolationViolationAttempt, HighUnauthenticatedAccessRate, CrossOrgAccessBlocked, SuspiciousOrgIdPattern

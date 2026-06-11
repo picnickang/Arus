@@ -65,7 +65,11 @@ export async function generateMaintenanceRecommendations(
       }
       recommendation = JSON.parse(response.content);
     } catch (parseError) {
-      logger.error("Failed to parse LLM maintenance recommendation response:", undefined, parseError);
+      logger.error(
+        "Failed to parse LLM maintenance recommendation response:",
+        undefined,
+        parseError
+      );
       throw new Error(
         `Invalid AI response format: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
       );
@@ -149,8 +153,7 @@ Provide a concise technical explanation of the pump's current condition, highlig
     });
 
     return (
-      response.content?.trim() ||
-      "Pump analysis completed. Parameters within operational limits."
+      response.content?.trim() || "Pump analysis completed. Parameters within operational limits."
     );
   } catch (error) {
     logger.error(`Pump analysis explanation failed for ${params.assetId}:`, undefined, error);

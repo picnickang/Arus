@@ -16,26 +16,26 @@ endpoint (which the k6 scenarios do not exercise — they only hit health/observ
 
 ## Environment
 
-| Component | Value |
-|---|---|
-| Server | `npm run dev` (`NODE_ENV=development`, `ARUS_DEV_LOGIN=1`), port 5000 |
-| Database | PostgreSQL 16.13 (localhost), schema via `db:push` **+** `db:migrate` |
-| Redis | redis 7 (localhost) |
-| k6 | v2.0.0 (binary from GitHub releases; `dl.k6.io` was unreachable) |
-| Rate limits | `DISABLE_RATE_LIMITS=true` for the recorded runs (see Findings #2) |
+| Component   | Value                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| Server      | `npm run dev` (`NODE_ENV=development`, `ARUS_DEV_LOGIN=1`), port 5000 |
+| Database    | PostgreSQL 16.13 (localhost), schema via `db:push` **+** `db:migrate` |
+| Redis       | redis 7 (localhost)                                                   |
+| k6          | v2.0.0 (binary from GitHub releases; `dl.k6.io` was unreachable)      |
+| Rate limits | `DISABLE_RATE_LIMITS=true` for the recorded runs (see Findings #2)    |
 
 ## k6 HTTP scenarios
 
-| Scenario | VUs / duration | Endpoints | p95 | http_req_failed | Throughput | Thresholds |
-|---|---|---|---|---|---|---|
-| smoke | 1 VU, 30s | `/api/healthz`, `/api/readyz` | **7.95 ms** | 0.00% (0/60) | 2 req/s | ✅ p95<500ms, rate<1% |
-| steady | 20→50 VUs, 5m | `/api/healthz`, web-vitals ping (authed) | **6.78 ms** | 0.00% (0/16,878) | 56 req/s | ✅ p95<800ms, rate<1% |
-| spike | burst 100 VUs, ~90s | `/api/healthz` | **4.67 ms** | 0.00% (0/68,382) | **855 req/s** | ✅ p95<1500ms, rate<5% |
+| Scenario | VUs / duration      | Endpoints                                | p95         | http_req_failed  | Throughput    | Thresholds             |
+| -------- | ------------------- | ---------------------------------------- | ----------- | ---------------- | ------------- | ---------------------- |
+| smoke    | 1 VU, 30s           | `/api/healthz`, `/api/readyz`            | **7.95 ms** | 0.00% (0/60)     | 2 req/s       | ✅ p95<500ms, rate<1%  |
+| steady   | 20→50 VUs, 5m       | `/api/healthz`, web-vitals ping (authed) | **6.78 ms** | 0.00% (0/16,878) | 56 req/s      | ✅ p95<800ms, rate<1%  |
+| spike    | burst 100 VUs, ~90s | `/api/healthz`                           | **4.67 ms** | 0.00% (0/68,382) | **855 req/s** | ✅ p95<1500ms, rate<5% |
 
 `node tests/load/check-thresholds.mjs artifacts/load` → all summaries contain passing thresholds.
 Summary JSONs: `artifacts/load/{smoke,steady,spike}-summary.json` (not committed).
 
-**ws_fanout: intentionally skipped** in this pass. It proves *cross-instance* WebSocket fan-out
+**ws_fanout: intentionally skipped** in this pass. It proves _cross-instance_ WebSocket fan-out
 and requires two server instances behind a shared Redis (`WS_REDIS_FANOUT=true`, ports 5001/5002);
 a single-instance run would only measure loopback delivery and produce a misleading "pass". It has
 a dedicated nightly (`.github/workflows/ws-fanout-nightly.yml`).
@@ -46,12 +46,12 @@ Driven via `POST /api/admin/telemetry/stress-test` (`useBatchWriter: true`), whi
 real `telemetryBatchWriter` singleton — the same path the SQLite bridge uses. 60s per rate step,
 one equipment, default sensor set.
 
-| Target rate | Achieved | Messages | Errors | Evicted | Dropped | Avg flush |
-|---|---|---|---|---|---|---|
-| 100 msg/s | 100/s | 6,000 | 0 | 0 | 0 | 206 ms |
-| 500 msg/s | 500/s | 30,000 | 0 | 0 | 0 | 239 ms |
-| 1,000 msg/s | 1,000/s | 60,000 | 0 | 0 | 0 | 198 ms |
-| 2,000 msg/s | **2,000/s** | 120,000 | 0 | 0 | 0 | 140 ms |
+| Target rate | Achieved    | Messages | Errors | Evicted | Dropped | Avg flush |
+| ----------- | ----------- | -------- | ------ | ------- | ------- | --------- |
+| 100 msg/s   | 100/s       | 6,000    | 0      | 0       | 0       | 206 ms    |
+| 500 msg/s   | 500/s       | 30,000   | 0      | 0       | 0       | 239 ms    |
+| 1,000 msg/s | 1,000/s     | 60,000   | 0      | 0       | 0       | 198 ms    |
+| 2,000 msg/s | **2,000/s** | 120,000  | 0      | 0       | 0       | 140 ms    |
 
 - **The batch writer sustained the endpoint's maximum configurable rate (2,000 msg/s) with zero
   evictions, zero drops, zero errors** in this environment. The saturation point is above what
@@ -81,9 +81,9 @@ After `equipment_telemetry` was rebuilt as a natively partitioned table (monthly
 migration 0038), the ingestion ladder was re-run against the live server with no restart:
 
 | Target rate | Achieved | Errors | Evicted | Dropped | Avg flush (partitioned) | Avg flush (plain table) |
-|---|---|---|---|---|---|---|
-| 500 msg/s | 500/s | 0 | 0 | 0 | **149 ms** | 239 ms |
-| 2,000 msg/s | 2,000/s | 0 | 0 | 0 | **120 ms** | 140 ms |
+| ----------- | -------- | ------ | ------- | ------- | ----------------------- | ----------------------- |
+| 500 msg/s   | 500/s    | 0      | 0       | 0       | **149 ms**              | 239 ms                  |
+| 2,000 msg/s | 2,000/s  | 0      | 0       | 0       | **120 ms**              | 140 ms                  |
 
 No regression — flush latency was equal or better, and `tableoid` checks confirmed every row
 routed to the correct monthly partition. Retention's partition fast path was also exercised

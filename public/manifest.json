@@ -17,7 +17,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512x512.png", 
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -31,21 +31,21 @@
       "short_name": "Dashboard",
       "description": "View fleet overview and system status",
       "url": "/",
-      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Equipment Health",
       "short_name": "Health",
       "description": "Monitor equipment health and alerts",
       "url": "/health",
-      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Work Orders",
       "short_name": "Work Orders",
       "description": "Manage maintenance work orders",
       "url": "/work-orders",
-      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

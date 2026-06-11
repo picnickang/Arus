@@ -48,13 +48,11 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
                   (sum, u) => sum + u.need,
                   0
                 );
-                const total =
-                  p.enhancedScheduleResult.summary.scheduledAssignments + totalUnfilled;
+                const total = p.enhancedScheduleResult.summary.scheduledAssignments + totalUnfilled;
                 return total > 0
-                  ? (
-                      (p.enhancedScheduleResult.summary.scheduledAssignments / total) *
-                      100
-                    ).toFixed(1)
+                  ? ((p.enhancedScheduleResult.summary.scheduledAssignments / total) * 100).toFixed(
+                      1
+                    )
                   : 0;
               })()}
               %
@@ -83,9 +81,7 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
             <div className="mb-3">
               <span className="text-sm">Overall: </span>
               <Badge
-                variant={
-                  p.enhancedScheduleResult.compliance.overall_ok ? "default" : "destructive"
-                }
+                variant={p.enhancedScheduleResult.compliance.overall_ok ? "default" : "destructive"}
               >
                 {p.enhancedScheduleResult.compliance.overall_ok
                   ? "COMPLIANT"
@@ -148,14 +144,11 @@ export function EnhancedScheduleResultsCard({ p }: { p: ShiftPlanning }) {
                 </tbody>
               </table>
             </div>
-            <p
-              className="text-xs text-muted-foreground mt-3"
-              data-testid="text-stcw-disclaimer"
-            >
-              STCW compliance results shown here are projected and simulated based on the
-              current schedule. They are advisory only and do not constitute official compliance
-              verification. Always verify with your designated person ashore (DPA) and flag
-              state requirements.
+            <p className="text-xs text-muted-foreground mt-3" data-testid="text-stcw-disclaimer">
+              STCW compliance results shown here are projected and simulated based on the current
+              schedule. They are advisory only and do not constitute official compliance
+              verification. Always verify with your designated person ashore (DPA) and flag state
+              requirements.
             </p>
           </div>
         )}

@@ -26,10 +26,7 @@ const roleIdParamSchema = z.object({ id: z.string().min(1) });
 // and is normalized to null (clears the column); an absent key leaves it
 // untouched on update.
 const nullableText = (max: number) =>
-  z.preprocess(
-    (v) => (v === "" ? null : v),
-    z.string().trim().max(max).nullable().optional()
-  );
+  z.preprocess((v) => (v === "" ? null : v), z.string().trim().max(max).nullable().optional());
 const nullableNumber = (min: number, max: number) =>
   z.preprocess(
     (v) => (v === "" || v === null ? null : v),

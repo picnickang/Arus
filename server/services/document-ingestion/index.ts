@@ -47,7 +47,9 @@ export async function ingestDocument(
       }
 
       if (validation.warnings.length > 0) {
-        logger.warn(`[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join("; ")}`);
+        logger.warn(
+          `[DocIngestion] Validation warnings for ${fileName}: ${validation.warnings.join("; ")}`
+        );
       }
 
       if (validation.quarantine) {
@@ -65,15 +67,13 @@ export async function ingestDocument(
         success: true,
       });
     } catch (validationError: unknown) {
-      const vmsg = validationError instanceof Error ? validationError.message : String(validationError);
-      if (
-        vmsg.includes("File validation failed") ||
-        vmsg.includes("quarantined")
-      ) {
+      const vmsg =
+        validationError instanceof Error ? validationError.message : String(validationError);
+      if (vmsg.includes("File validation failed") || vmsg.includes("quarantined")) {
         throw validationError;
       }
       // If security services aren't initialized, continue without validation in dev
-      if (process.env['NODE_ENV'] === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         logger.warn(`[DocIngestion] Skipping file validation (security services not available)`);
       } else {
         throw new Error("File validation unavailable");
@@ -105,17 +105,17 @@ export async function ingestDocument(
       const semanticChunks = semanticChunker.chunk(extractedText);
       if (semanticChunks.length > 0) {
         textChunks = semanticChunks.map((c) => c.content);
-        metadata['chunkingMethod'] = "semantic";
+        metadata["chunkingMethod"] = "semantic";
         logger.info(`[DocIngestion] Created ${textChunks.length} semantic chunks`);
       } else {
         textChunks = chunkText(extractedText);
-        metadata['chunkingMethod'] = "basic";
+        metadata["chunkingMethod"] = "basic";
         logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks`);
       }
     } catch (chunkError) {
       logger.warn(`[DocIngestion] Semantic chunking failed, using basic: ${chunkError}`);
       textChunks = chunkText(extractedText);
-      metadata['chunkingMethod'] = "basic";
+      metadata["chunkingMethod"] = "basic";
       logger.info(`[DocIngestion] Created ${textChunks.length} basic chunks (fallback)`);
     }
 
@@ -163,7 +163,9 @@ export async function ingestDocument(
       if (keywords.length > 0) {
         metadata.keywords = keywords;
       }
-      logger.info(`[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`);
+      logger.info(
+        `[DocIngestion] Generated summary (${summarizationResult.summary.length} chars) and ${keywords.length} keywords`
+      );
     }
 
     const processingTimeMs = Date.now() - startTime;

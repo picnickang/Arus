@@ -11,16 +11,10 @@
     "earlyStoppingPatience": 5,
     "verbose": true
   },
-  "featureNames": [
-    "temperature"
-  ],
+  "featureNames": ["temperature"],
   "normalizationParams": {
-    "mean": [
-      18.37365422096856
-    ],
-    "std": [
-      35.21837499462283
-    ]
+    "mean": [18.37365422096856],
+    "std": [35.21837499462283]
   },
   "trainingMetrics": {
     "loss": 0.18714110553264618,

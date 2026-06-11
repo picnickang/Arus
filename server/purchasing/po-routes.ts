@@ -51,10 +51,10 @@ function parseIntSafe(val: string | undefined, def: number, max?: number): numbe
 router.get("/", requireOrgId, generalLimit, async (req, res) => {
   try {
     const orgId = getOrgId(req);
-    const status = req.query['status'] as string | undefined;
-    const supplierId = req.query['supplierId'] as string | undefined;
-    const limit = parseIntSafe(req.query['limit'] as string, 50, 100);
-    const offset = parseIntSafe(req.query['offset'] as string, 0);
+    const status = req.query["status"] as string | undefined;
+    const supplierId = req.query["supplierId"] as string | undefined;
+    const limit = parseIntSafe(req.query["limit"] as string, 50, 100);
+    const offset = parseIntSafe(req.query["offset"] as string, 0);
 
     const conditions: import("drizzle-orm").SQL[] = [eq(purchaseOrders.orgId, orgId)];
     if (status) {
@@ -80,9 +80,17 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
         updatedAt: purchaseOrders.updatedAt,
         supplierName: suppliers.name,
         supplierCode: suppliers.code,
-        totalQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)::float8`.as("totalQty"),
-        receivedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)::float8`.as("receivedQty"),
-        rejectedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)::float8`.as("rejectedQty"),
+        totalQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)::float8`.as(
+          "totalQty"
+        ),
+        receivedQty:
+          sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)::float8`.as(
+            "receivedQty"
+          ),
+        rejectedQty:
+          sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)::float8`.as(
+            "rejectedQty"
+          ),
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
@@ -273,83 +281,89 @@ router.post("/:id/receive", requireOrgId, idempotencyMiddleware(), writeLimit, a
 // per item and unconditionally inserts a single items_rejected event row.
 // Retry without an idempotency key duplicates the event and overwrites
 // the previously-recorded rejectionReason if the body changed slightly.
-router.post("/:id/reject-items", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
-  try {
-    const orgId = getOrgId(req);
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: "Missing required path parameter: id" });
-    }
-
-    const schema = z.object({
-      items: z.array(
-        z.object({
-          itemId: z.string(),
-          rejectedQuantity: z.number().min(1),
-          rejectionReason: z.string().min(1, "Rejection reason is required"),
-        })
-      ),
-      userId: z.string().optional(),
-    });
-
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten() });
-    }
-
-    const [po] = await db
-      .select()
-      .from(purchaseOrders)
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
-
-    if (!po) {
-      return res.status(404).json({ error: "Purchase order not found" });
-    }
-    if (po.status === "cancelled") {
-      return res.status(400).json({ error: "Cannot reject items on a cancelled PO" });
-    }
-
-    const results: { itemId: string; rejectedQuantity: number }[] = [];
-
-    for (const item of parsed.data.items) {
-      const [existing] = await db
-        .select()
-        .from(purchaseOrderItems)
-        .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
-
-      if (!existing) {
-        continue;
+router.post(
+  "/:id/reject-items",
+  requireOrgId,
+  idempotencyMiddleware(),
+  writeLimit,
+  async (req, res) => {
+    try {
+      const orgId = getOrgId(req);
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ error: "Missing required path parameter: id" });
       }
 
-      // Cannot reject more than was received
-      const maxRejectable = existing.receivedQuantity || 0;
-      const clampedQty = Math.min(item.rejectedQuantity, maxRejectable);
+      const schema = z.object({
+        items: z.array(
+          z.object({
+            itemId: z.string(),
+            rejectedQuantity: z.number().min(1),
+            rejectionReason: z.string().min(1, "Rejection reason is required"),
+          })
+        ),
+        userId: z.string().optional(),
+      });
 
-      await db
-        .update(purchaseOrderItems)
-        .set({
-          rejectedQuantity: clampedQty,
-          rejectionReason: item.rejectionReason,
-        })
-        .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+      }
 
-      results.push({ itemId: item.itemId, rejectedQuantity: clampedQty });
+      const [po] = await db
+        .select()
+        .from(purchaseOrders)
+        .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+
+      if (!po) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      if (po.status === "cancelled") {
+        return res.status(400).json({ error: "Cannot reject items on a cancelled PO" });
+      }
+
+      const results: { itemId: string; rejectedQuantity: number }[] = [];
+
+      for (const item of parsed.data.items) {
+        const [existing] = await db
+          .select()
+          .from(purchaseOrderItems)
+          .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
+
+        if (!existing) {
+          continue;
+        }
+
+        // Cannot reject more than was received
+        const maxRejectable = existing.receivedQuantity || 0;
+        const clampedQty = Math.min(item.rejectedQuantity, maxRejectable);
+
+        await db
+          .update(purchaseOrderItems)
+          .set({
+            rejectedQuantity: clampedQty,
+            rejectionReason: item.rejectionReason,
+          })
+          .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
+
+        results.push({ itemId: item.itemId, rejectedQuantity: clampedQty });
+      }
+
+      await db.insert(purchaseOrderEvents).values({
+        orgId,
+        poId: id,
+        eventType: "items_rejected",
+        userId: parsed.data.userId,
+        details: { rejections: parsed.data.items },
+      });
+
+      return res.json({ success: true, rejections: results });
+    } catch (err) {
+      logger.error("Error rejecting PO items:", undefined, err);
+      return res.status(500).json({ error: "Failed to reject items" });
     }
-
-    await db.insert(purchaseOrderEvents).values({
-      orgId,
-      poId: id,
-      eventType: "items_rejected",
-      userId: parsed.data.userId,
-      details: { rejections: parsed.data.items },
-    });
-
-    return res.json({ success: true, rejections: results });
-  } catch (err) {
-    logger.error("Error rejecting PO items:", undefined, err);
-    return res.status(500).json({ error: "Failed to reject items" });
   }
-});
+);
 
 // ── PATCH /purchase-orders/:id/items/:itemId — Improvement #19 ────────────────
 /**
@@ -361,85 +375,91 @@ router.post("/:id/reject-items", requireOrgId, idempotencyMiddleware(), writeLim
 // retry would re-run the totalPrice recompute (idempotent on identical
 // input but with a fresh updatedAt) and re-insert the price_updated
 // event row. Cache the original 200 to make replays a no-op end-to-end.
-router.patch("/:id/items/:itemId", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
-  try {
-    const orgId = getOrgId(req);
-    const { id, itemId } = req.params;
-    if (!id || !itemId) {
-      return res.status(400).json({ error: "Missing required path parameters" });
-    }
+router.patch(
+  "/:id/items/:itemId",
+  requireOrgId,
+  idempotencyMiddleware(),
+  writeLimit,
+  async (req, res) => {
+    try {
+      const orgId = getOrgId(req);
+      const { id, itemId } = req.params;
+      if (!id || !itemId) {
+        return res.status(400).json({ error: "Missing required path parameters" });
+      }
 
-    const schema = z.object({
-      unitPrice: z.number().min(0, "Unit price must be non-negative"),
-      notes: z.string().optional(),
-    });
-
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten() });
-    }
-
-    const [po] = await db
-      .select()
-      .from(purchaseOrders)
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
-
-    if (!po) {
-      return res.status(404).json({ error: "Purchase order not found" });
-    }
-    if (po.status !== "sent") {
-      return res.status(400).json({
-        error: `Can only update item prices on sent POs. Current status: ${po.status}`,
+      const schema = z.object({
+        unitPrice: z.number().min(0, "Unit price must be non-negative"),
+        notes: z.string().optional(),
       });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+      }
+
+      const [po] = await db
+        .select()
+        .from(purchaseOrders)
+        .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+
+      if (!po) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      if (po.status !== "sent") {
+        return res.status(400).json({
+          error: `Can only update item prices on sent POs. Current status: ${po.status}`,
+        });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(purchaseOrderItems)
+        .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)));
+
+      if (!existing) {
+        return res.status(404).json({ error: "PO item not found" });
+      }
+
+      const newTotalPrice = (existing.quantity || 0) * parsed.data.unitPrice;
+
+      const [updated] = await db
+        .update(purchaseOrderItems)
+        .set({
+          unitPrice: parsed.data.unitPrice,
+          totalPrice: newTotalPrice,
+          notes: parsed.data.notes ?? existing.notes,
+        })
+        .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)))
+        .returning();
+
+      // Recalculate PO total amount
+      const allItems = await db
+        .select({ totalPrice: purchaseOrderItems.totalPrice })
+        .from(purchaseOrderItems)
+        .where(eq(purchaseOrderItems.poId, id));
+
+      const newTotalAmount = allItems.reduce((sum, i) => sum + (i.totalPrice || 0), 0);
+      await db
+        .update(purchaseOrders)
+        .set({ totalAmount: newTotalAmount, updatedAt: new Date() })
+        .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+
+      await db.insert(purchaseOrderEvents).values({
+        orgId,
+        poId: id,
+        eventType: "price_updated",
+        userId: authenticatedRequest(req).user?.id,
+        details: { itemId, oldUnitPrice: existing.unitPrice, newUnitPrice: parsed.data.unitPrice },
+      });
+
+      return res.json(updated);
+    } catch (err) {
+      logger.error("Error updating PO item price:", undefined, err);
+      return res.status(500).json({ error: "Failed to update item price" });
     }
-
-    const [existing] = await db
-      .select()
-      .from(purchaseOrderItems)
-      .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)));
-
-    if (!existing) {
-      return res.status(404).json({ error: "PO item not found" });
-    }
-
-    const newTotalPrice = (existing.quantity || 0) * parsed.data.unitPrice;
-
-    const [updated] = await db
-      .update(purchaseOrderItems)
-      .set({
-        unitPrice: parsed.data.unitPrice,
-        totalPrice: newTotalPrice,
-        notes: parsed.data.notes ?? existing.notes,
-      })
-      .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)))
-      .returning();
-
-    // Recalculate PO total amount
-    const allItems = await db
-      .select({ totalPrice: purchaseOrderItems.totalPrice })
-      .from(purchaseOrderItems)
-      .where(eq(purchaseOrderItems.poId, id));
-
-    const newTotalAmount = allItems.reduce((sum, i) => sum + (i.totalPrice || 0), 0);
-    await db
-      .update(purchaseOrders)
-      .set({ totalAmount: newTotalAmount, updatedAt: new Date() })
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
-
-    await db.insert(purchaseOrderEvents).values({
-      orgId,
-      poId: id,
-      eventType: "price_updated",
-      userId: authenticatedRequest(req).user?.id,
-      details: { itemId, oldUnitPrice: existing.unitPrice, newUnitPrice: parsed.data.unitPrice },
-    });
-
-    return res.json(updated);
-  } catch (err) {
-    logger.error("Error updating PO item price:", undefined, err);
-    return res.status(500).json({ error: "Failed to update item price" });
   }
-});
+);
 
 // ── POST /purchase-orders/:id/fulfill-pr — Improvement #10 ───────────────────
 /**
@@ -457,115 +477,121 @@ router.patch("/:id/items/:itemId", requireOrgId, idempotencyMiddleware(), writeL
 // quantityToFulfill=0 today — but that's a defence-in-depth invariant
 // inside fulfillItem, not a contract of this route). Cache the original
 // response so flaky-network retries return the same per-item result set.
-router.post("/:id/fulfill-pr", requireOrgId, idempotencyMiddleware(), writeLimit, async (req, res) => {
-  try {
-    const orgId = getOrgId(req);
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({ error: "Missing required path parameter: id" });
-    }
-    const userId = authenticatedRequest(req).user?.id;
+router.post(
+  "/:id/fulfill-pr",
+  requireOrgId,
+  idempotencyMiddleware(),
+  writeLimit,
+  async (req, res) => {
+    try {
+      const orgId = getOrgId(req);
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ error: "Missing required path parameter: id" });
+      }
+      const userId = authenticatedRequest(req).user?.id;
 
-    const [po] = await db
-      .select()
-      .from(purchaseOrders)
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
+      const [po] = await db
+        .select()
+        .from(purchaseOrders)
+        .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) {
-      return res.status(404).json({ error: "Purchase order not found" });
-    }
-    if (po.status !== "received") {
-      return res.status(400).json({ error: "Can only fulfill PR from a received PO" });
-    }
-
-    // Find the originating PR via the PO creation event
-    const [creationEvent] = await db
-      .select()
-      .from(purchaseOrderEvents)
-      .where(
-        and(
-          eq(purchaseOrderEvents.poId, id),
-          eq(purchaseOrderEvents.eventType, "created"),
-          eq(purchaseOrderEvents.orgId, orgId)
-        )
-      )
-      .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
-      .limit(1);
-
-    const prId = (creationEvent?.details as { prId?: string } | undefined)?.prId;
-    if (!prId) {
-      return res.status(400).json({ error: "No originating PR found for this PO" });
-    }
-
-    const poItems = await db
-      .select()
-      .from(purchaseOrderItems)
-      .where(eq(purchaseOrderItems.poId, id));
-
-    const results: {
-      partId: string;
-      receivedQty: number;
-      fulfilled: boolean;
-      error?: string;
-    }[] = [];
-
-    for (const poItem of poItems) {
-      const receivedQty = (poItem.receivedQuantity || 0) - (poItem.rejectedQuantity || 0);
-      if (receivedQty <= 0) {
-        continue;
+      if (!po) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      if (po.status !== "received") {
+        return res.status(400).json({ error: "Can only fulfill PR from a received PO" });
       }
 
-      // Find the matching PR item
-      const [prItem] = await db
+      // Find the originating PR via the PO creation event
+      const [creationEvent] = await db
         .select()
-        .from(purchaseRequestItems)
+        .from(purchaseOrderEvents)
         .where(
           and(
-            eq(purchaseRequestItems.prId, prId),
-            eq(purchaseRequestItems.partId, poItem.partId),
-            eq(purchaseRequestItems.orgId, orgId)
+            eq(purchaseOrderEvents.poId, id),
+            eq(purchaseOrderEvents.eventType, "created"),
+            eq(purchaseOrderEvents.orgId, orgId)
           )
         )
+        .orderBy(sql`${purchaseOrderEvents.createdAt} ASC`)
         .limit(1);
 
-      if (!prItem) {
-        results.push({
-          partId: poItem.partId,
-          receivedQty,
-          fulfilled: false,
-          error: "No matching PR item",
-        });
-        continue;
+      const prId = (creationEvent?.details as { prId?: string } | undefined)?.prId;
+      if (!prId) {
+        return res.status(400).json({ error: "No originating PR found for this PO" });
       }
 
-      try {
-        await fulfillItem({
-          prId,
-          itemId: prItem.id,
-          orgId,
-          quantityToFulfill: Math.min(
+      const poItems = await db
+        .select()
+        .from(purchaseOrderItems)
+        .where(eq(purchaseOrderItems.poId, id));
+
+      const results: {
+        partId: string;
+        receivedQty: number;
+        fulfilled: boolean;
+        error?: string;
+      }[] = [];
+
+      for (const poItem of poItems) {
+        const receivedQty = (poItem.receivedQuantity || 0) - (poItem.rejectedQuantity || 0);
+        if (receivedQty <= 0) {
+          continue;
+        }
+
+        // Find the matching PR item
+        const [prItem] = await db
+          .select()
+          .from(purchaseRequestItems)
+          .where(
+            and(
+              eq(purchaseRequestItems.prId, prId),
+              eq(purchaseRequestItems.partId, poItem.partId),
+              eq(purchaseRequestItems.orgId, orgId)
+            )
+          )
+          .limit(1);
+
+        if (!prItem) {
+          results.push({
+            partId: poItem.partId,
             receivedQty,
-            prItem.quantity - (prItem.quantityFulfilled ?? 0)
-          ),
-          fulfilledBy: userId || "system",
-        });
-        results.push({ partId: poItem.partId, receivedQty, fulfilled: true });
-      } catch (err) {
-        results.push({
-          partId: poItem.partId,
-          receivedQty,
-          fulfilled: false,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
+            fulfilled: false,
+            error: "No matching PR item",
+          });
+          continue;
+        }
 
-    return res.json({ success: true, prId, results });
-  } catch (err) {
-    logger.error("Error fulfilling PR from PO:", undefined, err);
-    return res.status(500).json({ error: "Failed to fulfill PR" });
+        try {
+          await fulfillItem({
+            prId,
+            itemId: prItem.id,
+            orgId,
+            quantityToFulfill: Math.min(
+              receivedQty,
+              prItem.quantity - (prItem.quantityFulfilled ?? 0)
+            ),
+            fulfilledBy: userId || "system",
+          });
+          results.push({ partId: poItem.partId, receivedQty, fulfilled: true });
+        } catch (err) {
+          results.push({
+            partId: poItem.partId,
+            receivedQty,
+            fulfilled: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      return res.json({ success: true, prId, results });
+    } catch (err) {
+      logger.error("Error fulfilling PR from PO:", undefined, err);
+      return res.status(500).json({ error: "Failed to fulfill PR" });
+    }
   }
-});
+);
 
 // ── GET /purchase-orders/:id/events ───────────────────────────────────────────
 router.get("/:id/events", requireOrgId, generalLimit, async (req, res) => {

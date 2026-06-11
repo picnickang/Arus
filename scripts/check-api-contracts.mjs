@@ -39,7 +39,13 @@ const BASELINE_PATH = resolve("scripts/api-contracts-baseline.json");
 const CLIENT_ROOT = "client/src";
 const SERVER_ROOT = "server";
 const SKIP_DIR_NAMES = new Set([
-  "node_modules", "dist", "build", ".git", "__tests__", "tests", "test",
+  "node_modules",
+  "dist",
+  "build",
+  ".git",
+  "__tests__",
+  "tests",
+  "test",
 ]);
 const FILE_EXTS = [".ts", ".tsx", ".mts", ".cts"];
 
@@ -77,7 +83,8 @@ const METHOD_RE = /(get|post|put|patch|delete|head|options)/i;
 
 // Match any expression ending in `.<method>('/api/...')` or `.<method>("/api/...")`.
 // Captures: 1=method, 2=path. Anchored on a word boundary so `.getRequest(` is excluded by the path filter.
-const SERVER_ROUTE_RE = /\.(get|post|put|patch|delete|head|options)\(\s*['"`](\/api\/[^'"`]+)['"`]/gi;
+const SERVER_ROUTE_RE =
+  /\.(get|post|put|patch|delete|head|options)\(\s*['"`](\/api\/[^'"`]+)['"`]/gi;
 
 function extractServerRoutes(src) {
   const out = [];
@@ -137,12 +144,20 @@ function extractClientRefs(src) {
   FETCH_RE.lastIndex = 0;
   while ((m = FETCH_RE.exec(src)) !== null) {
     if (!m[1].startsWith("/api/")) continue;
-    out.push({ method: extractMethodFromFetchOpts(m[2]), path: normalizePath(m[1]), kind: "fetch" });
+    out.push({
+      method: extractMethodFromFetchOpts(m[2]),
+      path: normalizePath(m[1]),
+      kind: "fetch",
+    });
   }
   FETCH_TPL_RE.lastIndex = 0;
   while ((m = FETCH_TPL_RE.exec(src)) !== null) {
     if (!m[1].startsWith("/api/")) continue;
-    out.push({ method: extractMethodFromFetchOpts(m[2]), path: normalizePath(m[1]), kind: "fetch" });
+    out.push({
+      method: extractMethodFromFetchOpts(m[2]),
+      path: normalizePath(m[1]),
+      kind: "fetch",
+    });
   }
 
   return out;
@@ -205,8 +220,8 @@ function main() {
       JSON.stringify(
         { unbacked: unbacked.length, totalRefs, totalRoutes: serverRoutes.size },
         null,
-        2,
-      ) + "\n",
+        2
+      ) + "\n"
     );
     console.log(`Wrote baseline: unbacked=${unbacked.length}`);
     return;
@@ -225,8 +240,8 @@ function main() {
       JSON.stringify(
         { unbacked: unbacked.length, totalRefs, totalRoutes: serverRoutes.size },
         null,
-        2,
-      ) + "\n",
+        2
+      ) + "\n"
     );
     console.log(`Initialized api-contracts baseline: unbacked=${unbacked.length}`);
     return;
@@ -234,20 +249,18 @@ function main() {
 
   if (unbacked.length > baseline) {
     console.error(
-      `\n✗ API contract regression: ${baseline} → ${unbacked.length} (+${unbacked.length - baseline})`,
+      `\n✗ API contract regression: ${baseline} → ${unbacked.length} (+${unbacked.length - baseline})`
     );
     console.error(
-      `  A frontend reference to /api/... does not resolve to any registered backend route.`,
+      `  A frontend reference to /api/... does not resolve to any registered backend route.`
     );
-    console.error(
-      `  Run \`node ${relative(ROOT, process.argv[1])} --report\` to see offenders.`,
-    );
+    console.error(`  Run \`node ${relative(ROOT, process.argv[1])} --report\` to see offenders.`);
     process.exit(1);
   }
 
   if (unbacked.length < baseline) {
     console.log(
-      `✓ Reduction: ${baseline} → ${unbacked.length} (-${baseline - unbacked.length}). Consider regenerating the baseline.`,
+      `✓ Reduction: ${baseline} → ${unbacked.length} (-${baseline - unbacked.length}). Consider regenerating the baseline.`
     );
   } else {
     console.log(`✓ API contract count at baseline: ${unbacked.length}`);

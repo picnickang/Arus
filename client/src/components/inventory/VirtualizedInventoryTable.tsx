@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
+import { getStockStatus } from "@/features/inventory/lib/stockUtils";
 
 export interface PartsInventoryItem {
   id: string;
@@ -93,33 +94,6 @@ const COLUMNS = [
   { key: "status", label: "Status", width: 100, sortable: true },
   { key: "actions", label: "", width: 60, sortable: false },
 ];
-
-function getStockStatus(item: PartsInventoryItem): string {
-  if (!item.stock) {
-    return "unknown";
-  }
-  const { quantityOnHand, quantityReserved } = item.stock;
-  const available = Math.max(0, quantityOnHand - quantityReserved);
-  const minStock = item.minStockLevel;
-  const maxStock = item.maxStockLevel;
-
-  if (quantityOnHand <= 0) {
-    return "out_of_stock";
-  }
-  if (available <= 0) {
-    return "critical";
-  }
-  if (available < minStock * 0.5) {
-    return "critical";
-  }
-  if (available < minStock) {
-    return "low_stock";
-  }
-  if (available > maxStock) {
-    return "excess_stock";
-  }
-  return "adequate";
-}
 
 function getStatusBadge(status: string) {
   const statusConfig: Record<

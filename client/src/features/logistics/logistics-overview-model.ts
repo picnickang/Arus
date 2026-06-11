@@ -59,10 +59,10 @@ export interface LogisticsSafeError {
 }
 
 export interface LogisticsOverviewInput {
-  lowStock?: LowStockResponse;
-  serviceRequests?: ServiceRequest[];
-  serviceOrders?: ServiceOrder[];
-  vendors?: SupplierWithStats[];
+  lowStock?: LowStockResponse | undefined;
+  serviceRequests?: ServiceRequest[] | undefined;
+  serviceOrders?: ServiceOrder[] | undefined;
+  vendors?: SupplierWithStats[] | undefined;
   errors?: {
     lowStock?: unknown;
     serviceRequests?: unknown;

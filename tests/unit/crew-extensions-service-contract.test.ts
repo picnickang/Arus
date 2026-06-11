@@ -74,7 +74,9 @@ function makeAssignment(crewId: string, day: number): ScheduleAssignmentEntity {
 
 // ---------- Stub builders ----------
 
-function buildPorts(initial: { run?: SchedulerRunEntity; assignments?: ScheduleAssignmentEntity[] } = {}) {
+function buildPorts(
+  initial: { run?: SchedulerRunEntity; assignments?: ScheduleAssignmentEntity[] } = {}
+) {
   const schedulerRunRepository: ISchedulerRunRepository = {
     create: jest.fn() as ISchedulerRunRepository["create"],
     findById: jest
@@ -102,12 +104,12 @@ function buildPorts(initial: { run?: SchedulerRunEntity; assignments?: ScheduleA
   };
 
   const eventPublisher: ICrewExtensionsEventPublisher = {
-    publish: jest.fn<(event: unknown) => Promise<void>>().mockResolvedValue(
-      undefined
-    ) as ICrewExtensionsEventPublisher["publish"],
-    publishBatch: jest.fn<(events: unknown[]) => Promise<void>>().mockResolvedValue(
-      undefined
-    ) as ICrewExtensionsEventPublisher["publishBatch"],
+    publish: jest
+      .fn<(event: unknown) => Promise<void>>()
+      .mockResolvedValue(undefined) as ICrewExtensionsEventPublisher["publish"],
+    publishBatch: jest
+      .fn<(events: unknown[]) => Promise<void>>()
+      .mockResolvedValue(undefined) as ICrewExtensionsEventPublisher["publishBatch"],
   };
 
   const schedulePlannerReadModel: ISchedulePlannerReadModel = {

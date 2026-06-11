@@ -5,28 +5,30 @@
   "tags": ["arus", "queue", "dlq"],
   "time": { "from": "now-6h", "to": "now" },
   "refresh": "30s",
-  "templating": { "list": [ { "name": "datasource", "type": "datasource", "query": "prometheus" } ] },
+  "templating": { "list": [{ "name": "datasource", "type": "datasource", "query": "prometheus" }] },
   "panels": [
     {
       "id": 1,
       "title": "DLQ adds / sec",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
-      "targets": [ { "expr": "sum(rate(arus_dlq_added_total[5m]))", "legendFormat": "added" } ]
+      "targets": [{ "expr": "sum(rate(arus_dlq_added_total[5m]))", "legendFormat": "added" }]
     },
     {
       "id": 2,
       "title": "DLQ replays / sec",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
-      "targets": [ { "expr": "sum(rate(arus_dlq_replayed_total[5m]))", "legendFormat": "replayed" } ]
+      "targets": [{ "expr": "sum(rate(arus_dlq_replayed_total[5m]))", "legendFormat": "replayed" }]
     },
     {
       "id": 3,
       "title": "DLQ depth by queue (gauge — alerts: DlqDepthHigh > 100, DlqNearCapacity > 2500)",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-      "targets": [ { "expr": "max by (queue) (arus_dlq_entries_total)", "legendFormat": "{{queue}}" } ]
+      "targets": [
+        { "expr": "max by (queue) (arus_dlq_entries_total)", "legendFormat": "{{queue}}" }
+      ]
     },
     {
       "id": 4,
@@ -34,7 +36,10 @@
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
       "targets": [
-        { "expr": "sum(rate(arus_dlq_added_total[5m])) - sum(rate(arus_dlq_replayed_total[5m]))", "legendFormat": "net" }
+        {
+          "expr": "sum(rate(arus_dlq_added_total[5m])) - sum(rate(arus_dlq_replayed_total[5m]))",
+          "legendFormat": "net"
+        }
       ]
     }
   ]

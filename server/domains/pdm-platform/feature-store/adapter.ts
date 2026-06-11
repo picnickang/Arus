@@ -72,7 +72,9 @@ function round(v: number): number {
 }
 
 function allowPdmDemoFallbacks(): boolean {
-  return process.env['NODE_ENV'] !== "production" || process.env['ALLOW_PDM_DEMO_FALLBACKS'] === "true";
+  return (
+    process.env["NODE_ENV"] !== "production" || process.env["ALLOW_PDM_DEMO_FALLBACKS"] === "true"
+  );
 }
 
 export class FeatureStoreAdapter implements FeatureStorePort {
@@ -100,7 +102,9 @@ export class FeatureStoreAdapter implements FeatureStorePort {
       });
     } else {
       if (!allowPdmDemoFallbacks()) {
-        throw new Error("No telemetry data available for feature computation; demo fallback disabled in production.");
+        throw new Error(
+          "No telemetry data available for feature computation; demo fallback disabled in production."
+        );
       }
       features = this.computeStubFeatures(orgId, equipmentId, windowMinutes);
       logger.warn("[FeatureStore] No telemetry data found, using demo fallback features", {
@@ -111,7 +115,9 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     }
 
     const [result] = await db.insert(equipmentFeatures).values(features).returning();
-    if (!result) {throw new Error("computeAndStore: equipmentFeatures insert returned no row");}
+    if (!result) {
+      throw new Error("computeAndStore: equipmentFeatures insert returned no row");
+    }
     logger.info("[FeatureStore] Stored features", {
       orgId,
       equipmentId,
@@ -274,4 +280,3 @@ export class FeatureStoreAdapter implements FeatureStorePort {
       .orderBy(desc(equipmentFeatures.timestamp));
   }
 }
-

@@ -33,6 +33,17 @@ const DEFAULT_CONFIG: DeadLetterQueueConfig = {
   name: "default",
 };
 
+interface RegisteredDeadLetterQueue {
+  readonly name: string;
+  hasReplayHandler(): boolean;
+  list(options?: {
+    limit?: number | undefined;
+    offset?: number | undefined;
+    source?: string | undefined;
+  }): DeadLetterEntry[];
+  replay(id: string): Promise<ReplayResult>;
+}
+
 /**
  * Instance registry so cross-cutting sweeps (the hourly auto-replay job in
  * server/job-processors/dlq-replay-processor.ts) can enumerate every live
@@ -40,9 +51,9 @@ const DEFAULT_CONFIG: DeadLetterQueueConfig = {
  * name — two instances sharing a name already share the same repository
  * storage, so last-constructed-wins matches existing semantics.
  */
-const registeredQueues = new Map<string, DeadLetterQueue<unknown>>();
+const registeredQueues = new Map<string, RegisteredDeadLetterQueue>();
 
-export function getRegisteredQueues(): Array<DeadLetterQueue<unknown>> {
+export function getRegisteredQueues(): RegisteredDeadLetterQueue[] {
   return Array.from(registeredQueues.values());
 }
 
@@ -58,7 +69,7 @@ export class DeadLetterQueue<T = unknown> extends EventEmitter {
   constructor(config: Partial<DeadLetterQueueConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    registeredQueues.set(this.config.name, this as DeadLetterQueue<unknown>);
+    registeredQueues.set(this.config.name, this);
   }
 
   get name(): string {

@@ -17,11 +17,16 @@ describe("WorkOrder publisher: post-commit emit semantics", () => {
     await jest.unstable_mockModule("../../domain-event-bus/index", () => ({
       __esModule: true,
       domainEventBus: onceBus,
-      createDomainEvent: (name: string, orgId: string, payload: unknown, meta: unknown) => ({
+      createDomainEvent: (
+        name: string,
+        orgId: string,
+        payload: unknown,
+        meta?: Record<string, unknown>
+      ) => ({
         name,
         orgId,
         payload,
-        ...((meta as never) ?? {}),
+        ...(meta ?? {}),
       }),
     }));
   });
@@ -123,9 +128,7 @@ describe("PgWalCdcBridge.handle (committed change → outbox event)", () => {
     service: { acknowledge: (lsn: string) => Promise<boolean> } | null;
   };
 
-  async function makeBridge(
-    enqueue: (input: Input) => Promise<void>
-  ): Promise<AnyBridge> {
+  async function makeBridge(enqueue: (input: Input) => Promise<void>): Promise<AnyBridge> {
     const PgWalCdcBridge = await load();
     const bridge = new PgWalCdcBridge({
       connectionString: "postgres://test/test",
@@ -230,8 +233,6 @@ describe("PgWalCdcBridge.handle (committed change → outbox event)", () => {
     // logged "WAL CDC active" while producing zero events because the
     // dynamic import failed.
     const src = readFileSync("server/lib/event-spine/cdc-pg-wal.ts", "utf8");
-    expect(src).toMatch(
-      /pg-logical-replication is required for WAL CDC mode but is not installed/
-    );
+    expect(src).toMatch(/pg-logical-replication is required for WAL CDC mode but is not installed/);
   });
 });

@@ -9,32 +9,36 @@
 ## Summary of Fixes
 
 ### ✅ Fix 1: Certifications Payload Shape
+
 **Problem**: Sending only certification names (strings) instead of full objects  
 **Impact**: Backend cannot check `expiresAt` for validity
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 certifications: certifications.reduce((acc: any, cert: any) => {
   if (!acc[cert.crewId]) acc[cert.crewId] = [];
   acc[cert.crewId].push(cert.cert); // ❌ Only cert name
   return acc;
-}, {})
+}, {});
 
 // AFTER (FIXED):
 certifications: certifications.reduce((acc: any, cert: CrewCertification) => {
   (acc[cert.crewId] ||= []).push(cert); // ✅ Full object with expiresAt
   return acc;
-}, {})
+}, {});
 ```
 
 ---
 
 ### ✅ Fix 2: Shared State Bug
+
 **Problem**: Single `isDetailsOpen` state controls both enhanced and basic result sections  
 **Impact**: Toggling one section affects the other
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 const [isDetailsOpen, setIsDetailsOpen] = useState(true);
@@ -47,50 +51,54 @@ const [isBasicDetailsOpen, setIsBasicDetailsOpen] = useState(true);
 ```
 
 **Updated 2 locations**:
+
 - Line 1447: Enhanced results collapsible
 - Line 1589: Basic results collapsible
 
 ---
 
 ### ✅ Fix 3: Leaves Query Enabled
+
 **Problem**: Leaves query disabled with `enabled: false`, so scheduling runs with empty leave data  
 **Impact**: Leave periods not respected during scheduling
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 const { data: leaves = [] } = useQuery({
-  queryKey: ['/api/crew/leave'],
-  queryFn: () => apiRequest('/api/crew/leave'),
-  enabled: false // ❌ Query disabled
+  queryKey: ["/api/crew/leave"],
+  queryFn: () => apiRequest("/api/crew/leave"),
+  enabled: false, // ❌ Query disabled
 });
 
 // AFTER (FIXED):
 const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery({
-  queryKey: ['/api/crew/leave'],
-  queryFn: () => apiRequest('GET', '/api/crew/leave'),
-  refetchInterval: 60000
+  queryKey: ["/api/crew/leave"],
+  queryFn: () => apiRequest("GET", "/api/crew/leave"),
+  refetchInterval: 60000,
 });
 ```
 
 **Added loading guard to BOTH planners**:
+
 ```typescript
 // In handlePlanSchedule (basic planner):
 if (isLoadingLeaves) {
-  toast({ 
-    title: "Loading leave data", 
+  toast({
+    title: "Loading leave data",
     description: "Please wait for leave data to load before planning",
-    variant: "destructive" 
+    variant: "destructive",
   });
   return;
 }
 
 // In handleEnhancedPlanSchedule (enhanced planner):
 if (isLoadingLeaves) {
-  toast({ 
-    title: "Loading leave data", 
+  toast({
+    title: "Loading leave data",
     description: "Please wait for leave data to load before planning",
-    variant: "destructive" 
+    variant: "destructive",
   });
   return;
 }
@@ -101,31 +109,40 @@ if (isLoadingLeaves) {
 ---
 
 ### ✅ Fix 4: Time Display Bug
+
 **Problem**: Passing ISO timestamps to `getShiftTime()` which expects HH:mm format  
 **Impact**: Displays incorrect time format in UI
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
-{getShiftTime(assignment.start, assignment.end)}
+{
+  getShiftTime(assignment.start, assignment.end);
+}
 // Passes: "2025-11-05T08:00:00Z"
 
 // AFTER (FIXED):
-{getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19))}
+{
+  getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19));
+}
 // Passes: "08:00:00"
 ```
 
 **Updated 2 locations**:
+
 - Line 1485: Enhanced results display
 - Line 1614: Basic results display (was already correct)
 
 ---
 
 ### ✅ Fix 5: Drydock Schema Mismatch
+
 **Problem**: UI displays `drydock.description` but schema field is `drydock.yard`  
 **Impact**: Empty drydock displays in list
 
 **Changed**:
+
 ```typescript
 // BEFORE (BROKEN):
 <div className="font-medium">{drydock.description}</div>
@@ -139,6 +156,7 @@ if (isLoadingLeaves) {
 ---
 
 ### ✅ Fix 6: Field Name Alignment (Deferred)
+
 **Problem**: UI uses `requiredSkills` (plural) but backend expects `skillRequired` (singular)  
 **Status**: Investigated - schema has `requiredSkills`, backend reads `skillRequired`
 
@@ -149,6 +167,7 @@ if (isLoadingLeaves) {
 ## Verification Checklist
 
 ### Manual Testing Required:
+
 - [ ] Create shift with `requiredSkills` field
 - [ ] Plan enhanced schedule - verify certifications checked properly
 - [ ] Verify time displays correctly (HH:mm format)
@@ -159,9 +178,11 @@ if (isLoadingLeaves) {
 - [ ] Verify no collapsible state conflicts
 
 ### LSP Check:
+
 ✅ **PASSED** - No TypeScript errors in `client/src/components/CrewScheduler.tsx`
 
 ### Next Steps:
+
 1. Restart workflow to apply changes
 2. Manual UI testing against checklist
 3. Proceed to Phase 2: Backend Fixes
@@ -169,9 +190,11 @@ if (isLoadingLeaves) {
 ---
 
 ## Files Modified:
+
 - `client/src/components/CrewScheduler.tsx` (6 fixes applied)
 
 ## Lines Changed:
+
 - Total modifications: ~15 locations
 - Net added lines: ~8
 - Net removed lines: ~5

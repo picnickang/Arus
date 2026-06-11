@@ -1,6 +1,20 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { LLMChatParams, LLMChatResponse } from "../../../lib/llm-gateway/types";
 
-const chatMock = jest.fn();
+const chatMock = jest.fn<(params: LLMChatParams) => Promise<LLMChatResponse>>();
+
+function makeChatResponse(content: string): LLMChatResponse {
+  return {
+    content,
+    toolCalls: [],
+    finishReason: "stop",
+    model: "gpt-4o-mini",
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    provider: "test",
+    latencyMs: 0,
+    raw: null,
+  };
+}
 
 jest.unstable_mockModule("../../../composition/llm-gateway", () => ({
   llmGateway: {
@@ -146,7 +160,7 @@ function makeDataPort(overrides: Record<string, unknown> = {}) {
 describe("BriefingGeneratorService", () => {
   beforeEach(() => {
     chatMock.mockReset();
-    chatMock.mockResolvedValue({ content: "LLM shift summary." });
+    chatMock.mockResolvedValue(makeChatResponse("LLM shift summary."));
   });
 
   it("collects operational sections, persists a ready briefing, and asks the LLM for a summary", async () => {

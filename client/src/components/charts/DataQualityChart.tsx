@@ -27,7 +27,9 @@ export function DataQualityChart({
         report.issues.reduce(
           (acc, issue) => {
             const key = issue.severity;
-            acc[key] = (acc[key] || 0) + ((issue as { affectedRecords?: number }).affectedRecords ?? issue.count ?? 1);
+            acc[key] =
+              (acc[key] || 0) +
+              ((issue as { affectedRecords?: number }).affectedRecords ?? issue.count ?? 1);
             return acc;
           },
           {} as Record<string, number>

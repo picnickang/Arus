@@ -196,7 +196,9 @@ export function initSyncJournalSubscriber(): void {
     });
   }
 
-  logger.info(`[DomainEventBridge] Sync journal subscriber initialized (${trackedEvents.length} events)`);
+  logger.info(
+    `[DomainEventBridge] Sync journal subscriber initialized (${trackedEvents.length} events)`
+  );
 }
 
 export function initMqttSubscriber(): void {
@@ -345,7 +347,9 @@ export function initSyncEventBusBridge(): void {
     });
   }
 
-  logger.info(`[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded, new→old)`);
+  logger.info(
+    `[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded, new→old)`
+  );
 }
 
 function mapSyncEventToDomainEvent(syncEvent: string): DomainEventName | null {
@@ -395,12 +399,12 @@ export function initReverseSyncEventBusBridge(): void {
       if (!domainEventType) {
         return;
       }
-      const nested = data['data'] as Record<string, unknown> | undefined;
-      const orgId = (data['orgId'] as string) || (nested?.['orgId'] as string);
+      const nested = data["data"] as Record<string, unknown> | undefined;
+      const orgId = (data["orgId"] as string) || (nested?.["orgId"] as string);
       if (!orgId) {
         return;
       }
-      const aggregateId = (data['id'] as string) || "unknown";
+      const aggregateId = (data["id"] as string) || "unknown";
       const envelope = createDomainEvent(
         domainEventType,
         orgId,
@@ -415,12 +419,14 @@ export function initReverseSyncEventBusBridge(): void {
     });
   }
 
-  logger.info(`[DomainEventBridge] Reverse SyncEventBus bridge initialized (${syncEventsToForward.length} events forwarded, old→new)`);
+  logger.info(
+    `[DomainEventBridge] Reverse SyncEventBus bridge initialized (${syncEventsToForward.length} events forwarded, old→new)`
+  );
 }
 
 function initLoggingMiddleware(): void {
   domainEventBus.use((eventType) => {
-    if (process.env['NODE_ENV'] === "development" && process.env['DEBUG_EVENTS'] === "true") {
+    if (process.env["NODE_ENV"] === "development" && process.env["DEBUG_EVENTS"] === "true") {
       logger.info(`[DomainEventBus] ${eventType}`);
     }
   });

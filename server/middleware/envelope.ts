@@ -1,8 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import {
-  isEnvelope,
-  type ErrorEnvelope,
-} from "@shared/api-envelope";
+import { isEnvelope, type ErrorEnvelope } from "@shared/api-envelope";
 import { isEnvelopedPath } from "../lib/envelope-manifest";
 import { getCorrelationId } from "../logging";
 

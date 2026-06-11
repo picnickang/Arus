@@ -6,7 +6,7 @@ import { telemetryBatchWriter } from "../telemetry-batch-writer";
 
 const router = Router();
 
-const HEARTBEAT_PATH = process.env['ARUS_HEARTBEAT_PATH'] || "/tmp/arus-agent-heartbeat.json";
+const HEARTBEAT_PATH = process.env["ARUS_HEARTBEAT_PATH"] || "/tmp/arus-agent-heartbeat.json";
 
 router.get("/agent/status", (_req: Request, res: Response) => {
   try {

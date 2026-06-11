@@ -16,8 +16,4 @@ export {
   validateAcousticData,
   getUniqueEquipmentTypes,
 } from "./lib/trainingUtils";
-export type {
-  TrainingWindowConfig,
-  LstmConfig,
-  RandomForestConfig,
-} from "./lib/trainingUtils";
+export type { TrainingWindowConfig, LstmConfig, RandomForestConfig } from "./lib/trainingUtils";

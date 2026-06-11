@@ -30,8 +30,12 @@ router.post("/run", async (req: Request, res: Response) => {
     const { twinId, name, parameters } = parsed.data;
     const result = await service.runScenario(orgId, twinId, name, {
       ...(parameters.loadPercent !== undefined && { loadPercent: parameters.loadPercent }),
-      ...(parameters.temperatureOffset !== undefined && { temperatureOffset: parameters.temperatureOffset }),
-      ...(parameters.maintenanceDelayDays !== undefined && { maintenanceDelayDays: parameters.maintenanceDelayDays }),
+      ...(parameters.temperatureOffset !== undefined && {
+        temperatureOffset: parameters.temperatureOffset,
+      }),
+      ...(parameters.maintenanceDelayDays !== undefined && {
+        maintenanceDelayDays: parameters.maintenanceDelayDays,
+      }),
     });
     return res.status(201).json(result);
   } catch (error) {
@@ -46,7 +50,7 @@ router.post("/run", async (req: Request, res: Response) => {
 router.get("/twins/:twinId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await scenarioAdapter.listScenarios(orgId, req.params['twinId'] ?? '');
+    const result = await scenarioAdapter.listScenarios(orgId, req.params["twinId"] ?? "");
     return res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -57,7 +61,7 @@ router.get("/twins/:twinId", async (req: Request, res: Response) => {
 router.get("/:scenarioId", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const result = await scenarioAdapter.getScenario(orgId, req.params['scenarioId'] ?? '');
+    const result = await scenarioAdapter.getScenario(orgId, req.params["scenarioId"] ?? "");
     if (!result) {
       return res.status(404).json({ error: "Scenario not found" });
     }

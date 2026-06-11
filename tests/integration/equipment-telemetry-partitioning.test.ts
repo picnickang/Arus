@@ -22,7 +22,7 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { Pool, type PoolClient } from "pg";
 import { randomUUID } from "node:crypto";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env["DATABASE_URL"];
 
 const TAG = `t-part-${randomUUID().slice(0, 8)}`;
 const ORG_A = `${TAG}-org-a`;

@@ -238,7 +238,9 @@ export class ConfigManager {
         }
       }
 
-      logger.info(`[ConfigManager] Configuration reloaded: ${safe.length} safe changes, ${critical.length} critical changes`);
+      logger.info(
+        `[ConfigManager] Configuration reloaded: ${safe.length} safe changes, ${critical.length} critical changes`
+      );
 
       return {
         success: true,
@@ -280,7 +282,9 @@ export class ConfigManager {
         if (result.success) {
           logger.info(`[ConfigManager] Auto-reload complete: ${result.changed.length} changes`);
           if (result.requiresRestart) {
-            logger.warn("[ConfigManager] ⚠️  Critical changes detected! Application restart recommended.");
+            logger.warn(
+              "[ConfigManager] ⚠️  Critical changes detected! Application restart recommended."
+            );
           }
         }
       }
@@ -443,7 +447,7 @@ export class ConfigManager {
 export const configManager = new ConfigManager();
 
 // Auto-watch for changes in development mode
-if (process.env['NODE_ENV'] === "development") {
+if (process.env["NODE_ENV"] === "development") {
   configManager.watchForChanges({
     orgId: "default-org-id",
     changedByName: "System (File Watcher)",

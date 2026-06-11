@@ -19,7 +19,7 @@
 - **WebSockets**: a single shared `useWebSocket` hook; no duplicated connections.
 - **Not what they look like**: the paired `pages/<x>/` directory + `<x>.tsx` files
   (equipment-hub, engine-logbook, pdm-platform, rms-monitoring, home, feedback, portal-login)
-  are *not* duplicates — the `.tsx` is the routed entry, the directory holds its tab
+  are _not_ duplicates — the `.tsx` is the routed entry, the directory holds its tab
   subcomponents. No dead root-level components were found.
 
 ## 2. Finding: a half-finished route migration (structural redundancy)
@@ -35,18 +35,18 @@ Three generations of the records/navigation IA coexist:
    **shadowed dead config** — unreachable code that still suggests those pages are live.
 3. `/logs` (`pages/logs-hub.tsx`, an `IconGridLayout`) is the canonical shell that loads the
    four thin `*-consolidated.tsx` tab wrappers — but `/logs/deck`, `/logs/engine`,
-   `/logs/compliance`, `/logs/equipment` render the *bare* pages, a different UX for the
+   `/logs/compliance`, `/logs/equipment` render the _bare_ pages, a different UX for the
    "same" destination depending on which URL form you arrive by.
 
 Consequences:
 
-| Issue | Evidence |
-|---|---|
-| 91 routes vs ~40 nav items | `routes/*.ts` vs `navigationConfig.ts` |
-| Shadowed dead registrations | `records.ts`: `/deck-logbook`, `/engine-logbook`, `/logs-compliance`, `/condition-monitoring-log` |
+| Issue                                            | Evidence                                                                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 91 routes vs ~40 nav items                       | `routes/*.ts` vs `navigationConfig.ts`                                                                                                                                                                       |
+| Shadowed dead registrations                      | `records.ts`: `/deck-logbook`, `/engine-logbook`, `/logs-compliance`, `/condition-monitoring-log`                                                                                                            |
 | Suspected dead pages — disproven on verification | `pages/pdm-pack.tsx` and `pages/inventory-management.tsx` are live as lazily-loaded hub tab content (pdm-platform diagnostics tab, logistics inventory tab); only their shadowed standalone routes were dead |
-| 4+ vessel entry points | `/fleet/:vesselId`, `/vessel-intelligence/:vesselId`, `/vessels/:id` (distinct VesselDashboard), `/equipment-schematic/:vesselId` |
-| ~10 orphan routes (no nav entry) | `/operating-parameters`, `/storage-settings`, `/transport-settings`, `/admin/*` — typed-URL-only |
+| 4+ vessel entry points                           | `/fleet/:vesselId`, `/vessel-intelligence/:vesselId`, `/vessels/:id` (distinct VesselDashboard), `/equipment-schematic/:vesselId`                                                                            |
+| ~10 orphan routes (no nav entry)                 | `/operating-parameters`, `/storage-settings`, `/transport-settings`, `/admin/*` — typed-URL-only                                                                                                             |
 
 **Recommendation**: finish the migration — remove shadowed registrations, delete
 verified-dead pages, land `/logs/<x>` on the consolidated shell, migrate redundant vessel
@@ -93,15 +93,15 @@ is shared with other pages.
 
 ## 5. Finding: utility & component redundancy
 
-| Redundancy | Count | Canonical / recommendation |
-|---|---|---|
-| Local `formatDate` definitions | 9 | re-point at `lib/formatters.ts` / `lib/time-utils.ts` (SGT), preserving each call site's output format |
-| Local `formatCurrency` definitions | 6 | re-point at `lib/formatters.ts` |
-| status/risk/severity→color maps (`riskColor`×3, `statusColor`×4, `severityColor`, per-table configs) | ~8 | extract a shared `lib/status-colors.ts` |
-| `StatusBadge` implementations | 2 incompatible APIs (`components/shared/` 17 statuses, `components/ml-ai/utils/` 11) | share the color config now; merging the components is deliberately deferred |
-| `PageHeader` implementations | 2 (`components/ml-ai/layouts/`, `components/navigation/`) | different jobs (breadcrumb header vs sticky app bar); merge not worth the churn |
-| `useQuery → skeleton → error card` inline blocks | 98 | introduce a `QueryBoundary` wrapper opportunistically, **not** as a mass refactor |
-| KPI-card variants (`KpiCard`, `MetricCard`, `OpsMetricCard`) | 3 | intentional domain variants; leave |
+| Redundancy                                                                                           | Count                                                                                | Canonical / recommendation                                                                             |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Local `formatDate` definitions                                                                       | 9                                                                                    | re-point at `lib/formatters.ts` / `lib/time-utils.ts` (SGT), preserving each call site's output format |
+| Local `formatCurrency` definitions                                                                   | 6                                                                                    | re-point at `lib/formatters.ts`                                                                        |
+| status/risk/severity→color maps (`riskColor`×3, `statusColor`×4, `severityColor`, per-table configs) | ~8                                                                                   | extract a shared `lib/status-colors.ts`                                                                |
+| `StatusBadge` implementations                                                                        | 2 incompatible APIs (`components/shared/` 17 statuses, `components/ml-ai/utils/` 11) | share the color config now; merging the components is deliberately deferred                            |
+| `PageHeader` implementations                                                                         | 2 (`components/ml-ai/layouts/`, `components/navigation/`)                            | different jobs (breadcrumb header vs sticky app bar); merge not worth the churn                        |
+| `useQuery → skeleton → error card` inline blocks                                                     | 98                                                                                   | introduce a `QueryBoundary` wrapper opportunistically, **not** as a mass refactor                      |
+| KPI-card variants (`KpiCard`, `MetricCard`, `OpsMetricCard`)                                         | 3                                                                                    | intentional domain variants; leave                                                                     |
 
 ## 6. Finding: smaller runtime issues
 
@@ -113,7 +113,7 @@ is shared with other pages.
   `pendingCount > 0`.
 - `contexts/AdminAccessContext.tsx` ticks 1×/sec **only during an unlocked admin session**
   (the raw audit's "unconditional timer" claim was wrong — guarded at line 159). Remaining
-  cost: context consumers re-render each second *while unlocked*; isolate countdown values
+  cost: context consumers re-render each second _while unlocked_; isolate countdown values
   from the main context value.
 - **Virtualization** exists only in `VirtualizedWorkOrderTable` and
   `VirtualizedInventoryTable`. Large unvirtualized `.map()` renders remain in
@@ -127,13 +127,13 @@ is shared with other pages.
 
 ## 7. Scorecard (pre-remediation)
 
-| Dimension | Score | Notes |
-|---|---|---|
-| Route clarity | 4/10 | 91 routes / ~40 nav items, shadowed dead registrations, 2 dead pages |
-| Hub & page density | 5/10 | fleet-hub N+1; nested-tab mega-pages; hubs otherwise reasonable |
-| Settings UX | 2/10 | 16 scattered pages, most without nav |
-| Runtime efficiency | 7/10 | strong foundations; localized hotspots |
-| Component hygiene | 6/10 | no dead code; utility duplication |
+| Dimension          | Score | Notes                                                                |
+| ------------------ | ----- | -------------------------------------------------------------------- |
+| Route clarity      | 4/10  | 91 routes / ~40 nav items, shadowed dead registrations, 2 dead pages |
+| Hub & page density | 5/10  | fleet-hub N+1; nested-tab mega-pages; hubs otherwise reasonable      |
+| Settings UX        | 2/10  | 16 scattered pages, most without nav                                 |
+| Runtime efficiency | 7/10  | strong foundations; localized hotspots                               |
+| Component hygiene  | 6/10  | no dead code; utility duplication                                    |
 
 ## 8. Remediation status
 
@@ -141,6 +141,7 @@ Delivered on this branch (all phases verified by `npm run check`, `npm run check
 `npm run lint`, the full unit lane (1,346 tests) and integration lane (144 tests)):
 
 **Routes & IA (§2, §3)**
+
 - Removed every redirect-shadowed registration (`records.ts` 16 → 6 routes; `/governance-dashboard`
   from analytics; `/inventory-management` + `/vendors` from logistics; `/operating-parameters`
   from fleet) — all covered by `routeMigrations`.
@@ -158,6 +159,7 @@ Delivered on this branch (all phases verified by `npm run check`, `npm run check
   back-button aware).
 
 **Runtime (§4, §6)**
+
 - New org-scoped batch endpoint `GET /api/vessel-intelligence/summaries?vesselIds=…`
   (vessel-diagram-registry domain, capped at 100 ids, unit-tested); fleet-hub now issues one
   summaries request instead of one per vessel.
@@ -169,6 +171,7 @@ Delivered on this branch (all phases verified by `npm run check`, `npm run check
 - App pending-count poller only runs while something is pending.
 
 **Redundancy (§5)**
+
 - `formatDate`/`formatCurrency` locals re-pointed to `lib/formatters.ts` (extended
   backward-compatibly with locale/fallback/display options; every call site's rendered output
   preserved — verified against ICU). `certificate-registry`'s day-first format deliberately
@@ -178,6 +181,7 @@ Delivered on this branch (all phases verified by `npm run check`, `npm run check
   overlapping key renders differently — forcing one config would change the UI.
 
 **Follow-ups (§5, §6 — this branch)**
+
 - New `QueryBoundary` pattern component (`components/patterns/`) consolidating the
   `useQuery → loading → error → empty → content` if-chains by composing the existing
   LoadingState/ErrorState; piloted on 4 sites (pdm-equipment-detail, SensorSetupWizard

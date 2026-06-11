@@ -163,16 +163,16 @@ export async function createUpdateProvider(
  * Get provider configuration from environment
  */
 export function getProviderConfigFromEnv(): ProviderConfig {
-  const providerType = process.env['UPDATE_PROVIDER'] || "github";
+  const providerType = process.env["UPDATE_PROVIDER"] || "github";
 
   if (providerType === "github") {
     return {
       type: "github",
       github: {
-        owner: process.env['GITHUB_OWNER'] || process.env['GITHUB_UPDATES_OWNER'] || "",
-        repo: process.env['GITHUB_REPO'] || process.env['GITHUB_UPDATES_REPO'] || "ARUS-Updates",
-        token: process.env['GITHUB_TOKEN'] || "",
-        channelTagPrefix: process.env['GITHUB_RELEASE_CHANNEL_TAG_PREFIX'] || "v",
+        owner: process.env["GITHUB_OWNER"] || process.env["GITHUB_UPDATES_OWNER"] || "",
+        repo: process.env["GITHUB_REPO"] || process.env["GITHUB_UPDATES_REPO"] || "ARUS-Updates",
+        token: process.env["GITHUB_TOKEN"] || "",
+        channelTagPrefix: process.env["GITHUB_RELEASE_CHANNEL_TAG_PREFIX"] || "v",
       },
     };
   }
@@ -180,8 +180,10 @@ export function getProviderConfigFromEnv(): ProviderConfig {
   return {
     type: "custom",
     custom: {
-      updateServerUrl: process.env['UPDATE_SERVER_URL'] || "https://updates.arus.io",
-      ...(process.env['UPDATE_SERVER_API_KEY'] !== undefined && { apiKey: process.env['UPDATE_SERVER_API_KEY'] }),
+      updateServerUrl: process.env["UPDATE_SERVER_URL"] || "https://updates.arus.io",
+      ...(process.env["UPDATE_SERVER_API_KEY"] !== undefined && {
+        apiKey: process.env["UPDATE_SERVER_API_KEY"],
+      }),
     },
   };
 }

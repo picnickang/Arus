@@ -165,9 +165,7 @@ interface VesselIntelligenceData {
 
 function VesselIntelligenceSection() {
   const [selectedVessel, setSelectedVessel] = useState<string>("");
-  const [vesselIntelligence, setVesselIntelligence] = useState<VesselIntelligenceData | null>(
-    null
-  );
+  const [vesselIntelligence, setVesselIntelligence] = useState<VesselIntelligenceData | null>(null);
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false);
 
   const { data: vessels = [] } = useQuery<Array<{ id: string; name: string }>>({

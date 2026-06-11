@@ -11,16 +11,16 @@ export function getSLOFromEnv(name: string, defaultValue: number): number {
 }
 
 export function getAvailabilityTargetFromEnv(): number {
-  const envValue = process.env['SLO_AVAILABILITY_TARGET'];
+  const envValue = process.env["SLO_AVAILABILITY_TARGET"];
   return envValue ? Number.parseFloat(envValue) : 0.999;
 }
 
 export function getWindowMinutes(): number {
-  return Number.parseInt(process.env['SLO_WINDOW_MINUTES'] || "15", 10);
+  return Number.parseInt(process.env["SLO_WINDOW_MINUTES"] || "15", 10);
 }
 
 export function getBucketMinutes(): number {
-  return Number.parseInt(process.env['SLO_BUCKET_MINUTES'] || "1", 10);
+  return Number.parseInt(process.env["SLO_BUCKET_MINUTES"] || "1", 10);
 }
 
 export function loadSLOConfigs(): SLOConfig[] {

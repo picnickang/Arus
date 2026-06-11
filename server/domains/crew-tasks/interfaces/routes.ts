@@ -26,15 +26,11 @@ import {
 } from "@shared/schema-runtime";
 import type { CrewTaskActor } from "../domain/types";
 
-const statusEnum = z.enum(
-  CREW_TASK_STATUSES as readonly [string, ...string[]],
-);
-const priorityEnum = z.enum(
-  CREW_TASK_PRIORITIES as readonly [string, ...string[]],
-);
+const statusEnum = z.enum(CREW_TASK_STATUSES as readonly [string, ...string[]]);
+const priorityEnum = z.enum(CREW_TASK_PRIORITIES as readonly [string, ...string[]]);
 
 const linkedSourceTypeEnum = z.enum(
-  CREW_TASK_LINKED_SOURCE_TYPES as readonly [string, ...string[]],
+  CREW_TASK_LINKED_SOURCE_TYPES as readonly [string, ...string[]]
 );
 
 const createTaskSchema = z.object({
@@ -89,7 +85,7 @@ export function registerCrewTaskRoutes(
   rateLimit: {
     generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
     writeOperationRateLimit?: import("../../../lib/rate-limit-factory").RateLimit;
-  },
+  }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;
   const writeLimit = writeOperationRateLimit || generalApiRateLimit;
@@ -120,7 +116,7 @@ export function registerCrewTaskRoutes(
         ...(status !== undefined && { status }),
       });
       return res.json(tasks);
-    }),
+    })
   );
 
   app.get(
@@ -130,12 +126,12 @@ export function registerCrewTaskRoutes(
     generalApiRateLimit,
     withErrorHandling("get crew task", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const task = await crewTaskService.getTask(orgId, req.params["id"]);
+      const task = await crewTaskService.getTask(orgId, req.params["id"] ?? "");
       if (!task) {
         return sendNotFound(res, "Crew task");
       }
       return res.json(task);
-    }),
+    })
   );
 
   app.post(
@@ -152,10 +148,10 @@ export function registerCrewTaskRoutes(
           orgId,
           createdBy: authenticatedRequest(req).user?.id,
         },
-        actorFrom(req),
+        actorFrom(req)
       );
       return sendCreated(res, task);
-    }),
+    })
   );
 
   app.patch(
@@ -168,15 +164,15 @@ export function registerCrewTaskRoutes(
       const patch = updateTaskSchema.parse(req.body);
       const task = await crewTaskService.updateTask(
         orgId,
-        req.params["id"],
+        req.params["id"] ?? "",
         patch,
-        actorFrom(req),
+        actorFrom(req)
       );
       if (!task) {
         return sendNotFound(res, "Crew task");
       }
       return res.json(task);
-    }),
+    })
   );
 
   app.delete(
@@ -188,14 +184,14 @@ export function registerCrewTaskRoutes(
       const orgId = authenticatedRequest(req).orgId;
       const deleted = await crewTaskService.deleteTask(
         orgId,
-        req.params["id"],
-        actorFrom(req),
+        req.params["id"] ?? "",
+        actorFrom(req)
       );
       if (!deleted) {
         return sendNotFound(res, "Crew task");
       }
       return sendDeleted(res);
-    }),
+    })
   );
 
   app.get(
@@ -203,21 +199,15 @@ export function registerCrewTaskRoutes(
     requireOrgId,
     requirePermission("crew_members", "view"),
     generalApiRateLimit,
-    withErrorHandling(
-      "list crew task events",
-      async (req: Request, res: Response) => {
-        const orgId = authenticatedRequest(req).orgId;
-        const task = await crewTaskService.getTask(orgId, req.params["id"]);
-        if (!task) {
-          return sendNotFound(res, "Crew task");
-        }
-        const events = await crewTaskService.listEvents(
-          orgId,
-          req.params["id"],
-        );
-        return res.json(events);
-      },
-    ),
+    withErrorHandling("list crew task events", async (req: Request, res: Response) => {
+      const orgId = authenticatedRequest(req).orgId;
+      const task = await crewTaskService.getTask(orgId, req.params["id"] ?? "");
+      if (!task) {
+        return sendNotFound(res, "Crew task");
+      }
+      const events = await crewTaskService.listEvents(orgId, req.params["id"] ?? "");
+      return res.json(events);
+    })
   );
 
   app.post(
@@ -225,22 +215,19 @@ export function registerCrewTaskRoutes(
     requireOrgId,
     requirePermission("crew_members", "edit"),
     writeLimit,
-    withErrorHandling(
-      "add crew task comment",
-      async (req: Request, res: Response) => {
-        const orgId = authenticatedRequest(req).orgId;
-        const { message } = addCommentSchema.parse(req.body);
-        const event = await crewTaskService.addComment(
-          orgId,
-          req.params["id"],
-          message,
-          actorFrom(req),
-        );
-        if (!event) {
-          return sendNotFound(res, "Crew task");
-        }
-        return sendCreated(res, event);
-      },
-    ),
+    withErrorHandling("add crew task comment", async (req: Request, res: Response) => {
+      const orgId = authenticatedRequest(req).orgId;
+      const { message } = addCommentSchema.parse(req.body);
+      const event = await crewTaskService.addComment(
+        orgId,
+        req.params["id"] ?? "",
+        message,
+        actorFrom(req)
+      );
+      if (!event) {
+        return sendNotFound(res, "Crew task");
+      }
+      return sendCreated(res, event);
+    })
   );
 }

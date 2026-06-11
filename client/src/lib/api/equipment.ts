@@ -154,18 +154,18 @@ export async function fetchEquipmentHealthTyped(
   if (Array.isArray(response)) {
     normalizedResponse = {
       results: response.map((item: Record<string, unknown>) => ({
-        id: item['id'] as string,
-        name: item['name'] as string,
-        type: item['type'] as string,
-        vesselId: isValidUuid(item['vesselId'])
-          ? item['vesselId']
-          : isValidUuid(item['vessel'])
-            ? item['vessel']
+        id: item["id"] as string,
+        name: item["name"] as string,
+        type: item["type"] as string,
+        vesselId: isValidUuid(item["vesselId"])
+          ? item["vesselId"]
+          : isValidUuid(item["vessel"])
+            ? item["vessel"]
             : null,
-        vesselName: item['vesselName'] as string | undefined,
-        condition: mapHealthToCondition(item['healthIndex'] as number | null),
-        healthScore: (item['healthIndex'] as number) ?? 0,
-        riskLevel: mapHealthToRiskLevel(item['healthIndex'] as number | null),
+        vesselName: item["vesselName"] as string | undefined,
+        condition: mapHealthToCondition(item["healthIndex"] as number | null),
+        healthScore: (item["healthIndex"] as number) ?? 0,
+        riskLevel: mapHealthToRiskLevel(item["healthIndex"] as number | null),
         lastMaintenanceDate: null,
         nextMaintenanceDate: null,
         alertCount: 0,
