@@ -1,0 +1,25 @@
+-- 0048 down — drop the wave-2 status/severity CHECK constraints.
+
+ALTER TABLE IF EXISTS crew_tasks DROP CONSTRAINT IF EXISTS crew_tasks_status_valid;
+ALTER TABLE IF EXISTS crew_tasks DROP CONSTRAINT IF EXISTS crew_tasks_priority_valid;
+ALTER TABLE IF EXISTS vessel_certificates DROP CONSTRAINT IF EXISTS vessel_certificates_status_valid;
+ALTER TABLE IF EXISTS crew DROP CONSTRAINT IF EXISTS crew_status_valid;
+ALTER TABLE IF EXISTS compliance_findings DROP CONSTRAINT IF EXISTS compliance_findings_severity_valid;
+ALTER TABLE IF EXISTS compliance_findings DROP CONSTRAINT IF EXISTS compliance_findings_status_valid;
+ALTER TABLE IF EXISTS vessel_safety_alarms DROP CONSTRAINT IF EXISTS vessel_safety_alarms_severity_valid;
+ALTER TABLE IF EXISTS vessel_safety_alarms DROP CONSTRAINT IF EXISTS vessel_safety_alarms_status_valid;
+ALTER TABLE IF EXISTS vessel_safety_alarms DROP CONSTRAINT IF EXISTS vessel_safety_alarms_mode_valid;
+ALTER TABLE IF EXISTS safety_alarm_types DROP CONSTRAINT IF EXISTS safety_alarm_types_default_severity_valid;
+ALTER TABLE IF EXISTS edge_diagnostic_logs DROP CONSTRAINT IF EXISTS edge_diagnostic_logs_severity_valid;
+ALTER TABLE IF EXISTS edge_diagnostic_logs DROP CONSTRAINT IF EXISTS edge_diagnostic_logs_status_valid;
+ALTER TABLE IF EXISTS import_manifest DROP CONSTRAINT IF EXISTS import_manifest_status_valid;
+ALTER TABLE IF EXISTS agent_tasks DROP CONSTRAINT IF EXISTS agent_tasks_status_valid;
+ALTER TABLE IF EXISTS agent_tasks DROP CONSTRAINT IF EXISTS agent_tasks_priority_valid;
+ALTER TABLE IF EXISTS agent_findings DROP CONSTRAINT IF EXISTS agent_findings_status_valid;
+ALTER TABLE IF EXISTS agent_briefings DROP CONSTRAINT IF EXISTS agent_briefings_status_valid;
+ALTER TABLE IF EXISTS agent_schedule_runs DROP CONSTRAINT IF EXISTS agent_schedule_runs_status_valid;
+ALTER TABLE IF EXISTS event_outbox DROP CONSTRAINT IF EXISTS event_outbox_status_valid;
+ALTER TABLE IF EXISTS email_queue DROP CONSTRAINT IF EXISTS email_queue_status_valid;
+ALTER TABLE IF EXISTS notification_queue DROP CONSTRAINT IF EXISTS notification_queue_status_valid;
+ALTER TABLE IF EXISTS deck_log_daily DROP CONSTRAINT IF EXISTS deck_log_daily_status_valid;
+ALTER TABLE IF EXISTS engine_log_daily DROP CONSTRAINT IF EXISTS engine_log_daily_status_valid;
