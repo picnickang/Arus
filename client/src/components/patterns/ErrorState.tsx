@@ -24,6 +24,7 @@ interface ErrorStateProps {
 
 export function ErrorState({
   error,
+  title,
   onRetry,
   onBack,
   variant = "inline",
@@ -56,7 +57,7 @@ export function ErrorState({
 
           <div className="space-y-2">
             <h2 className="text-2xl font-bold" data-testid="error-title">
-              {normalizedError.title || "Something went wrong"}
+              {title || normalizedError.title || "Something went wrong"}
             </h2>
             <p className="text-muted-foreground" data-testid="error-message">
               {normalizedError.message}
@@ -99,7 +100,7 @@ export function ErrorState({
   return (
     <Alert variant="destructive" className={className} data-testid="error-state-inline">
       <Icon className="h-4 w-4" />
-      <AlertTitle>{normalizedError.title || "Error"}</AlertTitle>
+      <AlertTitle>{title || normalizedError.title || "Error"}</AlertTitle>
       <AlertDescription className="space-y-3">
         <p>{normalizedError.message}</p>
         {showDetails && normalizedError.details && (

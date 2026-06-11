@@ -19,6 +19,7 @@ import { SensorHealthDashboard } from "@/components/sensors/SensorHealthDashboar
 import { MultiSensorChart } from "@/components/charts/MultiSensorChart";
 import { LoadingState } from "@/components/patterns/LoadingState";
 import { ErrorState } from "@/components/patterns/ErrorState";
+import { QueryBoundary } from "@/components/patterns/QueryBoundary";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BulkSelectionBar } from "@/components/ui/bulk-selection-bar";
 import { Activity, Gauge, AlertTriangle, Wrench, FileText, Plus, Settings } from "lucide-react";
@@ -55,168 +56,152 @@ export default function PdmEquipmentDetail() {
     confidence,
   } = usePdmEquipmentDetailData();
 
-  if (isLoadingEquipment || isLoadingHealth) {
-    return (
-      <div className="container mx-auto p-6">
-        <LoadingState variant="card" />
-      </div>
-    );
-  }
-  if (equipmentError) {
-    return (
-      <ErrorState
-        error={equipmentError}
-        title="Failed to load equipment details"
-        variant="page"
-        onRetry={retryEquipment}
-        onBack={handleBack}
-      />
-    );
-  }
-  if (healthError) {
-    return (
-      <ErrorState
-        error={healthError}
-        title="Failed to load equipment health data"
-        variant="page"
-        onRetry={retryHealth}
-        onBack={handleBack}
-      />
-    );
-  }
-  if (!equipment) {
-    return (
-      <ErrorState
-        error={new Error("Equipment not found")}
-        title="Equipment not found"
-        variant="page"
-        onBack={handleBack}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen" data-testid="pdm-equipment-detail">
-      <PageHeader title={equipment?.name || "Equipment Detail"} />
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 border">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold" data-testid="text-equipment-name">
-                  {equipment.name}
-                </h1>
-                <Badge variant="outline" data-testid="badge-equipment-type">
-                  {equipment.type}
-                </Badge>
-              </div>
-              {equipment.vesselName && (
-                <p className="text-muted-foreground" data-testid="text-vessel-name">
-                  Vessel: {equipment.vesselName}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Card className="min-w-[140px]">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Health Score</p>
-                      <p className="text-2xl font-bold" data-testid="text-health-score">
-                        {healthScore}
-                      </p>
-                    </div>
-                    <StatusBadge status={healthStatus} />
+    <QueryBoundary
+      isLoading={isLoadingEquipment || isLoadingHealth}
+      loadingVariant="card"
+      loadingClassName="container mx-auto p-6"
+      error={equipmentError ?? healthError}
+      errorTitle={
+        equipmentError ? "Failed to load equipment details" : "Failed to load equipment health data"
+      }
+      errorVariant="page"
+      onRetry={equipmentError ? retryEquipment : retryHealth}
+      onBack={handleBack}
+      data={equipment}
+      emptyFallback={
+        <ErrorState
+          error={new Error("Equipment not found")}
+          title="Equipment not found"
+          variant="page"
+          onBack={handleBack}
+        />
+      }
+    >
+      {(equipment) => (
+        <div className="min-h-screen" data-testid="pdm-equipment-detail">
+          <PageHeader title={equipment.name || "Equipment Detail"} />
+          <div className="container mx-auto p-6 space-y-6">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 border">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold" data-testid="text-equipment-name">
+                      {equipment.name}
+                    </h1>
+                    <Badge variant="outline" data-testid="badge-equipment-type">
+                      {equipment.type}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="min-w-[140px]">
-                <CardContent className="p-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Remaining Life</p>
-                    {rul !== null ? (
-                      <>
-                        <p className="text-2xl font-bold" data-testid="text-rul">
-                          {rul < 72 ? `${rul}h` : `${Math.round(rul / 24)}d`}
-                        </p>
-                        {rulUncertainty && (
-                          <p className="text-xs text-muted-foreground">
-                            ±
-                            {rulUncertainty < 24
-                              ? `${rulUncertainty}h`
-                              : `${Math.round(rulUncertainty / 24)}d`}
+                  {equipment.vesselName && (
+                    <p className="text-muted-foreground" data-testid="text-vessel-name">
+                      Vessel: {equipment.vesselName}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Card className="min-w-[140px]">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Health Score</p>
+                          <p className="text-2xl font-bold" data-testid="text-health-score">
+                            {healthScore}
+                          </p>
+                        </div>
+                        <StatusBadge status={healthStatus} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="min-w-[140px]">
+                    <CardContent className="p-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Remaining Life</p>
+                        {rul !== null ? (
+                          <>
+                            <p className="text-2xl font-bold" data-testid="text-rul">
+                              {rul < 72 ? `${rul}h` : `${Math.round(rul / 24)}d`}
+                            </p>
+                            {rulUncertainty && (
+                              <p className="text-xs text-muted-foreground">
+                                ±
+                                {rulUncertainty < 24
+                                  ? `${rulUncertainty}h`
+                                  : `${Math.round(rulUncertainty / 24)}d`}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p
+                            className="text-2xl font-bold text-muted-foreground"
+                            data-testid="text-rul"
+                          >
+                            N/A
                           </p>
                         )}
-                      </>
-                    ) : (
-                      <p
-                        className="text-2xl font-bold text-muted-foreground"
-                        data-testid="text-rul"
-                      >
-                        N/A
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {confidence} confidence
-                    </p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {confidence} confidence
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleViewWorkOrders}
+                      variant="outline"
+                      data-testid="button-view-work-orders"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Work Orders
+                    </Button>
+                    <Button onClick={handleCreateWorkOrder} data-testid="button-create-work-order">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Work Order
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleViewWorkOrders}
-                  variant="outline"
-                  data-testid="button-view-work-orders"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Work Orders
-                </Button>
-                <Button onClick={handleCreateWorkOrder} data-testid="button-create-work-order">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Work Order
-                </Button>
+                </div>
               </div>
             </div>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="overview" data-testid="tab-overview">
+                  <Activity className="h-4 w-4 mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="sensors" data-testid="tab-sensors">
+                  <Gauge className="h-4 w-4 mr-2" />
+                  Sensors
+                </TabsTrigger>
+                <TabsTrigger value="anomalies" data-testid="tab-anomalies">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Anomalies & AI
+                </TabsTrigger>
+                <TabsTrigger value="maintenance" data-testid="tab-maintenance">
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Maintenance History
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="space-y-6">
+                <OverviewTab
+                  equipmentId={equipmentId}
+                  equipment={equipment}
+                  {...(healthData !== undefined && { healthData })}
+                />
+              </TabsContent>
+              <TabsContent value="sensors" className="space-y-6">
+                <SensorsTab equipmentId={equipmentId} />
+              </TabsContent>
+              <TabsContent value="anomalies" className="space-y-6">
+                <AnomaliesTab equipmentId={equipmentId} />
+              </TabsContent>
+              <TabsContent value="maintenance" className="space-y-6">
+                <MaintenanceHistoryTab equipmentId={equipmentId} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" data-testid="tab-overview">
-              <Activity className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="sensors" data-testid="tab-sensors">
-              <Gauge className="h-4 w-4 mr-2" />
-              Sensors
-            </TabsTrigger>
-            <TabsTrigger value="anomalies" data-testid="tab-anomalies">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Anomalies & AI
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" data-testid="tab-maintenance">
-              <Wrench className="h-4 w-4 mr-2" />
-              Maintenance History
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-6">
-            <OverviewTab
-              equipmentId={equipmentId}
-              equipment={equipment}
-              {...(healthData !== undefined && { healthData })}
-            />
-          </TabsContent>
-          <TabsContent value="sensors" className="space-y-6">
-            <SensorsTab equipmentId={equipmentId} />
-          </TabsContent>
-          <TabsContent value="anomalies" className="space-y-6">
-            <AnomaliesTab equipmentId={equipmentId} />
-          </TabsContent>
-          <TabsContent value="maintenance" className="space-y-6">
-            <MaintenanceHistoryTab equipmentId={equipmentId} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+      )}
+    </QueryBoundary>
   );
 }
 
