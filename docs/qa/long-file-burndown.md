@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T22:34:32.054Z
+Generated: 2026-06-11T22:43:29.205Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `117` counted files.
-- The current counted inventory is `117` files.
+- The temporary ceiling is `115` counted files.
+- The current counted inventory is `115` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   117 |
-| Server                    |    44 |
+| Total counted long files  |   115 |
+| Server                    |    42 |
 | Server route-like files   |    10 |
 | Server service-like files |    11 |
 | Client                    |    73 |
@@ -66,6 +66,8 @@ Completed splits:
 - `shared/schema/crew.ts` dropped below the threshold by moving people and operations table groups to focused schema modules while preserving the public barrel.
 - `shared/schema/equipment.ts` dropped below the threshold by moving registry/lifecycle and analytics table groups to focused schema modules while preserving the public barrel.
 - `shared/schema/purchasing.ts` dropped below the threshold by moving procurement and service-order table groups to focused schema modules while preserving the public barrel.
+- `server/lib/domain-event-bus/types.ts` dropped below the threshold by moving event envelopes, payloads, and event map types to internal modules while preserving the public factory/barrel.
+- `server/integrations/fmcc-types.ts` dropped below the threshold by moving FMCC snapshot/polling types and register maps to internal modules while preserving the public barrel.
 
 ## Top 30 Longest Files
 
@@ -192,7 +194,6 @@ Completed splits:
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
 607 server/domains/scheduling/routes.ts
-606 server/lib/domain-event-bus/types.ts
 604 server/domains/equipment/routes.ts
 603 server/domains/agent/application/suggestion-engine.ts
 598 client/src/lib/queryClient.ts
@@ -219,7 +220,6 @@ Completed splits:
 559 server/scripts/migrate.ts
 554 server/services/ml/prediction-outcome-tracker.ts
 548 server/services/anomaly-correlation/anomaly-correlator.ts
-539 server/integrations/fmcc-types.ts
 538 client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx
 537 client/src/features/crew/hooks/useShiftPlanning.ts
 535 server/integrations/fmcc-polling-service.ts
