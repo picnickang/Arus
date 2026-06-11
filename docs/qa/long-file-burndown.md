@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T19:51:11.996Z
+Generated: 2026-06-11T20:28:27.278Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `134` counted files.
-- The current counted inventory is `134` files.
+- The temporary ceiling is `132` counted files.
+- The current counted inventory is `132` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   134 |
-| Server                    |    52 |
-| Server route-like files   |    13 |
+| Total counted long files  |   132 |
+| Server                    |    50 |
+| Server route-like files   |    11 |
 | Server service-like files |    14 |
 | Client                    |    74 |
 | Client page files         |    28 |
@@ -50,6 +50,8 @@ Completed splits:
 - `server/domains/crew-admin/application/crew-admin-service.ts` dropped below the threshold by moving role, dashboard, readiness, credential, and account/offboarding workflows to internal helper modules.
 - `server/telemetry-batch-writer.ts` dropped below the threshold by moving buffer management, metrics, persistence, post-flush work, quota checks, and direct-write orchestration to sibling modules.
 - `server/websocket.ts` dropped below the threshold by moving upgrade auth, telemetry throttling, fanout delivery/replay, shared types, and broadcast payload helpers to sibling modules.
+- `server/domains/permissions/routes.ts` dropped below the threshold by moving role, user-admin/setup, and dev diagnostic route groups plus shared schemas to focused modules.
+- `server/pdm/routes.ts` dropped below the threshold by moving export, equipment/telemetry, analysis, and shared filter/CSV helpers to focused modules.
 
 ## Top 30 Longest Files
 
@@ -66,30 +68,30 @@ Completed splits:
 |    9 |   923 | `client/src/components/unified-crew-components.tsx` |
 |   10 |   917 | `server/domains/agent/application/orchestrator.ts` |
 |   11 |   899 | `client/src/pages/admin/3d-models.tsx` |
-|   12 |   889 | `server/domains/permissions/routes.ts` |
-|   13 |   880 | `server/services/domains/work-order-service.ts` |
-|   14 |   875 | `client/src/pages/copilot-admin.tsx` |
-|   15 |   869 | `client/src/pages/system-administration.tsx` |
-|   16 |   852 | `server/domains/workflow/application/attention-service.ts` |
-|   17 |   843 | `client/src/pages/findings.tsx` |
-|   18 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
-|   19 |   832 | `shared/schema/logbooks.ts` |
-|   20 |   832 | `client/src/pages/deck-logbook/index.tsx` |
-|   21 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
-|   22 |   829 | `server/pdm/routes.ts` |
-|   23 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   24 |   819 | `client/src/pages/inventory-management.tsx` |
-|   25 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
-|   26 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
-|   27 |   809 | `client/src/pages/pdm-pack.tsx` |
-|   28 |   791 | `server/routes/service-request-routes.ts` |
-|   29 |   787 | `server/routes/rag-routes.ts` |
-|   30 |   786 | `client/src/pages/maintenance-schedules.tsx` |
+|   12 |   880 | `server/services/domains/work-order-service.ts` |
+|   13 |   875 | `client/src/pages/copilot-admin.tsx` |
+|   14 |   869 | `client/src/pages/system-administration.tsx` |
+|   15 |   852 | `server/domains/workflow/application/attention-service.ts` |
+|   16 |   843 | `client/src/pages/findings.tsx` |
+|   17 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
+|   18 |   832 | `shared/schema/logbooks.ts` |
+|   19 |   832 | `client/src/pages/deck-logbook/index.tsx` |
+|   20 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
+|   21 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   22 |   819 | `client/src/pages/inventory-management.tsx` |
+|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
+|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
+|   25 |   809 | `client/src/pages/pdm-pack.tsx` |
+|   26 |   791 | `server/routes/service-request-routes.ts` |
+|   27 |   787 | `server/routes/rag-routes.ts` |
+|   28 |   786 | `client/src/pages/maintenance-schedules.tsx` |
+|   29 |   782 | `server/domains/crew-admin/interfaces/routes.ts` |
+|   30 |   779 | `client/src/components/CrewDocumentsTab.tsx` |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize permissions routes, work-order service, PDM routes, workflow attention service, the remaining vessel diagram service, and agent orchestration.
+   - Prioritize work-order service, workflow attention service, the remaining vessel diagram service, agent orchestration, and crew-admin routes.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -117,7 +119,6 @@ Completed splits:
 923 client/src/components/unified-crew-components.tsx
 917 server/domains/agent/application/orchestrator.ts
 899 client/src/pages/admin/3d-models.tsx
-889 server/domains/permissions/routes.ts
 880 server/services/domains/work-order-service.ts
 875 client/src/pages/copilot-admin.tsx
 869 client/src/pages/system-administration.tsx
@@ -127,7 +128,6 @@ Completed splits:
 832 shared/schema/logbooks.ts
 832 client/src/pages/deck-logbook/index.tsx
 831 client/src/features/crew/lib/crewManagementUtils.ts
-829 server/pdm/routes.ts
 820 client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx
 819 client/src/pages/inventory-management.tsx
 811 client/src/features/crew/hooks/useHoursOfRestData.ts
