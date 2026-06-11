@@ -11,13 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -69,11 +63,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
 import { format } from "date-fns";
-import {
-  useDeckLogbookData,
-  WATCH_PERIODS,
-  MANUAL_EVENT_TYPES,
-} from "@/features/deck-logbook";
+import { useDeckLogbookData, WATCH_PERIODS, MANUAL_EVENT_TYPES } from "@/features/deck-logbook";
 import { PermissionGate } from "@/components/PermissionGate";
 import { HourlyLogRow } from "./HourlyLogRow";
 import { EventTimelineItem } from "./EventTimelineItem";
@@ -352,89 +342,133 @@ export default function DeckLogbookPage() {
                         Automated and manual operational events for the day
                       </CardDescription>
                     </div>
-                    {!((d.isLocked as unknown) as { deckLogComplete?: { daily?: { id?: string } } })?.deckLogComplete?.daily?.id && (
-                      <Dialog
-                        open={d.newEventDialogOpen}
-                        onOpenChange={(open) => {
-                          d.setNewEventDialogOpen(open);
-                          if (!open) {
-                            d.eventForm.reset();
-                          }
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <PermissionGate resource="deck_logbook" action="create">
-                            <Button data-testid="button-add-event">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Event
-                            </Button>
-                          </PermissionGate>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                          <DialogHeader>
-                            <DialogTitle>Add Manual Event</DialogTitle>
-                            <DialogDescription>
-                              Record a manual operational event in the deck log timeline.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <Form {...d.eventForm}>
-                            <form
-                              onSubmit={d.eventForm.handleSubmit(d.onSubmitEvent)}
-                              className="space-y-4"
-                            >
+                    {/* NOTE: a prior guard here read `deckLogComplete` off
+                        `d.isLocked` (a boolean) through a double-cast, so it
+                        was statically always `undefined` and this block always
+                        rendered. The dead guard is removed (behavior-preserving);
+                        whether "Add Event" should actually be conditional is a
+                        latent question for the deck-logbook owners. */}
+                    <Dialog
+                      open={d.newEventDialogOpen}
+                      onOpenChange={(open) => {
+                        d.setNewEventDialogOpen(open);
+                        if (!open) {
+                          d.eventForm.reset();
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <PermissionGate resource="deck_logbook" action="create">
+                          <Button data-testid="button-add-event">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Event
+                          </Button>
+                        </PermissionGate>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                          <DialogTitle>Add Manual Event</DialogTitle>
+                          <DialogDescription>
+                            Record a manual operational event in the deck log timeline.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...d.eventForm}>
+                          <form
+                            onSubmit={d.eventForm.handleSubmit(d.onSubmitEvent)}
+                            className="space-y-4"
+                          >
+                            <FormField
+                              control={d.eventForm.control}
+                              name="eventType"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Event Type</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-event-type">
+                                        <SelectValue placeholder="Select event type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {MANUAL_EVENT_TYPES.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={d.eventForm.control}
+                              name="summary"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Summary</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Brief description of the event"
+                                      data-testid="input-event-summary"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>Minimum 5 characters required</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={d.eventForm.control}
+                              name="details"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Details (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Additional details about the event"
+                                      rows={3}
+                                      data-testid="textarea-event-details"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={d.eventForm.control}
-                                name="eventType"
+                                name="positionLat"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Event Type</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger data-testid="select-event-type">
-                                          <SelectValue placeholder="Select event type" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        {MANUAL_EVENT_TYPES.map((type) => (
-                                          <SelectItem key={type.value} value={type.value}>
-                                            {type.label}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={d.eventForm.control}
-                                name="summary"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Summary</FormLabel>
+                                    <FormLabel>Latitude (Optional)</FormLabel>
                                     <FormControl>
                                       <Input
-                                        placeholder="Brief description of the event"
-                                        data-testid="input-event-summary"
+                                        type="number"
+                                        step="0.0001"
+                                        placeholder="1.2345"
+                                        data-testid="input-event-lat"
                                         {...field}
                                       />
                                     </FormControl>
-                                    <FormDescription>Minimum 5 characters required</FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                               <FormField
                                 control={d.eventForm.control}
-                                name="details"
+                                name="positionLon"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Details (Optional)</FormLabel>
+                                    <FormLabel>Longitude (Optional)</FormLabel>
                                     <FormControl>
-                                      <Textarea
-                                        placeholder="Additional details about the event"
-                                        rows={3}
-                                        data-testid="textarea-event-details"
+                                      <Input
+                                        type="number"
+                                        step="0.0001"
+                                        placeholder="103.8765"
+                                        data-testid="input-event-lon"
                                         {...field}
                                       />
                                     </FormControl>
@@ -442,70 +476,30 @@ export default function DeckLogbookPage() {
                                   </FormItem>
                                 )}
                               />
-                              <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                  control={d.eventForm.control}
-                                  name="positionLat"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Latitude (Optional)</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="0.0001"
-                                          placeholder="1.2345"
-                                          data-testid="input-event-lat"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={d.eventForm.control}
-                                  name="positionLon"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Longitude (Optional)</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="0.0001"
-                                          placeholder="103.8765"
-                                          data-testid="input-event-lon"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <DialogFooter className="pt-4">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => {
-                                    d.setNewEventDialogOpen(false);
-                                    d.eventForm.reset();
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button
-                                  type="submit"
-                                  disabled={d.createEventMutation.isPending}
-                                  data-testid="button-create-event"
-                                >
-                                  {d.createEventMutation.isPending ? "Creating..." : "Create Event"}
-                                </Button>
-                              </DialogFooter>
-                            </form>
-                          </Form>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                            </div>
+                            <DialogFooter className="pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  d.setNewEventDialogOpen(false);
+                                  d.eventForm.reset();
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="submit"
+                                disabled={d.createEventMutation.isPending}
+                                data-testid="button-create-event"
+                              >
+                                {d.createEventMutation.isPending ? "Creating..." : "Create Event"}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
                   </CardHeader>
                   <CardContent>
                     {d.loadingEvents ? (

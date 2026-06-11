@@ -10,8 +10,8 @@ import {
   engineLogHourly,
   engineLogGenerator,
   engineLogWatch,
-  engineLogEvents,
 } from "@shared/schema-runtime";
+import { DbEngineLogEventsStorage } from "./db-storage-events.js";
 import type {
   EngineLogDaily,
   InsertEngineLogDaily,
@@ -33,6 +33,8 @@ import type {
 } from "./types.js";
 
 export class DbEngineLogStorage {
+  private events = new DbEngineLogEventsStorage();
+
   private validateOrgId(orgId: string, methodName: string): void {
     if (!orgId) {
       throw new Error(`${methodName}: orgId is required for tenant isolation`);
@@ -92,7 +94,9 @@ export class DbEngineLogStorage {
   async createEngineLogDaily(entry: InsertEngineLogDaily): Promise<EngineLogDaily> {
     this.validateOrgId(entry.orgId, "createEngineLogDaily");
     const [created] = await db.insert(engineLogDaily).values(entry).returning();
-    if (!created) {throw new Error("createEngineLogDaily: no row returned");}
+    if (!created) {
+      throw new Error("createEngineLogDaily: no row returned");
+    }
     return created;
   }
 
@@ -114,7 +118,9 @@ export class DbEngineLogStorage {
       .set({ ...entry, updatedAt: new Date() })
       .where(and(eq(engineLogDaily.id, id), eq(engineLogDaily.orgId, orgId)))
       .returning();
-    if (!updated) {throw new Error("updateEngineLogDaily: no row returned");}
+    if (!updated) {
+      throw new Error("updateEngineLogDaily: no row returned");
+    }
     return updated;
   }
 
@@ -153,7 +159,9 @@ export class DbEngineLogStorage {
       })
       .where(and(eq(engineLogDaily.id, id), eq(engineLogDaily.orgId, orgId)))
       .returning();
-    if (!updated) {throw new Error("signEngineLogDaily: no row returned");}
+    if (!updated) {
+      throw new Error("signEngineLogDaily: no row returned");
+    }
     return updated;
   }
 
@@ -177,7 +185,9 @@ export class DbEngineLogStorage {
       })
       .where(and(eq(engineLogDaily.id, id), eq(engineLogDaily.orgId, orgId)))
       .returning();
-    if (!updated) {throw new Error("lockEngineLogDaily: no row returned");}
+    if (!updated) {
+      throw new Error("lockEngineLogDaily: no row returned");
+    }
     return updated;
   }
 
@@ -237,11 +247,15 @@ export class DbEngineLogStorage {
         .set({ ...entry, updatedAt: new Date() })
         .where(eq(engineLogHourly.id, existing.id))
         .returning();
-      if (!updated) {throw new Error("upsertEngineLogHourly: update returned no row");}
+      if (!updated) {
+        throw new Error("upsertEngineLogHourly: update returned no row");
+      }
       return updated;
     }
     const [created] = await db.insert(engineLogHourly).values(entry).returning();
-    if (!created) {throw new Error("upsertEngineLogHourly: insert returned no row");}
+    if (!created) {
+      throw new Error("upsertEngineLogHourly: insert returned no row");
+    }
     return created;
   }
 
@@ -308,11 +322,15 @@ export class DbEngineLogStorage {
         .set({ ...entry, updatedAt: new Date() })
         .where(eq(engineLogGenerator.id, existing.id))
         .returning();
-      if (!updated) {throw new Error("upsertEngineLogGenerator: update returned no row");}
+      if (!updated) {
+        throw new Error("upsertEngineLogGenerator: update returned no row");
+      }
       return updated;
     }
     const [created] = await db.insert(engineLogGenerator).values(entry).returning();
-    if (!created) {throw new Error("upsertEngineLogGenerator: insert returned no row");}
+    if (!created) {
+      throw new Error("upsertEngineLogGenerator: insert returned no row");
+    }
     return created;
   }
 
@@ -372,11 +390,15 @@ export class DbEngineLogStorage {
         .set({ ...entry, updatedAt: new Date() })
         .where(eq(engineLogWatch.id, existing.id))
         .returning();
-      if (!updated) {throw new Error("upsertEngineLogWatch: update returned no row");}
+      if (!updated) {
+        throw new Error("upsertEngineLogWatch: update returned no row");
+      }
       return updated;
     }
     const [created] = await db.insert(engineLogWatch).values(entry).returning();
-    if (!created) {throw new Error("upsertEngineLogWatch: insert returned no row");}
+    if (!created) {
+      throw new Error("upsertEngineLogWatch: insert returned no row");
+    }
     return created;
   }
 
@@ -409,84 +431,28 @@ export class DbEngineLogStorage {
     orgId: string,
     filters?: EngineLogEventFilters
   ): Promise<EngineLogEvent[]> {
-    this.validateOrgId(orgId, "getEngineLogEvents");
-    const conditions = [eq(engineLogEvents.dayId, dayId), eq(engineLogEvents.orgId, orgId)];
-    if (filters?.eventType) {
-      conditions.push(eq(engineLogEvents.eventType, filters.eventType));
-    }
-    if (filters?.source) {
-      conditions.push(eq(engineLogEvents.source, filters.source));
-    }
-    if (filters?.startTime) {
-      conditions.push(gte(engineLogEvents.timestamp, filters.startTime));
-    }
-    if (filters?.endTime) {
-      conditions.push(lte(engineLogEvents.timestamp, filters.endTime));
-    }
-    return db
-      .select()
-      .from(engineLogEvents)
-      .where(and(...conditions))
-      .orderBy(engineLogEvents.timestamp);
+    return this.events.getEngineLogEvents(dayId, orgId, filters);
   }
-
   async getEngineLogEventById(id: string, orgId: string): Promise<EngineLogEvent | undefined> {
-    this.validateOrgId(orgId, "getEngineLogEventById");
-    const [event] = await db
-      .select()
-      .from(engineLogEvents)
-      .where(and(eq(engineLogEvents.id, id), eq(engineLogEvents.orgId, orgId)));
-    return event;
+    return this.events.getEngineLogEventById(id, orgId);
   }
   async getEngineLogEventByIdempotencyKey(
     key: string,
     orgId: string
   ): Promise<EngineLogEvent | undefined> {
-    this.validateOrgId(orgId, "getEngineLogEventByIdempotencyKey");
-    const [event] = await db
-      .select()
-      .from(engineLogEvents)
-      .where(and(eq(engineLogEvents.idempotencyKey, key), eq(engineLogEvents.orgId, orgId)));
-    return event;
+    return this.events.getEngineLogEventByIdempotencyKey(key, orgId);
   }
-
   async createEngineLogEvent(event: InsertEngineLogEvent): Promise<EngineLogEvent> {
-    this.validateOrgId(event.orgId, "createEngineLogEvent");
-    if (event.idempotencyKey) {
-      const existing = await this.getEngineLogEventByIdempotencyKey(
-        event.idempotencyKey,
-        event.orgId
-      );
-      if (existing) {
-        return existing;
-      }
-    }
-    const [created] = await db.insert(engineLogEvents).values(event).returning();
-    if (!created) {throw new Error("createEngineLogEvent: no row returned");}
-    return created;
+    return this.events.createEngineLogEvent(event);
   }
-
   async updateEngineLogEvent(
     id: string,
     event: Partial<InsertEngineLogEvent>,
     orgId: string
   ): Promise<EngineLogEvent> {
-    this.validateOrgId(orgId, "updateEngineLogEvent");
-    const [updated] = await db
-      .update(engineLogEvents)
-      .set({ ...event, updatedAt: new Date() })
-      .where(and(eq(engineLogEvents.id, id), eq(engineLogEvents.orgId, orgId)))
-      .returning();
-    if (!updated) {
-      throw new Error("Engine log event not found");
-    }
-    return updated;
+    return this.events.updateEngineLogEvent(id, event, orgId);
   }
-
   async deleteEngineLogEvent(id: string, orgId: string): Promise<void> {
-    this.validateOrgId(orgId, "deleteEngineLogEvent");
-    await db
-      .delete(engineLogEvents)
-      .where(and(eq(engineLogEvents.id, id), eq(engineLogEvents.orgId, orgId)));
+    return this.events.deleteEngineLogEvent(id, orgId);
   }
 }
