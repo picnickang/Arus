@@ -221,4 +221,16 @@ describe("source-scan: Crew Task Tracker UI wiring", () => {
     const tracker = read("client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx");
     expect(tracker).toContain("crew_task");
   });
+
+  it("the tracker delegates leaf UI to CrewTaskTrackerParts modules", () => {
+    const tracker = read("client/src/components/UnifiedCrewManagement/CrewTaskTracker.tsx");
+    const parts = read(
+      "client/src/components/UnifiedCrewManagement/CrewTaskTrackerParts/index.ts"
+    );
+
+    expect(tracker).toContain('from "./CrewTaskTrackerParts"');
+    expect(parts).toContain('from "./TaskRow"');
+    expect(parts).toContain('from "./TaskFormDialog"');
+    expect(parts).toContain('from "./TaskDetailDialog"');
+  });
 });
