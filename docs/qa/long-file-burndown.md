@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T22:24:48.626Z
+Generated: 2026-06-11T22:34:32.054Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `120` counted files.
-- The current counted inventory is `120` files.
+- The temporary ceiling is `117` counted files.
+- The current counted inventory is `117` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,13 +20,13 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   120 |
+| Total counted long files  |   117 |
 | Server                    |    44 |
 | Server route-like files   |    10 |
 | Server service-like files |    11 |
 | Client                    |    73 |
 | Client page files         |    28 |
-| Shared                    |     3 |
+| Shared                    |     0 |
 | Counted tests             |     1 |
 | Excluded test fixtures    |     1 |
 
@@ -63,6 +63,9 @@ Completed splits:
 - `shared/schema/ml-analytics-advanced.ts` dropped below the threshold by moving validation/vibration/PdM, realtime/retraining, and registry/runtime table groups to internal schema modules while preserving public insert schemas and types.
 - `shared/schema/alerts.ts` dropped below the threshold by moving core alert, settings, and queue table groups to focused schema modules while preserving the public barrel.
 - `shared/schema-runtime.ts` dropped below the threshold by moving mode-aware table groups to focused runtime modules while preserving public schema-runtime table names.
+- `shared/schema/crew.ts` dropped below the threshold by moving people and operations table groups to focused schema modules while preserving the public barrel.
+- `shared/schema/equipment.ts` dropped below the threshold by moving registry/lifecycle and analytics table groups to focused schema modules while preserving the public barrel.
+- `shared/schema/purchasing.ts` dropped below the threshold by moving procurement and service-order table groups to focused schema modules while preserving the public barrel.
 
 ## Top 30 Longest Files
 
@@ -188,7 +191,6 @@ Completed splits:
 612 server/domains/me-portal/me-portal-service.ts
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
-608 shared/schema/crew.ts
 607 server/domains/scheduling/routes.ts
 606 server/lib/domain-event-bus/types.ts
 604 server/domains/equipment/routes.ts
@@ -215,7 +217,6 @@ Completed splits:
 564 client/src/components/scheduling/crew-scheduler-cards.tsx
 561 client/src/pages/analytics-hub.tsx
 559 server/scripts/migrate.ts
-554 shared/schema/equipment.ts
 554 server/services/ml/prediction-outcome-tracker.ts
 548 server/services/anomaly-correlation/anomaly-correlator.ts
 539 server/integrations/fmcc-types.ts
@@ -229,7 +230,6 @@ Completed splits:
 530 client/src/features/work-orders/hooks/useWorkOrdersPageData.ts
 528 client/src/pages/work-orders.tsx
 527 client/src/components/engine-logbook/row-components.tsx
-524 shared/schema/purchasing.ts
 523 server/tests/pdm/get-schedule.test.ts
 523 client/src/lib/offline-sync.ts
 521 client/src/pages/logs-compliance-hub.tsx

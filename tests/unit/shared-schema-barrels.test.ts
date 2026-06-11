@@ -3,6 +3,9 @@ import * as logbooks from "../../shared/schema/logbooks";
 import * as mlAdvanced from "../../shared/schema/ml-analytics-advanced";
 import * as alerts from "../../shared/schema/alerts";
 import * as schemaRuntime from "../../shared/schema-runtime.ts";
+import * as crewSchema from "../../shared/schema/crew";
+import * as equipmentSchema from "../../shared/schema/equipment";
+import * as purchasingSchema from "../../shared/schema/purchasing";
 
 describe("shared schema barrels", () => {
   it("keeps logbook tables, constants, and insert schemas on the public module", () => {
@@ -75,5 +78,58 @@ describe("shared schema barrels", () => {
     expect(typeof schemaRuntime.insertEquipmentSchema.parse).toBe("function");
     expect(typeof schemaRuntime.insertAlertNotificationSchema.parse).toBe("function");
     expect(typeof schemaRuntime.vesselIdSchema.parse).toBe("function");
+  });
+
+  it("keeps crew tables, constants, and insert schemas on the public module", () => {
+    expect(crewSchema.crew).toBeDefined();
+    expect(crewSchema.crewEmploymentHistory).toBeDefined();
+    expect(crewSchema.crewNotificationSettings).toBeDefined();
+    expect(crewSchema.crewAlerts).toBeDefined();
+    expect(crewSchema.crewRoles).toBeDefined();
+    expect(crewSchema.skills).toBeDefined();
+    expect(crewSchema.crewSkill).toBeDefined();
+    expect(crewSchema.crewAssignment).toBeDefined();
+    expect(crewSchema.crewDocuments).toBeDefined();
+    expect(crewSchema.crewRestSheet).toBeDefined();
+    expect(crewSchema.crewRestDay).toBeDefined();
+    expect(crewSchema.CREW_DOCUMENT_TYPE_VALUES).toContain("passport");
+    expect(typeof crewSchema.insertCrewSchema.parse).toBe("function");
+    expect(typeof crewSchema.insertCrewRoleSchema.parse).toBe("function");
+    expect(typeof crewSchema.insertCrewDocumentSchema.parse).toBe("function");
+    expect(typeof crewSchema.insertCrewRestDaySchema.parse).toBe("function");
+  });
+
+  it("keeps equipment tables and insert schemas on the public module", () => {
+    expect(equipmentSchema.equipment).toBeDefined();
+    expect(equipmentSchema.devices).toBeDefined();
+    expect(equipmentSchema.edgeHeartbeats).toBeDefined();
+    expect(equipmentSchema.pdmScoreLogs).toBeDefined();
+    expect(equipmentSchema.equipmentLifecycle).toBeDefined();
+    expect(equipmentSchema.performanceMetrics).toBeDefined();
+    expect(equipmentSchema.equipmentDecommissionEvents).toBeDefined();
+    expect(equipmentSchema.downtimeEvents).toBeDefined();
+    expect(equipmentSchema.partFailureHistory).toBeDefined();
+    expect(equipmentSchema.industryBenchmarks).toBeDefined();
+    expect(equipmentSchema.operatingParameters).toBeDefined();
+    expect(equipmentSchema.operatingConditionAlerts).toBeDefined();
+    expect(typeof equipmentSchema.insertEquipmentSchema.parse).toBe("function");
+    expect(typeof equipmentSchema.insertDecommissionEventSchema.parse).toBe("function");
+    expect(typeof equipmentSchema.insertDowntimeEventSchema.parse).toBe("function");
+    expect(typeof equipmentSchema.decommissionReasonEnum.parse).toBe("function");
+  });
+
+  it("keeps purchasing tables and insert schemas on the public module", () => {
+    expect(purchasingSchema.reservations).toBeDefined();
+    expect(purchasingSchema.purchaseOrders).toBeDefined();
+    expect(purchasingSchema.purchaseOrderItems).toBeDefined();
+    expect(purchasingSchema.purchaseRequests).toBeDefined();
+    expect(purchasingSchema.purchaseRequestItems).toBeDefined();
+    expect(purchasingSchema.itemSuppliers).toBeDefined();
+    expect(purchasingSchema.serviceRequests).toBeDefined();
+    expect(purchasingSchema.serviceOrders).toBeDefined();
+    expect(purchasingSchema.serviceOrderEvents).toBeDefined();
+    expect(typeof purchasingSchema.insertReservationSchema.parse).toBe("function");
+    expect(typeof purchasingSchema.insertPurchaseRequestSchema.parse).toBe("function");
+    expect(typeof purchasingSchema.insertServiceOrderSchema.parse).toBe("function");
   });
 });
