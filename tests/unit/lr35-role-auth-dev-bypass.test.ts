@@ -11,10 +11,15 @@ import { requireRole } from "../../server/middleware/role-auth";
 function buildReq(overrides: Partial<Request> = {}): Request {
   return { headers: {}, ...overrides } as unknown as Request;
 }
-function buildRes(): { status: jest.Mock; json: jest.Mock; statusCode?: number } {
-  const res: { status: jest.Mock; json: jest.Mock; statusCode?: number } = {
-    status: jest.fn(),
-    json: jest.fn(),
+type TestRes = {
+  status: jest.Mock<(code: number) => unknown>;
+  json: jest.Mock<(body?: unknown) => unknown>;
+  statusCode?: number;
+};
+function buildRes(): TestRes {
+  const res: TestRes = {
+    status: jest.fn<(code: number) => unknown>(),
+    json: jest.fn<(body?: unknown) => unknown>(),
   };
   res.status.mockImplementation((code: number) => {
     res.statusCode = code;
@@ -31,8 +36,8 @@ describe("LR-3.5 SEC-1 — RBAC dev bypass requires explicit env opt-in", () => 
   });
 
   it("rejects an unauthenticated request when only NODE_ENV=development is set", async () => {
-    process.env['NODE_ENV'] = "development";
-    delete process.env['RBAC_DEV_NO_AUTH'];
+    process.env["NODE_ENV"] = "development";
+    delete process.env["RBAC_DEV_NO_AUTH"];
     const mw = requireRole("admin");
     const req = buildReq();
     const res = buildRes();
@@ -43,8 +48,8 @@ describe("LR-3.5 SEC-1 — RBAC dev bypass requires explicit env opt-in", () => 
   });
 
   it("rejects when RBAC_DEV_NO_AUTH=1 but NODE_ENV=production (prod-deny pin)", async () => {
-    process.env['NODE_ENV'] = "production";
-    process.env['RBAC_DEV_NO_AUTH'] = "1";
+    process.env["NODE_ENV"] = "production";
+    process.env["RBAC_DEV_NO_AUTH"] = "1";
     const mw = requireRole("admin");
     const req = buildReq();
     const res = buildRes();
@@ -58,8 +63,8 @@ describe("LR-3.5 SEC-1 — RBAC dev bypass requires explicit env opt-in", () => 
     // Pins that the dev escape hatch actually works when both conditions
     // hold — proving the env IS read at request time (not frozen at
     // module-load) and the bypass logic is reachable.
-    process.env['NODE_ENV'] = "development";
-    process.env['RBAC_DEV_NO_AUTH'] = "1";
+    process.env["NODE_ENV"] = "development";
+    process.env["RBAC_DEV_NO_AUTH"] = "1";
     const mw = requireRole("admin");
     const req = buildReq();
     const res = buildRes();
@@ -70,8 +75,8 @@ describe("LR-3.5 SEC-1 — RBAC dev bypass requires explicit env opt-in", () => 
   });
 
   it("with an authenticated wrong-role user, returns 403 regardless of bypass env", async () => {
-    process.env['NODE_ENV'] = "development";
-    process.env['RBAC_DEV_NO_AUTH'] = "1";
+    process.env["NODE_ENV"] = "development";
+    process.env["RBAC_DEV_NO_AUTH"] = "1";
     const mw = requireRole("admin");
     const req = buildReq({
       headers: {},

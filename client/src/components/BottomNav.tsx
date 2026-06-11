@@ -67,7 +67,7 @@ export function BottomNav() {
   const hasAdminAccess = isAdminPortalAccess(
     roleId,
     permissions.hubAdmin || permissions.isDevMode,
-    !permissions.isLoading,
+    !permissions.isLoading
   );
 
   // Self-heal: if the stored override contains any id the current
@@ -107,9 +107,7 @@ export function BottomNav() {
 
   const currentPath = location.split("?")[0] ?? "";
   const isTabActive = (href: string) =>
-    href === "/"
-      ? currentPath === "/"
-      : currentPath === href || currentPath.startsWith(`${href}/`);
+    href === "/" ? currentPath === "/" : currentPath === href || currentPath.startsWith(`${href}/`);
 
   return (
     <nav
@@ -129,7 +127,7 @@ export function BottomNav() {
                   "flex min-w-[56px] cursor-pointer flex-col items-center gap-0.5 rounded-lg px-3 py-1 transition-colors",
                   active
                     ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/30"
-                    : "text-muted-foreground hover:text-foreground",
+                    : "text-muted-foreground hover:text-foreground"
                 )}
                 data-testid={`link-nav-${tab.id}`}
               >

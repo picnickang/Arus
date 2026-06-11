@@ -44,7 +44,9 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
     channel: string = "stable"
   ): Promise<PatchManifest | null> {
     try {
-      logger.info(`[GitHub] Checking for updates (current: ${currentVersion}, channel: ${channel})`);
+      logger.info(
+        `[GitHub] Checking for updates (current: ${currentVersion}, channel: ${channel})`
+      );
 
       // List all releases
       const releases = await this.listReleases(channel);

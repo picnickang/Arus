@@ -45,11 +45,7 @@ export function useOrganizationData() {
         return [];
       }
       const params = new URLSearchParams({ orgId: selectedOrgId });
-      const response = await fetch(`/api/users?${params}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      return response.json();
+      return apiRequest(`/api/users?${params}`);
     },
     enabled: !!selectedOrgId,
     refetchInterval: 60000,
@@ -215,7 +211,9 @@ export function useOrganizationData() {
   const openOrganizationDialog = (organization?: Organization) => {
     if (organization) {
       setEditingOrganization(organization);
-      organizationForm.reset(organization as object as Parameters<typeof organizationForm.reset>[0]);
+      organizationForm.reset(
+        organization as object as Parameters<typeof organizationForm.reset>[0]
+      );
     } else {
       setEditingOrganization(null);
       organizationForm.reset({

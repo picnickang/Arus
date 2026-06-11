@@ -29,7 +29,7 @@ const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, ...rest] = a.replace(/^--/, "").split("=");
     return [k, rest.length ? rest.join("=") : "true"];
-  }),
+  })
 );
 
 const dbUrl = args["db-url"] ?? process.env["DATABASE_URL"];
@@ -56,12 +56,10 @@ async function probeConnectivity() {
 
 async function probeMigrationHead() {
   // Drizzle stores applied migrations in `__drizzle_migrations` (id, hash, created_at).
-  const { rows: applied } = await pool.query(
-    "SELECT COUNT(*)::int AS n FROM __drizzle_migrations",
-  );
-  const onDisk = readdirSync("migrations", { withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.endsWith(".sql"))
-    .length;
+  const { rows: applied } = await pool.query("SELECT COUNT(*)::int AS n FROM __drizzle_migrations");
+  const onDisk = readdirSync("migrations", { withFileTypes: true }).filter(
+    (e) => e.isFile() && e.name.endsWith(".sql")
+  ).length;
   if (applied[0].n !== onDisk) {
     throw new Error(`applied=${applied[0].n} on-disk=${onDisk}`);
   }
@@ -74,15 +72,13 @@ async function probeRls() {
   // probe. A restored database with RLS disabled would let the
   // probe silently pass — the worst kind of false green.
   const { rows: rlsRows } = await pool.query(
-    "SELECT relrowsecurity AS enabled FROM pg_class WHERE relname = 'equipment'",
+    "SELECT relrowsecurity AS enabled FROM pg_class WHERE relname = 'equipment'"
   );
   if (rlsRows.length === 0) {
     throw new Error("equipment table not present");
   }
   if (rlsRows[0].enabled !== true) {
-    throw new Error(
-      "RLS NOT ENABLED on equipment — restore is missing security policies",
-    );
+    throw new Error("RLS NOT ENABLED on equipment — restore is missing security policies");
   }
 
   const orgA = randomUUID();
@@ -97,19 +93,14 @@ async function probeRls() {
       `INSERT INTO equipment (id, org_id, name, type)
          VALUES ($1, $2, 'restore-smoke', 'pump')
          ON CONFLICT DO NOTHING`,
-      [eqId, orgA],
+      [eqId, orgA]
     );
 
     await clientB.query("BEGIN");
     await clientB.query(`SET LOCAL app.current_org_id = '${orgB}'`);
-    const { rows } = await clientB.query(
-      "SELECT id FROM equipment WHERE id = $1",
-      [eqId],
-    );
+    const { rows } = await clientB.query("SELECT id FROM equipment WHERE id = $1", [eqId]);
     if (rows.length !== 0) {
-      throw new Error(
-        `RLS BREACH: orgB saw orgA equipment ${eqId} (${rows.length} rows)`,
-      );
+      throw new Error(`RLS BREACH: orgB saw orgA equipment ${eqId} (${rows.length} rows)`);
     }
     await clientA.query("ROLLBACK");
     await clientB.query("ROLLBACK");
@@ -125,20 +116,24 @@ async function probeObjectStorage() {
     return "skipped (no bucket configured)";
   }
   const { rows } = await pool.query(
-    "SELECT storage_key FROM kb_documents WHERE storage_key IS NOT NULL ORDER BY random() LIMIT 10",
+    "SELECT storage_key FROM kb_documents WHERE storage_key IS NOT NULL ORDER BY random() LIMIT 10"
   );
   if (rows.length === 0) return "skipped (no kb_documents rows)";
   // We resolve via the same object-storage client the server uses
   // so credentials and bucket layout match production reality.
-  const { ObjectStorageClient } = await import("../../server/objectStorage.js")
-    .catch(async () => await import("../../server/objectStorage.ts"));
+  const { ObjectStorageClient } = await import("../../server/objectStorage.js").catch(
+    async () => await import("../../server/objectStorage.ts")
+  );
   if (!ObjectStorageClient) {
     return "skipped (object-storage client not exported in this build)";
   }
   const client = new ObjectStorageClient();
   let missing = 0;
   for (const { storage_key: key } of rows) {
-    const exists = await client.head(key).then(() => true).catch(() => false);
+    const exists = await client
+      .head(key)
+      .then(() => true)
+      .catch(() => false);
     if (!exists) missing += 1;
   }
   if (missing > 0) throw new Error(`${missing}/${rows.length} keys missing`);

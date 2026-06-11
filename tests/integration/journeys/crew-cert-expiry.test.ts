@@ -21,7 +21,9 @@ describe("Journey — Crew member → Cert → Listing", () => {
   }, 30000);
 
   afterAll(async () => {
-    if (certId) {await pool.query("DELETE FROM crew_cert WHERE id=$1", [certId]).catch(() => {});}
+    if (certId) {
+      await pool.query("DELETE FROM crew_cert WHERE id=$1", [certId]).catch(() => {});
+    }
     if (memberId) {
       await pool.query("DELETE FROM crew_cert WHERE crew_id=$1", [memberId]).catch(() => {});
       await pool.query("DELETE FROM crew WHERE id=$1", [memberId]).catch(() => {});

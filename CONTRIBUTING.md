@@ -8,18 +8,18 @@ This document covers the conventions and automated guards that keep the codebase
 
 The full guard chain: `npm run check:guards-full`
 
-| Guard | What it checks | Fix if it fails |
-|---|---|---|
-| `check:schema` | Dual-schema export pattern, column parity, missing tables | Update `shared/schema/*` and `shared/sqlite-schema/*` to match; or update `scripts/drift-baseline.json` if drift is intentional |
-| `check:storage-imports` | No imports of the deleted `server/storage.ts` facade | Use `server/repositories.ts` (the canonical entry) |
-| `check:schema-imports` | Schema imports respect the boundary rules | Import from `@shared/schema` (or `@shared/schema-runtime` if dialect-aware) |
-| `check:domain-boundaries` | Cross-domain imports don't violate hexagonal layering | Re-route through the domain barrel; don't reach into `internal/` of another domain |
-| `check:route-registration` | All API routes register through `domain-router-registry.ts` | Don't add `app.get/post("/api/...")` outside approved files |
-| `check:domain-leaks` | Domain implementation details don't leak across boundaries | Keep types and helpers behind the barrel |
-| `check:ts-burndown` | TypeScript error count is **monotonically decreasing** | Fix the regression — or, if you reduced the count, regenerate the baseline |
-| `check:cast-burndown` | `as any` and `as unknown as` cast count is monotonically decreasing | Same as above — these are holes in the type system |
-| `check:hygiene` | 7 mechanical hygiene metrics (catch-underscore, console-log, ts-ignore, etc.) are monotonically improving | Run `npm run check:hygiene:report` to see counts; fix the regressed metric |
-| `check:boot-health` | Server boots cleanly with all 99 dynamic-import modules registered | Check the boot log for "Failed to register" lines |
+| Guard                      | What it checks                                                                                            | Fix if it fails                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `check:schema`             | Dual-schema export pattern, column parity, missing tables                                                 | Update `shared/schema/*` and `shared/sqlite-schema/*` to match; or update `scripts/drift-baseline.json` if drift is intentional |
+| `check:storage-imports`    | No imports of the deleted `server/storage.ts` facade                                                      | Use `server/repositories.ts` (the canonical entry)                                                                              |
+| `check:schema-imports`     | Schema imports respect the boundary rules                                                                 | Import from `@shared/schema` (or `@shared/schema-runtime` if dialect-aware)                                                     |
+| `check:domain-boundaries`  | Cross-domain imports don't violate hexagonal layering                                                     | Re-route through the domain barrel; don't reach into `internal/` of another domain                                              |
+| `check:route-registration` | All API routes register through `domain-router-registry.ts`                                               | Don't add `app.get/post("/api/...")` outside approved files                                                                     |
+| `check:domain-leaks`       | Domain implementation details don't leak across boundaries                                                | Keep types and helpers behind the barrel                                                                                        |
+| `check:ts-burndown`        | TypeScript error count is **monotonically decreasing**                                                    | Fix the regression — or, if you reduced the count, regenerate the baseline                                                      |
+| `check:cast-burndown`      | `as any` and `as unknown as` cast count is monotonically decreasing                                       | Same as above — these are holes in the type system                                                                              |
+| `check:hygiene`            | 7 mechanical hygiene metrics (catch-underscore, console-log, ts-ignore, etc.) are monotonically improving | Run `npm run check:hygiene:report` to see counts; fix the regressed metric                                                      |
+| `check:boot-health`        | Server boots cleanly with all 99 dynamic-import modules registered                                        | Check the boot log for "Failed to register" lines                                                                               |
 
 ---
 
@@ -54,6 +54,7 @@ Several guards use a **burndown baseline** pattern: the metric must monotonicall
 **Why these guards exist:** every `as any` or `as unknown as` is a hole in the type system. They turn off TypeScript's protection for the rest of the file. We're not banning them outright (too disruptive at current count), but we're committed to never adding more.
 
 If you genuinely need a cast at an external boundary that isn't in the exempt list, prefer:
+
 1. A Zod schema parse (gives a runtime check + narrowed type)
 2. A type predicate (`function isFoo(x: unknown): x is Foo`)
 3. A branded type at the boundary

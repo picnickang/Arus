@@ -37,13 +37,11 @@ router.post("/inventory/analyze", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "inventory_risk");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Inventory Risk Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Inventory Risk Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Inventory risk analysis for org: ${orgId}`);
     const riskSummary = await getInventoryRiskAnalyzer().analyzeInventoryRisk(
@@ -62,15 +60,13 @@ router.post("/inventory/analyze", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Inventory risk analysis error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Internal server error during inventory risk analysis",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Internal server error during inventory risk analysis",
+    });
   }
 });
 
@@ -87,13 +83,11 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "inventory_risk");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Inventory Risk Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Inventory Risk Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
     logger.info(`[Beast Mode API] Equipment parts risk analysis for ${equipmentId}`);
     const equipmentRisk = await getInventoryRiskAnalyzer().analyzeEquipmentPartsRisk(
@@ -101,12 +95,10 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
       equipmentId
     );
     if (!equipmentRisk) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error: `Equipment ${equipmentId} not found or no parts history available`,
-        });
+      return res.status(404).json({
+        success: false,
+        error: `Equipment ${equipmentId} not found or no parts history available`,
+      });
     }
     return res.json({
       success: true,
@@ -115,15 +107,13 @@ router.get("/inventory/equipment/:equipmentId", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Equipment parts risk analysis error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Internal server error during equipment parts risk analysis",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Internal server error during equipment parts risk analysis",
+    });
   }
 });
 
@@ -141,15 +131,15 @@ router.get("/inventory/critical", async (req, res) => {
     }
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "inventory_risk");
     if (!isEnabled) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "Inventory Risk Pod is not enabled for this organization",
-          enabled: false,
-        });
+      return res.status(403).json({
+        success: false,
+        error: "Inventory Risk Pod is not enabled for this organization",
+        enabled: false,
+      });
     }
-    logger.info(`[Beast Mode API] Critical parts analysis for org: ${orgId}, threshold: ${riskThreshold}`);
+    logger.info(
+      `[Beast Mode API] Critical parts analysis for org: ${orgId}, threshold: ${riskThreshold}`
+    );
     const criticalParts = await getInventoryRiskAnalyzer().getCriticalParts(orgId, riskThreshold);
     return res.json({
       success: true,
@@ -158,15 +148,13 @@ router.get("/inventory/critical", async (req, res) => {
     });
   } catch (error) {
     logger.error(`[Beast Mode API] Critical parts analysis error:`, undefined, error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Internal server error during critical parts analysis",
-      });
+    return res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Internal server error during critical parts analysis",
+    });
   }
 });
 

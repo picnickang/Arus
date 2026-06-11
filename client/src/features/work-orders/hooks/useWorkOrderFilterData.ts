@@ -186,11 +186,13 @@ export function useWorkOrderFilterData(
   }, []);
 
   const getStatusLabel = useCallback(
-    (value: string) => STATUS_OPTIONS.find((s: { value: string; label: string }) => s.value === value)?.label,
+    (value: string) =>
+      STATUS_OPTIONS.find((s: { value: string; label: string }) => s.value === value)?.label,
     []
   );
   const getPriorityLabel = useCallback(
-    (value: string) => PRIORITY_OPTIONS.find((p: { value: string; label: string }) => p.value === value)?.label,
+    (value: string) =>
+      PRIORITY_OPTIONS.find((p: { value: string; label: string }) => p.value === value)?.label,
     []
   );
   const getVesselName = useCallback(

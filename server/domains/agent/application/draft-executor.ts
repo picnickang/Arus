@@ -2,7 +2,9 @@ import fs from "fs";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
 
 export interface WorkOrderCreatorPort {
-  createWorkOrder(input: Record<string, unknown> & { status: string; orgId: string }): Promise<{ id: string }>;
+  createWorkOrder(
+    input: Record<string, unknown> & { status: string; orgId: string }
+  ): Promise<{ id: string }>;
 }
 
 export interface DraftExecutorDeps {
@@ -27,10 +29,10 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
     }
 
     if (draftType === "report_share") {
-      const recipients = data['recipients'] as string[];
-      const subject = data['subject'] as string;
-      const bodyText = (data['message'] as string) || "Please find the attached ARUS report.";
-      const reportArtifact = getReportArtifact(data['reportId'] as string);
+      const recipients = data["recipients"] as string[];
+      const subject = data["subject"] as string;
+      const bodyText = (data["message"] as string) || "Please find the attached ARUS report.";
+      const reportArtifact = getReportArtifact(data["reportId"] as string);
 
       if (!reportArtifact || !fs.existsSync(reportArtifact.filePath)) {
         return { error: "Report artifact not found or file no longer available." };
@@ -67,7 +69,7 @@ export function createDraftExecutor(deps: DraftExecutorDeps) {
       }
 
       return {
-        resultId: data['reportId'] as string,
+        resultId: data["reportId"] as string,
         ...(sendErrors.length > 0 && { partialFailures: sendErrors }),
       };
     }

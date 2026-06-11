@@ -1,17 +1,6 @@
-
-
-import {
-  RefreshCw,
-  Move,
-} from "lucide-react";
-
+import { RefreshCw, Move } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-
-
-
-
 
 export function DragGhostPreview({
   crewName,
@@ -56,4 +45,3 @@ export function DragGhostPreview({
     </div>
   );
 }
-

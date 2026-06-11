@@ -51,12 +51,8 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function joinFieldErrors(
-  errors: { path?: string[] | undefined; message: string }[]
-): string {
-  return errors
-    .map((err) => `${err.path?.join(".") || "Field"}: ${err.message}`)
-    .join(", ");
+function joinFieldErrors(errors: { path?: string[] | undefined; message: string }[]): string {
+  return errors.map((err) => `${err.path?.join(".") || "Field"}: ${err.message}`).join(", ");
 }
 
 function parseErrorBody(body: unknown, fallbackText: string): ParsedErrorBody {
@@ -77,18 +73,14 @@ function parseErrorBody(body: unknown, fallbackText: string): ParsedErrorBody {
       code: typeof nested["code"] === "string" ? nested["code"] : undefined,
       details: nested["details"],
       correlationId:
-        typeof nested["correlationId"] === "string"
-          ? nested["correlationId"]
-          : correlationId,
+        typeof nested["correlationId"] === "string" ? nested["correlationId"] : correlationId,
     };
   }
 
   // Zod validation shape: { message, errors: [{ path, message }] }.
   const errors = record["errors"];
   if (Array.isArray(errors) && errors.length > 0) {
-    const fieldErrors = joinFieldErrors(
-      errors as { path?: string[]; message: string }[]
-    );
+    const fieldErrors = joinFieldErrors(errors as { path?: string[]; message: string }[]);
     return {
       detail: fieldErrors || topMessage || fallbackText,
       code: "VALIDATION_ERROR",
@@ -100,9 +92,7 @@ function parseErrorBody(body: unknown, fallbackText: string): ParsedErrorBody {
   // sendValidationError shape: { message, errors: fieldErrorMap, issues: [...] }.
   const issues = record["issues"];
   if (Array.isArray(issues) && issues.length > 0) {
-    const fieldErrors = joinFieldErrors(
-      issues as { path?: string[]; message: string }[]
-    );
+    const fieldErrors = joinFieldErrors(issues as { path?: string[]; message: string }[]);
     return {
       detail: fieldErrors || topMessage || fallbackText,
       code: "VALIDATION_ERROR",
@@ -133,11 +123,7 @@ function parseErrorBody(body: unknown, fallbackText: string): ParsedErrorBody {
  * Builds an ApiError from a non-OK response's status and raw text body.
  * `parsedBody` may be passed when the caller already JSON.parsed the text.
  */
-export function apiErrorFromResponse(
-  status: number,
-  text: string,
-  parsedBody?: unknown
-): ApiError {
+export function apiErrorFromResponse(status: number, text: string, parsedBody?: unknown): ApiError {
   let body = parsedBody;
   if (body === undefined && text) {
     try {

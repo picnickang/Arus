@@ -12,7 +12,7 @@
  * and surfaces a clear forbidden/unavailable state instead of a blank screen.
  */
 import { useQuery } from "@tanstack/react-query";
-import { createHeaders, resolveUrl } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,32 +83,26 @@ interface DiagnosticResponse {
 const DIAGNOSTIC_PATH = "/api/permissions/dev-diagnostic";
 
 async function fetchDiagnostic(): Promise<DiagnosticResponse> {
-  const res = await fetch(resolveUrl(DIAGNOSTIC_PATH), {
-    credentials: "include",
-    headers: createHeaders(),
-  });
-  if (!res.ok) {
-    let message = `${res.status}`;
-    try {
-      const body = (await res.json()) as { message?: string };
-      if (body?.message) {message = `${res.status}: ${body.message}`;}
-    } catch {
-      // non-JSON body — keep the status-only message
-    }
-    throw new Error(message);
-  }
-  return (await res.json()) as DiagnosticResponse;
+  // ApiError carries the same "{status}: {message}" text the manual parser
+  // built, plus envelope unwrapping on the success path.
+  return apiRequest<DiagnosticResponse>("GET", DIAGNOSTIC_PATH);
 }
 
 function formatTimestamp(value: string | null | undefined): string {
-  if (!value) {return "—";}
+  if (!value) {
+    return "—";
+  }
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) {return "—";}
+  if (Number.isNaN(d.getTime())) {
+    return "—";
+  }
   return d.toLocaleString();
 }
 
 function boolLabel(value: boolean | null | undefined): string {
-  if (value === null || value === undefined) {return "—";}
+  if (value === null || value === undefined) {
+    return "—";
+  }
   return value ? "Yes" : "No";
 }
 
@@ -155,8 +149,8 @@ export default function AccessDiagnosticPage() {
             <ShieldAlert className="h-8 w-8 text-muted-foreground mx-auto" />
             <h1 className="text-lg font-semibold">Not available in production</h1>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              The access diagnostic is a development and staging tool only. It is
-              disabled in production builds.
+              The access diagnostic is a development and staging tool only. It is disabled in
+              production builds.
             </p>
           </CardContent>
         </Card>
@@ -194,8 +188,8 @@ export default function AccessDiagnosticPage() {
         <div>
           <h1 className="text-xl font-bold">Access Diagnostic</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Why does this user have the access they have? Session vs. database
-            identity, roles, hub access, and permission grants.
+            Why does this user have the access they have? Session vs. database identity, roles, hub
+            access, and permission grants.
           </p>
         </div>
         <Button
@@ -240,15 +234,14 @@ export default function AccessDiagnosticPage() {
                 <ul className="text-sm text-rose-700/90 list-disc pl-5 space-y-0.5">
                   {roleMismatch && (
                     <li data-testid="mismatch-role">
-                      Session role <code>{data.session?.role ?? "—"}</code> does not
-                      match the database role <code>{data.dbUser?.role ?? "—"}</code>.
-                      Server-side guards authorize against the database role.
+                      Session role <code>{data.session?.role ?? "—"}</code> does not match the
+                      database role <code>{data.dbUser?.role ?? "—"}</code>. Server-side guards
+                      authorize against the database role.
                     </li>
                   )}
                   {userMissing && (
                     <li data-testid="mismatch-missing">
-                      The signed-in user has no matching row in the database for
-                      this organization.
+                      The signed-in user has no matching row in the database for this organization.
                     </li>
                   )}
                 </ul>
@@ -398,17 +391,12 @@ export default function AccessDiagnosticPage() {
               <CardContent>
                 {data.assignedRoles.length === 0 ? (
                   <p className="text-sm text-muted-foreground" data-testid="text-no-assigned-roles">
-                    No assignment-derived roles. Access comes from the primary role
-                    only.
+                    No assignment-derived roles. Access comes from the primary role only.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2" data-testid="list-assigned-roles">
                     {data.assignedRoles.map((r) => (
-                      <Badge
-                        key={r.id}
-                        variant="outline"
-                        data-testid={`badge-role-${r.id}`}
-                      >
+                      <Badge key={r.id} variant="outline" data-testid={`badge-role-${r.id}`}>
                         {r.displayName}
                         <span className="ml-1 text-muted-foreground">({r.name})</span>
                       </Badge>

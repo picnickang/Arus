@@ -1,6 +1,7 @@
 # Route Migration and Permission Notes
 
 ## Replace/consolidate into Vessel Intelligence
+
 - Fleet technical landing
 - Predictive Maintenance / PDM
 - Equipment schematic
@@ -11,6 +12,7 @@
 - Vessel diagnostic/performance reports
 
 ## Keep separate
+
 - Crew Management
 - Logistics
 - Inventory
@@ -20,6 +22,7 @@
 - Public landing/login
 
 ## Permission mapping
+
 Map legacy view permissions where practical:
 
 ```text

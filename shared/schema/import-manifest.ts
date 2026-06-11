@@ -27,7 +27,9 @@ export const importManifest = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
 
     // What was imported
     sourceSystem: text("source_system").notNull(), // "shipmate" | "amos" | future

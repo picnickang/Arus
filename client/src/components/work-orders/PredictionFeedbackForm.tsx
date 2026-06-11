@@ -88,7 +88,13 @@ export function PredictionFeedbackForm({
   return (
     <div className={`space-y-3 ${className}`} data-testid="prediction-feedback-form">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-semibold">Was the predicted failure confirmed?</Label>
+        <Label className="text-sm font-semibold">
+          Was the predicted failure confirmed?
+          <span aria-hidden="true" className="text-destructive">
+            {" "}
+            *
+          </span>
+        </Label>
         <Badge variant="outline" className="text-[9px]">
           Required for predictive WOs
         </Badge>

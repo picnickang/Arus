@@ -24,8 +24,7 @@ import {
 type CreateWorkOrderInput = Parameters<typeof workOrderService.createWorkOrder>[0];
 
 const workOrderCreator: WorkOrderCreatorPort = {
-  createWorkOrder: (input) =>
-    workOrderService.createWorkOrder(input as CreateWorkOrderInput),
+  createWorkOrder: (input) => workOrderService.createWorkOrder(input as CreateWorkOrderInput),
 };
 
 export const executeDraftAction = createDraftExecutor({ workOrderCreator });

@@ -10,22 +10,22 @@ export interface CurrentVesselSlot {
   id: string;
   name: string;
   /** IMO registration number, when the vessel record carries one. */
-  imo?: string;
+  imo?: string | undefined;
 }
 
 export interface ActiveAlertSlot {
   id: string;
   title: string;
   severity: AlertSeverity;
-  source?: string;
+  source?: string | undefined;
   /** ISO timestamp the alert was raised — drives the "20m ago" subtext. */
-  createdAt?: string;
+  createdAt?: string | undefined;
 }
 
 export interface SafetyNoticeSlot {
   id: string;
   title: string;
-  postedAt?: string;
+  postedAt?: string | undefined;
 }
 
 /**
@@ -51,9 +51,9 @@ export type TaskDayPill = "today" | "tomorrow" | "overdue" | null;
 export interface MyTaskSlot {
   id: string;
   title: string;
-  equipmentName?: string;
+  equipmentName?: string | undefined;
   dueDate?: string | null;
-  priority?: number;
+  priority?: number | undefined;
   dayPill: TaskDayPill;
 }
 

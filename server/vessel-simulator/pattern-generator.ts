@@ -35,12 +35,16 @@ export class OperationalPatternGenerator {
   /**
    * Generate RPM based on vessel operational pattern
    */
-  static generateRpm(time: number, pattern: VesselOperationalPattern | string, maxRpm: number): number {
+  static generateRpm(
+    time: number,
+    pattern: VesselOperationalPattern | string,
+    maxRpm: number
+  ): number {
     const name =
       typeof pattern === "string"
         ? pattern
         : ((pattern as { name?: string } | null | undefined)?.name ?? "transit");
-    const calculator = rpmPatterns[name] ?? rpmPatterns['transit']!;
+    const calculator = rpmPatterns[name] ?? rpmPatterns["transit"]!;
     const rpm = calculator(time);
     return PhysicsEngine.clamp(rpm, 600, maxRpm);
   }

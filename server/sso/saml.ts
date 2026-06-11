@@ -22,7 +22,7 @@ export interface SamlProfileSummary {
 
 export async function validateSamlAssertion(
   cfg: SsoSamlConfig,
-  samlResponseBase64: string,
+  samlResponseBase64: string
 ): Promise<SamlProfileSummary> {
   // Lazy import — keeps cold start free for tenants that don't use SAML.
   const mod = await import("@node-saml/passport-saml");
@@ -47,21 +47,25 @@ export async function validateSamlAssertion(
   const { profile } = await saml.validatePostResponseAsync({
     SAMLResponse: samlResponseBase64,
   });
-  if (!profile) {throw new Error("SAML assertion returned no profile");}
+  if (!profile) {
+    throw new Error("SAML assertion returned no profile");
+  }
 
   const p = profile as Record<string, unknown>;
-  const nameId = String(p['nameID'] || p["nameID"] || "");
-  if (!nameId) {throw new Error("SAML profile missing nameID");}
+  const nameId = String(p["nameID"] || "");
+  if (!nameId) {
+    throw new Error("SAML profile missing nameID");
+  }
 
   // Normalized at the IdP boundary: assertions carry arbitrary casing,
   // lookups are lower()-based (0047).
   const email = (
-    typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined)
+    typeof p["email"] === "string" ? p["email"] : (p["nameID"] as string | undefined)
   )?.toLowerCase();
   const displayName =
-    (p['displayName'] as string | undefined) ||
-    (p['cn'] as string | undefined) ||
-    (p['givenName'] as string | undefined);
+    (p["displayName"] as string | undefined) ||
+    (p["cn"] as string | undefined) ||
+    (p["givenName"] as string | undefined);
   return {
     nameId,
     ...(email !== undefined && { email }),

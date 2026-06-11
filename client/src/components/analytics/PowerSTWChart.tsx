@@ -211,8 +211,9 @@ export function PowerSTWChart({ vesselId, startDate, endDate }: PowerSTWChartPro
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}
               content={({ active, payload }) => {
-                if (active && payload && payload.length > 0) {
-                  const d = payload[0].payload as EnrichedDataPoint;
+                const entry = active && payload ? payload[0] : undefined;
+                if (entry) {
+                  const d = entry.payload as EnrichedDataPoint;
                   return (
                     <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
                       <p className="font-medium text-sm mb-2">Performance Data</p>
@@ -254,7 +255,9 @@ export function PowerSTWChart({ vesselId, startDate, endDate }: PowerSTWChartPro
             />
             <Legend wrapperStyle={{ paddingTop: "10px" }} iconType="circle" />
             <BenchmarkLayer
-              data={enrichedData as object as import("./chart-overlays/BenchmarkLayer").BenchmarkData[]}
+              data={
+                enrichedData as object as import("./chart-overlays/BenchmarkLayer").BenchmarkData[]
+              }
               showBaseline={toggles.showBaseline}
               showFleetAverage={toggles.showFleetAverage}
               showPercentiles={toggles.showPercentiles}

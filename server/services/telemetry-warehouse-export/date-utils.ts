@@ -7,9 +7,7 @@
 
 /** UTC midnight + ISO date string for the day before `now` (UTC). */
 export function previousUtcDate(now: Date): { dayStart: Date; dateStr: string } {
-  const todayStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const dayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
   return { dayStart, dateStr: dayStart.toISOString().slice(0, 10) };
 }

@@ -11,12 +11,14 @@ After comprehensive review of the Analytics Dashboard, PDM Pack, and Advanced An
 ### 1. **Information Overload - Too Many Nested Tabs**
 
 **Current Problem:**
+
 - Analytics Consolidated has 4 top-level tabs (Overview, Equipment, Fleet, Trends)
 - Analytics page has 6 nested tabs (Telemetry, Maintenance, Performance, Predictive, Advanced, Intelligence)
 - Users must navigate through 2+ tab layers to find information
 - Creates "navigation fatigue" - users lose context
 
 **Recommendation:**
+
 ```
 Flatten navigation structure:
 ├── Dashboard (Overview KPIs)
@@ -28,6 +30,7 @@ Flatten navigation structure:
 ```
 
 **Benefits:**
+
 - Reduces clicks from 2-3 to 1
 - Clear mental model of information hierarchy
 - Faster decision-making
@@ -37,6 +40,7 @@ Flatten navigation structure:
 ### 2. **Unclear Data Relationships**
 
 **Current Problem:**
+
 - Metrics scattered across tabs without clear relationships
 - Health data separate from performance data
 - Costs separate from ROI analysis
@@ -64,6 +68,7 @@ Create **Equipment Profile View** with unified context:
 ```
 
 **Benefits:**
+
 - All related data in one place
 - Quick decision-making
 - Reduces context switching
@@ -73,6 +78,7 @@ Create **Equipment Profile View** with unified context:
 ### 3. **Poor Visual Hierarchy**
 
 **Current Problem:**
+
 - All metrics cards look identical
 - No distinction between critical alerts and informational data
 - Users miss important warnings
@@ -80,15 +86,17 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Priority-Based Visual System:**
+
 ```css
 🔴 Critical (Red border, pulsing): Immediate action required
-🟠 Warning (Orange): Attention needed soon  
+🟠 Warning (Orange): Attention needed soon
 🟡 Caution (Yellow): Monitor situation
 🟢 Good (Green): Operating normally
 ⚪ Info (Gray): Reference data
 ```
 
 **Card Design Update:**
+
 ```jsx
 // Critical Alert Card
 <Card className="border-2 border-red-500 shadow-red-500/20 shadow-lg">
@@ -108,6 +116,7 @@ Create **Equipment Profile View** with unified context:
 ### 4. **Actionability Gap**
 
 **Current Problem:**
+
 - Analytics show problems but no clear next steps
 - Users see "Bearing failure predicted" but unclear what to do
 - Disconnected from work order/maintenance systems
@@ -115,21 +124,23 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Add Contextual Actions:**
+
 ```jsx
 // Predictive Alert with Actions
 <Alert severity="warning">
-  <AlertDescription>
-    Main Engine #1: Bearing failure predicted in 14 days (65%)
-  </AlertDescription>
+  <AlertDescription>Main Engine #1: Bearing failure predicted in 14 days (65%)</AlertDescription>
   <div className="flex gap-2 mt-2">
     <Button size="sm">
-      <Wrench className="mr-2" />Create Work Order
+      <Wrench className="mr-2" />
+      Create Work Order
     </Button>
     <Button size="sm" variant="outline">
-      <Calendar className="mr-2" />Schedule Inspection
+      <Calendar className="mr-2" />
+      Schedule Inspection
     </Button>
     <Button size="sm" variant="outline">
-      <Package className="mr-2" />Order Parts
+      <Package className="mr-2" />
+      Order Parts
     </Button>
   </div>
 </Alert>
@@ -142,6 +153,7 @@ Create **Equipment Profile View** with unified context:
 ### 5. **PDM Pack - Technical Jargon Overload**
 
 **Current Problem:**
+
 - Terms like "Z-score", "Welford's algorithm", "statistical baseline" confuse non-technical users
 - No context or explanation for metrics
 - Analysis results difficult to interpret
@@ -149,6 +161,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Add Progressive Disclosure + Tooltips:**
+
 ```jsx
 <div className="flex items-center gap-2">
   <span>Health Score: 42%</span>
@@ -170,6 +183,7 @@ Create **Equipment Profile View** with unified context:
 ```
 
 **Simplify Analysis Results:**
+
 ```jsx
 // BEFORE (Technical)
 <div>Z-score: 3.2 (Sigma: 0.85, N: 120)</div>
@@ -189,6 +203,7 @@ Create **Equipment Profile View** with unified context:
 ### 6. **Missing Time Context**
 
 **Current Problem:**
+
 - Timestamps shown as raw dates: "2025-10-12T19:07:56.260Z"
 - No indication if data is real-time, delayed, or historical
 - Users can't judge data freshness
@@ -196,6 +211,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Humanized Timestamps + Freshness Indicators:**
+
 ```jsx
 <div className="flex items-center gap-2">
   <Badge variant={dataAge < 5 ? "success" : "secondary"}>
@@ -212,6 +228,7 @@ Create **Equipment Profile View** with unified context:
 ### 7. **Chart Overload**
 
 **Current Problem:**
+
 - Multiple complex charts on same page
 - Users don't know which chart to look at first
 - No guided insights
@@ -219,6 +236,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Add Executive Summary Section:**
+
 ```jsx
 <Card className="mb-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
   <CardHeader>
@@ -256,6 +274,7 @@ Create **Equipment Profile View** with unified context:
 ### 8. **Improve AI Insights Display**
 
 **Current Problem:**
+
 - AI insights buried in "Intelligence" tab
 - Plain text walls - not scannable
 - No visual emphasis on key recommendations
@@ -263,6 +282,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Structured AI Insights Cards:**
+
 ```jsx
 <Card>
   <CardHeader>
@@ -285,7 +305,9 @@ Create **Equipment Profile View** with unified context:
           <p className="text-sm text-muted-foreground">{insight.description}</p>
           <div className="flex gap-2 mt-2">
             <Badge variant="secondary">{insight.impact}</Badge>
-            <Button size="sm" variant="link">Apply →</Button>
+            <Button size="sm" variant="link">
+              Apply →
+            </Button>
           </div>
         </div>
       </div>
@@ -299,6 +321,7 @@ Create **Equipment Profile View** with unified context:
 ### 9. **Add Smart Filters**
 
 **Current Problem:**
+
 - Basic filters (equipment, sensor type, time)
 - Can't filter by status, criticality, or trends
 - No saved filter presets
@@ -306,6 +329,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Smart Filter Presets + Quick Filters:**
+
 ```jsx
 <div className="flex flex-wrap gap-2 mb-4">
   <Button variant="outline" size="sm">
@@ -324,9 +348,9 @@ Create **Equipment Profile View** with unified context:
     <DollarSign className="mr-2 h-4 w-4" />
     High Cost Items (4)
   </Button>
-  
+
   <Separator orientation="vertical" className="h-6" />
-  
+
   <Popover>
     <PopoverTrigger asChild>
       <Button variant="outline" size="sm">
@@ -334,9 +358,7 @@ Create **Equipment Profile View** with unified context:
         Custom Filters
       </Button>
     </PopoverTrigger>
-    <PopoverContent>
-      {/* Advanced filter UI */}
-    </PopoverContent>
+    <PopoverContent>{/* Advanced filter UI */}</PopoverContent>
   </Popover>
 </div>
 ```
@@ -346,6 +368,7 @@ Create **Equipment Profile View** with unified context:
 ### 10. **Add Data Export & Sharing**
 
 **Current Problem:**
+
 - No way to export reports
 - Can't share insights with team
 - No print-friendly views
@@ -353,6 +376,7 @@ Create **Equipment Profile View** with unified context:
 **Recommendation:**
 
 **Export Options:**
+
 ```jsx
 <DropdownMenu>
   <DropdownMenuTrigger asChild>
@@ -389,6 +413,7 @@ Create **Equipment Profile View** with unified context:
 ### 11. **Add Comparison Mode**
 
 Compare equipment side-by-side:
+
 ```jsx
 <Button variant="outline">
   <GitCompare className="mr-2" />
@@ -405,6 +430,7 @@ Compare equipment side-by-side:
 ### 12. **Add Trend Arrows & Sparklines**
 
 Show trends at a glance:
+
 ```jsx
 <div className="flex items-center gap-2">
   <span className="text-2xl font-bold">42%</span>
@@ -419,6 +445,7 @@ Show trends at a glance:
 ### 13. **Add Guided Tours**
 
 Help new users understand complex features:
+
 ```jsx
 <Button variant="ghost" size="sm">
   <HelpCircle className="mr-2" />
@@ -483,7 +510,9 @@ Help new users understand complex features:
 ## 🛠️ Technical Implementation Considerations
 
 ### Routing & State Preservation
+
 **Critical for navigation flattening:**
+
 - Preserve deep-linking: `/analytics?tab=predictive&equipment=engine-001`
 - Maintain query state across route changes
 - Implement URL-based state management (use query params)
@@ -504,7 +533,9 @@ const navigateTo = (page: string, state: Record<string, string>) => {
 ```
 
 ### Performance Safeguards for Equipment Profile View
+
 **Prevent data-fetch cascades:**
+
 - Implement concurrent query limits (max 3-4 simultaneous requests)
 - Use React Query's parallel queries with suspense
 - Add skeleton loaders for progressive rendering
@@ -514,14 +545,14 @@ const navigateTo = (page: string, state: Record<string, string>) => {
 // Use parallel queries with proper caching
 const { data: equipmentData, isLoading } = useQueries({
   queries: [
-    { queryKey: ['health', id], queryFn: fetchHealth, staleTime: 5 * 60 * 1000 },
-    { queryKey: ['performance', id], queryFn: fetchPerf, staleTime: 5 * 60 * 1000 },
-    { queryKey: ['predictions', id], queryFn: fetchPred, staleTime: 5 * 60 * 1000 },
+    { queryKey: ["health", id], queryFn: fetchHealth, staleTime: 5 * 60 * 1000 },
+    { queryKey: ["performance", id], queryFn: fetchPerf, staleTime: 5 * 60 * 1000 },
+    { queryKey: ["predictions", id], queryFn: fetchPred, staleTime: 5 * 60 * 1000 },
   ],
-  combine: results => ({
-    data: results.map(r => r.data),
-    isLoading: results.some(r => r.isLoading)
-  })
+  combine: (results) => ({
+    data: results.map((r) => r.data),
+    isLoading: results.some((r) => r.isLoading),
+  }),
 });
 ```
 
@@ -542,6 +573,7 @@ const { data: equipmentData, isLoading } = useQueries({
 ```
 
 **Contrast Requirements:**
+
 - Red severity: `#DC2626` on `#FFFFFF` (contrast 7.6:1) ✅
 - Orange warning: `#EA580C` on `#FFFFFF` (contrast 6.1:1) ✅
 - Yellow caution: `#CA8A04` on `#000000` (contrast 8.2:1) ✅
@@ -553,6 +585,7 @@ const { data: equipmentData, isLoading } = useQueries({
 ## 🎯 Implementation Priority
 
 ### Phase 1 (Week 1-2): Critical UX Fixes
+
 1. ✅ Fix visual hierarchy (color-coded severity) + accessibility
 2. ✅ Add contextual actions to predictions
 3. ✅ Flatten tab structure + preserve routing state
@@ -560,6 +593,7 @@ const { data: equipmentData, isLoading } = useQueries({
 5. ✅ User testing: Navigation time study (baseline)
 
 ### Phase 2 (Week 3-4): Information Architecture
+
 1. ✅ Add executive summary dashboard
 2. ✅ Simplify PDM Pack UI
 3. ✅ Add tooltips and help text
@@ -567,6 +601,7 @@ const { data: equipmentData, isLoading } = useQueries({
 5. ✅ User testing: Task-based usability tests
 
 ### Phase 3 (Week 5-6): Enhanced Features
+
 1. ✅ Add export functionality
 2. ✅ Improve AI insights display
 3. ✅ Add comparison mode
@@ -615,6 +650,7 @@ const { data: equipmentData, isLoading } = useQueries({
 These improvements will transform the analytics experience from **data presentation** to **decision support**. Users will spend less time searching for information and more time taking action. The phased approach ensures continuous value delivery while managing development effort.
 
 **Next Steps:**
+
 1. Review and prioritize recommendations
 2. Create detailed design mockups for Phase 1
 3. Conduct user testing with prototype

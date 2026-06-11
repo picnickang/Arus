@@ -89,9 +89,11 @@ export async function generateTechnicianInsight(
       nextReviewDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     }
 
-    const predRecord = prediction as { daysUntilFailure?: number; remainingDays?: number } | null | undefined;
-    const daysUntilFailure =
-      predRecord?.daysUntilFailure ?? predRecord?.remainingDays ?? null;
+    const predRecord = prediction as
+      | { daysUntilFailure?: number; remainingDays?: number }
+      | null
+      | undefined;
+    const daysUntilFailure = predRecord?.daysUntilFailure ?? predRecord?.remainingDays ?? null;
 
     const technicianView: TechnicianInsightView = {
       equipmentId: equipment.id,
@@ -136,15 +138,19 @@ export async function generateTechnicianInsight(
     const duration = (Date.now() - startTime) / 1000;
     recordTechnicianInsight(orgId, statusLevel, duration, true);
 
-    logger.info(String(JSON.stringify({
-        msg: "technician_insight_done",
-        orgId,
-        equipmentId,
-        vesselId: equipment.vesselId ?? null,
-        statusLevel,
-        failureProb: prediction?.failureProbability ?? 0,
-        confidence: prediction?.confidence ?? 0,
-      })));
+    logger.info(
+      String(
+        JSON.stringify({
+          msg: "technician_insight_done",
+          orgId,
+          equipmentId,
+          vesselId: equipment.vesselId ?? null,
+          statusLevel,
+          failureProb: prediction?.failureProbability ?? 0,
+          confidence: prediction?.confidence ?? 0,
+        })
+      )
+    );
 
     return technicianView;
   } catch (error) {

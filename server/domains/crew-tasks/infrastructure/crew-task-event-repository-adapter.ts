@@ -5,10 +5,7 @@
  */
 
 import type { ICrewTaskEventRepository } from "../domain/ports";
-import type {
-  CrewTaskEventEntity,
-  CreateCrewTaskEventCommand,
-} from "../domain/types";
+import type { CrewTaskEventEntity, CreateCrewTaskEventCommand } from "../domain/types";
 import { db } from "../../../db";
 import {
   crewTaskEvents,
@@ -17,30 +14,18 @@ import {
 } from "@shared/schema-runtime";
 import { and, asc, eq } from "drizzle-orm";
 
-export class CrewTaskEventRepositoryAdapter
-  implements ICrewTaskEventRepository
-{
-  async listByTask(
-    orgId: string,
-    taskId: string,
-  ): Promise<CrewTaskEventEntity[]> {
+export class CrewTaskEventRepositoryAdapter implements ICrewTaskEventRepository {
+  async listByTask(orgId: string, taskId: string): Promise<CrewTaskEventEntity[]> {
     const rows = await db
       .select()
       .from(crewTaskEvents)
-      .where(
-        and(
-          eq(crewTaskEvents.orgId, orgId),
-          eq(crewTaskEvents.taskId, taskId),
-        ),
-      )
+      .where(and(eq(crewTaskEvents.orgId, orgId), eq(crewTaskEvents.taskId, taskId)))
       .orderBy(asc(crewTaskEvents.createdAt));
 
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async add(
-    command: CreateCrewTaskEventCommand,
-  ): Promise<CrewTaskEventEntity> {
+  async add(command: CreateCrewTaskEventCommand): Promise<CrewTaskEventEntity> {
     const insertValues: InsertCrewTaskEvent = {
       orgId: command.orgId,
       taskId: command.taskId,
@@ -52,14 +37,9 @@ export class CrewTaskEventRepositoryAdapter
       metadata: command.metadata ?? null,
     };
 
-    const [created] = await db
-      .insert(crewTaskEvents)
-      .values(insertValues)
-      .returning();
+    const [created] = await db.insert(crewTaskEvents).values(insertValues).returning();
     if (!created) {
-      throw new Error(
-        "CrewTaskEventRepository.add: insert returned no row",
-      );
+      throw new Error("CrewTaskEventRepository.add: insert returned no row");
     }
     return this.mapToEntity(created);
   }

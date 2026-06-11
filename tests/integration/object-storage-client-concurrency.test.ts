@@ -58,9 +58,7 @@ describe("Task #345 — object storage client init concurrency", () => {
   it("never hands a null client to concurrent cold-start callers", async () => {
     // Fire many callers in the same tick; under the buggy boolean guard the
     // later callers would resolve to null while the first init is in flight.
-    const results = await Promise.all(
-      Array.from({ length: 25 }, () => getObjectStorageClient()),
-    );
+    const results = await Promise.all(Array.from({ length: 25 }, () => getObjectStorageClient()));
 
     for (const client of results) {
       expect(client).not.toBeNull();

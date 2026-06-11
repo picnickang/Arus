@@ -1,15 +1,6 @@
-export function severityColor(severity: string) {
-  switch (severity) {
-    case "critical":
-      return "bg-red-500";
-    case "warning":
-      return "bg-yellow-500";
-    case "info":
-      return "bg-blue-500";
-    default:
-      return "bg-gray-500";
-  }
-}
+// Severity → solid background class now lives in the shared status-colors
+// lib; re-exported under its original name for this page's importers.
+export { severityBgClass as severityColor } from "@/lib/status-colors";
 
 export function healthColor(score: number | null | undefined) {
   if (score === null || score === undefined) {

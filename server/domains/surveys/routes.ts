@@ -117,8 +117,7 @@ export function registerSurveyRoutes(
         if (error instanceof Error && error.message.includes("does not exist")) {
           return res.json([]);
         }
-          throw error;
-
+        throw error;
       }
     })
   );
@@ -152,12 +151,10 @@ export function registerSurveyRoutes(
         return undefined;
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
-          return res
-            .status(503)
-            .json({
-              message:
-                "Survey tracking table not yet created. Run the class_surveys migration first.",
-            });
+          return res.status(503).json({
+            message:
+              "Survey tracking table not yet created. Run the class_surveys migration first.",
+          });
         }
         throw error;
       }
@@ -173,7 +170,7 @@ export function registerSurveyRoutes(
         return res.status(401).json({ message: "Organization ID required" });
       }
 
-      const daysAhead = Math.min(Math.max(Number(req.query['days']) || 90, 1), 365);
+      const daysAhead = Math.min(Math.max(Number(req.query["days"]) || 90, 1), 365);
 
       try {
         const { sql } = await import("drizzle-orm");
@@ -225,7 +222,7 @@ export function registerSurveyRoutes(
       try {
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
-          SELECT * FROM class_surveys WHERE id = ${req.params['id']} AND org_id = ${orgId}
+          SELECT * FROM class_surveys WHERE id = ${req.params["id"]} AND org_id = ${orgId}
         `);
         const survey = result?.rows?.[0];
         if (!survey) {
@@ -270,7 +267,7 @@ export function registerSurveyRoutes(
             scope = COALESCE(${data.scope ?? null}, scope),
             findings = COALESCE(${data.findings ? JSON.stringify(data.findings) : null}::jsonb, findings),
             updated_at = NOW()
-          WHERE id = ${req.params['id']} AND org_id = ${orgId} RETURNING *
+          WHERE id = ${req.params["id"]} AND org_id = ${orgId} RETURNING *
         `);
         const survey = result?.rows?.[0];
         if (!survey) {
@@ -298,7 +295,7 @@ export function registerSurveyRoutes(
       try {
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
-          DELETE FROM class_surveys WHERE id = ${req.params['id']} AND org_id = ${orgId} RETURNING id
+          DELETE FROM class_surveys WHERE id = ${req.params["id"]} AND org_id = ${orgId} RETURNING id
         `);
         if (!result?.rows?.length) {
           return sendNotFound(res, "Survey");

@@ -10,7 +10,11 @@ export interface ComplianceDeps {
     orgId: string,
     filters?: { vesselId?: string; equipmentId?: string }
   ): Promise<EquipmentHealth[]>;
-  getWorkOrders(equipmentId?: string, orgId?: string, filters?: Record<string, unknown>): Promise<WorkOrder[]>;
+  getWorkOrders(
+    equipmentId?: string,
+    orgId?: string,
+    filters?: Record<string, unknown>
+  ): Promise<WorkOrder[]>;
 }
 
 export interface ReportingPeriod {

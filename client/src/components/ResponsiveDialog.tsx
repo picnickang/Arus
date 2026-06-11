@@ -57,7 +57,11 @@ export function ResponsiveDialog({
 
   if (isMobile) {
     return (
-      <Sheet key="mobile-sheet" {...(open !== undefined && { open })} {...(onOpenChange !== undefined && { onOpenChange })}>
+      <Sheet
+        key="mobile-sheet"
+        {...(open !== undefined && { open })}
+        {...(onOpenChange !== undefined && { onOpenChange })}
+      >
         {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
         <SheetContent side="bottom" className={`max-h-[90vh] overflow-y-auto ${className || ""}`}>
           <SheetHeader>
@@ -76,7 +80,11 @@ export function ResponsiveDialog({
   }
 
   return (
-    <Dialog key="desktop-dialog" {...(open !== undefined && { open })} {...(onOpenChange !== undefined && { onOpenChange })}>
+    <Dialog
+      key="desktop-dialog"
+      {...(open !== undefined && { open })}
+      {...(onOpenChange !== undefined && { onOpenChange })}
+    >
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className={className}>
         <DialogHeader>

@@ -198,7 +198,9 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
     };
 
     const [cert] = await db.insert(vesselCertificates).values(insertValues).returning();
-    if (!cert) {throw new Error("CertificateRepository.create: insert returned no row");}
+    if (!cert) {
+      throw new Error("CertificateRepository.create: insert returned no row");
+    }
     return this.mapToEntity(cert);
   }
 
@@ -360,7 +362,9 @@ export class CertificateEventRepositoryAdapter implements ICertificateEventRepos
         details: event.details ?? null,
       })
       .returning();
-    if (!created) {throw new Error("CertificateEventRepository.create: insert returned no row");}
+    if (!created) {
+      throw new Error("CertificateEventRepository.create: insert returned no row");
+    }
     return {
       id: created.id,
       orgId: created.orgId,

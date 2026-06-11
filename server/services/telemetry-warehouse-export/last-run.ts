@@ -47,10 +47,14 @@ async function loadPersisted(): Promise<WarehouseExportJobSummary[]> {
   const bucket = objectStorageClient.bucket(target.bucketName);
   const file = bucket.file(recentRunsKey());
   const [exists] = await file.exists();
-  if (!exists) {return [];}
+  if (!exists) {
+    return [];
+  }
   const [buf] = await file.download();
   const parsed = JSON.parse(buf.toString("utf-8")) as Partial<PersistedRecentRuns>;
-  if (!parsed || !Array.isArray(parsed.runs)) {return [];}
+  if (!parsed || !Array.isArray(parsed.runs)) {
+    return [];
+  }
   return parsed.runs.slice(-CAPACITY);
 }
 
@@ -73,7 +77,9 @@ async function savePersisted(runs: WarehouseExportJobSummary[]): Promise<void> {
 }
 
 async function ensureHydrated(): Promise<void> {
-  if (hydrated) {return;}
+  if (hydrated) {
+    return;
+  }
   if (!hydratePromise) {
     hydratePromise = (async () => {
       try {
@@ -81,9 +87,7 @@ async function ensureHydrated(): Promise<void> {
         // Merge: keep anything already recorded this process, prepend persisted
         // history that's not already present. Dedupe on (date + durationMs +
         // orgsTotal) which is a stable identity for a single run.
-        const seen = new Set(
-          recent.map((r) => `${r.date}|${r.durationMs}|${r.orgsTotal}`),
-        );
+        const seen = new Set(recent.map((r) => `${r.date}|${r.durationMs}|${r.orgsTotal}`));
         const merged: WarehouseExportJobSummary[] = [];
         for (const r of loaded) {
           const key = `${r.date}|${r.durationMs}|${r.orgsTotal}`;
@@ -123,11 +127,11 @@ export async function recordRun(summary: WarehouseExportJobSummary): Promise<voi
   }
 }
 
-export async function getRecentRuns(
-  limit = CAPACITY,
-): Promise<WarehouseExportJobSummary[]> {
+export async function getRecentRuns(limit = CAPACITY): Promise<WarehouseExportJobSummary[]> {
   await ensureHydrated();
-  if (recent.length === 0) {return [];}
+  if (recent.length === 0) {
+    return [];
+  }
   const n = Math.max(1, Math.min(limit, recent.length));
   return recent.slice(-n).reverse();
 }

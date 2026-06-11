@@ -47,7 +47,7 @@ const artifactBackendSettingPort: ArtifactBackendSettingPort = {
     const row = await dbSystemAdminStorage.getAdminSystemSetting(
       SETTING_ORG,
       SETTING_CATEGORY,
-      SETTING_KEY,
+      SETTING_KEY
     );
     const value = (row?.value as { backend?: string } | undefined)?.backend;
     if (value && (VALID_BACKENDS as readonly string[]).includes(value)) {
@@ -59,7 +59,7 @@ const artifactBackendSettingPort: ArtifactBackendSettingPort = {
     const existing = await dbSystemAdminStorage.getAdminSystemSetting(
       SETTING_ORG,
       SETTING_CATEGORY,
-      SETTING_KEY,
+      SETTING_KEY
     );
     if (existing) {
       await dbSystemAdminStorage.updateAdminSystemSetting(existing.id, {
@@ -110,7 +110,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     generalApiRateLimit,
     auditAdminAction("VIEW_SYSTEM_SETTING"),
     withErrorHandling("fetch admin system setting", async (req: Request, res: Response) => {
-      const { orgId = '', category = '', key = '' } = req.params;
+      const { orgId = "", category = "", key = "" } = req.params;
       const setting = await dbSystemAdminStorage.getAdminSystemSetting(orgId, category, key);
       if (!setting) {
         return sendNotFound(res, "System setting");
@@ -137,10 +137,10 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     writeOperationRateLimit,
     auditAdminAction("UPDATE_SYSTEM_SETTING"),
     withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
-      const { id = '' } = req.params;
-      const validatedData = (
-        insertAdminSystemSettingSchema as object as import("zod").AnyZodObject
-      ).partial().parse(req.body);
+      const { id = "" } = req.params;
+      const validatedData = (insertAdminSystemSettingSchema as object as import("zod").AnyZodObject)
+        .partial()
+        .parse(req.body);
       const setting = await dbSystemAdminStorage.updateAdminSystemSetting(id, validatedData);
       res.json(setting);
     })
@@ -152,7 +152,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     criticalOperationRateLimit,
     auditAdminAction("DELETE_SYSTEM_SETTING"),
     withErrorHandling("delete admin system setting", async (req: Request, res: Response) => {
-      const { id = '' } = req.params;
+      const { id = "" } = req.params;
       await dbSystemAdminStorage.deleteAdminSystemSetting(id);
       sendDeleted(res);
     })
@@ -164,7 +164,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     generalApiRateLimit,
     auditAdminAction("VIEW_SETTINGS_BY_CATEGORY"),
     withErrorHandling("fetch settings by category", async (req: Request, res: Response) => {
-      const { orgId = '', category = '' } = req.params;
+      const { orgId = "", category = "" } = req.params;
       const settings = await dbSystemAdminStorage.getSettingsByCategory(orgId, category);
       res.json(settings);
     })
@@ -205,11 +205,11 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
       res.status(200).json({
         success: true,
         equipmentId,
-        threshold: result['threshold'],
-        sampleCount: result['sampleCount'],
-        statistics: result['statistics'],
-        calibratedAt: result['calibratedAt'],
-        method: result['method'],
+        threshold: result["threshold"],
+        sampleCount: result["sampleCount"],
+        statistics: result["statistics"],
+        calibratedAt: result["calibratedAt"],
+        method: result["method"],
       });
     })
   );

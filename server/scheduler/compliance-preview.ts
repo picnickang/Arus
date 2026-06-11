@@ -1,9 +1,6 @@
 import { dbCrewStorage } from "../repositories";
 import { checkMonthCompliance, type RestDay } from "../stcw-compliance";
-import type {
-  DayComplianceResult,
-  RollingComplianceResult,
-} from "../stcw-compliance/types";
+import type { DayComplianceResult, RollingComplianceResult } from "../stcw-compliance/types";
 import {
   initializeRestHours,
   markWorkHoursForDay,

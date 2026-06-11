@@ -20,6 +20,7 @@
 5. **Security Integration Tests** - 5/5 tests passing, validating multi-tenant isolation
 
 ### Test Results
+
 ```
 ✅ All security tests passed - Multi-tenant isolation verified
 
@@ -41,18 +42,21 @@ Failed: 0
 The following storage functions retrieve data **without enforcing orgId filtering**:
 
 #### Equipment & Fleet Data
+
 - `getDevices()` - Optional orgId, returns all devices if not specified
 - `getEquipmentRegistry()` - No orgId filter
 - `getVessels()` - No orgId filter
 - `getDeviceRegistryEntries()` - No orgId filter
 
 #### Telemetry & Monitoring
+
 - `getHeartbeats()` - No orgId filter
-- `getPdmScores()` - No orgId filter  
+- `getPdmScores()` - No orgId filter
 - `getRawTelemetry()` - No orgId filter
 - `getEdgeDiagnosticLogs()` - Optional orgId, not enforced
 
 #### Work Management
+
 - `getWorkOrders()` - Optional orgId, may return all if not specified
 - `getWorkOrderChecklists()` - No orgId filter
 - `getWorkOrderWorklogs()` - No orgId filter
@@ -61,15 +65,18 @@ The following storage functions retrieve data **without enforcing orgId filterin
 - `getMaintenanceWindows()` - No orgId filter
 
 #### Inventory & Parts
+
 - `getPartsInventory()` - No orgId filter
 - `getLowStockParts()` - No orgId filter
 - `getPartFailureHistory()` - No orgId filter
 
 #### Crew & Operations
+
 - `getSkills()` - No orgId filter
 - `getCrewRestByDateRange()` - No orgId filter
 
 #### Analytics & Insights
+
 - `getInsightSnapshots()` - No orgId filter
 - `getInsightReports()` - No orgId filter
 - `getOilAnalyses()` - No orgId filter
@@ -78,6 +85,7 @@ The following storage functions retrieve data **without enforcing orgId filterin
 - `getOilChangeRecords()` - No orgId filter
 
 #### System & Admin
+
 - `getAdminAuditEvents()` - No orgId filter
 - `getAdminSystemSettings()` - No orgId filter
 - `getIntegrationConfigs()` - No orgId filter
@@ -87,16 +95,19 @@ The following storage functions retrieve data **without enforcing orgId filterin
 - `getIndustryBenchmarks()` - No orgId filter
 
 #### DTC & Diagnostics
+
 - `getDtcDefinitions()` - No orgId filter
 - `getDtcHistory()` - No orgId filter
 
 #### Alert System
+
 - `getAlertConfigurations()` - No orgId filter
 - `getOperatingConditionAlerts()` - No orgId filter
 
 ### 2. API Routes - Missing org Validation (CRITICAL)
 
 #### Publicly Accessible Endpoints
+
 ```typescript
 // Line 2001 - Returns ALL organizations
 app.get("/api/organizations", async (req, res) => {
@@ -104,10 +115,13 @@ app.get("/api/organizations", async (req, res) => {
   res.json(organizations);
 });
 ```
+
 **Impact:** Any authenticated user can list ALL organizations in the system
 
 #### Inconsistent Header Validation
+
 Many endpoints extract `x-org-id` but don't validate ownership:
+
 - Equipment endpoints (lines 1804-1905)
 - User endpoints (lines 2072-2144)
 - Some use `getOrgIdFromRequest()` helper
@@ -117,6 +131,7 @@ Many endpoints extract `x-org-id` but don't validate ownership:
 ### 3. Authorization Gaps (CRITICAL)
 
 **No user-to-organization validation:**
+
 - System accepts any `x-org-id` header value
 - No check if requesting user belongs to that organization
 - No middleware enforcing org membership
@@ -125,6 +140,7 @@ Many endpoints extract `x-org-id` but don't validate ownership:
 ## Attack Scenarios
 
 ### Scenario 1: Cross-Tenant Data Enumeration
+
 ```bash
 # Attacker discovers org IDs
 curl -H "x-org-id: victim-org-id" https://api/equipment
@@ -132,6 +148,7 @@ curl -H "x-org-id: victim-org-id" https://api/equipment
 ```
 
 ### Scenario 2: Organization Discovery
+
 ```bash
 # Get list of all organizations
 curl https://api/organizations
@@ -139,6 +156,7 @@ curl https://api/organizations
 ```
 
 ### Scenario 3: Data Aggregation Attack
+
 ```bash
 # Enumerate all vessels across all orgs
 for org in $(get_all_org_ids); do
@@ -151,14 +169,15 @@ done
 ### Phase 1: Emergency Fixes (P0 - Immediate)
 
 1. **Add org ownership validation middleware**
+
    ```typescript
    async function validateOrgAccess(req: Request, res: Response, next: NextFunction) {
-     const orgId = req.headers['x-org-id'];
+     const orgId = req.headers["x-org-id"];
      const userId = req.user.id; // From auth
-     
+
      const hasAccess = await checkUserOrgMembership(userId, orgId);
      if (!hasAccess) {
-       return res.status(403).json({ error: 'Access denied to organization' });
+       return res.status(403).json({ error: "Access denied to organization" });
      }
      next();
    }
@@ -177,6 +196,7 @@ done
 ### Phase 2: Systematic Hardening (P1 - This Week)
 
 1. **Database-level row security (PostgreSQL)**
+
    ```sql
    ALTER TABLE vessels ENABLE ROW LEVEL SECURITY;
    CREATE POLICY tenant_isolation ON vessels
@@ -213,11 +233,13 @@ done
 ## Compliance Impact
 
 **Regulatory Concerns:**
+
 - GDPR: Unauthorized data access violations
 - ISO 27001: Access control failures
 - SOC 2: Multi-tenancy control deficiencies
 
 **Recommended Actions:**
+
 1. Disclosure to affected parties if breach detected
 2. Incident response procedures activation
 3. External security audit
@@ -225,21 +247,22 @@ done
 ## Monitoring & Detection
 
 **Immediate Monitoring Setup:**
+
 ```typescript
 // Add to middleware
 app.use((req, res, next) => {
-  const orgId = req.headers['x-org-id'];
+  const orgId = req.headers["x-org-id"];
   const userId = req.user?.id;
-  
+
   // Log all org access
   audit.log({
     userId,
     orgId,
     endpoint: req.path,
     method: req.method,
-    timestamp: new Date()
+    timestamp: new Date(),
   });
-  
+
   next();
 });
 ```
@@ -262,6 +285,7 @@ app.use((req, res, next) => {
 ---
 
 **Next Steps:**
+
 1. Implement validateOrgAccess middleware (Emergency)
 2. Audit and fix all storage functions (This Week)
 3. Add comprehensive security tests (This Week)

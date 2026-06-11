@@ -10,7 +10,7 @@ import type { ProvenanceEvent, ProvenanceVerificationResult } from "./types.js";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Governance:Provenance");
 
-const PROV_FILE = process.env['PROVENANCE_FILE'] ?? "./checkpoints/provenance.jsonl";
+const PROV_FILE = process.env["PROVENANCE_FILE"] ?? "./checkpoints/provenance.jsonl";
 
 /**
  * Compute SHA-256 hash of a string
@@ -31,7 +31,9 @@ async function lastHash(): Promise<string | null> {
     }
 
     const lastLine = lines[lines.length - 1];
-    if (!lastLine) {return null;}
+    if (!lastLine) {
+      return null;
+    }
     const last = JSON.parse(lastLine);
     return last.hash as string;
   } catch (error: unknown) {
@@ -189,7 +191,9 @@ export async function recordRulPrediction(params: {
 }): Promise<ProvenanceEvent> {
   // Log data quality warnings for governance visibility
   if (params.dataStatus !== "sufficient_data") {
-    logger.warn(`[Provenance] RUL prediction with ${params.dataStatus}: equipment ${params.equipmentId} - ${params.dataStatusReason}`);
+    logger.warn(
+      `[Provenance] RUL prediction with ${params.dataStatus}: equipment ${params.equipmentId} - ${params.dataStatusReason}`
+    );
   }
 
   return appendProvenance({
@@ -226,7 +230,9 @@ export async function recordEngineerOverride(params: {
   modelId?: string | undefined;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  logger.info(`[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`);
+  logger.info(
+    `[Provenance] Recording engineer override: ${params.overrideType} by ${params.engineerName}`
+  );
 
   return appendProvenance({
     type: "engineer_override",
@@ -256,7 +262,9 @@ export async function recordOverrideOutcome(params: {
   engineerName: string;
   orgId: string;
 }): Promise<ProvenanceEvent> {
-  logger.info(`[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`);
+  logger.info(
+    `[Provenance] Recording override outcome: ${params.outcomeStatus} for override ${params.overrideId}`
+  );
 
   return appendProvenance({
     type: "override_outcome",
@@ -313,7 +321,11 @@ export async function getProvenanceEvents(filters?: {
 }): Promise<{ events: ProvenanceEvent[]; total: number }> {
   try {
     const text = await fs.readFile(PROV_FILE, "utf8");
-    let events = text.trim().split("\n").filter(Boolean).map((l: string) => JSON.parse(l)) as ProvenanceEvent[];
+    let events = text
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l: string) => JSON.parse(l)) as ProvenanceEvent[];
 
     // Apply filters
     if (filters?.type) {
@@ -396,7 +408,9 @@ export async function verifyChain(
     // Verify chain integrity
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      if (!event) {continue;}
+      if (!event) {
+        continue;
+      }
 
       // Verify hash
       const copy = { ...event };

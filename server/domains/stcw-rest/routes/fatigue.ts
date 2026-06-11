@@ -16,7 +16,7 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
   app.get(
     "/api/hor/fatigue/:crewId",
     withErrorHandling("calculate fatigue risk", async (req: Request, res: Response) => {
-      const { crewId = '' } = req.params;
+      const { crewId = "" } = req.params;
       const { days = "14" } = req.query;
       const lookbackDays = Number.parseInt(days as string) || 14;
 
@@ -24,8 +24,8 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - lookbackDays);
 
-      const startDateStr = startDate.toISOString().split("T")[0] ?? '';
-      const endDateStr = endDate.toISOString().split("T")[0] ?? '';
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
 
       const { days: restDays } = await dbStcwStorage.getCrewRestRange(
         crewId,
@@ -48,7 +48,7 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
   app.get(
     "/api/hor/fatigue/vessel/:vesselId",
     withErrorHandling("calculate vessel fatigue summary", async (req: Request, res: Response) => {
-      const { vesselId = '' } = req.params;
+      const { vesselId = "" } = req.params;
       const { days = "14" } = req.query;
       const lookbackDays = Number.parseInt(days as string) || 14;
 
@@ -56,8 +56,8 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - lookbackDays);
 
-      const startDateStr = startDate.toISOString().split("T")[0] ?? '';
-      const endDateStr = endDate.toISOString().split("T")[0] ?? '';
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
 
       const crewMembers = await dbCrewStorage.getCrew(undefined, vesselId);
 
@@ -103,8 +103,8 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - lookbackDays);
 
-      const startDateStr = startDate.toISOString().split("T")[0] ?? '';
-      const endDateStr = endDate.toISOString().split("T")[0] ?? '';
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
 
       const vessels = await vesselService.getVessels(orgId);
       const {

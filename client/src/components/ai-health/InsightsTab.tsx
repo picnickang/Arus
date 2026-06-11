@@ -4,6 +4,7 @@
  * Vessel intelligence, feedback loop, and prediction feedback.
  */
 
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -164,9 +165,7 @@ interface VesselIntelligenceData {
 
 function VesselIntelligenceSection() {
   const [selectedVessel, setSelectedVessel] = useState<string>("");
-  const [vesselIntelligence, setVesselIntelligence] = useState<VesselIntelligenceData | null>(
-    null
-  );
+  const [vesselIntelligence, setVesselIntelligence] = useState<VesselIntelligenceData | null>(null);
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false);
 
   const { data: vessels = [] } = useQuery<Array<{ id: string; name: string }>>({
@@ -179,11 +178,11 @@ function VesselIntelligenceSection() {
     }
     setIsLoadingIntelligence(true);
     try {
-      const response = await fetch(`/api/analytics/vessel-intelligence/${selectedVessel}`);
-      if (response.ok) {
-        const data = await response.json();
-        setVesselIntelligence(data);
-      }
+      const data = await apiRequest<VesselIntelligenceData | null>(
+        "GET",
+        `/api/analytics/vessel-intelligence/${selectedVessel}`
+      );
+      setVesselIntelligence(data);
     } catch {
       console.error("Failed to load vessel intelligence");
     } finally {

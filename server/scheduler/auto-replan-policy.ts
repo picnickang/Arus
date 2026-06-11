@@ -4,9 +4,9 @@ import { schedAutoReplanTriggers } from "../observability/scheduler-metrics";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Scheduler:AutoReplanPolicy");
 
-const RUL_DAYS_CRITICAL = Number(process.env['SCHED_RUL_DAYS_CRITICAL'] ?? 9);
-const RISK_REPLAN_LEVEL = (process.env['SCHED_RISK_REPLAN_LEVEL'] ?? "high").toLowerCase();
-const AUTO_REPLAN_DAYS = Number(process.env['SCHED_AUTO_REPLAN_DAYS'] ?? 7);
+const RUL_DAYS_CRITICAL = Number(process.env["SCHED_RUL_DAYS_CRITICAL"] ?? 9);
+const RISK_REPLAN_LEVEL = (process.env["SCHED_RISK_REPLAN_LEVEL"] ?? "high").toLowerCase();
+const AUTO_REPLAN_DAYS = Number(process.env["SCHED_AUTO_REPLAN_DAYS"] ?? 7);
 
 function riskToRank(r: string): number {
   const ranks: Record<string, number> = {
@@ -25,7 +25,9 @@ export function initializeAutoReplanPolicy(): void {
       remainingDays <= RUL_DAYS_CRITICAL || riskToRank(riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
 
     if (shouldReplan) {
-      logger.info(`[Auto-Replan] RUL trigger: vessel=${vesselId}, remainingDays=${remainingDays}, risk=${riskLevel}`);
+      logger.info(
+        `[Auto-Replan] RUL trigger: vessel=${vesselId}, remainingDays=${remainingDays}, risk=${riskLevel}`
+      );
       schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
 
       try {
@@ -96,9 +98,11 @@ export function initializeAutoReplanPolicy(): void {
     }
   });
 
-  logger.info("[Auto-Replan] Policy initialized with config:", { details: {
-    RUL_DAYS_CRITICAL,
-    RISK_REPLAN_LEVEL,
-    AUTO_REPLAN_DAYS,
-  } });
+  logger.info("[Auto-Replan] Policy initialized with config:", {
+    details: {
+      RUL_DAYS_CRITICAL,
+      RISK_REPLAN_LEVEL,
+      AUTO_REPLAN_DAYS,
+    },
+  });
 }

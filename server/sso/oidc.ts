@@ -43,7 +43,7 @@ async function withTimeout<T>(op: Promise<T>, label: string): Promise<T> {
   const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(
       () => reject(new Error(`OIDC ${label} timed out after ${OIDC_NETWORK_TIMEOUT_MS}ms`)),
-      OIDC_NETWORK_TIMEOUT_MS,
+      OIDC_NETWORK_TIMEOUT_MS
     );
   });
   try {
@@ -59,17 +59,23 @@ async function loadConfig(cfg: SsoOidcConfig, secretResolver: SecretResolver) {
   const oidc = await import("openid-client");
   const clientSecret = await secretResolver(cfg.clientSecretRef);
   // v6 discovery: openid-client `discovery(url, clientId, clientSecret?)`
-  const oidcMod = oidc as object as typeof oidc & { discovery: (url: URL, clientId: string, clientSecret?: string) => Promise<import("openid-client").Configuration> };
+  const oidcMod = oidc as object as typeof oidc & {
+    discovery: (
+      url: URL,
+      clientId: string,
+      clientSecret?: string
+    ) => Promise<import("openid-client").Configuration>;
+  };
   const config = await withTimeout(
     oidcMod.discovery(new URL(cfg.discoveryUrl), cfg.clientId, clientSecret),
-    "discovery",
+    "discovery"
   );
   return { oidc: oidcMod, config };
 }
 
 export async function beginOidcAuthorization(
   cfg: SsoOidcConfig,
-  secretResolver: SecretResolver,
+  secretResolver: SecretResolver
 ): Promise<OidcAuthorizationStart> {
   const { oidc, config } = await loadConfig(cfg, secretResolver);
   const codeVerifier = oidc.randomPKCECodeVerifier();
@@ -91,7 +97,7 @@ export async function beginOidcAuthorization(
 export async function completeOidcAuthorization(
   cfg: SsoOidcConfig,
   secretResolver: SecretResolver,
-  args: { callbackUrl: URL; codeVerifier: string; expectedState: string; expectedNonce: string },
+  args: { callbackUrl: URL; codeVerifier: string; expectedState: string; expectedNonce: string }
 ): Promise<OidcUserSummary> {
   const { oidc, config } = await loadConfig(cfg, secretResolver);
   const tokens = await withTimeout(
@@ -100,11 +106,11 @@ export async function completeOidcAuthorization(
       expectedState: args.expectedState,
       expectedNonce: args.expectedNonce,
     }),
-    "authorizationCodeGrant",
+    "authorizationCodeGrant"
   );
   const rawClaims = typeof tokens.claims === "function" ? tokens.claims() : tokens.claims;
   const claims: Record<string, unknown> = (rawClaims || {}) as object as Record<string, unknown>;
-  const sub = String(claims['sub'] || "");
+  const sub = String(claims["sub"] || "");
   if (!sub) {
     throw new Error("OIDC ID token missing sub");
   }
@@ -112,9 +118,11 @@ export async function completeOidcAuthorization(
     sub,
     // Normalized at the IdP boundary: providers return claims with
     // arbitrary casing, lookups are lower()-based (0047).
-    ...(typeof claims['email'] === "string" && { email: claims['email'].toLowerCase() }),
-    ...(typeof claims['email_verified'] === "boolean" && { emailVerified: claims['email_verified'] }),
-    ...(typeof claims['name'] === "string" && { name: claims['name'] }),
+    ...(typeof claims["email"] === "string" && { email: claims["email"].toLowerCase() }),
+    ...(typeof claims["email_verified"] === "boolean" && {
+      emailVerified: claims["email_verified"],
+    }),
+    ...(typeof claims["name"] === "string" && { name: claims["name"] }),
     raw: claims,
   };
 }

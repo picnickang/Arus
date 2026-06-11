@@ -41,7 +41,9 @@ export class DatabaseSchedulerStorage {
 
   async createSchedulerRun(run: InsertSchedulerRun): Promise<SchedulerRun> {
     const [n] = await db.insert(schedulerRuns).values(run).returning();
-    if (!n) {throw new Error("Failed to create scheduler run");}
+    if (!n) {
+      throw new Error("Failed to create scheduler run");
+    }
     return n;
   }
 
@@ -79,7 +81,12 @@ export class DatabaseSchedulerStorage {
   async completeSchedulerRun(id: string, result: Record<string, unknown>): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "completed", finishedAt: new Date(), stats: result, updatedAt: new Date() } as never)
+      .set({
+        status: "completed",
+        finishedAt: new Date(),
+        stats: result,
+        updatedAt: new Date(),
+      } as never)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {
@@ -91,7 +98,12 @@ export class DatabaseSchedulerStorage {
   async failSchedulerRun(id: string, error: string): Promise<SchedulerRun> {
     const [u] = await db
       .update(schedulerRuns)
-      .set({ status: "failed", errorMessage: error, finishedAt: new Date(), updatedAt: new Date() } as never)
+      .set({
+        status: "failed",
+        errorMessage: error,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      } as never)
       .where(eq(schedulerRuns.id, id))
       .returning();
     if (!u) {

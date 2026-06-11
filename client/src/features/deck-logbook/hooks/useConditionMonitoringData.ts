@@ -79,10 +79,28 @@ export function useConditionMonitoringData() {
       "summary",
       { startDate: dateParams.start.toISOString(), endDate: dateParams.end.toISOString() },
     ],
+    // Explicit queryFn: the default fetcher only understands 1- and
+    // 2-segment keys — this 4-segment key (with a trailing params object)
+    // fell through to join("/") and produced ".../summary/[object Object]",
+    // so the vessel summary never loaded.
+    queryFn: () => {
+      const params = new URLSearchParams({
+        startDate: dateParams.start.toISOString(),
+        endDate: dateParams.end.toISOString(),
+      });
+      return apiRequest<VesselConditionSummary>(
+        "GET",
+        `/api/logbook/condition/vessel/${selectedVessel}/summary?${params}`
+      );
+    },
     enabled: selectedVessel !== "all",
   });
 
-  const autoFillMutation = useMutation<{ recordsCreated?: number; recordsSkipped?: number }, Error, string>({
+  const autoFillMutation = useMutation<
+    { recordsCreated?: number; recordsSkipped?: number },
+    Error,
+    string
+  >({
     mutationFn: (async (vesselId: string) =>
       apiRequest("/api/logbook/condition/autofill", {
         method: "POST",
@@ -92,7 +110,9 @@ export function useConditionMonitoringData() {
           endDate: dateParams.end.toISOString(),
           periodType: "hourly",
         }),
-      })) as object as (vesselId: string) => Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
+      })) as object as (
+      vesselId: string
+    ) => Promise<{ recordsCreated?: number; recordsSkipped?: number }>,
     onSuccess: (data: { recordsCreated?: number; recordsSkipped?: number }) => {
       toast({
         title: "Auto-fill Complete",
@@ -114,8 +134,14 @@ export function useConditionMonitoringData() {
       logs.length > 0
         ? logs.reduce((sum, log) => sum + (log.healthIndex || 0), 0) / logs.length
         : 0;
-    const totalAlerts = logs.reduce((sum, log) => sum + ((log as { alertsCount?: number }).alertsCount || 0), 0);
-    const criticalAlerts = logs.reduce((sum, log) => sum + ((log as { criticalAlertsCount?: number }).criticalAlertsCount || 0), 0);
+    const totalAlerts = logs.reduce(
+      (sum, log) => sum + ((log as { alertsCount?: number }).alertsCount || 0),
+      0
+    );
+    const criticalAlerts = logs.reduce(
+      (sum, log) => sum + ((log as { criticalAlertsCount?: number }).criticalAlertsCount || 0),
+      0
+    );
     const criticalCount = logs.filter((l) => l.conditionRating === "critical").length;
     const uniqueEquipmentCount = new Set(logs.map((l) => l.equipmentId)).size;
     const lowestHealthLogs = [...logs]

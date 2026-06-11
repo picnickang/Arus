@@ -17,58 +17,50 @@ import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 export function registerObjectStorageRoutes(app: Express): void {
   const objectStorageService = new ObjectStorageService();
 
-  app.post(
-    "/api/uploads/request-url",
-    requireOrgId,
-    async (req, res) => {
-      try {
-        const { name, size, contentType } = req.body as {
-          name?: string;
-          size?: number;
-          contentType?: string;
-        };
+  app.post("/api/uploads/request-url", requireOrgId, async (req, res) => {
+    try {
+      const { name, size, contentType } = req.body as {
+        name?: string;
+        size?: number;
+        contentType?: string;
+      };
 
-        if (!name) {
-          return res.status(400).json({
-            error: "Missing required field: name",
-          });
-        }
-
-        const authed = authenticatedRequest(req);
-        const uploadURL = await objectStorageService.getObjectEntityUploadURL(authed.orgId);
-        const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-        return res.json({
-          uploadURL,
-          objectPath,
-          metadata: { name, size, contentType },
+      if (!name) {
+        return res.status(400).json({
+          error: "Missing required field: name",
         });
-      } catch (error) {
-        console.error("Error generating upload URL:", error);
-        return res.status(500).json({ error: "Failed to generate upload URL" });
       }
-    },
-  );
 
-  app.get(
-    "/objects/:objectPath(*)",
-    requireOrgId,
-    async (req, res) => {
-      try {
-        const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-        const authed = authenticatedRequest(req);
-        await objectStorageService.downloadObject(objectFile, res, 3600, {
-          orgId: authed.orgId,
-          userId: authed.user?.id,
-        });
-        return undefined;
-      } catch (error) {
-        console.error("Error serving object:", error);
-        if (error instanceof ObjectNotFoundError) {
-          return res.status(404).json({ error: "Object not found" });
-        }
-        return res.status(500).json({ error: "Failed to serve object" });
+      const authed = authenticatedRequest(req);
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL(authed.orgId);
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+      return res.json({
+        uploadURL,
+        objectPath,
+        metadata: { name, size, contentType },
+      });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      return res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  app.get("/objects/:objectPath(*)", requireOrgId, async (req, res) => {
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const authed = authenticatedRequest(req);
+      await objectStorageService.downloadObject(objectFile, res, 3600, {
+        orgId: authed.orgId,
+        userId: authed.user?.id,
+      });
+      return undefined;
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "Object not found" });
       }
-    },
-  );
+      return res.status(500).json({ error: "Failed to serve object" });
+    }
+  });
 }

@@ -18,12 +18,12 @@ jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -35,6 +35,9 @@ jobs:
 
       - name: Typecheck
         run: npm run check
+
+      - name: Typecheck test files (lane excluded from main tsconfig)
+        run: npm run check:tests
 
       - name: Check domain boundaries & leak baseline
         run: npm run check:guards
@@ -57,8 +60,8 @@ jobs:
       - name: Lint-warnings burndown
         run: npm run check:lint-warnings
 
-      - name: Prettier format ratchet
-        run: npm run check:format-ratchet
+      - name: Prettier format gate (whole repo must stay formatted)
+        run: npm run format:check
 
       - name: Code-hygiene burndown (catch-underscore, console-log, ts-ignore, ...)
         run: npm run check:hygiene
@@ -74,6 +77,20 @@ jobs:
 
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
+
+      # Guards against client↔server route drift (e.g. /api/pdm/health was
+      # swagger-documented and client-queried but never implemented).
+      # Boots the real registerRoutes() to dump the actual route table;
+      # pre-existing drift is ratcheted in scripts/route-contract-baseline.json.
+      - name: Route contract (client /api refs ↔ server route table)
+        run: node scripts/check-route-contract.mjs
+
+      # Orphaned files/exports ratchet (e.g. PowerSTWChart was built but
+      # never imported by any page until the performance view mounted it).
+      # Reuses the existing knip budget so legacy debt doesn't block, but
+      # NEW orphans past the budget do.
+      - name: Knip — unused files/exports ratchet
+        run: npm run check:dead-code
 
       - name: LR-1B — Tenant-gate audit (requireOrgId)
         run: npx tsx scripts/check-routes-require-orgid.ts
@@ -102,9 +119,9 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -113,6 +130,8 @@ jobs:
 
       - name: Run unit tests
         run: npm run test:unit
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
   integration-tests:
     name: Integration Tests
@@ -137,9 +156,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -152,7 +171,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
@@ -193,9 +214,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -223,7 +244,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Apply migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
@@ -239,9 +262,9 @@ jobs:
     needs: [lint-and-typecheck, unit-tests]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -312,9 +335,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -333,7 +356,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Apply migrations
-        run: npm run db:push
+        run: |
+          npm run db:push
+          npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
@@ -358,9 +383,9 @@ jobs:
     needs: [lint-and-typecheck]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"

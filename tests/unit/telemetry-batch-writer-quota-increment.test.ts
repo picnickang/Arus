@@ -33,17 +33,15 @@ describe("withQuotaTimeout — P0 #4", () => {
   });
 
   it("propagates the inner rejection unchanged", async () => {
-    await expect(
-      withQuotaTimeout(Promise.reject(new Error("quota store down"))),
-    ).rejects.toThrow("quota store down");
+    await expect(withQuotaTimeout(Promise.reject(new Error("quota store down")))).rejects.toThrow(
+      "quota store down"
+    );
   });
 
   it("rejects with a tagged timeout error when the inner promise never settles", async () => {
     const never = new Promise(() => {});
     const start = Date.now();
-    await expect(withQuotaTimeout(never)).rejects.toThrow(
-      /quota_increment_timeout_\d+ms/,
-    );
+    await expect(withQuotaTimeout(never)).rejects.toThrow(/quota_increment_timeout_\d+ms/);
     const elapsed = Date.now() - start;
     // Bounded by 2s budget. Use a generous ceiling for CI noise.
     expect(elapsed).toBeLessThan(4_000);

@@ -8,16 +8,10 @@
     "epochs": 10,
     "batchSize": 16
   },
-  "featureNames": [
-    "temperature"
-  ],
+  "featureNames": ["temperature"],
   "normalizationParams": {
-    "mean": [
-      47.61271300448446
-    ],
-    "std": [
-      4.527749234761168
-    ]
+    "mean": [47.61271300448446],
+    "std": [4.527749234761168]
   },
   "trainingMetrics": {
     "loss": 0.014286910183727741,

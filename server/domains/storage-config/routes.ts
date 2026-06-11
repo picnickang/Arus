@@ -42,7 +42,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     "/api/storage/config/:id",
     withErrorHandling("delete storage configuration", async (req: Request, res: Response) => {
       const { storageConfigService } = await import("../../storage-config");
-      await storageConfigService.delete(req.params['id'] ?? '');
+      await storageConfigService.delete(req.params["id"] ?? "");
       sendDeleted(res);
     })
   );
@@ -113,7 +113,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
     withErrorHandling("search for public object", async (req: Request, res: Response) => {
       const { ObjectStorageService } = await import("../../objectStorage");
       const objectStorageService = new ObjectStorageService();
-      const filePath = req.params['filePath'] ?? '';
+      const filePath = req.params["filePath"] ?? "";
       const file = await objectStorageService.searchPublicObject(filePath);
       if (!file) {
         return sendNotFound(res, "File");
@@ -169,10 +169,7 @@ export function registerStorageConfigRoutes(app: Express, deps: StorageConfigDep
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(req.path);
         const authed = authenticatedRequest(req);
-        const ownership = objectStorageService.assertObjectOwnedByOrg(
-          objectFile,
-          authed.orgId,
-        );
+        const ownership = objectStorageService.assertObjectOwnedByOrg(objectFile, authed.orgId);
         if (!ownership.allowed) {
           return res.status(403).json({
             message: "Object belongs to a different organization",

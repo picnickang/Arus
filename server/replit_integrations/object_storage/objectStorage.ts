@@ -44,7 +44,7 @@ export class ObjectStorageService {
 
   // Gets the public object search paths.
   getPublicObjectSearchPaths(): Array<string> {
-    const pathsStr = process.env['PUBLIC_OBJECT_SEARCH_PATHS'] || "";
+    const pathsStr = process.env["PUBLIC_OBJECT_SEARCH_PATHS"] || "";
     const paths = Array.from(
       new Set(
         pathsStr
@@ -64,7 +64,7 @@ export class ObjectStorageService {
 
   // Gets the private object directory.
   getPrivateObjectDir(): string {
-    const dir = process.env['PRIVATE_OBJECT_DIR'] || "";
+    const dir = process.env["PRIVATE_OBJECT_DIR"] || "";
     if (!dir) {
       throw new Error(
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
@@ -108,7 +108,7 @@ export class ObjectStorageService {
     file: File,
     res: Response,
     cacheTtlSec: number = 3600,
-    auditCtx?: { orgId?: string; userId?: string },
+    auditCtx?: { orgId?: string | undefined; userId?: string | undefined }
   ) {
     try {
       const core = await import("../../objectStorage");
@@ -130,9 +130,12 @@ export class ObjectStorageService {
           return;
         }
       } else {
-        console.warn("[ObjectStorage] downloadObject called without auditCtx.orgId — fail-closed ownership check skipped", {
-          objectName: file.name,
-        });
+        console.warn(
+          "[ObjectStorage] downloadObject called without auditCtx.orgId — fail-closed ownership check skipped",
+          {
+            objectName: file.name,
+          }
+        );
       }
 
       const [metadata] = await file.getMetadata();
@@ -145,7 +148,10 @@ export class ObjectStorageService {
         type RangedRead = {
           createReadStream: (opts?: { start?: number; end?: number }) => NodeJS.ReadableStream;
         };
-        const sniffStream = (file as unknown as RangedRead).createReadStream({ start: 0, end: 511 });
+        const sniffStream = (file as unknown as RangedRead).createReadStream({
+          start: 0,
+          end: 511,
+        });
         const chunks: Buffer[] = [];
         for await (const c of sniffStream as AsyncIterable<Buffer>) {
           chunks.push(c);
@@ -212,9 +218,7 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId)
-      ? `orgs/${orgId}/`
-      : "";
+    const orgSegment = orgId && /^[A-Za-z0-9_\-]+$/.test(orgId) ? `orgs/${orgId}/` : "";
     const fullPath = `${privateObjectDir}/uploads/${orgSegment}${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
@@ -255,36 +259,31 @@ export class ObjectStorageService {
     return objectFile;
   }
 
-  normalizeObjectEntityPath(
-    rawPath: string,
-  ): string {
+  normalizeObjectEntityPath(rawPath: string): string {
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
     }
-  
+
     // Extract the path from the URL by removing query parameters and domain
     const url = new URL(rawPath);
     const rawObjectPath = url.pathname;
-  
+
     let objectEntityDir = this.getPrivateObjectDir();
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;
     }
-  
+
     if (!rawObjectPath.startsWith(objectEntityDir)) {
       return rawObjectPath;
     }
-  
+
     // Extract the entity ID from the path
     const entityId = rawObjectPath.slice(objectEntityDir.length);
     return `/objects/${entityId}`;
   }
 
   // Tries to set the ACL policy for the object entity and return the normalized path.
-  async trySetObjectEntityAclPolicy(
-    rawPath: string,
-    aclPolicy: ObjectAclPolicy
-  ): Promise<string> {
+  async trySetObjectEntityAclPolicy(rawPath: string, aclPolicy: ObjectAclPolicy): Promise<string> {
     const normalizedPath = this.normalizeObjectEntityPath(rawPath);
     if (!normalizedPath.startsWith("/")) {
       return normalizedPath;
@@ -325,7 +324,7 @@ function parseObjectPath(path: string): {
     throw new Error("Invalid path: must contain at least a bucket name");
   }
 
-  const bucketName = pathParts[1] ?? '';
+  const bucketName = pathParts[1] ?? "";
   const objectName = pathParts.slice(2).join("/");
 
   return {
@@ -351,16 +350,13 @@ async function signObjectURL({
     method,
     expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
   };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    }
-  );
+  const response = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
   if (!response.ok) {
     throw new Error(
       `Failed to sign object URL, errorcode: ${response.status}, ` +
@@ -371,4 +367,3 @@ async function signObjectURL({
   const { signed_url: signedURL } = await response.json();
   return signedURL;
 }
-

@@ -13,9 +13,9 @@ describe("Prediction Lineage Schema", () => {
   });
 
   it("lineage columns are all string/varchar typed (FK-capable)", () => {
-    const modelVersionId = columnsByName.modelVersionId;
-    const featureSetVersion = columnsByName.featureSetVersion;
-    const featureSnapshotId = columnsByName.featureSnapshotId;
+    const modelVersionId = columnsByName["modelVersionId"];
+    const featureSetVersion = columnsByName["featureSetVersion"];
+    const featureSnapshotId = columnsByName["featureSnapshotId"];
     expect(modelVersionId).toBeDefined();
     expect(featureSetVersion).toBeDefined();
     expect(featureSnapshotId).toBeDefined();

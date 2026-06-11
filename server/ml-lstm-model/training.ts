@@ -7,13 +7,12 @@ import * as tf from "@tensorflow/tfjs-node";
 import type { TimeSeriesFeatures } from "../ml-training-data.js";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("MlLstmModel:Training");
-import {
-  trainWithEarlyStopping,
-  type EarlyStoppingConfig,
-} from "../ml-early-stopping.js";
+import { trainWithEarlyStopping, type EarlyStoppingConfig } from "../ml-early-stopping.js";
 const prepareClassWeightsForTF = (labels: number[]): Record<number, number> => {
   const counts: Record<number, number> = {};
-  for (const l of labels) {counts[l] = (counts[l] ?? 0) + 1;}
+  for (const l of labels) {
+    counts[l] = (counts[l] ?? 0) + 1;
+  }
   const total = labels.length;
   const weights: Record<number, number> = {};
   for (const k of Object.keys(counts)) {
@@ -64,7 +63,12 @@ async function trainWithEarlyStoppingWrapper(
   config: LSTMConfig,
   classWeights?: { [key: number]: number },
   verbose: boolean = true
-): Promise<{ history: Record<string, number[]>; bestEpoch: number; finalF1: number; stoppedEarly: boolean }> {
+): Promise<{
+  history: Record<string, number[]>;
+  bestEpoch: number;
+  finalF1: number;
+  stoppedEarly: boolean;
+}> {
   const earlyStoppingConfig: EarlyStoppingConfig = {
     patience: config.earlyStoppingPatience || 10,
     minDelta: 0.001,
@@ -110,7 +114,9 @@ async function trainStandard(
     callbacks: {
       onEpochEnd: (epoch, logs) => {
         if (verbose) {
-          logger.info(`[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${(logs?.['loss'] ?? 0).toFixed(4)}`);
+          logger.info(
+            `[LSTM] Epoch ${epoch + 1}/${config.epochs} - Loss: ${(logs?.["loss"] ?? 0).toFixed(4)}`
+          );
         }
       },
     },
@@ -132,7 +138,9 @@ function calculatePrecisionRecallF1(
   for (let i = 0; i < valPredData.length; i++) {
     const predRow = valPredData[i];
     const labelRow = valLabelsData[i];
-    if (!predRow || !labelRow) {continue;}
+    if (!predRow || !labelRow) {
+      continue;
+    }
     const pred = (predRow[0] ?? 0) >= 0.5 ? 1 : 0;
     const actual = labelRow[0] ?? 0;
     if (pred === 1 && actual === 1) {
@@ -158,7 +166,9 @@ export async function trainLSTMModel(
   validationData: TimeSeriesFeatures[],
   config: LSTMConfig
 ): Promise<TrainedLSTMModel> {
-  const featureNames = Object.keys((trainingData[0] as { features?: Record<string, number> }).features ?? {});
+  const featureNames = Object.keys(
+    (trainingData[0] as { features?: Record<string, number> }).features ?? {}
+  );
   const updatedConfig = { ...config, featureCount: featureNames.length };
 
   const { sequences: trainSeqs, labels: trainLabels } = prepareSequences(
@@ -201,7 +211,9 @@ export async function trainLSTMModel(
   const verbose = config.verbose !== false;
 
   logger.info("[LSTM] Starting training...");
-  logger.info(`[LSTM] CPU Optimizations: Early Stopping = ${useEarlyStopping}, Class Weights = ${useClassWeights}`);
+  logger.info(
+    `[LSTM] CPU Optimizations: Early Stopping = ${useEarlyStopping}, Class Weights = ${useClassWeights}`
+  );
 
   let classWeights: { [key: number]: number } | undefined;
   if (useClassWeights) {
@@ -242,10 +254,10 @@ export async function trainLSTMModel(
   }
 
   const lastEpoch = useEarlyStopping ? bestEpoch : config.epochs - 1;
-  const lossArr = history['loss'];
+  const lossArr = history["loss"];
   const loss = Array.isArray(lossArr) ? (lossArr[lastEpoch] ?? 0) : 0;
-  const accArr = history['acc'];
-  const valAccArr = history['val_acc'];
+  const accArr = history["acc"];
+  const valAccArr = history["val_acc"];
   const accuracy = Array.isArray(accArr)
     ? (accArr[lastEpoch] ?? 0)
     : Array.isArray(valAccArr)
@@ -269,7 +281,9 @@ export async function trainLSTMModel(
   yVal.dispose();
 
   logger.info("[LSTM] Training completed");
-  logger.info(`[LSTM] Final metrics - Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(4)}, F1: ${f1Score.toFixed(4)}`);
+  logger.info(
+    `[LSTM] Final metrics - Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(4)}, F1: ${f1Score.toFixed(4)}`
+  );
 
   return {
     model,

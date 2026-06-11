@@ -13,7 +13,9 @@ import { searchKnowledgeBase as defaultSearchKnowledgeBase } from "../../vector-
 import { logger } from "../../utils/logger.js";
 
 const searchKnowledgeBase: SearchKnowledgeBaseFn = async ({ query, limit }) => {
-  const results = await defaultSearchKnowledgeBase(query, { ...(limit !== undefined && { limit }) });
+  const results = await defaultSearchKnowledgeBase(query, {
+    ...(limit !== undefined && { limit }),
+  });
   return results.map((r) => ({
     docId: r.docId,
     text: r.text ?? r.content,
@@ -38,7 +40,9 @@ const pickNum = (obj: object, key: string): number | null => {
 const pickDate = (obj: object, key: string): Date | null => {
   if (key in obj) {
     const v = (obj as Record<string, unknown>)[key];
-    if (v instanceof Date) {return v;}
+    if (v instanceof Date) {
+      return v;
+    }
     if (typeof v === "string" || typeof v === "number") {
       const d = new Date(v);
       return Number.isNaN(d.getTime()) ? null : d;
@@ -85,14 +89,22 @@ export async function buildEquipmentContext(
     const st = woStatus(wo);
     return st === "open" || st === "in_progress" || st === "pending";
   });
-  const completedWorkOrders = allWorkOrders.filter((wo) => woStatus(wo) === "completed").slice(0, 5);
+  const completedWorkOrders = allWorkOrders
+    .filter((wo) => woStatus(wo) === "completed")
+    .slice(0, 5);
 
   const now = new Date();
   const scheduleDate = (s: object): Date | null => {
-    if (!("scheduledDate" in s)) {return null;}
+    if (!("scheduledDate" in s)) {
+      return null;
+    }
     const v = (s as { scheduledDate?: unknown }).scheduledDate;
-    if (v instanceof Date) {return v;}
-    if (typeof v === "string" || typeof v === "number") {return new Date(v);}
+    if (v instanceof Date) {
+      return v;
+    }
+    if (typeof v === "string" || typeof v === "number") {
+      return new Date(v);
+    }
     return null;
   };
   const scheduleStatus = (s: object): string | undefined =>
@@ -125,9 +137,7 @@ export async function buildEquipmentContext(
     return isActive !== false;
   });
   const sensorTypes = [...new Set(sensors.map((s) => s.sensorType).filter(Boolean))];
-  const telemetrySensorTypes = [
-    ...new Set(telemetryData.map((t) => t.sensorType).filter(Boolean)),
-  ];
+  const telemetrySensorTypes = [...new Set(telemetryData.map((t) => t.sensorType).filter(Boolean))];
 
   const severityOf = (x: object): string | undefined =>
     "severity" in x ? ((x as { severity?: string }).severity ?? undefined) : undefined;

@@ -10,11 +10,11 @@
 
 ## 0. Service Level Objectives
 
-| Tier | Target |
-|------|--------|
-| RTO (full platform restore) | **2 h** |
-| RPO (max acceptable data loss) | **5 min** (PITR window) |
-| RTO (read-only / degraded mode) | **30 min** |
+| Tier                              | Target                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| RTO (full platform restore)       | **2 h**                                                                        |
+| RPO (max acceptable data loss)    | **5 min** (PITR window)                                                        |
+| RTO (read-only / degraded mode)   | **30 min**                                                                     |
 | Telemetry ingestion gap tolerated | **15 min** (edge devices buffer locally per `compliance/telemetry-resilience`) |
 
 PITR window is set by the WAL retention on the managed Postgres provider (Neon/RDS). If that retention is shorter than 5 min in your environment, this RPO is aspirational — adjust the provider config first.
@@ -25,13 +25,13 @@ PITR window is set by the WAL retention on the managed Postgres provider (Neon/R
 
 Decide the scenario before touching anything. Each tier maps to a different procedure below.
 
-| Class | Trigger | Procedure |
-|-------|---------|-----------|
-| **A. App-tier outage** | All `/api/healthz` 5xx; DB reachable from a bastion; no data loss suspected | §4 |
-| **B. Database corruption / accidental DROP / bad migration** | Queries succeed but return wrong/missing data; recent destructive DDL/DML in audit log | §5 (PITR) |
-| **C. Region-wide outage** | Provider dashboard red; multiple services down | §6 (cross-region failover) |
-| **D. Suspected data exfiltration / ransomware** | IDS alert, unusual egress, unknown admin session | §7 (containment + forensic restore) |
-| **E. Tenant-level corruption** | One `org_id` reports bad data, rest of platform healthy | §8 (tenant-scoped restore) |
+| Class                                                        | Trigger                                                                                | Procedure                           |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------------------- |
+| **A. App-tier outage**                                       | All `/api/healthz` 5xx; DB reachable from a bastion; no data loss suspected            | §4                                  |
+| **B. Database corruption / accidental DROP / bad migration** | Queries succeed but return wrong/missing data; recent destructive DDL/DML in audit log | §5 (PITR)                           |
+| **C. Region-wide outage**                                    | Provider dashboard red; multiple services down                                         | §6 (cross-region failover)          |
+| **D. Suspected data exfiltration / ransomware**              | IDS alert, unusual egress, unknown admin session                                       | §7 (containment + forensic restore) |
+| **E. Tenant-level corruption**                               | One `org_id` reports bad data, rest of platform healthy                                | §8 (tenant-scoped restore)          |
 
 If you cannot classify within 5 minutes, **declare Class C** and proceed conservatively.
 
@@ -411,13 +411,13 @@ Record times in `docs/operations/dr-drill-log.md`. If any drill misses its targe
 
 ## Cross-references
 
-| If you need... | See |
-|----------------|-----|
-| Background job state | `server/background-jobs.ts` (Wave 0.1) |
-| Feature flag overrides | `server/infrastructure/feature-flags.ts` (Wave 0.6) |
-| Idempotency keys for replay | `server/middleware/idempotency.ts` (Wave 2.5) |
-| Tenant table allowlist | `server/domains/gdpr/tenant-delete-service.ts` (Wave 6.6) |
-| KMS rewrap during key rotation | `server/lib/kms-envelope.ts` `rewrapEnvelope` (Wave 1.3) |
-| Trace stitching across the queue | `server/lib/pg-boss-trace.ts` (Wave 2.1) |
-| Telemetry edge buffering | `compliance/telemetry-resilience` (Operational layer) |
-| Smoke/steady/spike load tests | `tests/load/` (Wave 2.6) |
+| If you need...                   | See                                                       |
+| -------------------------------- | --------------------------------------------------------- |
+| Background job state             | `server/background-jobs.ts` (Wave 0.1)                    |
+| Feature flag overrides           | `server/infrastructure/feature-flags.ts` (Wave 0.6)       |
+| Idempotency keys for replay      | `server/middleware/idempotency.ts` (Wave 2.5)             |
+| Tenant table allowlist           | `server/domains/gdpr/tenant-delete-service.ts` (Wave 6.6) |
+| KMS rewrap during key rotation   | `server/lib/kms-envelope.ts` `rewrapEnvelope` (Wave 1.3)  |
+| Trace stitching across the queue | `server/lib/pg-boss-trace.ts` (Wave 2.1)                  |
+| Telemetry edge buffering         | `compliance/telemetry-resilience` (Operational layer)     |
+| Smoke/steady/spike load tests    | `tests/load/` (Wave 2.6)                                  |

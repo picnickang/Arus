@@ -59,13 +59,7 @@ export function useSensorBundlesData() {
 
   const { data: bundles = [], isLoading } = useQuery<SensorBundle[]>({
     queryKey: ["/api/sensor-bundles"],
-    queryFn: async () => {
-      const response = await fetch("/api/sensor-bundles");
-      if (!response.ok) {
-        throw new Error("Failed to fetch bundles");
-      }
-      return response.json();
-    },
+    queryFn: async () => apiRequest("GET", "/api/sensor-bundles"),
   });
 
   const createMutation = useMutation({

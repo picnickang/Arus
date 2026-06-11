@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import type { ComplianceFinding } from "@shared/schema";
 
-
 function initialComplianceTab(): string {
   if (typeof window === "undefined") {
     return "overview";

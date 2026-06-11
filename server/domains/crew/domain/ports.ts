@@ -52,7 +52,10 @@ export interface IAssignmentRepository {
   findAllAssignments(orgId?: string, vesselId?: string): Promise<SelectCrewAssignment[]>;
   findAssignmentById(id: string): Promise<SelectCrewAssignment | undefined>;
   createAssignment(data: InsertCrewAssignment): Promise<SelectCrewAssignment>;
-  updateAssignment(id: string, data: WidenPartial<InsertCrewAssignment>): Promise<SelectCrewAssignment>;
+  updateAssignment(
+    id: string,
+    data: WidenPartial<InsertCrewAssignment>
+  ): Promise<SelectCrewAssignment>;
   deleteAssignment(id: string): Promise<void>;
   findActiveAssignments(crewId: string): Promise<SelectCrewAssignment[]>;
 }

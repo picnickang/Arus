@@ -111,7 +111,9 @@ export function registerSensorConfigRoutes(app: Express, config: SensorManagemen
         orgId,
       }));
       const created = await dbSensorsStorage.bulkCreateSensorConfigurations(
-        fullConfigs as object as Parameters<typeof dbSensorsStorage.bulkCreateSensorConfigurations>[0],
+        fullConfigs as object as Parameters<
+          typeof dbSensorsStorage.bulkCreateSensorConfigurations
+        >[0],
         overwriteExisting
       );
       sendCreated(res, {

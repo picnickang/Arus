@@ -13,7 +13,7 @@ from `server/domains/permissions/middleware.ts` — in addition to `requireOrgId
 
 **Why:** a reviewer flagged the grants PUT as broken access control; the per-role
 permission-matrix editor made it reachable from the UI. The lockout guard inside
-the handler only prevents removing the *last* manager — it does not stop an
+the handler only prevents removing the _last_ manager — it does not stop an
 unprivileged caller from editing grants.
 
 **How to apply:** admin/super_admin/company_admin role templates already grant

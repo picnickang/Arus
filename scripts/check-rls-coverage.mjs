@@ -112,28 +112,33 @@ for (const m of exemptSection.matchAll(
 }
 
 const migrationCreated = new Set(
-  [...sliceExport(registrySrc, "MIGRATION_CREATED_TENANT_TABLES").matchAll(
-    /"([a-z_0-9]+)"/g
-  )].map((m) => m[1])
+  [...sliceExport(registrySrc, "MIGRATION_CREATED_TENANT_TABLES").matchAll(/"([a-z_0-9]+)"/g)].map(
+    (m) => m[1]
+  )
 );
 
 // ------------------------------------------------------- RLS migrations
 // Tables RLS-enabled via TENANT_TABLES arrays (0018/0045 style) or
 // literal `ALTER TABLE <t> FORCE ROW LEVEL SECURITY` statements (0034/
-// 0038 style). Only up-migrations count.
+// 0038 style). Only up-migrations count. Both migration sequences are
+// scanned: root migrations/ AND supplemental server/migrations/ —
+// tables created by a supplemental migration get their RLS there too,
+// because the deploy runner applies root before supplemental (a root
+// RLS migration would run before the table exists and never revisit;
+// see server/migrations/032-pilot-feedback-rls.sql).
+const serverMigrationsDir = resolve(root, "server/migrations");
 const rlsEnabled = new Set();
-for (const fileName of readdirSync(migrationsDir).sort()) {
-  if (!fileName.endsWith(".sql") || fileName.endsWith(".down.sql")) continue;
-  const src = readFileSync(join(migrationsDir, fileName), "utf8");
-  for (const block of src.matchAll(
-    /TENANT_TABLES\s+text\[\]\s*:=\s*ARRAY\[([\s\S]*?)\]/g
-  )) {
-    for (const m of block[1].matchAll(/'([a-z_0-9]+)'/g)) rlsEnabled.add(m[1]);
-  }
-  for (const m of src.matchAll(
-    /ALTER TABLE\s+([a-z_0-9]+)\s+FORCE ROW LEVEL SECURITY/gi
-  )) {
-    rlsEnabled.add(m[1]);
+for (const dir of [migrationsDir, serverMigrationsDir]) {
+  if (!existsSync(dir)) continue;
+  for (const fileName of readdirSync(dir).sort()) {
+    if (!fileName.endsWith(".sql") || fileName.endsWith(".down.sql")) continue;
+    const src = readFileSync(join(dir, fileName), "utf8");
+    for (const block of src.matchAll(/TENANT_TABLES\s+text\[\]\s*:=\s*ARRAY\[([\s\S]*?)\]/g)) {
+      for (const m of block[1].matchAll(/'([a-z_0-9]+)'/g)) rlsEnabled.add(m[1]);
+    }
+    for (const m of src.matchAll(/ALTER TABLE\s+([a-z_0-9]+)\s+FORCE ROW LEVEL SECURITY/gi)) {
+      rlsEnabled.add(m[1]);
+    }
   }
 }
 

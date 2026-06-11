@@ -41,7 +41,9 @@ export function hashIdempotentRequest(fullKey: string, body: unknown): string {
   return createHash("sha256").update(`${fullKey}\n${bodyText}`).digest("hex");
 }
 
-export async function getStoredResponse(fullKey: string): Promise<StoredIdempotentResponse | undefined> {
+export async function getStoredResponse(
+  fullKey: string
+): Promise<StoredIdempotentResponse | undefined> {
   const rows = await db
     .select({
       responseStatus: table.responseStatus,
@@ -64,12 +66,15 @@ export async function getStoredResponse(fullKey: string): Promise<StoredIdempote
       requestHash: wrapper.h,
     };
   } catch (error) {
-    logger.warn(LOG_CTX, `Discarding unparseable idempotency record for key ${fullKey.slice(0, 48)}: ${String(error)}`);
+    logger.warn(
+      LOG_CTX,
+      `Discarding unparseable idempotency record for key ${fullKey.slice(0, 48)}: ${String(error)}`
+    );
     return undefined;
   }
 }
 
-export async function storeResponse(entry: {
+export interface IdempotencyStoreEntry {
   fullKey: string;
   orgId: string;
   idempotencyKey: string;
@@ -77,10 +82,24 @@ export async function storeResponse(entry: {
   statusCode: number;
   body: unknown;
   ttlMs: number;
-}): Promise<void> {
-  const now = new Date();
+}
+
+/**
+ * Pure values builder, exported so the driver-conditional shape is directly
+ * testable against both tables: the sqlite DDL has NOT NULL org_id /
+ * idempotency_key / request_hash columns that the pg table lacks
+ * (see tests/unit/idempotency-dual-driver.test.ts).
+ */
+export function buildIdempotencyInsertValues(
+  entry: IdempotencyStoreEntry,
+  isLocal: boolean,
+  now: Date = new Date()
+): Record<string, unknown> {
   const expiresAt = new Date(now.getTime() + entry.ttlMs);
-  const responseBody = JSON.stringify({ h: entry.requestHash, b: entry.body } satisfies StoredWrapper);
+  const responseBody = JSON.stringify({
+    h: entry.requestHash,
+    b: entry.body,
+  } satisfies StoredWrapper);
 
   const values: Record<string, unknown> = {
     key: entry.fullKey,
@@ -89,12 +108,17 @@ export async function storeResponse(entry: {
     expiresAt,
     createdAt: now,
   };
-  if (isLocalMode) {
+  if (isLocal) {
     // NOT NULL columns that only exist in the sqlite DDL.
     values["orgId"] = entry.orgId;
     values["idempotencyKey"] = entry.idempotencyKey;
     values["requestHash"] = entry.requestHash;
   }
+  return values;
+}
+
+export async function storeResponse(entry: IdempotencyStoreEntry): Promise<void> {
+  const values = buildIdempotencyInsertValues(entry, isLocalMode);
 
   await db
     .insert(table)

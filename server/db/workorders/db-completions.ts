@@ -25,13 +25,15 @@ import { logger } from "../../utils/logger";
  * closeout wizard's Zod validation already (#22).
  */
 function narrowPartsUsed(value: unknown): PartsUsedEntry[] | null {
-  if (value === null || value === undefined) {return null;}
+  if (value === null || value === undefined) {
+    return null;
+  }
   const parsed = partsUsedSchema.safeParse(value);
   if (!parsed.success) {
     logger.warn(
       "DbWorkOrderCompletions",
       "Discarding malformed work_order_completions.parts_used JSONB",
-      { issues: parsed.error.issues.slice(0, 3) },
+      { issues: parsed.error.issues.slice(0, 3) }
     );
     return null;
   }
@@ -48,7 +50,12 @@ export class DbWorkOrderCompletions {
   ): Promise<WorkOrderCompletion> {
     const [newCompletion] = await db
       .insert(workOrderCompletions)
-      .values({ id: randomUUID(), ...completion, createdAt: new Date(), updatedAt: new Date() } as never)
+      .values({
+        id: randomUUID(),
+        ...completion,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as never)
       .returning();
     if (!newCompletion) {
       throw new Error("Failed to create work order completion");
@@ -73,7 +80,10 @@ export class DbWorkOrderCompletions {
     }
     const rows =
       conditions.length > 0
-        ? await db.select().from(workOrderCompletions).where(and(...conditions))
+        ? await db
+            .select()
+            .from(workOrderCompletions)
+            .where(and(...conditions))
         : await db.select().from(workOrderCompletions);
     return rows.map(narrowCompletion);
   }

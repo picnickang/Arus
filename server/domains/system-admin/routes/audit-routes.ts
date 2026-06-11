@@ -19,9 +19,10 @@ const paginationSchema = z.object({
   offset: z.coerce.number().int().nonnegative().optional(),
 });
 
-function parsePaginationQuery(
-  query: Request["query"]
-): { limit?: number | undefined; offset?: number | undefined } {
+function parsePaginationQuery(query: Request["query"]): {
+  limit?: number | undefined;
+  offset?: number | undefined;
+} {
   const parsed = paginationSchema.safeParse({
     limit: query["limit"],
     offset: query["offset"],
@@ -77,14 +78,10 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     generalApiRateLimit,
     auditAdminAction("VIEW_USER_AUDIT_EVENTS"),
     withErrorHandling("fetch user audit events", async (req: Request, res: Response) => {
-      const { userId = '' } = req.params;
+      const { userId = "" } = req.params;
       const { orgId } = req.query;
       const page = parsePaginationQuery(req.query);
-      const events = await dbSystemAdminStorage.getAuditEventsByUser(
-        userId,
-        orgId as string,
-        page
-      );
+      const events = await dbSystemAdminStorage.getAuditEventsByUser(userId, orgId as string, page);
       res.json({ events, pagination: { ...page, count: events.length } });
     })
   );
@@ -95,7 +92,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     generalApiRateLimit,
     auditAdminAction("VIEW_RESOURCE_AUDIT_EVENTS"),
     withErrorHandling("fetch resource audit events", async (req: Request, res: Response) => {
-      const { resourceType = '', resourceId = '' } = req.params;
+      const { resourceType = "", resourceId = "" } = req.params;
       const { orgId } = req.query;
       const page = parsePaginationQuery(req.query);
       const events = await dbSystemAdminStorage.getAuditEventsByResource(

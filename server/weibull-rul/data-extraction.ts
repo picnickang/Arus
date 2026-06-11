@@ -20,7 +20,9 @@ export async function getEquipmentLifeData(
       .sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
 
     if (equipmentWorkOrders.length < 2) {
-      logger.info(`[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`);
+      logger.info(
+        `[Weibull RUL] Insufficient failure history for ${equipmentId} (${equipmentWorkOrders.length} events, need ≥2)`
+      );
       return [];
     }
 
@@ -53,17 +55,24 @@ export async function getEquipmentLifeData(
       lastEventTime = eventTime;
     }
 
-    logger.info(`[Weibull RUL] Extracted ${lifeData.length} time-between-failures samples for ${equipmentId}`);
+    logger.info(
+      `[Weibull RUL] Extracted ${lifeData.length} time-between-failures samples for ${equipmentId}`
+    );
     return lifeData;
   } catch (error) {
-    logger.error(`[Weibull RUL] Error retrieving failure history for ${equipmentId}:`, undefined, error);
+    logger.error(
+      `[Weibull RUL] Error retrieving failure history for ${equipmentId}:`,
+      undefined,
+      error
+    );
     return [];
   }
 }
 
-export function extractDegradationFromWorkOrder(
-  workOrder: { priority?: string | number | null; description?: string | null }
-): number {
+export function extractDegradationFromWorkOrder(workOrder: {
+  priority?: string | number | null;
+  description?: string | null;
+}): number {
   const priorityWeight = {
     low: 0.2,
     normal: 0.4,
@@ -153,7 +162,9 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
   try {
     const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
-    const commDateRaw = (equipmentInfo as Record<string, unknown> | undefined)?.['commissioningDate'];
+    const commDateRaw = (equipmentInfo as Record<string, unknown> | undefined)?.[
+      "commissioningDate"
+    ];
     if (commDateRaw) {
       const commissioningDate = new Date(commDateRaw as string | number | Date);
       const now = new Date();

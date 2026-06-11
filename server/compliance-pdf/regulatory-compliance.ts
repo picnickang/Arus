@@ -29,7 +29,9 @@ export async function generateRegulatoryCompliancePDF(
   equipmentIds: string[],
   period: ReportingPeriod
 ): Promise<Uint8Array> {
-  logger.info(`[Compliance PDF] Generating regulatory compliance for framework: ${regulatoryFramework}`);
+  logger.info(
+    `[Compliance PDF] Generating regulatory compliance for framework: ${regulatoryFramework}`
+  );
 
   const standardCodes = FRAMEWORK_STANDARDS[regulatoryFramework] || ["ABS-A1-MACHINERY"];
 

@@ -56,7 +56,7 @@ const logger = createLogger("Middleware:DbContext");
 // explicit flag opts in so single-tenant deployments don't pay the
 // per-request transaction cost.
 const ENABLE_PG_RLS_CONTEXT =
-  process.env['ENABLE_PG_RLS_CONTEXT'] === "true" || requireTenantAuth();
+  process.env["ENABLE_PG_RLS_CONTEXT"] === "true" || requireTenantAuth();
 
 const ORG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -122,7 +122,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
     // Skip silently rather than failing the request: repository-level
     // WHERE filters remain authoritative in that mode.
     logger.warn(
-      `[DB_CONTEXT] Pinned context unavailable (driver=${connectionMode}); skipping for ${req.path}`,
+      `[DB_CONTEXT] Pinned context unavailable (driver=${connectionMode}); skipping for ${req.path}`
     );
     next();
     return;
@@ -140,13 +140,15 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
 
     let released = false;
     const release = () => {
-      if (released) {return;}
+      if (released) {
+        return;
+      }
       released = true;
       try {
         client.release();
       } catch (err) {
         logger.warn(
-          `[DB_CONTEXT] client.release() failed: ${err instanceof Error ? err.message : String(err)}`,
+          `[DB_CONTEXT] client.release() failed: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     };
@@ -183,7 +185,9 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
 
     let finalized = false;
     const finalize = async () => {
-      if (finalized) {return;}
+      if (finalized) {
+        return;
+      }
       finalized = true;
       try {
         // 5xx and aborted-mid-flight requests roll back so partial
@@ -197,7 +201,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
         }
       } catch (err) {
         logger.warn(
-          `[DB_CONTEXT] tx finalize failed: ${err instanceof Error ? err.message : String(err)}`,
+          `[DB_CONTEXT] tx finalize failed: ${err instanceof Error ? err.message : String(err)}`
         );
       } finally {
         release();
@@ -225,7 +229,7 @@ export function withDatabaseContext(req: Request, res: Response, next: NextFunct
 export async function setDatabaseContext(
   _req: Request,
   _res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   next();
 }
@@ -233,7 +237,7 @@ export async function setDatabaseContext(
 export async function resetDatabaseContext(
   _req: Request,
   _res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   next();
 }
@@ -258,7 +262,7 @@ export async function withTenantContext<T>(orgId: string, fn: () => Promise<T>):
   }
   if (!sharedPool || !supportsPinnedConnection) {
     throw new Error(
-      `withTenantContext requires a pooled Postgres driver (current: ${connectionMode})`,
+      `withTenantContext requires a pooled Postgres driver (current: ${connectionMode})`
     );
   }
 

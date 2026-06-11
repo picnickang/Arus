@@ -32,7 +32,7 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
       args: [input.orgId],
     });
 
-    const prevHash = (latestResult.rows[0]?.['hash'] as string | null) ?? null;
+    const prevHash = (latestResult.rows[0]?.["hash"] as string | null) ?? null;
 
     const hash = computeAuditHash(
       prevHash,

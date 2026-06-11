@@ -62,7 +62,9 @@ export class TelemetrySchemaRegistryAdapter {
       schemaName: input.schemaName,
     });
 
-    if (!inserted) {throw new Error("Failed to register schema");}
+    if (!inserted) {
+      throw new Error("Failed to register schema");
+    }
     return inserted;
   }
 
@@ -186,25 +188,25 @@ export class TelemetrySchemaRegistryAdapter {
           break;
         case "range":
           if (typeof value === "number") {
-            const min = (rule.params?.['min'] as number) ?? -Infinity;
-            const max = (rule.params?.['max'] as number) ?? Infinity;
+            const min = (rule.params?.["min"] as number) ?? -Infinity;
+            const max = (rule.params?.["max"] as number) ?? Infinity;
             if (value < min || value > max) {
               errors.push(`Field ${rule.field} must be between ${min} and ${max}`);
             }
           }
           break;
         case "regex":
-          if (typeof value === "string" && rule.params?.['pattern']) {
-            const regex = new RegExp(rule.params['pattern'] as string);
+          if (typeof value === "string" && rule.params?.["pattern"]) {
+            const regex = new RegExp(rule.params["pattern"] as string);
             if (!regex.test(value)) {
               errors.push(`Field ${rule.field} does not match pattern`);
             }
           }
           break;
         case "enum":
-          if (rule.params?.['values'] && !(rule.params['values'] as unknown[]).includes(value)) {
+          if (rule.params?.["values"] && !(rule.params["values"] as unknown[]).includes(value)) {
             errors.push(
-              `Field ${rule.field} must be one of: ${(rule.params['values'] as unknown[]).join(", ")}`
+              `Field ${rule.field} must be one of: ${(rule.params["values"] as unknown[]).join(", ")}`
             );
           }
           break;

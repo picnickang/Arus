@@ -257,11 +257,7 @@ export const ADMIN_CAPABLE_ROLE_KEYS = [
  * `admin` access level, which reaches the admin hub but is otherwise hub-gated
  * to its explicit allow-list and cannot edit permissions.
  */
-export const SUPER_ADMIN_ROLE_KEYS = [
-  "super_admin",
-  "system_admin",
-  "company_admin",
-] as const;
+export const SUPER_ADMIN_ROLE_KEYS = ["super_admin", "system_admin", "company_admin"] as const;
 
 /* ------------------------------------------------------------------ *
  * Curated access levels (user-facing permission roles)
@@ -312,7 +308,9 @@ export const ACCESS_LEVEL_KEYS = ACCESS_LEVELS.map((a) => a.key);
 export const LEAST_PRIVILEGED_ACCESS_LEVEL = "viewer";
 
 export function isAccessLevelKey(value: string | null | undefined): boolean {
-  if (value == null) {return false;}
+  if (value == null) {
+    return false;
+  }
   return ACCESS_LEVEL_KEYS.includes(value.trim().toLowerCase());
 }
 
@@ -344,8 +342,13 @@ export const DEFAULT_RANK_TO_ACCESS_LEVEL: Record<string, string> = {
 
 /** Normalise an arbitrary rank/role label into a snake_case lookup key. */
 export function normalizeRankKey(rank: string | null | undefined): string {
-  if (rank == null) {return "";}
-  return rank.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (rank == null) {
+    return "";
+  }
+  return rank
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 }
 
 /**
@@ -354,10 +357,12 @@ export function normalizeRankKey(rank: string | null | undefined): string {
  */
 export function defaultAccessLevelForRank(
   rank: string | null | undefined,
-  overrides?: Record<string, string>,
+  overrides?: Record<string, string>
 ): string {
   const key = normalizeRankKey(rank);
-  if (!key) {return LEAST_PRIVILEGED_ACCESS_LEVEL;}
+  if (!key) {
+    return LEAST_PRIVILEGED_ACCESS_LEVEL;
+  }
   const mapped = overrides?.[key] ?? DEFAULT_RANK_TO_ACCESS_LEVEL[key];
   return mapped ?? "crew_member";
 }
@@ -413,7 +418,9 @@ export function isHubId(value: string): value is HubId {
 
 /** A super-admin role is always a full-hub admin and cannot be edited/revoked. */
 export function isSuperAdminRole(role: string | null | undefined): boolean {
-  if (role == null) {return false;}
+  if (role == null) {
+    return false;
+  }
   const key = role.trim().toLowerCase();
   return SUPER_ADMIN_ROLE_KEY_SET.has(key);
 }
@@ -429,14 +436,18 @@ export function isPermissionEditorRole(role: string | null | undefined): boolean
 
 /** Whether a role is in the lockout-protected admin-capable set (super OR admin). */
 export function isAdminCapableRole(role: string | null | undefined): boolean {
-  if (role == null) {return false;}
+  if (role == null) {
+    return false;
+  }
   const key = role.trim().toLowerCase();
   return ADMIN_CAPABLE_ROLE_KEY_SET.has(key);
 }
 
 /** Whether a role is eligible to be granted hub-admin access. */
 export function isAdminGrantEligibleRole(role: string | null | undefined): boolean {
-  if (role == null) {return false;}
+  if (role == null) {
+    return false;
+  }
   const key = role.trim().toLowerCase();
   return ADMIN_GRANT_ELIGIBLE_ROLE_KEY_SET.has(key);
 }
@@ -447,11 +458,15 @@ export function isAdminGrantEligibleRole(role: string | null | undefined): boole
  *   - an empty result or a full set both collapse to `null` (= all hubs).
  */
 export function normalizeHubAccess(
-  hubAccess: readonly string[] | null | undefined,
+  hubAccess: readonly string[] | null | undefined
 ): string[] | null {
-  if (!hubAccess) {return null;}
+  if (!hubAccess) {
+    return null;
+  }
   const valid = [...new Set(hubAccess.filter(isHubId))];
-  if (valid.length === 0 || valid.length === HUB_IDS.length) {return null;}
+  if (valid.length === 0 || valid.length === HUB_IDS.length) {
+    return null;
+  }
   return valid;
 }
 
@@ -459,12 +474,13 @@ export function normalizeHubAccess(
  * Effective hub-admin flag for a user given their role name(s) and stored flag.
  * Super-admins are always-on; everyone else uses the stored grant.
  */
-export function resolveHubAdmin(
-  roleNames: readonly string[],
-  storedHubAdmin: boolean,
-): boolean {
-  if (roleNames.some((r) => isSuperAdminRole(r))) {return true;}
-  if (!storedHubAdmin) {return false;}
+export function resolveHubAdmin(roleNames: readonly string[], storedHubAdmin: boolean): boolean {
+  if (roleNames.some((r) => isSuperAdminRole(r))) {
+    return true;
+  }
+  if (!storedHubAdmin) {
+    return false;
+  }
   // Re-check eligibility at resolution time so a user demoted below the
   // grant-eligible tier (manager or above) loses effective hub-admin even if
   // the stored grant flag was never explicitly revoked on demotion.
@@ -477,9 +493,11 @@ export function resolveHubAdmin(
  */
 export function resolveHubAccess(
   roleNames: readonly string[],
-  storedHubAccess: readonly string[] | null,
+  storedHubAccess: readonly string[] | null
 ): string[] | null {
-  if (roleNames.some((r) => isSuperAdminRole(r))) {return null;}
+  if (roleNames.some((r) => isSuperAdminRole(r))) {
+    return null;
+  }
   return normalizeHubAccess(storedHubAccess);
 }
 
@@ -510,10 +528,14 @@ export interface RoleHubFields {
  */
 export function normalizeRoleHubAccess(
   hubAdmin: boolean,
-  hubAccess: readonly string[] | null | undefined,
+  hubAccess: readonly string[] | null | undefined
 ): { hubAdmin: boolean; hubAccess: string[] | null } {
-  if (!hubAdmin) {return { hubAdmin: false, hubAccess: null };}
-  if (hubAccess == null) {return { hubAdmin: true, hubAccess: null };}
+  if (!hubAdmin) {
+    return { hubAdmin: false, hubAccess: null };
+  }
+  if (hubAccess == null) {
+    return { hubAdmin: true, hubAccess: null };
+  }
   const valid = [...new Set(hubAccess.filter(isHubId))];
   if (valid.length === HUB_IDS.length) {
     return { hubAdmin: true, hubAccess: null };
@@ -530,11 +552,17 @@ export function normalizeRoleHubAccess(
  */
 export function resolveEffectiveHubAdmin(
   roles: readonly RoleHubFields[],
-  userStoredHubAdmin: boolean,
+  userStoredHubAdmin: boolean
 ): boolean {
-  if (roles.some((r) => isSuperAdminRole(r.name))) {return true;}
-  if (roles.some((r) => r.hubAdmin && isAdminGrantEligibleRole(r.name))) {return true;}
-  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) {return true;}
+  if (roles.some((r) => isSuperAdminRole(r.name))) {
+    return true;
+  }
+  if (roles.some((r) => r.hubAdmin && isAdminGrantEligibleRole(r.name))) {
+    return true;
+  }
+  if (userStoredHubAdmin && roles.some((r) => isAdminGrantEligibleRole(r.name))) {
+    return true;
+  }
   return false;
 }
 
@@ -550,20 +578,30 @@ export function resolveEffectiveHubAdmin(
 export function resolveEffectiveHubAccess(
   roles: readonly RoleHubFields[],
   userStoredHubAdmin: boolean,
-  userStoredHubAccess: readonly string[] | null,
+  userStoredHubAccess: readonly string[] | null
 ): string[] | null {
-  if (roles.some((r) => isSuperAdminRole(r.name))) {return null;}
-  if (!resolveEffectiveHubAdmin(roles, userStoredHubAdmin)) {return null;}
+  if (roles.some((r) => isSuperAdminRole(r.name))) {
+    return null;
+  }
+  if (!resolveEffectiveHubAdmin(roles, userStoredHubAdmin)) {
+    return null;
+  }
 
   const granted = new Set<string>();
   let anyFull = false;
 
   for (const r of roles) {
-    if (!r.hubAdmin || !isAdminGrantEligibleRole(r.name)) {continue;}
+    if (!r.hubAdmin || !isAdminGrantEligibleRole(r.name)) {
+      continue;
+    }
     if (r.hubAccess == null) {
       anyFull = true;
     } else {
-      for (const h of r.hubAccess) {if (isHubId(h)) {granted.add(h);}}
+      for (const h of r.hubAccess) {
+        if (isHubId(h)) {
+          granted.add(h);
+        }
+      }
     }
   }
 
@@ -571,13 +609,21 @@ export function resolveEffectiveHubAccess(
     if (userStoredHubAccess == null) {
       anyFull = true;
     } else {
-      for (const h of userStoredHubAccess) {if (isHubId(h)) {granted.add(h);}}
+      for (const h of userStoredHubAccess) {
+        if (isHubId(h)) {
+          granted.add(h);
+        }
+      }
     }
   }
 
-  if (anyFull) {return null;}
+  if (anyFull) {
+    return null;
+  }
   const valid = [...granted].filter(isHubId);
-  if (valid.length === HUB_IDS.length) {return null;}
+  if (valid.length === HUB_IDS.length) {
+    return null;
+  }
   return valid;
 }
 
@@ -654,14 +700,26 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
       "active_alerts",
       "upcoming_maintenance",
     ],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts", "purchase_requests", "crew_tasks"],
+    taskSources: [
+      "work_orders",
+      "maintenance_schedules",
+      "alerts",
+      "purchase_requests",
+      "crew_tasks",
+    ],
     visibilityScope: "vessel",
     quickActions: ["create_work_order"],
     filters: {},
     highImpactQuestions: {},
   },
   technician: {
-    widgets: ["current_vessel", "shift_status", "user_tasks", "upcoming_maintenance", "active_alerts"],
+    widgets: [
+      "current_vessel",
+      "shift_status",
+      "user_tasks",
+      "upcoming_maintenance",
+      "active_alerts",
+    ],
     taskSources: ["work_orders", "maintenance_schedules", "crew_tasks"],
     visibilityScope: "self",
     quickActions: ["complete_work_order"],
@@ -670,7 +728,13 @@ export const DEFAULT_ROLE_DASHBOARD_CONFIGS: Record<string, RoleDashboardConfig>
   },
   vessel_master: {
     widgets: [...DASHBOARD_WIDGETS],
-    taskSources: ["work_orders", "maintenance_schedules", "alerts", "service_requests", "crew_tasks"],
+    taskSources: [
+      "work_orders",
+      "maintenance_schedules",
+      "alerts",
+      "service_requests",
+      "crew_tasks",
+    ],
     visibilityScope: "vessel",
     quickActions: [],
     filters: {},
@@ -750,7 +814,9 @@ export const ALARM_CAPABILITY_WIDGETS: readonly WidgetKey[] = [
 
 /** Most-permissive scope among the given scopes, or null when the list is empty. */
 export function maxScope(scopes: VisibilityScope[]): VisibilityScope | null {
-  if (scopes.length === 0) {return null;}
+  if (scopes.length === 0) {
+    return null;
+  }
   let rank = -1;
   for (const scope of scopes) {
     rank = Math.max(rank, VISIBILITY_SCOPE_RANK[scope]);
@@ -765,10 +831,10 @@ export function maxScope(scopes: VisibilityScope[]): VisibilityScope | null {
  */
 export function scopeForSource(
   configs: RoleDashboardConfig[],
-  source: TaskSourceKey,
+  source: TaskSourceKey
 ): VisibilityScope | null {
   return maxScope(
-    configs.filter((c) => c.taskSources.includes(source)).map((c) => c.visibilityScope),
+    configs.filter((c) => c.taskSources.includes(source)).map((c) => c.visibilityScope)
   );
 }
 
@@ -784,9 +850,9 @@ export function scopeForAlarms(configs: RoleDashboardConfig[]): VisibilityScope 
       .filter(
         (c) =>
           c.taskSources.includes("alerts") ||
-          c.widgets.some((w) => ALARM_CAPABILITY_WIDGETS.includes(w)),
+          c.widgets.some((w) => ALARM_CAPABILITY_WIDGETS.includes(w))
       )
-      .map((c) => c.visibilityScope),
+      .map((c) => c.visibilityScope)
   );
 }
 
@@ -799,8 +865,12 @@ export function scopeForAlarms(configs: RoleDashboardConfig[]): VisibilityScope 
  * list collapses to the safe-minimal config.
  */
 export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashboardConfig {
-  if (configs.length === 0) {return safeMinimalDashboardConfig();}
-  if (configs.length === 1) {return configs[0] ?? safeMinimalDashboardConfig();}
+  if (configs.length === 0) {
+    return safeMinimalDashboardConfig();
+  }
+  if (configs.length === 1) {
+    return configs[0] ?? safeMinimalDashboardConfig();
+  }
 
   const widgetSet = new Set<WidgetKey>();
   const taskSet = new Set<TaskSourceKey>();
@@ -813,14 +883,24 @@ export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashb
   let scopeRank = VISIBILITY_SCOPE_RANK.self;
 
   for (const config of configs) {
-    for (const widget of config.widgets) {widgetSet.add(widget);}
-    for (const source of config.taskSources) {taskSet.add(source);}
-    for (const action of config.quickActions) {quickActions.add(action);}
-    for (const widget of config.pinnedWidgets ?? []) {pinnedSet.add(widget);}
+    for (const widget of config.widgets) {
+      widgetSet.add(widget);
+    }
+    for (const source of config.taskSources) {
+      taskSet.add(source);
+    }
+    for (const action of config.quickActions) {
+      quickActions.add(action);
+    }
+    for (const widget of config.pinnedWidgets ?? []) {
+      pinnedSet.add(widget);
+    }
     filters = { ...filters, ...config.filters };
     highImpactQuestions = { ...highImpactQuestions, ...config.highImpactQuestions };
     widgetSettings = { ...widgetSettings, ...(config.widgetSettings ?? {}) };
-    if (landingRoute === undefined && config.landingRoute) {landingRoute = config.landingRoute;}
+    if (landingRoute === undefined && config.landingRoute) {
+      landingRoute = config.landingRoute;
+    }
     scopeRank = Math.max(scopeRank, VISIBILITY_SCOPE_RANK[config.visibilityScope]);
   }
 
@@ -859,18 +939,20 @@ export function mergeDashboardConfigs(configs: RoleDashboardConfig[]): RoleDashb
  * offline/optimistic rendering.
  */
 export interface UserDashboardPrefsInput {
-  hiddenWidgets?: string[];
-  widgetOrder?: string[];
-  widgetSettings?: Record<string, Record<string, JsonValue>>;
-  landingRoute?: string;
+  hiddenWidgets?: string[] | undefined;
+  widgetOrder?: string[] | undefined;
+  widgetSettings?: Record<string, Record<string, JsonValue>> | undefined;
+  landingRoute?: string | undefined;
 }
 
 export function applyUserDashboardPrefs(
   config: RoleDashboardConfig,
   prefs: UserDashboardPrefsInput | null | undefined,
-  allowedLandingRoutes?: readonly string[],
+  allowedLandingRoutes?: readonly string[]
 ): RoleDashboardConfig {
-  if (!prefs) {return config;}
+  if (!prefs) {
+    return config;
+  }
 
   const pinned = new Set<WidgetKey>(config.pinnedWidgets ?? []);
   const granted = new Set<WidgetKey>(config.widgets);
@@ -886,14 +968,18 @@ export function applyUserDashboardPrefs(
     const ordered: WidgetKey[] = [];
     const seen = new Set<WidgetKey>();
     for (const id of prefs.widgetOrder) {
-      if (!isWidgetKey(id)) {continue;}
+      if (!isWidgetKey(id)) {
+        continue;
+      }
       if (granted.has(id) && visibleSet.has(id) && !seen.has(id)) {
         ordered.push(id);
         seen.add(id);
       }
     }
     for (const w of visible) {
-      if (!seen.has(w)) {ordered.push(w);}
+      if (!seen.has(w)) {
+        ordered.push(w);
+      }
     }
     visible = ordered;
   }
@@ -904,7 +990,9 @@ export function applyUserDashboardPrefs(
     const survivors = new Set<WidgetKey>(visible);
     const merged: Record<string, Record<string, JsonValue>> = { ...(config.widgetSettings ?? {}) };
     for (const [widgetId, settings] of Object.entries(prefs.widgetSettings)) {
-      if (!isWidgetKey(widgetId) || !survivors.has(widgetId)) {continue;}
+      if (!isWidgetKey(widgetId) || !survivors.has(widgetId)) {
+        continue;
+      }
       merged[widgetId] = { ...(merged[widgetId] ?? {}), ...settings };
     }
     widgetSettings = merged;
@@ -951,19 +1039,84 @@ export interface ProtectedAlarmTypeSeed {
 }
 
 export const PROTECTED_ALARM_TYPES: ProtectedAlarmTypeSeed[] = [
-  { key: "fire_alarm", displayName: "Fire Alarm", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "man_overboard", displayName: "Man Overboard", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "abandon_vessel", displayName: "Abandon Vessel", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "medical_emergency", displayName: "Medical Emergency", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "collision_grounding", displayName: "Collision / Grounding", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "flooding_water_ingress", displayName: "Flooding / Water Ingress", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "engine_room_emergency", displayName: "Engine Room Emergency", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "security_threat", displayName: "Security Threat", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "gas_leak", displayName: "Gas Leak", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "machinery_emergency", displayName: "Machinery Emergency", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "evacuation", displayName: "Evacuation", defaultSeverity: "emergency", requiresAcknowledgement: true },
-  { key: "muster_alarm", displayName: "Muster Alarm", defaultSeverity: "critical", requiresAcknowledgement: true },
-  { key: "general_emergency", displayName: "General Emergency", defaultSeverity: "emergency", requiresAcknowledgement: true },
+  {
+    key: "fire_alarm",
+    displayName: "Fire Alarm",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "man_overboard",
+    displayName: "Man Overboard",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "abandon_vessel",
+    displayName: "Abandon Vessel",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "medical_emergency",
+    displayName: "Medical Emergency",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "collision_grounding",
+    displayName: "Collision / Grounding",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "flooding_water_ingress",
+    displayName: "Flooding / Water Ingress",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "engine_room_emergency",
+    displayName: "Engine Room Emergency",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "security_threat",
+    displayName: "Security Threat",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "gas_leak",
+    displayName: "Gas Leak",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "machinery_emergency",
+    displayName: "Machinery Emergency",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "evacuation",
+    displayName: "Evacuation",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "muster_alarm",
+    displayName: "Muster Alarm",
+    defaultSeverity: "critical",
+    requiresAcknowledgement: true,
+  },
+  {
+    key: "general_emergency",
+    displayName: "General Emergency",
+    defaultSeverity: "emergency",
+    requiresAcknowledgement: true,
+  },
 ];
 
 export const PROTECTED_ALARM_TYPE_KEYS = PROTECTED_ALARM_TYPES.map((t) => t.key);

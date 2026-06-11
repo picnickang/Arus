@@ -149,10 +149,16 @@ export class DataReconciliationService {
               logger.info(`[Reconciliation] Running scheduled reconciliation for org: ${orgId}`);
               const report = await this.runReconciliation(orgId);
               if (report.issuesDetected > 0) {
-                logger.warn(`[Reconciliation] Detected ${report.issuesDetected} issues for org: ${orgId}`);
+                logger.warn(
+                  `[Reconciliation] Detected ${report.issuesDetected} issues for org: ${orgId}`
+                );
                 const criticalIssues = report.issues.filter((i) => i.severity === "critical");
                 if (criticalIssues.length > 0) {
-                  logger.error(`[Reconciliation] CRITICAL: ${criticalIssues.length} critical issues detected:`, undefined, criticalIssues.map((i) => ({ type: i.type, message: i.message })));
+                  logger.error(
+                    `[Reconciliation] CRITICAL: ${criticalIssues.length} critical issues detected:`,
+                    undefined,
+                    criticalIssues.map((i) => ({ type: i.type, message: i.message }))
+                  );
                 }
               }
             }

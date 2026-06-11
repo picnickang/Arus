@@ -75,9 +75,7 @@ export function registerComplianceReportRoutes(
               .filter((s) => s.status === "scheduled" && new Date(s.scheduledDate) < new Date())
               .slice(0, 10),
             upcoming: maintenanceSchedules
-              .filter(
-                (s) => s.status === "scheduled" && new Date(s.scheduledDate) >= new Date()
-              )
+              .filter((s) => s.status === "scheduled" && new Date(s.scheduledDate) >= new Date())
               .slice(0, 10),
           },
         };

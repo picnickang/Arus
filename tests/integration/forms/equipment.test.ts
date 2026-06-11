@@ -36,9 +36,7 @@ describe("Equipment forms — CRUD + propagation", () => {
           createdEquipmentId,
         ])
         .catch(() => {});
-      await pool
-        .query("DELETE FROM equipment WHERE id=$1", [createdEquipmentId])
-        .catch(() => {});
+      await pool.query("DELETE FROM equipment WHERE id=$1", [createdEquipmentId]).catch(() => {});
     }
     await cleanupByRunId(RUN_ID, ["equipment", "equipment_decommission_events"]);
     // pool is shared via _helpers; do not end here.
@@ -70,7 +68,7 @@ describe("Equipment forms — CRUD + propagation", () => {
     expect(status).toBe(200);
     const items = Array.isArray(data)
       ? (data as Array<{ id: string; vesselId?: string; name?: string }>)
-      : ((data as { items?: Array<{ id: string }> }).items ?? []);
+      : ((data as { items?: Array<{ id: string; vesselId?: string; name?: string }> }).items ?? []);
     const found = items.find((e) => e.id === createdEquipmentId);
     expect(found).toBeTruthy();
     expect(found?.name).toContain(RUN_ID);
@@ -169,7 +167,6 @@ describe("Equipment forms — CRUD + propagation", () => {
     // hard-delete path can throw on FK cascade — it's flagged as a server
     // resilience gap (follow-up #61), not a propagation bug.
     if (status === 500) {
-
       console.warn(
         "SKIP: DELETE /api/equipment returned 500 (likely FK cascade) — see follow-up #61. body:",
         JSON.stringify(data).slice(0, 200)
@@ -186,18 +183,16 @@ describe("Equipment forms — CRUD + propagation", () => {
       const found = items.find((e) => e.id === createdEquipmentId);
       // Equipment may be soft-deleted (is_active=false) but still appear in the
       // unfiltered list; the contract is that subsequent gets work.
-      const detail = await api(
-        "GET",
-        `/api/equipment/${createdEquipmentId}`
-      );
+      const detail = await api("GET", `/api/equipment/${createdEquipmentId}`);
       expect([200, 404]).toContain(detail.status);
       // If list still contains it, it must be inactive
       if (found) {
-        const { rows } = await pool.query(
-          `SELECT is_active FROM equipment WHERE id=$1`,
-          [createdEquipmentId]
-        );
-        if (rows.length) {expect(rows[0].is_active).toBe(false);}
+        const { rows } = await pool.query(`SELECT is_active FROM equipment WHERE id=$1`, [
+          createdEquipmentId,
+        ]);
+        if (rows.length) {
+          expect(rows[0].is_active).toBe(false);
+        }
       }
     }
   });

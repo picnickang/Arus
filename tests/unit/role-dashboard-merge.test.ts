@@ -55,17 +55,15 @@ describe("mergeDashboardConfigs", () => {
     // canonical widget order preserved, no duplicates
     expect(merged.widgets).toEqual(
       DASHBOARD_WIDGETS.filter((w) =>
-        ["current_vessel", "user_tasks", "safety_status", "safety_notices"].includes(w),
-      ),
+        ["current_vessel", "user_tasks", "safety_status", "safety_notices"].includes(w)
+      )
     );
     expect(merged.taskSources).toEqual(
       TASK_SOURCES.filter((s) =>
-        ["work_orders", "maintenance_schedules", "alerts", "insights"].includes(s),
-      ),
+        ["work_orders", "maintenance_schedules", "alerts", "insights"].includes(s)
+      )
     );
-    expect(merged.quickActions.sort()).toEqual(
-      ["complete_work_order", "view_analytics"].sort(),
-    );
+    expect(merged.quickActions.sort()).toEqual(["complete_work_order", "view_analytics"].sort());
     // self (0) vs fleet (3) -> fleet wins
     expect(merged.visibilityScope).toBe("fleet");
   });

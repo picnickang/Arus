@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -123,13 +124,13 @@ export function useReportsData() {
     pdf.setFontSize(12);
     const summary = reportData.summary;
     if (reportData.type === "maintenance-compliance") {
-      pdf.text(`Total Maintenance Records: ${summary['totalMaintenanceRecords']}`, 20, yPosition);
+      pdf.text(`Total Maintenance Records: ${summary["totalMaintenanceRecords"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Completed On Time: ${summary['completedOnTime']}`, 20, yPosition);
+      pdf.text(`Completed On Time: ${summary["completedOnTime"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Overdue: ${summary['overdue']}`, 20, yPosition);
+      pdf.text(`Overdue: ${summary["overdue"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Compliance Rate: ${summary['complianceRate']}%`, 20, yPosition);
+      pdf.text(`Compliance Rate: ${summary["complianceRate"]}%`, 20, yPosition);
       yPosition += 20;
       const maintenanceRecords = reportData.maintenanceRecords;
       if (maintenanceRecords && maintenanceRecords.length > 0) {
@@ -151,13 +152,13 @@ export function useReportsData() {
         });
       }
     } else if (reportData.type === "alert-response") {
-      pdf.text(`Total Alerts: ${summary['totalAlerts']}`, 20, yPosition);
+      pdf.text(`Total Alerts: ${summary["totalAlerts"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Acknowledged: ${summary['acknowledgedAlerts']}`, 20, yPosition);
+      pdf.text(`Acknowledged: ${summary["acknowledgedAlerts"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Critical Alerts: ${summary['criticalAlerts']}`, 20, yPosition);
+      pdf.text(`Critical Alerts: ${summary["criticalAlerts"]}`, 20, yPosition);
       yPosition += 10;
-      pdf.text(`Response Rate: ${summary['responseRate']}%`, 20, yPosition);
+      pdf.text(`Response Rate: ${summary["responseRate"]}%`, 20, yPosition);
       yPosition += 20;
       const alerts = reportData.alerts;
       if (alerts && alerts.length > 0) {
@@ -184,19 +185,11 @@ export function useReportsData() {
 
   const generateReport = async () => {
     try {
-      const response = await fetch("/api/reports/generate/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: reportType,
-          equipmentId: selectedEquipment === "all" ? undefined : selectedEquipment,
-          title: `Marine ${reportType === "compliance" ? "Compliance" : "Fleet"} Report - ${formatDateSgt(new Date())}`,
-        }),
+      const reportData = await apiRequest<ReportData>("POST", "/api/reports/generate/pdf", {
+        type: reportType,
+        equipmentId: selectedEquipment === "all" ? undefined : selectedEquipment,
+        title: `Marine ${reportType === "compliance" ? "Compliance" : "Fleet"} Report - ${formatDateSgt(new Date())}`,
       });
-      if (!response.ok) {
-        throw new Error("Failed to generate report");
-      }
-      const reportData = await response.json();
       generatePDF(reportData);
     } catch (error) {
       console.error("Report generation failed:", error);
@@ -213,11 +206,10 @@ export function useReportsData() {
         endDate: endDate.toISOString(),
         ...(selectedEquipment !== "all" && { equipmentId: selectedEquipment }),
       });
-      const response = await fetch(`/api/reports/compliance/${complianceType}?${params}`);
-      if (!response.ok) {
-        throw new Error("Failed to generate compliance report");
-      }
-      const reportData = await response.json();
+      const reportData = await apiRequest<ComplianceReportData>(
+        "GET",
+        `/api/reports/compliance/${complianceType}?${params}`
+      );
       generateCompliancePDF(reportData);
     } catch (error) {
       console.error("Compliance report generation failed:", error);

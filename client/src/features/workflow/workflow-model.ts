@@ -120,7 +120,7 @@ export const roleWorkflowGuidance: Record<string, WorkflowAction[]> = {
 
 export function getRoleWorkflowGuidance(roleId: string | null): WorkflowAction[] {
   if (!roleId) {
-    return roleWorkflowGuidance['default'] ?? [];
+    return roleWorkflowGuidance["default"] ?? [];
   }
-  return roleWorkflowGuidance[roleId] ?? roleWorkflowGuidance['default'] ?? [];
+  return roleWorkflowGuidance[roleId] ?? roleWorkflowGuidance["default"] ?? [];
 }

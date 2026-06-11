@@ -172,7 +172,7 @@ try {
   const downAtMs = startAtMs + CHAOS_AT_MS;
   const upAtMs = downAtMs + CHAOS_DURATION_MS;
   console.log(
-    `[chaos] schedule: start=${startAtMs} down=${downAtMs} up=${upAtMs} grace=${CHAOS_GRACE_MS}ms mode=${CHAOS_MODE}`,
+    `[chaos] schedule: start=${startAtMs} down=${downAtMs} up=${upAtMs} grace=${CHAOS_GRACE_MS}ms mode=${CHAOS_MODE}`
   );
 
   const emitter = spawn("node", ["tests/load/ws-fanout/emitter.mjs"], {

@@ -136,7 +136,9 @@ ${condensed}`;
     });
     return response.content || "No summary generated.";
   } catch (err) {
-    logger.warn("[ContextCompaction] Summary generation failed:", { details: err instanceof Error ? err.message : "unknown" });
+    logger.warn("[ContextCompaction] Summary generation failed:", {
+      details: err instanceof Error ? err.message : "unknown",
+    });
     return "";
   }
 }
@@ -158,9 +160,7 @@ export function buildCompactedMessages(
   contextSummary: string | null | undefined,
   compactionConfig: CompactionConfig
 ): LLMMessage[] {
-  const result: LLMMessage[] = [
-    { role: "system", content: buildSystemPrompt(customPrompt) },
-  ];
+  const result: LLMMessage[] = [{ role: "system", content: buildSystemPrompt(customPrompt) }];
 
   if (contextSummary && compactionConfig.enabled) {
     result.push({
@@ -238,12 +238,12 @@ export function buildCompactedMessages(
       let j = i + 1;
       while (j < mappedMessages.length) {
         const next = mappedMessages[j];
-        if (!next || next.role !== "tool") {break;}
+        if (!next || next.role !== "tool") {
+          break;
+        }
         group.push(next);
         const toolContent =
-          typeof next.content === "string"
-            ? next.content
-            : JSON.stringify(next.content || "");
+          typeof next.content === "string" ? next.content : JSON.stringify(next.content || "");
         groupTokens += estimateTokens(toolContent);
         j++;
       }
@@ -262,14 +262,18 @@ export function buildCompactedMessages(
   let startIdx = 0;
   while (startIdx < groups.length && trimFromFront > 0) {
     const g = groups[startIdx];
-    if (!g) {break;}
+    if (!g) {
+      break;
+    }
     trimFromFront -= g.tokens;
     startIdx++;
   }
 
   for (let k = startIdx; k < groups.length; k++) {
     const g = groups[k];
-    if (!g) {continue;}
+    if (!g) {
+      continue;
+    }
     result.push(...g.messages);
   }
 

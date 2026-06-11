@@ -54,7 +54,9 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       throw new Error(`Model ${data.modelId} not found`);
     }
     const [result] = await db.insert(modelVersions).values(data).returning();
-    if (!result) {throw new Error("Failed to create model version");}
+    if (!result) {
+      throw new Error("Failed to create model version");
+    }
     logger.info("[ModelRegistry] Version created", {
       orgId: data.orgId,
       modelId: data.modelId,
@@ -137,7 +139,9 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       })
       .returning();
 
-    if (!result) {throw new Error("Failed to create deployment");}
+    if (!result) {
+      throw new Error("Failed to create deployment");
+    }
     logger.info("[ModelRegistry] Model deployed", {
       orgId,
       modelId,
@@ -159,12 +163,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
     const [current] = await db
       .select()
       .from(modelDeployments)
-      .where(
-        and(
-          eq(modelDeployments.id, deploymentId),
-          eq(modelDeployments.orgId, orgId)
-        )
-      );
+      .where(and(eq(modelDeployments.id, deploymentId), eq(modelDeployments.orgId, orgId)));
 
     if (!current) {
       throw new Error(`Deployment ${deploymentId} not found`);
@@ -173,12 +172,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
     await db
       .update(modelDeployments)
       .set({ deploymentStatus: "deprecated", deprecatedAt: new Date() })
-      .where(
-        and(
-          eq(modelDeployments.id, deploymentId),
-          eq(modelDeployments.orgId, orgId)
-        )
-      );
+      .where(and(eq(modelDeployments.id, deploymentId), eq(modelDeployments.orgId, orgId)));
 
     const [previous] = await db
       .select()
@@ -197,14 +191,11 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
       const [restored] = await db
         .update(modelDeployments)
         .set({ deploymentStatus: "active", deprecatedAt: null })
-        .where(
-          and(
-            eq(modelDeployments.id, previous.id),
-            eq(modelDeployments.orgId, orgId)
-          )
-        )
+        .where(and(eq(modelDeployments.id, previous.id), eq(modelDeployments.orgId, orgId)))
         .returning();
-      if (!restored) {throw new Error("Failed to restore deployment");}
+      if (!restored) {
+        throw new Error("Failed to restore deployment");
+      }
       logger.info("[ModelRegistry] Rolled back", {
         orgId,
         deploymentId,

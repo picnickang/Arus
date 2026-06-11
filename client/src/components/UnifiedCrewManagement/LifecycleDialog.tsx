@@ -1,9 +1,18 @@
 import { useState } from "react";
+import type { Control } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -13,26 +22,17 @@ import {
 } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import {
-  useRetireCrew,
-  useCancelContract,
-  useReinstateCrew,
-  useDeleteFormerCrew,
-} from "@/features/crew";
-import {
   OFFBOARD_REASONS,
   composeOffboardingNote,
   previewRehireFromAction,
 } from "@/features/crew/lib/crewManagementUtils";
+import {
+  useLifecycleForm,
+  type LifecycleDialogState,
+} from "@/features/crew/hooks/useLifecycleForm";
+import type { LifecycleOffboardFormData } from "@/features/crew/lib/lifecycleSchema";
 
 export type LifecycleAction = "retire" | "cancel" | "reinstate" | "delete";
-
-interface LifecycleDialogState {
-  action: LifecycleAction;
-  crewId: string;
-  crewName: string;
-  vesselName?: string;
-  contractPenalty?: number;
-}
 
 const TITLES: Record<LifecycleAction, string> = {
   retire: "Retire Crew Member",
@@ -74,7 +74,7 @@ export function useLifecycleDialog() {
       crewId: string,
       crewName: string,
       vesselName?: string,
-      contractPenalty?: number,
+      contractPenalty?: number
     ) =>
       setState({
         action,
@@ -87,6 +87,49 @@ export function useLifecycleDialog() {
   };
 }
 
+type OffboardBooleanField =
+  | "handoverDocs"
+  | "returnPpe"
+  | "finalPayroll"
+  | "disableLogin"
+  | "removeVesselAccess"
+  | "removeDashboardAccess"
+  | "removeAdditionalRoles"
+  | "downgradePrimaryRole"
+  | "endDutyStatus";
+
+/** One checklist / safe-offboarding toggle, RHF-bound, testid kept on the Checkbox. */
+function OffboardCheckboxField({
+  control,
+  name,
+  label,
+  testId,
+}: {
+  control: Control<LifecycleOffboardFormData>;
+  name: OffboardBooleanField;
+  label: string;
+  testId: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="flex items-center space-x-2 space-y-0">
+          <FormControl>
+            <Checkbox
+              checked={field.value}
+              onCheckedChange={(checked) => field.onChange(checked === true)}
+              data-testid={testId}
+            />
+          </FormControl>
+          <FormLabel className="!mt-0 cursor-pointer text-sm font-normal">{label}</FormLabel>
+        </FormItem>
+      )}
+    />
+  );
+}
+
 export function LifecycleDialog({
   state,
   onClose,
@@ -95,47 +138,15 @@ export function LifecycleDialog({
   onClose: () => void;
 }) {
   const [notes, setNotes] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [exitNotes, setExitNotes] = useState("");
-  const [handoverDocs, setHandoverDocs] = useState(false);
-  const [returnPpe, setReturnPpe] = useState(false);
-  const [finalPayroll, setFinalPayroll] = useState(false);
-  const [applyPenalty, setApplyPenalty] = useState(false);
-  const [disableLogin, setDisableLogin] = useState(true);
-  const [removeVesselAccess, setRemoveVesselAccess] = useState(true);
-  const [removeDashboardAccess, setRemoveDashboardAccess] = useState(true);
-  const [removeAdditionalRoles, setRemoveAdditionalRoles] = useState(true);
-  const [downgradePrimaryRole, setDowngradePrimaryRole] = useState(true);
-  const [endDutyStatus, setEndDutyStatus] = useState(true);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
 
-  const retireMutation = useRetireCrew();
-  const cancelMutation = useCancelContract();
-  const reinstateMutation = useReinstateCrew();
-  const deleteMutation = useDeleteFormerCrew();
+  const { form, isPending, submitOffboard, reinstateMutation, deleteMutation } =
+    useLifecycleForm(state);
 
-  const isPending =
-    retireMutation.isPending ||
-    cancelMutation.isPending ||
-    reinstateMutation.isPending ||
-    deleteMutation.isPending;
-
+  // Form values reset on the next open (useLifecycleForm); only the non-form
+  // fields need clearing here.
   const reset = () => {
     setNotes("");
-    setEndDate("");
-    setReason("");
-    setExitNotes("");
-    setHandoverDocs(false);
-    setReturnPpe(false);
-    setFinalPayroll(false);
-    setApplyPenalty(false);
-    setDisableLogin(true);
-    setRemoveVesselAccess(true);
-    setRemoveDashboardAccess(true);
-    setRemoveAdditionalRoles(true);
-    setDowngradePrimaryRole(true);
-    setEndDutyStatus(true);
     setConfirmDeleteText("");
     onClose();
   };
@@ -143,69 +154,41 @@ export function LifecycleDialog({
   // Builds the structured exit summary saved as the lifecycle note so all the
   // offboarding context (final vessel, end date, reason, checklist, exit notes)
   // is preserved without a new backend field.
-  const composeOffboardingNotes = (): string | undefined =>
-    composeOffboardingNote({
-      reason,
-      endDate,
-      vesselName: state?.vesselName,
-      handoverDocs,
-      returnPpe,
-      finalPayroll,
-      exitNotes,
-    });
+  const onSubmitOffboard = (values: LifecycleOffboardFormData) =>
+    submitOffboard(
+      values,
+      composeOffboardingNote({
+        reason: values.reason,
+        endDate: values.endDate,
+        vesselName: state?.vesselName,
+        handoverDocs: values.handoverDocs,
+        returnPpe: values.returnPpe,
+        finalPayroll: values.finalPayroll,
+        exitNotes: values.exitNotes,
+      }),
+      reset
+    );
 
-  const handleAction = () => {
+  // Reinstate and the typed-confirm delete keep their pre-RHF handling.
+  const handleNonFormAction = () => {
     if (!state) {
       return;
     }
-    const { action, crewId } = state;
-    const onSuccess = reset;
-    switch (action) {
-      case "retire":
-        retireMutation.mutate(
-          {
-            crewId,
-            notes: composeOffboardingNotes(),
-            disableLogin,
-            removeVesselAccess,
-            removeDashboardAccess,
-            removeAdditionalRoles,
-            downgradePrimaryRole,
-            endDutyStatus,
-            preserveRecords: true,
-          },
-          { onSuccess },
-        );
-        break;
-      case "cancel":
-        cancelMutation.mutate(
-          {
-            crewId,
-            notes: composeOffboardingNotes(),
-            applyPenalty,
-            disableLogin,
-            removeVesselAccess,
-            removeDashboardAccess,
-            removeAdditionalRoles,
-            downgradePrimaryRole,
-            endDutyStatus,
-            preserveRecords: true,
-          },
-          { onSuccess }
-        );
-        break;
-      case "reinstate":
-        reinstateMutation.mutate({ crewId, notes: notes || undefined }, { onSuccess });
-        break;
-      case "delete":
-        deleteMutation.mutate(crewId, { onSuccess });
-        break;
+    if (state.action === "reinstate") {
+      reinstateMutation.mutate(
+        { crewId: state.crewId, notes: notes || undefined },
+        { onSuccess: reset }
+      );
+    } else if (state.action === "delete") {
+      deleteMutation.mutate(state.crewId, { onSuccess: reset });
     }
   };
 
   const isOffboarding = state?.action === "retire" || state?.action === "cancel";
   // Mirror the backend: a cancel persists `applyPenalty ? crew.contractPenalty : null`,
   // so ticking "apply penalty" with no configured penalty still resolves to Review.
+  const applyPenalty = form.watch("applyPenalty");
+  const removeDashboardAccess = form.watch("removeDashboardAccess");
   const effectivePenalty = applyPenalty ? (state?.contractPenalty ?? 0) : 0;
   const rehire = state ? previewRehireFromAction(state.action, effectivePenalty) : null;
 
@@ -229,10 +212,9 @@ export function LifecycleDialog({
             variant={
               state?.action === "delete" || state?.action === "cancel" ? "destructive" : "default"
             }
-            onClick={handleAction}
+            onClick={isOffboarding ? form.handleSubmit(onSubmitOffboard) : handleNonFormAction}
             disabled={
-              isPending ||
-              (state?.action === "delete" && confirmDeleteText !== state.crewName)
+              isPending || (state?.action === "delete" && confirmDeleteText !== state.crewName)
             }
             className="flex-1"
             data-testid="button-confirm-lifecycle"
@@ -246,229 +228,232 @@ export function LifecycleDialog({
         </div>
       }
     >
-      <div className="space-y-4">
-        {isOffboarding && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Final vessel</label>
-              <Input
-                value={state?.vesselName || "Unassigned"}
-                readOnly
-                className="bg-muted/40"
-                data-testid="text-offboard-vessel"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmitOffboard)} className="space-y-4">
+          {isOffboarding && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Final vessel</label>
+                <Input
+                  value={state?.vesselName || "Unassigned"}
+                  readOnly
+                  className="bg-muted/40"
+                  data-testid="text-offboard-vessel"
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel required>End date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} data-testid="input-offboard-end-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem className="space-y-1 sm:col-span-2">
+                    <FormLabel required>Reason</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-offboard-reason">
+                          <SelectValue placeholder="Select a reason" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {OFFBOARD_REASONS.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="offboard-end-date">
-                End date
-              </label>
-              <Input
-                id="offboard-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                data-testid="input-offboard-end-date"
+          )}
+          {state?.action === "reinstate" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes (optional)</label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes about this action..."
+                data-testid="input-lifecycle-notes"
               />
             </div>
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium">Reason</label>
-              <Select value={reason} onValueChange={setReason}>
-                <SelectTrigger data-testid="select-offboard-reason">
-                  <SelectValue placeholder="Select a reason" />
-                </SelectTrigger>
-                <SelectContent>
-                  {OFFBOARD_REASONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          )}
+          {state?.action === "cancel" && (
+            <FormField
+              control={form.control}
+              name="applyPenalty"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                      data-testid="checkbox-apply-penalty"
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0 cursor-pointer text-sm font-medium leading-none">
+                    Apply contract penalty (if configured)
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          )}
+          {isOffboarding && (
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-sm font-medium">Offboarding checklist</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="handoverDocs"
+                  label="Handed over documents"
+                  testId="checkbox-handover-docs"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="returnPpe"
+                  label="Returned PPE / access card"
+                  testId="checkbox-return-ppe"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="finalPayroll"
+                  label="Final payroll settled"
+                  testId="checkbox-final-payroll"
+                />
+              </div>
             </div>
-          </div>
-        )}
-        {state?.action === "reinstate" && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Notes (optional)</label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes about this action..."
-              data-testid="input-lifecycle-notes"
+          )}
+          {isOffboarding && (
+            <FormField
+              control={form.control}
+              name="exitNotes"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>Exit notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Handover summary, outstanding items, exit-interview notes..."
+                      data-testid="input-offboard-exit-notes"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        )}
-        {state?.action === "cancel" && (
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="applyPenalty"
-              checked={applyPenalty}
-              onCheckedChange={(checked) => setApplyPenalty(checked === true)}
-              data-testid="checkbox-apply-penalty"
-            />
-            <label
-              htmlFor="applyPenalty"
-              className="text-sm font-medium leading-none cursor-pointer"
+          )}
+          {isOffboarding && (
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-sm font-medium">Safe offboarding actions</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="disableLogin"
+                  label="Disable linked login"
+                  testId="checkbox-disable-login"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="removeVesselAccess"
+                  label="Remove vessel access"
+                  testId="checkbox-remove-vessel-access"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="removeDashboardAccess"
+                  label="Remove dashboard/admin access"
+                  testId="checkbox-remove-dashboard-access"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="removeAdditionalRoles"
+                  label="Remove additional roles"
+                  testId="checkbox-remove-additional-roles"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="downgradePrimaryRole"
+                  label="Downgrade primary role to viewer"
+                  testId="checkbox-downgrade-primary-role"
+                />
+                <OffboardCheckboxField
+                  control={form.control}
+                  name="endDutyStatus"
+                  label="End duty status"
+                  testId="checkbox-end-duty-status"
+                />
+                <label className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Checkbox checked disabled data-testid="checkbox-preserve-records" />
+                  <span>Preserve profile, history, documents, and alerts</span>
+                </label>
+              </div>
+            </div>
+          )}
+          {isOffboarding && (
+            <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+              <div className="text-sm">
+                <p className="font-medium">Rehire eligibility</p>
+                <p className="text-xs text-muted-foreground">
+                  Derived from this action and any contract penalty.
+                </p>
+              </div>
+              {rehire && (
+                <Badge
+                  className={REHIRE_BADGE_CLASS[rehire.key]}
+                  data-testid="badge-rehire-eligibility"
+                >
+                  {rehire.label}
+                </Badge>
+              )}
+            </div>
+          )}
+          {isOffboarding && removeDashboardAccess && (
+            <p
+              className="text-xs text-amber-700 dark:text-amber-400"
+              data-testid="text-offboard-warning"
             >
-              Apply contract penalty (if configured)
-            </label>
-          </div>
-        )}
-        {isOffboarding && (
-          <div className="space-y-3 rounded-md border p-3">
-            <p className="text-sm font-medium">Offboarding checklist</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={handoverDocs}
-                  onCheckedChange={(checked) => setHandoverDocs(checked === true)}
-                  data-testid="checkbox-handover-docs"
-                />
-                <span>Handed over documents</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={returnPpe}
-                  onCheckedChange={(checked) => setReturnPpe(checked === true)}
-                  data-testid="checkbox-return-ppe"
-                />
-                <span>Returned PPE / access card</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={finalPayroll}
-                  onCheckedChange={(checked) => setFinalPayroll(checked === true)}
-                  data-testid="checkbox-final-payroll"
-                />
-                <span>Final payroll settled</span>
-              </label>
-            </div>
-          </div>
-        )}
-        {isOffboarding && (
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="offboard-exit-notes">
-              Exit notes
-            </label>
-            <Textarea
-              id="offboard-exit-notes"
-              value={exitNotes}
-              onChange={(e) => setExitNotes(e.target.value)}
-              placeholder="Handover summary, outstanding items, exit-interview notes..."
-              data-testid="input-offboard-exit-notes"
-            />
-          </div>
-        )}
-        {isOffboarding && (
-          <div className="space-y-3 rounded-md border p-3">
-            <p className="text-sm font-medium">Safe offboarding actions</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={disableLogin}
-                  onCheckedChange={(checked) => setDisableLogin(checked === true)}
-                  data-testid="checkbox-disable-login"
-                />
-                <span>Disable linked login</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={removeVesselAccess}
-                  onCheckedChange={(checked) => setRemoveVesselAccess(checked === true)}
-                  data-testid="checkbox-remove-vessel-access"
-                />
-                <span>Remove vessel access</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={removeDashboardAccess}
-                  onCheckedChange={(checked) => setRemoveDashboardAccess(checked === true)}
-                  data-testid="checkbox-remove-dashboard-access"
-                />
-                <span>Remove dashboard/admin access</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={removeAdditionalRoles}
-                  onCheckedChange={(checked) => setRemoveAdditionalRoles(checked === true)}
-                  data-testid="checkbox-remove-additional-roles"
-                />
-                <span>Remove additional roles</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={downgradePrimaryRole}
-                  onCheckedChange={(checked) => setDowngradePrimaryRole(checked === true)}
-                  data-testid="checkbox-downgrade-primary-role"
-                />
-                <span>Downgrade primary role to viewer</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm">
-                <Checkbox
-                  checked={endDutyStatus}
-                  onCheckedChange={(checked) => setEndDutyStatus(checked === true)}
-                  data-testid="checkbox-end-duty-status"
-                />
-                <span>End duty status</span>
-              </label>
-              <label className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Checkbox checked disabled data-testid="checkbox-preserve-records" />
-                <span>Preserve profile, history, documents, and alerts</span>
-              </label>
-            </div>
-          </div>
-        )}
-        {isOffboarding && (
-          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
-            <div className="text-sm">
-              <p className="font-medium">Rehire eligibility</p>
-              <p className="text-xs text-muted-foreground">
-                Derived from this action and any contract penalty.
-              </p>
-            </div>
-            {rehire && (
-              <Badge
-                className={REHIRE_BADGE_CLASS[rehire.key]}
-                data-testid="badge-rehire-eligibility"
-              >
-                {rehire.label}
-              </Badge>
-            )}
-          </div>
-        )}
-        {isOffboarding && removeDashboardAccess && (
-          <p
-            className="text-xs text-amber-700 dark:text-amber-400"
-            data-testid="text-offboard-warning"
-          >
-            This removes dashboard and admin access for this crew member.
-          </p>
-        )}
-        {state?.action === "reinstate" && (
-          <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-            Reinstatement restores roster status only. Login, vessel scope, and admin access stay
-            disabled until explicitly re-enabled.
-          </div>
-        )}
-        {state?.action === "delete" && (
-          <div className="space-y-3 bg-destructive/10 p-3 rounded-md">
-            <p className="text-sm text-destructive">
-              This action is permanent and cannot be undone. All employment history for this crew
-              member will also be deleted.
+              This removes dashboard and admin access for this crew member.
             </p>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">
-                Type {state.crewName} to permanently delete
-              </label>
-              <Input
-                value={confirmDeleteText}
-                onChange={(event) => setConfirmDeleteText(event.target.value)}
-                data-testid="input-confirm-delete-crew"
-              />
+          )}
+          {state?.action === "reinstate" && (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Reinstatement restores roster status only. Login, vessel scope, and admin access stay
+              disabled until explicitly re-enabled.
             </div>
-          </div>
-        )}
-      </div>
+          )}
+          {state?.action === "delete" && (
+            <div className="space-y-3 bg-destructive/10 p-3 rounded-md">
+              <p className="text-sm text-destructive">
+                This action is permanent and cannot be undone. All employment history for this crew
+                member will also be deleted.
+              </p>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">
+                  Type {state.crewName} to permanently delete
+                </label>
+                <Input
+                  value={confirmDeleteText}
+                  onChange={(event) => setConfirmDeleteText(event.target.value)}
+                  data-testid="input-confirm-delete-crew"
+                />
+              </div>
+            </div>
+          )}
+        </form>
+      </Form>
     </ResponsiveDialog>
   );
 }

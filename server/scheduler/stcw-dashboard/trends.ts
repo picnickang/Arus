@@ -131,7 +131,9 @@ function computeTrendSummary(trends: TrendDataPoint[]): {
   const firstTrend = trends[0];
   return {
     complianceRateChange:
-      trends.length > 1 && lastTrend && firstTrend ? lastTrend.complianceRate - firstTrend.complianceRate : 0,
+      trends.length > 1 && lastTrend && firstTrend
+        ? lastTrend.complianceRate - firstTrend.complianceRate
+        : 0,
     violationTrend: determineTrendDirection(avgViolationsSecond, avgViolationsFirst),
     fatigueRiskTrend: determineTrendDirection(avgFatigueSecond, avgFatigueFirst),
   };
@@ -156,13 +158,15 @@ export async function getSTCWComplianceTrends(
   const intervalDays = Math.max(1, Math.floor(lookbackDays / dataPointCount));
 
   const vessels = vesselId
-    ? ([await vesselService.getVessel(orgId, vesselId)].filter(Boolean) as object as Awaited<ReturnType<typeof vesselService.getVessels>>)
+    ? ([await vesselService.getVessel(orgId, vesselId)].filter(Boolean) as object as Awaited<
+        ReturnType<typeof vesselService.getVessels>
+      >)
     : await vesselService.getVessels(orgId);
 
   const fullRangeStart = new Date(endDate);
   fullRangeStart.setDate(fullRangeStart.getDate() - lookbackDays - 7);
-  const fullStartStr = fullRangeStart.toISOString().split("T")[0] ?? '';
-  const fullEndStr = endDate.toISOString().split("T")[0] ?? '';
+  const fullStartStr = fullRangeStart.toISOString().split("T")[0] ?? "";
+  const fullEndStr = endDate.toISOString().split("T")[0] ?? "";
 
   const vesselDataPromises = vessels.map((vessel) =>
     getCrewRestDataForVessel(orgId, vessel.id, fullStartStr, fullEndStr).then((crewData) => ({
@@ -175,11 +179,11 @@ export async function getSTCWComplianceTrends(
   for (let i = dataPointCount - 1; i >= 0; i--) {
     const pointDate = new Date(endDate);
     pointDate.setDate(pointDate.getDate() - i * intervalDays);
-    const dateStr = pointDate.toISOString().split("T")[0] ?? '';
+    const dateStr = pointDate.toISOString().split("T")[0] ?? "";
 
     const weekStartDate = new Date(pointDate);
     weekStartDate.setDate(weekStartDate.getDate() - 7);
-    const startStr = weekStartDate.toISOString().split("T")[0] ?? '';
+    const startStr = weekStartDate.toISOString().split("T")[0] ?? "";
 
     const metrics = collectMetricsForDate(allVesselData, startStr, dateStr);
     trends.push(buildTrendDataPoint(dateStr, metrics));
@@ -200,7 +204,9 @@ export async function getSTCWComplianceTrends(
 
   const duration = Date.now() - startTime;
   if (duration > 500) {
-    logger.info(`[STCW Trends] Computed in ${duration}ms (${vessels.length} vessels, ${dataPointCount} data points)`);
+    logger.info(
+      `[STCW Trends] Computed in ${duration}ms (${vessels.length} vessels, ${dataPointCount} data points)`
+    );
   }
 
   return result;

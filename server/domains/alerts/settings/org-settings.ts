@@ -35,14 +35,18 @@ export async function upsertOrgSettings(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(alertSettings.id, existing.id))
       .returning();
-    if (!updated) {throw new Error("Failed to update alert settings");}
+    if (!updated) {
+      throw new Error("Failed to update alert settings");
+    }
     return updated;
   }
   const [created] = await db
     .insert(alertSettings)
     .values({ ...data, orgId })
     .returning();
-  if (!created) {throw new Error("Failed to create alert settings");}
+  if (!created) {
+    throw new Error("Failed to create alert settings");
+  }
   return created;
 }
 
@@ -74,14 +78,18 @@ export async function upsertVesselSettings(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(alertSettingsVessel.id, existing.id))
       .returning();
-    if (!updated) {throw new Error("Failed to update vessel alert settings");}
+    if (!updated) {
+      throw new Error("Failed to update vessel alert settings");
+    }
     return updated;
   }
   const [created] = await db
     .insert(alertSettingsVessel)
     .values({ ...data, orgId, vesselId })
     .returning();
-  if (!created) {throw new Error("Failed to create vessel alert settings");}
+  if (!created) {
+    throw new Error("Failed to create vessel alert settings");
+  }
   return created;
 }
 

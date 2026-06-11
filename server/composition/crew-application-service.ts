@@ -59,11 +59,7 @@ const crewStoragePort: CrewStoragePort = {
     await db
       .delete(crewSkill)
       .where(
-        and(
-          eq(crewSkill.orgId, orgId),
-          eq(crewSkill.crewId, crewId),
-          eq(crewSkill.skill, skillId)
-        )
+        and(eq(crewSkill.orgId, orgId), eq(crewSkill.crewId, crewId), eq(crewSkill.skill, skillId))
       );
     return { success: true };
   },

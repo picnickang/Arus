@@ -42,21 +42,21 @@ export class EnhancedLLMService {
     try {
       if (!db) {
         logger.warn("[Enhanced LLM] Disabled: database not initialized (embedded/local mode)");
-        this.openaiEnabled = Boolean(process.env['OPENAI_API_KEY']);
+        this.openaiEnabled = Boolean(process.env["OPENAI_API_KEY"]);
 
-        if (process.env['ANTHROPIC_API_KEY']) {
-          this.anthropicClient = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
+        if (process.env["ANTHROPIC_API_KEY"]) {
+          this.anthropicClient = new Anthropic({ apiKey: process.env["ANTHROPIC_API_KEY"] });
         }
         return;
       }
 
       const settings = await dbSystemAdminStorage.getSettings();
       this.openaiEnabled = Boolean(
-        settings?.openaiApiKeyEncrypted || settings?.openaiApiKey || process.env['OPENAI_API_KEY']
+        settings?.openaiApiKeyEncrypted || settings?.openaiApiKey || process.env["OPENAI_API_KEY"]
       );
 
-      if (process.env['ANTHROPIC_API_KEY']) {
-        this.anthropicClient = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
+      if (process.env["ANTHROPIC_API_KEY"]) {
+        this.anthropicClient = new Anthropic({ apiKey: process.env["ANTHROPIC_API_KEY"] });
       }
     } catch (error) {
       logger.warn("[Enhanced LLM] Error initializing clients:", { details: error });
@@ -320,7 +320,11 @@ export class EnhancedLLMService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      logger.error(`[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`, undefined, error);
+      logger.error(
+        `[Enhanced LLM] Error with ${modelConfig.provider}/${modelConfig.model}:`,
+        undefined,
+        error
+      );
 
       if (modelConfig.fallbackModel) {
         return this.generateWithModel(context, promptTemplate, modelConfig.fallbackModel, {

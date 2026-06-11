@@ -22,6 +22,7 @@ in the live `index.html` never runs — a deadlock.
 `index.html` first, so the unregister never executes.
 
 **Self-heal fix (the right shape):**
+
 - Navigation/HTML requests → **network-first** (fall back to cache only offline);
   cache fresh HTML only when `response.ok`. Content-hashed static assets stay
   cache-first (safe — new build = new filenames).

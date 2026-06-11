@@ -40,7 +40,9 @@ export async function createWorkOrderFromDtc(
   );
 
   if (dtcWorkOrder) {
-    logger.info(`[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
+    logger.info(
+      `[DTC Integration] Work order already exists for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
+    );
     return null;
   }
 
@@ -68,6 +70,8 @@ export async function createWorkOrderFromDtc(
   };
 
   const newWorkOrder = await workOrderService.createWorkOrder(workOrderData);
-  logger.info(`[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
+  logger.info(
+    `[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`
+  );
   return newWorkOrder;
 }

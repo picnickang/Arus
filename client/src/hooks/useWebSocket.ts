@@ -7,7 +7,9 @@ import { getApiSessionToken, subscribeToApiSessionToken } from "@/lib/sessionTok
 function compareEventIds(a: string, b: string): number {
   const [aMs = 0, aSeq = 0] = a.split("-").map((n) => Number.parseInt(n, 10));
   const [bMs = 0, bSeq = 0] = b.split("-").map((n) => Number.parseInt(n, 10));
-  if (aMs !== bMs) {return aMs - bMs;}
+  if (aMs !== bMs) {
+    return aMs - bMs;
+  }
   return aSeq - bSeq;
 }
 
@@ -151,7 +153,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   const lastEventIdRef = useRef<Map<string, string>>(new Map());
   const channelCursorKey = useCallback(
     (orgId: string, channel: string) => `${orgId}::${channel}`,
-    [],
+    []
   );
 
   const connect = useCallback(() => {
@@ -161,7 +163,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
     intentionalCloseRef.current = false;
     setIsConnecting(true);
-    setConnectionState((prev) => (prev === "connected" || prev === "disconnected" ? "connecting" : prev));
+    setConnectionState((prev) =>
+      prev === "connected" || prev === "disconnected" ? "connecting" : prev
+    );
 
     try {
       // Push B2 — propagate the session token on the upgrade URL so the
@@ -208,7 +212,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           lastEventIdRef.current.forEach((id, key) => {
             if (key.endsWith(suffix)) {
               const orgId = key.slice(0, key.length - suffix.length);
-              if (orgId) {lastEventIds[orgId] = id;}
+              if (orgId) {
+                lastEventIds[orgId] = id;
+              }
             }
           });
           ws.send(
@@ -216,7 +222,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
               type: "subscribe",
               channel,
               ...(Object.keys(lastEventIds).length > 0 ? { lastEventIds } : {}),
-            }),
+            })
           );
         });
       };
@@ -240,6 +246,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
           if (message.type === "telemetry" && message.data) {
             setLatestTelemetry(message.data as object as TelemetryData);
+          } else if (message.type === "telemetry_batch" && Array.isArray(message.data)) {
+            // The server's TelemetryThrottler coalesces per-equipment pushes
+            // into one "telemetry_batch" every 250ms (one entry per
+            // equipment). Surface the newest entry for single-value
+            // consumers; batch-aware consumers read `lastMessage`.
+            const batch = message.data as unknown[];
+            const newest = batch[batch.length - 1];
+            if (newest) {
+              setLatestTelemetry(newest as TelemetryData);
+            }
           } else if (message.type === "alert_new" && message.data) {
             setLatestAlert(message.data as object as AlertData);
           } else if (message.type === "alerts_initial" && message.data) {
@@ -388,7 +404,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   // reconnect so the upgrade carries the new token and resolves the right org.
   useEffect(() => {
     return subscribeToApiSessionToken(() => {
-      if (!autoConnect) {return;}
+      if (!autoConnect) {
+        return;
+      }
       disconnect();
       connect();
     });

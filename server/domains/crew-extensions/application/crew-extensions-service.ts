@@ -239,7 +239,7 @@ export class CrewExtensionsApplicationService {
     const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
     return previewScheduleCompliance(
       orgId,
-      assignments as Parameters<typeof previewScheduleCompliance>[1],
+      assignments as Parameters<typeof previewScheduleCompliance>[1]
     ) as object as CompliancePreviewResult;
   }
 

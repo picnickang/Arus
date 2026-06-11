@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,10 +18,46 @@ export const adminKeys = {
   githubRepos: ["/api/admin/github/repos"] as const,
 };
 
+const ADMIN_SECTIONS = [
+  "configuration",
+  "scheduling",
+  "updates-maintenance",
+  "monitoring-health",
+  "audit-compliance",
+  "ml-testing",
+] as const;
+
+function sectionFromUrl(): string {
+  if (typeof window === "undefined") {
+    return ADMIN_SECTIONS[0];
+  }
+  const section = new URLSearchParams(window.location.search).get("section");
+  return section && (ADMIN_SECTIONS as readonly string[]).includes(section)
+    ? section
+    : ADMIN_SECTIONS[0];
+}
+
 export function useSystemAdminData() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("configuration");
+  // Section state lives in ?section= so admin areas are deep-linkable and the
+  // browser back button moves between them.
+  const [activeTab, setActiveTabState] = useState(() => sectionFromUrl());
   const isDesktopEnv = isDesktop();
+
+  const setActiveTab = useCallback((tabId: string) => {
+    setActiveTabState(tabId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("section", tabId);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => setActiveTabState(sectionFromUrl());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   return { toast, activeTab, setActiveTab, isDesktopEnv };
 }
@@ -219,7 +255,7 @@ export function useConfigurationTabData() {
   });
   const changePasswordMutation = useCustomMutation({
     mutationFn: async (data: ChangePasswordForm) =>
-      adminApiRequest("POST", "/api/admin/change-password", data),
+      adminApiRequest("POST", "/api/admin/auth/change-password", data),
     successMessage: "Password updated successfully",
   });
 

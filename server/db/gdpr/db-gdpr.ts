@@ -29,9 +29,13 @@ export class DatabaseGdprStorage {
     if (type) {
       conditions.push(eq(dataSubjectRequests.requestType, type));
     }
-    const query = conditions.length > 0
-      ? db.select().from(dataSubjectRequests).where(and(...conditions))
-      : db.select().from(dataSubjectRequests);
+    const query =
+      conditions.length > 0
+        ? db
+            .select()
+            .from(dataSubjectRequests)
+            .where(and(...conditions))
+        : db.select().from(dataSubjectRequests);
     return query.orderBy(sql`${dataSubjectRequests.createdAt} DESC`);
   }
   async getDataSubjectRequest(id: string): Promise<DataSubjectRequest | undefined> {
@@ -43,7 +47,9 @@ export class DatabaseGdprStorage {
   }
   async createDataSubjectRequest(request: InsertDataSubjectRequest): Promise<DataSubjectRequest> {
     const [n] = await db.insert(dataSubjectRequests).values(request).returning();
-    if (!n) {throw new Error("Failed to create data subject request");}
+    if (!n) {
+      throw new Error("Failed to create data subject request");
+    }
     return n;
   }
   async updateDataSubjectRequest(
@@ -85,8 +91,10 @@ export class DatabaseGdprStorage {
     return u;
   }
   async getDataSubjectRequestsByEmail(email: string): Promise<DataSubjectRequest[]> {
-    const col = tableColumns(dataSubjectRequests)['subjectEmail'];
-    if (!col) {return [];}
+    const col = tableColumns(dataSubjectRequests)["subjectEmail"];
+    if (!col) {
+      return [];
+    }
     return db
       .select()
       .from(dataSubjectRequests)
@@ -225,23 +233,23 @@ export class DatabaseGdprStorage {
         const users = await db.execute(
           sql`SELECT id, email, name, role FROM users WHERE email = ${identifier} AND org_id = ${orgId}`
         );
-        result['users'] = users.rows ?? [];
+        result["users"] = users.rows ?? [];
       } else if (identifierType === "userId") {
         const users = await db.execute(
           sql`SELECT id, email, name, role FROM users WHERE id = ${identifier} AND org_id = ${orgId}`
         );
-        result['users'] = users.rows ?? [];
+        result["users"] = users.rows ?? [];
       }
       if (identifierType === "crewId") {
         const crew = await db.execute(
           sql`SELECT id, name, email, rank, department FROM crew_members WHERE id = ${identifier} AND org_id = ${orgId}`
         );
-        result['crewMembers'] = crew.rows ?? [];
+        result["crewMembers"] = crew.rows ?? [];
       } else {
         const crew = await db.execute(
           sql`SELECT id, name, email, rank, department FROM crew_members WHERE email = ${identifier} AND org_id = ${orgId}`
         );
-        result['crewMembers'] = crew.rows ?? [];
+        result["crewMembers"] = crew.rows ?? [];
       }
     } catch {
       /* tables may not exist */
@@ -284,12 +292,18 @@ export class DatabaseGdprStorage {
       conditions.push(eq(engineerOverrides.overrideType, overrideType));
     }
     if (isActive !== undefined) {
-      const col = tableColumns(engineerOverrides)['isActive'];
-      if (col) {conditions.push(eq(col, isActive));}
+      const col = tableColumns(engineerOverrides)["isActive"];
+      if (col) {
+        conditions.push(eq(col, isActive));
+      }
     }
-    const query = conditions.length > 0
-      ? db.select().from(engineerOverrides).where(and(...conditions))
-      : db.select().from(engineerOverrides);
+    const query =
+      conditions.length > 0
+        ? db
+            .select()
+            .from(engineerOverrides)
+            .where(and(...conditions))
+        : db.select().from(engineerOverrides);
     return query.orderBy(sql`${engineerOverrides.createdAt} DESC`);
   }
   async getMlEngineerOverride(id: string): Promise<EngineerOverride | undefined> {
@@ -298,7 +312,9 @@ export class DatabaseGdprStorage {
   }
   async createMlEngineerOverride(override: InsertEngineerOverride): Promise<EngineerOverride> {
     const [n] = await db.insert(engineerOverrides).values(override).returning();
-    if (!n) {throw new Error("Failed to create engineer override");}
+    if (!n) {
+      throw new Error("Failed to create engineer override");
+    }
     return n;
   }
   async updateMlEngineerOverride(
@@ -319,9 +335,11 @@ export class DatabaseGdprStorage {
     await db.delete(engineerOverrides).where(eq(engineerOverrides.id, id));
   }
   async getActiveOverridesForEquipment(equipmentId: string): Promise<EngineerOverride[]> {
-    const isActiveCol = tableColumns(engineerOverrides)['isActive'];
+    const isActiveCol = tableColumns(engineerOverrides)["isActive"];
     const c: SQL[] = [eq(engineerOverrides.equipmentId, equipmentId)];
-    if (isActiveCol) {c.push(eq(isActiveCol, true));}
+    if (isActiveCol) {
+      c.push(eq(isActiveCol, true));
+    }
     return db
       .select()
       .from(engineerOverrides)
@@ -331,7 +349,12 @@ export class DatabaseGdprStorage {
   async deactivateOverride(id: string, deactivatedBy: string): Promise<EngineerOverride> {
     const [u] = await db
       .update(engineerOverrides)
-      .set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() } as never)
+      .set({
+        isActive: false,
+        deactivatedBy,
+        deactivatedAt: new Date(),
+        updatedAt: new Date(),
+      } as never)
       .where(eq(engineerOverrides.id, id))
       .returning();
     if (!u) {

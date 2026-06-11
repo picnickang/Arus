@@ -40,7 +40,7 @@ interface MessageGeneratorContext {
 }
 
 function generateTelemetryMessage(ctx: MessageGeneratorContext) {
-  const sensorType = ctx.config.sensorTypes[ctx.messageCount % ctx.config.sensorTypes.length] ?? '';
+  const sensorType = ctx.config.sensorTypes[ctx.messageCount % ctx.config.sensorTypes.length] ?? "";
   const value = 50 + cryptoRandom() * 50 + Math.sin(ctx.messageCount / 100) * 10;
   return {
     equipmentId: ctx.config.equipmentId,
@@ -143,7 +143,9 @@ export class TelemetryStressTest {
 
     this.isRunning = true;
     const startTime = Date.now();
-    logger.info(`[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`);
+    logger.info(
+      `[StressTest] Starting ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`
+    );
 
     try {
       const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
@@ -168,14 +170,16 @@ export class TelemetryStressTest {
         dropped: batchWriterStats?.totalEvicted || 0,
       };
 
-      logger.info(`[StressTest] Complete:`, { details: {
-        totalMessages: result.totalMessages,
-        actualMsgPerSec: result.actualMsgPerSec,
-        targetMsgPerSec: result.targetMsgPerSec,
-        durationMs: result.durationMs,
-        errors: result.errors,
-        dropped: result.dropped,
-      } });
+      logger.info(`[StressTest] Complete:`, {
+        details: {
+          totalMessages: result.totalMessages,
+          actualMsgPerSec: result.actualMsgPerSec,
+          targetMsgPerSec: result.targetMsgPerSec,
+          durationMs: result.durationMs,
+          errors: result.errors,
+          dropped: result.dropped,
+        },
+      });
 
       return result;
     } finally {

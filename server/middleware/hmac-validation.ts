@@ -20,7 +20,10 @@ function normalizeSignature(signature: unknown): string | undefined {
   if (typeof signature !== "string") {
     return undefined;
   }
-  const normalized = signature.toLowerCase().replace(/^hmac\s+/i, "").replace(/^sha256=/, "");
+  const normalized = signature
+    .toLowerCase()
+    .replace(/^hmac\s+/i, "")
+    .replace(/^sha256=/, "");
   return /^[0-9a-f]{64}$/.test(normalized) ? normalized : undefined;
 }
 
@@ -39,10 +42,16 @@ function signPayload(secret: string, payload: string): string {
 function signaturesMatch(expectedSignature: string, providedSignature: string): boolean {
   const expectedBuffer = Buffer.from(expectedSignature, "hex");
   const providedBuffer = Buffer.from(providedSignature, "hex");
-  return expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
+  return (
+    expectedBuffer.length === providedBuffer.length &&
+    timingSafeEqual(expectedBuffer, providedBuffer)
+  );
 }
 
-function validateReplayHeaders(req: Request, equipmentId: string): { ok: true } | { ok: false; status: number; error: string; code: string } {
+function validateReplayHeaders(
+  req: Request,
+  equipmentId: string
+): { ok: true } | { ok: false; status: number; error: string; code: string } {
   const timestampHeader = req.headers["x-hmac-timestamp"];
   const nonceHeader = req.headers["x-hmac-nonce"];
 
@@ -57,13 +66,23 @@ function validateReplayHeaders(req: Request, equipmentId: string): { ok: true } 
 
   const timestamp = Number.parseInt(timestampHeader, 10);
   if (!Number.isFinite(timestamp)) {
-    return { ok: false, status: 401, error: "Invalid HMAC timestamp", code: "INVALID_HMAC_TIMESTAMP" };
+    return {
+      ok: false,
+      status: 401,
+      error: "Invalid HMAC timestamp",
+      code: "INVALID_HMAC_TIMESTAMP",
+    };
   }
 
   const now = Date.now();
   const timestampMs = timestamp > 10_000_000_000 ? timestamp : timestamp * 1000;
   if (Math.abs(now - timestampMs) > HMAC_MAX_CLOCK_SKEW_MS) {
-    return { ok: false, status: 401, error: "HMAC timestamp is outside the accepted window", code: "STALE_HMAC_TIMESTAMP" };
+    return {
+      ok: false,
+      status: 401,
+      error: "HMAC timestamp is outside the accepted window",
+      code: "STALE_HMAC_TIMESTAMP",
+    };
   }
 
   if (!/^[A-Za-z0-9._:-]{12,128}$/.test(nonceHeader)) {
@@ -73,7 +92,12 @@ function validateReplayHeaders(req: Request, equipmentId: string): { ok: true } 
   pruneSeenNonces(now);
   const nonceKey = `${equipmentId}:${nonceHeader}`;
   if (seenNonces.has(nonceKey)) {
-    return { ok: false, status: 401, error: "HMAC nonce has already been used", code: "REPLAYED_HMAC_NONCE" };
+    return {
+      ok: false,
+      status: 401,
+      error: "HMAC nonce has already been used",
+      code: "REPLAYED_HMAC_NONCE",
+    };
   }
   seenNonces.set(nonceKey, now + HMAC_NONCE_TTL_MS);
 
@@ -155,11 +179,13 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
 
     let isValid = signaturesMatch(expectedSignature, providedSignature);
 
-    if (!isValid && process.env['ALLOW_LEGACY_HMAC'] === "true") {
+    if (!isValid && process.env["ALLOW_LEGACY_HMAC"] === "true") {
       const legacySignature = signPayload(device.hmacKey, JSON.stringify(req.body ?? {}));
       isValid = signaturesMatch(legacySignature, providedSignature);
       if (isValid) {
-        logger.warn("Accepted legacy JSON-stringified HMAC signature; rotate clients to raw-body timestamp/nonce signing");
+        logger.warn(
+          "Accepted legacy JSON-stringified HMAC signature; rotate clients to raw-body timestamp/nonce signing"
+        );
       }
     }
 

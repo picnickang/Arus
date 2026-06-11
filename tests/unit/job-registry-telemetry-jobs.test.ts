@@ -35,6 +35,7 @@ const JOB_TYPES = {
   TELEMETRY_ROLLUP_HOURLY: "telemetry-rollup-hourly",
   TELEMETRY_RETENTION: "telemetry-retention-daily",
   TELEMETRY_PARTITION_MAINTENANCE: "telemetry-partition-maintenance-daily",
+  DLQ_REPLAY: "dlq-replay-hourly",
 } as const;
 
 let registerJobProcessors: (typeof import("../../server/job-processors/registry"))["registerJobProcessors"];
@@ -91,6 +92,10 @@ beforeAll(async () => {
     __esModule: true,
     ...stub("processTelemetryPartitionMaintenance"),
   }));
+  jest.unstable_mockModule("../../server/job-processors/dlq-replay-processor", () => ({
+    __esModule: true,
+    ...stub("processDlqReplay"),
+  }));
 
   ({ registerJobProcessors } = await import("../../server/job-processors/registry"));
 });
@@ -107,6 +112,7 @@ describe("registerJobProcessors — telemetry lifecycle jobs", () => {
       "telemetry-rollup-hourly",
       "telemetry-retention-daily",
       "telemetry-partition-maintenance-daily",
+      "dlq-replay-hourly",
     ]) {
       const call = byType.get(type);
       expect(call).toBeDefined();

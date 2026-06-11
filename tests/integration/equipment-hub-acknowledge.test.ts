@@ -27,20 +27,8 @@
  * `safety-bulletins.test.ts` and `equipment-dependencies-notes-patch.test.ts`.
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-} from "@jest/globals";
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import { jest, describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import request from "supertest";
 
 const ORG_ID = "org-t299";
@@ -105,9 +93,8 @@ let mountError: string | undefined;
 beforeAll(async () => {
   let router: express.Router;
   try {
-    router = (await import(
-      "../../server/domains/equipment-intelligence/interfaces/routes"
-    )).default;
+    router = (await import("../../server/domains/equipment-intelligence/interfaces/routes"))
+      .default;
   } catch (err) {
     mountError = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
     return;
@@ -116,12 +103,15 @@ beforeAll(async () => {
   app = express();
   app.use(express.json());
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    const r = req as Request & { user?: AuthUser; orgId?: string };
+    // Object.assign (rather than `req.user = ...`) because the tests
+    // intentionally inject PARTIAL users (no email / no name) to drive the
+    // acknowledgedBy fallback chain, which the global Express.Request
+    // augmentation's required fields would otherwise reject.
     if (currentUser) {
-      r.user = currentUser;
+      Object.assign(req, { user: currentUser });
     }
     if (currentOrgId) {
-      r.orgId = currentOrgId;
+      Object.assign(req, { orgId: currentOrgId });
     }
     next();
   });
@@ -159,7 +149,9 @@ describe("Task #299 — acknowledge route mounted", () => {
 
 describe("POST acknowledge — happy path", () => {
   it("acknowledges the active anomaly, stamping acknowledgedBy + acknowledgedAt", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     selectRows = [{ id: 42 }]; // an unacknowledged anomaly exists
     updateRows = [ackedRow()];
 
@@ -176,12 +168,14 @@ describe("POST acknowledge — happy path", () => {
     // The write happened exactly once, carrying the caller + a Date stamp.
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({ acknowledgedBy: "Chief Engineer" });
-    expect(setCalls[0]!.acknowledgedAt).toBeInstanceOf(Date);
+    expect(setCalls[0]!["acknowledgedAt"]).toBeInstanceOf(Date);
     expect(updateWhereCount).toBe(1);
   });
 
   it("derives acknowledgedBy via the name → email → id → 'system' chain", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
 
     // email fallback (no name)
     currentUser = { id: "u2", email: "eng@example.com" };
@@ -213,7 +207,9 @@ describe("POST acknowledge — happy path", () => {
 
 describe("POST acknowledge — 'only unacknowledged' guard", () => {
   it("returns 404 and never updates when no active unacknowledged anomaly exists", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // The org-scoped + isNull(acknowledgedAt) SELECT yields nothing —
     // production-equivalent of "already acknowledged" or "none at all".
     selectRows = [];
@@ -229,7 +225,9 @@ describe("POST acknowledge — 'only unacknowledged' guard", () => {
   });
 
   it("returns 404 if the UPDATE returns no row (lost race)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     selectRows = [{ id: 42 }];
     updateRows = []; // someone else acknowledged between SELECT and UPDATE
 
@@ -242,7 +240,9 @@ describe("POST acknowledge — 'only unacknowledged' guard", () => {
 
 describe("POST acknowledge — org scoping", () => {
   it("returns 403 when the request carries no orgId", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     currentOrgId = null;
 
     const res = await request(app).post(PATH).send();
@@ -253,7 +253,9 @@ describe("POST acknowledge — org scoping", () => {
   });
 
   it("treats a cross-tenant anomaly as not found (scoped SELECT empty → 404)", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     // Another org's row is invisible under this org's scope: the
     // (orgId, equipmentId, isNull) SELECT returns no rows → 404.
     currentOrgId = OTHER_ORG_ID;
@@ -268,7 +270,9 @@ describe("POST acknowledge — org scoping", () => {
 
 describe("POST acknowledge — param validation", () => {
   it("rejects an over-long equipmentId with 400 and never touches the DB", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const longId = "x".repeat(256); // schema cap is 255
     const res = await request(app)
       .post(`/api/equipment-intelligence/anomalies/${longId}/acknowledge`)

@@ -68,8 +68,7 @@ export default function AdminTenantsPage() {
         `/api/admin/tenants/${id}/${suspended ? "unsuspend" : "suspend"}`,
         suspended ? {} : { reason: "Admin action" }
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tenants"] }),
   });
 
   const remove = useMutation({
@@ -79,7 +78,8 @@ export default function AdminTenantsPage() {
         reason: "Admin-initiated deletion",
       }),
     onSuccess: (res: unknown) => {
-      const certId = (res as { certificate?: { certificateId?: string } } | null)?.certificate?.certificateId;
+      const certId = (res as { certificate?: { certificateId?: string } } | null)?.certificate
+        ?.certificateId;
       toast({
         title: "Tenant deleted",
         description: `Certificate: ${certId ?? "(see logs)"}`,
@@ -126,9 +126,7 @@ export default function AdminTenantsPage() {
           <Button
             data-testid="button-provision-tenant"
             disabled={!newId || !newName || provision.isPending}
-            onClick={() =>
-              provision.mutate({ id: newId.trim(), name: newName.trim() })
-            }
+            onClick={() => provision.mutate({ id: newId.trim(), name: newName.trim() })}
           >
             {provision.isPending ? "Provisioning…" : "Provision"}
           </Button>
@@ -157,13 +155,8 @@ export default function AdminTenantsPage() {
                 {(data?.tenants ?? []).map((t) => {
                   const suspended = !!t.suspended_at;
                   return (
-                    <TableRow
-                      key={t.id}
-                      data-testid={`row-tenant-${t.id}`}
-                    >
-                      <TableCell className="font-mono text-sm">
-                        {t.id}
-                      </TableCell>
+                    <TableRow key={t.id} data-testid={`row-tenant-${t.id}`}>
+                      <TableCell className="font-mono text-sm">{t.id}</TableCell>
                       <TableCell>{t.name}</TableCell>
                       <TableCell>
                         {suspended ? (
@@ -173,17 +166,15 @@ export default function AdminTenantsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {t.max_equipment_count ?? "—"} eq /{" "}
-                        {t.max_telemetry_rows_per_day ?? "—"} rows/day
+                        {t.max_equipment_count ?? "—"} eq / {t.max_telemetry_rows_per_day ?? "—"}{" "}
+                        rows/day
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
                           data-testid={`button-toggle-${t.id}`}
-                          onClick={() =>
-                            suspend.mutate({ id: t.id, suspended })
-                          }
+                          onClick={() => suspend.mutate({ id: t.id, suspended })}
                         >
                           {suspended ? "Unsuspend" : "Suspend"}
                         </Button>

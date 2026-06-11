@@ -52,12 +52,18 @@ export function useDataIntegrityData() {
     : 100;
 
   const reportExtras = useMemo(() => {
-    if (!latestReport) {return null;}
+    if (!latestReport) {
+      return null;
+    }
     const issuesBySeverity = { critical: 0, warning: 0, info: 0 };
     for (const issue of latestReport.issues) {
-      if (issue.severity === "critical") {issuesBySeverity.critical += 1;}
-      else if (issue.severity === "warning") {issuesBySeverity.warning += 1;}
-      else {issuesBySeverity.info += 1;}
+      if (issue.severity === "critical") {
+        issuesBySeverity.critical += 1;
+      } else if (issue.severity === "warning") {
+        issuesBySeverity.warning += 1;
+      } else {
+        issuesBySeverity.info += 1;
+      }
     }
     const tables = Array.from(new Set(latestReport.issues.map((i) => i.table)));
     return {

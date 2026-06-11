@@ -29,16 +29,16 @@ class Logger {
 
   constructor() {
     const isEmbedded =
-      process.env['DEPLOYMENT_MODE'] === "VESSEL" || process.env['IS_EMBEDDED'] === "true";
-    const isLocalMode = !process.env['DATABASE_URL'];
+      process.env["DEPLOYMENT_MODE"] === "VESSEL" || process.env["IS_EMBEDDED"] === "true";
+    const isLocalMode = !process.env["DATABASE_URL"];
 
     this.config = {
       level:
-        (process.env['LOG_LEVEL'] as LogLevel) ||
-        (process.env['NODE_ENV'] === "development" ? "debug" : "info"),
+        (process.env["LOG_LEVEL"] as LogLevel) ||
+        (process.env["NODE_ENV"] === "development" ? "debug" : "info"),
       isEmbedded,
       isLocalMode,
-      includeCorrelationId: process.env['LOG_CORRELATION_ID'] !== "false",
+      includeCorrelationId: process.env["LOG_CORRELATION_ID"] !== "false",
     };
   }
 
@@ -65,7 +65,8 @@ class Logger {
     if (!this.shouldLog("debug")) {
       return;
     }
-    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
+    const [mod, msg] =
+      message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
     console.log(this.formatMessage("debug", mod, msg), data ?? "");
   }
 
@@ -73,7 +74,8 @@ class Logger {
     if (!this.shouldLog("info")) {
       return;
     }
-    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
+    const [mod, msg] =
+      message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
     console.log(this.formatMessage("info", mod, msg), data ?? "");
   }
 
@@ -85,7 +87,8 @@ class Logger {
     if (!this.shouldLog("warn")) {
       return;
     }
-    const [mod, msg] = message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
+    const [mod, msg] =
+      message === undefined ? ["app", moduleOrMessage] : [moduleOrMessage, message];
 
     // Suppress expected warnings in embedded mode
     if (suppressInEmbedded && this.config.isEmbedded) {
@@ -114,7 +117,7 @@ class Logger {
     if (error) {
       if (error instanceof Error) {
         console.error(`  ${error.message}`);
-        if (error.stack && process.env['NODE_ENV'] === "development") {
+        if (error.stack && process.env["NODE_ENV"] === "development") {
           console.error(error.stack);
         }
       } else {
@@ -129,7 +132,7 @@ class Logger {
    */
   notice(module: string, message: string, details?: string[]) {
     // Only show in development or when explicitly requested
-    if (process.env['NODE_ENV'] === "production" && process.env['LOG_LEVEL'] !== "debug") {
+    if (process.env["NODE_ENV"] === "production" && process.env["LOG_LEVEL"] !== "debug") {
       return;
     }
 
@@ -169,7 +172,8 @@ export function logDeploymentInfo(module: string, message: string, isOptional = 
  * Helper for expected failures in embedded mode (like sync not available)
  */
 export function logExpectedLimitation(module: string, message: string, details?: string[]) {
-  const isEmbedded = process.env['DEPLOYMENT_MODE'] === "VESSEL" || process.env['IS_EMBEDDED'] === "true";
+  const isEmbedded =
+    process.env["DEPLOYMENT_MODE"] === "VESSEL" || process.env["IS_EMBEDDED"] === "true";
 
   if (isEmbedded) {
     // In embedded mode, this is expected - log as notice only

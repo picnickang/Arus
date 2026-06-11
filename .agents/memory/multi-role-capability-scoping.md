@@ -20,6 +20,7 @@ alarm feeds. Treat per-capability scope resolution as a security boundary, not
 a refactor preference.
 
 **How to apply:**
+
 - Per-source scope = most-permissive scope among ONLY the roles whose
   `taskSources` include that source (`scopeForSource` in
   `shared/role-dashboard.ts`).
@@ -39,6 +40,7 @@ a refactor preference.
 
 Non-negotiable controls on this surface — UI-only gating or a missing session
 revocation here is a real security defect, not polish:
+
 - **Session invalidation on credential rotation:** any path that changes a
   password (self change in me-portal, admin reset/disable in crew-admin) MUST
   revoke ALL of that user's sessions (delete `admin_sessions` rows) right after

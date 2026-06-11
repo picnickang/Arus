@@ -25,7 +25,9 @@ export async function generateEquipmentComplianceExcel(
   reportingPeriod: ReportingPeriod,
   options: EquipmentComplianceOptions
 ): Promise<Buffer> {
-  logger.info(`[Compliance Excel] Generating equipment compliance report for ${equipmentIds.length} units`);
+  logger.info(
+    `[Compliance Excel] Generating equipment compliance report for ${equipmentIds.length} units`
+  );
 
   const equipmentHealth = await storage.getEquipmentHealth(orgId);
   const filteredEquipment =

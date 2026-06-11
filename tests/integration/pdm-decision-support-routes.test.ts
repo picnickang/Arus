@@ -177,15 +177,11 @@ class FakeDecisionSupportRouteService implements PdmDecisionSupportRouteService 
     };
   }
 
-  reviewRecommendation(input: {
-    recommendation: string;
-    riskLevel: string;
-    equipmentId?: string;
-  }) {
+  reviewRecommendation(input: { recommendation: string; riskLevel: string; equipmentId?: string }) {
     this.safetyCalls.push(input);
     const isUnsafe = /bypass|disable|operate until failure/i.test(input.recommendation);
     return {
-      decision: isUnsafe ? "blocked" as const : "approved" as const,
+      decision: isUnsafe ? ("blocked" as const) : ("approved" as const),
       reasons: isUnsafe ? ["Unsafe maintenance recommendation was blocked."] : [],
       sanitizedRecommendation: isUnsafe ? "Escalate to the chief engineer." : input.recommendation,
     };
@@ -258,7 +254,9 @@ describe("PdM decision-support API routes", () => {
   });
 
   it("returns 404 when the service cannot find equipment", async () => {
-    const service = new FakeDecisionSupportRouteService({ evaluateError: new EquipmentNotFoundError("missing-equipment") });
+    const service = new FakeDecisionSupportRouteService({
+      evaluateError: new EquipmentNotFoundError("missing-equipment"),
+    });
     const app = buildApp(service);
 
     const response = await request(app)
@@ -345,4 +343,3 @@ describe("PdM decision-support API routes", () => {
     expect(service.evaluateCalls).toHaveLength(0);
   });
 });
-

@@ -110,9 +110,15 @@ function logError(
   const statusCode = getErrorStatusCode(error);
 
   if (statusCode >= 500) {
-    logger.error(`[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`, undefined, error);
-  } else if (process.env['NODE_ENV'] === "development") {
-    logger.warn(`[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`);
+    logger.error(
+      `[ERROR] ${context.method || "?"} ${context.path || "?"}: ${context.operation || "Operation failed"}`,
+      undefined,
+      error
+    );
+  } else if (process.env["NODE_ENV"] === "development") {
+    logger.warn(
+      `[WARN] ${context.method || "?"} ${context.path || "?"}: ${getErrorMessage(error)}`
+    );
   }
 }
 
@@ -139,7 +145,11 @@ export function asyncHandler(handler: AsyncRouteHandler, operation?: string): Re
     try {
       await handler(req, res, next);
     } catch (error) {
-      logError(error, { ...(operation !== undefined && { operation }), path: req.path, method: req.method });
+      logError(error, {
+        ...(operation !== undefined && { operation }),
+        path: req.path,
+        method: req.method,
+      });
 
       const statusCode = getErrorStatusCode(error);
       const response = formatErrorResponse(error, operation);

@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -190,8 +185,7 @@ function AlarmTypesSection() {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest("DELETE", `/api/admin/safety-alarm-types/${id}`),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/safety-alarm-types/${id}`),
     onSuccess: () => {
       invalidate();
       toast({ title: "Alarm type deleted" });
@@ -208,7 +202,9 @@ function AlarmTypesSection() {
       <CardHeader className="flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base">Alarm Types</CardTitle>
-          <CardDescription>Define the emergency notice types crews can be alerted with.</CardDescription>
+          <CardDescription>
+            Define the emergency notice types crews can be alerted with.
+          </CardDescription>
         </div>
         {canManageTypes && (
           <Button size="sm" onClick={() => setOpen(true)} data-testid="button-add-alarm-type">
@@ -356,9 +352,7 @@ function AlarmTypesSection() {
           <DialogFooter>
             <Button
               onClick={() => create.mutate()}
-              disabled={
-                create.isPending || !form.key.trim() || !form.displayName.trim()
-              }
+              disabled={create.isPending || !form.key.trim() || !form.displayName.trim()}
               data-testid="button-save-alarm-type"
             >
               Create
@@ -415,9 +409,7 @@ function AlarmTypesSection() {
               <Switch
                 id="edit-alarm-type-ack"
                 checked={editForm.requiresAcknowledgement}
-                onCheckedChange={(v) =>
-                  setEditForm({ ...editForm, requiresAcknowledgement: v })
-                }
+                onCheckedChange={(v) => setEditForm({ ...editForm, requiresAcknowledgement: v })}
                 data-testid="switch-edit-alarm-type-ack"
               />
             </div>
@@ -463,12 +455,9 @@ function ActiveAlarmsSection() {
   });
   const { data: alarms = [] } = useQuery<ActiveAlarm[]>({
     queryKey: ["/api/admin/safety-alarms", { includeCleared: false }],
-    queryFn: () =>
-      apiRequest<ActiveAlarm[]>(
-        "GET",
-        "/api/admin/safety-alarms",
-      ),
-    refetchInterval: 20000,
+    queryFn: () => apiRequest<ActiveAlarm[]>("GET", "/api/admin/safety-alarms"),
+    // FAST: live alarm panel — keep at least the pre-helper 20s cadence.
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
   const { data: vessels = [] } = useQuery<VesselLite[]>({ queryKey: ["/api/vessels"] });
 
@@ -507,8 +496,7 @@ function ActiveAlarmsSection() {
   });
 
   const needsConfirm =
-    form.mode === "real" &&
-    CONFIRM_REQUIRED_SEVERITIES.includes(form.severity as AlarmSeverity);
+    form.mode === "real" && CONFIRM_REQUIRED_SEVERITIES.includes(form.severity as AlarmSeverity);
 
   function activate() {
     if (needsConfirm) {
@@ -568,7 +556,7 @@ function ActiveAlarmsSection() {
                       {a.severity}
                     </Badge>
                   </TableCell>
-                  <TableCell>{a.vesselId ? vessel?.name ?? a.vesselId : "Fleet-wide"}</TableCell>
+                  <TableCell>{a.vesselId ? (vessel?.name ?? a.vesselId) : "Fleet-wide"}</TableCell>
                   <TableCell>
                     <Badge
                       variant={a.mode === "real" ? "destructive" : "secondary"}
@@ -578,15 +566,11 @@ function ActiveAlarmsSection() {
                     </Badge>
                   </TableCell>
                   <TableCell data-testid={`text-ack-count-${a.id}`}>
-                    {a.requiresAcknowledgement
-                      ? `${a.acknowledgements?.length ?? 0} ack'd`
-                      : "—"}
+                    {a.requiresAcknowledgement ? `${a.acknowledgements?.length ?? 0} ack'd` : "—"}
                   </TableCell>
                   <TableCell className="text-xs">
                     {a.triggeredByName ?? "—"}
-                    {a.triggeredAt
-                      ? ` · ${new Date(a.triggeredAt).toLocaleString()}`
-                      : ""}
+                    {a.triggeredAt ? ` · ${new Date(a.triggeredAt).toLocaleString()}` : ""}
                   </TableCell>
                   <TableCell className="text-right">
                     {a.status === "cleared" ? (
@@ -595,9 +579,7 @@ function ActiveAlarmsSection() {
                         data-testid={`text-cleared-info-${a.id}`}
                       >
                         Cleared{a.clearedByName ? ` by ${a.clearedByName}` : ""}
-                        {a.clearedAt
-                          ? ` · ${new Date(a.clearedAt).toLocaleString()}`
-                          : ""}
+                        {a.clearedAt ? ` · ${new Date(a.clearedAt).toLocaleString()}` : ""}
                       </span>
                     ) : (
                       <Button
@@ -749,14 +731,12 @@ function ActiveAlarmsSection() {
           <AlertDialogHeader>
             <AlertDialogTitle>Activate a REAL alarm?</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to activate a real {form.severity.toUpperCase()} alarm. This
-              immediately notifies affected crews. Continue only if this is a genuine event.
+              You are about to activate a real {form.severity.toUpperCase()} alarm. This immediately
+              notifies affected crews. Continue only if this is a genuine event.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-real-alarm">
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-real-alarm">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false);
@@ -799,7 +779,9 @@ function ActiveAlarmsSection() {
             </Button>
             <Button
               onClick={() => {
-                if (!clearTarget) {return;}
+                if (!clearTarget) {
+                  return;
+                }
                 clear.mutate({
                   id: clearTarget.id,
                   resolutionNote: clearNote.trim() || undefined,
@@ -840,28 +822,46 @@ function AlertLogSection() {
 
   const visibleAlarms = alarms.filter((alarm) => {
     const triggeredAt = alarm.triggeredAt ? new Date(alarm.triggeredAt) : null;
-    if (filters.from && triggeredAt && triggeredAt < new Date(filters.from)) {return false;}
-    if (filters.to && triggeredAt && triggeredAt > new Date(`${filters.to}T23:59:59`)) {return false;}
-    if (filters.vesselId !== "all") {
-      if (filters.vesselId === "__fleet__" && alarm.vesselId !== null) {return false;}
-      if (filters.vesselId !== "__fleet__" && alarm.vesselId !== filters.vesselId) {return false;}
+    if (filters.from && triggeredAt && triggeredAt < new Date(filters.from)) {
+      return false;
     }
-    if (filters.severity !== "all" && alarm.severity !== filters.severity) {return false;}
-    if (filters.mode !== "all" && alarm.mode !== filters.mode) {return false;}
-    if (filters.status !== "all" && alarm.status !== filters.status) {return false;}
+    if (filters.to && triggeredAt && triggeredAt > new Date(`${filters.to}T23:59:59`)) {
+      return false;
+    }
+    if (filters.vesselId !== "all") {
+      if (filters.vesselId === "__fleet__" && alarm.vesselId !== null) {
+        return false;
+      }
+      if (filters.vesselId !== "__fleet__" && alarm.vesselId !== filters.vesselId) {
+        return false;
+      }
+    }
+    if (filters.severity !== "all" && alarm.severity !== filters.severity) {
+      return false;
+    }
+    if (filters.mode !== "all" && alarm.mode !== filters.mode) {
+      return false;
+    }
+    if (filters.status !== "all" && alarm.status !== filters.status) {
+      return false;
+    }
     if (filters.triggeredBy.trim()) {
       const triggeredBy = (alarm.triggeredByName ?? "").toLowerCase();
-      if (!triggeredBy.includes(filters.triggeredBy.trim().toLowerCase())) {return false;}
+      if (!triggeredBy.includes(filters.triggeredBy.trim().toLowerCase())) {
+        return false;
+      }
     }
     if (filters.clearedBy.trim()) {
       const clearedBy = (alarm.clearedByName ?? "").toLowerCase();
-      if (!clearedBy.includes(filters.clearedBy.trim().toLowerCase())) {return false;}
+      if (!clearedBy.includes(filters.clearedBy.trim().toLowerCase())) {
+        return false;
+      }
     }
     return true;
   });
 
   const vesselName = (vesselId: string | null) =>
-    vesselId ? vessels.find((vessel) => vessel.id === vesselId)?.name ?? vesselId : "Fleet-wide";
+    vesselId ? (vessels.find((vessel) => vessel.id === vesselId)?.name ?? vesselId) : "Fleet-wide";
 
   const exportLog = () => {
     exportToCSV(
@@ -881,7 +881,7 @@ function AlertLogSection() {
       })),
       {
         filename: `safety-alert-log-${new Date().toISOString().split("T")[0]}.csv`,
-      },
+      }
     );
   };
 
@@ -890,42 +890,88 @@ function AlertLogSection() {
       <CardHeader className="flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base">Alert Log</CardTitle>
-          <CardDescription>Historical alarm lifecycle, acknowledgements, and clear events.</CardDescription>
+          <CardDescription>
+            Historical alarm lifecycle, acknowledgements, and clear events.
+          </CardDescription>
         </div>
         {canExport && (
-          <Button size="sm" variant="outline" onClick={exportLog} data-testid="button-export-alert-log">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={exportLog}
+            data-testid="button-export-alert-log"
+          >
             <Download className="h-4 w-4 mr-1" /> Export
           </Button>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-3">
-          <Input type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} data-testid="input-alert-log-from" />
-          <Input type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} data-testid="input-alert-log-to" />
-          <Select value={filters.vesselId} onValueChange={(vesselId) => setFilters({ ...filters, vesselId })}>
-            <SelectTrigger data-testid="select-alert-log-vessel"><SelectValue /></SelectTrigger>
+          <Input
+            type="date"
+            value={filters.from}
+            onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+            data-testid="input-alert-log-from"
+          />
+          <Input
+            type="date"
+            value={filters.to}
+            onChange={(event) => setFilters({ ...filters, to: event.target.value })}
+            data-testid="input-alert-log-to"
+          />
+          <Select
+            value={filters.vesselId}
+            onValueChange={(vesselId) => setFilters({ ...filters, vesselId })}
+          >
+            <SelectTrigger data-testid="select-alert-log-vessel">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All scopes</SelectItem>
               <SelectItem value="__fleet__">Fleet-wide</SelectItem>
-              {vessels.map((vessel) => <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>)}
+              {vessels.map((vessel) => (
+                <SelectItem key={vessel.id} value={vessel.id}>
+                  {vessel.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={filters.severity} onValueChange={(severity) => setFilters({ ...filters, severity })}>
-            <SelectTrigger data-testid="select-alert-log-severity"><SelectValue /></SelectTrigger>
+          <Select
+            value={filters.severity}
+            onValueChange={(severity) => setFilters({ ...filters, severity })}
+          >
+            <SelectTrigger data-testid="select-alert-log-severity">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All severities</SelectItem>
-              {ALARM_SEVERITIES.map((severity) => <SelectItem key={severity} value={severity}>{severity}</SelectItem>)}
+              {ALARM_SEVERITIES.map((severity) => (
+                <SelectItem key={severity} value={severity}>
+                  {severity}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={filters.mode} onValueChange={(mode) => setFilters({ ...filters, mode })}>
-            <SelectTrigger data-testid="select-alert-log-mode"><SelectValue /></SelectTrigger>
+            <SelectTrigger data-testid="select-alert-log-mode">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All modes</SelectItem>
-              {ALARM_MODES.map((mode) => <SelectItem key={mode} value={mode}>{mode}</SelectItem>)}
+              {ALARM_MODES.map((mode) => (
+                <SelectItem key={mode} value={mode}>
+                  {mode}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={filters.status} onValueChange={(status) => setFilters({ ...filters, status })}>
-            <SelectTrigger data-testid="select-alert-log-status"><SelectValue /></SelectTrigger>
+          <Select
+            value={filters.status}
+            onValueChange={(status) => setFilters({ ...filters, status })}
+          >
+            <SelectTrigger data-testid="select-alert-log-status">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="active">Active</SelectItem>
@@ -963,18 +1009,43 @@ function AlertLogSection() {
                 <TableRow data-testid={`row-alert-log-${alarm.id}`}>
                   <TableCell>
                     <div className="font-medium">{alarm.title}</div>
-                    <Badge variant="outline" className="text-[10px] capitalize mt-1">{alarm.severity}</Badge>
+                    <Badge variant="outline" className="text-[10px] capitalize mt-1">
+                      {alarm.severity}
+                    </Badge>
                   </TableCell>
                   <TableCell>{vesselName(alarm.vesselId)}</TableCell>
-                  <TableCell><Badge variant={alarm.mode === "real" ? "destructive" : "secondary"}>{alarm.mode}</Badge></TableCell>
-                  <TableCell><Badge variant={alarm.status === "active" ? "destructive" : "secondary"}>{alarm.status}</Badge></TableCell>
-                  <TableCell>{alarm.requiresAcknowledgement ? `${alarm.acknowledgements?.length ?? 0} ack'd` : "Not required"}</TableCell>
+                  <TableCell>
+                    <Badge variant={alarm.mode === "real" ? "destructive" : "secondary"}>
+                      {alarm.mode}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={alarm.status === "active" ? "destructive" : "secondary"}>
+                      {alarm.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {alarm.requiresAcknowledgement
+                      ? `${alarm.acknowledgements?.length ?? 0} ack'd`
+                      : "Not required"}
+                  </TableCell>
                   <TableCell className="text-xs">
-                    <div>Triggered: {alarm.triggeredByName ?? "—"} {alarm.triggeredAt ? `· ${new Date(alarm.triggeredAt).toLocaleString()}` : ""}</div>
-                    <div>Cleared: {alarm.clearedByName ?? "—"} {alarm.clearedAt ? `· ${new Date(alarm.clearedAt).toLocaleString()}` : ""}</div>
+                    <div>
+                      Triggered: {alarm.triggeredByName ?? "—"}{" "}
+                      {alarm.triggeredAt ? `· ${new Date(alarm.triggeredAt).toLocaleString()}` : ""}
+                    </div>
+                    <div>
+                      Cleared: {alarm.clearedByName ?? "—"}{" "}
+                      {alarm.clearedAt ? `· ${new Date(alarm.clearedAt).toLocaleString()}` : ""}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => setExpandedId(expandedId === alarm.id ? null : alarm.id)} data-testid={`button-alert-log-details-${alarm.id}`}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setExpandedId(expandedId === alarm.id ? null : alarm.id)}
+                      data-testid={`button-alert-log-details-${alarm.id}`}
+                    >
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -987,7 +1058,12 @@ function AlertLogSection() {
                         <p className="text-muted-foreground">
                           Resolution note: {alarm.resolutionNote || "No resolution note recorded."}
                         </p>
-                        <p className="text-muted-foreground">Outstanding acknowledgements: {alarm.requiresAcknowledgement ? "Review crew portal acknowledgements for assigned recipients." : "None required."}</p>
+                        <p className="text-muted-foreground">
+                          Outstanding acknowledgements:{" "}
+                          {alarm.requiresAcknowledgement
+                            ? "Review crew portal acknowledgements for assigned recipients."
+                            : "None required."}
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -996,7 +1072,9 @@ function AlertLogSection() {
             ))}
             {visibleAlarms.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">No alert log entries match the filters.</TableCell>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  No alert log entries match the filters.
+                </TableCell>
               </TableRow>
             )}
           </TableBody>

@@ -39,8 +39,7 @@ const settingsBodySchema = jsonRecordSchema;
 
 export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimiters): void {
   const passThrough: RequestHandler = (_req, _res, next) => next();
-  const writeOperationRateLimit: RateLimit =
-    rateLimiters?.writeOperationRateLimit ?? passThrough;
+  const writeOperationRateLimit: RateLimit = rateLimiters?.writeOperationRateLimit ?? passThrough;
 
   // ===== NOTIFICATION SETTINGS ROUTES =====
 

@@ -18,6 +18,7 @@
 #   server/observability/warehouse-export-metrics.ts (LR-2)
 #   server/observability/websocket-metrics.ts (LR-3 — this wave)
 #   server/services/sqlite-bridge/index.ts (silent-loss alerts)
+#   server/telemetry-ingest-config.ts (ingest-path sensor-config outcomes)
 #
 # Severity convention:
 #   critical → pages on-call (PagerDuty)
@@ -218,6 +219,32 @@ groups:
         annotations:
           summary: "SQLite-bridge backlog > 10k frames for 15m"
           runbook: docs/operations/runbooks/incident-response.md
+
+      - alert: TelemetryReadingsDroppedDisabled
+        # `arus_telemetry_ingest_config_total` (telemetry-ingest-config.ts)
+        # tracks sensor-config outcomes on the bulk ingest path. Outcome
+        # dropped_disabled = readings intentionally discarded because the
+        # sensor's configuration is disabled — expected briefly after an
+        # operator disables a sensor; SUSTAINED drops mean an agent is
+        # still shipping a decommissioned channel (stop it at the source
+        # or re-enable the config). Warning, not critical: unlike buffer
+        # evictions this is configured behavior, not silent loss. The
+        # below_min/above_max outcomes are deliberately NOT alerted —
+        # range breaches are flagged-but-kept PdM signal, not garbage.
+        expr: |
+          sum(
+            increase(arus_telemetry_ingest_config_total{outcome="dropped_disabled"}[15m])
+          ) > 0
+        for: 15m
+        labels:
+          severity: warning
+          surface: telemetry
+        annotations:
+          summary: "Readings from disabled sensors are being dropped at ingest"
+          description: >-
+            {{ $value }} readings dropped over 15m because their sensor
+            configuration is disabled. Verify the disable is intentional
+            and silence, or stop the channel at the agent.
 
   # ---------------------------------------------------------------------
   # DLQ — server/services/dead-letter-queue/index.ts

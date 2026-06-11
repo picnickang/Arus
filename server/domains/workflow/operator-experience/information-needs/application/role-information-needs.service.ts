@@ -15,11 +15,13 @@ const ROLE_LABELS: Record<OperatorRole, string> = {
 
 const PRIMARY_QUESTIONS: Record<OperatorRole, string> = {
   chief_engineer: "What machinery, maintenance, parts, or closeout item needs my action today?",
-  second_engineer: "What equipment readings, assigned jobs, or defects need inspection during this watch?",
+  second_engineer:
+    "What equipment readings, assigned jobs, or defects need inspection during this watch?",
   deck_officer: "What must be logged, handed over, or escalated before the next watch?",
   technician: "What exactly should I fix, verify, photograph, or close out next?",
   fleet_manager: "Which vessel, asset, or backlog item creates the highest business risk?",
-  superintendent: "Where do I need to intervene to protect uptime, compliance, and maintenance quality?",
+  superintendent:
+    "Where do I need to intervene to protect uptime, compliance, and maintenance quality?",
   system_admin: "Is the system healthy enough for operators to trust the data and workflow?",
 };
 
@@ -50,8 +52,12 @@ export class RoleInformationNeedsService {
       Promise.resolve(this.catalogPort.listForRole(role)),
       this.signalPort.getSnapshot(orgId),
     ]);
-    const needs = sortInformationNeeds(definitions.map((definition) => prioritizeInformationNeed(definition, signals)));
-    const urgentCount = needs.filter((need) => need.priority === "urgent" || need.priority === "critical").length;
+    const needs = sortInformationNeeds(
+      definitions.map((definition) => prioritizeInformationNeed(definition, signals))
+    );
+    const urgentCount = needs.filter(
+      (need) => need.priority === "urgent" || need.priority === "critical"
+    ).length;
 
     return {
       generatedAt: new Date().toISOString(),
@@ -64,11 +70,16 @@ export class RoleInformationNeedsService {
       needs,
       trustChecklist: uniqueTrustChecklist(needs),
       uxGuidance: {
-        clarity: "Show the role's primary question, evidence, urgency, owner, and one next action before secondary details.",
-        speed: "Keep the first action one tap away and avoid making users wait for a full dashboard before triage.",
-        simplicity: "Group information by operational job-to-be-done, not by internal database or module names.",
-        trust: "Pair every recommendation with source health, freshness, confidence, auditability, and evidence.",
-        retention: "Make daily use rewarding by turning risks into work, handover, closeout proof, and outcome learning.",
+        clarity:
+          "Show the role's primary question, evidence, urgency, owner, and one next action before secondary details.",
+        speed:
+          "Keep the first action one tap away and avoid making users wait for a full dashboard before triage.",
+        simplicity:
+          "Group information by operational job-to-be-done, not by internal database or module names.",
+        trust:
+          "Pair every recommendation with source health, freshness, confidence, auditability, and evidence.",
+        retention:
+          "Make daily use rewarding by turning risks into work, handover, closeout proof, and outcome learning.",
       },
     };
   }

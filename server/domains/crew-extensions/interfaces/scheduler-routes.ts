@@ -124,7 +124,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       );
       const transformed = runs.map((run) => {
         const bag = run as Record<string, unknown>;
-        const completedAt = bag['completedAt'] as string | Date | null | undefined;
+        const completedAt = bag["completedAt"] as string | Date | null | undefined;
         return {
           id: run.id,
           orgId: run.orgId,
@@ -133,10 +133,10 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           toDate: run.endDate ? new Date(run.endDate).toISOString() : null,
           createdAt: run.createdAt ? new Date(run.createdAt).toISOString() : null,
           appliedAt: completedAt ? new Date(completedAt).toISOString() : null,
-          generatedByRunId: (bag['generatedByRunId'] as string | null | undefined) ?? null,
+          generatedByRunId: (bag["generatedByRunId"] as string | null | undefined) ?? null,
           stats: {
-            proposed: (bag['totalAssignments'] as number | undefined) ?? 0,
-            unfilled: (bag['unfilledCount'] as number | undefined) ?? 0,
+            proposed: (bag["totalAssignments"] as number | undefined) ?? 0,
+            unfilled: (bag["unfilledCount"] as number | undefined) ?? 0,
             collisions: 0,
           },
         };
@@ -199,8 +199,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     crewOperationRateLimit,
     withErrorHandling("preview compliance", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { scheduleRunId, assignments: draftAssignments } = previewComplianceBodySchema.parse(req.body ?? {});
-      let assignments: Awaited<ReturnType<typeof dbSchedulerStorage.getScheduleAssignmentsByRun>> = [];
+      const { scheduleRunId, assignments: draftAssignments } = previewComplianceBodySchema.parse(
+        req.body ?? {}
+      );
+      let assignments: Awaited<ReturnType<typeof dbSchedulerStorage.getScheduleAssignmentsByRun>> =
+        [];
 
       if (scheduleRunId) {
         const existing = await dbSchedulerStorage.getSchedulerRun(scheduleRunId);
@@ -248,8 +251,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             message: `Generated ${result.sheetsCreated} rest sheets with ${result.daysCreated} days`,
           });
         }
-          return res.status(400).json({ ...result, success: false, errors: result.errors });
-
+        return res.status(400).json({ ...result, success: false, errors: result.errors });
       }
     )
   );
@@ -302,8 +304,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const previousAssignments = crewAssignments
           .filter((a) => new Date(a.end || a.date) < shiftStart)
           .sort(
-            (a, b) =>
-              new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
+            (a, b) => new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
           );
 
         const lastShiftEnd = previousAssignments[0]
@@ -316,7 +317,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         const context: ConstraintCheckContext = {
           crewId: assignment.crewId,
           crewName: crewMember?.name || "Unknown",
-          date: assignment.date || shiftStart.toISOString().split("T")[0] || '',
+          date: assignment.date || shiftStart.toISOString().split("T")[0] || "",
           shiftStart,
           shiftEnd,
           existingAssignments: crewAssignments.map((a) => ({
@@ -392,8 +393,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           const previousAssignments = crewAssignments
             .filter((a) => new Date(a.end || a.date) < shiftStart)
             .sort(
-              (a, b) =>
-                new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
+              (a, b) => new Date(b.end || b.date).getTime() - new Date(a.end || a.date).getTime()
             );
 
           const lastShiftEnd = previousAssignments[0]
@@ -421,7 +421,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
                 constraint: { type: "leave", enforcement: "hard", description: "On leave" },
                 crewId: crew.id,
                 crewName: crew.name,
-                date: shiftStart.toISOString().split("T")[0] ?? '',
+                date: shiftStart.toISOString().split("T")[0] ?? "",
                 description: "On approved leave during this period",
                 severity: "error",
               });
@@ -598,13 +598,10 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
             };
           });
 
-          sendSchedulePublishedNotification(
-            { orgId, vesselId },
-            assignmentInfos,
-            { from, to },
-          ).catch((err) =>
-            logger.error("Failed to send publish notifications:", undefined, err),
-          );
+          sendSchedulePublishedNotification({ orgId, vesselId }, assignmentInfos, {
+            from,
+            to,
+          }).catch((err) => logger.error("Failed to send publish notifications:", undefined, err));
         } catch (notifyErr) {
           logger.error("Failed to prepare publish notifications:", undefined, notifyErr);
         }
@@ -644,7 +641,9 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       "apply simulated schedule",
       async (req: AuthenticatedRequest, res: Response) => {
         const orgId = req.orgId!;
-        const { simulationResult, skipCollisions, vesselIds } = applyDraftBodySchema.parse(req.body ?? {});
+        const { simulationResult, skipCollisions, vesselIds } = applyDraftBodySchema.parse(
+          req.body ?? {}
+        );
 
         if (!simulationResult || !simulationResult.proposed) {
           return res
@@ -870,7 +869,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           includeUnfilled: includeUnfilled !== "false",
         };
         const view = await crewExtensionsAppService.getSchedulePlannerView(
-          filter as Parameters<typeof crewExtensionsAppService.getSchedulePlannerView>[0],
+          filter as Parameters<typeof crewExtensionsAppService.getSchedulePlannerView>[0]
         );
         return res.json(view);
       }

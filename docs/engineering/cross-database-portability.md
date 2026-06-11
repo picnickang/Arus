@@ -10,25 +10,25 @@
 
 ARUS maintains two parallel schema sets:
 
-| Concern | PostgreSQL | SQLite |
-|---------|-----------|--------|
-| Schema directory | `shared/schema/` | `shared/sqlite-schema/` |
-| Table builder | `pgTable` (drizzle-orm/pg-core) | `sqliteTable` (drizzle-orm/sqlite-core) |
-| Base file | `shared/schema/base.ts` | `shared/sqlite-schema/base.ts` |
+| Concern          | PostgreSQL                                                                  | SQLite                                  |
+| ---------------- | --------------------------------------------------------------------------- | --------------------------------------- |
+| Schema directory | `shared/schema/`                                                            | `shared/sqlite-schema/`                 |
+| Table builder    | `pgTable` (drizzle-orm/pg-core)                                             | `sqliteTable` (drizzle-orm/sqlite-core) |
+| Base file        | `shared/schema/base.ts`                                                     | `shared/sqlite-schema/base.ts`          |
 | Runtime switcher | `shared/schema-runtime.ts` — exports correct table per `LOCAL_MODE` env var |
-| DB config | `server/db-config.ts` — Neon/node-postgres (cloud) or libSQL (vessel) |
-| Drizzle config | `drizzle.config.ts` — PostgreSQL only (used for cloud migrations) |
+| DB config        | `server/db-config.ts` — Neon/node-postgres (cloud) or libSQL (vessel)       |
+| Drizzle config   | `drizzle.config.ts` — PostgreSQL only (used for cloud migrations)           |
 
 The `schema-runtime.ts` file uses ternary exports for each table:
+
 ```typescript
-export const workOrders = isLocalMode
-  ? sqliteVessel.workOrdersSqlite
-  : pgSchema.workOrders;
+export const workOrders = isLocalMode ? sqliteVessel.workOrdersSqlite : pgSchema.workOrders;
 ```
 
 Tables that only exist in cloud mode are guarded:
+
 ```typescript
-export const ragConversations = IS_POSTGRES ? pgSchema.ragConversations : undefined as any;
+export const ragConversations = IS_POSTGRES ? pgSchema.ragConversations : (undefined as any);
 ```
 
 ---
@@ -45,12 +45,14 @@ conflict with IDs generated on cloud).
 ### Correct (portable)
 
 PostgreSQL side:
+
 ```typescript
 // shared/schema/my-table.ts
 id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
 ```
 
 SQLite side:
+
 ```typescript
 // shared/sqlite-schema/my-table.ts
 id: text("id").primaryKey(),
@@ -58,11 +60,13 @@ id: text("id").primaryKey(),
 ```
 
 ### Incorrect (PG-only)
+
 ```typescript
 id: serial("id").primaryKey(),  // BREAKS SQLite
 ```
 
 ### Shared column builder (preferred)
+
 ```typescript
 import { uuidPrimaryKey } from "./base";
 const myTable = pgTable("my_table", {
@@ -81,9 +85,9 @@ Application code must handle both representations.
 
 ### Correct mapping
 
-| PostgreSQL | SQLite | JS type |
-|-----------|--------|---------|
-| `timestamp("created_at", { mode: "date" }).defaultNow()` | `integer("created_at", { mode: "timestamp" })` | `Date` |
+| PostgreSQL                                               | SQLite                                         | JS type |
+| -------------------------------------------------------- | ---------------------------------------------- | ------- |
+| `timestamp("created_at", { mode: "date" }).defaultNow()` | `integer("created_at", { mode: "timestamp" })` | `Date`  |
 
 ### Gotcha: Default values
 
@@ -91,6 +95,7 @@ PostgreSQL uses `defaultNow()` which maps to `NOW()`. SQLite has no equivalent �
 defaults must be applied in application code or via a `DEFAULT (strftime('%s','now'))` raw SQL.
 
 ### Incorrect
+
 ```typescript
 // In SQLite schema — this will silently produce wrong data
 createdAt: text("created_at").default("now"),  // String, not epoch
@@ -106,11 +111,12 @@ Drizzle handles the mapping automatically — no application-level conversion ne
 
 ### Correct mapping
 
-| PostgreSQL | SQLite |
-|-----------|--------|
+| PostgreSQL                           | SQLite                                                    |
+| ------------------------------------ | --------------------------------------------------------- |
 | `boolean("is_active").default(true)` | `integer("is_active", { mode: "boolean" }).default(true)` |
 
 ### Incorrect
+
 ```typescript
 // In SQLite schema — loses semantic meaning and Drizzle won't coerce
 isActive: integer("is_active").default(1),  // No mode: "boolean"
@@ -126,17 +132,20 @@ Application code that reads JSON from SQLite must parse the string.
 ### Correct mapping
 
 PostgreSQL:
+
 ```typescript
 specifications: jsonb("specifications"),
 ```
 
 SQLite:
+
 ```typescript
 specifications: text("specifications"),
 // Use sqliteJsonHelpers.parseJson() when reading
 ```
 
 ### Helper utilities (shared/sqlite-schema/base.ts)
+
 ```typescript
 import { sqliteJsonHelpers } from "./base";
 const parsed = sqliteJsonHelpers.parseJson<MyType>(row.specifications);
@@ -144,6 +153,7 @@ const serialized = sqliteJsonHelpers.stringifyJson(data);
 ```
 
 ### Incorrect
+
 ```typescript
 // In SQLite schema — jsonb does not exist in SQLite
 specifications: jsonb("specifications"),  // IMPORT ERROR
@@ -159,11 +169,13 @@ SQLite has no array type — use `text` and store as JSON-serialized strings.
 ### Correct mapping
 
 PostgreSQL:
+
 ```typescript
 requiredSkills: text("required_skills").array(),
 ```
 
 SQLite:
+
 ```typescript
 requiredSkills: text("required_skills"),
 // Stored as '["welding","electrical"]'
@@ -171,6 +183,7 @@ requiredSkills: text("required_skills"),
 ```
 
 ### Incorrect
+
 ```typescript
 // In SQLite schema — .array() is a PG-only method
 requiredSkills: text("required_skills").array(),  // RUNTIME ERROR
@@ -185,9 +198,10 @@ Tables using vector columns (RAG, knowledge base embeddings) must be marked as
 **cloud-only** in `schema-runtime.ts`.
 
 ### Cloud-only guard pattern
+
 ```typescript
 // schema-runtime.ts
-export const kbChunks = IS_POSTGRES ? pgSchema.kbChunks : undefined as any;
+export const kbChunks = IS_POSTGRES ? pgSchema.kbChunks : (undefined as any);
 ```
 
 Any code accessing cloud-only tables must check `IS_POSTGRES` before use.
@@ -204,11 +218,13 @@ requiring exact precision, the SQLite schema should use `integer` (store cents) 
 ### Correct mapping (financial)
 
 PostgreSQL:
+
 ```typescript
 dayRateSgd: numeric("day_rate_sgd", { precision: 10, scale: 2 }),
 ```
 
 SQLite:
+
 ```typescript
 dayRateSgd: real("day_rate_sgd"),
 // Acceptable for display-only fields on vessel
@@ -224,14 +240,16 @@ GIN, GiST, full-text search (`to_tsvector`), and expression indexes are
 PostgreSQL-only and must not appear in SQLite schemas.
 
 ### Portable (both databases)
+
 ```typescript
 // Drizzle index builder — works on both PG and SQLite
 (table) => ({
   orgIdx: index("idx_my_table_org").on(table.orgId),
-})
+});
 ```
 
 ### PG-only (cloud schema only)
+
 ```typescript
 // Full-text search — PostgreSQL GIN index
 searchIdx: sql`CREATE INDEX ... USING gin(to_tsvector('english', name || ...))`,
@@ -251,11 +269,13 @@ Drizzle's `.references()` works on both, but the SQLite schemas currently omit
 for vessel deployments where referenced tables may not have synced yet.
 
 ### PG schema (strict references)
+
 ```typescript
 equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
 ```
 
 ### SQLite schema (no FK references)
+
 ```typescript
 equipmentId: text("equipment_id").notNull(),
 // No .references() — data may arrive out of order during sync
@@ -274,6 +294,7 @@ code handling deletes must manually cascade when `IS_SQLITE` is true.
 with Zod validation on insert schemas. This is already portable.
 
 ### Correct (current pattern)
+
 ```typescript
 // Schema
 status: text("status").notNull().default("scheduled"),
@@ -283,6 +304,7 @@ status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).default("
 ```
 
 ### Incorrect (would break SQLite)
+
 ```typescript
 import { pgEnum } from "drizzle-orm/pg-core";
 const statusEnum = pgEnum("status", ["open", "closed"]);
@@ -297,6 +319,7 @@ status: statusEnum("status"),  // PG-only, no SQLite equivalent
 Use Zod validation on insert schemas instead.
 
 ### Current PG usage (inventory.ts)
+
 ```typescript
 // PG-only CHECK constraints
 validReservedQuantity: sql`CHECK (quantity_reserved <= quantity_on_hand)`,
@@ -313,12 +336,14 @@ These do not exist in the SQLite schema — validation is at the application lay
 `ALTER TABLE ... ADD CONSTRAINT` is PG-only syntax.
 
 ### Portable
+
 ```typescript
 import { unique } from "./base";
 uniqueWoEquipment: unique("uq_work_order_equipment").on(table.workOrderId, table.equipmentId),
 ```
 
 ### PG-only (avoid in shared code)
+
 ```typescript
 sql`ALTER TABLE ${table} ADD CONSTRAINT unique_supplier_code_org UNIQUE (${table.orgId}, ${table.code})`,
 ```
@@ -342,6 +367,7 @@ SQLite schema changes are applied via `server/sqlite-init.ts` which creates
 tables from the Drizzle schema definitions.
 
 When adding a new table:
+
 1. Create PG schema in `shared/schema/<domain>.ts`
 2. Create SQLite schema in `shared/sqlite-schema/<domain>.ts`
 3. Add ternary export in `shared/schema-runtime.ts`
@@ -411,10 +437,10 @@ For any table marked cloud-only in `schema-runtime.ts`:
 
 When CI infrastructure supports it, the following matrix should run:
 
-| Test target | DATABASE_URL | LOCAL_MODE | Expected |
-|------------|-------------|------------|----------|
-| Cloud mode | PostgreSQL connection | `false` | All PG schemas operational |
-| Vessel mode | (none) | `true` | SQLite schemas operational, cloud-only tables guarded |
+| Test target | DATABASE_URL          | LOCAL_MODE | Expected                                              |
+| ----------- | --------------------- | ---------- | ----------------------------------------------------- |
+| Cloud mode  | PostgreSQL connection | `false`    | All PG schemas operational                            |
+| Vessel mode | (none)                | `true`     | SQLite schemas operational, cloud-only tables guarded |
 
 ### 16.5 Schema-Runtime Consistency Check
 
@@ -431,15 +457,15 @@ The count should match the number of exported table constants.
 
 ## Automation Status
 
-| Automation | Status | Command |
-|-----------|--------|---------|
-| Schema export guard (ternary validation) | **Implemented** | `npm run check:schema` (Layer 1) |
-| Column parity check (PG vs SQLite column diff) | **Implemented** | `npm run check:schema` (Layer 2) |
-| Schema import boundary | **Implemented** | `npm run check:schema-imports` |
-| Storage facade import boundary | **Implemented** | `npm run check:storage-imports` |
-| All guardrails combined | **Implemented** | `npm run check:guards` |
-| ESLint rule banning `serial()` imports | Deferred | Create custom ESLint plugin or `no-restricted-imports` rule |
-| Automated dual-DB test matrix in CI | Deferred | Requires CI pipeline with both PG and SQLite test databases |
+| Automation                                     | Status          | Command                                                     |
+| ---------------------------------------------- | --------------- | ----------------------------------------------------------- |
+| Schema export guard (ternary validation)       | **Implemented** | `npm run check:schema` (Layer 1)                            |
+| Column parity check (PG vs SQLite column diff) | **Implemented** | `npm run check:schema` (Layer 2)                            |
+| Schema import boundary                         | **Implemented** | `npm run check:schema-imports`                              |
+| Storage facade import boundary                 | **Implemented** | `npm run check:storage-imports`                             |
+| All guardrails combined                        | **Implemented** | `npm run check:guards`                                      |
+| ESLint rule banning `serial()` imports         | Deferred        | Create custom ESLint plugin or `no-restricted-imports` rule |
+| Automated dual-DB test matrix in CI            | Deferred        | Requires CI pipeline with both PG and SQLite test databases |
 
 ### Running Guardrails
 
@@ -448,6 +474,7 @@ npm run check:guards
 ```
 
 This runs three scripts:
+
 1. `scripts/validate-dual-schema.mjs` — Three-layer validation:
    - Layer 1: Every table export in `schema-runtime.ts` uses the ternary guard pattern.
    - Layer 2: Column parity — compares PG (`shared/schema/`) and SQLite
@@ -474,14 +501,14 @@ This runs three scripts:
 
 The following PG tables use `serial("id").primaryKey()` instead of UUID:
 
-| File | Tables |
-|------|--------|
-| `shared/schema/core.ts` | `metricsHistory`, `dbSchemaVersion` |
-| `shared/schema/telemetry.ts` | `telemetryAggregates` (line 139) |
-| `shared/schema/ml-analytics-core.ts` | `modelVersions`, `modelAccuracyHistory`, `trainingJobs`, `featureEngineering`, `hyperparameterSets` |
+| File                                     | Tables                                                                                                                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `shared/schema/core.ts`                  | `metricsHistory`, `dbSchemaVersion`                                                                                                                                                                    |
+| `shared/schema/telemetry.ts`             | `telemetryAggregates` (line 139)                                                                                                                                                                       |
+| `shared/schema/ml-analytics-core.ts`     | `modelVersions`, `modelAccuracyHistory`, `trainingJobs`, `featureEngineering`, `hyperparameterSets`                                                                                                    |
 | `shared/schema/ml-analytics-advanced.ts` | `realTimePredictions`, `calibrationCurves`, `sensorFusionSnapshots`, `acousticEvents`, `featureImportances`, `modelDeployments`, `modelDriftDetection`, `retrainingTriggers`, `thresholdOptimizations` |
-| `shared/schema/insights.ts` | `dailyMetricRollups` |
-| `shared/schema/iot-edge.ts` | `sensorCalibrationRecords` |
+| `shared/schema/insights.ts`              | `dailyMetricRollups`                                                                                                                                                                                   |
+| `shared/schema/iot-edge.ts`              | `sensorCalibrationRecords`                                                                                                                                                                             |
 
 **Impact:** These tables cannot participate in bidirectional sync. The SQLite schemas
 define equivalent tables with `text("id").primaryKey()` to work around this, but
@@ -501,10 +528,10 @@ This is correctly handled. No violations found.
 
 ### A.4 PG-Only Index Patterns (Non-breaking)
 
-| File | Pattern |
-|------|---------|
+| File                             | Pattern                                                |
+| -------------------------------- | ------------------------------------------------------ |
 | `shared/schema/inventory.ts:103` | `USING gin(to_tsvector(...))` — full-text search index |
-| `shared/schema/inventory.ts:60` | `ALTER TABLE ... ADD CONSTRAINT` via raw SQL |
+| `shared/schema/inventory.ts:60`  | `ALTER TABLE ... ADD CONSTRAINT` via raw SQL           |
 
 **Impact:** These only run during PG migration. SQLite schemas define separate,
 simpler indexes. Not a portability break since indexes are schema-specific.
@@ -545,11 +572,11 @@ error: `"Table X is cloud-only and not available in vessel mode"`.
 
 Some tables have minor column differences between PG and SQLite definitions:
 
-| Table | PG column | SQLite equivalent | Difference |
-|-------|----------|-------------------|------------|
-| `maintenance_records` | `performedBy`, `cost` | `technician`, `laborHours`, `downtimeMinutes` | Different column names/structure |
-| `work_order_completions` | `completedBy: varchar` | `completedBy: text` + extra fields | SQLite has additional vessel-specific fields |
-| `maintenance_costs` | has `orgId` FK | no `orgId` column | Missing tenant isolation |
+| Table                    | PG column              | SQLite equivalent                             | Difference                                   |
+| ------------------------ | ---------------------- | --------------------------------------------- | -------------------------------------------- |
+| `maintenance_records`    | `performedBy`, `cost`  | `technician`, `laborHours`, `downtimeMinutes` | Different column names/structure             |
+| `work_order_completions` | `completedBy: varchar` | `completedBy: text` + extra fields            | SQLite has additional vessel-specific fields |
+| `maintenance_costs`      | has `orgId` FK         | no `orgId` column                             | Missing tenant isolation                     |
 
 **Impact:** Sync logic must handle column mapping between PG and SQLite representations.
 This is by design (vessel schemas are optimized for offline operation) but increases
@@ -560,6 +587,7 @@ maintenance burden when adding new fields.
 ## Appendix B: SQL Feature Whitelist/Blacklist
 
 ### Allowed in Both (Whitelist)
+
 - `SELECT`, `INSERT`, `UPDATE`, `DELETE`
 - `JOIN` (INNER, LEFT, RIGHT via subquery)
 - `WHERE`, `ORDER BY`, `LIMIT`, `OFFSET`
@@ -579,6 +607,7 @@ maintenance burden when adding new fields.
 - `->>` JSON extract operator (SQLite 3.38+ / libSQL supports this)
 
 ### PostgreSQL Only (Blacklist for Portable Code)
+
 - `jsonb` operators beyond `->>`: `->` (returns jsonb), `@>`, `?`, `?|`, `?&`
 - `ARRAY` operators (`ANY`, `ALL`, `@>`, `<@`)
 - `LATERAL JOIN`
@@ -603,11 +632,11 @@ maintenance burden when adding new fields.
 The following features work in modern SQLite/libSQL but may not be available in
 older embedded SQLite versions. ARUS uses libSQL via Turso, which supports all of these:
 
-| Feature | Minimum SQLite version | libSQL status |
-|---------|----------------------|---------------|
-| `RETURNING` | 3.35.0 (2021-03) | Supported |
-| `UPSERT` (`ON CONFLICT DO UPDATE`) | 3.24.0 (2018-06) | Supported |
-| Window functions | 3.25.0 (2018-09) | Supported |
-| `->>`  JSON extract | 3.38.0 (2022-02) | Supported |
-| `STRICT` tables | 3.37.0 (2021-11) | Supported |
-| `RIGHT JOIN` / `FULL OUTER JOIN` | 3.39.0 (2022-09) | Supported |
+| Feature                            | Minimum SQLite version | libSQL status |
+| ---------------------------------- | ---------------------- | ------------- |
+| `RETURNING`                        | 3.35.0 (2021-03)       | Supported     |
+| `UPSERT` (`ON CONFLICT DO UPDATE`) | 3.24.0 (2018-06)       | Supported     |
+| Window functions                   | 3.25.0 (2018-09)       | Supported     |
+| `->>` JSON extract                 | 3.38.0 (2022-02)       | Supported     |
+| `STRICT` tables                    | 3.37.0 (2021-11)       | Supported     |
+| `RIGHT JOIN` / `FULL OUTER JOIN`   | 3.39.0 (2022-09)       | Supported     |

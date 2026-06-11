@@ -8,7 +8,11 @@
 import { db } from "../db";
 import { equipmentTelemetry } from "@shared/schema-runtime";
 import { eq, and, gte, sql } from "drizzle-orm";
-import type { FailurePredictionResult, DegradationMetrics, MlAnalyticsTelemetryReading } from "./types";
+import type {
+  FailurePredictionResult,
+  DegradationMetrics,
+  MlAnalyticsTelemetryReading,
+} from "./types";
 import {
   calculateTrend,
   calculateVariability,
@@ -33,14 +37,18 @@ export async function getMultiSensorData(
       avgValue: sql<number>`avg(${equipmentTelemetry.value})::float8`.as("avg_value"),
     })
     .from(equipmentTelemetry)
-    .where(and(eq(equipmentTelemetry.equipmentId, equipmentId), gte(equipmentTelemetry.ts, startDate)))
+    .where(
+      and(eq(equipmentTelemetry.equipmentId, equipmentId), gte(equipmentTelemetry.ts, startDate))
+    )
     .groupBy(equipmentTelemetry.sensorType, hourBucket)
     .orderBy(hourBucket);
 
   return data as MlAnalyticsTelemetryReading[];
 }
 
-export function calculateDegradationMetrics(data: MlAnalyticsTelemetryReading[]): DegradationMetrics {
+export function calculateDegradationMetrics(
+  data: MlAnalyticsTelemetryReading[]
+): DegradationMetrics {
   const sensorGroups = data.reduce(
     (groups, reading) => {
       if (!groups[reading.sensorType]) {

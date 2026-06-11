@@ -229,8 +229,7 @@ export function registerConditionMonitoringRoutes(
     generalApiRateLimit,
     withErrorHandling("create condition monitoring assessment", async (req, res) => {
       const body = assessmentBodySchema.parse(req.body);
-      const assessment =
-        await dbConditionMonitoringStorage.createConditionMonitoringRecord(body);
+      const assessment = await dbConditionMonitoringStorage.createConditionMonitoringRecord(body);
       sendCreated(res, assessment);
     })
   );
@@ -270,8 +269,9 @@ export function registerConditionMonitoringRoutes(
     requireOrgId,
     generalApiRateLimit,
     withErrorHandling("generate condition assessment", async (req, res) => {
-      const { oilAnalysisId, wearAnalysisId, vibrationScore } =
-        generateAssessmentBodySchema.parse(req.body);
+      const { oilAnalysisId, wearAnalysisId, vibrationScore } = generateAssessmentBodySchema.parse(
+        req.body
+      );
 
       const oilAnalysis = await dbConditionMonitoringStorage.getOilAnalysis(oilAnalysisId);
       if (!oilAnalysis) {

@@ -31,7 +31,10 @@ for (const [file, needle] of required) {
   }
 }
 
-const attentionService = fs.readFileSync("server/domains/workflow/application/attention-service.ts", "utf8");
+const attentionService = fs.readFileSync(
+  "server/domains/workflow/application/attention-service.ts",
+  "utf8"
+);
 if (!attentionService.includes("count: nonPartsBlocked.length")) {
   console.error("Workflow guard failed: Blocked queue count must exclude waiting-on-parts jobs.");
   failed = true;

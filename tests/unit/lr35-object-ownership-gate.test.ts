@@ -32,7 +32,7 @@ describe("LR-3.5 TEN-5 — assertObjectOwnedByOrg", () => {
   it("same-org path is allowed", () => {
     const out = svc.assertObjectOwnedByOrg(
       fakeFile(`bucket/.private/uploads/orgs/${ORG_A}/uuid-1`) as never,
-      ORG_A,
+      ORG_A
     );
     expect(out.allowed).toBe(true);
     expect(out.ownerOrgId).toBe(ORG_A);
@@ -42,7 +42,7 @@ describe("LR-3.5 TEN-5 — assertObjectOwnedByOrg", () => {
   it("cross-org path is rejected and reports owner for audit", () => {
     const out = svc.assertObjectOwnedByOrg(
       fakeFile(`bucket/.private/uploads/orgs/${ORG_A}/uuid-1`) as never,
-      ORG_B,
+      ORG_B
     );
     expect(out.allowed).toBe(false);
     expect(out.ownerOrgId).toBe(ORG_A);
@@ -52,7 +52,7 @@ describe("LR-3.5 TEN-5 — assertObjectOwnedByOrg", () => {
   it("legacy `uploads/<uuid>` path is allowed but flagged legacy", () => {
     const out = svc.assertObjectOwnedByOrg(
       fakeFile("bucket/.private/uploads/legacy-uuid") as never,
-      ORG_A,
+      ORG_A
     );
     expect(out.allowed).toBe(true);
     expect(out.ownerOrgId).toBeNull();
@@ -60,10 +60,7 @@ describe("LR-3.5 TEN-5 — assertObjectOwnedByOrg", () => {
   });
 
   it("non-upload path (e.g. public asset) is allowed with no ownership opinion", () => {
-    const out = svc.assertObjectOwnedByOrg(
-      fakeFile("bucket/public/logo.png") as never,
-      ORG_A,
-    );
+    const out = svc.assertObjectOwnedByOrg(fakeFile("bucket/public/logo.png") as never, ORG_A);
     expect(out.allowed).toBe(true);
     expect(out.ownerOrgId).toBeNull();
     expect(out.legacy).toBe(false);

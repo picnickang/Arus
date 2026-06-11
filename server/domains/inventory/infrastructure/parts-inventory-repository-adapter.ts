@@ -82,9 +82,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
 
   async findByPartNo(partNo: string, orgId?: string): Promise<PartsInventoryEntity[]> {
     const allItems = await inventoryRepository.findPartsInventory(undefined, orgId);
-    return allItems
-      .map(mapToEntity)
-      .filter((entity) => entity.partNo === partNo);
+    return allItems.map(mapToEntity).filter((entity) => entity.partNo === partNo);
   }
 
   async findLowStock(orgId: string): Promise<PartsInventoryEntity[]> {
@@ -128,7 +126,9 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   ): Promise<PartsInventoryEntity> {
     const item = await inventoryRepository.updateInventoryItem(
       id,
-      { quantity: newQuantity } as object as Parameters<typeof inventoryRepository.updateInventoryItem>[1],
+      { quantity: newQuantity } as object as Parameters<
+        typeof inventoryRepository.updateInventoryItem
+      >[1],
       orgId
     );
     return mapToEntity(item);

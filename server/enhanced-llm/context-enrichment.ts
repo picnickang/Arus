@@ -18,24 +18,24 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
 
   if (context.data.workOrders && context.data.workOrders.length > 0) {
     const criticalOrders = (context.data.workOrders as object as Array<Record<string, unknown>>)
-      .filter((wo) => wo['priority'] === "critical" || wo['priority'] === "urgent")
+      .filter((wo) => wo["priority"] === "critical" || wo["priority"] === "urgent")
       .slice(0, 3);
 
     criticalOrders.forEach((order) => {
       knowledgeSnippets.push(
-        `Critical Work Order: ${order['title'] ?? order['description'] ?? "Untitled"} (${order['status']}) - ${order['description'] || "No description"}`
+        `Critical Work Order: ${order["title"] ?? order["description"] ?? "Untitled"} (${order["status"]}) - ${order["description"] || "No description"}`
       );
     });
   }
 
   if (context.data.alerts && context.data.alerts.length > 0) {
     const criticalAlerts = (context.data.alerts as Array<Record<string, unknown>>)
-      .filter((a) => a['severity'] === "critical")
+      .filter((a) => a["severity"] === "critical")
       .slice(0, 3);
 
     criticalAlerts.forEach((alert) => {
       knowledgeSnippets.push(
-        `Critical Alert: ${alert['alertType']} on ${alert['sensorType']} - ${alert['message']}`
+        `Critical Alert: ${alert["alertType"]} on ${alert["sensorType"]} - ${alert["message"]}`
       );
     });
   }
@@ -93,11 +93,7 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
               : undefined;
         const summary = typeof d.summary === "string" ? d.summary : undefined;
         const title =
-          typeof d.title === "string"
-            ? d.title
-            : typeof d.name === "string"
-              ? d.name
-              : "Untitled";
+          typeof d.title === "string" ? d.title : typeof d.name === "string" ? d.name : "Untitled";
         const excerpt = content?.slice(0, 500) || summary || "No content available";
         knowledgeSnippets.push(
           `KB Document [${docType.toUpperCase()}]: "${title}" - ${excerpt}${excerpt.length >= 500 ? "..." : ""}`
@@ -133,11 +129,7 @@ export function enrichContextWithRAG(context: ReportContext): ReportContext {
               : undefined;
         const summary = typeof m.summary === "string" ? m.summary : undefined;
         const title =
-          typeof m.title === "string"
-            ? m.title
-            : typeof m.name === "string"
-              ? m.name
-              : "Untitled";
+          typeof m.title === "string" ? m.title : typeof m.name === "string" ? m.name : "Untitled";
         const excerpt = content?.slice(0, 400) || summary || "No content available";
         knowledgeSnippets.push(
           `KB Reference [${docType.toUpperCase()}] ${similarity}: "${title}" - ${excerpt}${excerpt.length >= 400 ? "..." : ""}`
@@ -165,9 +157,9 @@ export function serializeContext(context: ReportContext): string {
     const wos = context.data.workOrders as object as Array<Record<string, unknown>>;
     parts.push(`Work Orders: ${wos.length} total`);
     const byPriority = {
-      critical: wos.filter((wo) => wo['priority'] === "critical").length,
-      urgent: wos.filter((wo) => wo['priority'] === "urgent").length,
-      normal: wos.filter((wo) => wo['priority'] === "normal").length,
+      critical: wos.filter((wo) => wo["priority"] === "critical").length,
+      urgent: wos.filter((wo) => wo["priority"] === "urgent").length,
+      normal: wos.filter((wo) => wo["priority"] === "normal").length,
     };
     parts.push(
       `  - Critical: ${byPriority.critical}, Urgent: ${byPriority.urgent}, Normal: ${byPriority.normal}`

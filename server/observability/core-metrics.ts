@@ -43,7 +43,9 @@ export function startEventLoopMonitoring(intervalMs: number = 1000): void {
   };
 
   eventLoopMonitorId = setInterval(measure, intervalMs);
-  logger.info(`[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`);
+  logger.info(
+    `[Performance] Event loop monitoring started (interval: ${intervalMs}ms, warm-up: ${WARMUP_PERIOD_MS / 1000}s)`
+  );
 }
 
 export function stopEventLoopMonitoring(): void {
@@ -106,7 +108,9 @@ export function checkResourceUsage(): void {
     const now = Date.now();
     if (now - lastMemoryWarningTime > MEMORY_WARNING_COOLDOWN) {
       lastMemoryWarningTime = now;
-      logger.warn(`[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`);
+      logger.warn(
+        `[Performance] CRITICAL: High memory usage - ${heapUsedMB.toFixed(0)}MB (threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_MEMORY_MB}MB)`
+      );
       if (global.gc) {
         logger.info("[Performance] Triggering garbage collection...");
         global.gc();

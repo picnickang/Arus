@@ -14,7 +14,7 @@ same Node process as the emitter. That works for a single node but has three
 structural problems:
 
 1. **No durability.** If the process crashes between a DB commit and the in-process
-   `emit()`, the event is lost. The sync_journal/sync_outbox path runs *after*
+   `emit()`, the event is lost. The sync*journal/sync_outbox path runs \_after*
    emit and is itself non-transactional w.r.t. the business write.
 2. **No analytics substrate.** Telemetry analytics queries hit the OLTP database,
    competing with operational reads. There is nowhere for an analytics consumer
@@ -26,17 +26,17 @@ structural problems:
 This ADR picks the streaming substrate, the publish contract, and the rollout
 strategy. **The in-process bus is not replaced** — it stays the fast path for
 in-process consumers (sync journal, scheduler, MQTT). The streaming spine is an
-*additive* durable layer on top.
+_additive_ durable layer on top.
 
 ## Decision
 
 ### 1. Substrate: Redpanda
 
-| Candidate           | Pros                                                                                        | Cons                                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Apache Kafka**    | Reference implementation; richest ecosystem (Connect, Streams, Schema Registry); battle-tested at scale. | Heavy ops burden (Zookeeper or KRaft + JVM tuning); 3-node minimum for HA; disk-hungry.            |
-| **Redpanda**        | **Kafka API wire-compatible** → same client libraries (`kafkajs`); single Go binary, no Zookeeper; single-node dev mode; per-partition Raft. | Smaller ecosystem than Kafka; commercial features (tiered storage) behind paywall.                  |
-| **NATS JetStream**  | Lightweight, simple ops, good for request/reply + streaming.                                | Different protocol — can't reuse Kafka clients; weaker partitioned-ordering story; smaller analytics ecosystem (no Debezium sink). |
+| Candidate          | Pros                                                                                                                                         | Cons                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Apache Kafka**   | Reference implementation; richest ecosystem (Connect, Streams, Schema Registry); battle-tested at scale.                                     | Heavy ops burden (Zookeeper or KRaft + JVM tuning); 3-node minimum for HA; disk-hungry.                                            |
+| **Redpanda**       | **Kafka API wire-compatible** → same client libraries (`kafkajs`); single Go binary, no Zookeeper; single-node dev mode; per-partition Raft. | Smaller ecosystem than Kafka; commercial features (tiered storage) behind paywall.                                                 |
+| **NATS JetStream** | Lightweight, simple ops, good for request/reply + streaming.                                                                                 | Different protocol — can't reuse Kafka clients; weaker partitioned-ordering story; smaller analytics ecosystem (no Debezium sink). |
 
 **Choice: Redpanda.** Decisive factors:
 
@@ -76,7 +76,7 @@ path:
 
 - **Partition key is always `orgId`.** Never round-robin. Per-tenant ordering
   is a hard invariant — alarms, work-order status changes, and inventory
-  movements must be consumed in causal order *within* a tenant. Cross-tenant
+  movements must be consumed in causal order _within_ a tenant. Cross-tenant
   ordering is intentionally not guaranteed.
 - **Topic-per-event-type** (`work_order.created`, `telemetry.batch_ingested`,
   etc.). Consumers subscribe to the topics they care about; new consumers
@@ -118,7 +118,7 @@ Tracked as a follow-up task (Push B3.4).
    every in-process domain event into the outbox (best-effort durability for
    emit sites that haven't been migrated to inline `enqueueOutbox`).
 2. **Next PR.** Migrate `work-orders` and `maintenance` publisher adapters to
-   call `enqueueOutbox(tx, envelope)` *inside* the service transaction. This
+   call `enqueueOutbox(tx, envelope)` _inside_ the service transaction. This
    upgrades "best effort capture via bridge" → "true transactional outbox" for
    those domains. Other domains migrate incrementally.
 3. **Next PR.** `KafkaProducer` adapter (`kafkajs`), env-gated by

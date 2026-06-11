@@ -70,8 +70,7 @@ export function useVesselManagementData() {
   });
 
   const exportVesselMutation = useCustomMutation<string, VesselExportData>({
-    mutationFn: (id: string) =>
-      apiRequest("GET", `/api/vessels/${id}/export`),
+    mutationFn: (id: string) => apiRequest("GET", `/api/vessels/${id}/export`),
     invalidateKeys: [],
     onSuccess: ((data: unknown, vesselId: string) => {
       const success = exportToJSON(data, {
@@ -89,8 +88,7 @@ export function useVesselManagementData() {
   });
 
   const importVesselMutation = useCustomMutation<VesselExportData, VesselImportResult>({
-    mutationFn: (data: VesselExportData) =>
-      apiRequest("POST", `/api/vessels/import`, data),
+    mutationFn: (data: VesselExportData) => apiRequest("POST", `/api/vessels/import`, data),
     invalidateKeys: [["/api/vessels"], ["/api/equipment"], ["/api/crew"]],
     onSuccess: (result) =>
       `Imported ${result.equipmentCount} equipment and ${result.crewCount} crew members`,
@@ -155,9 +153,17 @@ export function useVesselManagementData() {
       orgId: vessel.orgId,
       name: vessel.name,
       vesselClass: vessel.vesselClass || "",
-      condition: (vessel.condition || "good") as "excellent" | "good" | "fair" | "poor" | "critical",
+      condition: (vessel.condition || "good") as
+        | "excellent"
+        | "good"
+        | "fair"
+        | "poor"
+        | "critical",
       onlineStatus: vessel.onlineStatus || "offline",
-      ...({ specifications: v.specifications, operatingParameters: v.operatingParameters } as object),
+      ...({
+        specifications: v.specifications,
+        operatingParameters: v.operatingParameters,
+      } as object),
       dayRateSgd: vessel.dayRateSgd ?? null,
     });
     setIsEditDialogOpen(true);
@@ -215,7 +221,9 @@ export function useVesselManagementData() {
   };
 
   const getVesselEquipment = (vesselName: string) =>
-    !Array.isArray(equipmentHealth) ? [] : equipmentHealth.filter((eq) => eq.vesselId === vesselName);
+    !Array.isArray(equipmentHealth)
+      ? []
+      : equipmentHealth.filter((eq) => eq.vesselId === vesselName);
 
   const hasActiveDowntime = (vesselName: string, vesselId: string) =>
     workOrders.some((wo) => {
@@ -230,7 +238,10 @@ export function useVesselManagementData() {
         return false;
       }
       const isActive = wo.status === "in_progress" || wo.status === "open";
-      const woAny = wo as typeof wo & { estimatedDowntimeHours?: number | null; actualDowntimeHours?: number | null };
+      const woAny = wo as typeof wo & {
+        estimatedDowntimeHours?: number | null;
+        actualDowntimeHours?: number | null;
+      };
       const hasDowntime =
         (woAny.estimatedDowntimeHours && woAny.estimatedDowntimeHours > 0) ||
         (woAny.actualDowntimeHours && woAny.actualDowntimeHours > 0);

@@ -20,16 +20,16 @@ server/domains/<domain>/
 
 ### Registered Domain Modules
 
-| Domain | Unique Paths | Status | Notes |
-|--------|-------------|--------|-------|
-| crew | 22 | Active | Crew, certifications, documents, skills, leave |
-| equipment | 12 | Active | Equipment registry & maintenance |
-| alerts | 11 | Active | Alert configuration and routing |
-| inventory | 10 | Active | Parts and stock management |
-| vessels | 9 | Active | Vessel management |
-| work-orders | 7 | Active | Core work order CRUD |
-| maintenance | 6 | Active | Maintenance schedules/templates |
-| devices | 2 | Active | Edge device management |
+| Domain      | Unique Paths | Status | Notes                                          |
+| ----------- | ------------ | ------ | ---------------------------------------------- |
+| crew        | 22           | Active | Crew, certifications, documents, skills, leave |
+| equipment   | 12           | Active | Equipment registry & maintenance               |
+| alerts      | 11           | Active | Alert configuration and routing                |
+| inventory   | 10           | Active | Parts and stock management                     |
+| vessels     | 9            | Active | Vessel management                              |
+| work-orders | 7            | Active | Core work order CRUD                           |
+| maintenance | 6            | Active | Maintenance schedules/templates                |
+| devices     | 2            | Active | Edge device management                         |
 
 **Total extracted:** 79 unique API paths
 
@@ -37,28 +37,29 @@ server/domains/<domain>/
 
 ### Routes Still in Monolith (routes.ts)
 
-| Category | Routes | Priority | Notes |
-|----------|--------|----------|-------|
-| analytics | 70 | Medium | Partially in routes/analytics.ts |
-| logbook | 69 | High | Deck & engine logbooks |
-| crew | 27 | Low | Duplicate - needs cleanup |
-| compliance | 21 | Medium | Audit trail, regulatory |
-| condition | 17 | Medium | Condition monitoring |
-| work-orders | 15 | Low | Duplicate - needs cleanup |
-| ml | 15 | Low | ML predictions |
-| alerts | 14 | Low | Duplicate - needs cleanup |
-| notifications | 12 | Medium | Notification system |
-| admin | 12 | Low | Admin endpoints |
-| schedule | 11 | Medium | Scheduling |
-| pdm | 11 | Low | Predictive maintenance |
-| optimization | 11 | Low | Optimization algorithms |
-| sync | 10 | Medium | Data synchronization |
+| Category      | Routes | Priority | Notes                            |
+| ------------- | ------ | -------- | -------------------------------- |
+| analytics     | 70     | Medium   | Partially in routes/analytics.ts |
+| logbook       | 69     | High     | Deck & engine logbooks           |
+| crew          | 27     | Low      | Duplicate - needs cleanup        |
+| compliance    | 21     | Medium   | Audit trail, regulatory          |
+| condition     | 17     | Medium   | Condition monitoring             |
+| work-orders   | 15     | Low      | Duplicate - needs cleanup        |
+| ml            | 15     | Low      | ML predictions                   |
+| alerts        | 14     | Low      | Duplicate - needs cleanup        |
+| notifications | 12     | Medium   | Notification system              |
+| admin         | 12     | Low      | Admin endpoints                  |
+| schedule      | 11     | Medium   | Scheduling                       |
+| pdm           | 11     | Low      | Predictive maintenance           |
+| optimization  | 11     | Low      | Optimization algorithms          |
+| sync          | 10     | Medium   | Data synchronization             |
 
 **Total in monolith:** ~607 routes
 
 ## Layer Responsibilities
 
 ### Routes Layer (routes.ts)
+
 - HTTP request/response handling
 - Input validation using Zod schemas
 - Rate limiting application
@@ -66,12 +67,14 @@ server/domains/<domain>/
 - Delegates to service layer
 
 ### Service Layer (service.ts)
+
 - Business logic orchestration
 - Cross-cutting concerns (caching, events)
 - Transaction coordination
 - Validation of business rules
 
 ### Repository Layer (repository.ts)
+
 - Data access operations
 - Database query construction
 - Organization (tenant) scoping
@@ -80,6 +83,7 @@ server/domains/<domain>/
 ## Conventions
 
 ### Route Registration
+
 ```typescript
 export function registerXxxRoutes(
   app: Express,
@@ -94,7 +98,9 @@ export function registerXxxRoutes(
 ```
 
 ### Tenant Isolation
+
 All routes must use `requireOrgId` middleware:
+
 ```typescript
 app.get("/api/xxx", requireOrgId, async (req, res) => {
   const orgId = (req as AuthenticatedRequest).orgId;
@@ -103,7 +109,9 @@ app.get("/api/xxx", requireOrgId, async (req, res) => {
 ```
 
 ### Error Handling
+
 Use `safeDbOperation` wrapper for database operations:
+
 ```typescript
 const result = await safeDbOperation(async () => {
   return service.someOperation(orgId, data);
@@ -123,6 +131,7 @@ const result = await safeDbOperation(async () => {
 
 **Domain Module: Work Orders (server/domains/work-orders/routes.ts)**
 Complete routes in domain module:
+
 - GET /api/work-orders (lines 47-130)
 - GET /api/work-orders/:id (lines 133-147)
 - POST /api/work-orders (lines 150-189)
@@ -148,6 +157,7 @@ Complete routes in domain module:
 | POST /api/work-orders/:id/complete | 6914 | 271 | DUPLICATE |
 
 **Routes only in routes.ts (need future migration):**
+
 - POST /api/work-orders/:id/clone (line 6859)
 - GET /api/work-orders/:id/completions (line 7069)
 - GET /api/work-orders/:id/history (line 7080)
@@ -173,6 +183,7 @@ Complete routes in domain module:
 | DELETE /api/equipment/:id | 344 | 2775 | DUPLICATE |
 
 **Routes only in routes.ts (need migration):**
+
 - POST /api/equipment (2709), PUT /api/equipment/:id (2730)
 - POST /api/equipment/:id/degradation (2639)
 - GET /api/equipment/:id/sensor-coverage (2793), POST /api/equipment/:id/setup-sensors (2855)
@@ -221,12 +232,13 @@ Complete routes in domain module:
 | DELETE /api/skills/:id | 169 | 14406 | DUPLICATE |
 
 **Routes only in routes.ts (need migration):**
+
 - PUT/PATCH /api/crew/:id, PATCH /api/crew/:id/rate, POST /api/crew/:id/toggle-duty
 - POST /api/crew/skills, DELETE /api/crew/:crewId/skills/:skill
 - POST /api/crew/certifications, PUT /api/crew/certifications/:id, DELETE /api/crew/certifications/:id
 - POST /api/crew/leave, PUT /api/crew/leave/:id
 - POST /api/crew/assignments, POST /api/crew/schedule/plan, POST /api/crew/schedule/plan-enhanced
-- POST /api/crew/rest/*, GET /api/crew/rest/*
+- POST /api/crew/rest/_, GET /api/crew/rest/_
 - POST /api/skills, PUT /api/skills/:id
 
 ---
@@ -239,6 +251,7 @@ Complete routes in domain module:
 | GET /api/vessels/:id/equipment | 259 | 14855 | DUPLICATE |
 
 **Routes only in routes.ts:**
+
 - POST /api/vessels (14669), PUT /api/vessels/:id (14703)
 - POST /api/vessels/:id/reset-downtime (14804), POST /api/vessels/:id/reset-operation (14817)
 - GET /api/vessels/:id/power-stw-analysis (14916), GET /api/vessels/:id/operating-mode (15185)
@@ -266,6 +279,7 @@ Complete routes in domain module:
 | GET /api/parts-inventory | 144 | 7275 | DUPLICATE |
 
 **Routes only in routes.ts:**
+
 - POST /api/parts (13451), PUT /api/parts/:id (13468)
 - GET /api/parts-inventory/paginated (7333), GET /api/parts-inventory/filters (7420)
 - POST /api/parts-inventory (7443), PUT /api/parts-inventory/:id (7479)
@@ -282,6 +296,7 @@ Complete routes in domain module:
 | GET /api/maintenance-templates/:id | 223 | 8034 | DUPLICATE |
 
 **Routes only in routes.ts:**
+
 - GET /api/maintenance-schedules/upcoming (7903), POST /api/maintenance-schedules (7922)
 - PUT /api/maintenance-schedules/:id (7962), DELETE /api/maintenance-schedules/:id (7978)
 - POST /api/maintenance-schedules/auto-schedule/:equipmentId (7990)
@@ -295,26 +310,28 @@ Complete routes in domain module:
 
 ### Summary of All Domains
 
-| Domain | Domain Routes | TRUE Duplicates | Unique Inline | Status |
-|--------|--------------|-----------------|---------------|--------|
-| work-orders | 12 | 7 | 10 | Partial |
-| equipment | 7 | 7 | 13 | Partial |
-| crew | 14 | 11 | 19+ | Partial |
-| alerts | 13 | 13 | 1 | Near-Complete |
-| vessels | 3 | 3 | 6 | Partial |
-| devices | 3 | 0 | 0 | Complete |
-| inventory | 5 | 5 | 8 | Partial |
-| maintenance | 4 | 3 | 13 | Partial |
+| Domain      | Domain Routes | TRUE Duplicates | Unique Inline | Status        |
+| ----------- | ------------- | --------------- | ------------- | ------------- |
+| work-orders | 12            | 7               | 10            | Partial       |
+| equipment   | 7             | 7               | 13            | Partial       |
+| crew        | 14            | 11              | 19+           | Partial       |
+| alerts      | 13            | 13              | 1             | Near-Complete |
+| vessels     | 3             | 3               | 6             | Partial       |
+| devices     | 3             | 0               | 0             | Complete      |
+| inventory   | 5             | 5               | 8             | Partial       |
+| maintenance | 4             | 3               | 13            | Partial       |
 
 **Total: 49 duplicate routes identified (safe to remove from routes.ts)**
 **Total routes only in routes.ts: 70+ (need future migration)**
 
 ### Migration Priority
+
 1. **High Risk**: Routes with complex validation, transactions, or side effects
 2. **Medium Risk**: Standard CRUD operations
 3. **Low Risk**: Simple read operations
 
 ### Safety Protocol
+
 1. Comment out route in routes.ts (don't delete yet)
 2. Run regression tests
 3. Manual verification in UI

@@ -328,10 +328,14 @@ export default function ServiceOrdersPage() {
                   status: o.status,
                   scheduledStartDate: o.scheduledStartDate ?? null,
                   scheduledEndDate: o.scheduledEndDate ?? null,
-                  ...(o.serviceProviderName !== undefined && { serviceProviderName: o.serviceProviderName }),
+                  ...(o.serviceProviderName !== undefined && {
+                    serviceProviderName: o.serviceProviderName,
+                  }),
                   ...(o.vesselName !== undefined && { vesselName: o.vesselName }),
                   ...(o.equipmentName !== undefined && { equipmentName: o.equipmentName }),
-                  ...(o.estimatedDurationHours != null && { estimatedDurationHours: o.estimatedDurationHours }),
+                  ...(o.estimatedDurationHours != null && {
+                    estimatedDurationHours: o.estimatedDurationHours,
+                  }),
                 }))}
                 onSelect={(so) => {
                   const order = filteredOrders.find((o) => o.id === so.id);

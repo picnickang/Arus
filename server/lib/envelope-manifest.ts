@@ -19,6 +19,44 @@ export const ENVELOPED_PREFIXES: readonly string[] = [
   // Aggregate endpoints — born enveloped
   "/api/crew/unified",
   "/api/optimization/dashboard",
+  // Wave 1: read-heavy core domains
+  "/api/equipment",
+  "/api/vessels",
+  "/api/pdm",
+  "/api/optimization",
+  // Wave 2: mutation-heavy domains (offline-queueable families)
+  "/api/work-orders",
+  "/api/maintenance-checklist",
+  "/api/parts-inventory",
+  "/api/purchase-orders",
+  "/api/offshore-ops",
+  "/api/service-requests",
+  "/api/service-orders",
+  // Wave 3: crew & compliance domains
+  "/api/crew",
+  "/api/crew-roles",
+  "/api/crew-extensions",
+  "/api/certificates",
+  "/api/compliance",
+  "/api/stcw",
+  "/api/hr",
+  // Wave 4: ml/analytics/kb + operational long tail
+  "/api/ml",
+  "/api/analytics",
+  "/api/rag",
+  "/api/kb",
+  "/api/dashboard",
+  "/api/diagnostics",
+  "/api/alerts",
+  "/api/rms",
+  "/api/logbook",
+  "/api/attention",
+  "/api/digital-twins",
+  "/api/sensor-bundles",
+  "/api/sensor-templates",
+  "/api/me",
+  // Wave 5: office feedback triage (born enveloped)
+  "/api/feedback-review",
 ];
 
 export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
@@ -33,6 +71,11 @@ export const ENVELOPE_EXCLUDED_PREFIXES: readonly string[] = [
   // infra that expects exact shapes.
   "/api/observability/web-vitals",
   "/api/error-logs",
+  // Health probes answer 503 WITH a JSON health payload — the status code
+  // carries the signal and the body IS the data; wrapping would mangle both.
+  "/api/diagnostics/health",
+  "/api/healthz",
+  "/api/health",
   // Spec/document endpoints serve raw documents, not API data.
   "/api/openapi.json",
   "/api/docs",
@@ -53,10 +96,21 @@ function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
+/**
+ * ENDGAME FLIP: every /api/* path is enveloped except the exclusions below.
+ * ENVELOPED_PREFIXES documents the wave history (and feeds the adoption
+ * ratchet); it no longer gates wrapping. Set to false only for emergency
+ * rollback to per-prefix wrapping.
+ */
+export const ENVELOPE_ALL_API = true;
+
 export function isEnvelopedPath(path: string): boolean {
   const normalized = normalizePath(path);
   if (ENVELOPE_EXCLUDED_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
     return false;
+  }
+  if (ENVELOPE_ALL_API) {
+    return normalized === "/api" || normalized.startsWith("/api/");
   }
   return ENVELOPED_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix));
 }

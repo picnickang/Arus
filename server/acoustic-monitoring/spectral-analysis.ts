@@ -8,7 +8,9 @@ export function calculateZeroCrossingRate(values: number[]): number {
   for (let i = 1; i < values.length; i++) {
     const a = values[i];
     const b = values[i - 1];
-    if (a === undefined || b === undefined) {continue;}
+    if (a === undefined || b === undefined) {
+      continue;
+    }
     if ((a >= 0 && b < 0) || (a < 0 && b >= 0)) {
       crossings++;
     }
@@ -22,7 +24,9 @@ export function calculateSpectralCentroid(frequencies: number[], magnitudes: num
   for (let i = 0; i < frequencies.length; i++) {
     const f = frequencies[i];
     const m = magnitudes[i];
-    if (f === undefined || m === undefined) {continue;}
+    if (f === undefined || m === undefined) {
+      continue;
+    }
     weightedSum += f * m;
     totalMagnitude += m;
   }
@@ -35,7 +39,9 @@ export function calculateSpectralRolloff(frequencies: number[], magnitudes: numb
   let cumulativeEnergy = 0;
   for (let i = 0; i < magnitudes.length; i++) {
     const m = magnitudes[i];
-    if (m === undefined) {continue;}
+    if (m === undefined) {
+      continue;
+    }
     cumulativeEnergy += m;
     if (cumulativeEnergy >= threshold) {
       return frequencies[i] ?? 0;

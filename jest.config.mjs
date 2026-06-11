@@ -1,6 +1,9 @@
 /** @type {import('jest').Config} */
 export default {
   testEnvironment: "node",
+  // The suite now spans 120+ files; swc-transpiled modules accumulate in
+  // long-lived workers until the CI runner OOMs. Recycle workers instead.
+  workerIdleMemoryLimit: "1GB",
   extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",

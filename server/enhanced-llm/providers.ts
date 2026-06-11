@@ -107,6 +107,10 @@ export async function generateWithAnthropic(
   });
 
   const content = message.content[0];
-  if (!content) {return "No response generated";}
-  return content.type === "text" ? (content as { type: "text"; text: string }).text : "No response generated";
+  if (!content) {
+    return "No response generated";
+  }
+  return content.type === "text"
+    ? (content as { type: "text"; text: string }).text
+    : "No response generated";
 }

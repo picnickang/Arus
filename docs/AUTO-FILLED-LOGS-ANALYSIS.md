@@ -9,33 +9,35 @@
 
 ### DECK LOG - FULLY IMPLEMENTED ✅
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| Schema | `shared/schema.ts:7667-7909` | Complete |
-| Tables | `deck_log_daily`, `deck_log_hourly`, `deck_log_events`, `deck_log_watch`, `deck_log_hourly_autofill` | Complete |
-| Backend API | `server/routes.ts:21145-21596` | Complete (~450 lines) |
-| Auto-fill Service | `server/services/stormgeo-integration-service.ts` | Complete |
-| Event Service | `server/services/deck-log-event-service.ts` | Complete |
-| Frontend | `client/src/pages/deck-logbook.tsx` | Complete (1602 lines) |
+| Component         | Location                                                                                             | Status                |
+| ----------------- | ---------------------------------------------------------------------------------------------------- | --------------------- |
+| Schema            | `shared/schema.ts:7667-7909`                                                                         | Complete              |
+| Tables            | `deck_log_daily`, `deck_log_hourly`, `deck_log_events`, `deck_log_watch`, `deck_log_hourly_autofill` | Complete              |
+| Backend API       | `server/routes.ts:21145-21596`                                                                       | Complete (~450 lines) |
+| Auto-fill Service | `server/services/stormgeo-integration-service.ts`                                                    | Complete              |
+| Event Service     | `server/services/deck-log-event-service.ts`                                                          | Complete              |
+| Frontend          | `client/src/pages/deck-logbook.tsx`                                                                  | Complete (1602 lines) |
 
 **Auto-fill Sources:**
+
 - StormGeo weather/routing data (CSV/JSON import, API)
 - GPS position from equipment telemetry
 - Weather conversion (wind speed → Beaufort, wave height → sea state)
 
 ### ENGINE LOG - FULLY IMPLEMENTED ✅
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| Schema | `shared/schema.ts:7963-8280` | Complete |
-| Tables | `engine_log_daily`, `engine_log_hourly`, `engine_log_events`, `engine_log_generator`, `engine_log_watch` | Complete |
-| Backend API | `server/routes.ts:21596-22280` | Complete (~680 lines) |
-| Auto-fill Service | `server/services/engine-log-autofill-service.ts` | Complete (817 lines) |
-| Event Service | `server/services/engine-log-event-service.ts` | Complete |
-| Frontend | `client/src/pages/engine-logbook.tsx` | Complete (1850 lines) |
-| Validation | `server/validation/engine-log-schemas.ts` | Complete |
+| Component         | Location                                                                                                 | Status                |
+| ----------------- | -------------------------------------------------------------------------------------------------------- | --------------------- |
+| Schema            | `shared/schema.ts:7963-8280`                                                                             | Complete              |
+| Tables            | `engine_log_daily`, `engine_log_hourly`, `engine_log_events`, `engine_log_generator`, `engine_log_watch` | Complete              |
+| Backend API       | `server/routes.ts:21596-22280`                                                                           | Complete (~680 lines) |
+| Auto-fill Service | `server/services/engine-log-autofill-service.ts`                                                         | Complete (817 lines)  |
+| Event Service     | `server/services/engine-log-event-service.ts`                                                            | Complete              |
+| Frontend          | `client/src/pages/engine-logbook.tsx`                                                                    | Complete (1850 lines) |
+| Validation        | `server/validation/engine-log-schemas.ts`                                                                | Complete              |
 
 **Auto-fill Sources:**
+
 - Main engine telemetry (RPM, load, temps, pressures)
 - Generator telemetry (load kW, voltage, frequency)
 - Running hours calculation
@@ -43,10 +45,10 @@
 
 ### LOGS & COMPLIANCE HUB - FULLY IMPLEMENTED ✅
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| Frontend | `client/src/pages/logs-compliance-hub.tsx` | Complete (594 lines) |
-| Compliance Engine | `server/services/compliance-rules-engine.ts` | Complete |
+| Component         | Location                                     | Status               |
+| ----------------- | -------------------------------------------- | -------------------- |
+| Frontend          | `client/src/pages/logs-compliance-hub.tsx`   | Complete (594 lines) |
+| Compliance Engine | `server/services/compliance-rules-engine.ts` | Complete             |
 
 ---
 
@@ -55,12 +57,14 @@
 ### FUEL / EMISSIONS LOG - NOT IMPLEMENTED ❌
 
 **Current State:**
+
 - Engine log has `foConsumption`, `doConsumption`, `loConsumption` fields in daily records
 - Equipment telemetry can store fuel flow sensor data
 - No dedicated fuel/emissions tables or time-series tracking
 - No CO₂ emission calculation
 
 **Required for Full Implementation:**
+
 - [ ] `fuel_emissions_log` table for time-series fuel tracking
 - [ ] Fuel consumption calculation from:
   - Flow meters (if available)
@@ -72,12 +76,14 @@
 ### TRACK / POSITION LOG - PARTIALLY IMPLEMENTED ⚠️
 
 **Current State:**
+
 - Equipment telemetry stores GPS lat/lon, SOG, COG
 - Deck log hourly has position fields
 - No dedicated AIS-like track table
 - Position data scattered across telemetry, not exposed as logbook
 
 **Required for Full Implementation:**
+
 - [ ] `vessel_track_log` table for deduplicated position history
 - [ ] Track pipeline from GPS telemetry with change detection
 - [ ] API routes for track queries by vessel/time range
@@ -87,6 +93,7 @@
 ### CONDITION MONITORING LOG - PARTIALLY IMPLEMENTED ⚠️
 
 **Current State:**
+
 - `vibration_features` table (schema.ts:1846) - FFT features
 - `vibration_analysis` table (schema.ts:3922) - Analysis results
 - `condition_monitoring` table (schema.ts:4292) - Equipment health scores
@@ -94,6 +101,7 @@
 - No aggregate periodic log view
 
 **Required for Full Implementation:**
+
 - [ ] Aggregation pipeline from vibration/CM analysis
 - [ ] Periodic summary log entries (hourly/daily)
 - [ ] API routes for condition log queries
@@ -116,6 +124,7 @@ All auto-filled logs follow this pattern:
 ```
 
 ### Common Features:
+
 - `org_id` tenant isolation
 - `vessel_id` scoping
 - Timestamp indexes for time-range queries
@@ -128,28 +137,55 @@ All auto-filled logs follow this pattern:
 ```typescript
 // 1. Fuel/Emissions Log
 fuel_emissions_log: {
-  id, org_id, vessel_id, period_start, period_end,
-  fo_consumption_mt, do_consumption_mt, lo_consumption_mt,
-  co2_emissions_mt, sox_emissions_kg, nox_emissions_kg,
-  avg_engine_load, distance_nm, fuel_efficiency_mt_per_nm,
-  data_source (flow_meter | estimated | manual)
+  (id,
+    org_id,
+    vessel_id,
+    period_start,
+    period_end,
+    fo_consumption_mt,
+    do_consumption_mt,
+    lo_consumption_mt,
+    co2_emissions_mt,
+    sox_emissions_kg,
+    nox_emissions_kg,
+    avg_engine_load,
+    distance_nm,
+    fuel_efficiency_mt_per_nm,
+    data_source(flow_meter | estimated | manual));
 }
 
-// 2. Vessel Track Log  
+// 2. Vessel Track Log
 vessel_track_log: {
-  id, org_id, vessel_id, timestamp,
-  latitude, longitude, sog, cog, heading,
-  nav_status (underway | anchored | moored | maneuvering),
-  source (gps | ais | manual)
+  (id,
+    org_id,
+    vessel_id,
+    timestamp,
+    latitude,
+    longitude,
+    sog,
+    cog,
+    heading,
+    nav_status(underway | anchored | moored | maneuvering),
+    source(gps | ais | manual));
 }
 
 // 3. Condition Monitoring Log (aggregate view)
 condition_log_summary: {
-  id, org_id, vessel_id, equipment_id, period_start, period_end,
-  vibration_rms_avg, vibration_rms_max, vibration_rms_min,
-  ml_anomaly_score_avg, ml_anomaly_score_max,
-  health_index, condition_grade,
-  alerts_count, critical_alerts_count
+  (id,
+    org_id,
+    vessel_id,
+    equipment_id,
+    period_start,
+    period_end,
+    vibration_rms_avg,
+    vibration_rms_max,
+    vibration_rms_min,
+    ml_anomaly_score_avg,
+    ml_anomaly_score_max,
+    health_index,
+    condition_grade,
+    alerts_count,
+    critical_alerts_count);
 }
 ```
 
@@ -157,11 +193,11 @@ condition_log_summary: {
 
 ## 4. Implementation Priority
 
-| Log Type | Priority | Effort | Dependency |
-|----------|----------|--------|------------|
-| Fuel/Emissions | High | Medium | Engine telemetry |
-| Track/Position | Medium | Low | GPS telemetry |
-| Condition Monitoring | Medium | Medium | Existing CM tables |
+| Log Type             | Priority | Effort | Dependency         |
+| -------------------- | -------- | ------ | ------------------ |
+| Fuel/Emissions       | High     | Medium | Engine telemetry   |
+| Track/Position       | Medium   | Low    | GPS telemetry      |
+| Condition Monitoring | Medium   | Medium | Existing CM tables |
 
 ---
 
@@ -194,6 +230,7 @@ CM_LOG_RETENTION_DAYS=365
 ## 6. Files to Create/Modify
 
 ### New Files:
+
 - `shared/schema.ts` - Add new table definitions (extend, not replace)
 - `server/services/fuel-emissions-log-service.ts` - Fuel calculation pipeline
 - `server/services/track-log-service.ts` - Position deduplication pipeline
@@ -203,6 +240,7 @@ CM_LOG_RETENTION_DAYS=365
 - `client/src/pages/condition-monitoring-log.tsx` - Frontend view
 
 ### Modify:
+
 - `server/routes.ts` - Add API routes
 - `server/storage.ts` - Add storage interface methods
 - `client/src/App.tsx` - Add routes
@@ -213,11 +251,13 @@ CM_LOG_RETENTION_DAYS=365
 ## 7. Existing Auto-Fill Test Data
 
 The dev fake data service (`server/services/dev-fake-data-service.ts`) already supports:
+
 - Engine telemetry generation (ME + generators)
 - Navigation/GPS data generation
 - Weather snapshot generation
 - Event creation
 
 Extend for:
+
 - Fuel flow meter simulation
 - Vibration/CM data simulation

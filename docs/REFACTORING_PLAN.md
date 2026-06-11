@@ -3,11 +3,13 @@
 ## Current State
 
 ### server/routes.ts
+
 - **Size**: 13,731 lines (508KB)
 - **Routes**: ~422 API endpoints
 - **Status**: Monolithic, but functional
 
-### server/storage.ts  
+### server/storage.ts
+
 - **Size**: 14,024 lines (500KB)
 - **Methods**: ~648 async methods
 - **Status**: Monolithic, but functional
@@ -17,9 +19,10 @@
 ## Route Distribution Analysis
 
 Top route domains (by count):
+
 - analytics: 47 routes (lines 2166-11605)
 - crew: 28 routes
-- equipment: 19 routes  
+- equipment: 19 routes
 - condition: 17 routes
 - work-orders: 16 routes
 - vessels: 14 routes
@@ -35,6 +38,7 @@ Top route domains (by count):
 **Pattern**: Follow existing modular structure (sensor-routes.ts, beast-mode-routes.ts, enhanced-llm-routes.ts)
 
 1. Create domain-specific route files:
+
    ```
    server/routes/
    ├── analytics-routes.ts      (47 routes)
@@ -47,6 +51,7 @@ Top route domains (by count):
    ```
 
 2. Each route file exports:
+
    ```typescript
    export function mountXRoutes(app: Express, storage: IStorage, rateLimiters: RateLimiters) {
      app.get('/api/x/...', async (req, res) => { ... });
@@ -55,15 +60,16 @@ Top route domains (by count):
    ```
 
 3. Update server/routes.ts to mount all modules:
+
    ```typescript
    import { mountAnalyticsRoutes } from './routes/analytics-routes';
    import { mountCrewRoutes } from './routes/crew-routes';
    // ... etc
-   
+
    export async function registerRoutes(app: Express) {
      // Shared rate limiters
      const rateLimiters = { telemetryRateLimit, writeOperationRateLimit, ... };
-     
+
      // Mount domain routes
      mountAnalyticsRoutes(app, storage, rateLimiters);
      mountCrewRoutes(app, storage, rateLimiters);
@@ -78,6 +84,7 @@ Top route domains (by count):
 **Pattern**: Facade pattern with domain repositories
 
 1. Create domain repository structure:
+
    ```
    server/storage/
    ├── index.ts                  (exports IStorage facade)
@@ -96,6 +103,7 @@ Top route domains (by count):
    ```
 
 2. Keep IStorage as stable facade:
+
    ```typescript
    export interface IStorage {
      // All existing method signatures (unchanged)
@@ -105,23 +113,30 @@ Top route domains (by count):
    ```
 
 3. DatabaseStorage becomes thin coordinator:
+
    ```typescript
    export class DatabaseStorage implements IStorage {
      private core: CoreRepository;
      private telemetry: TelemetryRepository;
      private maintenance: MaintenanceRepository;
      // ... domain repositories
-     
+
      constructor(db: DB) {
        this.core = new CoreRepository(db);
        this.telemetry = new TelemetryRepository(db);
        // ... initialize all domains
      }
-     
+
      // Delegate to repositories
-     getOrganizations() { return this.core.getOrganizations(); }
-     getDevices(orgId) { return this.core.getDevices(orgId); }
-     getTelemetry(id) { return this.telemetry.getTelemetry(id); }
+     getOrganizations() {
+       return this.core.getOrganizations();
+     }
+     getDevices(orgId) {
+       return this.core.getDevices(orgId);
+     }
+     getTelemetry(id) {
+       return this.telemetry.getTelemetry(id);
+     }
      // ... delegate all 648 methods
    }
    ```
@@ -138,6 +153,7 @@ Top route domains (by count):
 4. **Performance Tests**: Ensure no regression in query performance
 
 **Critical Acceptance Criteria:**
+
 - ✅ All existing imports still work (`import { storage } from './storage'`)
 - ✅ All TypeScript types unchanged
 - ✅ All API endpoints return same responses
@@ -148,13 +164,15 @@ Top route domains (by count):
 ## Implementation Order
 
 ### Priority 1: Routes (Lower Risk)
+
 1. Extract analytics routes (largest, most isolated)
 2. Extract crew routes
-3. Extract equipment routes  
+3. Extract equipment routes
 4. Extract work-order routes
 5. Continue with remaining domains
 
 ### Priority 2: Storage (Higher Risk)
+
 1. Create shared utilities
 2. Extract core repository (org, user, device)
 3. Extract telemetry repository
@@ -165,6 +183,7 @@ Top route domains (by count):
 ## Risk Mitigation
 
 **High-Risk Areas:**
+
 - Circular dependencies between domains
 - Shared helper functions
 - Rate limiter configuration
@@ -172,6 +191,7 @@ Top route domains (by count):
 - WebSocket dependencies
 
 **Mitigation Strategies:**
+
 - Extract one domain at a time
 - Test after each extraction
 - Keep rollback commits for each step
@@ -181,7 +201,7 @@ Top route domains (by count):
 ## Estimated Effort
 
 - **Routes extraction**: 8-12 hours (lower risk)
-- **Storage extraction**: 16-24 hours (higher risk)  
+- **Storage extraction**: 16-24 hours (higher risk)
 - **Testing & validation**: 4-8 hours
 - **Total**: 28-44 hours of engineering time
 
@@ -204,15 +224,18 @@ Top route domains (by count):
 If full extraction is deemed too risky:
 
 **Option A**: Extract only top 3 domains (analytics, crew, equipment)
+
 - Reduces routes.ts by ~30%
 - Lower risk, faster execution
 
 **Option B**: Keep monoliths, add documentation
+
 - Document domain boundaries with comments
 - Add table of contents at top of each file
 - Use IDE folding regions to organize
 
 **Option C**: New features go in separate files
+
 - Keep existing code as-is (working, tested)
 - All new features must be in modular files
 - Natural migration over time

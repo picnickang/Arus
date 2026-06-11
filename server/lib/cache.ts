@@ -62,11 +62,7 @@ interface CacheErrorWindow {
 }
 const cacheErrorWindows = new Map<string, CacheErrorWindow>();
 
-function recordCacheError(
-  keyPrefix: string,
-  operation: string,
-  error: unknown,
-): void {
+function recordCacheError(keyPrefix: string, operation: string, error: unknown): void {
   cacheMetrics.errors.inc({ cache_type: keyPrefix, operation });
   const windowKey = `${keyPrefix}::${operation}`;
   const now = Date.now();
@@ -219,8 +215,8 @@ export class CacheClient {
   }
 }
 
-const cacheEnabled = process.env['ENABLE_INVENTORY_CACHE'] !== "false";
-const analyticsCacheEnabled = process.env['ENABLE_ANALYTICS_CACHE'] !== "false";
+const cacheEnabled = process.env["ENABLE_INVENTORY_CACHE"] !== "false";
+const analyticsCacheEnabled = process.env["ENABLE_ANALYTICS_CACHE"] !== "false";
 
 export const inventoryCache = new CacheClient({ ttl: 900, keyPrefix: "inventory" }, cacheEnabled);
 
@@ -235,8 +231,12 @@ export const cacheConfig = {
 };
 
 if (isRedisEnabled()) {
-  logger.info(`[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
-  logger.info(`[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`);
+  logger.info(
+    `[Cache] Inventory cache ${cacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
+  );
+  logger.info(
+    `[Cache] Analytics cache ${analyticsCacheEnabled ? "enabled" : "disabled"} (using shared Redis client)`
+  );
 }
 
 /**

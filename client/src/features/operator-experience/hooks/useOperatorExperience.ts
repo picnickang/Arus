@@ -20,10 +20,18 @@ interface UseOperatorExperienceArgs {
 function buildBriefQuery(args: UseOperatorExperienceArgs): string {
   const params = new URLSearchParams();
   params.set("role", args.role);
-  if (args.currentPath) {params.set("currentPath", args.currentPath);}
-  if (args.statedGoal) {params.set("statedGoal", args.statedGoal);}
-  if (args.deviceClass) {params.set("deviceClass", args.deviceClass);}
-  if (args.connectionState) {params.set("connectionState", args.connectionState);}
+  if (args.currentPath) {
+    params.set("currentPath", args.currentPath);
+  }
+  if (args.statedGoal) {
+    params.set("statedGoal", args.statedGoal);
+  }
+  if (args.deviceClass) {
+    params.set("deviceClass", args.deviceClass);
+  }
+  if (args.connectionState) {
+    params.set("connectionState", args.connectionState);
+  }
   return `/api/operator-experience/brief?${params.toString()}`;
 }
 
@@ -46,7 +54,11 @@ export function useOperatorExperienceRoles() {
 export function useRecordOperatorExperienceEvent() {
   return useMutation({
     mutationFn: (payload: OperatorExperienceEvent) =>
-      apiRequest<RecordedOperatorExperienceEvent>("POST", "/api/operator-experience/events", payload),
+      apiRequest<RecordedOperatorExperienceEvent>(
+        "POST",
+        "/api/operator-experience/events",
+        payload
+      ),
   });
 }
 

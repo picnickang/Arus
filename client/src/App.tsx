@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient, replayQueuedApiRequests } from "./lib/queryClient";
+import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { CommandPaletteMount } from "@/components/search/CommandPaletteMount";
@@ -12,7 +12,7 @@ import { AdminAccessProvider } from "@/contexts/AdminAccessContext";
 import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
 import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
+import { ConnectivityBannerWithSync } from "@/components/shared/ConnectivityBannerWithSync";
 import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
@@ -26,7 +26,6 @@ import {
   markSetupComplete,
 } from "@/lib/desktopFetch";
 import { trackPageVisit } from "@/lib/pageTracking";
-import { getPendingCount } from "@/lib/offline-sync";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -50,7 +49,7 @@ import {
   isAdminPortalAccess,
   isSuperAdminRole,
 } from "@/application/navigation/role-navigation-policy";
-import { getHubIdForRoute } from "@/config/navigationConfig";
+import { ADMIN_ONLY_ROUTES, getHubIdForRoute } from "@/config/navigationConfig";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { maintenanceRoutes } from "@/routes/maintenance";
 import { crewRoutes } from "@/routes/crew";
@@ -196,7 +195,6 @@ function Redirect({ from, to }: { from: string; to: string }) {
  * `/api/attention/*` endpoints; this client guard is a UX layer so
  * the page itself never paints for a regular user.
  */
-const ADMIN_ONLY_ROUTES = new Set<string>(["/attention-inbox", "/admin/access-diagnostic"]);
 
 function readCurrentRole(): string | null {
   if (typeof window === "undefined") {
@@ -256,51 +254,6 @@ function useTrackPageVisit() {
       trackPageVisit(loc);
     }
   }, [loc]);
-}
-
-function ConnectivityBannerWithSync() {
-  const [pendingCount, setPendingCount] = useState(0);
-
-  const refreshPendingCount = useCallback(async () => {
-    const cache = queryClient.getMutationCache();
-    const activeMutations = cache.getAll().filter((m) => m.state.status === "pending").length;
-    const offlinePending = await getPendingCount().catch(() => 0);
-    setPendingCount(activeMutations + offlinePending);
-  }, []);
-
-  useEffect(() => {
-    refreshPendingCount();
-    const cache = queryClient.getMutationCache();
-    const unsubscribe = cache.subscribe(() => {
-      void refreshPendingCount();
-    });
-    const handleSyncChange = () => void refreshPendingCount();
-    const handleOnline = () => {
-      void replayQueuedApiRequests().finally(refreshPendingCount);
-    };
-    const handleServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ARUS_SYNC_OUTBOX_REQUEST") {
-        void replayQueuedApiRequests().finally(refreshPendingCount);
-      }
-    };
-    const interval = window.setInterval(refreshPendingCount, 15000);
-    window.addEventListener("arus:offline-sync-changed", handleSyncChange);
-    window.addEventListener("online", handleOnline);
-    navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
-
-    if (navigator.onLine) {
-      void replayQueuedApiRequests().finally(refreshPendingCount);
-    }
-
-    return () => {
-      unsubscribe();
-      window.clearInterval(interval);
-      window.removeEventListener("arus:offline-sync-changed", handleSyncChange);
-      window.removeEventListener("online", handleOnline);
-      navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
-    };
-  }, [refreshPendingCount]);
-  return <ConnectivityBanner pendingSyncCount={pendingCount} />;
 }
 
 function Router() {

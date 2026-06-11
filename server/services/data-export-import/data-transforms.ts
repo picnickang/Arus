@@ -59,12 +59,12 @@ export function remapOrgId<T extends MutableRecord>(
     return record;
   }
 
-  if (record['orgId'] === sourceOrgId) {
-    (record as MutableRecord)['orgId'] = targetOrgId;
+  if (record["orgId"] === sourceOrgId) {
+    (record as MutableRecord)["orgId"] = targetOrgId;
   }
 
-  if (record['org_id'] === sourceOrgId) {
-    (record as MutableRecord)['org_id'] = targetOrgId;
+  if (record["org_id"] === sourceOrgId) {
+    (record as MutableRecord)["org_id"] = targetOrgId;
   }
 
   return record;
@@ -91,10 +91,12 @@ export function remapForeignKeys<T extends MutableRecord>(
         logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → ${newId}`);
         (record as MutableRecord)[fieldName] = newId;
       } else {
-        logger.info(`[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`);
+        logger.info(
+          `[DataImport] FK remap ${entityName}.${fieldName}: ${oldId} → NULL (not in export)`
+        );
         (record as MutableRecord)[fieldName] = null;
         if (fieldName === "vesselId") {
-          (record as MutableRecord)['vesselName'] = null;
+          (record as MutableRecord)["vesselName"] = null;
         }
       }
     }

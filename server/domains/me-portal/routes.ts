@@ -14,13 +14,28 @@ import { auditService } from "../../compliance/immutable-audit";
 import { withErrorHandling } from "../../lib/route-utils";
 import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+import { pilotFeedbackDraftSchema, pilotFeedbackReviewSchema } from "@shared/schema-runtime";
 import { authenticatedRequest } from "../../middleware/auth";
+import { requireRole } from "../../middleware/role-auth";
 import {
   createDevLoginSession,
   devLoginRequestSchema,
   isDevLoginEnabled,
   revokeDevLoginSessionToken,
 } from "../../security/dev-login";
+
+// Feedback triage is an admin-portal surface: same role set as the
+// Attention Inbox (mirrors `getPortalForRole` in
+// `client/src/application/navigation/role-navigation-policy.ts`).
+const FEEDBACK_REVIEW_ROLES = [
+  "system_admin",
+  "company_admin",
+  "chief_engineer",
+  "fleet_manager",
+  "captain",
+  "admin",
+] as const;
+const requireFeedbackReviewRole = requireRole(...FEEDBACK_REVIEW_ROLES);
 
 const loginSchema = z.object({
   username: z.string().min(1).max(60),
@@ -196,13 +211,13 @@ export function registerMePortalRoutes(
       const { comment } = ackSchema.parse(req.body ?? {});
       const meUser = resolveMeUser(req);
       try {
-        await mePortalService.acknowledgeAlarm(meUser, req.params["id"], comment);
+        await mePortalService.acknowledgeAlarm(meUser, req.params["id"] ?? "", comment);
         await auditService.logEvent({
           orgId: meUser.orgId,
           eventCategory: "compliance_event",
           eventType: "alert_acknowledged",
           entityType: "safety_alarm",
-          entityId: req.params["id"],
+          entityId: req.params["id"] ?? "",
           performedBy: meUser.id,
           performedByName: meUser.name ?? meUser.email,
           performedByRole: meUser.role,
@@ -288,6 +303,104 @@ export function registerMePortalRoutes(
           newState: { selfPasswordChange: true },
         });
         return res.json({ success: true });
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  /* --------------------------- Pilot feedback ---------------------- */
+
+  app.post(
+    "/api/me/feedback",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("submit me feedback", async (req: Request, res: Response) => {
+      const draft = pilotFeedbackDraftSchema.parse(req.body);
+      try {
+        const row = await mePortalService.submitFeedback(resolveMeUser(req), draft);
+        return res.status(201).json(row);
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  app.get(
+    "/api/me/feedback",
+    requireAuthentication,
+    generalApiRateLimit,
+    withErrorHandling("list me feedback", async (req: Request, res: Response) => {
+      try {
+        return res.json(await mePortalService.listMyFeedback(resolveMeUser(req)));
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  registerFeedbackReviewRoutes(app, generalApiRateLimit);
+}
+
+/* ------------------------ Feedback review (office) --------------------- */
+
+function registerFeedbackReviewRoutes(
+  app: Express,
+  generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit
+) {
+  app.get(
+    "/api/feedback-review",
+    requireAuthentication,
+    requireFeedbackReviewRole,
+    generalApiRateLimit,
+    withErrorHandling("list feedback review queue", async (req: Request, res: Response) => {
+      try {
+        return res.json(await mePortalService.listFeedbackForReview(resolveMeUser(req)));
+      } catch (error) {
+        if (handleMeError(error, res)) {
+          return undefined;
+        }
+        throw error;
+      }
+    })
+  );
+
+  app.patch(
+    "/api/feedback-review/:id",
+    requireAuthentication,
+    requireFeedbackReviewRole,
+    generalApiRateLimit,
+    withErrorHandling("review feedback report", async (req: Request, res: Response) => {
+      const review = pilotFeedbackReviewSchema.parse(req.body);
+      const meUser = resolveMeUser(req);
+      try {
+        const row = await mePortalService.reviewFeedback(meUser, req.params["id"] ?? "", review);
+        await auditService.logEvent({
+          orgId: meUser.orgId,
+          eventCategory: "compliance_event",
+          eventType: "config_updated",
+          entityType: "pilot_feedback",
+          entityId: row.id,
+          performedBy: meUser.id,
+          performedByName: meUser.name ?? meUser.email,
+          performedByRole: meUser.role,
+          ipAddress: req.ip,
+          changedFields: Object.keys(review),
+          newState: {
+            status: row.status,
+            linkedWorkOrderId: row.linkedWorkOrderId ?? null,
+          },
+        });
+        return res.json(row);
       } catch (error) {
         if (handleMeError(error, res)) {
           return undefined;

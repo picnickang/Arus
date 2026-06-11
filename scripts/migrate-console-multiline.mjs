@@ -52,47 +52,108 @@ function findMatchingParen(src, openIdx) {
       i++;
       continue;
     }
-    if (t === "string-\"") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "\"") { stack.pop(); i++; continue; }
-      i++; continue;
+    if (t === 'string-"') {
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        stack.pop();
+        i++;
+        continue;
+      }
+      i++;
+      continue;
     }
     if (t === "string-'") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "'") { stack.pop(); i++; continue; }
-      i++; continue;
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === "'") {
+        stack.pop();
+        i++;
+        continue;
+      }
+      i++;
+      continue;
     }
     if (t === "template") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "`") { stack.pop(); i++; continue; }
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === "`") {
+        stack.pop();
+        i++;
+        continue;
+      }
       if (c === "$" && next === "{") {
         stack.push("template-expr");
         i += 2;
         continue;
       }
-      i++; continue;
+      i++;
+      continue;
     }
     if (t === "template-expr") {
       // Behaves like normal code but also tracks closing }
-      if (c === "}" ) { stack.pop(); i++; continue; }
+      if (c === "}") {
+        stack.pop();
+        i++;
+        continue;
+      }
       // fall through to normal handling
     }
     // normal code mode
-    if (c === "/" && next === "/") { stack.push("lcomment"); i += 2; continue; }
-    if (c === "/" && next === "*") { stack.push("bcomment"); i += 2; continue; }
-    if (c === "\"") { stack.push("string-\""); i++; continue; }
-    if (c === "'") { stack.push("string-'"); i++; continue; }
-    if (c === "`") { stack.push("template"); i++; continue; }
-    if (c === "{" || c === "[") { stack.push("brace"); i++; continue; }
+    if (c === "/" && next === "/") {
+      stack.push("lcomment");
+      i += 2;
+      continue;
+    }
+    if (c === "/" && next === "*") {
+      stack.push("bcomment");
+      i += 2;
+      continue;
+    }
+    if (c === '"') {
+      stack.push('string-"');
+      i++;
+      continue;
+    }
+    if (c === "'") {
+      stack.push("string-'");
+      i++;
+      continue;
+    }
+    if (c === "`") {
+      stack.push("template");
+      i++;
+      continue;
+    }
+    if (c === "{" || c === "[") {
+      stack.push("brace");
+      i++;
+      continue;
+    }
     if (c === "}" || c === "]") {
       // balance - pop matching
       // but if top is template-expr we already handled above
       // here we just decrement a brace token if present
       if (top() === "brace") stack.pop();
-      i++; continue;
+      i++;
+      continue;
     }
-    if (c === "(") { parenDepth++; i++; continue; }
-    if (c === ")") { parenDepth--; i++; continue; }
+    if (c === "(") {
+      parenDepth++;
+      i++;
+      continue;
+    }
+    if (c === ")") {
+      parenDepth--;
+      i++;
+      continue;
+    }
     i++;
   }
   return parenDepth === 0 ? i - 1 : -1; // position of matching ')'
@@ -112,40 +173,107 @@ function splitArgs(src) {
     const t = top();
     if (t === "lcomment") {
       if (c === "\n") stack.pop();
-      i++; continue;
+      i++;
+      continue;
     }
     if (t === "bcomment") {
-      if (c === "*" && next === "/") { stack.pop(); i += 2; continue; }
-      i++; continue;
+      if (c === "*" && next === "/") {
+        stack.pop();
+        i += 2;
+        continue;
+      }
+      i++;
+      continue;
     }
-    if (t === "string-\"") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "\"") { stack.pop(); i++; continue; }
-      i++; continue;
+    if (t === 'string-"') {
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        stack.pop();
+        i++;
+        continue;
+      }
+      i++;
+      continue;
     }
     if (t === "string-'") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "'") { stack.pop(); i++; continue; }
-      i++; continue;
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === "'") {
+        stack.pop();
+        i++;
+        continue;
+      }
+      i++;
+      continue;
     }
     if (t === "template") {
-      if (c === "\\") { i += 2; continue; }
-      if (c === "`") { stack.pop(); i++; continue; }
-      if (c === "$" && next === "{") { stack.push("template-expr"); i += 2; continue; }
-      i++; continue;
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (c === "`") {
+        stack.pop();
+        i++;
+        continue;
+      }
+      if (c === "$" && next === "{") {
+        stack.push("template-expr");
+        i += 2;
+        continue;
+      }
+      i++;
+      continue;
     }
     if (t === "template-expr") {
-      if (c === "}") { stack.pop(); i++; continue; }
+      if (c === "}") {
+        stack.pop();
+        i++;
+        continue;
+      }
     }
-    if (c === "/" && next === "/") { stack.push("lcomment"); i += 2; continue; }
-    if (c === "/" && next === "*") { stack.push("bcomment"); i += 2; continue; }
-    if (c === "\"") { stack.push("string-\""); i++; continue; }
-    if (c === "'") { stack.push("string-'"); i++; continue; }
-    if (c === "`") { stack.push("template"); i++; continue; }
-    if (c === "{" || c === "[" || c === "(") { stack.push("brace"); depth++; i++; continue; }
+    if (c === "/" && next === "/") {
+      stack.push("lcomment");
+      i += 2;
+      continue;
+    }
+    if (c === "/" && next === "*") {
+      stack.push("bcomment");
+      i += 2;
+      continue;
+    }
+    if (c === '"') {
+      stack.push('string-"');
+      i++;
+      continue;
+    }
+    if (c === "'") {
+      stack.push("string-'");
+      i++;
+      continue;
+    }
+    if (c === "`") {
+      stack.push("template");
+      i++;
+      continue;
+    }
+    if (c === "{" || c === "[" || c === "(") {
+      stack.push("brace");
+      depth++;
+      i++;
+      continue;
+    }
     if (c === "}" || c === "]" || c === ")") {
-      if (top() === "brace") { stack.pop(); depth--; }
-      i++; continue;
+      if (top() === "brace") {
+        stack.pop();
+        depth--;
+      }
+      i++;
+      continue;
     }
     if (c === "," && depth === 0 && stack.length === 0) {
       args.push(src.slice(start, i).trim());
@@ -288,7 +416,8 @@ function migrateFile(filePath) {
 }
 
 const results = files.map(migrateFile);
-let totalMig = 0, totalSkip = 0;
+let totalMig = 0,
+  totalSkip = 0;
 for (const r of results) {
   const { filePath, changed, stats } = r;
   totalMig += stats.migrated;

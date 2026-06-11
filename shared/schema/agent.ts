@@ -20,7 +20,9 @@ export const agentConversations = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     userId: varchar("user_id"),
     title: text("title"),
     status: text("status").notNull().default("active"),
@@ -92,7 +94,9 @@ export const agentDrafts = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     conversationId: varchar("conversation_id").notNull(),
     draftType: text("draft_type").notNull(),
     title: text("title").notNull(),
@@ -119,7 +123,9 @@ export const agentApprovals = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     draftId: varchar("draft_id").notNull(),
     conversationId: varchar("conversation_id").notNull(),
     action: text("action").notNull(),
@@ -141,7 +147,9 @@ export const agentConfig = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     defaultModel: text("default_model").notNull().default("gpt-4o-mini"),
     maxIterationsPerRun: integer("max_iterations_per_run").notNull().default(10),
     maxTokensPerConversation: integer("max_tokens_per_conversation").default(50000),
@@ -169,7 +177,9 @@ export const agentSuggestions = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     triggerType: text("trigger_type").notNull(),
     title: text("title").notNull(),
     summary: text("summary").notNull(),
@@ -201,7 +211,9 @@ export const agentSchedules = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     name: text("name").notNull(),
     prompt: text("prompt").notNull(),
     cronExpression: text("cron_expression").notNull(),
@@ -312,7 +324,9 @@ export const agentFiles = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     conversationId: varchar("conversation_id").notNull(),
     filename: varchar("filename").notNull(),
     mimetype: varchar("mimetype").notNull(),
@@ -334,7 +348,9 @@ export const agentBriefings = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     generatedAt: timestamp("generated_at", { mode: "date" }).defaultNow(),
     periodStart: timestamp("period_start", { mode: "date" }).notNull(),
     periodEnd: timestamp("period_end", { mode: "date" }).notNull(),
@@ -385,7 +401,9 @@ export const agentTasks = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     title: text("title").notNull(),
     description: text("description"),
     status: text("status").notNull().default("open"),
@@ -427,7 +445,9 @@ export const agentFindings = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     findingType: text("finding_type").notNull().default("recommendation"),
     severity: text("severity").notNull().default("info"),
     title: text("title").notNull(),

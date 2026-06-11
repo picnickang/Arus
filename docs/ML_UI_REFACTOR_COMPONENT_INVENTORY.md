@@ -9,6 +9,7 @@
 ## Design System Foundation
 
 ### Core Principles
+
 - **Consistency:** Reuse shadcn/ui primitives (Card, Badge, Button, Table)
 - **Composition:** Build complex components from simple ones
 - **Accessibility:** WCAG 2.1 AA compliance, keyboard navigation
@@ -30,6 +31,7 @@
 **Purpose:** Standardized KPI metric display for dashboards
 
 **Props:**
+
 ```typescript
 interface KpiCardProps {
   icon: LucideIcon;
@@ -37,31 +39,33 @@ interface KpiCardProps {
   value: string | number;
   subtitle?: string;
   trend?: {
-    direction: 'up' | 'down' | 'neutral';
+    direction: "up" | "down" | "neutral";
     value: number;
     label: string;
   };
   loading?: boolean;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
+  variant?: "default" | "success" | "warning" | "danger";
   tooltip?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 ```
 
 **Example Usage:**
+
 ```tsx
 <KpiCard
   icon={Activity}
   label="Active AI Models"
   value={12}
   subtitle="Deployed"
-  trend={{ direction: 'up', value: 2, label: 'vs last month' }}
+  trend={{ direction: "up", value: 2, label: "vs last month" }}
   tooltip="Number of ML models currently making predictions"
   data-testid="kpi-active-models"
 />
 ```
 
 **Visual Specs:**
+
 - Adaptive sizing: `min-w-[200px]` for horizontal scroll on mobile
 - Icon size: `w-5 h-5`
 - Value font: `text-2xl font-bold`
@@ -76,14 +80,15 @@ interface KpiCardProps {
 **Purpose:** Unified table for displaying ML models with actions
 
 **Props:**
+
 ```typescript
 interface Model {
   id: string;
   name: string;
-  modelType: 'lstm' | 'random-forest' | 'xgboost';
-  objective: 'health' | 'failure' | 'rul';
+  modelType: "lstm" | "random-forest" | "xgboost";
+  objective: "health" | "failure" | "rul";
   scope: string; // "All Equipment" or specific type
-  status: 'training' | 'deployed' | 'archived';
+  status: "training" | "deployed" | "archived";
   accuracy: number | null;
   lastValidation: Date | null;
   createdAt: Date;
@@ -96,11 +101,12 @@ interface ModelTableProps {
   onTrain: (modelId: string) => void;
   onDeploy: (modelId: string) => void;
   onArchive: (modelId: string) => void;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 ```
 
 **Features:**
+
 - Sortable columns (name, type, accuracy, last validation)
 - Status badges with color coding
 - Action dropdown menu per row
@@ -108,6 +114,7 @@ interface ModelTableProps {
 - Mobile: Stacked card layout instead of table
 
 **Visual Specs:**
+
 - Table: `@/components/ui/table`
 - Action menu: `@/components/ui/dropdown-menu`
 - Status badges: `@/components/ui/badge`
@@ -119,20 +126,22 @@ interface ModelTableProps {
 **Purpose:** Collapsible insight/recommendation card
 
 **Props:**
+
 ```typescript
 interface InsightCardProps {
   title: string;
   description: string;
   bullets: string[];
-  status: 'active' | 'configured' | 'not-configured';
+  status: "active" | "configured" | "not-configured";
   icon: LucideIcon;
   defaultOpen?: boolean;
   actions?: React.ReactNode;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 ```
 
 **Example:**
+
 ```tsx
 <InsightCard
   title="Weather-Aware Threshold Adjustment"
@@ -140,7 +149,7 @@ interface InsightCardProps {
   bullets={[
     "Reduces false alarms in rough seas by 60%",
     "Dynamically adapts to operational conditions",
-    "Integrates with OpenWeatherMap API"
+    "Integrates with OpenWeatherMap API",
   ]}
   status="active"
   icon={Waves}
@@ -149,6 +158,7 @@ interface InsightCardProps {
 ```
 
 **Visual Specs:**
+
 - Uses `@/components/ui/collapsible`
 - Status badge in header
 - Bullet list with checkmarks
@@ -163,6 +173,7 @@ interface InsightCardProps {
 **Purpose:** Unified training form for all model types
 
 **Props:**
+
 ```typescript
 interface ModelTrainingFormProps {
   onSubmit: (config: TrainingConfig) => Promise<void>;
@@ -172,10 +183,10 @@ interface ModelTrainingFormProps {
 }
 
 interface TrainingConfig {
-  modelType: 'lstm' | 'random-forest' | 'xgboost';
-  objective: 'health' | 'failure' | 'rul';
-  equipmentScope: string | 'all';
-  dataWindow: 'bronze' | 'silver' | 'gold' | 'platinum';
+  modelType: "lstm" | "random-forest" | "xgboost";
+  objective: "health" | "failure" | "rul";
+  equipmentScope: string | "all";
+  dataWindow: "bronze" | "silver" | "gold" | "platinum";
   advancedOptions?: {
     epochs?: number;
     sequenceLength?: number;
@@ -188,6 +199,7 @@ interface TrainingConfig {
 ```
 
 **Features:**
+
 - Model type radio selector with descriptions
 - Equipment scope dropdown
 - Data window preset buttons (Bronze/Silver/Gold/Platinum)
@@ -196,6 +208,7 @@ interface TrainingConfig {
 - Progress indicator during training
 
 **Visual Specs:**
+
 - Uses `@/components/ui/form` (react-hook-form wrapper)
 - Radio cards with icons and descriptions
 - Preset buttons: Badge-styled clickable cards
@@ -208,6 +221,7 @@ interface TrainingConfig {
 **Purpose:** File upload + visualization for acoustic data
 
 **Props:**
+
 ```typescript
 interface AcousticAnalysisPanelProps {
   equipmentId?: string;
@@ -217,7 +231,7 @@ interface AcousticAnalysisPanelProps {
 }
 
 interface AcousticData {
-  source: 'file' | 'paste';
+  source: "file" | "paste";
   data: number[];
   sampleRate: number;
   rpm?: number;
@@ -229,12 +243,14 @@ interface AcousticData {
 ```
 
 **Features:**
+
 - Left panel: File upload (CSV) or paste textarea
 - Right panel: Waveform chart (time-domain) + FFT chart (frequency)
 - Analysis results card: Dominant frequencies, anomaly score
 - Collapsible "Advanced/Paste Raw Data" toggle
 
 **Visual Specs:**
+
 - Split layout: `grid grid-cols-1 lg:grid-cols-2`
 - File upload: `@/components/ui/input` type="file"
 - Charts: Recharts `LineChart` and `BarChart`
@@ -248,6 +264,7 @@ interface AcousticData {
 **Purpose:** Bar/Line chart showing model accuracy over time
 
 **Props:**
+
 ```typescript
 interface AccuracyTrendChartProps {
   data: Array<{
@@ -255,19 +272,21 @@ interface AccuracyTrendChartProps {
     accuracy: number;
     modelName?: string;
   }>;
-  timeRange: '7d' | '30d' | '90d';
+  timeRange: "7d" | "30d" | "90d";
   onTimeRangeChange: (range: string) => void;
   loading?: boolean;
 }
 ```
 
 **Features:**
+
 - Toggle: Bar chart vs Line chart
 - Time range selector (7/30/90 days)
 - Multi-model comparison (stacked or grouped)
 - Tooltip with date + accuracy percentage
 
 **Visual Specs:**
+
 - Recharts `ResponsiveContainer`
 - Custom colors from theme variables
 - Responsive breakpoints
@@ -279,6 +298,7 @@ interface AccuracyTrendChartProps {
 **Purpose:** Display AI prediction explanations with feature importance
 
 **Props:**
+
 ```typescript
 interface ExplanationPanelProps {
   prediction: {
@@ -294,7 +314,7 @@ interface ExplanationPanelProps {
       name: string;
       importance: number;
       value: number;
-      contribution: 'positive' | 'negative';
+      contribution: "positive" | "negative";
     }>;
     trend?: {
       historical: number[];
@@ -306,12 +326,14 @@ interface ExplanationPanelProps {
 ```
 
 **Features:**
+
 - Natural language explanation at top
 - Feature importance horizontal bar chart
 - Mini trend sparkline
 - Link to full equipment details
 
 **Visual Specs:**
+
 - Uses `ExplainabilityVisualization` (existing component)
 - Responsive layout: stack on mobile
 
@@ -324,6 +346,7 @@ interface ExplanationPanelProps {
 **Purpose:** Wrapper for multi-tab dashboards with lazy loading
 
 **Props:**
+
 ```typescript
 interface TabbedDashboardProps {
   title: string;
@@ -335,17 +358,19 @@ interface TabbedDashboardProps {
     component: React.LazyExoticComponent<React.ComponentType<any>>;
   }>;
   defaultTab?: string;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 ```
 
 **Features:**
+
 - Lazy-loaded tab content (Suspense boundaries)
 - URL sync for tab state
 - Loading skeletons per tab
 - Mobile-optimized tabs (horizontal scroll)
 
 **Visual Specs:**
+
 - Uses `@/components/ui/tabs`
 - Tab triggers: Icon + label
 - Suspense fallback: `@/components/ui/skeleton`
@@ -357,6 +382,7 @@ interface TabbedDashboardProps {
 **Purpose:** Standardized page header with actions
 
 **Props:**
+
 ```typescript
 interface PageHeaderProps {
   title: string;
@@ -368,6 +394,7 @@ interface PageHeaderProps {
 ```
 
 **Example:**
+
 ```tsx
 <PageHeader
   title="Condition Monitoring AI Studio"
@@ -391,9 +418,10 @@ interface PageHeaderProps {
 **Purpose:** Clickable preset card for training data windows
 
 **Props:**
+
 ```typescript
 interface DataWindowPresetProps {
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  tier: "bronze" | "silver" | "gold" | "platinum";
   days: number;
   label: string;
   description: string;
@@ -404,6 +432,7 @@ interface DataWindowPresetProps {
 ```
 
 **Visual Specs:**
+
 - Card with tier icon/emoji
 - Border highlight when selected
 - Disabled state with tooltip
@@ -415,15 +444,24 @@ interface DataWindowPresetProps {
 **Purpose:** Reusable status badge with consistent styling
 
 **Props:**
+
 ```typescript
 interface StatusBadgeProps {
-  status: 'active' | 'pending' | 'configured' | 'not-configured' | 'critical' | 'warning' | 'normal';
+  status:
+    | "active"
+    | "pending"
+    | "configured"
+    | "not-configured"
+    | "critical"
+    | "warning"
+    | "normal";
   label?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 ```
 
 **Mapping:**
+
 - `active` → Green
 - `pending` → Yellow
 - `configured` → Blue
@@ -441,22 +479,25 @@ interface StatusBadgeProps {
 **Purpose:** Right-hand drawer for model details
 
 **Props:**
+
 ```typescript
 interface ModelDetailsDrawerProps {
   model: Model;
   open: boolean;
   onClose: () => void;
-  onAction: (action: 'deploy' | 'archive' | 'retrain') => void;
+  onAction: (action: "deploy" | "archive" | "retrain") => void;
 }
 ```
 
 **Features:**
+
 - Accuracy trend mini-chart
 - Validation stats table
 - Quick actions: Deploy, Retrain, Archive
 - Link to full performance dashboard
 
 **Visual Specs:**
+
 - Uses `@/components/ui/sheet` (right drawer)
 - Scrollable content area
 
@@ -465,22 +506,26 @@ interface ModelDetailsDrawerProps {
 ## Component Build Order
 
 ### Phase 1 (Core Foundation) - Week 1
+
 1. ✅ `KpiCard` (2 hours)
 2. ✅ `StatusBadge` (1 hour)
 3. ✅ `PageHeader` (2 hours)
 4. ✅ `InsightCard` (3 hours)
 
 ### Phase 2 (Data Display) - Week 1-2
+
 5. ✅ `ModelTable` (6 hours)
 6. ✅ `AccuracyTrendChart` (4 hours)
 7. ✅ `ExplanationPanel` (3 hours)
 
 ### Phase 3 (Forms) - Week 2
+
 8. ✅ `DataWindowPreset` (2 hours)
 9. ✅ `ModelTrainingForm` (8 hours)
 10. ✅ `AcousticAnalysisPanel` (6 hours)
 
 ### Phase 4 (Advanced) - Week 2-3
+
 11. ✅ `ModelDetailsDrawer` (4 hours)
 12. ✅ `TabbedDashboard` (3 hours)
 
@@ -493,6 +538,7 @@ interface ModelDetailsDrawerProps {
 Each component must include:
 
 ### Unit Tests (Jest + React Testing Library)
+
 - ✅ Renders without crashing
 - ✅ Props are correctly applied
 - ✅ Callbacks are triggered
@@ -501,6 +547,7 @@ Each component must include:
 - ✅ Accessibility (keyboard nav, aria labels)
 
 ### Visual Regression Tests (Storybook)
+
 - ✅ Default state
 - ✅ Loading state
 - ✅ Error state
@@ -510,6 +557,7 @@ Each component must include:
 - ✅ Desktop viewport
 
 ### Integration Tests (Playwright - after assembly)
+
 - ✅ E2E workflows using the components
 - ✅ Real API data rendering
 - ✅ User interactions
@@ -555,15 +603,19 @@ client/src/components/ml-ai/
 ## Shared Hooks & Utilities
 
 ### `useModelPerformance.ts`
+
 Fetch and cache model performance data
 
 ### `useTrainingSubmit.ts`
+
 Handle training form submission with proper error handling
 
 ### `useAcousticAnalysis.ts`
+
 Parse CSV/file upload and submit to API
 
 ### `ml-formatters.ts`
+
 - `formatAccuracy(value: number): string`
 - `formatConfidence(value: number): string`
 - `formatModelType(type: string): string`

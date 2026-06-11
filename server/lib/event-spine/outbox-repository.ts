@@ -36,10 +36,7 @@ export interface OutboxRow {
  * DO NOTHING), which keeps the bridge subscriber safe to call alongside
  * inline enqueues.
  */
-export async function enqueueOutbox(
-  input: EnqueueOutboxInput,
-  tx?: TxOrDb
-): Promise<void> {
+export async function enqueueOutbox(input: EnqueueOutboxInput, tx?: TxOrDb): Promise<void> {
   const client = tx ?? db;
   await client
     .insert(eventOutbox)
@@ -191,17 +188,15 @@ export async function markFailed(
  * advanced by claim, so reaping on it would prematurely requeue
  * recently-claimed work that just happens to have an old retry stamp.
  */
-export async function reapStaleDispatching(staleMs: number, now: Date = new Date()): Promise<number> {
+export async function reapStaleDispatching(
+  staleMs: number,
+  now: Date = new Date()
+): Promise<number> {
   const cutoff = new Date(now.getTime() - staleMs);
   const result = await db
     .update(eventOutbox)
     .set({ status: "pending", nextAttemptAt: now, dispatchedAt: null })
-    .where(
-      and(
-        eq(eventOutbox.status, "dispatching"),
-        lte(eventOutbox.dispatchedAt, cutoff)
-      )
-    );
+    .where(and(eq(eventOutbox.status, "dispatching"), lte(eventOutbox.dispatchedAt, cutoff)));
   const resultUnknown: unknown = result;
   return (resultUnknown as { rowCount?: number }).rowCount ?? 0;
 }
@@ -213,6 +208,8 @@ export async function countByStatus(): Promise<Record<string, number>> {
     .groupBy(eventOutbox.status)
     .orderBy(asc(eventOutbox.status));
   const out: Record<string, number> = {};
-  for (const r of rows) {out[r.status] = Number(r.count);}
+  for (const r of rows) {
+    out[r.status] = Number(r.count);
+  }
   return out;
 }

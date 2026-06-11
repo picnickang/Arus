@@ -1,6 +1,7 @@
 # LEAPFROG Enhancement Implementation Plan
+
 **ARUS Marine Predictive Maintenance Platform**
-*Generated: November 4, 2025*
+_Generated: November 4, 2025_
 
 ## Executive Summary
 
@@ -14,25 +15,27 @@ This document proposes 6 high-value enhancements from the LEAPFROG prompt that w
 
 ## Feature Comparison Matrix
 
-| Feature | ARUS Current State | LEAPFROG Proposal | Status |
-|---------|-------------------|-------------------|---------|
-| Fleet Health Overview | ✅ FleetOverview with cards | Map with geographic pins | ENHANCE |
-| VPS Performance Charts | ✅ Load Distribution + Power/STW | 4 charts + fleet overlays | PARTIAL |
-| Work Order Management | ✅ Table view + crew assignment | Gantt timeline | ENHANCE |
-| CII Compliance | ✅ Badge + trend (just added) | Export + reporting | PARTIAL |
-| Operating Mode Detection | ✅ Real-time inference (just added) | Context event timeline | ENHANCE |
-| ML Predictions | ✅ LSTM/XGB/RF ensemble + SHAP | Root cause for anomalies | ENHANCE |
-| AI Narrative Summaries | ✅ Performance insights (just added) | Interactive chat assistant | ENHANCE |
-| 7-Day Forecasting | ❌ Not implemented | Rolling forecast dashboard | NEW |
-| Fleet Map | ❌ Not implemented | Geographic visualization | NEW |
-| Model Lineage UI | ❌ Backend only | Governance dashboard | NEW |
+| Feature                  | ARUS Current State                   | LEAPFROG Proposal          | Status  |
+| ------------------------ | ------------------------------------ | -------------------------- | ------- |
+| Fleet Health Overview    | ✅ FleetOverview with cards          | Map with geographic pins   | ENHANCE |
+| VPS Performance Charts   | ✅ Load Distribution + Power/STW     | 4 charts + fleet overlays  | PARTIAL |
+| Work Order Management    | ✅ Table view + crew assignment      | Gantt timeline             | ENHANCE |
+| CII Compliance           | ✅ Badge + trend (just added)        | Export + reporting         | PARTIAL |
+| Operating Mode Detection | ✅ Real-time inference (just added)  | Context event timeline     | ENHANCE |
+| ML Predictions           | ✅ LSTM/XGB/RF ensemble + SHAP       | Root cause for anomalies   | ENHANCE |
+| AI Narrative Summaries   | ✅ Performance insights (just added) | Interactive chat assistant | ENHANCE |
+| 7-Day Forecasting        | ❌ Not implemented                   | Rolling forecast dashboard | NEW     |
+| Fleet Map                | ❌ Not implemented                   | Geographic visualization   | NEW     |
+| Model Lineage UI         | ❌ Backend only                      | Governance dashboard       | NEW     |
 
 ---
 
 ## Phase 1: Geographic Fleet Visualization (Priority 1)
+
 **Effort:** 3-4 days | **Impact:** High | **Risk:** Low
 
 ### Features
+
 - Interactive map showing all vessels with real-time positions
 - RAG (Red/Amber/Green) health status pins
 - Click-through to vessel detail pages
@@ -40,6 +43,7 @@ This document proposes 6 high-value enhancements from the LEAPFROG prompt that w
 - Auto-refresh every 30 seconds
 
 ### Implementation
+
 ```typescript
 // Backend: server/routes.ts
 GET /api/fleet/map-data
@@ -63,11 +67,13 @@ Response: {
 ```
 
 ### Dependencies
+
 - `react-leaflet` (already used in marine software)
 - `leaflet` CSS
 - Position data from vessels table or telemetry
 
 ### Acceptance Criteria
+
 - [ ] Map loads with all vessels positioned correctly
 - [ ] Health status colors match fleet overview
 - [ ] Click pin navigates to vessel detail
@@ -77,9 +83,11 @@ Response: {
 ---
 
 ## Phase 2: Gantt Chart Maintenance Timeline (Priority 1)
+
 **Effort:** 4-5 days | **Impact:** High | **Risk:** Medium
 
 ### Features
+
 - Interactive Gantt chart for all work orders
 - Drag-to-reschedule work orders
 - Color-coded by priority (critical, high, medium, low)
@@ -89,6 +97,7 @@ Response: {
 - Export to PDF/PNG
 
 ### Implementation
+
 ```typescript
 // Backend: server/routes.ts
 GET /api/maintenance/timeline
@@ -118,11 +127,13 @@ Body: { startDate: Date, endDate: Date }
 ```
 
 ### Dependencies
+
 - `@visx/xychart` or `recharts` with custom bars
 - Drag-and-drop library or native HTML5 drag API
 - Work orders data (already exists)
 
 ### Acceptance Criteria
+
 - [ ] All work orders display on timeline
 - [ ] Drag work order updates dates in backend
 - [ ] Color coding matches priority levels
@@ -132,9 +143,11 @@ Body: { startDate: Date, endDate: Date }
 ---
 
 ## Phase 3: Context Event Timeline (Priority 2)
+
 **Effort:** 3-4 days | **Impact:** Medium-High | **Risk:** Low
 
 ### Features
+
 - Annotate telemetry charts with operational events
 - Voyage phase markers (departure, transit, arrival, port ops)
 - Maintenance event overlays
@@ -143,6 +156,7 @@ Body: { startDate: Date, endDate: Date }
 - Link events to predictions for better explainability
 
 ### Implementation
+
 ```typescript
 // Backend: server/routes.ts
 GET /api/context/events?vesselId=X&from=Y&to=Z
@@ -169,12 +183,14 @@ Body: { vesselId, type, timestamp, description, metadata }
 ```
 
 ### Integration Points
+
 - Operating mode detection (already implemented)
 - Weather service (already integrated)
 - Work orders (maintenance events)
 - Manual event logging for voyage phases
 
 ### Acceptance Criteria
+
 - [ ] Events display as vertical markers on charts
 - [ ] Event types have distinct colors
 - [ ] Tooltips show full event details
@@ -184,9 +200,11 @@ Body: { vesselId, type, timestamp, description, metadata }
 ---
 
 ## Phase 4: Root Cause Attribution Dashboard (Priority 2)
+
 **Effort:** 3-4 days | **Impact:** High | **Risk:** Low
 
 ### Features
+
 - SHAP values for detected anomalies (not just predictions)
 - Top 5 contributing sensors visualization
 - Historical similar anomaly matches
@@ -194,6 +212,7 @@ Body: { vesselId, type, timestamp, description, metadata }
 - Export anomaly report with attribution
 
 ### Implementation
+
 ```typescript
 // Backend: server/ai/root-cause-analyzer.ts
 export class RootCauseAnalyzer {
@@ -216,12 +235,14 @@ Response: RootCauseAnalysis
 ```
 
 ### Integration Points
+
 - Existing SHAP explainability service
 - Anomaly detection pipeline
 - OpenAI integration for action suggestions
 - Telemetry data
 
 ### Acceptance Criteria
+
 - [ ] Root cause analysis completes in <2s
 - [ ] Top contributors match SHAP output
 - [ ] Recommendations are actionable
@@ -231,9 +252,11 @@ Response: RootCauseAnalysis
 ---
 
 ## Phase 5: 7-Day Predictive Forecast (Priority 2)
+
 **Effort:** 3-4 days | **Impact:** Medium | **Risk:** Low
 
 ### Features
+
 - Rolling 7-day equipment health forecast
 - Confidence intervals (80%, 95%)
 - Maintenance opportunity windows
@@ -242,6 +265,7 @@ Response: RootCauseAnalysis
 - Export forecast data
 
 ### Implementation
+
 ```typescript
 // Backend: server/ai/forecast-service.ts
 export class ForecastService {
@@ -271,12 +295,14 @@ GET /api/forecast/:equipmentId/7day
 ```
 
 ### Integration Points
+
 - Existing LSTM prediction model
 - Telemetry aggregation
 - Maintenance scheduling
 - Weather forecast integration
 
 ### Acceptance Criteria
+
 - [ ] Forecast generates for all equipment
 - [ ] Confidence intervals are reasonable
 - [ ] Maintenance windows align with predictions
@@ -286,9 +312,11 @@ GET /api/forecast/:equipmentId/7day
 ---
 
 ## Phase 6: AI Chat Assistant (Priority 3)
+
 **Effort:** 2-3 days | **Impact:** Medium | **Risk:** Low
 
 ### Features
+
 - Chat interface for asking questions about equipment
 - Explain predictions and anomalies in plain language
 - Search historical patterns
@@ -296,6 +324,7 @@ GET /api/forecast/:equipmentId/7day
 - Context-aware responses using vessel/equipment data
 
 ### Implementation
+
 ```typescript
 // Backend: server/ai/copilot-service.ts
 export class CoPilotService {
@@ -322,6 +351,7 @@ Body: { message, context }
 ```
 
 ### Integration Points
+
 - Existing OpenAI integration
 - Equipment health data
 - Prediction results
@@ -329,6 +359,7 @@ Body: { message, context }
 - Telemetry data
 
 ### Acceptance Criteria
+
 - [ ] Chat responds in <3s
 - [ ] Answers are contextually relevant
 - [ ] Citations link to actual data
@@ -340,18 +371,22 @@ Body: { message, context }
 ## Implementation Roadmap
 
 ### Sprint 1 (Week 1): Foundation
+
 - **Days 1-2:** Fleet Map backend + basic frontend
 - **Days 3-5:** Fleet Map interactive features + filters
 
-### Sprint 2 (Week 2): Planning Tools  
+### Sprint 2 (Week 2): Planning Tools
+
 - **Days 1-3:** Gantt Chart backend + rendering
 - **Days 4-5:** Gantt Chart drag-to-reschedule + export
 
 ### Sprint 3 (Week 3): Intelligence
+
 - **Days 1-2:** Context Event Timeline backend + UI
 - **Days 3-5:** Root Cause Attribution + 7-Day Forecast
 
 ### Sprint 4 (Week 4): Assistant & Polish
+
 - **Days 1-2:** AI Chat Assistant
 - **Days 3-5:** Testing, bug fixes, documentation
 
@@ -360,14 +395,17 @@ Body: { message, context }
 ## Resource Requirements
 
 ### Development
+
 - 1 Full-stack developer: 18-22 days
 - 1 QA tester: 5 days (parallel testing)
 
 ### Third-Party Services
+
 - OpenAI API: Additional chat tokens (~$20-50/month)
 - Map tiles: Free tier (OpenStreetMap) sufficient
 
 ### Infrastructure
+
 - No additional cloud resources needed
 - Uses existing PostgreSQL, Redis, OpenAI setup
 
@@ -375,31 +413,34 @@ Body: { message, context }
 
 ## Risk Assessment
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Map performance with 100+ vessels | Low | Medium | Clustering, lazy loading |
-| Gantt drag-drop browser compatibility | Low | Low | Polyfill, fallback to modal edit |
-| OpenAI rate limits | Medium | Low | Response caching, queue management |
-| 7-day forecast accuracy | Medium | Medium | Confidence intervals, model tuning |
-| SHAP computation slowness | Low | Medium | Background jobs, caching |
+| Risk                                  | Probability | Impact | Mitigation                         |
+| ------------------------------------- | ----------- | ------ | ---------------------------------- |
+| Map performance with 100+ vessels     | Low         | Medium | Clustering, lazy loading           |
+| Gantt drag-drop browser compatibility | Low         | Low    | Polyfill, fallback to modal edit   |
+| OpenAI rate limits                    | Medium      | Low    | Response caching, queue management |
+| 7-day forecast accuracy               | Medium      | Medium | Confidence intervals, model tuning |
+| SHAP computation slowness             | Low         | Medium | Background jobs, caching           |
 
 ---
 
 ## Success Metrics
 
 ### User Experience
+
 - Fleet map loads in <2s with 100 vessels
 - Gantt chart handles 500+ work orders smoothly
 - Chat assistant responds in <3s average
 - Root cause analysis available for all anomalies
 
 ### Business Value
+
 - 20% reduction in maintenance planning time (Gantt)
 - 15% better resource allocation (Fleet Map)
 - 30% faster anomaly investigation (Root Cause + Chat)
 - 10% fewer unplanned breakdowns (7-Day Forecast)
 
 ### Technical Quality
+
 - All new features <150ms backend latency (p95)
 - 100% test coverage for new services
 - Zero breaking changes to existing features
@@ -414,6 +455,7 @@ These 6 enhancements leverage ARUS's existing infrastructure (ML models, OpenAI 
 **Recommended Start:** Phase 1 (Fleet Map) - highest visual impact, lowest risk, fastest to market.
 
 **Next Steps:**
+
 1. Review and approve implementation plan
 2. Allocate development resources
 3. Set up feature flags for gradual rollout

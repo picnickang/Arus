@@ -84,7 +84,9 @@ export class UpdateChecker {
    */
   async checkForUpdates(orgId: string, channel: string = "stable"): Promise<PatchManifest | null> {
     try {
-      logger.info(`[UpdateChecker] Checking for updates (current: ${this.currentVersion}, channel: ${channel})`);
+      logger.info(
+        `[UpdateChecker] Checking for updates (current: ${this.currentVersion}, channel: ${channel})`
+      );
 
       // Get update settings for this organization
       const settings = await this.getUpdateSettings(orgId);
@@ -218,7 +220,9 @@ export class UpdateChecker {
     };
 
     const [patch] = await db.insert(softwarePatches).values(patchData).returning();
-    if (!patch) {throw new Error("recordAvailableUpdate: insert returned no row");}
+    if (!patch) {
+      throw new Error("recordAvailableUpdate: insert returned no row");
+    }
     return patch;
   }
 
@@ -346,7 +350,9 @@ export class UpdateChecker {
           totalBytes: patch.fileSize || 0,
         })
         .returning();
-      if (!download) {throw new Error("downloadPatch: downloads insert returned no row");}
+      if (!download) {
+        throw new Error("downloadPatch: downloads insert returned no row");
+      }
 
       // Download to temporary file
       const filename = `patch-${patch.version}.tar.gz`;
@@ -478,6 +484,3 @@ export async function getUpdateChecker(): Promise<UpdateChecker> {
   }
   return updateCheckerInstance;
 }
-
-// For backward compatibility - use getUpdateChecker() instead
-export const updateChecker: Promise<UpdateChecker> = getUpdateChecker();

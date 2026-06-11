@@ -72,10 +72,7 @@ type NewRuleInput = {
   actions?: unknown;
 };
 
-async function getComplianceRules(
-  orgId: string,
-  filters?: RulesFilter
-): Promise<ComplianceRule[]> {
+async function getComplianceRules(orgId: string, filters?: RulesFilter): Promise<ComplianceRule[]> {
   const conditions = [eq(complianceRules.orgId, orgId)];
   if (filters?.sourceType) {
     conditions.push(eq(complianceRules.sourceType, filters.sourceType));
@@ -326,7 +323,9 @@ export class ComplianceRulesEngine {
         const result = await evaluator(ctx, rule.ruleConfig ?? {});
 
         if (result.skipped) {
-          logger.info(`[ComplianceRulesEngine] Rule ${rule.ruleCode} skipped: ${result.skipReason || "no log data"}`);
+          logger.info(
+            `[ComplianceRulesEngine] Rule ${rule.ruleCode} skipped: ${result.skipReason || "no log data"}`
+          );
           stillOpen.push(...existingFindings);
           continue;
         }
@@ -351,7 +350,11 @@ export class ComplianceRulesEngine {
                   orgId
                 );
               } catch (notifyError) {
-                logger.error(`[ComplianceRulesEngine] Failed to send notification for finding ${inserted.id}:`, undefined, notifyError);
+                logger.error(
+                  `[ComplianceRulesEngine] Failed to send notification for finding ${inserted.id}:`,
+                  undefined,
+                  notifyError
+                );
               }
             }
           } else {
@@ -374,7 +377,11 @@ export class ComplianceRulesEngine {
           }
         }
       } catch (error) {
-        logger.error(`[ComplianceRulesEngine] Error evaluating rule ${rule.ruleCode}:`, undefined, error);
+        logger.error(
+          `[ComplianceRulesEngine] Error evaluating rule ${rule.ruleCode}:`,
+          undefined,
+          error
+        );
       }
     }
 

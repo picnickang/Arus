@@ -94,7 +94,7 @@ async function main() {
   if (!adminUrl) {
     die(
       2,
-      "EPHEMERAL_DB_URL is required (a Postgres cluster URL where this script may create/drop databases — e.g. a CI services postgres or a local docker-compose db).",
+      "EPHEMERAL_DB_URL is required (a Postgres cluster URL where this script may create/drop databases — e.g. a CI services postgres or a local docker-compose db)."
     );
   }
 
@@ -110,7 +110,7 @@ async function main() {
   if (!useFixture && !backupUrl && !backupPath) {
     die(
       2,
-      "Pass one of: --fixture, BACKUP_URL=..., or BACKUP_PATH=... to indicate which dump to restore.",
+      "Pass one of: --fixture, BACKUP_URL=..., or BACKUP_PATH=... to indicate which dump to restore."
     );
   }
 
@@ -119,7 +119,7 @@ async function main() {
       2,
       `--fixture requested but ${FIXTURE_PATH} does not exist. Generate one with:\n` +
         `  pg_dump --format=custom --no-owner --no-privileges $DATABASE_URL > scripts/dr/fixtures/baseline.dump\n` +
-        `(scrubbed of tenant PII first — see scripts/dr/README.md).`,
+        `(scrubbed of tenant PII first — see scripts/dr/README.md).`
     );
   }
 
@@ -150,16 +150,13 @@ async function main() {
     log("Tearing down ephemeral database...");
     try {
       // FORCE so any leftover sessions from a crashed run can't block teardown.
-      await psqlExec(
-        adminUrl,
-        `DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`,
-      );
+      await psqlExec(adminUrl, `DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`);
       log(`Ephemeral DB ${dbName} dropped.`);
     } catch (err) {
       // Don't shadow the original exit code — just warn.
       log(
         `WARN: teardown of ${dbName} failed: ${err instanceof Error ? err.message : String(err)}. ` +
-          `Manual cleanup may be required.`,
+          `Manual cleanup may be required.`
       );
     }
   }

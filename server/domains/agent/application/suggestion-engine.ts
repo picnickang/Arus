@@ -60,14 +60,20 @@ export class SuggestionEngine {
       this.evaluationIntervalMs = intervalMs;
     }
 
-    logger.info(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
+    logger.info(
+      `[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`
+    );
 
     const id = setInterval(async () => {
       try {
         const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
         await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
       } catch (err) {
-        logger.error(`[SuggestionEngine] Background evaluation error for org ${orgId}:`, undefined, err instanceof Error ? err.message : "unknown");
+        logger.error(
+          `[SuggestionEngine] Background evaluation error for org ${orgId}:`,
+          undefined,
+          err instanceof Error ? err.message : "unknown"
+        );
       }
     }, this.evaluationIntervalMs);
     this.intervalIds.set(orgId, id);
@@ -140,7 +146,9 @@ export class SuggestionEngine {
       await this.queueNotifications(orgId, updatedSuggestions);
     }
 
-    logger.info(`[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`);
+    logger.info(
+      `[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`
+    );
     return newSuggestions;
   }
 
@@ -272,7 +280,11 @@ export class SuggestionEngine {
       try {
         await handler(signal);
       } catch (err) {
-        logger.error(`[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`, undefined, err instanceof Error ? err.message : "unknown");
+        logger.error(
+          `[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`,
+          undefined,
+          err instanceof Error ? err.message : "unknown"
+        );
       }
     });
   }
@@ -353,21 +365,21 @@ export class SuggestionEngine {
       const lowStockRows = (lowStockResult as { rows?: Array<Record<string, unknown>> }).rows || [];
 
       for (const part of lowStockRows) {
-        const dedupKey = `low_stock:${part['id'] as string}`;
+        const dedupKey = `low_stock:${part["id"] as string}`;
         if (pendingKeys.has(dedupKey)) {
           continue;
         }
-        const severity = Number(part['quantity_on_hand']) === 0 ? "critical" : "info";
+        const severity = Number(part["quantity_on_hand"]) === 0 ? "critical" : "info";
         if (!meetsMinSeverity(severity, minSeverity)) {
           continue;
         }
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "low_stock",
-          title: `Low stock: ${part['part_name']}`,
-          summary: `Current stock ${part['quantity_on_hand']} is at or below minimum level ${part['min_stock_level']}. Reorder recommended.`,
+          title: `Low stock: ${part["part_name"]}`,
+          summary: `Current stock ${part["quantity_on_hand"]} is at or below minimum level ${part["min_stock_level"]}. Reorder recommended.`,
           entityType: "inventory",
-          entityId: part['id'] as string,
+          entityId: part["id"] as string,
           severity,
           status: "pending",
           context: { part },
@@ -375,7 +387,9 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      logger.warn("[SuggestionEngine] Low stock query failed:", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[SuggestionEngine] Low stock query failed:", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
     return results;
   }
@@ -432,7 +446,9 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      logger.warn("[SuggestionEngine] Critical alerts query failed:", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[SuggestionEngine] Critical alerts query failed:", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
     return results;
   }
@@ -494,7 +510,9 @@ export class SuggestionEngine {
         results.push(sug);
       }
     } catch (err) {
-      logger.warn("[SuggestionEngine] Certification expiry query failed:", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[SuggestionEngine] Certification expiry query failed:", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
     return results;
   }
@@ -553,7 +571,9 @@ export class SuggestionEngine {
         });
       }
     } catch (err) {
-      logger.warn("[SuggestionEngine] AI summarization failed (non-blocking):", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[SuggestionEngine] AI summarization failed (non-blocking):", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
   }
 
@@ -575,7 +595,9 @@ export class SuggestionEngine {
         });
       }
     } catch (err) {
-      logger.warn("[SuggestionEngine] Notification queue integration failed (non-blocking):", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[SuggestionEngine] Notification queue integration failed (non-blocking):", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
     }
   }
 }

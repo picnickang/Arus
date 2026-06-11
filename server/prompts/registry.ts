@@ -60,14 +60,16 @@ class PromptRegistry {
   register(def: PromptDefinition): void {
     const ref = `${def.id}@${def.version}`;
     if (this.byRef.has(ref)) {
-      throw new Error(`Prompt ${ref} already registered — bump the version instead of mutating it.`);
+      throw new Error(
+        `Prompt ${ref} already registered — bump the version instead of mutating it.`
+      );
     }
 
     const referenced = new Set<string>();
     let match: RegExpExecArray | null;
     INTERP_RE.lastIndex = 0;
     while ((match = INTERP_RE.exec(def.template)) !== null) {
-      referenced.add(match[1] ?? '');
+      referenced.add(match[1] ?? "");
     }
     const declared = new Set(def.variables);
     for (const v of referenced) {
@@ -85,14 +87,18 @@ class PromptRegistry {
   }
 
   get(ref: string): PromptDefinition | undefined {
-    if (ref.includes("@")) {return this.byRef.get(ref);}
+    if (ref.includes("@")) {
+      return this.byRef.get(ref);
+    }
     const latest = this.latest.get(ref);
     return latest ? this.byRef.get(`${ref}@${latest}`) : undefined;
   }
 
   render(ref: string, vars: Record<string, string | number>): RenderedPrompt {
     const def = this.get(ref);
-    if (!def) {throw new Error(`Unknown prompt ref ${ref}`);}
+    if (!def) {
+      throw new Error(`Unknown prompt ref ${ref}`);
+    }
     const resolvedRef = `${def.id}@${def.version}`;
 
     for (const v of def.variables) {
@@ -120,7 +126,9 @@ function compareSemver(a: string, b: string): number {
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
     const da = pa[i] ?? 0;
     const db = pb[i] ?? 0;
-    if (da !== db) {return da - db;}
+    if (da !== db) {
+      return da - db;
+    }
   }
   return 0;
 }

@@ -20,7 +20,9 @@ export function setupSimulationEventBridge(): void {
 
   domainEventBus.on("simulation.preview.created", (event) => {
     if (!wsServer) {
-      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast");
+      logger.warn(
+        "[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast"
+      );
       return;
     }
     const { previewId, proposedCount, unfilledCount, complianceRate, strategy, dateRange } =
@@ -38,7 +40,9 @@ export function setupSimulationEventBridge(): void {
 
   domainEventBus.on("simulation.committed", (event) => {
     if (!wsServer) {
-      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast");
+      logger.warn(
+        "[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast"
+      );
       return;
     }
     const { previewId, runId, assignmentsCommitted, selectedOnly } = event.payload;
@@ -58,7 +62,9 @@ export function setupSimulationEventBridge(): void {
 
   domainEventBus.on("simulation.discarded", (event) => {
     if (!wsServer) {
-      logger.warn("[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast");
+      logger.warn(
+        "[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast"
+      );
       return;
     }
     const { previewId, reason } = event.payload;

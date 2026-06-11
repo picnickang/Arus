@@ -33,7 +33,7 @@ router.get("/ml/models", async (req: AuthenticatedRequest, res: Response) => {
 
 router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
@@ -53,8 +53,10 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
  */
 router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!model) {return sendNotFound(res, "ML model");}
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+    if (!model) {
+      return sendNotFound(res, "ML model");
+    }
     if (model.status !== "deployed") {
       return sendBadRequest(res, "Only deployed models expose artifacts");
     }
@@ -105,9 +107,16 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
       models
         .filter((m) => m.status === "deployed" && m.accuracy)
         .map(async (model) => {
-          const history = await (dbMlAnalyticsStorage as object as { getMlModelAccuracyHistory: (id: string, orgId: string) => Promise<Array<{ recordedAt: Date; accuracy: number | null }>> }).getMlModelAccuracyHistory(model.id, req.orgId);
+          const history = await (
+            dbMlAnalyticsStorage as object as {
+              getMlModelAccuracyHistory: (
+                id: string,
+                orgId: string
+              ) => Promise<Array<{ recordedAt: Date; accuracy: number | null }>>;
+            }
+          ).getMlModelAccuracyHistory(model.id, req.orgId);
           return history.map((h: { recordedAt: Date; accuracy: number | null }) => ({
-            date: h.recordedAt.toISOString().split("T")[0] ?? '',
+            date: h.recordedAt.toISOString().split("T")[0] ?? "",
             accuracy: h.accuracy ?? 0,
             modelId: model.id,
             modelName: model.name,
@@ -116,7 +125,9 @@ router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response
     );
     sendSuccess(
       res,
-      trendData.flat().sort((a, b) => new Date(a.date ?? '').getTime() - new Date(b.date ?? '').getTime())
+      trendData
+        .flat()
+        .sort((a, b) => new Date(a.date ?? "").getTime() - new Date(b.date ?? "").getTime())
     );
   } catch (error) {
     handleError(error, res, "fetch accuracy trend");
@@ -144,63 +155,71 @@ router.get("/equipment/types", async (req: AuthenticatedRequest, res: Response) 
 // an idempotency key would create duplicate training rows + duplicate
 // queue entries. Mount idempotencyMiddleware so a replay returns the
 // originally-recorded {modelId, jobId} response.
-router.post("/ml/train", idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const config = mlTrainConfigSchema.parse(req.body);
-    const modelData: InsertMlModel = {
-      orgId: req.orgId,
-      name: `${config.algorithm} ${config.equipmentType} Predictor`,
-      type: config.algorithm.toLowerCase(),
-      status: "training",
-      equipmentType: config.equipmentType,
-      dataWindowDays: config.dataWindowDays,
-      hyperparameters: config.hyperparameters || null,
-      version: "1.0",
-      trainedOn: null,
-      deployedOn: null,
-      archivedOn: null,
-      accuracy: null,
-      precision: null,
-      recall: null,
-      f1Score: null,
-      dataPoints: null,
-      trainingDurationMs: null,
-      featureImportance: null,
-      trainingMetrics: null,
-      errorMessage: null,
-    };
-    const newModel = await dbMlAnalyticsStorage.createMlModel(modelData, req.orgId);
-    const { mlTrainingQueue } = await import("../ml-training-queue.js");
-    const trainingJob = await (mlTrainingQueue as object as { enqueue: (job: Record<string, unknown>) => Promise<{ id: string }> }).enqueue({
-      modelId: newModel.id,
-      orgId: req.orgId,
-      algorithm: config.algorithm,
-      equipmentType: config.equipmentType,
-      dataWindowDays: config.dataWindowDays,
-      hyperparameters: config.hyperparameters,
-    });
-    structuredLog("info", `ML training started for model ${newModel.id}`, {
-      operation: "ml_training_start",
-      metadata: {
-        modelId: newModel.id,
+router.post(
+  "/ml/train",
+  idempotencyMiddleware({ required: true }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const config = mlTrainConfigSchema.parse(req.body);
+      const modelData: InsertMlModel = {
+        orgId: req.orgId,
+        name: `${config.algorithm} ${config.equipmentType} Predictor`,
+        type: config.algorithm.toLowerCase(),
+        status: "training",
         equipmentType: config.equipmentType,
+        dataWindowDays: config.dataWindowDays,
+        hyperparameters: config.hyperparameters || null,
+        version: "1.0",
+        trainedOn: null,
+        deployedOn: null,
+        archivedOn: null,
+        accuracy: null,
+        precision: null,
+        recall: null,
+        f1Score: null,
+        dataPoints: null,
+        trainingDurationMs: null,
+        featureImportance: null,
+        trainingMetrics: null,
+        errorMessage: null,
+      };
+      const newModel = await dbMlAnalyticsStorage.createMlModel(modelData, req.orgId);
+      const { mlTrainingQueue } = await import("../ml-training-queue.js");
+      const trainingJob = await (
+        mlTrainingQueue as object as {
+          enqueue: (job: Record<string, unknown>) => Promise<{ id: string }>;
+        }
+      ).enqueue({
+        modelId: newModel.id,
+        orgId: req.orgId,
         algorithm: config.algorithm,
-        windowDays: config.dataWindowDays,
-      },
-    });
-    sendSuccess(res, {
-      modelId: newModel.id,
-      jobId: trainingJob.id,
-      message: "Training started successfully",
-      estimatedCompletionMinutes: Math.ceil(config.dataWindowDays / 10),
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return sendBadRequest(res, "Invalid training configuration", { errors: error.errors });
+        equipmentType: config.equipmentType,
+        dataWindowDays: config.dataWindowDays,
+        hyperparameters: config.hyperparameters,
+      });
+      structuredLog("info", `ML training started for model ${newModel.id}`, {
+        operation: "ml_training_start",
+        metadata: {
+          modelId: newModel.id,
+          equipmentType: config.equipmentType,
+          algorithm: config.algorithm,
+          windowDays: config.dataWindowDays,
+        },
+      });
+      sendSuccess(res, {
+        modelId: newModel.id,
+        jobId: trainingJob.id,
+        message: "Training started successfully",
+        estimatedCompletionMinutes: Math.ceil(config.dataWindowDays / 10),
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return sendBadRequest(res, "Invalid training configuration", { errors: error.errors });
+      }
+      handleError(error, res, "start ML training");
     }
-    handleError(error, res, "start ML training");
   }
-});
+);
 
 // LR-3.5 / ML-1: `/deploy` directly sets a model to status=deployed,
 // which is the same end-state as the two-person `/promote` flow but
@@ -208,28 +227,33 @@ router.post("/ml/train", idempotencyMiddleware({ required: true }), async (req: 
 // behind the same role check so the stricter promote workflow can't
 // be sidestepped by calling /deploy. Idempotency mounted because a
 // retried deploy POST without a key would replay the timestamp.
-router.post("/ml/models/:id/deploy", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!model) {
-      return sendNotFound(res, "ML model");
+router.post(
+  "/ml/models/:id/deploy",
+  requirePermission("predictive_maintenance", "manage_config"),
+  idempotencyMiddleware({ required: true }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+      if (!model) {
+        return sendNotFound(res, "ML model");
+      }
+      if (model.status === "training") {
+        return sendBadRequest(res, "Cannot deploy a model that is still training");
+      }
+      if (model.status === "failed") {
+        return sendBadRequest(res, "Cannot deploy a failed model");
+      }
+      const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
+        req.params["id"] ?? "",
+        { status: "deployed", deployedOn: new Date() },
+        req.orgId
+      );
+      sendSuccess(res, { message: "Model deployed successfully", model: updatedModel });
+    } catch (error) {
+      handleError(error, res, "deploy ML model");
     }
-    if (model.status === "training") {
-      return sendBadRequest(res, "Cannot deploy a model that is still training");
-    }
-    if (model.status === "failed") {
-      return sendBadRequest(res, "Cannot deploy a failed model");
-    }
-    const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
-      (req.params['id'] ?? ''),
-      { status: "deployed", deployedOn: new Date() },
-      req.orgId
-    );
-    sendSuccess(res, { message: "Model deployed successfully", model: updatedModel });
-  } catch (error) {
-    handleError(error, res, "deploy ML model");
   }
-});
+);
 
 // LR-3.5 / ML-1: archive removes a model from the deployable pool and
 // is the only path back from `deployed` outside the rollback flow.
@@ -238,22 +262,27 @@ router.post("/ml/models/:id/deploy", requirePermission("predictive_maintenance",
 // without an idempotency key would overwrite the original archive
 // timestamp every time and obscure the audit trail. Mount idempotency
 // so a replay returns the original {message, model} payload unchanged.
-router.post("/ml/models/:id/archive", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!model) {
-      return sendNotFound(res, "ML model");
+router.post(
+  "/ml/models/:id/archive",
+  requirePermission("predictive_maintenance", "manage_config"),
+  idempotencyMiddleware({ required: true }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+      if (!model) {
+        return sendNotFound(res, "ML model");
+      }
+      const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
+        req.params["id"] ?? "",
+        { status: "archived", archivedOn: new Date() },
+        req.orgId
+      );
+      sendSuccess(res, { message: "Model archived successfully", model: updatedModel });
+    } catch (error) {
+      handleError(error, res, "archive ML model");
     }
-    const updatedModel = await dbMlAnalyticsStorage.updateMlModel(
-      (req.params['id'] ?? ''),
-      { status: "archived", archivedOn: new Date() },
-      req.orgId
-    );
-    sendSuccess(res, { message: "Model archived successfully", model: updatedModel });
-  } catch (error) {
-    handleError(error, res, "archive ML model");
   }
-});
+);
 
 // LR-3.5 / ML-1: model delete is the strongest model-lifecycle mutation
 // (irreversible). Same admin/chief_engineer gate as deploy/archive.
@@ -261,29 +290,41 @@ router.post("/ml/models/:id/archive", requirePermission("predictive_maintenance"
 // no longer exists would return a 404 instead of the original 200 the
 // caller already saw. Mount idempotency so the original success
 // response is replayed instead of bouncing the retry.
-router.delete("/ml/models/:id", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!model) {
-      return sendNotFound(res, "ML model");
+router.delete(
+  "/ml/models/:id",
+  requirePermission("predictive_maintenance", "manage_config"),
+  idempotencyMiddleware({ required: true }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+      if (!model) {
+        return sendNotFound(res, "ML model");
+      }
+      await dbMlAnalyticsStorage.deleteMlModel(req.params["id"] ?? "", req.orgId);
+      sendSuccess(res, { message: "Model deleted successfully" });
+    } catch (error) {
+      handleError(error, res, "delete ML model");
     }
-    await dbMlAnalyticsStorage.deleteMlModel((req.params['id'] ?? ''), req.orgId);
-    sendSuccess(res, { message: "Model deleted successfully" });
-  } catch (error) {
-    handleError(error, res, "delete ML model");
   }
-});
+);
 
 router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
     if (!model) {
       return sendNotFound(res, "ML model");
     }
     const { accuracy, validationAccuracy, testAccuracy, datasetSize } = req.body;
-    const historyEntry = await (dbMlAnalyticsStorage as object as { addMlModelAccuracyHistory: (entry: Record<string, unknown>, orgId: string) => Promise<unknown> }).addMlModelAccuracyHistory(
+    const historyEntry = await (
+      dbMlAnalyticsStorage as object as {
+        addMlModelAccuracyHistory: (
+          entry: Record<string, unknown>,
+          orgId: string
+        ) => Promise<unknown>;
+      }
+    ).addMlModelAccuracyHistory(
       {
-        modelId: (req.params['id'] ?? ''),
+        modelId: req.params["id"] ?? "",
         accuracy,
         validationAccuracy: validationAccuracy || null,
         testAccuracy: testAccuracy || null,
@@ -342,7 +383,9 @@ const promotionApprovals = new Map<string, PromotionApproval>();
 
 function pruneExpiredApprovals(now: number): void {
   for (const [k, v] of promotionApprovals) {
-    if (v.expiresAt <= now) {promotionApprovals.delete(k);}
+    if (v.expiresAt <= now) {
+      promotionApprovals.delete(k);
+    }
   }
 }
 
@@ -356,14 +399,24 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const proposerId = req.user?.id;
-      if (!proposerId) {return sendBadRequest(res, "Proposer identity required");}
+      if (!proposerId) {
+        return sendBadRequest(res, "Proposer identity required");
+      }
 
-      const modelId = req.params['id'] ?? '';
+      const modelId = req.params["id"] ?? "";
       const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
-      if (!candidate) {return sendNotFound(res, "ML model");}
-      if (candidate.status === "training") {return sendBadRequest(res, "Cannot request promotion of a training model");}
-      if (candidate.status === "failed") {return sendBadRequest(res, "Cannot request promotion of a failed model");}
-      if (!candidate.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
+      if (!candidate) {
+        return sendNotFound(res, "ML model");
+      }
+      if (candidate.status === "training") {
+        return sendBadRequest(res, "Cannot request promotion of a training model");
+      }
+      if (candidate.status === "failed") {
+        return sendBadRequest(res, "Cannot request promotion of a failed model");
+      }
+      if (!candidate.equipmentType) {
+        return sendBadRequest(res, "Model is missing equipmentType");
+      }
 
       pruneExpiredApprovals(Date.now());
       const token = randomBytes(24).toString("base64url");
@@ -386,18 +439,21 @@ router.post(
       });
 
       sendSuccess(res, {
-        message: "Promotion request recorded; second-approver must call /ml/models/:id/promote with this token within 10 minutes.",
+        message:
+          "Promotion request recorded; second-approver must call /ml/models/:id/promote with this token within 10 minutes.",
         approvalToken: token,
         expiresAt: new Date(approval.expiresAt).toISOString(),
       });
     } catch (error) {
       handleError(error, res, "request ML model promotion");
     }
-  },
+  }
 );
 
 const promoteBodySchema = z.object({
-  approvalToken: z.string().min(1, "approvalToken is required (issued by POST /ml/models/:id/promote/request)"),
+  approvalToken: z
+    .string()
+    .min(1, "approvalToken is required (issued by POST /ml/models/:id/promote/request)"),
 });
 
 router.post(
@@ -413,21 +469,24 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const approverId = req.user?.id;
-      if (!approverId) {return sendBadRequest(res, "Approver identity required");}
+      if (!approverId) {
+        return sendBadRequest(res, "Approver identity required");
+      }
 
       const parsed = promoteBodySchema.safeParse(req.body);
       if (!parsed.success) {
         return sendBadRequest(res, parsed.error.issues[0]?.message ?? "Invalid promotion request");
       }
 
-      const modelId = req.params['id'] ?? '';
+      const modelId = req.params["id"] ?? "";
       pruneExpiredApprovals(Date.now());
       const key = approvalKey(req.orgId, modelId, parsed.data.approvalToken);
       const approval = promotionApprovals.get(key);
       if (!approval) {
         return res.status(412).json({
           code: "PROMOTION_APPROVAL_MISSING",
-          message: "No matching promotion request found (token expired, never issued, or wrong org/model).",
+          message:
+            "No matching promotion request found (token expired, never issued, or wrong org/model).",
           error: "PreconditionFailed",
         });
       }
@@ -440,14 +499,25 @@ router.post(
       }
 
       const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
-      if (!candidate) {return sendNotFound(res, "ML model");}
-      if (candidate.status === "training") {return sendBadRequest(res, "Cannot promote a training model");}
-      if (candidate.status === "failed") {return sendBadRequest(res, "Cannot promote a failed model");}
-      if (!candidate.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
+      if (!candidate) {
+        return sendNotFound(res, "ML model");
+      }
+      if (candidate.status === "training") {
+        return sendBadRequest(res, "Cannot promote a training model");
+      }
+      if (candidate.status === "failed") {
+        return sendBadRequest(res, "Cannot promote a failed model");
+      }
+      if (!candidate.equipmentType) {
+        return sendBadRequest(res, "Model is missing equipmentType");
+      }
 
       const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
       const currentlyDeployed = all.filter(
-        (m) => m.status === "deployed" && m.equipmentType === candidate.equipmentType && m.id !== candidate.id
+        (m) =>
+          m.status === "deployed" &&
+          m.equipmentType === candidate.equipmentType &&
+          m.id !== candidate.id
       );
 
       for (const prev of currentlyDeployed) {
@@ -486,61 +556,75 @@ router.post(
     } catch (error) {
       handleError(error, res, "promote ML model");
     }
-  },
+  }
 );
 
 // LR-3.5 / TX-2: rollback flips the deployed model for an equipmentType;
 // retry on the same id without idempotency would archive the (already-
 // archived) model and pick a different "previous" candidate the second
 // time. Cache the response per (orgId, method, path, idempotency key).
-router.post("/ml/models/:id/rollback", requirePermission("predictive_maintenance", "manage_config"), idempotencyMiddleware({ required: true }), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const current = await dbMlAnalyticsStorage.getMlModel((req.params['id'] ?? ''), req.orgId);
-    if (!current) {return sendNotFound(res, "ML model");}
-    if (current.status !== "deployed") {return sendBadRequest(res, "Only deployed models can be rolled back");}
-    if (!current.equipmentType) {return sendBadRequest(res, "Model is missing equipmentType");}
+router.post(
+  "/ml/models/:id/rollback",
+  requirePermission("predictive_maintenance", "manage_config"),
+  idempotencyMiddleware({ required: true }),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const current = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+      if (!current) {
+        return sendNotFound(res, "ML model");
+      }
+      if (current.status !== "deployed") {
+        return sendBadRequest(res, "Only deployed models can be rolled back");
+      }
+      if (!current.equipmentType) {
+        return sendBadRequest(res, "Model is missing equipmentType");
+      }
 
-    const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
-    const previous = all
-      .filter(
-        (m) =>
-          m.status === "archived" &&
-          m.equipmentType === current.equipmentType &&
-          m.id !== current.id &&
-          m.deployedOn !== null
-      )
-      .sort((a, b) => {
-        const ad = a.archivedOn ? new Date(a.archivedOn).getTime() : 0;
-        const bd = b.archivedOn ? new Date(b.archivedOn).getTime() : 0;
-        return bd - ad;
-      })[0];
+      const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+      const previous = all
+        .filter(
+          (m) =>
+            m.status === "archived" &&
+            m.equipmentType === current.equipmentType &&
+            m.id !== current.id &&
+            m.deployedOn !== null
+        )
+        .sort((a, b) => {
+          const ad = a.archivedOn ? new Date(a.archivedOn).getTime() : 0;
+          const bd = b.archivedOn ? new Date(b.archivedOn).getTime() : 0;
+          return bd - ad;
+        })[0];
 
-    if (!previous) {
-      return sendBadRequest(res, `No previously-deployed model found for equipmentType ${current.equipmentType}`);
+      if (!previous) {
+        return sendBadRequest(
+          res,
+          `No previously-deployed model found for equipmentType ${current.equipmentType}`
+        );
+      }
+
+      await dbMlAnalyticsStorage.updateMlModel(
+        current.id,
+        { status: "archived", archivedOn: new Date() },
+        req.orgId
+      );
+      const restored = await dbMlAnalyticsStorage.updateMlModel(
+        previous.id,
+        { status: "deployed", deployedOn: new Date(), archivedOn: null },
+        req.orgId
+      );
+      structuredLog("info", `ML model rolled back`, {
+        operation: "ml_model_rollback",
+        metadata: {
+          from: current.id,
+          to: previous.id,
+          equipmentType: current.equipmentType,
+        },
+      });
+      sendSuccess(res, { message: "Rolled back", restored, archived: current.id });
+    } catch (error) {
+      handleError(error, res, "rollback ML model");
     }
-
-    await dbMlAnalyticsStorage.updateMlModel(
-      current.id,
-      { status: "archived", archivedOn: new Date() },
-      req.orgId
-    );
-    const restored = await dbMlAnalyticsStorage.updateMlModel(
-      previous.id,
-      { status: "deployed", deployedOn: new Date(), archivedOn: null },
-      req.orgId
-    );
-    structuredLog("info", `ML model rolled back`, {
-      operation: "ml_model_rollback",
-      metadata: {
-        from: current.id,
-        to: previous.id,
-        equipmentType: current.equipmentType,
-      },
-    });
-    sendSuccess(res, { message: "Rolled back", restored, archived: current.id });
-  } catch (error) {
-    handleError(error, res, "rollback ML model");
   }
-});
+);
 
 export const modelRoutes = router;

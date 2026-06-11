@@ -15,7 +15,11 @@ import {
   Legend,
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
-import { useMaintenanceModeData, type WorkOrderData, type PdmScoreData } from "@/features/analytics";
+import {
+  useMaintenanceModeData,
+  type WorkOrderData,
+  type PdmScoreData,
+} from "@/features/analytics";
 import { formatNumber } from "@/lib/formatters";
 
 export function MaintenanceMode() {
@@ -327,22 +331,24 @@ export function MaintenanceMode() {
             {highRiskPdmScores.map((scoreRaw: PdmScoreData) => {
               const score = scoreRaw as PdmScoreData & { confidence?: number };
               return (
-              <div
-                key={score.equipmentId}
-                className="flex items-center justify-between p-3 border rounded-lg"
-                data-testid={`high-risk-equipment-${score.equipmentId}`}
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{score.equipmentName || score.equipmentId}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Failure Risk: {score.failureRisk.toFixed(0)}% | Confidence:{" "}
-                    {((score.confidence ?? 0) * 100).toFixed(0)}%
-                  </p>
+                <div
+                  key={score.equipmentId}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                  data-testid={`high-risk-equipment-${score.equipmentId}`}
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      {score.equipmentName || score.equipmentId}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Failure Risk: {score.failureRisk.toFixed(0)}% | Confidence:{" "}
+                      {((score.confidence ?? 0) * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <Badge variant={score.failureRisk > 85 ? "destructive" : "default"}>
+                    {score.failureRisk.toFixed(0)}% risk
+                  </Badge>
                 </div>
-                <Badge variant={score.failureRisk > 85 ? "destructive" : "default"}>
-                  {score.failureRisk.toFixed(0)}% risk
-                </Badge>
-              </div>
               );
             })}
           </div>
@@ -381,20 +387,20 @@ export function MaintenanceMode() {
               completedAt?: string | Date | null;
             };
             return (
-            <div
-              key={record.id || `${record.equipmentId}-${record.type}-${record.completedAt}`}
-              className="flex items-center justify-between p-3 border rounded-lg text-sm"
-            >
-              <div>
-                <p className="font-medium">{record.equipmentName || record.equipmentId}</p>
-                <p className="text-xs text-muted-foreground">{record.type}</p>
+              <div
+                key={record.id || `${record.equipmentId}-${record.type}-${record.completedAt}`}
+                className="flex items-center justify-between p-3 border rounded-lg text-sm"
+              >
+                <div>
+                  <p className="font-medium">{record.equipmentName || record.equipmentId}</p>
+                  <p className="text-xs text-muted-foreground">{record.type}</p>
+                </div>
+                <Badge variant="outline">
+                  {record.completedAt
+                    ? formatDistanceToNow(new Date(record.completedAt), { addSuffix: true })
+                    : "N/A"}
+                </Badge>
               </div>
-              <Badge variant="outline">
-                {record.completedAt
-                  ? formatDistanceToNow(new Date(record.completedAt), { addSuffix: true })
-                  : "N/A"}
-              </Badge>
-            </div>
             );
           })}
         </div>

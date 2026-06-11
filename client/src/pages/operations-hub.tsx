@@ -37,7 +37,6 @@ const operationsItems: GridItem[] = [
     description: "Unified queue for risks, blockers, handover, and next actions",
     load: () => import("@/features/workflow/pages/AttentionInboxPage"),
     loaderVariant: "cards",
-    legacyRoutes: ["/attention-inbox"],
   },
   {
     id: "findings",
@@ -54,7 +53,6 @@ const operationsItems: GridItem[] = [
     description: "Role-based UX command center for trust, actionability, and retention",
     load: () => import("@/features/operator-experience/pages/OperatorExperiencePage"),
     loaderVariant: "cards",
-    legacyRoutes: ["/operator-experience"],
   },
 ];
 
@@ -70,4 +68,3 @@ export default function OperationsHub() {
     />
   );
 }
-

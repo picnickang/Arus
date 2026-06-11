@@ -179,7 +179,7 @@ export class SemanticCache {
         queryEmbedding = await generateEmbedding(params.query);
       } catch (error) {
         logger.warn(
-          `[SemanticCache] Failed to generate query embedding: ${error instanceof Error ? error.message : String(error)}`,
+          `[SemanticCache] Failed to generate query embedding: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -206,7 +206,9 @@ export class SemanticCache {
             citations: params.citations,
             sourceChunkIds: params.sourceChunkIds,
             modelUsed: params.modelUsed,
-            queryEmbedding: (queryEmbedding ? sql`${JSON.stringify(queryEmbedding)}::vector` : null) as object as never,
+            queryEmbedding: (queryEmbedding
+              ? sql`${JSON.stringify(queryEmbedding)}::vector`
+              : null) as object as never,
             expiresAt,
             lastAccessedAt: new Date(),
           } as object as never,

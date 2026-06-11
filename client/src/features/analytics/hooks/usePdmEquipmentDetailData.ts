@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useSensorBaselines, useLiveTelemetryInvalidation } from "./useSensorBaselines";
 
 export interface EquipmentDetail {
   id: string;
@@ -27,7 +28,9 @@ export interface PdmHealthData {
 }
 export interface PdmEquipmentTelemetryReading {
   id: string;
-  timestamp: string;
+  /** Server field is `ts` (EquipmentTelemetry row shape) — this was
+   *  declared `timestamp` and every reading parsed as Invalid Date. */
+  ts: string;
   sensorType: string;
   value: number;
   unit: string;
@@ -123,18 +126,16 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
     queryFn: async () => {
       const sensorTypes = ["temperature", "pressure", "vibration", "flow_rate", "oil_quality"];
       const hours = hoursMap[timeRange];
-      const orgHeader = currentOrgId || "";
       const results = await Promise.all(
         sensorTypes.map(async (sensorType) => {
           try {
-            const response = await fetch(
-              `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`,
-              { headers: { "x-org-id": orgHeader } }
+            // apiRequest attaches the in-memory session token — a raw
+            // fetch() here is unauthenticated and 401s silently, which
+            // rendered this chart permanently empty.
+            return await apiRequest<PdmEquipmentTelemetryReading[]>(
+              "GET",
+              `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`
             );
-            if (!response.ok) {
-              return [];
-            }
-            return response.json();
           } catch {
             return [];
           }
@@ -154,15 +155,17 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
       { sensorType: string; unit: string; data: { timestamp: Date; value: number }[] }
     > = {};
     telemetryHistory.forEach((reading) => {
-      if (!grouped[reading.sensorType]) {
-        grouped[reading.sensorType] = {
+      let group = grouped[reading.sensorType];
+      if (!group) {
+        group = {
           sensorType: reading.sensorType,
           unit: reading.unit || "",
           data: [],
         };
+        grouped[reading.sensorType] = group;
       }
-      grouped[reading.sensorType].data.push({
-        timestamp: new Date(reading.timestamp),
+      group.data.push({
+        timestamp: new Date(reading.ts),
         value: reading.value,
       });
     });
@@ -173,10 +176,15 @@ export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthDa
     }));
   }, [telemetryHistory]);
 
+  // Expected operating envelope per sensor (median ± 2σ band behind the
+  // live series) + live-push chart refresh; see useSensorBaselines.ts.
+  const baselines = useSensorBaselines(equipmentId);
+  useLiveTelemetryInvalidation(equipmentId);
+
   const defaultSummary =
     healthData?.aiSummary ||
     `Equipment is currently ${healthData?.status || "operating"}. Health score: ${healthData?.healthScore ?? 0}%. Continue monitoring for optimal performance.`;
-  return { timeRange, setTimeRange, sensorData, isLoadingTelemetry, defaultSummary };
+  return { timeRange, setTimeRange, sensorData, baselines, isLoadingTelemetry, defaultSummary };
 }
 
 export function useSensorsTabData(equipmentId: string) {

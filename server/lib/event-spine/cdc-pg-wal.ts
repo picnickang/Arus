@@ -101,7 +101,9 @@ export class PgWalCdcBridge {
   }
 
   async start(): Promise<void> {
-    if (this.started) {return;}
+    if (this.started) {
+      return;
+    }
     let mod: typeof import("pg-logical-replication");
     try {
       // dynamic import keeps the dependency optional at boot time
@@ -148,7 +150,9 @@ export class PgWalCdcBridge {
     // subscribe is long-running — fire-and-forget; reconnect is handled
     // internally by the library.
     void service.subscribe(plugin, this.slotName).catch((err: unknown) => {
-      if (this.stopping) {return;}
+      if (this.stopping) {
+        return;
+      }
       logger.warn("WAL CDC subscribe failed", {
         error: err instanceof Error ? err.message : String(err),
         hint: "wal_level=logical and a REPLICATION-role user are required",
@@ -179,7 +183,9 @@ export class PgWalCdcBridge {
       pool: { query: (sql: string) => Promise<{ rows: unknown[] }> };
     };
     const tables = [...this.tableMap.keys()];
-    if (tables.length === 0) {return;}
+    if (tables.length === 0) {
+      return;
+    }
 
     const tableList = tables.map((t) => `"${t.replace(/"/g, '""')}"`).join(", ");
     const slot = this.slotName.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -223,16 +229,24 @@ export class PgWalCdcBridge {
 
   private async handle(lsn: string, log: PgWalMessage): Promise<void> {
     if (!log?.change?.length) {
-      if (this.service) {await this.service.acknowledge(lsn).catch(() => {});}
+      if (this.service) {
+        await this.service.acknowledge(lsn).catch(() => {});
+      }
       return;
     }
     for (const change of log.change) {
       const tableName = change.table;
-      if (!tableName) {continue;}
+      if (!tableName) {
+        continue;
+      }
       const cfg = this.tableMap.get(tableName);
-      if (!cfg) {continue;}
+      if (!cfg) {
+        continue;
+      }
       const op = change.kind;
-      if (op !== "insert" && op !== "update" && op !== "delete") {continue;}
+      if (op !== "insert" && op !== "update" && op !== "delete") {
+        continue;
+      }
 
       const row = (op === "delete" ? change.old : change.new) ?? {};
       const orgColumn = cfg.orgIdColumn ?? "org_id";
@@ -267,7 +281,7 @@ export class PgWalCdcBridge {
           op,
           lsn,
           row,
-          previous: op === "update" ? change.old ?? null : null,
+          previous: op === "update" ? (change.old ?? null) : null,
         },
         occurredAt: new Date(),
       };

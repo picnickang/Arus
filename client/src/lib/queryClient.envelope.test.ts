@@ -29,9 +29,12 @@ describe("apiRequest envelope handling", () => {
     );
     const error = await apiRequest("GET", "/api/equipment").catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).status).toBe(403);
-    expect((error as ApiError).code).toBe("FORBIDDEN");
-    expect((error as ApiError).message).toBe("403: Not your vessel");
+    if (!(error instanceof ApiError)) {
+      throw new Error("expected ApiError");
+    }
+    expect(error.status).toBe(403);
+    expect(error.code).toBe("FORBIDDEN");
+    expect(error.message).toBe("403: Not your vessel");
   });
 
   it("sends the Idempotency-Key on queueable mutations end to end", async () => {

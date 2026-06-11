@@ -1,4 +1,5 @@
 # ARUS Local Network Sync & Telemetry Analysis
+
 **Date:** October 18, 2025  
 **Scope:** Local network synchronization and telemetry ingestion mechanisms
 
@@ -19,6 +20,7 @@
 **Implementation:** `server/mqtt-ingestion-service.ts`
 
 **Features:**
+
 - Real-time telemetry streaming from edge devices
 - Quality-of-Service (QoS) levels 0-2
 - Topic-based routing (e.g., `vessel/engine1/temperature`)
@@ -27,22 +29,24 @@
 - Stream processing & aggregation (1m, 5m, 15m, 1h, 6h, 1d windows)
 
 **Data Flow:**
+
 ```
 Edge Device → MQTT Broker (Local) → ARUS Server → SQLite → Turso Sync → Cloud PostgreSQL
 ```
 
 **Key Code:**
+
 ```typescript
 async processTelemetryMessage(clientId: string, topic: string, payload: any) {
   // Validates MQTT message format
   const telemetryData = mqttTelemetrySchema.parse(payload);
-  
+
   // Performs real-time data quality validation
   const qualityResult = await this.validateDataQuality(telemetryData);
-  
+
   // Applies sensor configuration (gain, offset, filtering)
   const configResult = await applySensorConfiguration(...);
-  
+
   // Stores to local database
   await storage.createTelemetryReading({
     equipmentId: telemetryData.equipmentId,
@@ -54,11 +58,12 @@ async processTelemetryMessage(clientId: string, topic: string, payload: any) {
 ```
 
 **Local Network Configuration:**
+
 ```javascript
 // MQTT broker can run on local network:
-brokerEndpoint: "mqtt://192.168.1.100:1883"  // Local vessel network
+brokerEndpoint: "mqtt://192.168.1.100:1883"; // Local vessel network
 // OR
-brokerEndpoint: "mqtt://cloud-broker:1883"    // Internet-based broker
+brokerEndpoint: "mqtt://cloud-broker:1883"; // Internet-based broker
 ```
 
 ---
@@ -70,6 +75,7 @@ brokerEndpoint: "mqtt://cloud-broker:1883"    // Internet-based broker
 **Endpoints:** `server/routes.ts`
 
 **Key Endpoints:**
+
 ```
 POST   /api/telemetry/readings     - Submit telemetry data
 POST   /api/edge/heartbeat         - Device health check
@@ -78,11 +84,13 @@ GET    /api/telemetry/history      - Historical data
 ```
 
 **Security:**
+
 - HMAC authentication for edge devices
 - Rate limiting (configurable per endpoint)
 - Request validation (Zod schemas)
 
 **Local Network Access:**
+
 ```bash
 # Edge device POSTs to vessel server on LAN:
 curl -X POST http://192.168.1.50:5000/api/telemetry/readings \
@@ -97,6 +105,7 @@ curl -X POST http://192.168.1.50:5000/api/telemetry/readings \
 ```
 
 **Data Flow:**
+
 ```
 Edge Device → HTTP POST → ARUS Server (LAN) → SQLite → Turso Sync
 ```
@@ -110,6 +119,7 @@ Edge Device → HTTP POST → ARUS Server (LAN) → SQLite → Turso Sync
 **Implementation:** `server/websocket.ts`
 
 **Features:**
+
 - Bi-directional real-time communication
 - Multi-device synchronization within vessel
 - Event-based subscriptions
@@ -117,6 +127,7 @@ Edge Device → HTTP POST → ARUS Server (LAN) → SQLite → Turso Sync
 - Low latency (<100ms on LAN)
 
 **Subscription Model:**
+
 ```typescript
 // Clients subscribe to specific data streams:
 - 'alerts' - Real-time alert notifications
@@ -126,14 +137,17 @@ Edge Device → HTTP POST → ARUS Server (LAN) → SQLite → Turso Sync
 ```
 
 **Local Network Usage:**
+
 ```javascript
 // Browser connects to vessel server over LAN:
-const ws = new WebSocket('ws://192.168.1.50:5000');
+const ws = new WebSocket("ws://192.168.1.50:5000");
 
-ws.send(JSON.stringify({
-  type: 'subscribe',
-  channel: 'telemetry'
-}));
+ws.send(
+  JSON.stringify({
+    type: "subscribe",
+    channel: "telemetry",
+  })
+);
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -142,13 +156,14 @@ ws.onmessage = (event) => {
 ```
 
 **Broadcasting:**
+
 ```typescript
 // Server broadcasts to all connected clients:
-wss.broadcast('telemetry_update', {
-  equipmentId: 'engine-001',
-  sensorType: 'temperature',
+wss.broadcast("telemetry_update", {
+  equipmentId: "engine-001",
+  sensorType: "temperature",
   value: 75.5,
-  timestamp: new Date()
+  timestamp: new Date(),
 });
 ```
 
@@ -161,6 +176,7 @@ wss.broadcast('telemetry_update', {
 **Implementation:** `server/db-config.ts`
 
 **Features:**
+
 - Embedded SQLite replica on vessel
 - **Auto-sync every 60 seconds** (when online)
 - Bi-directional synchronization
@@ -169,17 +185,19 @@ wss.broadcast('telemetry_update', {
 - Full database replication
 
 **Configuration:**
+
 ```typescript
 const localClient = createClient({
   url: `file:${localDbPath}`,
-  syncUrl: process.env.TURSO_SYNC_URL,      // Cloud endpoint
-  authToken: process.env.TURSO_AUTH_TOKEN,  // Authentication
-  syncInterval: 60,  // Auto-sync every 60 seconds
-  encryptionKey: process.env.LOCAL_DB_KEY,  // Optional encryption
+  syncUrl: process.env.TURSO_SYNC_URL, // Cloud endpoint
+  authToken: process.env.TURSO_AUTH_TOKEN, // Authentication
+  syncInterval: 60, // Auto-sync every 60 seconds
+  encryptionKey: process.env.LOCAL_DB_KEY, // Optional encryption
 });
 ```
 
 **Offline Behavior:**
+
 - Continues operating without internet
 - Queues changes locally
 - Auto-syncs when connection restored
@@ -194,6 +212,7 @@ const localClient = createClient({
 **Implementation:** `server/sync-manager.ts`
 
 **Features:**
+
 - Custom sync orchestration
 - Sync every 5 minutes (configurable)
 - Processes `sync_outbox` for WebSocket broadcasts
@@ -202,6 +221,7 @@ const localClient = createClient({
 - Manual sync trigger
 
 **API Endpoints:**
+
 ```
 GET    /api/sync/health             - Sync status
 POST   /api/sync/reconcile          - Trigger reconciliation
@@ -212,15 +232,16 @@ POST   /api/sync/resolve-conflict   - Resolve conflicts
 ```
 
 **Sync Logic:**
+
 ```typescript
 async performSync() {
   try {
     // Trigger libSQL built-in sync
     await libsqlClient.sync();
-    
+
     // Process sync outbox for WebSocket broadcasts
     await this.processSyncOutbox();
-    
+
     // Log successful sync
     await this.logSyncEvent('sync_success', { duration_ms });
   } catch (error) {
@@ -329,6 +350,7 @@ async performSync() {
 **Size:** ~1.79 MB (empty), grows with data
 
 **Key Tables:**
+
 - `equipment_telemetry` - Raw sensor readings
 - `telemetry_aggregates` - Time-windowed aggregates
 - `mqtt_devices` - MQTT device registry
@@ -339,6 +361,7 @@ async performSync() {
 - `sync_conflicts` - Conflict resolution queue
 
 **Offline Behavior:**
+
 1. All data stored locally in SQLite
 2. Continues accepting telemetry indefinitely
 3. No data loss during offline periods
@@ -351,6 +374,7 @@ async performSync() {
 **Connection:** Direct network connection
 
 **Data Flow:**
+
 1. Telemetry received via HTTP/WebSocket
 2. Direct write to PostgreSQL
 3. Real-time broadcast to all connected clients
@@ -362,34 +386,34 @@ async performSync() {
 
 ### Local Network (LAN)
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Latency | <10ms | Same network segment |
-| Bandwidth | 100Mbps - 1Gbps | Typical vessel network |
-| Reliability | Very High | No internet dependency |
-| Protocols | MQTT, HTTP, WebSocket | All support local IP |
-| Concurrent Devices | 100+ | Limited by server resources |
+| Metric             | Value                 | Notes                       |
+| ------------------ | --------------------- | --------------------------- |
+| Latency            | <10ms                 | Same network segment        |
+| Bandwidth          | 100Mbps - 1Gbps       | Typical vessel network      |
+| Reliability        | Very High             | No internet dependency      |
+| Protocols          | MQTT, HTTP, WebSocket | All support local IP        |
+| Concurrent Devices | 100+                  | Limited by server resources |
 
 ### Cloud Sync (Internet)
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Latency | 50-500ms | Satellite/cellular dependent |
-| Bandwidth | 1-10 Mbps | Typical vessel internet |
-| Reliability | Moderate | Weather/location dependent |
-| Sync Frequency | 60s (Turso), 5min (Manager) | Configurable |
-| Data Loss | Zero | Queued during offline |
+| Metric         | Value                       | Notes                        |
+| -------------- | --------------------------- | ---------------------------- |
+| Latency        | 50-500ms                    | Satellite/cellular dependent |
+| Bandwidth      | 1-10 Mbps                   | Typical vessel internet      |
+| Reliability    | Moderate                    | Weather/location dependent   |
+| Sync Frequency | 60s (Turso), 5min (Manager) | Configurable                 |
+| Data Loss      | Zero                        | Queued during offline        |
 
 ### Data Processing
 
-| Operation | Latency | Notes |
-|-----------|---------|-------|
-| MQTT Ingestion | <5ms | Per message |
-| Quality Validation | <10ms | Per reading |
-| Sensor Config | <5ms | Gain/offset/filter |
-| Stream Aggregation | 30s interval | Background task |
-| SQLite Write | <1ms | Per transaction |
-| WebSocket Broadcast | <100ms | Local network |
+| Operation           | Latency      | Notes              |
+| ------------------- | ------------ | ------------------ |
+| MQTT Ingestion      | <5ms         | Per message        |
+| Quality Validation  | <10ms        | Per reading        |
+| Sensor Config       | <5ms         | Gain/offset/filter |
+| Stream Aggregation  | 30s interval | Background task    |
+| SQLite Write        | <1ms         | Per transaction    |
+| WebSocket Broadcast | <100ms       | Local network      |
 
 ---
 
@@ -434,24 +458,27 @@ async performSync() {
 ### For Local Network Operation
 
 1. **MQTT Broker Setup**
+
    ```bash
    # Option 1: Local MQTT broker on vessel network
    docker run -p 1883:1883 eclipse-mosquitto
-   
+
    # Configure devices:
    MQTT_BROKER=mqtt://192.168.1.100:1883
    ```
 
 2. **Edge Device Configuration**
+
    ```bash
    # Set vessel server IP
    ARUS_SERVER=http://192.168.1.50:5000
-   
+
    # HMAC authentication key (shared secret)
    HMAC_SECRET=<shared-key>
    ```
 
 3. **Turso Sync (Optional - for cloud sync)**
+
    ```bash
    # Only needed if cloud sync desired
    TURSO_SYNC_URL=libsql://your-db.turso.io
@@ -459,10 +486,11 @@ async performSync() {
    ```
 
 4. **Deployment Mode**
+
    ```bash
    # Set to true for vessel deployment
    LOCAL_MODE=true
-   
+
    # Set to false for shore office (cloud mode)
    LOCAL_MODE=false
    ```
@@ -506,16 +534,16 @@ curl http://192.168.1.50:5000/api/telemetry/latest?equipmentId=engine-001
 
 ```javascript
 // Connect to vessel server over LAN
-const ws = new WebSocket('ws://192.168.1.50:5000');
+const ws = new WebSocket("ws://192.168.1.50:5000");
 
 ws.onopen = () => {
-  console.log('Connected to vessel server');
-  ws.send(JSON.stringify({ type: 'subscribe', channel: 'telemetry' }));
+  console.log("Connected to vessel server");
+  ws.send(JSON.stringify({ type: "subscribe", channel: "telemetry" }));
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Telemetry update:', data);
+  console.log("Telemetry update:", data);
 };
 ```
 
@@ -567,13 +595,13 @@ tail -f logs/sync-manager.log
 
 ### Local Network Limits
 
-| Resource | Limit | Notes |
-|----------|-------|-------|
-| Concurrent MQTT Connections | 1000+ | Broker dependent |
-| HTTP Requests/sec | 1000+ | Server resources |
-| WebSocket Connections | 100+ | Memory dependent |
-| SQLite Database Size | 281 TB | Practical limit ~100GB |
-| Telemetry Ingestion Rate | 10,000 readings/sec | Tested |
+| Resource                    | Limit               | Notes                  |
+| --------------------------- | ------------------- | ---------------------- |
+| Concurrent MQTT Connections | 1000+               | Broker dependent       |
+| HTTP Requests/sec           | 1000+               | Server resources       |
+| WebSocket Connections       | 100+                | Memory dependent       |
+| SQLite Database Size        | 281 TB              | Practical limit ~100GB |
+| Telemetry Ingestion Rate    | 10,000 readings/sec | Tested                 |
 
 ---
 

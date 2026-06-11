@@ -63,7 +63,9 @@ export class DbCrewExtensionsStorage {
   }
   async createCrewCertification(cert: InsertCrewCertification): Promise<SelectCrewCertification> {
     const [n] = await db.insert(crewCertification).values(cert).returning();
-    if (!n) {throw new Error("createCrewCertification: insert returned no row");}
+    if (!n) {
+      throw new Error("createCrewCertification: insert returned no row");
+    }
     return n;
   }
   async updateCrewCertification(
@@ -178,7 +180,9 @@ export class DbCrewExtensionsStorage {
   }
   async createCrewDocument(doc: InsertCrewDocument): Promise<SelectCrewDocument> {
     const [n] = await db.insert(crewDocuments).values(doc).returning();
-    if (!n) {throw new Error("createCrewDocument: insert returned no row");}
+    if (!n) {
+      throw new Error("createCrewDocument: insert returned no row");
+    }
     return n;
   }
   async updateCrewDocument(
@@ -320,7 +324,9 @@ export class DbCrewExtensionsStorage {
         .set({ ...data, updatedAt: new Date() })
         .where(eq(crewNotificationSettings.id, existing.id))
         .returning();
-      if (!u) {throw new Error("upsertCrewNotificationSettings: update returned no row");}
+      if (!u) {
+        throw new Error("upsertCrewNotificationSettings: update returned no row");
+      }
       return u;
     }
     const [c] = await db
@@ -335,7 +341,9 @@ export class DbCrewExtensionsStorage {
         overrideEmail: data.overrideEmail,
       })
       .returning();
-    if (!c) {throw new Error("upsertCrewNotificationSettings: insert returned no row");}
+    if (!c) {
+      throw new Error("upsertCrewNotificationSettings: insert returned no row");
+    }
     return c;
   }
   async getAllCrewNotificationSettings(orgId: string): Promise<CrewNotificationSettings[]> {
@@ -355,7 +363,9 @@ export class DbCrewExtensionsStorage {
   }
   async createCrewAlert(data: InsertCrewAlert): Promise<SelectCrewAlert> {
     const [n] = await db.insert(crewAlerts).values(data).returning();
-    if (!n) {throw new Error("createCrewAlert: insert returned no row");}
+    if (!n) {
+      throw new Error("createCrewAlert: insert returned no row");
+    }
     return n;
   }
   async acknowledgeCrewAlert(
@@ -396,7 +406,9 @@ export class DbCrewExtensionsStorage {
       .from(crewRoles)
       .where(eq(crewRoles.orgId, orgId))
       .limit(1);
-    if (existing.length > 0) {return;}
+    if (existing.length > 0) {
+      return;
+    }
     const rows = DEFAULT_CREW_ROLES.map((r, i) => ({
       orgId,
       name: r.name,
@@ -426,7 +438,9 @@ export class DbCrewExtensionsStorage {
 
   async createCrewRole(data: InsertCrewRole): Promise<SelectCrewRole> {
     const [n] = await db.insert(crewRoles).values(data).returning();
-    if (!n) {throw new Error("createCrewRole: insert returned no row");}
+    if (!n) {
+      throw new Error("createCrewRole: insert returned no row");
+    }
     return n;
   }
 
@@ -507,10 +521,15 @@ export class DbCrewExtensionsStorage {
   }
   async createPortCall(portCallData: InsertPortCall): Promise<SelectPortCall> {
     const [n] = await db.insert(portCall).values(portCallData).returning();
-    if (!n) {throw new Error("createPortCall: insert returned no row");}
+    if (!n) {
+      throw new Error("createPortCall: insert returned no row");
+    }
     return n;
   }
-  async updatePortCall(id: string, portCallData: WidenPartial<InsertPortCall>): Promise<SelectPortCall> {
+  async updatePortCall(
+    id: string,
+    portCallData: WidenPartial<InsertPortCall>
+  ): Promise<SelectPortCall> {
     const [u] = await db.update(portCall).set(portCallData).where(eq(portCall.id, id)).returning();
     if (!u) {
       throw new Error(`Port call ${id} not found`);
@@ -533,7 +552,9 @@ export class DbCrewExtensionsStorage {
   }
   async createDrydockWindow(drydockData: InsertDrydockWindow): Promise<SelectDrydockWindow> {
     const [n] = await db.insert(drydockWindow).values(drydockData).returning();
-    if (!n) {throw new Error("createDrydockWindow: insert returned no row");}
+    if (!n) {
+      throw new Error("createDrydockWindow: insert returned no row");
+    }
     return n;
   }
   async updateDrydockWindow(

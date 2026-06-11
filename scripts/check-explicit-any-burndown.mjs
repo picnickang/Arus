@@ -110,7 +110,9 @@ function main() {
 
   if (total > baseline.total) {
     const delta = total - baseline.total;
-    console.error(`\n❌ Explicit \`any\` count INCREASED: ${baseline.total} → ${total} (+${delta})`);
+    console.error(
+      `\n❌ Explicit \`any\` count INCREASED: ${baseline.total} → ${total} (+${delta})`
+    );
     console.error(
       "Each new `any` is a hole in the type system. Narrow with `unknown` + a type guard, " +
         "reach for `Parameters<typeof fn>[n]` / `Awaited<ReturnType<typeof fn>>`, or use " +

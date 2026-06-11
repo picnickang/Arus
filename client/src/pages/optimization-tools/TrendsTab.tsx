@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Loader2, TrendingDown, TrendingUp } from "lucide-react";
 
@@ -24,9 +18,7 @@ export function TrendsTab({ o }: { o: OptimizationData }) {
           <TrendingUp className="h-5 w-5" />
           Enhanced Trend Analytics
         </CardTitle>
-        <CardDescription>
-          Advanced statistical analysis and forecasting insights
-        </CardDescription>
+        <CardDescription>Advanced statistical analysis and forecasting insights</CardDescription>
       </CardHeader>
       <CardContent>
         {o.trendsLoading ? (

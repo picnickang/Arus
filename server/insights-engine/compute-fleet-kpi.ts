@@ -194,16 +194,20 @@ export async function computeInsights(
       compliance.notes.push("Data gaps may affect compliance reporting and audit readiness.");
     }
 
-    logger.info(String(JSON.stringify({
-        msg: "insights_compute_done",
-        orgId,
-        vessels,
-        dq7d,
-        staleCount: latestGapVessels.length,
-        signalsMapped,
-        signalsDiscovered,
-        t_ms: Date.now() - now.getTime(),
-      })));
+    logger.info(
+      String(
+        JSON.stringify({
+          msg: "insights_compute_done",
+          orgId,
+          vessels,
+          dq7d,
+          staleCount: latestGapVessels.length,
+          signalsMapped,
+          signalsDiscovered,
+          t_ms: Date.now() - now.getTime(),
+        })
+      )
+    );
 
     return { kpi, risks, recommendations, anomalies, compliance };
   } catch (error) {

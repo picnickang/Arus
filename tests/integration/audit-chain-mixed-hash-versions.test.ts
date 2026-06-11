@@ -21,10 +21,10 @@ import { sql } from "drizzle-orm";
 const ORG = `task211-mixed-hash-${Date.now()}`;
 
 describe("Task #211 — verifyAuditChain validates mixed v1/v2 chains", () => {
-  let db: typeof import("../../server/db-config")["db"];
-  let pool: typeof import("../../server/db-config")["pool"];
-  let computeAuditHash: typeof import("../../server/compliance/immutable-audit/hashing")["computeAuditHash"];
-  let verifyAuditChain: typeof import("../../server/compliance/immutable-audit/verify")["verifyAuditChain"];
+  let db: (typeof import("../../server/db-config"))["db"];
+  let pool: (typeof import("../../server/db-config"))["pool"];
+  let computeAuditHash: (typeof import("../../server/compliance/immutable-audit/hashing"))["computeAuditHash"];
+  let verifyAuditChain: (typeof import("../../server/compliance/immutable-audit/verify"))["verifyAuditChain"];
 
   beforeAll(async () => {
     ({ db, pool } = await import("../../server/db-config"));
@@ -67,7 +67,7 @@ describe("Task #211 — verifyAuditChain validates mixed v1/v2 chains", () => {
         "test-user",
         { status: "open" },
         { status: "done" },
-        row.version,
+        row.version
       );
       await db.execute(sql`
         INSERT INTO immutable_audit_trail (
@@ -127,7 +127,7 @@ describe("Task #211 — verifyAuditChain validates mixed v1/v2 chains", () => {
       "test-user",
       { status: "open" },
       { status: "done" },
-      1,
+      1
     );
     await db.execute(sql`
       INSERT INTO immutable_audit_trail (

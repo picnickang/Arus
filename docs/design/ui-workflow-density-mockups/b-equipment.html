@@ -1,164 +1,518 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="stylesheet" href="arus.css">
-<style>
-  .compare-wrap { padding: 26px 252px !important; }
-  .anno { max-width: 225px !important; }
-  .ibtn, .chip { white-space: nowrap; }
-  body { background: hsl(222 25% 12%); }
-  .cols { display: flex; gap: 26px; align-items: flex-start; }
-  .col { width: 740px; flex-shrink: 0; position: relative; }
-  .screen { background: #080e1a; border: 1px solid rgba(51,65,85,.6); border-radius: 14px; padding: 18px 20px; margin-top: 12px; }
-  .sec { margin-bottom: 10px; padding: 10px 12px; }
-  .sec-t { font-size: 12px; font-weight: 700; color: #cbd5e1; display:flex; align-items:center; gap:7px; }
-  .sec-t svg { width: 13px; height: 13px; stroke-width: 2; color:#64748b; }
-  .row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #94a3b8; padding: 4px 0; border-bottom: 1px solid rgba(51,65,85,.25); }
-  .row:last-child { border-bottom: none; }
-  .dot { width: 7px; height: 7px; border-radius: 99px; flex-shrink: 0; }
-  .scroll-note { text-align:center; color:#64748b; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:6px 0 2px; }
-  .ring { position: relative; flex-shrink: 0; }
-  .ring .v { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .chip { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.03); border:1px solid rgba(100,116,139,.25); border-radius:8px; padding:6px 10px; font-size:11.5px; color:#94a3b8; }
-  .chip b { color:#e2e8f0; font-weight:600; }
-  .spark { width:100%; height:46px; }
-  .anno-card { background:#fff; border-radius:9px; padding:8px 11px; box-shadow:var(--shadow-2xl); }
-</style></head>
-<body>
-<div class="compare-wrap">
-  <div class="compare-title">Equipment detail (`equipment-hub.tsx`) — restructure for focus</div>
-  <div class="compare-sub">Same data, same dark intelligence theme. The page's job is to answer "how bad is it, why, and what do I do?" — today that answer is spread across ~4 screens of scroll.</div>
-  <div class="cols">
-
-    <!-- ============ BEFORE ============ -->
-    <div class="col">
-      <span class="panel-label before">Today — 12 sections in one scroll</span>
-      <div class="screen intel">
-        <!-- 1 header -->
-        <div class="sec" style="display:flex; gap:14px; align-items:center; padding-left:0">
-          <div class="ring"><svg width="58" height="58" style="transform:rotate(-90deg)"><circle cx="29" cy="29" r="25" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"/><circle cx="29" cy="29" r="25" fill="none" stroke="#eab308" stroke-width="5" stroke-dasharray="157" stroke-dashoffset="60" stroke-linecap="round"/></svg><div class="v"><span style="font-size:14px;font-weight:800;color:#facc15">62</span></div></div>
-          <div>
-            <div style="font-size:16px; font-weight:700; color:#f1f5f9">Main Engine #2 <span class="ibadge ibadge-warn" style="margin-left:6px">Warning</span></div>
-            <div style="font-size:11px; color:#64748b; margin-top:3px">M/V Northern Star · RUL 38d · Confidence 81% · Trend ↘ declining · <span style="color:#f87171">▂▃▅▆▇ sparkline</span></div>
-          </div>
-        </div>
-        <!-- 2 sticky bar -->
-        <div class="sec icard" style="display:flex; gap:8px; align-items:center">
-          <button class="ibtn ibtn-primary">Create Work Order</button><button class="ibtn">Acknowledge</button><button class="ibtn">Assign</button><span class="ibadge ibadge-warn" style="margin-left:auto">Monitoring</span>
-        </div>
-        <!-- 3 AI assessment -->
-        <div class="sec icard"><div class="ilabel">AI Assessment</div>
-          <div style="font-size:11.5px; color:#94a3b8; margin-top:4px">Exhaust gas temperature on cylinder 4 has deviated +18&nbsp;°C from the fleet baseline over 14 days. Pattern is consistent with early exhaust valve seat wear…</div>
-          <div style="font-size:11.5px; margin-top:6px; color:#facc15"><b>Recommended:</b> borescope inspection of cyl. 4 exhaust valve within 14 days</div>
-        </div>
-        <!-- 4 operational context -->
-        <div class="sec" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; padding-left:0; padding-right:0">
-          <div class="icard" style="padding:8px 10px"><div class="ilabel">Vessel status</div><div style="font-size:11.5px;color:#e2e8f0;margin-top:2px">Underway</div></div>
-          <div class="icard" style="padding:8px 10px"><div class="ilabel">Next port</div><div style="font-size:11.5px;color:#e2e8f0;margin-top:2px">Rotterdam · Jun 14</div></div>
-          <div class="icard" style="padding:8px 10px"><div class="ilabel">Parts</div><div style="font-size:11.5px;color:#e2e8f0;margin-top:2px">Valve kit: 1 aboard</div></div>
-          <div class="icard" style="padding:8px 10px"><div class="ilabel">Maint. window</div><div style="font-size:11.5px;color:#e2e8f0;margin-top:2px">Jun 14–16 (port)</div></div>
-        </div>
-        <!-- 5 needs action strip -->
-        <div class="sec icard"><div class="ilabel">Needs action</div>
-          <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap">
-            <span class="ibadge ibadge-crit">Borescope cyl. 4</span><span class="ibadge ibadge-warn">Order valve kit</span><span class="ibadge ibadge-warn">Schedule port window</span><span class="ibadge ibadge-ok">Lube oil sample OK</span>
-          </div>
-        </div>
-        <!-- 6 evidence -->
-        <div class="sec icard"><div class="sec-t">Evidence &amp; signals</div>
-          <div class="row"><span class="dot" style="background:#ef4444"></span>EGT cyl. 4: +18 °C vs baseline (14d drift)</div>
-          <div class="row"><span class="dot" style="background:#eab308"></span>Scavenge air pressure variance ↑ 6%</div>
-          <div class="row"><span class="dot" style="background:#22c55e"></span>Lube oil Fe ppm within limits</div>
-        </div>
-        <!-- 7 work orders -->
-        <div class="sec icard"><div class="sec-t">Work orders</div>
-          <div class="row">WO-2836 · Cyl. 4 exhaust valve <span class="ibadge ibadge-warn" style="margin-left:auto">Open</span></div>
-          <div class="row">WO-2791 · ME performance check <span class="ibadge ibadge-ok" style="margin-left:auto">Done</span></div>
-          <div class="row">WO-2740 · Injector renewal cyl. 1–6 <span class="ibadge ibadge-ok" style="margin-left:auto">Done</span></div>
-        </div>
-        <!-- 8 service orders -->
-        <div class="sec icard"><div class="sec-t">Service orders</div>
-          <div class="row">SRV-114 · Maker service engineer, Rotterdam <span class="ibadge ibadge-warn" style="margin-left:auto">Quoted</span></div>
-        </div>
-        <!-- 9 diagnostics -->
-        <div class="sec icard"><div class="sec-t">Diagnostics</div>
-          <div class="row"><button class="ibtn" style="padding:3px 8px; font-size:10.5px">Run vibration</button><button class="ibtn" style="padding:3px 8px; font-size:10.5px">Run thermal</button><button class="ibtn" style="padding:3px 8px; font-size:10.5px">Run oil analysis</button></div>
-          <div class="row">Thermal analysis · Jun 6 · "cyl. 4 anomaly confirmed"</div>
-        </div>
-        <!-- 10 timeline -->
-        <div class="sec icard"><div class="sec-t">Activity timeline</div>
-          <div class="row"><span class="dot" style="background:#eab308"></span>Jun 8 · Anomaly score crossed 0.7</div>
-          <div class="row"><span class="dot" style="background:#64748b"></span>Jun 6 · Thermal diagnostic run</div>
-          <div class="row"><span class="dot" style="background:#64748b"></span>Jun 2 · WO-2791 closed</div>
-        </div>
-        <!-- 11 related tools -->
-        <div class="sec" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; padding-left:0; padding-right:0">
-          <div class="icard" style="padding:8px 10px; font-size:11px; color:#94a3b8">Digital Twin →</div>
-          <div class="icard" style="padding:8px 10px; font-size:11px; color:#94a3b8">Maint. Schedule →</div>
-          <div class="icard" style="padding:8px 10px; font-size:11px; color:#94a3b8">ML Platform →</div>
-          <div class="icard" style="padding:8px 10px; font-size:11px; color:#94a3b8">Fleet Compare →</div>
-        </div>
-        <div class="scroll-note">▼ ~4 viewport-heights of scroll on a laptop · more on tablet ▼</div>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="arus.css" />
+    <style>
+      .compare-wrap {
+        padding: 26px 252px !important;
+      }
+      .anno {
+        max-width: 225px !important;
+      }
+      .ibtn,
+      .chip {
+        white-space: nowrap;
+      }
+      body {
+        background: hsl(222 25% 12%);
+      }
+      .cols {
+        display: flex;
+        gap: 26px;
+        align-items: flex-start;
+      }
+      .col {
+        width: 740px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .screen {
+        background: #080e1a;
+        border: 1px solid rgba(51, 65, 85, 0.6);
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-top: 12px;
+      }
+      .sec {
+        margin-bottom: 10px;
+        padding: 10px 12px;
+      }
+      .sec-t {
+        font-size: 12px;
+        font-weight: 700;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .sec-t svg {
+        width: 13px;
+        height: 13px;
+        stroke-width: 2;
+        color: #64748b;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11.5px;
+        color: #94a3b8;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+      }
+      .row:last-child {
+        border-bottom: none;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 99px;
+        flex-shrink: 0;
+      }
+      .scroll-note {
+        text-align: center;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 6px 0 2px;
+      }
+      .ring {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .ring .v {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(100, 116, 139, 0.25);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 11.5px;
+        color: #94a3b8;
+      }
+      .chip b {
+        color: #e2e8f0;
+        font-weight: 600;
+      }
+      .spark {
+        width: 100%;
+        height: 46px;
+      }
+      .anno-card {
+        background: #fff;
+        border-radius: 9px;
+        padding: 8px 11px;
+        box-shadow: var(--shadow-2xl);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="compare-wrap">
+      <div class="compare-title">
+        Equipment detail (`equipment-hub.tsx`) — restructure for focus
       </div>
-      <div class="anno anno-red" style="top:30px; left:-242px;"><div class="anno-pill">!</div><div class="anno-card">8+ badge &amp; colour systems compete in the first two screens: ring colour, risk badge, trend arrow, urgency chips, severity dots, status badges…</div></div>
-      <div class="anno anno-red" style="top:418px; left:-242px;"><div class="anno-pill">!</div><div class="anno-card">The actual answer (assessment + recommended action) is one card among twelve equals</div></div>
-    </div>
-
-    <!-- ============ AFTER ============ -->
-    <div class="col">
-      <span class="panel-label after">Proposed — answer above the fold, detail one tab away</span>
-      <div class="screen intel">
-        <!-- hero -->
-        <div class="icard" style="padding:18px 20px; border-color:rgba(234,179,8,.25); background:rgba(234,179,8,.03)">
-          <div style="display:flex; gap:18px; align-items:center">
-            <div class="ring"><svg width="86" height="86" style="transform:rotate(-90deg)"><circle cx="43" cy="43" r="37" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="7"/><circle cx="43" cy="43" r="37" fill="none" stroke="#eab308" stroke-width="7" stroke-dasharray="232" stroke-dashoffset="88" stroke-linecap="round"/></svg><div class="v"><span style="font-size:21px;font-weight:800;color:#facc15">62</span><span style="font-size:8.5px;color:#64748b;letter-spacing:.08em">HEALTH</span></div></div>
-            <div style="flex:1">
-              <div style="display:flex; align-items:center; gap:9px"><span style="font-size:18px; font-weight:700; color:#f1f5f9">Main Engine #2</span><span class="ibadge ibadge-warn">Warning</span></div>
-              <div style="font-size:12px; color:#94a3b8; margin-top:7px; line-height:1.5">
-                <b style="color:#e2e8f0">Top finding:</b> exhaust gas temp on cyl. 4 is +18&nbsp;°C vs baseline and drifting (14 days).<br>
-                <b style="color:#facc15">Do next:</b> borescope cyl. 4 exhaust valve in the Rotterdam window (Jun 14–16) — valve kit is aboard.
+      <div class="compare-sub">
+        Same data, same dark intelligence theme. The page's job is to answer "how bad is it, why,
+        and what do I do?" — today that answer is spread across ~4 screens of scroll.
+      </div>
+      <div class="cols">
+        <!-- ============ BEFORE ============ -->
+        <div class="col">
+          <span class="panel-label before">Today — 12 sections in one scroll</span>
+          <div class="screen intel">
+            <!-- 1 header -->
+            <div class="sec" style="display: flex; gap: 14px; align-items: center; padding-left: 0">
+              <div class="ring">
+                <svg width="58" height="58" style="transform: rotate(-90deg)">
+                  <circle
+                    cx="29"
+                    cy="29"
+                    r="25"
+                    fill="none"
+                    stroke="rgba(255,255,255,.05)"
+                    stroke-width="5"
+                  />
+                  <circle
+                    cx="29"
+                    cy="29"
+                    r="25"
+                    fill="none"
+                    stroke="#eab308"
+                    stroke-width="5"
+                    stroke-dasharray="157"
+                    stroke-dashoffset="60"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <div class="v">
+                  <span style="font-size: 14px; font-weight: 800; color: #facc15">62</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 16px; font-weight: 700; color: #f1f5f9">
+                  Main Engine #2
+                  <span class="ibadge ibadge-warn" style="margin-left: 6px">Warning</span>
+                </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 3px">
+                  M/V Northern Star · RUL 38d · Confidence 81% · Trend ↘ declining ·
+                  <span style="color: #f87171">▂▃▅▆▇ sparkline</span>
+                </div>
               </div>
             </div>
+            <!-- 2 sticky bar -->
+            <div class="sec icard" style="display: flex; gap: 8px; align-items: center">
+              <button class="ibtn ibtn-primary">Create Work Order</button
+              ><button class="ibtn">Acknowledge</button><button class="ibtn">Assign</button
+              ><span class="ibadge ibadge-warn" style="margin-left: auto">Monitoring</span>
+            </div>
+            <!-- 3 AI assessment -->
+            <div class="sec icard">
+              <div class="ilabel">AI Assessment</div>
+              <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px">
+                Exhaust gas temperature on cylinder 4 has deviated +18&nbsp;°C from the fleet
+                baseline over 14 days. Pattern is consistent with early exhaust valve seat wear…
+              </div>
+              <div style="font-size: 11.5px; margin-top: 6px; color: #facc15">
+                <b>Recommended:</b> borescope inspection of cyl. 4 exhaust valve within 14 days
+              </div>
+            </div>
+            <!-- 4 operational context -->
+            <div
+              class="sec"
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                gap: 8px;
+                padding-left: 0;
+                padding-right: 0;
+              "
+            >
+              <div class="icard" style="padding: 8px 10px">
+                <div class="ilabel">Vessel status</div>
+                <div style="font-size: 11.5px; color: #e2e8f0; margin-top: 2px">Underway</div>
+              </div>
+              <div class="icard" style="padding: 8px 10px">
+                <div class="ilabel">Next port</div>
+                <div style="font-size: 11.5px; color: #e2e8f0; margin-top: 2px">
+                  Rotterdam · Jun 14
+                </div>
+              </div>
+              <div class="icard" style="padding: 8px 10px">
+                <div class="ilabel">Parts</div>
+                <div style="font-size: 11.5px; color: #e2e8f0; margin-top: 2px">
+                  Valve kit: 1 aboard
+                </div>
+              </div>
+              <div class="icard" style="padding: 8px 10px">
+                <div class="ilabel">Maint. window</div>
+                <div style="font-size: 11.5px; color: #e2e8f0; margin-top: 2px">
+                  Jun 14–16 (port)
+                </div>
+              </div>
+            </div>
+            <!-- 5 needs action strip -->
+            <div class="sec icard">
+              <div class="ilabel">Needs action</div>
+              <div style="display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap">
+                <span class="ibadge ibadge-crit">Borescope cyl. 4</span
+                ><span class="ibadge ibadge-warn">Order valve kit</span
+                ><span class="ibadge ibadge-warn">Schedule port window</span
+                ><span class="ibadge ibadge-ok">Lube oil sample OK</span>
+              </div>
+            </div>
+            <!-- 6 evidence -->
+            <div class="sec icard">
+              <div class="sec-t">Evidence &amp; signals</div>
+              <div class="row">
+                <span class="dot" style="background: #ef4444"></span>EGT cyl. 4: +18 °C vs baseline
+                (14d drift)
+              </div>
+              <div class="row">
+                <span class="dot" style="background: #eab308"></span>Scavenge air pressure variance
+                ↑ 6%
+              </div>
+              <div class="row">
+                <span class="dot" style="background: #22c55e"></span>Lube oil Fe ppm within limits
+              </div>
+            </div>
+            <!-- 7 work orders -->
+            <div class="sec icard">
+              <div class="sec-t">Work orders</div>
+              <div class="row">
+                WO-2836 · Cyl. 4 exhaust valve
+                <span class="ibadge ibadge-warn" style="margin-left: auto">Open</span>
+              </div>
+              <div class="row">
+                WO-2791 · ME performance check
+                <span class="ibadge ibadge-ok" style="margin-left: auto">Done</span>
+              </div>
+              <div class="row">
+                WO-2740 · Injector renewal cyl. 1–6
+                <span class="ibadge ibadge-ok" style="margin-left: auto">Done</span>
+              </div>
+            </div>
+            <!-- 8 service orders -->
+            <div class="sec icard">
+              <div class="sec-t">Service orders</div>
+              <div class="row">
+                SRV-114 · Maker service engineer, Rotterdam
+                <span class="ibadge ibadge-warn" style="margin-left: auto">Quoted</span>
+              </div>
+            </div>
+            <!-- 9 diagnostics -->
+            <div class="sec icard">
+              <div class="sec-t">Diagnostics</div>
+              <div class="row">
+                <button class="ibtn" style="padding: 3px 8px; font-size: 10.5px">
+                  Run vibration</button
+                ><button class="ibtn" style="padding: 3px 8px; font-size: 10.5px">
+                  Run thermal</button
+                ><button class="ibtn" style="padding: 3px 8px; font-size: 10.5px">
+                  Run oil analysis
+                </button>
+              </div>
+              <div class="row">Thermal analysis · Jun 6 · "cyl. 4 anomaly confirmed"</div>
+            </div>
+            <!-- 10 timeline -->
+            <div class="sec icard">
+              <div class="sec-t">Activity timeline</div>
+              <div class="row">
+                <span class="dot" style="background: #eab308"></span>Jun 8 · Anomaly score crossed
+                0.7
+              </div>
+              <div class="row">
+                <span class="dot" style="background: #64748b"></span>Jun 6 · Thermal diagnostic run
+              </div>
+              <div class="row">
+                <span class="dot" style="background: #64748b"></span>Jun 2 · WO-2791 closed
+              </div>
+            </div>
+            <!-- 11 related tools -->
+            <div
+              class="sec"
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                gap: 8px;
+                padding-left: 0;
+                padding-right: 0;
+              "
+            >
+              <div class="icard" style="padding: 8px 10px; font-size: 11px; color: #94a3b8">
+                Digital Twin →
+              </div>
+              <div class="icard" style="padding: 8px 10px; font-size: 11px; color: #94a3b8">
+                Maint. Schedule →
+              </div>
+              <div class="icard" style="padding: 8px 10px; font-size: 11px; color: #94a3b8">
+                ML Platform →
+              </div>
+              <div class="icard" style="padding: 8px 10px; font-size: 11px; color: #94a3b8">
+                Fleet Compare →
+              </div>
+            </div>
+            <div class="scroll-note">
+              ▼ ~4 viewport-heights of scroll on a laptop · more on tablet ▼
+            </div>
           </div>
-          <div style="display:flex; gap:8px; margin-top:14px; align-items:center">
-            <button class="ibtn ibtn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Create work order</button>
-            <button class="ibtn">Acknowledge</button>
-            <button class="ibtn">Assign</button>
-            <button class="ibtn" style="padding:7px 9px">⋯</button>
-            <div style="margin-left:auto; display:flex; gap:7px">
-              <span class="chip">RUL <b>38 d</b></span><span class="chip">Confidence <b>81%</b></span><span class="chip">Trend <b style="color:#f87171">↘</b></span>
+          <div class="anno anno-red" style="top: 30px; left: -242px">
+            <div class="anno-pill">!</div>
+            <div class="anno-card">
+              8+ badge &amp; colour systems compete in the first two screens: ring colour, risk
+              badge, trend arrow, urgency chips, severity dots, status badges…
+            </div>
+          </div>
+          <div class="anno anno-red" style="top: 418px; left: -242px">
+            <div class="anno-pill">!</div>
+            <div class="anno-card">
+              The actual answer (assessment + recommended action) is one card among twelve equals
             </div>
           </div>
         </div>
-        <!-- tabs -->
-        <div class="itabs" style="margin-top:16px">
-          <span class="itab active">Overview</span><span class="itab">Work &amp; parts <span style="background:rgba(234,179,8,.15); color:#facc15; border-radius:99px; padding:0 6px; font-size:10px; margin-left:3px">2</span></span><span class="itab">Diagnostics</span><span class="itab">History</span><span class="itab">Context</span>
-        </div>
-        <!-- overview tab content -->
-        <div style="display:grid; grid-template-columns: 1.25fr 1fr; gap:10px; margin-top:12px">
-          <div class="icard" style="padding:12px 14px">
-            <div class="ilabel">EGT cyl. 4 — 30 days vs baseline</div>
-            <svg class="spark" viewBox="0 0 300 46" preserveAspectRatio="none">
-              <path d="M0 30 L40 31 L80 29 L120 28 L160 25 L200 20 L240 15 L300 8" fill="none" stroke="#f87171" stroke-width="2"/>
-              <path d="M0 31 L300 31" stroke="rgba(148,163,184,.35)" stroke-width="1" stroke-dasharray="4 4"/>
-            </svg>
-            <div style="font-size:10.5px; color:#64748b">baseline ▪▪▪ · actual —</div>
+
+        <!-- ============ AFTER ============ -->
+        <div class="col">
+          <span class="panel-label after"
+            >Proposed — answer above the fold, detail one tab away</span
+          >
+          <div class="screen intel">
+            <!-- hero -->
+            <div
+              class="icard"
+              style="
+                padding: 18px 20px;
+                border-color: rgba(234, 179, 8, 0.25);
+                background: rgba(234, 179, 8, 0.03);
+              "
+            >
+              <div style="display: flex; gap: 18px; align-items: center">
+                <div class="ring">
+                  <svg width="86" height="86" style="transform: rotate(-90deg)">
+                    <circle
+                      cx="43"
+                      cy="43"
+                      r="37"
+                      fill="none"
+                      stroke="rgba(255,255,255,.05)"
+                      stroke-width="7"
+                    />
+                    <circle
+                      cx="43"
+                      cy="43"
+                      r="37"
+                      fill="none"
+                      stroke="#eab308"
+                      stroke-width="7"
+                      stroke-dasharray="232"
+                      stroke-dashoffset="88"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <div class="v">
+                    <span style="font-size: 21px; font-weight: 800; color: #facc15">62</span
+                    ><span style="font-size: 8.5px; color: #64748b; letter-spacing: 0.08em"
+                      >HEALTH</span
+                    >
+                  </div>
+                </div>
+                <div style="flex: 1">
+                  <div style="display: flex; align-items: center; gap: 9px">
+                    <span style="font-size: 18px; font-weight: 700; color: #f1f5f9"
+                      >Main Engine #2</span
+                    ><span class="ibadge ibadge-warn">Warning</span>
+                  </div>
+                  <div style="font-size: 12px; color: #94a3b8; margin-top: 7px; line-height: 1.5">
+                    <b style="color: #e2e8f0">Top finding:</b> exhaust gas temp on cyl. 4 is
+                    +18&nbsp;°C vs baseline and drifting (14 days).<br />
+                    <b style="color: #facc15">Do next:</b> borescope cyl. 4 exhaust valve in the
+                    Rotterdam window (Jun 14–16) — valve kit is aboard.
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 14px; align-items: center">
+                <button class="ibtn ibtn-primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" /></svg
+                  >Create work order
+                </button>
+                <button class="ibtn">Acknowledge</button>
+                <button class="ibtn">Assign</button>
+                <button class="ibtn" style="padding: 7px 9px">⋯</button>
+                <div style="margin-left: auto; display: flex; gap: 7px">
+                  <span class="chip">RUL <b>38 d</b></span
+                  ><span class="chip">Confidence <b>81%</b></span
+                  ><span class="chip">Trend <b style="color: #f87171">↘</b></span>
+                </div>
+              </div>
+            </div>
+            <!-- tabs -->
+            <div class="itabs" style="margin-top: 16px">
+              <span class="itab active">Overview</span
+              ><span class="itab"
+                >Work &amp; parts
+                <span
+                  style="
+                    background: rgba(234, 179, 8, 0.15);
+                    color: #facc15;
+                    border-radius: 99px;
+                    padding: 0 6px;
+                    font-size: 10px;
+                    margin-left: 3px;
+                  "
+                  >2</span
+                ></span
+              ><span class="itab">Diagnostics</span><span class="itab">History</span
+              ><span class="itab">Context</span>
+            </div>
+            <!-- overview tab content -->
+            <div
+              style="display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; margin-top: 12px"
+            >
+              <div class="icard" style="padding: 12px 14px">
+                <div class="ilabel">EGT cyl. 4 — 30 days vs baseline</div>
+                <svg class="spark" viewBox="0 0 300 46" preserveAspectRatio="none">
+                  <path
+                    d="M0 30 L40 31 L80 29 L120 28 L160 25 L200 20 L240 15 L300 8"
+                    fill="none"
+                    stroke="#f87171"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M0 31 L300 31"
+                    stroke="rgba(148,163,184,.35)"
+                    stroke-width="1"
+                    stroke-dasharray="4 4"
+                  />
+                </svg>
+                <div style="font-size: 10.5px; color: #64748b">baseline ▪▪▪ · actual —</div>
+              </div>
+              <div class="icard" style="padding: 12px 14px">
+                <div class="ilabel">Evidence (3)</div>
+                <div class="row">
+                  <span class="dot" style="background: #ef4444"></span>EGT cyl. 4 +18 °C
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #eab308"></span>Scav. air variance ↑ 6%
+                </div>
+                <div class="row">
+                  <span class="dot" style="background: #22c55e"></span>Lube oil Fe OK
+                </div>
+              </div>
+            </div>
+            <div
+              class="icard"
+              style="
+                padding: 10px 14px;
+                margin-top: 10px;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+              "
+            >
+              <span class="ilabel" style="flex-shrink: 0">Open items</span>
+              <span class="ibadge ibadge-crit">Borescope cyl. 4</span
+              ><span class="ibadge ibadge-warn">WO-2836 unassigned</span>
+              <span style="margin-left: auto; font-size: 11px; color: #38bdf8; font-weight: 600"
+                >All work &amp; parts →</span
+              >
+            </div>
           </div>
-          <div class="icard" style="padding:12px 14px">
-            <div class="ilabel">Evidence (3)</div>
-            <div class="row"><span class="dot" style="background:#ef4444"></span>EGT cyl. 4 +18 °C</div>
-            <div class="row"><span class="dot" style="background:#eab308"></span>Scav. air variance ↑ 6%</div>
-            <div class="row"><span class="dot" style="background:#22c55e"></span>Lube oil Fe OK</div>
+          <div class="anno anno-green" style="top: 78px; right: -242px">
+            <div class="anno-pill">1</div>
+            <div class="anno-card">
+              One hero card answers severity, cause and next step — plain-language, single accent
+              colour for "warning"
+            </div>
           </div>
-        </div>
-        <div class="icard" style="padding:10px 14px; margin-top:10px; display:flex; gap:8px; align-items:center">
-          <span class="ilabel" style="flex-shrink:0">Open items</span>
-          <span class="ibadge ibadge-crit">Borescope cyl. 4</span><span class="ibadge ibadge-warn">WO-2836 unassigned</span>
-          <span style="margin-left:auto; font-size:11px; color:#38bdf8; font-weight:600">All work &amp; parts →</span>
+          <div class="anno anno-green" style="top: 330px; right: -242px">
+            <div class="anno-pill">2</div>
+            <div class="anno-card">
+              The other 9 sections become 4 tabs with counts. Nothing is removed — work orders,
+              service orders, diagnostics, timeline and tools are one click away
+            </div>
+          </div>
+          <div class="anno anno-green" style="top: 500px; right: -242px">
+            <div class="anno-pill">3</div>
+            <div class="anno-card">
+              Overview keeps only decision evidence: the offending trend + 3 signals + open items.
+              Fits one viewport — no sticky bar needed
+            </div>
+          </div>
         </div>
       </div>
-      <div class="anno anno-green" style="top:78px; right:-242px;"><div class="anno-pill">1</div><div class="anno-card">One hero card answers severity, cause and next step — plain-language, single accent colour for "warning"</div></div>
-      <div class="anno anno-green" style="top:330px; right:-242px;"><div class="anno-pill">2</div><div class="anno-card">The other 9 sections become 4 tabs with counts. Nothing is removed — work orders, service orders, diagnostics, timeline and tools are one click away</div></div>
-      <div class="anno anno-green" style="top:500px; right:-242px;"><div class="anno-pill">3</div><div class="anno-card">Overview keeps only decision evidence: the offending trend + 3 signals + open items. Fits one viewport — no sticky bar needed</div></div>
     </div>
-  </div>
-</div>
-</body></html>
+  </body>
+</html>

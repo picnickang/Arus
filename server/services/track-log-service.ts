@@ -255,12 +255,12 @@ export class TrackLogService {
 
       const positionRowsUnknown: unknown = positionRows;
       const positionRowsWrapped = positionRowsUnknown as { rows?: Array<Record<string, unknown>> };
-      const rows: Array<Record<string, unknown>> | undefined = positionRowsWrapped.rows
-        ?? (positionRowsUnknown as Array<Record<string, unknown>>);
+      const rows: Array<Record<string, unknown>> | undefined =
+        positionRowsWrapped.rows ?? (positionRowsUnknown as Array<Record<string, unknown>>);
 
       for (const row of rows ?? []) {
-        const lat = Number(row['latitude']);
-        const lon = Number(row['longitude']);
+        const lat = Number(row["latitude"]);
+        const lon = Number(row["longitude"]);
 
         if (Number.isNaN(lat) || Number.isNaN(lon)) {
           continue;
@@ -272,12 +272,12 @@ export class TrackLogService {
         const position: Position = {
           latitude: lat,
           longitude: lon,
-          timestamp: row['ts'] instanceof Date ? row['ts'] : new Date(String(row['ts'])),
-          sog: row['sog'] == null ? undefined : Number(row['sog']),
-          cog: row['cog'] == null ? undefined : Number(row['cog']),
-          heading: row['heading'] == null ? undefined : Number(row['heading']),
+          timestamp: row["ts"] instanceof Date ? row["ts"] : new Date(String(row["ts"])),
+          sog: row["sog"] == null ? undefined : Number(row["sog"]),
+          cog: row["cog"] == null ? undefined : Number(row["cog"]),
+          heading: row["heading"] == null ? undefined : Number(row["heading"]),
           source: "gps",
-          equipmentId: String(row['equipment_id']),
+          equipmentId: String(row["equipment_id"]),
         };
 
         const logId = await this.logPosition(orgId, vesselId, position);
@@ -327,7 +327,8 @@ export class TrackLogService {
         sog: vesselTrackLog.sog,
         cog: vesselTrackLog.cog,
         heading: vesselTrackLog.heading,
-        navStatus: (vesselTrackLog as object as { navStatus: typeof vesselTrackLog.source }).navStatus,
+        navStatus: (vesselTrackLog as object as { navStatus: typeof vesselTrackLog.source })
+          .navStatus,
         source: vesselTrackLog.source,
       })
       .from(vesselTrackLog)
@@ -405,7 +406,7 @@ export class TrackLogService {
   }> {
     const stats = await db
       .select({
-        totalDistance: sql<number>`sum(${(vesselTrackLog as object as Record<string, never>)['distanceFromPrevNm']})`,
+        totalDistance: sql<number>`sum(${(vesselTrackLog as object as Record<string, never>)["distanceFromPrevNm"]})`,
         avgSpeed: sql<number>`avg(${vesselTrackLog.sog})`,
         maxSpeed: sql<number>`max(${vesselTrackLog.sog})`,
         trackPoints: sql<number>`count(*)`,

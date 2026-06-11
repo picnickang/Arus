@@ -10,12 +10,14 @@
 ## Project Structure Overview
 
 ### Electron (Desktop Shell)
+
 - **Entry**: `electron/main.ts`
-- **Auto-Updater**: `electron/auto-updater.ts`  
+- **Auto-Updater**: `electron/auto-updater.ts`
 - **Preload**: `electron/preload.ts`
 - **Features**: Dynamic port allocation, ELECTRON_RUN_AS_NODE for production, process tree cleanup, single-instance lock, auto-updates via GitHub Releases
 
 ### Backend
+
 - **Entry**: `server/index.ts`
 - **Routes**: `server/routes.ts` (24,700+ lines - very large)
 - **Storage**: `server/storage.ts` (Drizzle ORM)
@@ -28,6 +30,7 @@
   - `server/vessel-simulator.ts` - Telemetry simulation
 
 ### Frontend
+
 - **Entry**: `client/src/main.tsx`
 - **Router**: Wouter
 - **Data Fetching**: TanStack React Query v5
@@ -49,6 +52,7 @@ MQTT/Simulator → MqttIngestionService → TelemetryBatchWriter → PostgreSQL/
 ```
 
 **Key Characteristics**:
+
 - **Batch Interval**: 500ms default (configurable via `TELEMETRY_BATCH_INTERVAL_MS`)
 - **Buffer Size**: 10,000 readings max before ring buffer eviction
 - **WebSocket Throttle**: 250ms batches to prevent frontend flooding
@@ -81,6 +85,7 @@ Frontend → /api/logbook/* → Storage → DB
 ```
 
 **Known Patterns**:
+
 - Engine/Deck logbooks fetch entire lists
 - No visible pagination on frontend
 - Large date ranges can return hundreds of entries
@@ -176,18 +181,21 @@ Frontend → /api/logbook/* → Storage → DB
 ## Performance Metrics to Track
 
 ### Frontend Metrics
+
 - [ ] Component render counts per page
 - [ ] Mount time for heavy components
 - [ ] React Query refetch frequency per query
 - [ ] WebSocket message handling latency
 
 ### Backend Metrics
+
 - [ ] API response times (P50, P95, P99)
 - [ ] DB query execution times
 - [ ] Telemetry ingestion throughput
 - [ ] Job queue processing times
 
 ### Electron Metrics
+
 - [ ] App startup time
 - [ ] Window creation latency
 - [ ] Memory usage over time
@@ -205,13 +213,13 @@ Frontend → /api/logbook/* → Storage → DB
 
 ## File Reference
 
-| File | Purpose | Size/Complexity |
-|------|---------|-----------------|
-| `server/routes.ts` | All API routes | 24,700+ lines (needs splitting) |
-| `server/websocket.ts` | WebSocket + throttler | Well-optimized |
-| `server/telemetry-batch-writer.ts` | Telemetry batching | Well-optimized |
-| `client/src/lib/queryClient.ts` | React Query config | Good cache config |
-| `client/src/pages/dashboard-improved.tsx` | Main dashboard | 899 lines, 9+ queries |
-| `client/src/pages/work-orders.tsx` | Work orders list | Has virtualization |
-| `client/src/components/shared/ResponsiveTable.tsx` | Generic table | Needs virtualization |
-| `electron/main.ts` | Electron main process | Well-structured |
+| File                                               | Purpose               | Size/Complexity                 |
+| -------------------------------------------------- | --------------------- | ------------------------------- |
+| `server/routes.ts`                                 | All API routes        | 24,700+ lines (needs splitting) |
+| `server/websocket.ts`                              | WebSocket + throttler | Well-optimized                  |
+| `server/telemetry-batch-writer.ts`                 | Telemetry batching    | Well-optimized                  |
+| `client/src/lib/queryClient.ts`                    | React Query config    | Good cache config               |
+| `client/src/pages/dashboard-improved.tsx`          | Main dashboard        | 899 lines, 9+ queries           |
+| `client/src/pages/work-orders.tsx`                 | Work orders list      | Has virtualization              |
+| `client/src/components/shared/ResponsiveTable.tsx` | Generic table         | Needs virtualization            |
+| `electron/main.ts`                                 | Electron main process | Well-structured                 |

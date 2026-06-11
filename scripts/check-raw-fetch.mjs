@@ -62,7 +62,11 @@ for (const file of walk(clientRoot)) {
   }
   const lines = readFileSync(file, "utf-8").split("\n");
   lines.forEach((line, index) => {
-    if (FETCH_PATTERN.test(line) && !line.trimStart().startsWith("//") && !line.trimStart().startsWith("*")) {
+    if (
+      FETCH_PATTERN.test(line) &&
+      !line.trimStart().startsWith("//") &&
+      !line.trimStart().startsWith("*")
+    ) {
       const list = offenders.get(relPath) ?? [];
       list.push(index + 1);
       offenders.set(relPath, list);

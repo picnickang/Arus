@@ -20,7 +20,9 @@ export interface ExportConversation {
   id: string;
   title: string;
   createdAt: Date;
-  messages: Array<Omit<ExportMessage, "citations"> & { citations?: ExportMessage["citations"] | undefined }>;
+  messages: Array<
+    Omit<ExportMessage, "citations"> & { citations?: ExportMessage["citations"] | undefined }
+  >;
 }
 
 export interface ExportOptions {

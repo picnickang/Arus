@@ -11,11 +11,13 @@ Phase 6 implements comprehensive Prometheus metrics for the crew scheduler syste
 ## Metrics Implemented
 
 ### 1. Scheduler Run Duration (Histogram)
+
 **Name**: `arus_scheduler_run_duration_ms`  
 **Type**: Histogram  
 **Purpose**: Track scheduler execution time in milliseconds  
 **Buckets**: [50, 100, 250, 500, 1000, 2000, 4000, 8000]  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `mode`: Execution mode (dry_run, execute, auto)
 - `trigger`: Trigger source (manual, rul_critical, anomaly_detected, maintenance_scheduled)
@@ -23,30 +25,36 @@ Phase 6 implements comprehensive Prometheus metrics for the crew scheduler syste
 **Use Case**: Identify slow scheduling operations, track performance degradation over time.
 
 ### 2. Unfilled Positions Total (Counter)
+
 **Name**: `arus_scheduler_unfilled_total`  
 **Type**: Counter  
 **Purpose**: Count total unfilled positions across all runs  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `vessel_id`: Vessel identifier or "unknown"
 
 **Use Case**: Monitor crew shortage trends per vessel, identify vessels with chronic understaffing.
 
 ### 3. Unfilled by Reason (Counter)
+
 **Name**: `arus_scheduler_unfilled_reason_total`  
 **Type**: Counter  
 **Purpose**: Count unfilled positions grouped by reason  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `reason`: Reason for unfilled position (e.g., "insufficient_crew", "skill_mismatch", "on_leave")
 
 **Use Case**: Identify root causes of scheduling gaps, prioritize hiring/training needs.
 
 ### 4. Scheduler Runs Total (Counter)
+
 **Name**: `arus_scheduler_runs_total`  
 **Type**: Counter  
 **Purpose**: Count total scheduler runs by outcome  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `mode`: Execution mode (dry_run, execute, auto)
 - `trigger`: Trigger source (manual, rul_critical, etc.)
@@ -55,54 +63,65 @@ Phase 6 implements comprehensive Prometheus metrics for the crew scheduler syste
 **Use Case**: Monitor scheduler reliability, track success/failure rates, identify problematic triggers.
 
 ### 5. Assigned Shifts (Counter)
+
 **Name**: `arus_scheduler_assigned_shifts_total`  
 **Type**: Counter  
 **Purpose**: Count successfully assigned shifts  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `vessel_id`: Vessel identifier or "unassigned"
 
 **Use Case**: Track scheduling throughput, verify crew assignments per vessel.
 
 ### 6. Auto-Replan Triggers (Counter)
+
 **Name**: `arus_scheduler_auto_replan_triggers_total`  
 **Type**: Counter  
 **Purpose**: Count auto-replan triggers by source  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `trigger_type`: Trigger source (rul_critical, anomaly_detected, maintenance_scheduled)
 
 **Use Case**: Monitor PdM integration effectiveness, identify most common replan triggers.
 
 ### 7. Coverage Percentage (Gauge)
+
 **Name**: `arus_scheduler_coverage_percent`  
 **Type**: Gauge  
 **Purpose**: Track percentage of shifts successfully assigned in last run  
 **Labels**:
+
 - `org_id`: Organization identifier
 
 **Calculation**:
+
 ```typescript
-coverage = (scheduled.length / (shifts.length * daysArr.length)) * 100
+coverage = (scheduled.length / (shifts.length * daysArr.length)) * 100;
 ```
 
 **Use Case**: Real-time view of scheduling effectiveness, SLA compliance tracking.
 
 ### 8. Deduplicated Runs (Counter)
+
 **Name**: `arus_scheduler_deduplicated_runs_total`  
 **Type**: Counter  
 **Purpose**: Count runs skipped due to deduplication  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `mode`: Execution mode (typically "auto")
 
 **Use Case**: Monitor deduplication effectiveness, identify redundant replan attempts.
 
 ### 9. Cleanup Assignments (Counter)
+
 **Name**: `arus_scheduler_cleanup_assignments_total`  
 **Type**: Counter  
 **Purpose**: Count assignments deleted during cleanup  
 **Labels**:
+
 - `org_id`: Organization identifier
 - `mode`: Execution mode (typically "auto")
 
@@ -134,6 +153,7 @@ server/scheduler/auto-replan-policy.ts     (MODIFIED)
 #### Scheduler Controller (`scheduler-controller.ts`)
 
 **Deduplication Check** (Line 66):
+
 ```typescript
 if (existingRun) {
   schedDeduplicatedRuns.labels(orgId, mode).inc();
@@ -142,6 +162,7 @@ if (existingRun) {
 ```
 
 **Assignment Cleanup** (Lines 103-106):
+
 ```typescript
 const deletedCount = await storage.deleteScheduleAssignmentsByDateRange(...);
 if (deletedCount > 0) {
@@ -150,21 +171,22 @@ if (deletedCount > 0) {
 ```
 
 **Success Path** (Lines 155-178):
+
 ```typescript
 // Duration
-schedRunDuration.labels(orgId, mode, trigger || 'manual').observe(durationMs);
+schedRunDuration.labels(orgId, mode, trigger || "manual").observe(durationMs);
 
 // Run totals
-schedRunsTotal.labels(orgId, mode, trigger || 'manual', 'success').inc();
+schedRunsTotal.labels(orgId, mode, trigger || "manual", "success").inc();
 
 // Assigned shifts per vessel
 for (const assignment of scheduled) {
-  schedAssignedShifts.labels(orgId, assignment.vesselId || 'unassigned').inc();
+  schedAssignedShifts.labels(orgId, assignment.vesselId || "unassigned").inc();
 }
 
 // Unfilled positions per vessel
 for (const u of unfilled) {
-  const vesselId = shifts.find(s => s.id === u.shiftId)?.vesselId || 'unknown';
+  const vesselId = shifts.find((s) => s.id === u.shiftId)?.vesselId || "unknown";
   schedUnfilledTotal.labels(orgId, vesselId).inc(u.need);
 }
 
@@ -179,30 +201,35 @@ schedCoveragePercent.labels(orgId).set(coverage);
 ```
 
 **Failure Path** (Line 193):
+
 ```typescript
-schedRunsTotal.labels(orgId, mode, trigger || 'manual', 'failed').inc();
+schedRunsTotal.labels(orgId, mode, trigger || "manual", "failed").inc();
 ```
 
 #### Auto-Replan Policy (`auto-replan-policy.ts`)
 
 **RUL Trigger** (Line 34):
+
 ```typescript
-schedAutoReplanTriggers.labels(event.orgId, 'rul_critical').inc();
+schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
 ```
 
 **Anomaly Trigger** (Line 59):
+
 ```typescript
-schedAutoReplanTriggers.labels(event.orgId, 'anomaly_detected').inc();
+schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
 ```
 
 **Maintenance Window Trigger** (Line 83):
+
 ```typescript
-schedAutoReplanTriggers.labels(event.orgId, 'maintenance_scheduled').inc();
+schedAutoReplanTriggers.labels(event.orgId, "maintenance_scheduled").inc();
 ```
 
 ## Cardinality Considerations
 
 ### Multi-Tenant Safety
+
 All metrics use `org_id` as a label dimension, enabling per-tenant monitoring while maintaining acceptable cardinality:
 
 - **org_id**: Low cardinality (< 1000 organizations expected)
@@ -213,6 +240,7 @@ All metrics use `org_id` as a label dimension, enabling per-tenant monitoring wh
 - **reason**: Medium cardinality (5-10 common reasons)
 
 **Total Estimated Series**:
+
 - schedRunDuration: ~12,000 series (1000 orgs × 3 modes × 4 triggers)
 - schedRunsTotal: ~24,000 series (1000 orgs × 3 modes × 4 triggers × 2 statuses)
 - Others: Similar or lower cardinality
@@ -224,6 +252,7 @@ All metrics use `org_id` as a label dimension, enabling per-tenant monitoring wh
 ### Grafana Dashboard Queries
 
 **1. Scheduler Success Rate (Last 24h)**
+
 ```promql
 sum(rate(arus_scheduler_runs_total{status="success"}[24h])) by (org_id)
 /
@@ -232,23 +261,27 @@ sum(rate(arus_scheduler_runs_total[24h])) by (org_id)
 ```
 
 **2. Average Scheduler Run Duration (Last 1h)**
+
 ```promql
-histogram_quantile(0.95, 
+histogram_quantile(0.95,
   rate(arus_scheduler_run_duration_ms_bucket[1h])
 ) by (org_id, mode)
 ```
 
 **3. Unfilled Positions by Vessel**
+
 ```promql
 sum(rate(arus_scheduler_unfilled_total[24h])) by (org_id, vessel_id)
 ```
 
 **4. Auto-Replan Trigger Frequency**
+
 ```promql
 sum(rate(arus_scheduler_auto_replan_triggers_total[1h])) by (trigger_type)
 ```
 
 **5. Coverage Percentage by Organization**
+
 ```promql
 arus_scheduler_coverage_percent
 ```
@@ -256,6 +289,7 @@ arus_scheduler_coverage_percent
 ### Alerting Rules
 
 **1. Low Scheduler Success Rate**
+
 ```yaml
 alert: LowSchedulerSuccessRate
 expr: |
@@ -270,6 +304,7 @@ annotations:
 ```
 
 **2. High Unfilled Position Rate**
+
 ```yaml
 alert: HighUnfilledPositions
 expr: |
@@ -280,6 +315,7 @@ annotations:
 ```
 
 **3. Excessive Auto-Replan Triggers**
+
 ```yaml
 alert: ExcessiveAutoReplans
 expr: |
@@ -290,6 +326,7 @@ annotations:
 ```
 
 **4. Slow Scheduler Runs**
+
 ```yaml
 alert: SlowSchedulerRuns
 expr: |
@@ -306,6 +343,7 @@ annotations:
 ### Runtime Verification
 
 **Server Logs (November 5, 2025)**:
+
 ```
 ✓ Auto-replan policy initialized
 ✅ Application initialization complete
@@ -319,6 +357,7 @@ annotations:
 **Access**: `GET http://localhost:5000/api/metrics`
 
 **Expected Metrics Output**:
+
 ```
 # HELP arus_scheduler_run_duration_ms Scheduler run duration in milliseconds
 # TYPE arus_scheduler_run_duration_ms histogram
@@ -339,6 +378,7 @@ arus_scheduler_coverage_percent{org_id="test"} 85.5
 ### Manual Testing Steps
 
 1. **Trigger Manual Schedule**:
+
 ```bash
 curl -X POST http://localhost:5000/api/schedule/plan \
   -H "Content-Type: application/json" \
@@ -346,17 +386,20 @@ curl -X POST http://localhost:5000/api/schedule/plan \
 ```
 
 2. **Check Metrics**:
+
 ```bash
 curl http://localhost:5000/api/metrics | grep arus_scheduler
 ```
 
 3. **Verify Auto-Replan Metrics** (trigger PdM event):
+
 ```bash
 # Simulate RUL event (requires backend access)
 # Should increment schedAutoReplanTriggers{trigger_type="rul_critical"}
 ```
 
 4. **Check Grafana Dashboard** (if configured):
+
 - Navigate to Scheduler Overview dashboard
 - Verify all panels populate with data
 - Confirm real-time metric updates
@@ -366,11 +409,13 @@ curl http://localhost:5000/api/metrics | grep arus_scheduler
 Added coverage percentage to scheduler completion log:
 
 **Before**:
+
 ```
 [Scheduler] Run completed: mode=auto, assigned=42, unfilled=3, duration=245ms
 ```
 
 **After**:
+
 ```
 [Scheduler] Run completed: mode=auto, assigned=42, unfilled=3, duration=245ms, coverage=93.3%
 ```
@@ -395,21 +440,23 @@ Added coverage percentage to scheduler completion log:
 
 ## Files Modified
 
-| File | Changes | Lines Added |
-|------|---------|-------------|
-| `server/observability/scheduler-metrics.ts` | Created | 67 |
-| `server/scheduler/scheduler-controller.ts` | Added metrics instrumentation | +42 |
-| `server/scheduler/auto-replan-policy.ts` | Added metrics instrumentation | +4 |
+| File                                        | Changes                       | Lines Added |
+| ------------------------------------------- | ----------------------------- | ----------- |
+| `server/observability/scheduler-metrics.ts` | Created                       | 67          |
+| `server/scheduler/scheduler-controller.ts`  | Added metrics instrumentation | +42         |
+| `server/scheduler/auto-replan-policy.ts`    | Added metrics instrumentation | +4          |
 
 **Total**: 3 files, ~113 lines added
 
 ## Performance Impact
 
 ### Memory Overhead
+
 - **Per Metric**: ~100 bytes base + ~50 bytes per label combination
 - **Total Estimated**: ~2-5 MB for 50,000 metric series (well within acceptable limits)
 
 ### CPU Overhead
+
 - **Per Increment**: ~100 nanoseconds (negligible)
 - **Per Histogram Observation**: ~500 nanoseconds (negligible)
 - **Total Impact**: < 0.1% CPU overhead for typical workloads
@@ -419,29 +466,32 @@ Added coverage percentage to scheduler completion log:
 ## Future Enhancements
 
 1. **Constraint Violation Metrics** (when constraints implemented):
+
 ```typescript
 export const schedConstraintViolations = new client.Counter({
   name: "arus_scheduler_constraint_violations_total",
   help: "Count of scheduling constraint violations",
-  labelNames: ["org_id", "constraint_type"]
+  labelNames: ["org_id", "constraint_type"],
 });
 ```
 
 2. **Scheduling Lag Metric**:
+
 ```typescript
 export const schedPlanningLag = new client.Gauge({
   name: "arus_scheduler_planning_lag_days",
   help: "Days between current date and furthest planned shift",
-  labelNames: ["org_id"]
+  labelNames: ["org_id"],
 });
 ```
 
 3. **Crew Utilization Gauge**:
+
 ```typescript
 export const schedCrewUtilization = new client.Gauge({
   name: "arus_scheduler_crew_utilization_percent",
   help: "Percentage of available crew hours utilized",
-  labelNames: ["org_id", "vessel_id"]
+  labelNames: ["org_id", "vessel_id"],
 });
 ```
 
@@ -452,6 +502,7 @@ export const schedCrewUtilization = new client.Gauge({
 Comprehensive Prometheus metrics have been successfully implemented for the crew scheduler system, providing full observability into scheduler performance, unfilled positions, auto-replan triggers, and overall system health. The metrics integrate seamlessly with existing Prometheus infrastructure and follow best practices for multi-tenant cardinality management.
 
 **Key Achievements**:
+
 - ✅ 9 production-ready Prometheus metrics
 - ✅ Full instrumentation of scheduler controller (deduplication, cleanup, success, failure)
 - ✅ Full instrumentation of auto-replan policy (3 trigger types)
@@ -460,6 +511,7 @@ Comprehensive Prometheus metrics have been successfully implemented for the crew
 - ✅ Zero performance impact
 
 **Next Steps**:
+
 - Proceed to **Phase 7**: REST API Routes
 - Create Grafana dashboards for scheduler monitoring (optional)
 - Configure alerting rules for production (recommended)

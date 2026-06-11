@@ -36,7 +36,7 @@ export interface VesselSectionMapDefinition {
   diagramWidth: number;
   diagramHeight: number;
   diagramKind: DiagramTypeKey;
-  imageTransform?: SectionMapImageTransform;
+  imageTransform?: SectionMapImageTransform | undefined;
   sections: VesselSectionDefinition[];
 }
 

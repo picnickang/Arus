@@ -21,7 +21,13 @@ import {
   touchUserLastLogin,
   getUserById,
   updateUserPassword,
+  insertPilotFeedback,
+  listPilotFeedbackForUser,
+  listPilotFeedbackForOrg,
+  updatePilotFeedbackReview,
+  type PilotFeedbackWithSubmitter,
 } from "./infrastructure/me-portal-queries";
+import type { PilotFeedback, PilotFeedbackDraft, PilotFeedbackReview } from "@shared/schema";
 import {
   dbAlertStorage,
   dbMaintenanceStorage,
@@ -461,7 +467,7 @@ export class MePortalService {
     orgId: string,
     username: string,
     password: string,
-    context: { ip?: string; userAgent?: string }
+    context: { ip?: string | undefined; userAgent?: string | undefined }
   ): Promise<SessionResult> {
     const record = await findUserByUsername(orgId, username);
 
@@ -530,6 +536,56 @@ export class MePortalService {
     // Rotate credentials => revoke every existing session so any pre-change
     // token (including the caller's current one) can no longer be used.
     await this.invalidateUserSessions(user.id);
+  }
+
+  /* --------------------------- Pilot feedback ----------------------- */
+
+  /** Persist a crew feedback report; the server mints the tracking id. */
+  async submitFeedback(user: MeUser, draft: PilotFeedbackDraft): Promise<PilotFeedback> {
+    const random = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const stamp = Date.now().toString(36).toUpperCase();
+    return insertPilotFeedback({
+      ...draft,
+      orgId: user.orgId,
+      userId: user.id,
+      trackingId: `FB-${stamp}-${random}`,
+    });
+  }
+
+  /** The caller's own reports, newest first ("My reports"). */
+  async listMyFeedback(user: MeUser): Promise<PilotFeedback[]> {
+    return listPilotFeedbackForUser(user.orgId, user.id);
+  }
+
+  /** Every report in the org, newest first (office review queue). */
+  async listFeedbackForReview(user: MeUser): Promise<PilotFeedbackWithSubmitter[]> {
+    return listPilotFeedbackForOrg(user.orgId);
+  }
+
+  /**
+   * Office review action: acknowledge or resolve a report, optionally
+   * attaching a resolution note and linking the work order raised from it.
+   */
+  async reviewFeedback(
+    user: MeUser,
+    feedbackId: string,
+    review: PilotFeedbackReview
+  ): Promise<PilotFeedback> {
+    let row: PilotFeedback | undefined;
+    try {
+      row = await updatePilotFeedbackReview(user.orgId, feedbackId, review);
+    } catch (error) {
+      // FK violation (23503): linkedWorkOrderId doesn't reference a real
+      // work order — surface as a client error, not a 500.
+      if (error instanceof Error && "code" in error && error.code === "23503") {
+        throw new MePortalError("Unknown work order id", "INVALID_WORK_ORDER", 400);
+      }
+      throw error;
+    }
+    if (!row) {
+      throw new MePortalError("Feedback report not found", "FEEDBACK_NOT_FOUND", 404);
+    }
+    return row;
   }
 
   private assertPasswordPolicy(password: string): void {

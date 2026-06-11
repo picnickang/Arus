@@ -69,11 +69,11 @@ export class PredictionGovernanceAdapter implements IPredictionGovernanceStorage
     };
 
     if (suppressionReason !== undefined) {
-      updateData['suppressionReason'] = suppressionReason;
+      updateData["suppressionReason"] = suppressionReason;
     }
 
     if (governanceMetadata !== undefined) {
-      updateData['governanceMetadata'] = governanceMetadata;
+      updateData["governanceMetadata"] = governanceMetadata;
     }
 
     const [updated] = await db

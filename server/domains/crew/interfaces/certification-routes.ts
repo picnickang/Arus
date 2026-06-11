@@ -107,10 +107,10 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
             crewMemberName: crewMember?.name || "Unknown",
             crewMemberRank: crewMember?.rank || "Unknown",
             daysUntilExpiry: Math.ceil(
-              (new Date(cert['expiresAt'] as string | Date).getTime() - Date.now()) /
+              (new Date(cert["expiresAt"] as string | Date).getTime() - Date.now()) /
                 (1000 * 60 * 60 * 24)
             ),
-            urgencyLevel: getExpiryUrgencyLevel(cert['expiresAt'] as string | Date),
+            urgencyLevel: getExpiryUrgencyLevel(cert["expiresAt"] as string | Date),
           };
         })
       );

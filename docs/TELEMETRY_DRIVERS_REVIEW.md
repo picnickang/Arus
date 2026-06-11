@@ -15,14 +15,14 @@ ARUS implements a **comprehensive multi-protocol telemetry ingestion system** su
 
 ### Protocol Matrix
 
-| Protocol | Status | Use Case | Hardware Support | Simulation |
-|----------|--------|----------|------------------|------------|
-| **J1939 CAN Bus** | ✅ Production | Modern marine engines (ECM, TCM) | SocketCAN (Linux) | ✅ Yes |
-| **J1708/J1587** | ✅ Production | Legacy marine engines | Serial RS-485 | ✅ Yes |
-| **MQTT** | ✅ Production | IoT sensors, edge devices | Network-based | ✅ Yes |
-| **HTTP/REST** | ✅ Production | General telemetry, integrations | Network-based | N/A |
-| **CSV Import** | ✅ Production | Bulk historical data | File-based | N/A |
-| **JSON Import** | ✅ Production | Structured batch data | File-based | N/A |
+| Protocol          | Status        | Use Case                         | Hardware Support  | Simulation |
+| ----------------- | ------------- | -------------------------------- | ----------------- | ---------- |
+| **J1939 CAN Bus** | ✅ Production | Modern marine engines (ECM, TCM) | SocketCAN (Linux) | ✅ Yes     |
+| **J1708/J1587**   | ✅ Production | Legacy marine engines            | Serial RS-485     | ✅ Yes     |
+| **MQTT**          | ✅ Production | IoT sensors, edge devices        | Network-based     | ✅ Yes     |
+| **HTTP/REST**     | ✅ Production | General telemetry, integrations  | Network-based     | N/A        |
+| **CSV Import**    | ✅ Production | Bulk historical data             | File-based        | N/A        |
+| **JSON Import**   | ✅ Production | Structured batch data            | File-based        | N/A        |
 
 ---
 
@@ -31,17 +31,20 @@ ARUS implements a **comprehensive multi-protocol telemetry ingestion system** su
 **File:** `server/j1939-collector.ts` (484 lines)
 
 ### Overview
+
 Full-featured J1939 collector implementing SAE J1939 digital communications standard for heavy-duty vehicles and marine equipment.
 
 ### Key Features
 
 **Hardware Support:**
+
 - ✅ SocketCAN integration (Linux native CAN bus)
 - ✅ Configurable CAN interface (e.g., `can0`, `vcan0`)
 - ✅ Configurable baud rate (250 kbps, 500 kbps standard)
 - ✅ Raw CAN frame processing
 
 **Data Processing:**
+
 - ✅ PGN (Parameter Group Number) decoding
 - ✅ SPN (Suspect Parameter Number) extraction
 - ✅ JSON mapping DSL for signal decode
@@ -50,12 +53,14 @@ Full-featured J1939 collector implementing SAE J1939 digital communications stan
 - ✅ Status validation (normal/warning/critical/invalid)
 
 **Performance Optimization:**
+
 - ✅ Batch processing (200 readings default)
 - ✅ Configurable flush intervals (3 seconds default)
 - ✅ Memory protection (5,000 reading buffer limit)
 - ✅ Automatic buffer overflow prevention
 
 **Simulation & Testing:**
+
 - ✅ Simulation mode from log files
 - ✅ 10Hz playback rate
 - ✅ Loop replay for continuous testing
@@ -64,6 +69,7 @@ Full-featured J1939 collector implementing SAE J1939 digital communications stan
 ### Configuration
 
 **Environment Variables:**
+
 ```bash
 J1939_BATCH_MS=500          # Batch collection interval
 J1939_FLUSH_MS=3000         # Flush to backend interval
@@ -75,6 +81,7 @@ J1939_SIM_FILE=/path/to/simulation.log  # Optional: simulation mode
 
 **Mapping Configuration:**
 Database-driven via `j1939_configurations` table:
+
 - Device ID association
 - CAN interface specification
 - PGN/SPN mapping rules
@@ -111,17 +118,20 @@ Database-driven via `j1939_configurations` table:
 **File:** `server/tools/j1708-collector.ts` (330 lines)
 
 ### Overview
+
 Legacy protocol support for older marine engines using J1708 serial communication (predecessor to J1939).
 
 ### Key Features
 
 **Hardware Support:**
+
 - ✅ Serial port communication (RS-485)
 - ✅ Configurable serial path (`/dev/ttyUSB0`, `COM3`)
 - ✅ Configurable baud rate (9600 bps standard)
 - ✅ Cross-platform (Linux, Windows)
 
 **Protocol Implementation:**
+
 - ✅ MID (Message Identifier) parsing
 - ✅ PID (Parameter Identifier) decoding
 - ✅ Multi-byte data extraction
@@ -129,6 +139,7 @@ Legacy protocol support for older marine engines using J1708 serial communicatio
 - ✅ J1708 error value detection (0xFF, 0xFE)
 
 **Data Processing:**
+
 - ✅ JSON mapping configuration
 - ✅ Scale/offset transformations
 - ✅ Batch buffering (200 readings default)
@@ -136,6 +147,7 @@ Legacy protocol support for older marine engines using J1708 serial communicatio
 - ✅ Signal validation and filtering
 
 **Simulation & Testing:**
+
 - ✅ Log file replay mode
 - ✅ Raw hex frame parsing
 - ✅ Continuous loop playback
@@ -143,6 +155,7 @@ Legacy protocol support for older marine engines using J1708 serial communicatio
 ### Configuration
 
 **Environment Variables:**
+
 ```bash
 EQUIPMENT_ID=ENG001
 BACKEND_URL=http://localhost:5000
@@ -155,6 +168,7 @@ MAX_BATCH=200
 ```
 
 **Mapping File Format:**
+
 ```json
 {
   "signals": [
@@ -203,11 +217,13 @@ MAX_BATCH=200
 **File:** `server/mqtt-ingestion-service.ts` (584 lines)
 
 ### Overview
+
 Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment, stream processing, and multi-window aggregation.
 
 ### Key Features
 
 **MQTT Protocol Support:**
+
 - ✅ Device registration and management
 - ✅ Configurable broker endpoint
 - ✅ Topic prefix organization
@@ -216,6 +232,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 - ✅ Connection status tracking
 
 **Data Quality Assessment:**
+
 - ✅ Real-time validation on ingestion
 - ✅ Completeness scoring
 - ✅ Consistency checking
@@ -225,6 +242,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 - ✅ Issue detection and recommendations
 
 **Stream Processing:**
+
 - ✅ Multi-window aggregation (1m, 5m, 15m, 1h, 6h, 1d)
 - ✅ Real-time buffering
 - ✅ Configurable aggregation functions (avg, min, max, sum, count)
@@ -232,6 +250,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 - ✅ Time-series optimization
 
 **Sensor Configuration Integration:**
+
 - ✅ Automatic gain/offset application
 - ✅ Deadband filtering
 - ✅ Exponential moving average (EMA)
@@ -242,6 +261,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 ### MQTT Message Format
 
 **Input Schema:**
+
 ```json
 {
   "equipmentId": "PUMP_001",
@@ -258,6 +278,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 ```
 
 **Validation:**
+
 - ✅ Zod schema validation
 - ✅ Type checking (string, number, datetime)
 - ✅ Range validation (finite numbers)
@@ -288,6 +309,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 ### Data Quality Metrics
 
 **Tracked Metrics:**
+
 - Completeness: Data point presence vs. expected
 - Consistency: Value variance and outlier detection
 - Timeliness: Timestamp freshness and latency
@@ -295,6 +317,7 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 - Overall quality: Weighted composite score
 
 **Quality Thresholds:**
+
 - < 0.3: Critical (reject data)
 - 0.3-0.7: Warning (flag for review)
 - ≥ 0.7: Good (trigger anomaly detection)
@@ -317,11 +340,13 @@ Enterprise-grade MQTT telemetry ingestion with real-time data quality assessment
 ### Telemetry Endpoints
 
 **1. Single Reading Ingestion**
+
 ```
 POST /api/telemetry/readings
 ```
 
 **Request:**
+
 ```json
 {
   "equipmentId": "PUMP_001",
@@ -336,11 +361,13 @@ POST /api/telemetry/readings
 ```
 
 **2. Bulk CSV Import**
+
 ```
 POST /api/telemetry/import/csv
 ```
 
 **Features:**
+
 - ✅ Header row parsing
 - ✅ Automatic column mapping
 - ✅ Batch insertion
@@ -348,11 +375,13 @@ POST /api/telemetry/import/csv
 - ✅ Validation
 
 **3. Bulk JSON Import**
+
 ```
 POST /api/telemetry/import/json
 ```
 
 **Request:**
+
 ```json
 {
   "rows": [
@@ -367,6 +396,7 @@ POST /api/telemetry/import/json
 ```
 
 **Features:**
+
 - ✅ Array of readings
 - ✅ Flexible schema
 - ✅ Timestamp parsing
@@ -376,6 +406,7 @@ POST /api/telemetry/import/json
 ### Authentication
 
 **HMAC Authentication for Edge Devices:**
+
 ```http
 X-Device-ID: EDGE_001
 X-Timestamp: 1697712896
@@ -383,6 +414,7 @@ X-Signature: <HMAC-SHA256>
 ```
 
 **Organization Context:**
+
 ```http
 X-Organization-ID: org-123
 ```
@@ -394,6 +426,7 @@ X-Organization-ID: org-123
 ### CSV Import
 
 **Format:**
+
 ```csv
 equipment_id,sensor_type,value,timestamp,unit
 PUMP_001,pressure,45.2,2025-10-19T12:34:56Z,psi
@@ -401,6 +434,7 @@ PUMP_001,temperature,78.5,2025-10-19T12:34:57Z,degF
 ```
 
 **Features:**
+
 - ✅ Header row required
 - ✅ Flexible column names
 - ✅ Automatic type conversion
@@ -411,6 +445,7 @@ PUMP_001,temperature,78.5,2025-10-19T12:34:57Z,degF
 ### JSON Import
 
 **Format:**
+
 ```json
 {
   "equipmentId": "PUMP_001",
@@ -426,6 +461,7 @@ PUMP_001,temperature,78.5,2025-10-19T12:34:57Z,degF
 ```
 
 **Features:**
+
 - ✅ Nested structure support
 - ✅ Array of readings
 - ✅ Rich metadata
@@ -439,9 +475,11 @@ PUMP_001,temperature,78.5,2025-10-19T12:34:57Z,degF
 **File:** `server/tools/serial-scanner.ts`
 
 ### Overview
+
 Utility for discovering available serial ports for J1708 and other serial-based protocols.
 
 **Features:**
+
 - ✅ Automatic port enumeration
 - ✅ Platform detection (Windows/Linux)
 - ✅ Port capability detection
@@ -449,11 +487,13 @@ Utility for discovering available serial ports for J1708 and other serial-based 
 - ✅ Connection testing
 
 **Usage:**
+
 ```bash
 npm run serial-scan
 ```
 
 **Output:**
+
 ```
 Available serial ports:
   /dev/ttyUSB0 - FTDI USB Serial
@@ -507,11 +547,13 @@ Edge Devices/Sensors
 ### Common Backend Integration
 
 **All protocols send data to:**
+
 ```
 POST /api/telemetry/readings
 ```
 
 **Unified Processing:**
+
 1. ✅ Organization validation
 2. ✅ Equipment association
 3. ✅ Sensor configuration application
@@ -527,28 +569,31 @@ POST /api/telemetry/readings
 
 ### Throughput Capacity
 
-| Protocol | Max Rate | Batch Size | Latency | Buffer |
-|----------|----------|------------|---------|--------|
-| J1939 | 1000/sec | 200 | 500ms | 5000 |
-| J1708 | 100/sec | 200 | 2000ms | 1000 |
-| MQTT | 10000/sec | 1000 | 100ms | 10000 |
-| HTTP | 1000/req | N/A | 200ms | N/A |
+| Protocol | Max Rate  | Batch Size | Latency | Buffer |
+| -------- | --------- | ---------- | ------- | ------ |
+| J1939    | 1000/sec  | 200        | 500ms   | 5000   |
+| J1708    | 100/sec   | 200        | 2000ms  | 1000   |
+| MQTT     | 10000/sec | 1000       | 100ms   | 10000  |
+| HTTP     | 1000/req  | N/A        | 200ms   | N/A    |
 
 ### Optimization Features
 
 **J1939:**
+
 - ✅ Memory-efficient batching
 - ✅ Buffer overflow protection
 - ✅ Configurable flush intervals
 - ✅ Selective PGN filtering
 
 **J1708:**
+
 - ✅ Serial buffer management
 - ✅ Frame accumulation
 - ✅ Error value filtering
 - ✅ Mapping rule caching
 
 **MQTT:**
+
 - ✅ Stream processing windows
 - ✅ Real-time aggregation
 - ✅ Quality-based filtering
@@ -561,12 +606,14 @@ POST /api/telemetry/readings
 ### Fault Tolerance
 
 **Hardware Failures:**
+
 - ✅ Automatic reconnection (MQTT, serial)
 - ✅ Graceful degradation
 - ✅ Connection status tracking
 - ✅ Error logging and alerting
 
 **Data Validation:**
+
 - ✅ Schema validation (Zod)
 - ✅ Range checking
 - ✅ Type enforcement
@@ -574,6 +621,7 @@ POST /api/telemetry/readings
 - ✅ Timestamp validation
 
 **Error Recovery:**
+
 - ✅ Transaction rollback
 - ✅ Batch retry logic
 - ✅ Dead letter queuing
@@ -582,6 +630,7 @@ POST /api/telemetry/readings
 ### Monitoring
 
 **Tracked Metrics:**
+
 - ✅ Connection status per device
 - ✅ Last seen timestamp
 - ✅ Message throughput
@@ -596,24 +645,28 @@ POST /api/telemetry/readings
 ### Deployment Considerations
 
 **J1939 (CAN Bus):**
+
 - ✅ Requires Linux with SocketCAN
 - ✅ Kernel module: `can`, `can-raw`, `vcan`
 - ✅ Hardware: CAN interface (USB or built-in)
 - ✅ Simulation mode for development
 
 **J1708 (Serial):**
+
 - ✅ Requires RS-485 serial adapter
 - ✅ Works on Linux/Windows
 - ✅ Driver installation may be needed (FTDI, Prolific)
 - ✅ Simulation mode for testing
 
 **MQTT:**
+
 - ✅ Requires MQTT broker (Mosquitto, HiveMQ, AWS IoT)
 - ✅ Network connectivity
 - ✅ TLS/SSL certificates (production)
 - ✅ QoS configuration
 
 **HTTP/REST:**
+
 - ✅ No special requirements
 - ✅ Standard network connectivity
 - ✅ API key authentication
@@ -622,18 +675,21 @@ POST /api/telemetry/readings
 ### Security
 
 **Edge Device Authentication:**
+
 - ✅ HMAC signature validation
 - ✅ Timestamp-based replay protection
 - ✅ Device ID verification
 - ✅ Organization scoping
 
 **MQTT Security:**
+
 - ✅ TLS/SSL encryption
 - ✅ Username/password authentication
 - ✅ Client certificate support
 - ✅ Topic access control
 
 **HTTP Security:**
+
 - ✅ HTTPS enforced (production)
 - ✅ Rate limiting
 - ✅ Organization validation
@@ -646,16 +702,19 @@ POST /api/telemetry/readings
 ### Simulation Modes
 
 **J1939:**
+
 ```bash
 J1939_SIM_FILE=/data/j1939_simulation.log npm start
 ```
 
 **J1708:**
+
 ```bash
 SIM_J1708LOG=/data/j1708_simulation.log npm start
 ```
 
 **MQTT:**
+
 ```bash
 # Use any MQTT client (mosquitto_pub, MQTT.js)
 mosquitto_pub -t "arus/vessel/telemetry" -m '{"equipmentId":"TEST","sensorType":"temp","value":75}'
@@ -664,6 +723,7 @@ mosquitto_pub -t "arus/vessel/telemetry" -m '{"equipmentId":"TEST","sensorType":
 ### Test Data Generators
 
 **Available:**
+
 - ✅ J1939 log file replay
 - ✅ J1708 log file replay
 - ✅ CSV bulk import
@@ -678,18 +738,21 @@ mosquitto_pub -t "arus/vessel/telemetry" -m '{"equipmentId":"TEST","sensorType":
 ### Database-Driven Configuration
 
 **J1939 Configurations:**
+
 - Stored in `j1939_configurations` table
 - Per-device mapping rules
 - Runtime updates without restart
 - Version tracking
 
 **Sensor Configurations:**
+
 - Stored in `sensor_configurations` table
 - Gain, offset, deadband settings
 - Validation rules
 - Filtering parameters
 
 **MQTT Devices:**
+
 - Stored in `mqtt_devices` table
 - Connection credentials
 - Topic subscriptions
@@ -698,6 +761,7 @@ mosquitto_pub -t "arus/vessel/telemetry" -m '{"equipmentId":"TEST","sensorType":
 ### Environment-Based Configuration
 
 **All collectors support:**
+
 - ✅ Environment variable overrides
 - ✅ Configuration file fallbacks
 - ✅ Runtime parameter tuning
@@ -719,7 +783,7 @@ The ARUS platform provides **comprehensive, enterprise-grade telemetry ingestion
 ✅ **Security:** Authentication, encryption, organization isolation  
 ✅ **Scalability:** Handles 10,000+ readings/second  
 ✅ **Monitoring:** Connection status, quality metrics, error tracking  
-✅ **Integration:** Unified backend, ML pipeline, WebSocket broadcast  
+✅ **Integration:** Unified backend, ML pipeline, WebSocket broadcast
 
 **Recommendation:** No changes needed. The telemetry infrastructure is mature, well-architected, and ready for marine deployment.
 

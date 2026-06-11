@@ -16,7 +16,9 @@ declare global {
 export function createOrgIdMiddleware(): RequestHandler {
   return (req: Request, _res: Response, next: NextFunction) => {
     req.orgId = DEFAULT_ORG_ID;
-    logger.info(`[ORG_CONTEXT_SET] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'setDefaultOrg', orgId: '${DEFAULT_ORG_ID}' }`);
+    logger.info(
+      `[ORG_CONTEXT_SET] { timestamp: '${new Date().toISOString()}', domain: 'middleware', operation: 'setDefaultOrg', orgId: '${DEFAULT_ORG_ID}' }`
+    );
     next();
   };
 }
@@ -84,7 +86,9 @@ export function createLoggerMiddleware(domain: string): RequestHandler {
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 500 ? "ERROR" : res.statusCode >= 400 ? "WARN" : "INFO";
 
-      logger.info(`[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`);
+      logger.info(
+        `[${requestId}] ${req.method} ${req.path} ${res.statusCode} in ${duration}ms :: ${logLevel}`
+      );
     });
 
     next();

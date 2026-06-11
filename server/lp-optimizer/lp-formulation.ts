@@ -21,7 +21,9 @@ function initializeConstraintMap(
 
   for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
     const crew = constraints.crewAvailability[crewIdx];
-    if (!crew) {continue;}
+    if (!crew) {
+      continue;
+    }
     for (let day = 0; day < constraints.timeHorizonDays; day++) {
       constraintMap.set(`crew_capacity_c${crewIdx}_d${day}`, { max: crew.maxHoursPerDay });
     }
@@ -160,7 +162,9 @@ function buildVariables(jobs: MaintenanceJob[], constraints: OptimizationConstra
 
   for (let jobIdx = 0; jobIdx < jobs.length; jobIdx++) {
     const job = jobs[jobIdx];
-    if (!job) {continue;}
+    if (!job) {
+      continue;
+    }
 
     for (let crewIdx = 0; crewIdx < constraints.crewAvailability.length; crewIdx++) {
       const crew = constraints.crewAvailability[crewIdx];
@@ -201,7 +205,9 @@ export function formulateLinearProgram(
 
   const variables = buildVariables(jobs, constraints);
 
-  logger.info(`[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`);
+  logger.info(
+    `[LP Optimizer] Formulated problem: ${Object.keys(variables).length} variables, ${Object.keys(constraintDefs).length} constraints`
+  );
 
   return {
     optimize: "objective",
@@ -216,7 +222,7 @@ export function formulateLinearProgram(
 }
 
 export function relaxConstraints(lpProblem: LpProblem): LpProblem {
-  const partsBudget = lpProblem.constraints['parts_budget'];
+  const partsBudget = lpProblem.constraints["parts_budget"];
   if (partsBudget && typeof partsBudget.max === "number") {
     partsBudget.max *= 1.2;
   }
@@ -297,7 +303,8 @@ function extractScheduleFromSolution(
       priority: job.priority,
     });
 
-    crewUtilization[crew.crewMember] = (crewUtilization[crew.crewMember] ?? 0) + job.estimatedDuration / 60;
+    crewUtilization[crew.crewMember] =
+      (crewUtilization[crew.crewMember] ?? 0) + job.estimatedDuration / 60;
     totalCost += laborCost + partsCost;
     partsUsedBudget += partsCost;
 
@@ -349,7 +356,9 @@ export function processSolution(
     );
   }
 
-  logger.info(`[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`);
+  logger.info(
+    `[LP Optimizer] Optimization completed: ${schedule.length} jobs scheduled, total cost: $${totalCost.toFixed(2)}`
+  );
 
   return {
     success: solution.feasible ?? false,

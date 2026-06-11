@@ -63,7 +63,14 @@ const signalSnapshotSchema = z.object({
 });
 
 const pillarScoreSchema = z.object({
-  pillar: z.enum(["clarity", "trust", "actionability", "speed", "offline_resilience", "learning_loop"]),
+  pillar: z.enum([
+    "clarity",
+    "trust",
+    "actionability",
+    "speed",
+    "offline_resilience",
+    "learning_loop",
+  ]),
   label: z.string(),
   score: z.number().min(0).max(100),
   severity: z.enum(["good", "watch", "risk", "critical"]),
@@ -160,30 +167,53 @@ export function createOperatorExperienceRouter(service: OperatorExperienceServic
     withErrorHandling("get operator experience brief", async (req: Request, res: Response) => {
       const query = briefQuerySchema.parse(req.query);
       const brief = await service.buildBrief(getOrgId(req), query);
-      res.json(validateResponse(operatorExperienceBriefSchema, brief, "GET /api/operator-experience/brief"));
+      res.json(
+        validateResponse(operatorExperienceBriefSchema, brief, "GET /api/operator-experience/brief")
+      );
     })
   );
 
   router.get(
     "/roles",
     withErrorHandling("list operator experience roles", async (_req: Request, res: Response) => {
-      res.json(validateResponse(z.array(roleProfileSchema), service.listRoleProfiles(), "GET /api/operator-experience/roles"));
+      res.json(
+        validateResponse(
+          z.array(roleProfileSchema),
+          service.listRoleProfiles(),
+          "GET /api/operator-experience/roles"
+        )
+      );
     })
   );
 
   router.get(
     "/solution-map",
-    withErrorHandling("get operator experience solution map", async (_req: Request, res: Response) => {
-      res.json(validateResponse(solutionMapSchema, service.solutionMap(), "GET /api/operator-experience/solution-map"));
-    })
+    withErrorHandling(
+      "get operator experience solution map",
+      async (_req: Request, res: Response) => {
+        res.json(
+          validateResponse(
+            solutionMapSchema,
+            service.solutionMap(),
+            "GET /api/operator-experience/solution-map"
+          )
+        );
+      }
+    )
   );
 
   router.get(
     "/events",
     withErrorHandling("list operator experience events", async (req: Request, res: Response) => {
-      const limit = Math.max(1, Math.min(Number(req.query['limit'] ?? 25), 100));
+      const limit = Math.max(1, Math.min(Number(req.query["limit"] ?? 25), 100));
       const events = await service.listRecentEvents(getOrgId(req), limit);
-      res.json(validateResponse(z.array(recordedEventSchema), events, "GET /api/operator-experience/events"));
+      res.json(
+        validateResponse(
+          z.array(recordedEventSchema),
+          events,
+          "GET /api/operator-experience/events"
+        )
+      );
     })
   );
 
@@ -192,14 +222,20 @@ export function createOperatorExperienceRouter(service: OperatorExperienceServic
     withErrorHandling("record operator experience event", async (req: Request, res: Response) => {
       const event = eventSchema.parse(req.body);
       const record = await service.recordEvent(getOrgId(req), event);
-      res.status(201).json(validateResponse(recordedEventSchema, record, "POST /api/operator-experience/events"));
+      res
+        .status(201)
+        .json(
+          validateResponse(recordedEventSchema, record, "POST /api/operator-experience/events")
+        );
     })
   );
 
   return router;
 }
 
-export function createOperatorExperienceService(attentionService: AttentionWorkflowService): OperatorExperienceService {
+export function createOperatorExperienceService(
+  attentionService: AttentionWorkflowService
+): OperatorExperienceService {
   return new OperatorExperienceService(
     new AttentionWorkflowSignalsAdapter(attentionService),
     new StaticOperatorRoleProfileAdapter(),
@@ -207,7 +243,9 @@ export function createOperatorExperienceService(attentionService: AttentionWorkf
   );
 }
 
-export function createRoleInformationNeedsService(attentionService: AttentionWorkflowService): RoleInformationNeedsService {
+export function createRoleInformationNeedsService(
+  attentionService: AttentionWorkflowService
+): RoleInformationNeedsService {
   return new RoleInformationNeedsService(
     new StaticRoleInformationCatalogAdapter(),
     new AttentionWorkflowSignalsAdapter(attentionService)
@@ -229,10 +267,5 @@ export function registerOperatorExperienceRoutes(
   const router = createOperatorExperienceRouter(service);
   router.use("/information-needs", createRoleInformationNeedsRouter(informationNeedsService));
 
-  app.use(
-    "/api/operator-experience",
-    deps.generalApiRateLimit,
-    deps.requireOrgId,
-    router
-  );
+  app.use("/api/operator-experience", deps.generalApiRateLimit, deps.requireOrgId, router);
 }

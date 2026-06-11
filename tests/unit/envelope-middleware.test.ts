@@ -12,14 +12,8 @@ import { describe, it, expect } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 import { envelopeJson, normalizeErrorBody } from "../../server/middleware/envelope";
-import {
-  ENVELOPE_EXCLUDED_PREFIXES,
-  isEnvelopedPath,
-} from "../../server/lib/envelope-manifest";
-import {
-  errorEnvelopeSchema,
-  successEnvelopeSchema,
-} from "../../shared/api-envelope";
+import { ENVELOPE_EXCLUDED_PREFIXES, isEnvelopedPath } from "../../server/lib/envelope-manifest";
+import { errorEnvelopeSchema, successEnvelopeSchema } from "../../shared/api-envelope";
 
 function buildApp() {
   const app = express();
@@ -53,8 +47,9 @@ function buildApp() {
   app.delete("/api/home/gone", (_req, res) => {
     res.status(204).send();
   });
-  app.get("/api/equipment", (_req, res) => {
-    res.json([{ id: "eq-1" }]);
+  // Fictional prefix: stays outside the manifest no matter how many waves land.
+  app.get("/api/unmigrated-test-domain", (_req, res) => {
+    res.json([{ id: "raw-1" }]);
   });
 
   return app;
@@ -83,13 +78,14 @@ describe("envelopeJson (WS4 wave 0)", () => {
     expect(res.body).toEqual({ success: true, data: { fromHelper: true } });
   });
 
-  it("normalizes legacy {message} errors with the top-level mirror", async () => {
+  it("normalizes legacy {message} errors with the top-level mirrors", async () => {
     const res = await request(buildApp()).get("/api/home/legacy-error");
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe("NOT_FOUND");
     expect(res.body.error.message).toBe("Summary not found");
     expect(res.body.message).toBe("Summary not found");
+    expect(res.body.code).toBe("NOT_FOUND");
     expect(errorEnvelopeSchema.safeParse(res.body).success).toBe(true);
   });
 
@@ -123,15 +119,37 @@ describe("envelopeJson (WS4 wave 0)", () => {
     expect(res.body).toEqual([{ id: "task-1" }]);
   });
 
-  it("does not wrap paths outside the manifest", async () => {
-    const res = await request(buildApp()).get("/api/equipment");
-    expect(res.body).toEqual([{ id: "eq-1" }]);
+  it("the endgame flip wraps every /api path except exclusions", async () => {
+    // Previously-unlisted prefixes are wrapped now.
+    expect(isEnvelopedPath("/api/users")).toBe(true);
+    expect(isEnvelopedPath("/api/permissions/me")).toBe(true);
+    expect(isEnvelopedPath("/api/unmigrated-test-domain")).toBe(true);
+
+    const res = await request(buildApp()).get("/api/unmigrated-test-domain");
+    expect(res.body).toEqual({ success: true, data: [{ id: "raw-1" }] });
   });
 
   it("treats /api/v1 spellings the same as unversioned paths", () => {
     expect(isEnvelopedPath("/api/v1/home/attention-summary")).toBe(true);
     expect(isEnvelopedPath("/api/home/attention-summary?since=x")).toBe(true);
-    expect(isEnvelopedPath("/api/homeX/other")).toBe(false);
+    // Exclusions hold for the v1 spelling too.
+    expect(isEnvelopedPath("/api/v1/telemetry/readings")).toBe(false);
+    expect(isEnvelopedPath("/api/v1/error-logs")).toBe(false);
+  });
+
+  it("wave 1 domains are enveloped end to end", async () => {
+    expect(isEnvelopedPath("/api/equipment/eq-1")).toBe(true);
+    expect(isEnvelopedPath("/api/vessels")).toBe(true);
+    expect(isEnvelopedPath("/api/pdm/dashboard")).toBe(true);
+    expect(isEnvelopedPath("/api/optimization/results")).toBe(true);
+
+    const app = express();
+    app.use("/api", envelopeJson());
+    app.get("/api/vessels", (_req, res) => {
+      res.json([{ id: "v-1", name: "MV Test" }]);
+    });
+    const res = await request(app).get("/api/vessels");
+    expect(res.body).toEqual({ success: true, data: [{ id: "v-1", name: "MV Test" }] });
   });
 
   it("double mounts wrap exactly once", async () => {
@@ -157,9 +175,12 @@ describe("envelope exclusions (frozen contracts)", () => {
     expect([...ENVELOPE_EXCLUDED_PREFIXES].sort()).toEqual(
       [
         "/api/agent",
+        "/api/diagnostics/health",
         "/api/docs",
         "/api/edge",
         "/api/error-logs",
+        "/api/health",
+        "/api/healthz",
         "/api/observability/web-vitals",
         "/api/openapi.json",
         "/api/telemetry/bulk",

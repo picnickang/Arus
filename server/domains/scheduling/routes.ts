@@ -9,8 +9,7 @@ import { logger } from "../../utils/logger";
 import { dbMaintenanceStorage } from "../../db/maintenance/index.js";
 import type { MaintenanceSchedule } from "@shared/schema";
 import { dbOptimizerStorage } from "../../db/optimizer/index.js";
-import { dbEquipmentStorage } from "../../db/equipment/index.js";
-import { vesselService } from "../../services/domains/vessel-service.js";
+import { optimizationDirectory } from "../../composition/optimization-directory.js";
 import { authenticatedRequest } from "../../middleware/auth";
 import {
   aiWeightsSchema,
@@ -111,18 +110,15 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
     requireOrgId,
     withErrorHandling("fetch maintenance schedules", async (req: Request, res: Response) => {
       const orgId = orgIdFromRequest(req);
-      const { vesselId, equipmentId, status, dateFrom, dateTo } =
-        scheduleListQuerySchema.parse(req.query);
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
-        equipmentId,
-        orgId,
-        {
-          vesselId,
-          status,
-          startDate: dateFrom ? new Date(dateFrom) : undefined,
-          endDate: dateTo ? new Date(dateTo) : undefined,
-        }
+      const { vesselId, equipmentId, status, dateFrom, dateTo } = scheduleListQuerySchema.parse(
+        req.query
       );
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, orgId, {
+        vesselId,
+        status,
+        startDate: dateFrom ? new Date(dateFrom) : undefined,
+        endDate: dateTo ? new Date(dateTo) : undefined,
+      });
       res.json(schedules);
     })
   );
@@ -148,7 +144,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         for (let j = i + 1; j < schedules.length; j++) {
           const s1 = schedules[i];
           const s2 = schedules[j];
-          if (!s1 || !s2) {continue;}
+          if (!s1 || !s2) {
+            continue;
+          }
           if (
             s1.scheduledDate === s2.scheduledDate &&
             scheduleField(s1, "assignedCrewId") === scheduleField(s2, "assignedCrewId")
@@ -230,7 +228,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         },
         completionRate:
           schedules.length > 0
-            ? (schedules.filter((s) => scheduleField(s, "status") === "completed").length / schedules.length) *
+            ? (schedules.filter((s) => scheduleField(s, "status") === "completed").length /
+                schedules.length) *
               100
             : 0,
       };
@@ -259,9 +258,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       });
 
       const upcoming = schedules
-        .sort(
-          (a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime(),
-        )
+        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
         .slice(0, limitNum);
 
       res.json(upcoming);
@@ -335,11 +332,9 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const { schedules } = bulkSchedulesBodySchema.parse(req.body);
       const results = await Promise.all(
         schedules.map((s) =>
-          dbMaintenanceStorage.createMaintenanceSchedule(
-            { ...s, orgId } as Parameters<
-              typeof dbMaintenanceStorage.createMaintenanceSchedule
-            >[0],
-          ),
+          dbMaintenanceStorage.createMaintenanceSchedule({ ...s, orgId } as Parameters<
+            typeof dbMaintenanceStorage.createMaintenanceSchedule
+          >[0])
         )
       );
       sendCreated(res, results);
@@ -361,8 +356,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         {
           configurations: () => dbOptimizerStorage.getOptimizerConfigurations(orgId),
           results: () => dbOptimizerStorage.getOptimizationResults(orgId),
-          equipment: () => dbEquipmentStorage.getEquipmentRegistry(orgId),
-          vessels: () => vesselService.getVessels(orgId),
+          equipment: () => optimizationDirectory.listEquipmentRegistry(orgId),
+          vessels: () => optimizationDirectory.listVessels(orgId),
         },
         "GET /api/optimization/dashboard"
       );
@@ -512,7 +507,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const updated = await schedulingSettingsService.updateNotificationSettings(
         orgId,
         body,
-        vesselId,
+        vesselId
       );
 
       logger.info("SchedulingSettings", "Notifications updated", { orgId, vesselId });
@@ -533,7 +528,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         orgId,
         thresholds,
         enforcement,
-        vesselId,
+        vesselId
       );
 
       logger.info("SchedulingSettings", "Rules updated", { orgId, vesselId });
@@ -550,11 +545,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
       const body = aiWeightsSchema.parse(req.body);
 
-      const updated = await schedulingSettingsService.updateAiWeights(
-        orgId,
-        body,
-        vesselId
-      );
+      const updated = await schedulingSettingsService.updateAiWeights(orgId, body, vesselId);
 
       logger.info("SchedulingSettings", "AI weights updated", { orgId, vesselId });
       res.json(updated);
@@ -570,11 +561,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const { vesselId } = vesselIdOnlyQuerySchema.parse(req.query);
       const body = publishBehaviorSchema.parse(req.body);
 
-      const updated = await schedulingSettingsService.updatePublishBehavior(
-        orgId,
-        body,
-        vesselId,
-      );
+      const updated = await schedulingSettingsService.updatePublishBehavior(orgId, body, vesselId);
 
       logger.info("SchedulingSettings", "Publish behavior updated", { orgId, vesselId });
       res.json(updated);
@@ -593,7 +580,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const updated = await schedulingSettingsService.updateRotationTemplates(
         orgId,
         body,
-        vesselId,
+        vesselId
       );
 
       logger.info("SchedulingSettings", "Rotation templates updated", { orgId, vesselId });

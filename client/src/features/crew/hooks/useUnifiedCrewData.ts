@@ -152,7 +152,8 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     } catch (err) {
       toast({
         title: "Photo not saved",
-        description: err instanceof Error ? err.message : "The crew member was created without a photo.",
+        description:
+          err instanceof Error ? err.message : "The crew member was created without a photo.",
         variant: "destructive",
       });
     }
@@ -379,7 +380,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       vessel_access: formerAccessRisks.filter((risk) => risk.vesselAccessCount > 0).length,
       hub_access: formerAccessRisks.filter((risk) => risk.hubAdmin).length,
     }),
-    [formerAccessRisks],
+    [formerAccessRisks]
   );
   const accessStatusCounts = useMemo(() => {
     const counts: Record<CrewAccessReadinessStatus, number> = {
@@ -409,7 +410,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     });
     if (accessReadinessEnabled && selectedAccessStatus !== "all") {
       filtered = filtered.filter(
-        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus,
+        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus
       );
     }
     return sortCrew(filtered, sortField, sortDirection, getVesselName, roleLookup.sortIndex);
@@ -434,7 +435,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       includeStatusFilter?: boolean;
       includeAccessFilter?: boolean;
       includeFormerAccessRiskFilter?: boolean;
-    } = {},
+    } = {}
   ) => {
     const includeStatusFilter = options.includeStatusFilter ?? true;
     const includeAccessFilter = options.includeAccessFilter ?? accessReadinessEnabled;
@@ -449,13 +450,15 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
     });
     if (includeAccessFilter && selectedAccessStatus !== "all") {
       filtered = filtered.filter(
-        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus,
+        (member) => accessReadinessByCrewId.get(member.id)?.status === selectedAccessStatus
       );
     }
     if (includeFormerAccessRiskFilter && selectedFormerAccessRisk !== "all") {
       filtered = filtered.filter((member) => {
         const risk = formerAccessRiskByCrewId.get(member.id);
-        if (!risk) {return false;}
+        if (!risk) {
+          return false;
+        }
         switch (selectedFormerAccessRisk) {
           case "linked_login":
             return risk.hasLinkedLogin;
@@ -510,10 +513,7 @@ export function useUnifiedCrewData(options: UseUnifiedCrewDataOptions = {}) {
       setSortDirection("asc");
     }
   };
-  const handleExportCSV = (
-    rows: CrewListItem[] = filteredAndSortedCrew,
-    label = "crew-roster",
-  ) => {
+  const handleExportCSV = (rows: CrewListItem[] = filteredAndSortedCrew, label = "crew-roster") => {
     const exportData = prepareCrewExportData(rows, getVesselName);
     const success = exportToCSV(exportData as object as Parameters<typeof exportToCSV>[0], {
       filename: `${label}-${new Date().toISOString().split("T")[0]}.csv`,

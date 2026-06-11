@@ -1,4 +1,5 @@
 import { MutationCache, QueryCache, QueryClient, QueryFunction } from "@tanstack/react-query";
+import { isSuccessEnvelope } from "@shared/api-envelope";
 import { ApiError, apiErrorFromResponse } from "@/lib/api-error";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentDeviceId } from "@/hooks/useDeviceId";
@@ -170,6 +171,25 @@ function asPayloadRecord(data: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+const legacyBodyUrls = new Set<string>();
+
+/**
+ * Unwraps the canonical {success: true, data} envelope (shared/api-envelope).
+ * Every /api response is enveloped since the WS4 endgame flip except the
+ * pinned exclusions, so a non-envelope object body is logged once per URL as
+ * a burndown signal before being passed through unchanged.
+ */
+function unwrapEnvelope<T>(result: unknown, url: string): T {
+  if (isSuccessEnvelope(result)) {
+    return result.data as T;
+  }
+  if (result && typeof result === "object" && !legacyBodyUrls.has(url)) {
+    legacyBodyUrls.add(url);
+    console.info(`[api] non-envelope body from ${url} (excluded or legacy endpoint)`);
+  }
+  return result as T;
+}
+
 async function queueOfflineApiRequest(
   method: string,
   url: string,
@@ -192,7 +212,6 @@ async function queueOfflineApiRequest(
   };
 }
 
-
 export async function apiRequest<T = unknown>(
   method: string,
   url: string,
@@ -206,11 +225,12 @@ export async function apiRequest<T = unknown>(
   third?: unknown,
   fourth?: ApiRequestOptions
 ): Promise<T> {
-  const method = typeof second === "string" ? first : second?.method ?? "GET";
+  const method = typeof second === "string" ? first : (second?.method ?? "GET");
   const url = typeof second === "string" ? second : first;
   const data = typeof second === "string" ? third : second?.body;
   const options = typeof second === "string" ? fourth : second;
-  const body = typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
+  const body =
+    typeof data === "string" ? data : data !== undefined ? JSON.stringify(data) : undefined;
   const includeContentType = body !== undefined;
 
   const shouldQueueOffline = isQueueableMutation(method, url);
@@ -220,9 +240,9 @@ export async function apiRequest<T = unknown>(
   // replays to the same cached response instead of double-writing.
   const payloadRecord = shouldQueueOffline ? asPayloadRecord(data) : undefined;
   const clientMutationId = shouldQueueOffline
-    ? (payloadRecord?.["clientMutationId"] as string | undefined) ??
+    ? ((payloadRecord?.["clientMutationId"] as string | undefined) ??
       (payloadRecord?.["__clientMutationId"] as string | undefined) ??
-      generateClientMutationId()
+      generateClientMutationId())
     : undefined;
 
   if (shouldQueueOffline && !isOnline()) {
@@ -265,12 +285,7 @@ export async function apiRequest<T = unknown>(
 
   const text = await res.text();
   const result = text ? JSON.parse(text) : null;
-
-  if (result && typeof result === "object" && "success" in result && "data" in result) {
-    return result.data as T;
-  }
-
-  return result as T;
+  return unwrapEnvelope<T>(result, url);
 }
 
 export async function apiFormDataRequest<T = unknown>(
@@ -296,18 +311,13 @@ export async function apiFormDataRequest<T = unknown>(
 
   const text = await res.text();
   const result = text ? JSON.parse(text) : null;
-
-  if (result && typeof result === "object" && "success" in result && "data" in result) {
-    return result.data as T;
-  }
-
-  return result as T;
+  return unwrapEnvelope<T>(result, url);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey, signal }) => {
+export function getQueryFn<T>(options: { on401: UnauthorizedBehavior }): QueryFunction<T> {
+  const { on401: unauthorizedBehavior } = options;
+  return async ({ queryKey, signal }) => {
     let url: string;
 
     if (queryKey.length === 1) {
@@ -327,7 +337,7 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
     } else {
       url = queryKey.join("/");
-      if (process.env['NODE_ENV'] === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.warn(
           `[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`
         );
@@ -344,19 +354,16 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      // Callers opting into returnNull type their useQuery data as nullable.
+      return null as T;
     }
 
     inspectQuotaWarning(res);
     await throwIfResNotOk(res);
-    const result = await res.json();
-
-    if (result && typeof result === "object" && "success" in result && "data" in result) {
-      return result.data;
-    }
-
-    return result;
+    const result: unknown = await res.json();
+    return unwrapEnvelope<T>(result, url);
   };
+}
 
 export const CACHE_TIMES = {
   REALTIME: 30000,
@@ -419,7 +426,7 @@ function showGlobalErrorToast(
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
-      showGlobalErrorToast(error, query.meta as Record<string, unknown> | undefined, "query");
+      showGlobalErrorToast(error, query.meta, "query");
     },
   }),
   mutationCache: new MutationCache({
@@ -429,7 +436,7 @@ export const queryClient = new QueryClient({
       if (mutation.options.onError) {
         return;
       }
-      showGlobalErrorToast(error, mutation.meta as Record<string, unknown> | undefined, "mutation");
+      showGlobalErrorToast(error, mutation.meta, "mutation");
     },
   }),
   defaultOptions: {
@@ -487,7 +494,12 @@ async function doReplayQueuedApiRequests(): Promise<{
   let conflicts = 0;
 
   for (const op of apiOperations) {
-    if (!op.request || op.retryCount >= 5 || op.conflictPaused || unresolvedConflictIds.has(op.id)) {
+    if (
+      !op.request ||
+      op.retryCount >= 5 ||
+      op.conflictPaused ||
+      unresolvedConflictIds.has(op.id)
+    ) {
       continue;
     }
 
@@ -538,7 +550,20 @@ async function doReplayQueuedApiRequests(): Promise<{
       if (response.status === 409 || response.status === 412) {
         let serverVersion: Record<string, unknown> = {};
         try {
-          serverVersion = await response.json();
+          const raw = (await response.json()) as Record<string, unknown> | null;
+          // Enveloped conflicts carry the domain payload in error.details;
+          // store that (or the error object) so the conflict UI keeps showing
+          // server-side fields rather than envelope plumbing.
+          if (raw && raw["success"] === false && raw["error"] && typeof raw["error"] === "object") {
+            const errorDetail = raw["error"] as Record<string, unknown>;
+            const details = errorDetail["details"];
+            serverVersion =
+              details && typeof details === "object" && !Array.isArray(details)
+                ? (details as Record<string, unknown>)
+                : errorDetail;
+          } else {
+            serverVersion = raw ?? {};
+          }
         } catch {
           serverVersion = { status: response.status, message: response.statusText };
         }
@@ -557,7 +582,10 @@ async function doReplayQueuedApiRequests(): Promise<{
       await removeOperation(op.id);
       synced++;
     } catch (error) {
-      await markOperationFailed(op.id, error instanceof Error ? error.message : "Unknown sync error");
+      await markOperationFailed(
+        op.id,
+        error instanceof Error ? error.message : "Unknown sync error"
+      );
       failed++;
     }
   }

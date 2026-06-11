@@ -65,9 +65,7 @@ describe("offline-queue route registry (X5)", () => {
 
   it("unknown routes are not queueable and classify to the fallback", () => {
     expect(isQueueableMutationPath("POST", "/api/some-unknown-route")).toBe(false);
-    expect(classifyOfflineEntityPath("/api/some-unknown-route")).toBe(
-      OFFLINE_FALLBACK_ENTITY_TYPE
-    );
+    expect(classifyOfflineEntityPath("/api/some-unknown-route")).toBe(OFFLINE_FALLBACK_ENTITY_TYPE);
   });
 
   it("bulk clears are never queueable", () => {

@@ -87,11 +87,7 @@ interface MlModelFormData {
 
 async function fetchAnalyticsData(endpoint: string, orgId: string) {
   try {
-    const res = await fetch(`/api/analytics/${endpoint}?orgId=${orgId}`);
-    if (!res.ok) {
-      return [];
-    }
-    const data = await res.json();
+    const data = await apiRequest("GET", `/api/analytics/${endpoint}?orgId=${orgId}`);
     return Array.isArray(data) ? data : [];
   } catch {
     return [];
@@ -149,7 +145,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     queryFn: () => fetchAnalyticsData("insight-snapshots", orgId),
   });
 
-  const createMlModelMutation = (useCreateMutation as object as (cfg: object) => ReturnType<typeof useCreateMutation>)({
+  const createMlModelMutation = (
+    useCreateMutation as object as (cfg: object) => ReturnType<typeof useCreateMutation>
+  )({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model created successfully",
@@ -160,7 +158,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const updateMlModelMutation = (useUpdateMutation as object as (cfg: object) => ReturnType<typeof useUpdateMutation>)({
+  const updateMlModelMutation = (
+    useUpdateMutation as object as (cfg: object) => ReturnType<typeof useUpdateMutation>
+  )({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model updated successfully",
@@ -172,7 +172,9 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     transformData: (data: MlModelFormData) => ({ ...data, orgId }),
   });
 
-  const deleteMlModelMutation = (useDeleteMutation as object as (cfg: object) => ReturnType<typeof useDeleteMutation>)({
+  const deleteMlModelMutation = (
+    useDeleteMutation as object as (cfg: object) => ReturnType<typeof useDeleteMutation>
+  )({
     endpoint: "/api/analytics/ml-models",
     invalidateKeys: [["/api/analytics/ml-models", orgId]],
     successMessage: "ML model deleted successfully",
@@ -271,8 +273,10 @@ export function useAdvancedAnalyticsData(): UseAdvancedAnalyticsDataReturn {
     createMlModelMutation,
     updateMlModelMutation,
     deleteMlModelMutation,
-    acknowledgeAnomalyMutation: acknowledgeAnomalyMutation as object as UseAdvancedAnalyticsDataReturn["acknowledgeAnomalyMutation"],
-    applyOptimizationMutation: applyOptimizationMutation as object as UseAdvancedAnalyticsDataReturn["applyOptimizationMutation"],
+    acknowledgeAnomalyMutation:
+      acknowledgeAnomalyMutation as object as UseAdvancedAnalyticsDataReturn["acknowledgeAnomalyMutation"],
+    applyOptimizationMutation:
+      applyOptimizationMutation as object as UseAdvancedAnalyticsDataReturn["applyOptimizationMutation"],
     mlModelForm: mlModelForm as object as UseAdvancedAnalyticsDataReturn["mlModelForm"],
     onSubmitMlModel,
     handleEdit,

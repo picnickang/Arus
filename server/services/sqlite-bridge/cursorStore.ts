@@ -93,7 +93,9 @@ export class CursorStore {
         if (current.lastId >= lastId) {
           return true;
         }
-        logger.warn(`[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`);
+        logger.warn(
+          `[CursorStore] Cursor not advanced: current=${current.lastId}, attempted=${lastId}`
+        );
         return false;
       }
 

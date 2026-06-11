@@ -1,5 +1,5 @@
 import { TabbedPageLayout, TabDefinition } from "@/components/layouts/TabbedPageLayout";
-import { Settings, Wifi, Database, Sliders, TestTube, Shield } from "lucide-react";
+import { Settings, Wifi, Database, Sliders, TestTube } from "lucide-react";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +11,6 @@ const TransportSettings = lazy(() => import("./transport-settings"));
 const StorageSettings = lazy(() => import("./storage-settings"));
 const OperatingParametersPage = lazy(() => import("./OperatingParametersPage"));
 const DiagnosticsDashboard = lazy(() => import("./DiagnosticsDashboard"));
-const PermissionsSettings = lazy(() => import("./permissions-settings"));
 
 function PageLoader() {
   return (
@@ -84,17 +83,8 @@ function EmbeddedConfigurationHub() {
         </Suspense>
       ),
     },
-    {
-      id: "permissions",
-      label: "Permissions & Roles",
-      icon: Shield,
-      component: (
-        <Suspense fallback={<PageLoader />}>
-          <PermissionsSettings />
-        </Suspense>
-      ),
-      adminOnly: true,
-    },
+    // No "Permissions & Roles" tab: role access management lives in
+    // Crew → Roles & Dashboards (/crew-management?view=roles).
   ];
 
   const getSubTabFromUrl = (): string => {
@@ -228,17 +218,8 @@ export default function ConfigurationHub({ embedded = false }: ConfigurationHubP
         </Suspense>
       ),
     },
-    {
-      id: "permissions",
-      label: "Permissions & Roles",
-      icon: Shield,
-      component: (
-        <Suspense fallback={<PageLoader />}>
-          <PermissionsSettings />
-        </Suspense>
-      ),
-      adminOnly: true,
-    },
+    // No "Permissions & Roles" tab: role access management lives in
+    // Crew → Roles & Dashboards (/crew-management?view=roles).
   ];
 
   return (

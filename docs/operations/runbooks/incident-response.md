@@ -1,11 +1,13 @@
 # Runbook — Incident Response (general)
 
 Use this runbook when:
+
 - An alert from `ops/prometheus/rules.yaml` pages you and a more
   specific runbook below does not apply.
 - A user-visible outage is reported via support.
 
 For specific surfaces, jump to:
+
 - [tenant-isolation-response.md](tenant-isolation-response.md)
 - [failed-migration-recovery.md](failed-migration-recovery.md)
 - [websocket-outage.md](websocket-outage.md)
@@ -31,7 +33,7 @@ Priority order — never skip:
 
 1. **Stop the bleeding.** If a deploy in the last 60 min correlates,
    roll it back via `npm run deploy:rollback` or the Replit Deployments
-   UI. Do this *before* root-cause analysis.
+   UI. Do this _before_ root-cause analysis.
 2. **Shed load** if the issue is capacity:
    - WebSocket: lower `WS_ORG_CONNECTION_LIMIT` to the p95 healthy
      value (see Grafana → WS Fan-out).

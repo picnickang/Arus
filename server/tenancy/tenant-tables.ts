@@ -57,59 +57,57 @@ export interface TenantTableSpec {
  * Removing an entry here (i.e. enabling RLS on it) requires moving the
  * reader onto `withTenantContext` / per-org fan-out first.
  */
-export const RLS_EXEMPT: ReadonlyArray<{ table: string; reason: string }> =
-  Object.freeze([
-    {
-      table: "admin_sessions",
-      reason:
-        "pre-auth: getAdminSessionByToken runs before orgId is known (server/security/authentication.ts:148)",
-    },
-    {
-      table: "login_events",
-      reason:
-        "pre-auth: login attempts are recorded before any tenant context exists",
-    },
-    {
-      table: "email_queue",
-      reason:
-        "infra poller: purchasing email worker claims pending mail across orgs on the shared connection (server/purchasing/email-worker.ts:44)",
-    },
-    {
-      table: "notification_queue",
-      reason:
-        "infra poller: digest processor sweeps the queue across orgs (server/services/email-notification/queue-processor.ts:95)",
-    },
-    {
-      table: "event_outbox",
-      reason:
-        "infra poller: event-spine worker claims pending batches across orgs (server/lib/event-spine/worker.ts:88)",
-    },
-    {
-      table: "error_logs",
-      reason:
-        "hub-admin console lists errors across orgs with an optional org filter (server/db/system-admin/index.ts:159)",
-    },
-    {
-      table: "system_health_checks",
-      reason:
-        "hub-admin monitoring lists health checks across orgs — getSystemHealthChecks(orgId?) (server/db/system-admin/db-settings.ts:321)",
-    },
-    {
-      table: "system_performance_metrics",
-      reason:
-        "hub-admin monitoring reads performance metrics across orgs (server/db/system-admin/db-settings.ts)",
-    },
-    {
-      table: "tenant_quotas",
-      reason:
-        "hub-admin tenant lifecycle console lists/provisions quotas across orgs (server/domains/system-admin/infrastructure/tenant-repository.ts:46,62). 0018 listed it in its RLS array, but the DO block ran before the CREATE TABLE at the bottom of the same file, so RLS never actually applied — which is the behavior the cross-org console depends on.",
-    },
-    {
-      table: "tenant_usage",
-      reason:
-        "hub-admin tenant lifecycle console reads usage across orgs; same 0018 ordering quirk as tenant_quotas",
-    },
-  ]);
+export const RLS_EXEMPT: ReadonlyArray<{ table: string; reason: string }> = Object.freeze([
+  {
+    table: "admin_sessions",
+    reason:
+      "pre-auth: getAdminSessionByToken runs before orgId is known (server/security/authentication.ts:148)",
+  },
+  {
+    table: "login_events",
+    reason: "pre-auth: login attempts are recorded before any tenant context exists",
+  },
+  {
+    table: "email_queue",
+    reason:
+      "infra poller: purchasing email worker claims pending mail across orgs on the shared connection (server/purchasing/email-worker.ts:44)",
+  },
+  {
+    table: "notification_queue",
+    reason:
+      "infra poller: digest processor sweeps the queue across orgs (server/services/email-notification/queue-processor.ts:95)",
+  },
+  {
+    table: "event_outbox",
+    reason:
+      "infra poller: event-spine worker claims pending batches across orgs (server/lib/event-spine/worker.ts:88)",
+  },
+  {
+    table: "error_logs",
+    reason:
+      "hub-admin console lists errors across orgs with an optional org filter (server/db/system-admin/index.ts:159)",
+  },
+  {
+    table: "system_health_checks",
+    reason:
+      "hub-admin monitoring lists health checks across orgs — getSystemHealthChecks(orgId?) (server/db/system-admin/db-settings.ts:321)",
+  },
+  {
+    table: "system_performance_metrics",
+    reason:
+      "hub-admin monitoring reads performance metrics across orgs (server/db/system-admin/db-settings.ts)",
+  },
+  {
+    table: "tenant_quotas",
+    reason:
+      "hub-admin tenant lifecycle console lists/provisions quotas across orgs (server/domains/system-admin/infrastructure/tenant-repository.ts:46,62). 0018 listed it in its RLS array, but the DO block ran before the CREATE TABLE at the bottom of the same file, so RLS never actually applied — which is the behavior the cross-org console depends on.",
+  },
+  {
+    table: "tenant_usage",
+    reason:
+      "hub-admin tenant lifecycle console reads usage across orgs; same 0018 ordering quirk as tenant_quotas",
+  },
+]);
 
 /**
  * Tables created by SQL migrations rather than the Drizzle schema
@@ -429,6 +427,9 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "context_events" },
   { table: "beast_mode_config" },
   { table: "integration_configs" },
+  // Crew-submitted portal feedback (server/migrations/031-pilot-feedback.sql;
+  // RLS via 0051).
+  { table: "pilot_feedback" },
   { table: "error_logs" },
   { table: "system_health_checks" },
   { table: "system_performance_metrics" },
@@ -446,6 +447,4 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "users" },
 ]);
 
-export const TENANT_TABLE_NAMES: readonly string[] = TENANT_TABLES.map(
-  (t) => t.table
-);
+export const TENANT_TABLE_NAMES: readonly string[] = TENANT_TABLES.map((t) => t.table);

@@ -21,7 +21,7 @@ export interface CrewListItem {
   watchKeeping?: string | null;
   roleId?: string | null;
   photoPath?: string | null;
-  vesselId?: string;
+  vesselId?: string | undefined;
   maxHours7d: number;
   minRestH: number;
   hourlyRate?: number;
@@ -29,7 +29,7 @@ export interface CrewListItem {
   onDuty: boolean;
   skills: string[];
   userId?: string | null;
-  email?: string;
+  email?: string | undefined;
   phone?: string;
   address?: string;
   emergencyContactName?: string;
@@ -83,7 +83,13 @@ export function formatRotation(onDays?: number | null, offDays?: number | null):
   return `${onDays ?? 0} on / ${offDays ?? 0} off`;
 }
 
-export type CrewProfileTab = "details" | "history" | "documents" | "notifications" | "access" | "tasks";
+export type CrewProfileTab =
+  | "details"
+  | "history"
+  | "documents"
+  | "notifications"
+  | "access"
+  | "tasks";
 
 export const CREW_ACCESS_STATUS_LABELS: Record<CrewAccessReadinessStatus, string> = {
   ready: "Ready",
@@ -597,11 +603,15 @@ export function buildRoleLookup(roles: CrewManagementRole[]): RoleLookup {
 
   const MAX = Number.MAX_SAFE_INTEGER;
   const sortIndex = (rank: string): number => {
-    if (!rank) {return MAX;}
+    if (!rank) {
+      return MAX;
+    }
     return byKey.get(normRoleKey(rank))?.sortOrder ?? MAX;
   };
   const categoryOf = (rank: string): string => {
-    if (!rank) {return "Other";}
+    if (!rank) {
+      return "Other";
+    }
     return byKey.get(normRoleKey(rank))?.category ?? getRoleGroup(rank);
   };
 
@@ -636,10 +646,12 @@ export function groupCrewByRoleWith<T extends { rank: string }>(
   if (!order.includes("Other")) {
     order.push("Other");
   }
-  return order.filter((group) => buckets.has(group)).map((group) => ({
-    group,
-    members: buckets.get(group) ?? [],
-  }));
+  return order
+    .filter((group) => buckets.has(group))
+    .map((group) => ({
+      group,
+      members: buckets.get(group) ?? [],
+    }));
 }
 
 export const RELIEF_POOL_ID = "__relief_pool__";
@@ -651,9 +663,9 @@ export interface VesselGroupBucket<T> {
   members: T[];
 }
 
-export function groupCrewByVessel<T extends { vesselId?: string | null }>(
+export function groupCrewByVessel<T extends { vesselId?: string | null | undefined }>(
   crew: T[],
-  getVesselName: (vesselId: string) => string,
+  getVesselName: (vesselId: string) => string
 ): VesselGroupBucket<T>[] {
   const buckets = new Map<string, T[]>();
   for (const member of crew) {
@@ -712,9 +724,7 @@ export interface FormerEmploymentLike {
   rank?: string | null;
 }
 
-export function deriveRehireStatus(
-  latestPeriod: FormerEmploymentLike | undefined,
-): RehireStatus {
+export function deriveRehireStatus(latestPeriod: FormerEmploymentLike | undefined): RehireStatus {
   const terminationType = latestPeriod?.terminationType ?? null;
   const penalty = latestPeriod?.contractPenalty ?? 0;
   if (terminationType === "retired") {
@@ -764,7 +774,7 @@ export function offboardReasonLabel(value?: string | null): string {
  */
 export function previewRehireFromAction(
   action: string,
-  effectivePenalty: number,
+  effectivePenalty: number
 ): RehireStatus | null {
   if (action === "retire") {
     return deriveRehireStatus({ terminationType: "retired", contractPenalty: null });
@@ -781,11 +791,11 @@ export function previewRehireFromAction(
 export interface OffboardingNoteInput {
   reason?: string | null;
   endDate?: string | null;
-  vesselName?: string | null;
+  vesselName?: string | null | undefined;
   handoverDocs?: boolean;
   returnPpe?: boolean;
   finalPayroll?: boolean;
-  exitNotes?: string | null;
+  exitNotes?: string | null | undefined;
 }
 
 /**

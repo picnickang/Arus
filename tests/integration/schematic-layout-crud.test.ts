@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import type { SchematicLayout } from "../../server/domains/schematic-layout/domain/types";
 
 const BASE_URL = "http://localhost:5000";
 const VESSEL_ID = "56aee8c0-184c-4d23-9187-f5db91cf8d61";
@@ -7,13 +8,37 @@ const HEADERS = {
   "x-org-id": "default-org-id",
 };
 
+function isSchematicLayout(value: unknown): value is SchematicLayout {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "zones" in value &&
+    "slots" in value &&
+    Array.isArray(value.zones) &&
+    Array.isArray(value.slots)
+  );
+}
+
 async function api(method: string, path: string, body?: unknown) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: HEADERS,
     body: body ? JSON.stringify(body) : undefined,
   });
-  return { status: res.status, data: await res.json() };
+  const raw: unknown = await res.json();
+  // Unwrap the canonical response envelope on migrated domains.
+  const payload =
+    raw !== null &&
+    typeof raw === "object" &&
+    "success" in raw &&
+    raw.success === true &&
+    "data" in raw
+      ? raw.data
+      : raw;
+  // Non-layout payloads (error bodies on 4xx responses) collapse to an empty
+  // layout; tests on those paths only assert on `status`.
+  const data: SchematicLayout = isSchematicLayout(payload) ? payload : { zones: [], slots: [] };
+  return { status: res.status, data };
 }
 
 const layoutUrl = `/api/vessels/${VESSEL_ID}/schematic-layout`;
@@ -63,24 +88,35 @@ describe("Schematic Layout CRUD API", () => {
     expect(data.zones).toHaveLength(6);
     const pumpRoom = data.zones.find((z: { label: string }) => z.label === "Pump Room");
     expect(pumpRoom).toBeDefined();
+    if (!pumpRoom) {
+      throw new Error("Pump Room zone missing from response");
+    }
     expect(pumpRoom.slotIds).toEqual([]);
   });
 
   it("PUT /zones/:id renames a zone", async () => {
     const { data } = await api("POST", `${layoutUrl}/zones`, { label: "Old Name" });
     const zone = data.zones.find((z: { label: string }) => z.label === "Old Name");
+    if (!zone) {
+      throw new Error("zone 'Old Name' missing from response");
+    }
     const { status, data: updated } = await api("PUT", `${layoutUrl}/zones/${zone.zoneId}`, {
       label: "New Name",
     });
     expect(status).toBe(200);
-    expect(updated.zones.find((z: { zoneId: string }) => z.zoneId === zone.zoneId).label).toBe(
-      "New Name"
-    );
+    const renamed = updated.zones.find((z: { zoneId: string }) => z.zoneId === zone.zoneId);
+    if (!renamed) {
+      throw new Error("renamed zone missing from response");
+    }
+    expect(renamed.label).toBe("New Name");
   });
 
   it("DELETE /zones/:id removes zone, keeps orphaned slots", async () => {
     const { data: before } = await api("GET", layoutUrl);
     const engineRoom = before.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room");
+    if (!engineRoom) {
+      throw new Error("engine-room zone missing from default layout");
+    }
     const engineSlotCount = engineRoom.slotIds.length;
 
     const { status, data } = await api("DELETE", `${layoutUrl}/zones/engine-room`);
@@ -104,7 +140,13 @@ describe("Schematic Layout CRUD API", () => {
     expect(data.slots).toHaveLength(11);
     const slot = data.slots.find((s: { label: string }) => s.label === "Test Pump");
     expect(slot).toBeDefined();
+    if (!slot) {
+      throw new Error("created slot missing from response");
+    }
     const engineRoom = data.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room");
+    if (!engineRoom) {
+      throw new Error("engine-room zone missing from response");
+    }
     expect(engineRoom.slotIds).toContain(slot.slotId);
   });
 
@@ -125,20 +167,25 @@ describe("Schematic Layout CRUD API", () => {
 
   it("PUT /slots/:id/move moves a slot between zones", async () => {
     const { data: before } = await api("GET", layoutUrl);
-    expect(
-      before.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds
-    ).toContain("me");
+    const beforeEngineRoom = before.zones.find(
+      (z: { zoneId: string }) => z.zoneId === "engine-room"
+    );
+    if (!beforeEngineRoom) {
+      throw new Error("engine-room zone missing from default layout");
+    }
+    expect(beforeEngineRoom.slotIds).toContain("me");
 
     const { status, data } = await api("PUT", `${layoutUrl}/slots/me/move`, {
       targetZoneId: "bow-thruster",
     });
     expect(status).toBe(200);
-    expect(
-      data.zones.find((z: { zoneId: string }) => z.zoneId === "bow-thruster").slotIds
-    ).toContain("me");
-    expect(
-      data.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room").slotIds
-    ).not.toContain("me");
+    const bowThruster = data.zones.find((z: { zoneId: string }) => z.zoneId === "bow-thruster");
+    const engineRoom = data.zones.find((z: { zoneId: string }) => z.zoneId === "engine-room");
+    if (!bowThruster || !engineRoom) {
+      throw new Error("expected zones missing from response");
+    }
+    expect(bowThruster.slotIds).toContain("me");
+    expect(engineRoom.slotIds).not.toContain("me");
   });
 
   it("POST /reset restores default layout", async () => {

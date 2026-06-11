@@ -15,17 +15,31 @@ describe("analytics sink reader", () => {
     const lines = [
       {
         eventType: "telemetry.batch_ingested",
-        payload: { readings: [{ equipmentId: "eq-1", sensorType: "vib", value: 1.2, ts: "2026-05-19T11:00:00Z" }] },
+        payload: {
+          readings: [
+            { equipmentId: "eq-1", sensorType: "vib", value: 1.2, ts: "2026-05-19T11:00:00Z" },
+          ],
+        },
       },
       {
         eventType: "telemetry.batch_ingested",
-        payload: { readings: [{ equipmentId: "eq-1", sensorType: "vib", value: 1.5, ts: "2026-05-19T12:00:00Z" }] },
+        payload: {
+          readings: [
+            { equipmentId: "eq-1", sensorType: "vib", value: 1.5, ts: "2026-05-19T12:00:00Z" },
+          ],
+        },
       },
       {
         eventType: "telemetry.batch_ingested",
-        payload: { readings: [{ equipmentId: "eq-2", sensorType: "temp", value: 60, ts: "2026-05-19T12:30:00Z" }] },
+        payload: {
+          readings: [
+            { equipmentId: "eq-2", sensorType: "temp", value: 60, ts: "2026-05-19T12:30:00Z" },
+          ],
+        },
       },
-    ].map((l) => JSON.stringify(l)).join("\n");
+    ]
+      .map((l) => JSON.stringify(l))
+      .join("\n");
     await writeFile(file, lines, "utf-8");
   });
   afterAll(async () => {
@@ -69,12 +83,15 @@ describe("analytics sink reader", () => {
   });
 
   it("analyticsReadMode reflects EVENT_SPINE_ANALYTICS_READ env var", () => {
-    const prev = process.env.EVENT_SPINE_ANALYTICS_READ;
-    process.env.EVENT_SPINE_ANALYTICS_READ = "sink";
+    const prev = process.env["EVENT_SPINE_ANALYTICS_READ"];
+    process.env["EVENT_SPINE_ANALYTICS_READ"] = "sink";
     expect(analyticsReadMode()).toBe("sink");
-    process.env.EVENT_SPINE_ANALYTICS_READ = "";
+    process.env["EVENT_SPINE_ANALYTICS_READ"] = "";
     expect(analyticsReadMode()).toBe("oltp");
-    if (prev === undefined) {delete process.env.EVENT_SPINE_ANALYTICS_READ;}
-    else {process.env.EVENT_SPINE_ANALYTICS_READ = prev;}
+    if (prev === undefined) {
+      delete process.env["EVENT_SPINE_ANALYTICS_READ"];
+    } else {
+      process.env["EVENT_SPINE_ANALYTICS_READ"] = prev;
+    }
   });
 });

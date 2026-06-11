@@ -3,13 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,11 +45,7 @@ import ReactFlow, {
   type EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import type {
-  Equipment,
-  Vessel,
-  EquipmentDependency,
-} from "@shared/schema";
+import type { Equipment, Vessel, EquipmentDependency } from "@shared/schema";
 
 type DependencyWithEditor = EquipmentDependency & {
   notesUpdatedByName?: string | null;
@@ -92,10 +82,14 @@ function parseCsv(text: string): { rows: CsvRow[]; errors: string[] } {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const raw = (lines[i] ?? "").trim();
-    if (!raw || raw.startsWith("#")) {continue;}
+    if (!raw || raw.startsWith("#")) {
+      continue;
+    }
     const parts = raw.split(",").map((p) => p.trim());
     // Skip header row.
-    if (i === 0 && /upstream/i.test(parts[0] ?? "")) {continue;}
+    if (i === 0 && /upstream/i.test(parts[0] ?? "")) {
+      continue;
+    }
     if (parts.length < 2) {
       errors.push(`Line ${i + 1}: need at least 2 columns`);
       continue;
@@ -154,31 +148,25 @@ export default function EquipmentDependenciesPage() {
 
   const vesselsErr = vesselsQuery.error;
   const isForbidden =
-    !!vesselsErr &&
-    (/^403:/.test(vesselsErr.message) || /forbidden/i.test(vesselsErr.message));
+    !!vesselsErr && (/^403:/.test(vesselsErr.message) || /forbidden/i.test(vesselsErr.message));
 
   const equipmentQuery = useQuery<Equipment[]>({
     queryKey: ["/api/equipment", { vesselId: selectedVesselId }],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/equipment?vesselId=${encodeURIComponent(selectedVesselId)}`,
-        { credentials: "include" }
-      );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
+      return apiRequest("GET", `/api/equipment?vesselId=${encodeURIComponent(selectedVesselId)}`);
     },
     enabled: !!selectedVesselId,
   });
   // Defensive: some upstream error responses return `{}` for this
   // endpoint; guarding here keeps the downstream `for..of` and
   // ReactFlow node mappers from throwing "{} is not iterable".
-  const equipmentList: Equipment[] = Array.isArray(equipmentQuery.data)
-    ? equipmentQuery.data
-    : [];
+  const equipmentList: Equipment[] = Array.isArray(equipmentQuery.data) ? equipmentQuery.data : [];
 
   const equipmentById = useMemo(() => {
     const m = new Map<string, Equipment>();
-    for (const e of equipmentList) {m.set(e.id, e);}
+    for (const e of equipmentList) {
+      m.set(e.id, e);
+    }
     return m;
   }, [equipmentList]);
 
@@ -190,19 +178,16 @@ export default function EquipmentDependenciesPage() {
   const depsQuery = useQuery<DependenciesResponse>({
     queryKey: depsQueryKey,
     queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`,
-        { credentials: "include" }
+      return apiRequest(
+        "GET",
+        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependencies`
       );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
     },
     enabled: !!selectedVesselId,
   });
   const dependencies = depsQuery.data?.dependencies ?? [];
 
-  const invalidateDeps = () =>
-    queryClient.invalidateQueries({ queryKey: depsQueryKey });
+  const invalidateDeps = () => queryClient.invalidateQueries({ queryKey: depsQueryKey });
 
   const createMutation = useMutation({
     mutationFn: async () =>
@@ -229,8 +214,7 @@ export default function EquipmentDependenciesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) =>
-      apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
     onSuccess: () => {
       toast({ title: "Dependency removed" });
       invalidateDeps();
@@ -247,20 +231,13 @@ export default function EquipmentDependenciesPage() {
   // ----- Graph editor mutations: optimistic so the canvas feels live.
   // On failure we roll back to the previous snapshot and surface a toast.
   const graphCreateMutation = useMutation({
-    mutationFn: async (input: {
-      upstreamEquipmentId: string;
-      downstreamEquipmentId: string;
-    }) =>
-      apiRequest<{ dependency: EquipmentDependency }>(
-        "POST",
-        "/api/v1/equipment-dependencies",
-        {
-          vesselId: selectedVesselId,
-          upstreamEquipmentId: input.upstreamEquipmentId,
-          downstreamEquipmentId: input.downstreamEquipmentId,
-          notes: null,
-        }
-      ),
+    mutationFn: async (input: { upstreamEquipmentId: string; downstreamEquipmentId: string }) =>
+      apiRequest<{ dependency: EquipmentDependency }>("POST", "/api/v1/equipment-dependencies", {
+        vesselId: selectedVesselId,
+        upstreamEquipmentId: input.upstreamEquipmentId,
+        downstreamEquipmentId: input.downstreamEquipmentId,
+        notes: null,
+      }),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: depsQueryKey });
       const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
@@ -283,7 +260,9 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _input, ctx) => {
-      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
+      if (ctx?.prev) {
+        queryClient.setQueryData(depsQueryKey, ctx.prev);
+      }
       toast({
         title: "Couldn't add edge",
         description: err.message,
@@ -311,7 +290,9 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _input, ctx) => {
-      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
+      if (ctx?.prev) {
+        queryClient.setQueryData(depsQueryKey, ctx.prev);
+      }
       toast({
         title: "Couldn't save notes",
         description: err.message,
@@ -322,8 +303,7 @@ export default function EquipmentDependenciesPage() {
   });
 
   const graphDeleteMutation = useMutation({
-    mutationFn: async (id: string) =>
-      apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/v1/equipment-dependencies/${id}`),
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: depsQueryKey });
       const prev = queryClient.getQueryData<DependenciesResponse>(depsQueryKey);
@@ -333,7 +313,9 @@ export default function EquipmentDependenciesPage() {
       return { prev };
     },
     onError: (err: Error, _id, ctx) => {
-      if (ctx?.prev) {queryClient.setQueryData(depsQueryKey, ctx.prev);}
+      if (ctx?.prev) {
+        queryClient.setQueryData(depsQueryKey, ctx.prev);
+      }
       toast({
         title: "Couldn't remove edge",
         description: err.message,
@@ -377,24 +359,17 @@ export default function EquipmentDependenciesPage() {
   // stored for this (user, vessel). Includes vesselId in the key so
   // refetches on vessel switch are isolated.
   const layoutQueryKey = useMemo(
-    () =>
-      [
-        "/api/v1/vessels",
-        selectedVesselId,
-        "equipment-dependency-layout",
-      ] as const,
+    () => ["/api/v1/vessels", selectedVesselId, "equipment-dependency-layout"] as const,
     [selectedVesselId]
   );
 
   const layoutQuery = useQuery<LayoutResponse>({
     queryKey: layoutQueryKey,
     queryFn: async () => {
-      const res = await fetch(
-        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`,
-        { credentials: "include" }
+      return apiRequest(
+        "GET",
+        `/api/v1/vessels/${encodeURIComponent(selectedVesselId)}/equipment-dependency-layout`
       );
-      if (!res.ok) {throw new Error(`${res.status}: ${await res.text()}`);}
-      return res.json();
     },
     enabled: !!selectedVesselId,
   });
@@ -428,7 +403,9 @@ export default function EquipmentDependenciesPage() {
       setNodePositions({});
       return;
     }
-    if (layoutQuery.isLoading) {return;}
+    if (layoutQuery.isLoading) {
+      return;
+    }
     const saved = layoutQuery.data?.positions ?? {};
     const ids = equipmentList.map((e) => e.id);
     const fallback = circularLayout(ids);
@@ -445,10 +422,7 @@ export default function EquipmentDependenciesPage() {
 
   // ----- Debounced server save for node positions.
   const saveLayoutMutation = useMutation({
-    mutationFn: async (input: {
-      vesselId: string;
-      positions: NodePositions;
-    }) =>
+    mutationFn: async (input: { vesselId: string; positions: NodePositions }) =>
       apiRequest<{ ok: true; positions: NodePositions }>(
         "PUT",
         `/api/v1/vessels/${encodeURIComponent(input.vesselId)}/equipment-dependency-layout`,
@@ -486,10 +460,16 @@ export default function EquipmentDependenciesPage() {
 
   const scheduleLayoutSave = useCallback(
     (positions: NodePositions) => {
-      if (!selectedVesselId) {return;}
+      if (!selectedVesselId) {
+        return;
+      }
       const serialized = JSON.stringify(positions);
-      if (serialized === lastSavedRef.current) {return;}
-      if (saveTimerRef.current) {clearTimeout(saveTimerRef.current);}
+      if (serialized === lastSavedRef.current) {
+        return;
+      }
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
       saveTimerRef.current = setTimeout(() => {
         saveLayoutMutation.mutate({ vesselId: selectedVesselId, positions });
       }, 500);
@@ -555,8 +535,12 @@ export default function EquipmentDependenciesPage() {
             data: {},
           })) as Node[]
         );
-        for (const n of updated) {next[n.id] = n.position;}
-        if (positional) {scheduleLayoutSave(next);}
+        for (const n of updated) {
+          next[n.id] = n.position;
+        }
+        if (positional) {
+          scheduleLayoutSave(next);
+        }
         return next;
       });
     },
@@ -576,7 +560,9 @@ export default function EquipmentDependenciesPage() {
 
   const onConnect = useCallback(
     (conn: Connection) => {
-      if (!conn.source || !conn.target) {return;}
+      if (!conn.source || !conn.target) {
+        return;
+      }
       if (conn.source === conn.target) {
         toast({
           title: "Self-loop not allowed",
@@ -586,9 +572,7 @@ export default function EquipmentDependenciesPage() {
         return;
       }
       const exists = dependencies.some(
-        (d) =>
-          d.upstreamEquipmentId === conn.source &&
-          d.downstreamEquipmentId === conn.target
+        (d) => d.upstreamEquipmentId === conn.source && d.downstreamEquipmentId === conn.target
       );
       if (exists) {
         toast({ title: "That dependency already exists" });
@@ -606,9 +590,13 @@ export default function EquipmentDependenciesPage() {
 
   const onEdgeClick = useCallback(
     (_evt: React.MouseEvent, edge: Edge) => {
-      if (edge.id.startsWith("optimistic-")) {return;}
+      if (edge.id.startsWith("optimistic-")) {
+        return;
+      }
       const dep = dependencies.find((d) => d.id === edge.id);
-      if (!dep) {return;}
+      if (!dep) {
+        return;
+      }
       setNotesDialog({
         mode: "edit",
         dependencyId: dep.id,
@@ -627,8 +615,7 @@ export default function EquipmentDependenciesPage() {
           <CardContent className="py-12 text-center space-y-2">
             <h1 className="text-lg font-semibold">Admin only</h1>
             <p className="text-sm text-muted-foreground">
-              You need the admin or chief engineer role to manage equipment
-              dependencies.
+              You need the admin or chief engineer role to manage equipment dependencies.
             </p>
           </CardContent>
         </Card>
@@ -653,9 +640,8 @@ export default function EquipmentDependenciesPage() {
       <div>
         <h1 className="text-2xl font-bold">Equipment Dependencies</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Draw the dependency map for blast-radius reasoning. Upstream → downstream
-          edges feed the failure-propagation graph used by the 3D viewer and the
-          Copilot agent.
+          Draw the dependency map for blast-radius reasoning. Upstream → downstream edges feed the
+          failure-propagation graph used by the 3D viewer and the Copilot agent.
         </p>
       </div>
 
@@ -708,11 +694,10 @@ export default function EquipmentDependenciesPage() {
               <CardHeader>
                 <CardTitle>Dependency map</CardTitle>
                 <CardDescription>
-                  Drag a node by its body to reposition it. Drag from a node's
-                  edge handle to another node to add a new dependency
-                  (upstream → downstream). Select an edge and press Backspace
-                  or Delete to remove it. Changes auto-save through the
-                  existing dependency API.
+                  Drag a node by its body to reposition it. Drag from a node's edge handle to
+                  another node to add a new dependency (upstream → downstream). Select an edge and
+                  press Backspace or Delete to remove it. Changes auto-save through the existing
+                  dependency API.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -728,10 +713,7 @@ export default function EquipmentDependenciesPage() {
                   </p>
                 )}
                 {equipmentList.length === 0 ? (
-                  <p
-                    className="text-sm text-muted-foreground"
-                    data-testid="text-graph-empty"
-                  >
+                  <p className="text-sm text-muted-foreground" data-testid="text-graph-empty">
                     {equipmentQuery.isLoading
                       ? "Loading equipment…"
                       : "No equipment on this vessel — add equipment before drawing dependencies."}
@@ -777,16 +759,13 @@ export default function EquipmentDependenciesPage() {
               <CardHeader>
                 <CardTitle>Add dependency</CardTitle>
                 <CardDescription>
-                  Pick the upstream equipment (the source of the dependency) and the
-                  downstream equipment that depends on it.
+                  Pick the upstream equipment (the source of the dependency) and the downstream
+                  equipment that depends on it.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {equipmentQuery.isError && (
-                  <p
-                    className="text-sm text-destructive"
-                    data-testid="text-equipment-error"
-                  >
+                  <p className="text-sm text-destructive" data-testid="text-equipment-error">
                     Couldn't load equipment for this vessel:{" "}
                     {equipmentQuery.error instanceof Error
                       ? equipmentQuery.error.message
@@ -819,7 +798,11 @@ export default function EquipmentDependenciesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {equipmentList.map((e) => (
-                          <SelectItem key={e.id} value={e.id} data-testid={`option-upstream-${e.id}`}>
+                          <SelectItem
+                            key={e.id}
+                            value={e.id}
+                            data-testid={`option-upstream-${e.id}`}
+                          >
                             {e.name}
                           </SelectItem>
                         ))}
@@ -853,7 +836,11 @@ export default function EquipmentDependenciesPage() {
                         {equipmentList
                           .filter((e) => e.id !== upstreamId)
                           .map((e) => (
-                            <SelectItem key={e.id} value={e.id} data-testid={`option-downstream-${e.id}`}>
+                            <SelectItem
+                              key={e.id}
+                              value={e.id}
+                              data-testid={`option-downstream-${e.id}`}
+                            >
                               {e.name}
                             </SelectItem>
                           ))}
@@ -886,9 +873,9 @@ export default function EquipmentDependenciesPage() {
               <CardHeader>
                 <CardTitle>CSV bulk import</CardTitle>
                 <CardDescription>
-                  Paste rows as <code>upstreamEquipmentId,downstreamEquipmentId,notes</code>.
-                  Header row optional. Duplicate edges are skipped silently; equipment ids
-                  must belong to this vessel.
+                  Paste rows as <code>upstreamEquipmentId,downstreamEquipmentId,notes</code>. Header
+                  row optional. Duplicate edges are skipped silently; equipment ids must belong to
+                  this vessel.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -944,14 +931,9 @@ export default function EquipmentDependenciesPage() {
               </CardHeader>
               <CardContent>
                 {depsQuery.isError ? (
-                  <p
-                    className="text-sm text-destructive"
-                    data-testid="text-deps-error"
-                  >
+                  <p className="text-sm text-destructive" data-testid="text-deps-error">
                     Failed to load dependencies:{" "}
-                    {depsQuery.error instanceof Error
-                      ? depsQuery.error.message
-                      : "unknown error"}
+                    {depsQuery.error instanceof Error ? depsQuery.error.message : "unknown error"}
                   </p>
                 ) : dependencies.length === 0 && !depsQuery.isLoading ? (
                   <p className="text-sm text-muted-foreground" data-testid="text-deps-empty">
@@ -1008,15 +990,15 @@ export default function EquipmentDependenciesPage() {
       <Dialog
         open={notesDialog !== null}
         onOpenChange={(open) => {
-          if (!open) {setNotesDialog(null);}
+          if (!open) {
+            setNotesDialog(null);
+          }
         }}
       >
         <DialogContent data-testid="dialog-edge-notes">
           <DialogHeader>
             <DialogTitle>
-              {notesDialog?.mode === "create"
-                ? "Add dependency notes"
-                : "Edit dependency notes"}
+              {notesDialog?.mode === "create" ? "Add dependency notes" : "Edit dependency notes"}
             </DialogTitle>
             <DialogDescription>
               {notesDialog
@@ -1033,18 +1015,18 @@ export default function EquipmentDependenciesPage() {
               placeholder="e.g. shared cooling loop"
               value={notesDialog?.notes ?? ""}
               onChange={(e) =>
-                setNotesDialog((prev) =>
-                  prev ? { ...prev, notes: e.target.value } : prev
-                )
+                setNotesDialog((prev) => (prev ? { ...prev, notes: e.target.value } : prev))
               }
               data-testid="textarea-edge-notes"
             />
             {(() => {
-              if (notesDialog?.mode !== "edit") {return null;}
-              const dep = dependencies.find(
-                (d) => d.id === notesDialog.dependencyId
-              );
-              if (!dep?.notesUpdatedAt) {return null;}
+              if (notesDialog?.mode !== "edit") {
+                return null;
+              }
+              const dep = dependencies.find((d) => d.id === notesDialog.dependencyId);
+              if (!dep?.notesUpdatedAt) {
+                return null;
+              }
               const editor = dep.notesUpdatedByName ?? "unknown user";
               const when = new Date(dep.notesUpdatedAt).toLocaleString();
               return (
@@ -1069,7 +1051,9 @@ export default function EquipmentDependenciesPage() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (!notesDialog) {return;}
+                  if (!notesDialog) {
+                    return;
+                  }
                   graphCreateMutation.mutate({
                     upstreamEquipmentId: notesDialog.upstreamId,
                     downstreamEquipmentId: notesDialog.downstreamId,
@@ -1083,7 +1067,9 @@ export default function EquipmentDependenciesPage() {
             )}
             <Button
               onClick={() => {
-                if (!notesDialog) {return;}
+                if (!notesDialog) {
+                  return;
+                }
                 const trimmed = notesDialog.notes.trim();
                 const notesValue = trimmed.length === 0 ? null : trimmed;
                 if (notesDialog.mode === "edit") {
@@ -1112,9 +1098,7 @@ export default function EquipmentDependenciesPage() {
                 );
                 setNotesDialog(null);
               }}
-              disabled={
-                graphPatchMutation.isPending || graphCreateMutation.isPending
-              }
+              disabled={graphPatchMutation.isPending || graphCreateMutation.isPending}
               data-testid="button-edge-notes-save"
             >
               {notesDialog?.mode === "create" ? "Add edge" : "Save notes"}

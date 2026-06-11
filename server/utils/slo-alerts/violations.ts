@@ -36,7 +36,16 @@ function createViolation(
   severity: ViolationSeverity,
   burnRate?: number
 ): SLOViolation {
-  return { sloName, metric: metric as SLOViolation["metric"], threshold, actual, route, timestamp: new Date(), severity, burnRate };
+  return {
+    sloName,
+    metric: metric as SLOViolation["metric"],
+    threshold,
+    actual,
+    route,
+    timestamp: new Date(),
+    severity,
+    burnRate,
+  };
 }
 
 function checkLatencyViolations(
@@ -154,7 +163,7 @@ function clearResolvedViolations(currentViolationKeys: Set<string>): void {
   for (const key of activeViolationKeys) {
     if (!currentViolationKeys.has(key)) {
       const [sloName, metric] = key.split(":");
-      clearViolationGauge(sloName ?? '', metric ?? '');
+      clearViolationGauge(sloName ?? "", metric ?? "");
     }
   }
 }
@@ -166,7 +175,9 @@ function logViolations(violations: SLOViolation[]): void {
       recentViolations.shift();
     }
     const burnInfo = violation.burnRate ? `, burn rate: ${violation.burnRate.toFixed(2)}x` : "";
-    logger.warn(`[SLO VIOLATION] ${violation.sloName}: ${violation.metric} = ${violation.actual.toFixed(3)} (threshold: ${violation.threshold})${burnInfo} on ${violation.route}`);
+    logger.warn(
+      `[SLO VIOLATION] ${violation.sloName}: ${violation.metric} = ${violation.actual.toFixed(3)} (threshold: ${violation.threshold})${burnInfo} on ${violation.route}`
+    );
   }
 }
 

@@ -22,7 +22,10 @@ class FakeSignalsPort implements OperatorExperienceSignalsPort {
 class MemoryEventPort implements OperatorExperienceEventPort {
   readonly records: RecordedOperatorExperienceEvent[] = [];
 
-  async record(orgId: string, event: OperatorExperienceEvent): Promise<RecordedOperatorExperienceEvent> {
+  async record(
+    orgId: string,
+    event: OperatorExperienceEvent
+  ): Promise<RecordedOperatorExperienceEvent> {
     const record: RecordedOperatorExperienceEvent = {
       ...event,
       id: `event-${this.records.length + 1}`,
@@ -34,11 +37,16 @@ class MemoryEventPort implements OperatorExperienceEventPort {
   }
 
   async listRecent(orgId: string, limit: number): Promise<RecordedOperatorExperienceEvent[]> {
-    return this.records.filter((record) => record.orgId === orgId).slice(-limit).reverse();
+    return this.records
+      .filter((record) => record.orgId === orgId)
+      .slice(-limit)
+      .reverse();
   }
 }
 
-function snapshot(overrides: Partial<OperatorExperienceSignalSnapshot> = {}): OperatorExperienceSignalSnapshot {
+function snapshot(
+  overrides: Partial<OperatorExperienceSignalSnapshot> = {}
+): OperatorExperienceSignalSnapshot {
   return {
     attentionItems: 9,
     criticalItems: 2,
@@ -104,8 +112,14 @@ describe("operator experience hexagonal service", () => {
     const technician = await service.buildBrief("org-test", { role: "technician" });
     const deck = await service.buildBrief("org-test", { role: "deck_officer" });
 
-    expect(technician.nextActions[0]).toMatchObject({ id: "scan-equipment", href: "/equipment-scan" });
-    expect(deck.nextActions[0]).toMatchObject({ id: "prepare-handover", href: "/attention-inbox?view=handover" });
+    expect(technician.nextActions[0]).toMatchObject({
+      id: "scan-equipment",
+      href: "/equipment-scan",
+    });
+    expect(deck.nextActions[0]).toMatchObject({
+      id: "prepare-handover",
+      href: "/attention-inbox?view=handover",
+    });
   });
 
   it("records and lists operator experience events through the event port", async () => {

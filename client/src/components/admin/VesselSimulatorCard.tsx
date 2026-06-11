@@ -79,7 +79,7 @@ export function VesselSimulatorCard() {
     } catch (error) {
       toast({
         title: "Failed to load vessel types",
-        description: ((error instanceof Error ? error.message : String(error))),
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {
@@ -149,11 +149,11 @@ export function VesselSimulatorCard() {
     } catch (error) {
       setLastResult({
         success: false,
-        message: ((error instanceof Error ? error.message : String(error))) || "Simulation failed",
+        message: (error instanceof Error ? error.message : String(error)) || "Simulation failed",
       });
       toast({
         title: "Simulation Failed",
-        description: ((error instanceof Error ? error.message : String(error))),
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {
@@ -241,26 +241,17 @@ export function VesselSimulatorCard() {
               </SelectTrigger>
               <SelectContent>
                 {equipmentList.map((eq) => (
-                  <SelectItem
-                    key={eq.id}
-                    value={eq.id}
-                    data-testid={`option-equipment-${eq.id}`}
-                  >
+                  <SelectItem key={eq.id} value={eq.id} data-testid={`option-equipment-${eq.id}`}>
                     {eq.name} ({eq.type})
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {equipmentError && (
-              <p
-                className="text-xs text-destructive"
-                data-testid="text-equipment-error"
-              >
+              <p className="text-xs text-destructive" data-testid="text-equipment-error">
                 Equipment list failed to load
-                {equipmentErrorObj instanceof Error
-                  ? `: ${equipmentErrorObj.message}`
-                  : ""}
-                . Refresh the page or check API connectivity before running a simulation.
+                {equipmentErrorObj instanceof Error ? `: ${equipmentErrorObj.message}` : ""}.
+                Refresh the page or check API connectivity before running a simulation.
               </p>
             )}
           </div>

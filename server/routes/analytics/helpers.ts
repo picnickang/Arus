@@ -37,16 +37,14 @@ export function sendValidatedResponse<T>(
     return true;
   } catch (error) {
     logger.error("[Analytics API] Response validation failed:", undefined, error);
-    res
-      .status(500)
-      .json({
-        error: {
-          code: "RESPONSE_VALIDATION_ERROR",
-          message: "Response failed DTO validation",
-          details: process.env['NODE_ENV'] === "development" ? error : undefined,
-        },
-        metadata: { timestamp: new Date(), version: "1.0" },
-      });
+    res.status(500).json({
+      error: {
+        code: "RESPONSE_VALIDATION_ERROR",
+        message: "Response failed DTO validation",
+        details: process.env["NODE_ENV"] === "development" ? error : undefined,
+      },
+      metadata: { timestamp: new Date(), version: "1.0" },
+    });
     return false;
   }
 }
@@ -54,22 +52,18 @@ export function sendValidatedResponse<T>(
 export function handleError(res: Response, error: unknown, operation: string) {
   logger.error(`[Analytics API] ${operation} error:`, undefined, error);
   if (error instanceof Error && error.message.includes("not found")) {
-    res
-      .status(404)
-      .json({
-        error: { code: "NOT_FOUND", message: error.message },
-        metadata: { timestamp: new Date(), version: "1.0" },
-      });
-    return;
-  }
-  res
-    .status(500)
-    .json({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: error instanceof Error ? error.message : "An unexpected error occurred",
-        details: process.env['NODE_ENV'] === "development" ? error : undefined,
-      },
+    res.status(404).json({
+      error: { code: "NOT_FOUND", message: error.message },
       metadata: { timestamp: new Date(), version: "1.0" },
     });
+    return;
+  }
+  res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: error instanceof Error ? error.message : "An unexpected error occurred",
+      details: process.env["NODE_ENV"] === "development" ? error : undefined,
+    },
+    metadata: { timestamp: new Date(), version: "1.0" },
+  });
 }

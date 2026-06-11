@@ -35,7 +35,7 @@ beforeAll(() => {
 
 afterEach(() => {
   currentSession = undefined;
-  delete process.env['RBAC_DEV_NO_AUTH'];
+  delete process.env["RBAC_DEV_NO_AUTH"];
 });
 
 describe("LR-3.5 SEC-3 — RAG security admin gate", () => {
@@ -108,9 +108,9 @@ describe("LR-3.5 SEC-3 — RAG security admin gate", () => {
   });
 
   it("does NOT bypass admin gate when NODE_ENV=development without RBAC_DEV_NO_AUTH=1", async () => {
-    const prev = process.env['NODE_ENV'];
-    process.env['NODE_ENV'] = "development";
-    delete process.env['RBAC_DEV_NO_AUTH'];
+    const prev = process.env["NODE_ENV"];
+    process.env["NODE_ENV"] = "development";
+    delete process.env["RBAC_DEV_NO_AUTH"];
     currentSession = undefined;
     try {
       const res = await request(app)
@@ -119,9 +119,9 @@ describe("LR-3.5 SEC-3 — RAG security admin gate", () => {
       expect(res.status).toBe(401);
     } finally {
       if (prev === undefined) {
-        delete process.env['NODE_ENV'];
+        delete process.env["NODE_ENV"];
       } else {
-        process.env['NODE_ENV'] = prev;
+        process.env["NODE_ENV"] = prev;
       }
     }
   });

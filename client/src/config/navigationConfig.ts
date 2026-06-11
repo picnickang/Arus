@@ -24,6 +24,7 @@ import {
   FileText,
   QrCode,
   CloudOff,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,14 @@ export interface NavigationCategory {
   resource?: string;
 }
 
+// Admin-portal-only routes (no hub mapping): App.tsx wraps these in
+// AdminPortalRouteGuard so user-portal roles can never reach them.
+export const ADMIN_ONLY_ROUTES = new Set<string>([
+  "/attention-inbox",
+  "/admin/access-diagnostic",
+  "/feedback-review",
+]);
+
 // Map route paths to permission resources
 // Resource codes must match server/config/permission-registry.ts exactly
 export const routeResourceMap: Record<string, string> = {
@@ -55,6 +64,7 @@ export const routeResourceMap: Record<string, string> = {
   "/findings": "dashboard",
   "/briefing": "dashboard",
   "/attention-inbox": "dashboard",
+  "/feedback-review": "dashboard",
   "/offline-outbox": "dashboard",
   "/alerts": "alerts",
   "/governance-dashboard": "compliance_reports",
@@ -166,6 +176,12 @@ export const navigationCategories: NavigationCategory[] = [
         icon: AlertCircle,
         description: "Unified risk, blockers, handover, and next-action queue",
         badgeKey: "attention-open",
+      },
+      {
+        name: "Feedback Review",
+        href: "/feedback-review",
+        icon: MessageSquare,
+        description: "Crew feedback triage — acknowledge, resolve, link work orders",
       },
       {
         name: "Agent Findings",
@@ -500,6 +516,23 @@ export const routeMigrations: Record<string, string> = {
   "/outbox": "/offline-outbox",
   "/sync-outbox": "/offline-outbox",
   "/compliance/findings": "/logs/compliance?tab=findings",
+  // Standalone consolidated-wrapper routes retired; /logs/<area> renders the
+  // same shells (UI assessment route consolidation, 2026-06).
+  "/compliance-consolidated": "/logs/compliance",
+  "/deck-log-consolidated": "/logs/deck",
+  "/engine-log-consolidated": "/logs/engine",
+  "/equipment-log-consolidated": "/logs/equipment",
+  // Standalone settings pages retired; the Configuration and Notifications
+  // hubs host the same pages as tabs (UI assessment settings consolidation).
+  "/settings": "/configuration?tab=system-settings",
+  "/transport-settings": "/configuration?tab=data-transport",
+  "/storage-settings": "/configuration?tab=storage",
+  "/notification-settings": "/notifications?tab=preferences",
+  "/email-alerts-settings": "/notifications?tab=alert-rules",
+  "/email-templates": "/notifications?tab=templates",
+  // Permissions management lives in Crew → Roles & Dashboards.
+  "/permissions-settings": "/crew-management?view=roles",
+  "/operating-parameters": "/configuration?tab=operating-parameters",
   "/vessel-intelligence/fleet": "/fleet",
   "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",

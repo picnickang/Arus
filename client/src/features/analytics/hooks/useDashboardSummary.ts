@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { CACHE_TIMES } from "@/lib/queryClient";
 
@@ -151,11 +152,7 @@ interface DashboardSummary {
 }
 
 async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  const response = await fetch("/api/dashboard/summary");
-  if (!response.ok) {
-    throw new Error("Failed to fetch dashboard summary");
-  }
-  return response.json();
+  return apiRequest<DashboardSummary>("GET", "/api/dashboard/summary");
 }
 
 export function useDashboardSummary() {

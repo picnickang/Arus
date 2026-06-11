@@ -42,7 +42,11 @@ export async function nextSeq(vesselId: string, entity: string): Promise<number>
 
     return Number(row.seq);
   } catch (error) {
-    logger.error(`[SequenceRepo] Error generating sequence for ${vesselId}:${entity}:`, undefined, error);
+    logger.error(
+      `[SequenceRepo] Error generating sequence for ${vesselId}:${entity}:`,
+      undefined,
+      error
+    );
     throw error;
   }
 }
@@ -68,7 +72,11 @@ export async function getCurrentSeq(vesselId: string, entity: string): Promise<n
 
     return row ? Number(row.seq) : 0;
   } catch (error) {
-    logger.error(`[SequenceRepo] Error fetching current sequence for ${vesselId}:${entity}:`, undefined, error);
+    logger.error(
+      `[SequenceRepo] Error fetching current sequence for ${vesselId}:${entity}:`,
+      undefined,
+      error
+    );
     return 0;
   }
 }
@@ -94,7 +102,11 @@ export async function resetSeq(vesselId: string, entity: string, value: number):
 
     logger.warn(`[SequenceRepo] RESET sequence for ${vesselId}:${entity} to ${value}`);
   } catch (error) {
-    logger.error(`[SequenceRepo] Error resetting sequence for ${vesselId}:${entity}:`, undefined, error);
+    logger.error(
+      `[SequenceRepo] Error resetting sequence for ${vesselId}:${entity}:`,
+      undefined,
+      error
+    );
     throw error;
   }
 }

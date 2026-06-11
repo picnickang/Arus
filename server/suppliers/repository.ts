@@ -77,7 +77,11 @@ export async function listSuppliers(filters: SupplierListFilters) {
     .offset(filters.offset || 0);
 }
 
-export async function updateSupplier(id: string, orgId: string, data: WidenPartial<InsertSupplier>) {
+export async function updateSupplier(
+  id: string,
+  orgId: string,
+  data: WidenPartial<InsertSupplier>
+) {
   const [result] = await db
     .update(suppliers)
     .set({ ...data, updatedAt: new Date() })

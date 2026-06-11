@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleNames } from "@/hooks/useRoleNames";
+import { DiscardConfirmDialog, useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { AlertTriangle } from "lucide-react";
 import {
   HUB_IDS,
@@ -127,31 +128,48 @@ export function RolePermissionsDialog({
       roleHubAccess == null
         ? [...HUB_IDS]
         : roleHubAccess.filter((h) => (HUB_IDS as readonly string[]).includes(h)),
-    [roleHubAccess],
+    [roleHubAccess]
   );
 
   useEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
     setHubAdminDraft(isSuperAdmin || roleHubAdmin);
     setHubDraft(new Set(currentHubSet));
     setSaveError(null);
   }, [open, roleId, roleHubAdmin, isSuperAdmin, currentHubSet]);
 
   const hubsChanged = useMemo(() => {
-    if (isSuperAdmin) {return false;}
-    if (hubAdminDraft !== roleHubAdmin) {return true;}
-    if (!hubAdminDraft) {return false;}
+    if (isSuperAdmin) {
+      return false;
+    }
+    if (hubAdminDraft !== roleHubAdmin) {
+      return true;
+    }
+    if (!hubAdminDraft) {
+      return false;
+    }
     const current = new Set(currentHubSet);
-    if (current.size !== hubDraft.size) {return true;}
-    for (const h of hubDraft) {if (!current.has(h)) {return true;}}
+    if (current.size !== hubDraft.size) {
+      return true;
+    }
+    for (const h of hubDraft) {
+      if (!current.has(h)) {
+        return true;
+      }
+    }
     return false;
   }, [isSuperAdmin, hubAdminDraft, roleHubAdmin, hubDraft, currentHubSet]);
 
   const toggleHub = (id: string) => {
     setHubDraft((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {next.delete(id);}
-      else {next.add(id);}
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -176,7 +194,7 @@ export function RolePermissionsDialog({
     return set;
   }, [grants]);
 
-  const isChecked = (key: string) => (key in draft ? draft[key] : original.has(key));
+  const isChecked = (key: string) => draft[key] ?? original.has(key);
 
   const toggle = (key: string) => {
     setDraft((prev) => ({ ...prev, [key]: !isChecked(key) }));
@@ -184,7 +202,9 @@ export function RolePermissionsDialog({
 
   const actionLabels = useMemo(() => {
     const map: Record<string, ActionDef> = {};
-    for (const a of registry?.actions ?? []) {map[a.code] = a;}
+    for (const a of registry?.actions ?? []) {
+      map[a.code] = a;
+    }
     return map;
   }, [registry]);
 
@@ -194,7 +214,9 @@ export function RolePermissionsDialog({
   const grantChangeCount = useMemo(() => {
     let n = 0;
     for (const key of Object.keys(draft)) {
-      if (draft[key] !== original.has(key)) {n += 1;}
+      if (draft[key] !== original.has(key)) {
+        n += 1;
+      }
     }
     return n;
   }, [draft, original]);
@@ -203,7 +225,9 @@ export function RolePermissionsDialog({
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!roleId) {return;}
+      if (!roleId) {
+        return;
+      }
       // 1) Permission grants (only the diff).
       const changes = Object.keys(draft)
         .filter((key) => draft[key] !== original.has(key))
@@ -220,11 +244,7 @@ export function RolePermissionsDialog({
       // from "all"), and a partial selection sends that explicit list.
       if (hubsChanged) {
         const ticked = [...hubDraft];
-        const hubAccess = !hubAdminDraft
-          ? null
-          : ticked.length === HUB_IDS.length
-            ? null
-            : ticked;
+        const hubAccess = !hubAdminDraft ? null : ticked.length === HUB_IDS.length ? null : ticked;
         await apiRequest("PATCH", `/api/admin/crew/roles/${roleId}/hub-access`, {
           hubAdmin: hubAdminDraft,
           hubAccess,
@@ -260,170 +280,193 @@ export function RolePermissionsDialog({
     onOpenChange(next);
   };
 
+  // Pending grant ticks or hub-access edits make the dialog dirty: closing then
+  // asks for confirmation before the drafts are thrown away.
+  const guard = useDiscardGuard({ isDirty: changedCount > 0, onOpenChange: handleOpenChange });
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" data-testid="dialog-role-permissions">
-        <DialogHeader>
-          <DialogTitle>Access permissions — {roleDisplayName}</DialogTitle>
-          <DialogDescription>
-            Choose what people with this role can see and do. Each tick grants one action on one
-            area of the app.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={guard.handleOpenChange}>
+        <DialogContent
+          className="max-w-3xl max-h-[85vh] overflow-y-auto"
+          data-testid="dialog-role-permissions"
+        >
+          <DialogHeader>
+            <DialogTitle>Access permissions — {roleDisplayName}</DialogTitle>
+            <DialogDescription>
+              Choose what people with this role can see and do. Each tick grants one action on one
+              area of the app.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="rounded-md border p-4 space-y-3" data-testid="hub-access-section">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h4 className="text-sm font-semibold">Admin hub access</h4>
+          <div className="rounded-md border p-4 space-y-3" data-testid="hub-access-section">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold">Admin hub access</h4>
+                <p className="text-xs text-muted-foreground">
+                  Turn this on to give the role the admin landing page and pick which hubs it can
+                  open. Off means the role only sees its own work area.
+                </p>
+              </div>
+              <Checkbox
+                checked={hubAdminDraft}
+                disabled={isSuperAdmin || !canBeHubAdmin || !canEditPermissions}
+                onCheckedChange={(v) => setHubAdminDraft(v === true)}
+                data-testid="checkbox-hub-admin"
+              />
+            </div>
+
+            {isSuperAdmin && (
               <p className="text-xs text-muted-foreground">
-                Turn this on to give the role the admin landing page and pick which hubs it
-                can open. Off means the role only sees its own work area.
+                Super-admin roles always have access to every hub. This can't be changed here.
               </p>
-            </div>
-            <Checkbox
-              checked={hubAdminDraft}
-              disabled={isSuperAdmin || !canBeHubAdmin || !canEditPermissions}
-              onCheckedChange={(v) => setHubAdminDraft(v === true)}
-              data-testid="checkbox-hub-admin"
-            />
+            )}
+            {!isSuperAdmin && !canBeHubAdmin && (
+              <p className="text-xs text-muted-foreground">
+                Only manager-level roles and above can be given admin hub access.
+              </p>
+            )}
+
+            {hubAdminDraft && !isSuperAdmin && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {HUB_IDS.map((hub) => (
+                  <label
+                    key={hub}
+                    className="flex items-center gap-2 text-sm"
+                    data-testid={`label-hub-${hub}`}
+                  >
+                    <Checkbox
+                      checked={hubDraft.has(hub)}
+                      disabled={!canEditPermissions}
+                      onCheckedChange={() => toggleHub(hub)}
+                      data-testid={`checkbox-hub-${hub}`}
+                    />
+                    {HUB_LABELS[hub] ?? hub}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
-          {isSuperAdmin && (
-            <p className="text-xs text-muted-foreground">
-              Super-admin roles always have access to every hub. This can't be changed here.
-            </p>
-          )}
-          {!isSuperAdmin && !canBeHubAdmin && (
-            <p className="text-xs text-muted-foreground">
-              Only manager-level roles and above can be given admin hub access.
-            </p>
-          )}
-
-          {hubAdminDraft && !isSuperAdmin && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {HUB_IDS.map((hub) => (
-                <label
-                  key={hub}
-                  className="flex items-center gap-2 text-sm"
-                  data-testid={`label-hub-${hub}`}
-                >
-                  <Checkbox
-                    checked={hubDraft.has(hub)}
-                    disabled={!canEditPermissions}
-                    onCheckedChange={() => toggleHub(hub)}
-                    data-testid={`checkbox-hub-${hub}`}
-                  />
-                  {HUB_LABELS[hub] ?? hub}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {saveError && (
-          <div
-            className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            data-testid="text-save-error"
-          >
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{saveError}</span>
-          </div>
-        )}
-
-        {grantsLoading ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Loading permissions…</p>
-        ) : (
-          <div className="space-y-6">
-            {categories.map((cat) => {
-              const catResources = resources
-                .filter((r) => r.category === cat.code)
-                .sort((a, b) => a.sortOrder - b.sortOrder);
-              if (catResources.length === 0) {return null;}
-              return (
-                <div key={cat.code} data-testid={`perm-category-${cat.code}`}>
-                  <h4 className="text-sm font-semibold mb-2">{cat.name}</h4>
-                  <div className="space-y-2">
-                    {catResources.map((resource) => (
-                      <div
-                        key={resource.code}
-                        className="rounded-md border px-3 py-2"
-                        data-testid={`perm-resource-${resource.code}`}
-                      >
-                        <div className="mb-2">
-                          <span className="text-sm font-medium">{resource.name}</span>
-                          <p className="text-xs text-muted-foreground">{resource.description}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2">
-                          {resource.actions
-                            .slice()
-                            .sort(
-                              (a, b) =>
-                                (actionLabels[a]?.sortOrder ?? 0) - (actionLabels[b]?.sortOrder ?? 0),
-                            )
-                            .map((actionCode) => {
-                              const key = grantKey(resource.code, actionCode);
-                              const action = actionLabels[actionCode];
-                              return (
-                                <label
-                                  key={actionCode}
-                                  className="flex items-center gap-1.5 text-sm cursor-pointer"
-                                >
-                                  <Checkbox
-                                    checked={isChecked(key)}
-                                    disabled={!canEditPermissions}
-                                    onCheckedChange={() => toggle(key)}
-                                    data-testid={`checkbox-grant-${resource.code}-${actionCode}`}
-                                  />
-                                  <span>{action?.name ?? actionCode}</span>
-                                  {action && action.riskLevel !== "low" && (
-                                    <Badge
-                                      variant={RISK_VARIANT[action.riskLevel]}
-                                      className="text-[10px] px-1 py-0"
-                                    >
-                                      {action.riskLevel}
-                                    </Badge>
-                                  )}
-                                </label>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {!canEditPermissions && (
-          <div
-            className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground"
-            data-testid="text-readonly-permissions"
-          >
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>Only a Super Admin can change access permissions. This is a read-only view.</span>
-          </div>
-        )}
-
-        <DialogFooter className="items-center gap-2">
-          <span className="text-xs text-muted-foreground mr-auto" data-testid="text-perm-changes">
-            {changedCount === 0 ? "No changes" : `${changedCount} change(s) pending`}
-          </span>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} data-testid="button-cancel-permissions">
-            {canEditPermissions ? "Cancel" : "Close"}
-          </Button>
-          {canEditPermissions && (
-            <Button
-              onClick={() => save.mutate()}
-              disabled={save.isPending || changedCount === 0}
-              data-testid="button-save-permissions"
+          {saveError && (
+            <div
+              className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              data-testid="text-save-error"
             >
-              Save Access
-            </Button>
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{saveError}</span>
+            </div>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          {grantsLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Loading permissions…</p>
+          ) : (
+            <div className="space-y-6">
+              {categories.map((cat) => {
+                const catResources = resources
+                  .filter((r) => r.category === cat.code)
+                  .sort((a, b) => a.sortOrder - b.sortOrder);
+                if (catResources.length === 0) {
+                  return null;
+                }
+                return (
+                  <div key={cat.code} data-testid={`perm-category-${cat.code}`}>
+                    <h4 className="text-sm font-semibold mb-2">{cat.name}</h4>
+                    <div className="space-y-2">
+                      {catResources.map((resource) => (
+                        <div
+                          key={resource.code}
+                          className="rounded-md border px-3 py-2"
+                          data-testid={`perm-resource-${resource.code}`}
+                        >
+                          <div className="mb-2">
+                            <span className="text-sm font-medium">{resource.name}</span>
+                            <p className="text-xs text-muted-foreground">{resource.description}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-2">
+                            {resource.actions
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  (actionLabels[a]?.sortOrder ?? 0) -
+                                  (actionLabels[b]?.sortOrder ?? 0)
+                              )
+                              .map((actionCode) => {
+                                const key = grantKey(resource.code, actionCode);
+                                const action = actionLabels[actionCode];
+                                return (
+                                  <label
+                                    key={actionCode}
+                                    className="flex items-center gap-1.5 text-sm cursor-pointer"
+                                  >
+                                    <Checkbox
+                                      checked={isChecked(key)}
+                                      disabled={!canEditPermissions}
+                                      onCheckedChange={() => toggle(key)}
+                                      data-testid={`checkbox-grant-${resource.code}-${actionCode}`}
+                                    />
+                                    <span>{action?.name ?? actionCode}</span>
+                                    {action && action.riskLevel !== "low" && (
+                                      <Badge
+                                        variant={RISK_VARIANT[action.riskLevel]}
+                                        className="text-[10px] px-1 py-0"
+                                      >
+                                        {action.riskLevel}
+                                      </Badge>
+                                    )}
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!canEditPermissions && (
+            <div
+              className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground"
+              data-testid="text-readonly-permissions"
+            >
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Only a Super Admin can change access permissions. This is a read-only view.
+              </span>
+            </div>
+          )}
+
+          <DialogFooter className="items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-auto" data-testid="text-perm-changes">
+              {changedCount === 0 ? "No changes" : `${changedCount} change(s) pending`}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => guard.handleOpenChange(false)}
+              data-testid="button-cancel-permissions"
+            >
+              {canEditPermissions ? "Cancel" : "Close"}
+            </Button>
+            {canEditPermissions && (
+              <Button
+                onClick={() => save.mutate()}
+                disabled={save.isPending || changedCount === 0}
+                data-testid="button-save-permissions"
+              >
+                Save Access
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <DiscardConfirmDialog
+        open={guard.confirmOpen}
+        onConfirm={guard.onConfirm}
+        onCancel={guard.onCancel}
+      />
+    </>
   );
 }

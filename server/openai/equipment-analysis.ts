@@ -55,25 +55,29 @@ export async function analyzeEquipmentHealth(
     const formattedData =
       Array.isArray(telemetryData) && telemetryData.length > 0
         ? telemetryData[0] && "data" in telemetryData[0]
-          ? (telemetryData as TelemetryTrend[]).map((trend: TelemetryTrend & {
-              unit?: string;
-              currentValue?: number;
-              threshold?: number;
-              status?: string;
-              trend?: string;
-              changePercent?: number;
-              data?: unknown[];
-            }) => ({
-              equipmentId: trend.equipmentId,
-              sensorType: trend.sensorType,
-              unit: trend.unit,
-              currentValue: trend.currentValue,
-              threshold: trend.threshold,
-              status: trend.status,
-              trend: trend.trend,
-              changePercent: trend.changePercent,
-              recentData: trend.data?.slice(-5) ?? [],
-            }))
+          ? (telemetryData as TelemetryTrend[]).map(
+              (
+                trend: TelemetryTrend & {
+                  unit?: string;
+                  currentValue?: number;
+                  threshold?: number;
+                  status?: string;
+                  trend?: string;
+                  changePercent?: number;
+                  data?: unknown[];
+                }
+              ) => ({
+                equipmentId: trend.equipmentId,
+                sensorType: trend.sensorType,
+                unit: trend.unit,
+                currentValue: trend.currentValue,
+                threshold: trend.threshold,
+                status: trend.status,
+                trend: trend.trend,
+                changePercent: trend.changePercent,
+                recentData: trend.data?.slice(-5) ?? [],
+              })
+            )
           : (telemetryData as EquipmentTelemetry[]).slice(-20)
         : [];
 
@@ -126,7 +130,9 @@ export async function analyzeEquipmentHealth(
     };
   } catch (error) {
     logger.error(`Equipment analysis failed for ${equipmentId}:`, undefined, error);
-    logger.warn(`Returning fallback analysis for equipment ${equipmentId} - AI service unavailable`);
+    logger.warn(
+      `Returning fallback analysis for equipment ${equipmentId} - AI service unavailable`
+    );
 
     return {
       equipmentId,
@@ -144,9 +150,8 @@ export async function analyzeEquipmentHealth(
         },
       ],
       summary: "Unable to complete AI analysis. Manual inspection recommended.",
-      nextMaintenanceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0] ?? '',
+      nextMaintenanceDate:
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] ?? "",
       criticalAlerts: ["AI analysis service unavailable"],
     };
   }

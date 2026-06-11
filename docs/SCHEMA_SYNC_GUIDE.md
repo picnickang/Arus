@@ -99,7 +99,7 @@ If this is an existing table, add migration SQL:
 -- At the end of server/sqlite-init.ts
 -- Add migration for new column (safe for existing databases)
 db.run(`
-  ALTER TABLE equipment 
+  ALTER TABLE equipment
   ADD COLUMN new_column TEXT
 `).catch(() => {
   // Column might already exist, ignore error
@@ -118,17 +118,17 @@ This catches missing tables early!
 
 ## Type Mapping Reference
 
-| PostgreSQL (shared/schema.ts) | SQLite (schema-sqlite-vessel.ts) | SQL (sqlite-init.ts) |
-|------------------------------|----------------------------------|---------------------|
-| `varchar(n)` | `text()` | `TEXT` |
-| `uuid()` | `text()` | `TEXT` |
-| `serial()` | `integer()` | `INTEGER PRIMARY KEY AUTOINCREMENT` |
-| `integer()` | `integer()` | `INTEGER` |
-| `real()` | `real()` | `REAL` |
-| `boolean()` | `integer()` | `INTEGER` (0/1) |
-| `timestamp()` | `integer()` | `INTEGER` (Unix timestamp) |
-| `json()` | `text()` | `TEXT` (JSON string) |
-| `text[]` (array) | `text()` | `TEXT` (JSON array) |
+| PostgreSQL (shared/schema.ts) | SQLite (schema-sqlite-vessel.ts) | SQL (sqlite-init.ts)                |
+| ----------------------------- | -------------------------------- | ----------------------------------- |
+| `varchar(n)`                  | `text()`                         | `TEXT`                              |
+| `uuid()`                      | `text()`                         | `TEXT`                              |
+| `serial()`                    | `integer()`                      | `INTEGER PRIMARY KEY AUTOINCREMENT` |
+| `integer()`                   | `integer()`                      | `INTEGER`                           |
+| `real()`                      | `real()`                         | `REAL`                              |
+| `boolean()`                   | `integer()`                      | `INTEGER` (0/1)                     |
+| `timestamp()`                 | `integer()`                      | `INTEGER` (Unix timestamp)          |
+| `json()`                      | `text()`                         | `TEXT` (JSON string)                |
+| `text[]` (array)              | `text()`                         | `TEXT` (JSON array)                 |
 
 ---
 
@@ -191,9 +191,10 @@ npx tsx scripts/validate-schema-sync.ts
 ```
 
 This checks:
+
 - ✅ All Drizzle tables exist in SQL
 - ✅ No extra tables in SQL
-- ⚠️  Does NOT check column-level sync (manual review required)
+- ⚠️ Does NOT check column-level sync (manual review required)
 
 ### Manual Verification
 
@@ -215,15 +216,18 @@ SELECT COUNT(*) FROM pragma_table_info('table_name');
 ## Future Automation (Roadmap)
 
 ### Phase 1: Enhanced Validation (Current)
+
 - ✅ Table-level drift detection
 - 📋 TODO: Column-level validation
 - 📋 TODO: Type mismatch detection
 
 ### Phase 2: Semi-Automated Generation
+
 - 📋 Generate ALTER TABLE migrations from schema changes
 - 📋 Drizzle schema → SQL generator
 
 ### Phase 3: Full Automation
+
 - 📋 Use Drizzle migrations for SQLite (eliminate raw SQL)
 - 📋 Single source of truth for all deployment modes
 - 📋 Automated CI/CD schema validation

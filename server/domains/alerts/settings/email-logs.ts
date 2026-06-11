@@ -10,7 +10,9 @@ import type { EmailLogOptions } from "./types.js";
 
 export async function logEmail(data: InsertAlertEmailLog): Promise<AlertEmailLog> {
   const [created] = await db.insert(alertEmailLog).values(data).returning();
-  if (!created) {throw new Error("Failed to log alert email");}
+  if (!created) {
+    throw new Error("Failed to log alert email");
+  }
   return created;
 }
 
@@ -26,7 +28,9 @@ export async function updateEmailLogStatus(
     .set({ status, sentAt, errorMessage, messageId })
     .where(eq(alertEmailLog.id, id))
     .returning();
-  if (!updated) {throw new Error(`Failed to update alert email log ${id}`);}
+  if (!updated) {
+    throw new Error(`Failed to update alert email log ${id}`);
+  }
   return updated;
 }
 

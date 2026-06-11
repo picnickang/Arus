@@ -136,41 +136,47 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const actionableInsights = pgTable("actionable_insights", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id").notNull().references(() => organizations.id),
-  equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  equipmentId: varchar("equipment_id")
+    .notNull()
+    .references(() => equipment.id),
   vesselId: varchar("vessel_id").references(() => vessels.id),
-  
+
   // Insight classification
   type: varchar("type").notNull(), // "impending_failure", "degrading_health", "sensor_quality", "maintenance_overdue"
   severity: varchar("severity").notNull(), // "low", "medium", "high", "critical"
-  
+
   // Content
   title: varchar("title").notNull(), // "Impending Bearing Failure Detected"
   message: text("message").notNull(), // Plain-language explanation
-  
+
   // Supporting data (JSONB for flexibility)
   supportingSignals: jsonb("supporting_signals"), // { rulDays: 6, vibrationTrend: 52, sensorQuality: 0.6 }
-  
+
   // Recommended action (JSONB)
   recommendedAction: jsonb("recommended_action"), // { type: "schedule_maintenance", description: "...", parts: [...] }
-  
+
   // Knowledge base enrichment
   relatedProcedures: jsonb("related_procedures"), // [{ id: "...", title: "...", url: "..." }]
-  
+
   // Status tracking
   acknowledged: boolean("acknowledged").default(false),
   acknowledgedAt: timestamp("acknowledged_at"),
   acknowledgedBy: varchar("acknowledged_by"), // User ID
-  
+
   resolved: boolean("resolved").default(false),
   resolvedAt: timestamp("resolved_at"),
   resolvedBy: varchar("resolved_by"),
   resolutionNotes: text("resolution_notes"),
-  
+
   // Work order linkage (optional)
   workOrderId: varchar("work_order_id").references(() => workOrders.id),
-  
+
   // Metadata
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -221,28 +227,28 @@ export const actionableInsights = sqliteTable("actionable_insights", {
   org_id: text("org_id").notNull(),
   equipment_id: text("equipment_id").notNull(),
   vessel_id: text("vessel_id"),
-  
+
   type: text("type").notNull(),
   severity: text("severity").notNull(),
-  
+
   title: text("title").notNull(),
   message: text("message").notNull(),
-  
+
   supporting_signals: text("supporting_signals"), // JSON string
   recommended_action: text("recommended_action"), // JSON string
   related_procedures: text("related_procedures"), // JSON string
-  
+
   acknowledged: integer("acknowledged").default(0), // Boolean as 0/1
   acknowledged_at: integer("acknowledged_at"), // Unix timestamp
   acknowledged_by: text("acknowledged_by"),
-  
+
   resolved: integer("resolved").default(0),
   resolved_at: integer("resolved_at"),
   resolved_by: text("resolved_by"),
   resolution_notes: text("resolution_notes"),
-  
+
   work_order_id: text("work_order_id"),
-  
+
   created_at: integer("created_at").notNull(), // Unix timestamp
   updated_at: integer("updated_at").notNull(),
 });
@@ -255,6 +261,7 @@ export const actionableInsights = sqliteTable("actionable_insights", {
 ### Insight Type 1: **Impending Failure**
 
 **Trigger Rule:**
+
 ```json
 {
   "type": "impending_failure",
@@ -283,6 +290,7 @@ export const actionableInsights = sqliteTable("actionable_insights", {
 ### Insight Type 2: **Degrading Health**
 
 **Trigger Rule:**
+
 ```json
 {
   "type": "degrading_health",
@@ -305,6 +313,7 @@ export const actionableInsights = sqliteTable("actionable_insights", {
 ### Insight Type 3: **Sensor Quality Issue**
 
 **Trigger Rule:**
+
 ```json
 {
   "type": "sensor_quality",
@@ -327,6 +336,7 @@ export const actionableInsights = sqliteTable("actionable_insights", {
 ### Insight Type 4: **Maintenance Overdue**
 
 **Trigger Rule:**
+
 ```json
 {
   "type": "maintenance_overdue",
@@ -349,6 +359,7 @@ export const actionableInsights = sqliteTable("actionable_insights", {
 ### Insight Type 5: **Anomaly Detected**
 
 **Trigger Rule:**
+
 ```json
 {
   "type": "anomaly_detected",
@@ -464,11 +475,16 @@ export class InsightEngine {
     if (value === undefined) return false;
 
     switch (condition.operator) {
-      case "<": return value < condition.value;
-      case ">": return value > condition.value;
-      case "=": return value === condition.value;
-      case "!=": return value !== condition.value;
-      default: return false;
+      case "<":
+        return value < condition.value;
+      case ">":
+        return value > condition.value;
+      case "=":
+        return value === condition.value;
+      case "!=":
+        return value !== condition.value;
+      default:
+        return false;
     }
   }
 
@@ -706,6 +722,7 @@ cron.schedule("0 * * * *", async () => {
 ### Endpoint: `GET /api/insights`
 
 **Query Parameters:**
+
 - `severity`: Filter by severity (low, medium, high, critical)
 - `status`: Filter by status (open, acknowledged, resolved)
 - `equipmentId`: Filter by equipment
@@ -713,6 +730,7 @@ cron.schedule("0 * * * *", async () => {
 - `type`: Filter by insight type
 
 **Response:**
+
 ```json
 {
   "insights": [
@@ -751,6 +769,7 @@ cron.schedule("0 * * * *", async () => {
 ### Endpoint: `POST /api/insights/:id/acknowledge`
 
 **Request Body:**
+
 ```json
 {
   "notes": "Reviewed and scheduled for next port arrival"
@@ -758,6 +777,7 @@ cron.schedule("0 * * * *", async () => {
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -768,6 +788,7 @@ cron.schedule("0 * * * *", async () => {
 ### Endpoint: `POST /api/insights/:id/schedule-maintenance`
 
 **Request Body:**
+
 ```json
 {
   "scheduledDate": "2025-11-27T10:00:00Z",
@@ -776,6 +797,7 @@ cron.schedule("0 * * * *", async () => {
 ```
 
 **Actions Performed:**
+
 1. Create work order with details from `recommendedAction`
 2. Reserve parts from inventory (if specified)
 3. Notify shore-side coordinator via email/MQTT
@@ -783,6 +805,7 @@ cron.schedule("0 * * * *", async () => {
 5. Link work order to insight
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -803,7 +826,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { AlertCircle, CheckCircle, Clock, Wrench } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -837,11 +866,16 @@ export function ActionableInsightsPanel({ equipmentId }: { equipmentId?: string 
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "critical": return "destructive";
-      case "high": return "destructive";
-      case "medium": return "warning";
-      case "low": return "default";
-      default: return "default";
+      case "critical":
+        return "destructive";
+      case "high":
+        return "destructive";
+      case "medium":
+        return "warning";
+      case "low":
+        return "default";
+      default:
+        return "default";
     }
   };
 
@@ -912,7 +946,10 @@ export function ActionableInsightsPanel({ equipmentId }: { equipmentId?: string 
                           <li>Vibration trend: +{insight.supportingSignals.vibrationTrend48h}%</li>
                         )}
                         {insight.supportingSignals.sensorQuality && (
-                          <li>Sensor quality: {(insight.supportingSignals.sensorQuality * 100).toFixed(0)}%</li>
+                          <li>
+                            Sensor quality:{" "}
+                            {(insight.supportingSignals.sensorQuality * 100).toFixed(0)}%
+                          </li>
                         )}
                       </ul>
                     </div>

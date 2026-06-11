@@ -35,7 +35,7 @@ export abstract class TenantScopedRepository {
       throw new Error("TenantScopedRepository: orgId is required and must be a non-empty string");
     }
 
-    const isDevelopment = process.env['NODE_ENV'] === "development";
+    const isDevelopment = process.env["NODE_ENV"] === "development";
     const FORBIDDEN_ORG_IDS = isDevelopment
       ? ["test-org-id", "placeholder-org-id"]
       : ["default-org-id", "test-org-id", "placeholder-org-id"];

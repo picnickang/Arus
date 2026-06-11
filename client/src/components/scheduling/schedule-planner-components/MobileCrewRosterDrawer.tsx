@@ -11,22 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import {
-  Users,
-  User,
-  ChevronRight as ChevronRightIcon,
-} from "lucide-react";
+import { Users, User, ChevronRight as ChevronRightIcon } from "lucide-react";
 import {
   type PlannerCrewMember as CrewMember,
   type PlannerVessel as Vessel,
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
-import {
-  getRoleColor,
-} from "../schedule-planner-utils";
-
-
-
+import { getRoleColor } from "../schedule-planner-utils";
 
 export function MobileCrewRosterDrawer({
   crew,
@@ -213,4 +204,3 @@ export function MobileCrewRosterDrawer({
     </Sheet>
   );
 }
-

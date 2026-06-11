@@ -63,31 +63,44 @@ interface StatusResponse {
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) {return "—";}
-  if (bytes === 0) {return "0 B";}
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "—";
+  }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
 }
 
 function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) {return "—";}
-  if (ms < 1000) {return `${ms} ms`;}
+  if (!Number.isFinite(ms) || ms < 0) {
+    return "—";
+  }
+  if (ms < 1000) {
+    return `${ms} ms`;
+  }
   const s = ms / 1000;
-  if (s < 60) {return `${s.toFixed(1)} s`;}
+  if (s < 60) {
+    return `${s.toFixed(1)} s`;
+  }
   const m = Math.floor(s / 60);
   const rs = Math.round(s - m * 60);
   return `${m}m ${rs}s`;
 }
 
 function statusBadge(status: WarehouseExportRunSummary["status"]) {
-  if (status === "exported") {return <Badge data-testid={`badge-status-${status}`}>Exported</Badge>;}
-  if (status === "skipped-empty")
-    {return (
+  if (status === "exported") {
+    return <Badge data-testid={`badge-status-${status}`}>Exported</Badge>;
+  }
+  if (status === "skipped-empty") {
+    return (
       <Badge variant="secondary" data-testid={`badge-status-${status}`}>
         Skipped (empty)
       </Badge>
-    );}
+    );
+  }
   return (
     <Badge variant="destructive" data-testid={`badge-status-${status}`}>
       Failed
@@ -96,13 +109,20 @@ function statusBadge(status: WarehouseExportRunSummary["status"]) {
 }
 
 function findGaps(entries: WarehouseExportEntry[]): string[] {
-  if (entries.length < 2) {return [];}
+  if (entries.length < 2) {
+    return [];
+  }
   const sorted = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1));
   const gaps: string[] = [];
   const oneDay = 24 * 60 * 60 * 1000;
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(`${sorted[i - 1].date}T00:00:00Z`).getTime();
-    const cur = new Date(`${sorted[i].date}T00:00:00Z`).getTime();
+    const prevEntry = sorted[i - 1];
+    const curEntry = sorted[i];
+    if (!prevEntry || !curEntry) {
+      continue;
+    }
+    const prev = new Date(`${prevEntry.date}T00:00:00Z`).getTime();
+    const cur = new Date(`${curEntry.date}T00:00:00Z`).getTime();
     let cursor = prev + oneDay;
     while (cursor < cur) {
       gaps.push(new Date(cursor).toISOString().slice(0, 10));
@@ -130,20 +150,13 @@ export default function AdminTelemetryWarehousePage() {
   });
 
   const manifestQuery = useQuery<StatusResponse>({
-    queryKey: [
-      "/api/admin/telemetry-warehouse/status",
-      { limit: 1, orgId: selectedOrgId ?? "" },
-    ],
+    queryKey: ["/api/admin/telemetry-warehouse/status", { limit: 1, orgId: selectedOrgId ?? "" }],
     enabled: !!selectedOrgId,
   });
 
   const rerunMutation = useMutation({
     mutationFn: async (body: { date: string; orgIds?: string[] }) =>
-      apiRequest<WarehouseExportJobSummary>(
-        "POST",
-        "/api/admin/telemetry-warehouse/run",
-        body,
-      ),
+      apiRequest<WarehouseExportJobSummary>("POST", "/api/admin/telemetry-warehouse/run", body),
     onSuccess: (summary) => {
       toast({
         title: "Export run complete",
@@ -186,12 +199,9 @@ export default function AdminTelemetryWarehousePage() {
           {statusQuery.isLoading ? (
             <p data-testid="text-runs-loading">Loading…</p>
           ) : (statusQuery.data?.recentRuns ?? []).length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="text-runs-empty"
-            >
-              No runs recorded since process start. Trigger a re-run below or
-              wait for the next nightly job.
+            <p className="text-sm text-muted-foreground" data-testid="text-runs-empty">
+              No runs recorded since process start. Trigger a re-run below or wait for the next
+              nightly job.
             </p>
           ) : (
             <Table>
@@ -245,12 +255,8 @@ export default function AdminTelemetryWarehousePage() {
               {manifestQuery.isLoading ? (
                 <p data-testid="text-manifest-loading">Loading manifest…</p>
               ) : !manifest ? (
-                <p
-                  className="text-sm text-muted-foreground"
-                  data-testid="text-manifest-empty"
-                >
-                  No manifest found for{" "}
-                  <span className="font-mono">{selectedOrgId}</span>.
+                <p className="text-sm text-muted-foreground" data-testid="text-manifest-empty">
+                  No manifest found for <span className="font-mono">{selectedOrgId}</span>.
                 </p>
               ) : (
                 <>
@@ -269,8 +275,8 @@ export default function AdminTelemetryWarehousePage() {
                       data-testid="alert-manifest-gaps"
                     >
                       <div className="font-medium text-destructive">
-                        {gaps.length} missing date{gaps.length === 1 ? "" : "s"}{" "}
-                        between earliest and latest export
+                        {gaps.length} missing date{gaps.length === 1 ? "" : "s"} between earliest
+                        and latest export
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {gaps.slice(0, 30).map((d) => (
@@ -304,19 +310,12 @@ export default function AdminTelemetryWarehousePage() {
                     </TableHeader>
                     <TableBody>
                       {manifest.exports.map((e) => (
-                        <TableRow
-                          key={e.date}
-                          data-testid={`row-manifest-${e.date}`}
-                        >
-                          <TableCell className="font-mono text-sm">
-                            {e.date}
-                          </TableCell>
+                        <TableRow key={e.date} data-testid={`row-manifest-${e.date}`}>
+                          <TableCell className="font-mono text-sm">{e.date}</TableCell>
                           <TableCell className="text-right">
                             {e.rowCount.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right">
-                            {formatBytes(e.sizeBytes)}
-                          </TableCell>
+                          <TableCell className="text-right">{formatBytes(e.sizeBytes)}</TableCell>
                           <TableCell className="text-xs">
                             {new Date(e.exportedAt).toLocaleString()}
                           </TableCell>
@@ -340,8 +339,8 @@ export default function AdminTelemetryWarehousePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Re-runs are overwrite-idempotent on the same UTC date. Leave Org IDs
-            blank to re-run for every org that has rollups for the date.
+            Re-runs are overwrite-idempotent on the same UTC date. Leave Org IDs blank to re-run for
+            every org that has rollups for the date.
           </p>
           <div className="flex flex-col md:flex-row gap-3 items-end">
             <div>
@@ -355,9 +354,7 @@ export default function AdminTelemetryWarehousePage() {
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="rerun-org-ids">
-                Org IDs (comma-separated, optional)
-              </Label>
+              <Label htmlFor="rerun-org-ids">Org IDs (comma-separated, optional)</Label>
               <Input
                 id="rerun-org-ids"
                 data-testid="input-rerun-org-ids"
@@ -389,13 +386,7 @@ export default function AdminTelemetryWarehousePage() {
   );
 }
 
-function RunRow({
-  run,
-  index,
-}: {
-  run: WarehouseExportJobSummary;
-  index: number;
-}) {
+function RunRow({ run, index }: { run: WarehouseExportJobSummary; index: number }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -413,34 +404,22 @@ function RunRow({
         <TableCell className="text-sm">
           <span data-testid={`text-run-orgs-${index}`}>
             {run.orgsExported} / {run.orgsSkipped} /{" "}
-            <span
-              className={run.orgsFailed > 0 ? "text-destructive font-medium" : ""}
-            >
+            <span className={run.orgsFailed > 0 ? "text-destructive font-medium" : ""}>
               {run.orgsFailed}
             </span>{" "}
-            <span className="text-muted-foreground">
-              of {run.orgsTotal}
-            </span>
+            <span className="text-muted-foreground">of {run.orgsTotal}</span>
           </span>
         </TableCell>
-        <TableCell className="text-right">
-          {run.rowsExported.toLocaleString()}
-        </TableCell>
-        <TableCell className="text-right">
-          {formatBytes(run.bytesExported)}
-        </TableCell>
-        <TableCell className="text-right">
-          {formatDuration(run.durationMs)}
-        </TableCell>
+        <TableCell className="text-right">{run.rowsExported.toLocaleString()}</TableCell>
+        <TableCell className="text-right">{formatBytes(run.bytesExported)}</TableCell>
+        <TableCell className="text-right">{formatDuration(run.durationMs)}</TableCell>
         <TableCell className="text-right">{run.retentionDeleted}</TableCell>
       </TableRow>
       {open && (
         <TableRow data-testid={`row-run-details-${index}`}>
           <TableCell colSpan={6} className="bg-muted/40 p-3">
             {run.perOrg.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No per-org results recorded.
-              </p>
+              <p className="text-sm text-muted-foreground">No per-org results recorded.</p>
             ) : (
               <Table>
                 <TableHeader>
@@ -455,23 +434,12 @@ function RunRow({
                 </TableHeader>
                 <TableBody>
                   {run.perOrg.map((o) => (
-                    <TableRow
-                      key={`${o.orgId}-${o.date}`}
-                      data-testid={`row-perorg-${o.orgId}`}
-                    >
-                      <TableCell className="font-mono text-xs">
-                        {o.orgId}
-                      </TableCell>
+                    <TableRow key={`${o.orgId}-${o.date}`} data-testid={`row-perorg-${o.orgId}`}>
+                      <TableCell className="font-mono text-xs">{o.orgId}</TableCell>
                       <TableCell>{statusBadge(o.status)}</TableCell>
-                      <TableCell className="text-right">
-                        {o.rowCount.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatBytes(o.sizeBytes)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatDuration(o.durationMs)}
-                      </TableCell>
+                      <TableCell className="text-right">{o.rowCount.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{formatBytes(o.sizeBytes)}</TableCell>
+                      <TableCell className="text-right">{formatDuration(o.durationMs)}</TableCell>
                       <TableCell className="text-xs text-destructive break-all">
                         {o.errorMessage ?? ""}
                       </TableCell>

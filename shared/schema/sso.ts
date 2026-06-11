@@ -16,7 +16,9 @@ export const ssoConfigs = pgTable(
   "sso_configs",
   {
     id: text("id").primaryKey(),
-    orgId: text("org_id").notNull().references(() => organizations.id),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
     protocol: text("protocol").notNull(), // 'saml' | 'oidc'
     displayName: text("display_name").notNull(),
     enabled: boolean("enabled").notNull().default(false),
@@ -27,7 +29,7 @@ export const ssoConfigs = pgTable(
   },
   (t) => ({
     orgProtoIdx: uniqueIndex("sso_configs_org_protocol_idx").on(t.orgId, t.protocol),
-  }),
+  })
 );
 
 export const ssoSamlConfigSchema = z.object({

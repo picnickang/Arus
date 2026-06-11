@@ -35,9 +35,7 @@ const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46])
 
 // --- repositories mock (consumed by the real requireAuthentication) ---------
 const getAdminSessionByToken = jest.fn<(hash: string) => Promise<unknown>>();
-const updateAdminSessionActivity = jest.fn<(id: string) => Promise<void>>(
-  async () => {},
-);
+const updateAdminSessionActivity = jest.fn<(id: string) => Promise<void>>(async () => {});
 const getUser = jest.fn<(id: string) => Promise<unknown>>();
 
 jest.unstable_mockModule("../../server/repositories", () => ({
@@ -55,14 +53,16 @@ jest.unstable_mockModule("../../server/repositories", () => ({
 
 // --- objectStorage mock (no real GCS in tests) ------------------------------
 const getObjectEntityFile = jest.fn<(path: string) => Promise<unknown>>();
-const assertObjectOwnedByOrg =
-  jest.fn<
-    (file: unknown, callerOrgId: string) => {
-      allowed: boolean;
-      ownerOrgId: string | null;
-      legacy: boolean;
-    }
-  >();
+const assertObjectOwnedByOrg = jest.fn<
+  (
+    file: unknown,
+    callerOrgId: string
+  ) => {
+    allowed: boolean;
+    ownerOrgId: string | null;
+    legacy: boolean;
+  }
+>();
 
 class ObjectNotFoundError extends Error {
   constructor() {
@@ -80,10 +80,7 @@ class ObjectStorageService {
   }
   // Mirrors the real signature; writes image bytes + content-type so the
   // happy-path test can assert on a real served image.
-  downloadObject(
-    _file: unknown,
-    res: import("express").Response,
-  ) {
+  downloadObject(_file: unknown, res: import("express").Response) {
     res.set({
       "Content-Type": "image/jpeg",
       "X-Content-Type-Options": "nosniff",
@@ -163,7 +160,9 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 401 when unauthenticated", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     const res = await request(app).get(OBJECT_PATH);
     expect(res.status).toBe(401);
     // requireAuthentication is the gate that must be present.
@@ -172,16 +171,18 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 401 for a malformed authorization header", async () => {
-    if (mountError) {throw new Error(mountError);}
-    const res = await request(app)
-      .get(OBJECT_PATH)
-      .set("Authorization", "Token abc");
+    if (mountError) {
+      throw new Error(mountError);
+    }
+    const res = await request(app).get(OBJECT_PATH).set("Authorization", "Token abc");
     expect(res.status).toBe(401);
     expect(res.body?.code).toBe("INVALID_AUTH_FORMAT");
   });
 
   it("GET /objects/* returns 200 with image bytes for an authenticated same-org request", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     authAsOrg(ORG);
 
     const res = await request(app)
@@ -202,7 +203,9 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
   });
 
   it("GET /objects/* returns 403 for an authenticated cross-org request", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     authAsOrg(ORG);
     // The object belongs to a different org.
     assertObjectOwnedByOrg.mockReturnValue({
@@ -211,22 +214,20 @@ describe("Task #345 — /objects/* crew-photo serving", () => {
       legacy: false,
     });
 
-    const res = await request(app)
-      .get(OBJECT_PATH)
-      .set("Authorization", "Bearer valid-token");
+    const res = await request(app).get(OBJECT_PATH).set("Authorization", "Bearer valid-token");
 
     expect(res.status).toBe(403);
     expect(res.body?.code).toBe("OBJECT_CROSS_ORG_FORBIDDEN");
   });
 
   it("GET /objects/* returns 404 when the object does not exist", async () => {
-    if (mountError) {throw new Error(mountError);}
+    if (mountError) {
+      throw new Error(mountError);
+    }
     authAsOrg(ORG);
     getObjectEntityFile.mockRejectedValue(new ObjectNotFoundError());
 
-    const res = await request(app)
-      .get(OBJECT_PATH)
-      .set("Authorization", "Bearer valid-token");
+    const res = await request(app).get(OBJECT_PATH).set("Authorization", "Bearer valid-token");
 
     expect(res.status).toBe(404);
   });

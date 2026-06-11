@@ -37,7 +37,9 @@ function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? "Task";
 }
 
-function priorityTone(priority: string | null): "default" | "secondary" | "destructive" | "outline" {
+function priorityTone(
+  priority: string | null
+): "default" | "secondary" | "destructive" | "outline" {
   switch ((priority ?? "").toLowerCase()) {
     case "critical":
     case "high":
@@ -117,7 +119,10 @@ export default function MyTasksPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium truncate" data-testid={`text-task-title-${task.id}`}>
+                      <div
+                        className="text-sm font-medium truncate"
+                        data-testid={`text-task-title-${task.id}`}
+                      >
                         {task.title}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">

@@ -10,8 +10,6 @@ describe("WorkOrderTasksTab date helpers", () => {
 
   it("normalizes valid string and Date task completion dates", () => {
     expect(safeIsoDate("2026-06-09T12:34:56.000Z")).toBe("2026-06-09T12:34:56.000Z");
-    expect(safeIsoDate(new Date("2026-06-09T12:34:56.000Z"))).toBe(
-      "2026-06-09T12:34:56.000Z"
-    );
+    expect(safeIsoDate(new Date("2026-06-09T12:34:56.000Z"))).toBe("2026-06-09T12:34:56.000Z");
   });
 });

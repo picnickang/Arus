@@ -12,7 +12,9 @@ function getOrgId(req: Request): string {
 }
 
 function getRows(result: unknown): Record<string, unknown>[] {
-  if (Array.isArray(result)) {return result as Record<string, unknown>[];}
+  if (Array.isArray(result)) {
+    return result as Record<string, unknown>[];
+  }
   const r = result as { rows?: Record<string, unknown>[] } | null | undefined;
   return r?.rows ?? [];
 }
@@ -176,7 +178,7 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
         notes = COALESCE(${notes || null}, notes),
         status = 'completed',
         updated_at = NOW()
-      WHERE id = ${req.params['id']} AND org_id = ${getOrgId(req)}
+      WHERE id = ${req.params["id"]} AND org_id = ${getOrgId(req)}
       RETURNING *
     `);
 
@@ -219,22 +221,22 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     return res.json({
       vesselId,
       period: { days: d, from: cutoff, to: new Date() },
-      totalOperations: ops.reduce((s, o) => s + Number(o['count']), 0),
-      totalHours: ops.reduce((s, o) => s + Number(o['total_hours'] || 0), 0),
-      totalFuelMt: ops.reduce((s, o) => s + Number(o['total_fuel_mt'] || 0), 0),
+      totalOperations: ops.reduce((s, o) => s + Number(o["count"]), 0),
+      totalHours: ops.reduce((s, o) => s + Number(o["total_hours"] || 0), 0),
+      totalFuelMt: ops.reduce((s, o) => s + Number(o["total_fuel_mt"] || 0), 0),
       safetyCompliance: {
         toolboxTalkRate:
-          (ops.reduce((s, o) => s + Number(o['with_toolbox_talk']), 0) /
+          (ops.reduce((s, o) => s + Number(o["with_toolbox_talk"]), 0) /
             Math.max(
               1,
-              ops.reduce((s, o) => s + Number(o['count']), 0)
+              ops.reduce((s, o) => s + Number(o["count"]), 0)
             )) *
           100,
         jsaRate:
-          (ops.reduce((s, o) => s + Number(o['with_jsa']), 0) /
+          (ops.reduce((s, o) => s + Number(o["with_jsa"]), 0) /
             Math.max(
               1,
-              ops.reduce((s, o) => s + Number(o['count']), 0)
+              ops.reduce((s, o) => s + Number(o["count"]), 0)
             )) *
           100,
       },

@@ -3,13 +3,13 @@ export interface EquipmentRiskItem {
   name: string;
   vessel: string;
   vesselId: string;
-  health: number;
-  rul: number;
+  health: number | null;
+  rul: number | null;
   risk: "critical" | "warning" | "low";
   status: string;
   type: string;
   prediction: string;
-  confidence: number;
+  confidence: number | null;
   trend: "declining" | "stable" | "improving";
   lastService: string | null;
   nextDue: string | null;
@@ -25,16 +25,18 @@ export interface FleetSummaryVessel {
   critical: number;
   warning: number;
   healthy: number;
-  avgHealth: number;
+  noData: number;
+  avgHealth: number | null;
 }
 
 export interface FleetSummary {
-  fleetHealth: number;
+  fleetHealth: number | null;
   vessels: FleetSummaryVessel[];
   totalEquipment: number;
   criticalCount: number;
   warningCount: number;
   healthyCount: number;
+  noDataCount: number;
   dataStatus: "ok" | "degraded";
 }
 
@@ -58,10 +60,10 @@ export interface EquipmentDetailData {
   vessel: string;
   vesselId: string;
   type: string;
-  health: number;
-  rul: number;
+  health: number | null;
+  rul: number | null;
   risk: "critical" | "warning" | "low";
-  confidence: number;
+  confidence: number | null;
   prediction: string;
   trend: "declining" | "stable" | "improving";
   signals: string[];

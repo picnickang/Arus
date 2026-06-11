@@ -2,19 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  Play,
-} from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  useTwinScenarios,
-  useRunScenario,
-} from "@/features/digital-twin/hooks/useTwinApi";
-
-
-
-
+import { useTwinScenarios, useRunScenario } from "@/features/digital-twin/hooks/useTwinApi";
 
 interface ScenarioResults {
   riskLevel?: string;
@@ -226,4 +216,3 @@ export function ScenariosTab() {
     </div>
   );
 }
-

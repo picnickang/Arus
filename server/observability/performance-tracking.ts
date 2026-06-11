@@ -17,7 +17,7 @@ export function trackPerformance(
   durationMs: number,
   context?: Partial<LogContext>
 ): void {
-  const threshold = OPERATION_THRESHOLDS[operationType] ?? OPERATION_THRESHOLDS['default'] ?? 1000;
+  const threshold = OPERATION_THRESHOLDS[operationType] ?? OPERATION_THRESHOLDS["default"] ?? 1000;
 
   if (durationMs > threshold) {
     structuredLog("warn", `Slow ${operationType}: ${durationMs}ms (threshold: ${threshold}ms)`, {
@@ -34,7 +34,7 @@ export function trackDatabaseQuery(
   durationMs: number,
   rowCount?: number
 ): void {
-  if (durationMs > (OPERATION_THRESHOLDS['database_query'] ?? 1000)) {
+  if (durationMs > (OPERATION_THRESHOLDS["database_query"] ?? 1000)) {
     structuredLog("warn", `Slow DB query: ${operation} on ${table} - ${durationMs}ms`, {
       operation: "database_query",
       duration: durationMs,

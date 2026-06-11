@@ -2,7 +2,7 @@
 
 **Status**: 📋 Planned  
 **Estimated Effort**: Medium (2 sprints)  
-**Dependencies**: Phase 2 Complete  
+**Dependencies**: Phase 2 Complete
 
 ---
 
@@ -11,6 +11,7 @@
 Build comprehensive regression testing, extend observability with Prometheus dashboards, finalize documentation, and create deployment runbooks. This phase ensures production readiness and long-term maintainability.
 
 ### Success Criteria
+
 - ✅ E2E regression suite covering critical flows
 - ✅ Load/performance testing harness operational
 - ✅ Prometheus dashboards for all new metrics
@@ -23,14 +24,17 @@ Build comprehensive regression testing, extend observability with Prometheus das
 ## 📦 Part A: End-to-End Regression Suite
 
 ### Problem Statement
+
 Need automated regression tests to prevent breaking changes in analytics, inventory, and data integrity flows as the system evolves.
 
 ### Tasks
 
 #### A.1: Analytics Flow E2E Tests
+
 **Files**: `tests/integration/analytics.test.ts` (new)
 
 **Test Coverage**:
+
 ```typescript
 1. Equipment Health Analytics Flow
    - Create equipment → Ingest telemetry → Calculate health score
@@ -54,6 +58,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - `tests/integration/analytics.test.ts` - 15+ test cases
 - CI/CD integration (run on every PR)
 - Test coverage report (target >80%)
@@ -61,9 +66,11 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ---
 
 #### A.2: Inventory Flow E2E Tests
+
 **Files**: `tests/integration/inventory.test.ts` (new)
 
 **Test Coverage**:
+
 ```typescript
 1. Auto-Optimization Flow
    - Create parts with usage data
@@ -90,6 +97,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - `tests/integration/inventory.test.ts` - 12+ test cases
 - Webhook mock server for testing
 - Integration with test database
@@ -97,9 +105,11 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ---
 
 #### A.3: Data Integrity Flow E2E Tests
+
 **Files**: `tests/integration/data-integrity.test.ts` (new)
 
 **Test Coverage**:
+
 ```typescript
 1. Telemetry Ingestion & Validation
    - Valid telemetry → Accepted, quality = 1.0
@@ -126,6 +136,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - `tests/integration/data-integrity.test.ts` - 10+ test cases
 - Synthetic telemetry generator for testing
 - Reconciliation job testing utilities
@@ -133,15 +144,18 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ---
 
 #### A.4: E2E Test Infrastructure
+
 **Files**: `scripts/test_e2e.js` (new), `tests/helpers/*.ts`
 
 **Objectives**:
+
 - Unified E2E test runner script
 - Test database seeding and cleanup
 - Parallel test execution for speed
 - Test report generation
 
 **Infrastructure Components**:
+
 ```typescript
 1. Test Database Manager
    - Create isolated test DB per suite
@@ -165,6 +179,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - `scripts/test_e2e.js` - Test orchestration
 - `tests/helpers/` - Reusable test utilities
 - CI/CD pipeline configuration
@@ -177,15 +192,18 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ### Tasks
 
 #### B.1: Performance Harness Extensions
+
 **Files**: `scripts/perf-harness.ts`, `tests/performance/*.ts` (new)
 
 **Objectives**:
+
 - Extend existing performance harness (from replit.md)
 - Add load testing for analytics endpoints
 - Benchmark cache performance at scale
 - Identify performance bottlenecks
 
 **Load Test Scenarios**:
+
 ```typescript
 1. Analytics Endpoint Load Test
    - 100 concurrent requests to /api/analytics/health
@@ -209,6 +227,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - Performance test suite in `tests/performance/`
 - Load test results baseline documentation
 - Performance regression alerts (CI/CD)
@@ -217,15 +236,18 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ---
 
 #### B.2: Database Query Performance Audit
+
 **Files**: Database query logs, `docs/performance/QUERY-OPTIMIZATION.md` (new)
 
 **Objectives**:
+
 - Profile all analytics queries
 - Identify slow queries (>100ms)
 - Add missing indexes from Phase 1 (if not deployed)
 - Optimize N+1 query patterns
 
 **Audit Checklist**:
+
 ```sql
 1. Slow Query Analysis
    - Enable PostgreSQL slow query log
@@ -250,6 +272,7 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ```
 
 **Deliverables**:
+
 - `docs/performance/QUERY-OPTIMIZATION.md` - Analysis report
 - Additional database indexes (if needed)
 - Query optimization recommendations
@@ -262,11 +285,13 @@ Need automated regression tests to prevent breaking changes in analytics, invent
 ### Tasks
 
 #### C.1: Prometheus Dashboards
+
 **Files**: `docs/dashboards/analytics-metrics.json` (new), `docs/dashboards/inventory-metrics.json` (new)
 
 **Dashboards to Create**:
 
 **1. Analytics Performance Dashboard**
+
 ```yaml
 Panels:
   - Analytics API response times (p50, p95, p99)
@@ -278,6 +303,7 @@ Panels:
 ```
 
 **2. Inventory Operations Dashboard**
+
 ```yaml
 Panels:
   - Auto-optimization requests/min
@@ -289,6 +315,7 @@ Panels:
 ```
 
 **3. Data Integrity Dashboard**
+
 ```yaml
 Panels:
   - Telemetry ingestion rate
@@ -300,6 +327,7 @@ Panels:
 ```
 
 **4. System Health Dashboard**
+
 ```yaml
 Panels:
   - Overall API response times
@@ -311,6 +339,7 @@ Panels:
 ```
 
 **Deliverables**:
+
 - 4 Grafana dashboard JSON exports
 - Dashboard import guide
 - Alert rule configurations
@@ -319,15 +348,18 @@ Panels:
 ---
 
 #### C.2: Logging Standardization
+
 **Files**: `server/lib/logger.ts` (update), all services
 
 **Objectives**:
+
 - Standardize log format across all services
 - Add structured logging (JSON format)
 - Include trace IDs for request correlation
 - Log levels properly set (DEBUG, INFO, WARN, ERROR)
 
 **Logging Standards**:
+
 ```typescript
 // Standard log format
 {
@@ -347,6 +379,7 @@ Panels:
 ```
 
 **Deliverables**:
+
 - Updated `server/lib/logger.ts` with structured logging
 - All services using standardized logger
 - Log aggregation setup guide (if using external service)
@@ -355,11 +388,13 @@ Panels:
 ---
 
 #### C.3: Alert Configuration
+
 **Files**: `docs/alerts/ALERT-RUNBOOK.md` (new), Prometheus alert rules
 
 **Critical Alerts to Configure**:
 
 **1. Performance Alerts**
+
 ```yaml
 - Analytics API p99 >500ms for 5 minutes
 - Cache hit rate <70% for 10 minutes
@@ -368,6 +403,7 @@ Panels:
 ```
 
 **2. Reliability Alerts**
+
 ```yaml
 - Error rate >1% for 5 minutes
 - Webhook delivery failure rate >10%
@@ -376,6 +412,7 @@ Panels:
 ```
 
 **3. Capacity Alerts**
+
 ```yaml
 - Redis memory usage >80%
 - Database connection pool >90% utilized
@@ -384,6 +421,7 @@ Panels:
 ```
 
 **4. Security Alerts**
+
 ```yaml
 - Unauthorized org access attempts >10/minute
 - HMAC signature verification failures
@@ -392,6 +430,7 @@ Panels:
 ```
 
 **Deliverables**:
+
 - Prometheus alert rule file
 - Alert routing configuration (PagerDuty, Slack, etc.)
 - `docs/alerts/ALERT-RUNBOOK.md` - Response procedures
@@ -404,11 +443,14 @@ Panels:
 ### Tasks
 
 #### D.1: API Documentation Finalization
+
 **Files**: `docs/api/ANALYTICS-API.md` (new), `docs/api/INVENTORY-API.md` (update), `docs/api/DATA-INTEGRITY-API.md` (new)
 
 **Documentation Standards**:
+
 ```markdown
 For each endpoint:
+
 - Full URL path and HTTP method
 - Request headers (especially x-org-id)
 - Request body schema with examples
@@ -421,12 +463,14 @@ For each endpoint:
 ```
 
 **APIs to Document**:
+
 1. Analytics API (all Phase 2 endpoints)
 2. Inventory API (Phase 1 updates)
 3. Data Integrity API (reconciliation, quality)
 4. Equipment Registry API (Phase 1 security updates)
 
 **Deliverables**:
+
 - Complete API reference documentation
 - OpenAPI/Swagger spec files (optional)
 - Postman collection export
@@ -435,9 +479,11 @@ For each endpoint:
 ---
 
 #### D.2: Migration Guides
+
 **Files**: `docs/migration/PHASE-1-TO-PHASE-2.md`, `docs/migration/PHASE-2-TO-PHASE-3.md`
 
 **Guide Contents**:
+
 ```markdown
 1. Overview of Changes
    - Breaking changes (if any)
@@ -462,6 +508,7 @@ For each endpoint:
 ```
 
 **Deliverables**:
+
 - Migration guide for each phase transition
 - Automated migration scripts (where possible)
 - Rollback procedures documented
@@ -470,13 +517,16 @@ For each endpoint:
 ---
 
 #### D.3: Deployment Runbooks
+
 **Files**: `docs/runbooks/PRODUCTION-DEPLOYMENT.md`, `docs/runbooks/ROLLBACK.md`, `docs/runbooks/INCIDENT-RESPONSE.md`
 
 **Runbook Structure**:
 
 **1. Production Deployment Runbook**
+
 ```markdown
 Pre-Deployment:
+
 - [ ] All tests passing (unit, integration, E2E)
 - [ ] Performance benchmarks meet SLA
 - [ ] Security scan completed
@@ -484,6 +534,7 @@ Pre-Deployment:
 - [ ] Rollback plan reviewed
 
 Deployment Steps:
+
 1. Deploy database migrations
 2. Deploy backend services (blue-green)
 3. Deploy frontend (CDN cache invalidation)
@@ -491,6 +542,7 @@ Deployment Steps:
 5. Monitor error rates for 1 hour
 
 Post-Deployment:
+
 - [ ] All health checks green
 - [ ] Performance metrics baseline
 - [ ] Alert rules active
@@ -498,14 +550,17 @@ Post-Deployment:
 ```
 
 **2. Rollback Runbook**
+
 ```markdown
 When to Rollback:
+
 - Error rate >5%
 - Critical feature broken
 - Performance degradation >50%
 - Security vulnerability discovered
 
 Rollback Steps:
+
 1. Revert backend deployment
 2. Revert database migrations (if safe)
 3. Clear CDN cache
@@ -513,20 +568,24 @@ Rollback Steps:
 5. Verify rollback success
 
 Post-Rollback:
+
 - Root cause analysis
 - Hotfix planning
 - Stakeholder communication
 ```
 
 **3. Incident Response Runbook**
+
 ```markdown
 Severity Definitions:
+
 - P0: System down, data loss
 - P1: Critical feature broken
 - P2: Degraded performance
 - P3: Minor bug, workaround exists
 
 Response Procedures:
+
 1. Acknowledge incident
 2. Assess severity
 3. Engage response team
@@ -536,6 +595,7 @@ Response Procedures:
 ```
 
 **Deliverables**:
+
 - 3 comprehensive runbooks
 - Incident response flowchart
 - Contact lists (on-call engineers)
@@ -544,9 +604,11 @@ Response Procedures:
 ---
 
 #### D.4: Release Governance Process
+
 **Files**: `docs/governance/RELEASE-PROCESS.md`, `docs/governance/CHANGE-CONTROL.md`
 
 **Release Process**:
+
 ```markdown
 1. Planning Phase
    - Feature roadmap review
@@ -580,14 +642,17 @@ Response Procedures:
 ```
 
 **Change Control**:
+
 ```markdown
 Change Types:
+
 - Hotfix: <1 day, emergency only
 - Patch: 1-3 days, bug fixes
 - Minor: 1-2 weeks, new features
 - Major: 1-3 months, breaking changes
 
 Approval Requirements:
+
 - Hotfix: 1 engineer + on-call approval
 - Patch: 2 engineers + QA sign-off
 - Minor: 2 engineers + product approval
@@ -595,6 +660,7 @@ Approval Requirements:
 ```
 
 **Deliverables**:
+
 - Release process documentation
 - Change control policy
 - Release checklist template
@@ -605,24 +671,28 @@ Approval Requirements:
 ## 🔗 Dependencies & Execution Order
 
 ### Week 1-2: Testing Foundation
+
 1. A.1: Analytics Flow E2E Tests
 2. A.2: Inventory Flow E2E Tests
 3. A.3: Data Integrity Flow E2E Tests
 4. A.4: E2E Test Infrastructure
 
 ### Week 3-4: Performance & Observability
+
 5. B.1: Performance Harness Extensions (parallel)
 6. B.2: Database Query Performance Audit (parallel)
 7. C.1: Prometheus Dashboards
 8. C.2: Logging Standardization
 
 ### Week 5-6: Monitoring & Documentation
+
 9. C.3: Alert Configuration
 10. D.1: API Documentation Finalization
 11. D.2: Migration Guides
 12. D.3: Deployment Runbooks
 
 ### Week 7-8: Governance & Final Review
+
 13. D.4: Release Governance Process
 14. Full system regression test
 15. Architect final review
@@ -633,16 +703,19 @@ Approval Requirements:
 ## 📊 Success Metrics
 
 ### Testing Coverage
+
 - E2E test coverage: >80% of critical paths
 - Performance tests: All endpoints benchmarked
 - Load tests: Pass at 2x expected traffic
 
 ### Observability
+
 - Prometheus dashboards: 4 dashboards operational
 - Alert rules: 15+ critical alerts configured
 - Log aggregation: Structured logs across all services
 
 ### Documentation
+
 - API documentation: 100% of endpoints documented
 - Runbooks: 3 critical runbooks complete
 - Migration guides: Phase transitions documented
@@ -652,6 +725,7 @@ Approval Requirements:
 ## 🚨 Risk Assessment
 
 ### Medium Risk
+
 - **E2E Test Flakiness**: Browser tests can be unstable
   - **Mitigation**: Retry logic, stable selectors, test isolation
 
@@ -659,6 +733,7 @@ Approval Requirements:
   - **Mitigation**: Baseline metrics first, gradual rollout
 
 ### Low Risk
+
 - **Documentation Scope Creep**: Can take longer than expected
   - **Mitigation**: Prioritize critical docs, defer nice-to-haves
 
@@ -667,16 +742,19 @@ Approval Requirements:
 ## 📚 Deliverables Summary
 
 ### Testing
+
 - `tests/integration/` - 35+ E2E test cases
 - `tests/performance/` - Load and performance tests
 - `scripts/test_e2e.js` - Test orchestration
 
 ### Monitoring
+
 - `docs/dashboards/` - 4 Grafana dashboards
 - Prometheus alert rules
 - `docs/alerts/ALERT-RUNBOOK.md`
 
 ### Documentation
+
 - `docs/api/` - Complete API reference
 - `docs/migration/` - Phase transition guides
 - `docs/runbooks/` - Deployment and incident runbooks

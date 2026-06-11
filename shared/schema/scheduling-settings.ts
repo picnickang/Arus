@@ -64,7 +64,9 @@ export type RotationTemplate = z.infer<typeof rotationTemplateSchema>;
 
 export const schedulingSettings = pgTable("scheduling_settings", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  orgId: varchar("org_id", { length: 36 }).notNull().references(() => organizations.id),
+  orgId: varchar("org_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id),
   vesselId: varchar("vessel_id", { length: 36 }),
   notificationSettings: jsonb("notification_settings").$type<NotificationSettings>().notNull(),
   ruleThresholds: jsonb("rule_thresholds").$type<RuleThresholds>().notNull(),

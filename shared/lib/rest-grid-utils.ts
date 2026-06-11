@@ -105,7 +105,7 @@ export function emptyMonth(year: number, monthLabel: string): DayRow[] {
       ? year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
         ? 29
         : 28
-      : month?.days ?? 30;
+      : (month?.days ?? 30);
   const rows: DayRow[] = [];
   for (let d = 1; d <= days; d++) {
     const row = { date: ymd(year, idx, d) } as Record<string, string | number>;
@@ -135,24 +135,22 @@ export function parseCSV(text: string): DayRow[] {
     return [];
   }
   const firstLine = lines[0];
-  if (firstLine === undefined) {return [];}
+  if (firstLine === undefined) {
+    return [];
+  }
   const header = firstLine.split(",").map((s) => s.trim());
   const out: DayRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    if (line === undefined) {continue;}
+    if (line === undefined) {
+      continue;
+    }
     const col = line.split(",");
     const row = {} as Record<string, string | number>;
     header.forEach((h, j) => {
       const raw = col[j];
       row[h] =
-        j < col.length
-          ? h === "date"
-            ? raw ?? ""
-            : Number(raw || 0)
-          : h === "date"
-          ? ""
-          : 0;
+        j < col.length ? (h === "date" ? (raw ?? "") : Number(raw || 0)) : h === "date" ? "" : 0;
     });
     out.push(row as DayRow);
   }

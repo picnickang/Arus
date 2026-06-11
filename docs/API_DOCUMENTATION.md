@@ -15,6 +15,7 @@ All endpoints require organization identification. Telemetry ingestion endpoints
 ### Standard Authentication
 
 **Required Headers**:
+
 ```http
 x-org-id: <organization-uuid>
 ```
@@ -22,35 +23,41 @@ x-org-id: <organization-uuid>
 ### Telemetry HMAC Authentication
 
 **Applies to**:
+
 - `POST /api/import/telemetry/json`
 - `POST /api/import/telemetry/csv`
 - `POST /api/telemetry/readings`
 - `POST /api/edge/heartbeat`
 
 **Required Headers**:
+
 ```http
 x-org-id: <organization-uuid>
 x-hmac-signature: <hex-encoded-hmac-sha256-signature>
 ```
 
 **Alternative Authorization Header**:
+
 ```http
 Authorization: HMAC <hex-encoded-hmac-sha256-signature>
 ```
 
 **HMAC Signature Calculation**:
+
 ```javascript
-const crypto = require('crypto');
+const crypto = require("crypto");
 const payload = JSON.stringify(requestBody);
-const signature = crypto.createHmac('sha256', deviceHmacKey).update(payload).digest('hex');
+const signature = crypto.createHmac("sha256", deviceHmacKey).update(payload).digest("hex");
 ```
 
 **HMAC Requirements**:
+
 - Each device must have an HMAC key configured
 - Signature computed as `HMAC-SHA256(device.hmacKey, requestBodyString)`
 - Can be globally disabled via `settings.hmacRequired = false`
 
 **HMAC Error Responses**:
+
 - `401 HMAC_KEY_MISSING`: `{ "error": "Device not found or HMAC key not configured", "code": "HMAC_KEY_MISSING" }`
 - `401 MISSING_HMAC_SIGNATURE`: `{ "error": "HMAC signature required in X-HMAC-Signature header or Authorization header", "code": "MISSING_HMAC_SIGNATURE" }`
 - `401 INVALID_HMAC_SIGNATURE`: `{ "error": "Invalid HMAC signature", "code": "INVALID_HMAC_SIGNATURE" }`
@@ -61,9 +68,11 @@ const signature = crypto.createHmac('sha256', deviceHmacKey).update(payload).dig
 ## Equipment Registry
 
 ### GET /api/equipment
+
 List all equipment for organization.
 
 **Response** (200 OK): Array of equipment objects with fields:
+
 - `id` (string): Equipment UUID
 - `orgId` (string): Organization ID (required)
 - `vesselId` (string, nullable): FK to vessels table
@@ -82,6 +91,7 @@ List all equipment for organization.
 - `updatedAt` (timestamp): Last update timestamp
 
 **Example Response**:
+
 ```json
 [
   {
@@ -96,9 +106,9 @@ List all equipment for organization.
     "serialNumber": "WRT-2023-001",
     "location": "engine_room",
     "isActive": true,
-    "specifications": {"power_kw": 80080, "cylinders": 14},
-    "operatingParameters": {"rpm_min": 22, "rpm_max": 102},
-    "maintenanceSchedule": {"interval_hours": 8000},
+    "specifications": { "power_kw": 80080, "cylinders": 14 },
+    "operatingParameters": { "rpm_min": 22, "rpm_max": 102 },
+    "maintenanceSchedule": { "interval_hours": 8000 },
     "createdAt": "2023-01-15T00:00:00.000Z",
     "updatedAt": "2024-11-01T00:00:00.000Z"
   }
@@ -110,9 +120,11 @@ List all equipment for organization.
 ---
 
 ### GET /api/equipment/:id
+
 Get single equipment by ID.
 
 **Path Parameters**:
+
 - `id` (string): Equipment ID
 
 **Response** (200 OK): Equipment object
@@ -122,9 +134,11 @@ Get single equipment by ID.
 ---
 
 ### POST /api/equipment
+
 Create new equipment.
 
 **Request Body** (validated via `insertEquipmentSchema`):
+
 ```json
 {
   "orgId": "org-123",
@@ -137,18 +151,20 @@ Create new equipment.
   "serialNumber": "WRT-2023-001",
   "location": "engine_room",
   "isActive": true,
-  "specifications": {"power_kw": 80080},
-  "operatingParameters": {"rpm_min": 22, "rpm_max": 102},
-  "maintenanceSchedule": {"interval_hours": 8000}
+  "specifications": { "power_kw": 80080 },
+  "operatingParameters": { "rpm_min": 22, "rpm_max": 102 },
+  "maintenanceSchedule": { "interval_hours": 8000 }
 }
 ```
 
 **Required Fields**:
+
 - `orgId` (string): Organization ID
 - `name` (string): Equipment name
 - `type` (string): Equipment type
 
 **Optional Fields**:
+
 - `vesselId` (string, UUID): FK to vessels table
 - `vesselName` (string): Vessel name (backward compatibility)
 - `manufacturer`, `model`, `serialNumber`, `location` (string)
@@ -162,9 +178,11 @@ Create new equipment.
 ---
 
 ### PUT /api/equipment/:id
+
 Update equipment.
 
 **Path Parameters**:
+
 - `id` (string): Equipment ID
 
 **Request Body**: Partial equipment data
@@ -174,9 +192,11 @@ Update equipment.
 ---
 
 ### DELETE /api/equipment/:id
+
 Delete equipment.
 
 **Path Parameters**:
+
 - `id` (string): Equipment ID
 
 **Response** (200): `{ "message": "Equipment deleted successfully" }`
@@ -184,16 +204,20 @@ Delete equipment.
 ---
 
 ### GET /api/equipment/health
+
 Get equipment health status.
 
 **Query Parameters**:
+
 - `vesselId` (string, optional)
 - `equipmentId` (string, optional)
 
 **Response** (200 OK): Array of health objects with fields:
+
 - `id`, `name`, `vessel`, `healthIndex`, `status`
 
 **Health Classification**:
+
 - `healthy`: healthIndex >= 75
 - `warning`: 50 <= healthIndex < 75
 - `critical`: healthIndex < 50
@@ -203,12 +227,15 @@ Get equipment health status.
 ---
 
 ### GET /api/equipment/:id/rul
+
 Get RUL (Remaining Useful Life) prediction for equipment.
 
 **Path Parameters**:
+
 - `id` (string): Equipment ID
 
 **Response** (200 OK): RulPrediction object with fields:
+
 - `equipmentId` (string): Equipment ID
 - `remainingDays` (number): Remaining useful life in days
 - `confidenceScore` (number 0-1): Prediction confidence
@@ -226,6 +253,7 @@ Get RUL (Remaining Useful Life) prediction for equipment.
 - `repairCensored` (boolean, optional): Whether repair censoring applied
 
 **Example Response**:
+
 ```json
 {
   "equipmentId": "eq-123",
@@ -253,9 +281,11 @@ Get RUL (Remaining Useful Life) prediction for equipment.
 ## Telemetry Ingestion
 
 ### POST /api/import/telemetry/json
+
 Bulk import telemetry data in JSON format.
 
 **Request Body**:
+
 ```json
 {
   "rows": [
@@ -272,16 +302,19 @@ Bulk import telemetry data in JSON format.
 ```
 
 **Required Fields**:
+
 - `ts`: ISO 8601 timestamp
 - `vessel`: Vessel identifier
 - `src`: Equipment source
 - `sig`: Sensor signal type
 
 **Optional Fields**:
+
 - `value`: Numeric value (null allowed)
 - `unit`: Unit of measurement
 
 **Response** (200 OK):
+
 ```json
 {
   "ok": true,
@@ -300,20 +333,24 @@ Bulk import telemetry data in JSON format.
 ```
 
 **Validation**:
+
 - Timestamp tolerance: ±5 minutes (configurable)
 - Finite number validation for values
 - Non-empty string validation for vessel/src/sig
 
 **Errors**:
+
 - `400`: `{ "message": "JSON payload validation error", "errors": [...], "code": "PAYLOAD_VALIDATION_ERROR", "importId": "...", "processingTime": "..." }`
 - `500`: `{ "message": "Failed to import JSON telemetry data", "code": "IMPORT_FAILURE", "importId": "...", "processingTime": "..." }`
 
 ---
 
 ### POST /api/import/telemetry/csv
+
 Bulk import telemetry data from CSV.
 
 **Request Body**:
+
 ```json
 {
   "csvData": "ts,vessel,src,sig,value,unit\n2025-11-25T10:30:00.000Z,IMO-9876543,main-engine-1,temperature,85.5,°C"
@@ -321,12 +358,14 @@ Bulk import telemetry data from CSV.
 ```
 
 **CSV Requirements**:
+
 - Required headers (case-insensitive): `ts`, `vessel`, `src`, `sig`
 - Optional headers: `value`, `unit`
 - RFC 4180 compliant
 - Empty lines skipped
 
 **Response** (200 OK):
+
 ```json
 {
   "ok": true,
@@ -351,6 +390,7 @@ Bulk import telemetry data from CSV.
 ```
 
 **CSV Errors**:
+
 - `400 EMPTY_CSV_DATA`: No CSV data provided
 - `400 INSUFFICIENT_CSV_DATA`: CSV must have header + data rows
 - `400 MISSING_HEADERS`: Required columns missing
@@ -360,13 +400,16 @@ Bulk import telemetry data from CSV.
 ---
 
 ### GET /api/telemetry/history/:equipmentId/:sensorType
+
 Get historical telemetry data.
 
 **Path Parameters**:
+
 - `equipmentId` (string): Equipment ID
 - `sensorType` (string): Sensor type
 
 **Query Parameters**:
+
 - `hours` (number, optional): Hours of history (default: 24)
 
 **Response** (200 OK): Array of telemetry readings
@@ -376,6 +419,7 @@ Get historical telemetry data.
 ---
 
 ### GET /api/telemetry/latest
+
 Get latest telemetry readings.
 
 **Response** (200 OK): Array of latest readings
@@ -383,9 +427,11 @@ Get latest telemetry readings.
 ---
 
 ### GET /api/telemetry/trends
+
 Get telemetry trend data.
 
 **Query Parameters** (Zod validated):
+
 - `equipmentId` (string, required)
 - `hours` (number, optional)
 
@@ -398,9 +444,11 @@ Get telemetry trend data.
 ---
 
 ### GET /api/sensor-configs
+
 List sensor configurations.
 
 **Query Parameters**:
+
 - `equipmentId` (string, optional)
 - `sensorType` (string, optional)
 
@@ -411,9 +459,11 @@ List sensor configurations.
 ---
 
 ### POST /api/sensor-configs
+
 Create sensor configuration.
 
 **Request Body** (Zod validated via `insertSensorConfigSchema`):
+
 ```json
 {
   "equipmentId": "eq-123",
@@ -439,10 +489,12 @@ Create sensor configuration.
 ```
 
 **Required Fields**:
+
 - `equipmentId` (string): Equipment ID
 - `sensorType` (string): Sensor type matching telemetry sensor type
 
 **Optional Fields** (with defaults):
+
 - `enabled` (boolean, default: true)
 - `sampleRateHz` (number, nullable): Target sampling rate
 - `gain` (number, default: 1.0): Scaling multiplier
@@ -466,9 +518,11 @@ Create sensor configuration.
 ---
 
 ### POST /api/sensor-config/bulk
+
 Create multiple sensor configurations for equipment.
 
 **Request Body** (validated via `bulkSensorConfigSchema`):
+
 ```json
 {
   "equipmentId": "eq-123",
@@ -495,6 +549,7 @@ Create multiple sensor configurations for equipment.
 ```
 
 **Root Level Fields**:
+
 - `equipmentId` (string, required): Target equipment ID
 - `bundleId` (string, optional): Reference to bundle being applied
 - `overwriteExisting` (boolean, default: false): Replace existing sensors of same type
@@ -502,6 +557,7 @@ Create multiple sensor configurations for equipment.
 
 **Config Item Fields** (from `bulkSensorConfigItemSchema`):
 Inherits all fields from `insertSensorConfigSchema` EXCEPT:
+
 - ❌ `equipmentId` - Set at root level
 - ❌ `version` - Auto-generated
 - ❌ `lastModifiedBy` - Set by backend
@@ -512,6 +568,7 @@ Inherits all fields from `insertSensorConfigSchema` EXCEPT:
 **Optional per config**: All threshold and calibration fields from sensor config schema
 
 **Response** (201):
+
 ```json
 {
   "message": "Successfully created 2 sensor configuration(s)",
@@ -529,13 +586,16 @@ Inherits all fields from `insertSensorConfigSchema` EXCEPT:
 ## Analytics
 
 ### GET /api/analytics/ml-models
+
 List trained ML models.
 
 **Query Parameters**:
+
 - `modelType` (string, optional)
 - `status` (string, optional)
 
 **Response** (200 OK):
+
 ```json
 {
   "results": [...],
@@ -556,12 +616,15 @@ List trained ML models.
 ---
 
 ### GET /api/analytics/ml-models/:id
+
 Get ML model by ID.
 
 **Path Parameters**:
+
 - `id` (string): Model ID
 
 **Response** (200 OK):
+
 ```json
 {
   "result": {...},
@@ -578,6 +641,7 @@ Get ML model by ID.
 ## Error Handling
 
 **Standard Format**:
+
 ```json
 {
   "message": "Error message",
@@ -586,6 +650,7 @@ Get ML model by ID.
 ```
 
 **Analytics Format**:
+
 ```json
 {
   "error": {
@@ -600,6 +665,7 @@ Get ML model by ID.
 ```
 
 **Common Error Codes**:
+
 - `MISSING_ORG_ID`: x-org-id header required
 - `VALIDATION_ERROR`: Request validation failed
 - `PAYLOAD_VALIDATION_ERROR`: JSON schema validation failed

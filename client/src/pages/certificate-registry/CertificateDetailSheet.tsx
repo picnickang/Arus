@@ -77,8 +77,7 @@ export function CertificateDetailSheet({
                 <div>
                   <p className="text-sm text-muted-foreground">Certificate Type</p>
                   <p className="font-medium">
-                    {CERT_TYPE_LABELS[selectedCert.certificateType] ||
-                      selectedCert.certificateType}
+                    {CERT_TYPE_LABELS[selectedCert.certificateType] || selectedCert.certificateType}
                   </p>
                 </div>
                 <div>
@@ -92,7 +91,9 @@ export function CertificateDetailSheet({
                 <div>
                   <p className="text-sm text-muted-foreground">Authority Type</p>
                   <p className="font-medium">
-                    {AUTHORITY_TYPE_LABELS[(selectedCert as { issuingAuthorityType?: string }).issuingAuthorityType ?? ""] ||
+                    {AUTHORITY_TYPE_LABELS[
+                      (selectedCert as { issuingAuthorityType?: string }).issuingAuthorityType ?? ""
+                    ] ||
                       (selectedCert as { issuingAuthorityType?: string }).issuingAuthorityType ||
                       "—"}
                   </p>

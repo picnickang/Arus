@@ -10,7 +10,10 @@ import { describe, it, expect, afterAll } from "@jest/globals";
 import { api, makeRunId, pool, cleanupByRunId } from "./_helpers";
 
 const RUN_ID = makeRunId("alert");
-const KEY = `forms_test_${RUN_ID}`.toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 60);
+const KEY = `forms_test_${RUN_ID}`
+  .toLowerCase()
+  .replace(/[^a-z0-9_]/g, "_")
+  .slice(0, 60);
 
 describe("Alert-threshold forms — CRUD + propagation", () => {
   afterAll(async () => {

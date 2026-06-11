@@ -7,6 +7,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import { ChartWrapper } from "./ChartWrapper";
@@ -34,8 +36,20 @@ interface SensorData {
   data: SensorDataPoint[];
 }
 
+/** Expected operating envelope for one sensor (median ± 2σ over a trailing
+ *  window, from GET /api/telemetry/baseline/:equipmentId). Rendered as a
+ *  translucent band behind the live series — excursions outside the band
+ *  are the visual PdM signal. */
+export interface SensorBaseline {
+  p50: number;
+  bandLow: number;
+  bandHigh: number;
+}
+
 interface MultiSensorChartProps {
   sensors: SensorData[];
+  /** Keyed by sensorType; sensors without an entry render without a band. */
+  baselines?: Record<string, SensorBaseline>;
   title: string;
   description?: string;
   timeRange?: "1h" | "6h" | "24h" | "7d";
@@ -71,7 +85,7 @@ function mergeTimeSeriesData(sensors: SensorData[]): Record<string, number>[] {
     });
   });
 
-  return Object.values(merged).sort((a, b) => (a['timestamp'] ?? 0) - (b['timestamp'] ?? 0));
+  return Object.values(merged).sort((a, b) => (a["timestamp"] ?? 0) - (b["timestamp"] ?? 0));
 }
 
 function getUniqueUnits(sensors: SensorData[]): string[] {
@@ -82,6 +96,7 @@ function getUniqueUnits(sensors: SensorData[]): string[] {
 
 export function MultiSensorChart({
   sensors,
+  baselines,
   title,
   description,
   timeRange = "24h",
@@ -90,27 +105,33 @@ export function MultiSensorChart({
   error = null,
   "data-testid": testId = "chart-multi-sensor",
 }: MultiSensorChartProps) {
-  const [visibleSensors, setVisibleSensors] = useState<Set<string>>(
-    new Set(sensors.map((s) => s.sensorType))
+  // Visibility is tracked as a HIDDEN set (default: nothing hidden) so
+  // sensors that arrive after the first render are visible by default.
+  // The previous useState(new Set(sensors…)) initializer captured the
+  // loading-state empty array and never updated, leaving the chart
+  // permanently on its empty state once data did arrive.
+  const [hiddenSensors, setHiddenSensors] = useState<Set<string>>(new Set());
+  const visibleSensors = useMemo(
+    () => new Set(sensors.filter((s) => !hiddenSensors.has(s.sensorType)).map((s) => s.sensorType)),
+    [sensors, hiddenSensors]
   );
 
   const toggleSensor = (sensorType: string) => {
-    const newVisible = new Set(visibleSensors);
-    if (newVisible.has(sensorType)) {
-      if (newVisible.size > 1) {
-        newVisible.delete(sensorType);
-      }
-    } else {
-      newVisible.add(sensorType);
+    const newHidden = new Set(hiddenSensors);
+    if (newHidden.has(sensorType)) {
+      newHidden.delete(sensorType);
+    } else if (visibleSensors.size > 1) {
+      // Keep at least one series visible, matching the original behavior.
+      newHidden.add(sensorType);
     }
-    setVisibleSensors(newVisible);
+    setHiddenSensors(newHidden);
   };
 
   const toggleAll = () => {
-    if (visibleSensors.size === sensors.length) {
-      setVisibleSensors(new Set([sensors[0]?.sensorType].filter((s): s is string => Boolean(s))));
+    if (hiddenSensors.size === 0) {
+      setHiddenSensors(new Set(sensors.slice(1).map((s) => s.sensorType)));
     } else {
-      setVisibleSensors(new Set(sensors.map((s) => s.sensorType)));
+      setHiddenSensors(new Set());
     }
   };
 
@@ -274,6 +295,60 @@ export function MultiSensorChart({
             <Tooltip content={<CustomTooltip />} />
             <Legend />
 
+            {/* Baseline envelopes first so the bands sit behind the lines. */}
+            {baselines &&
+              visibleSensorData.map((sensor, index) => {
+                const baseline = baselines[sensor.sensorType];
+                if (!baseline) {
+                  return null;
+                }
+                const yAxisId =
+                  sensor.unit === uniqueUnits[0]
+                    ? "left"
+                    : uniqueUnits[1] && sensor.unit === uniqueUnits[1]
+                      ? "right"
+                      : "left";
+                const color = sensor.color || CHART_COLORS[index % CHART_COLORS.length];
+                return (
+                  <ReferenceArea
+                    key={`baseline-${sensor.sensorType}`}
+                    y1={baseline.bandLow}
+                    y2={baseline.bandHigh}
+                    yAxisId={yAxisId}
+                    fill={color}
+                    fillOpacity={0.08}
+                    stroke={color}
+                    strokeOpacity={0.25}
+                    strokeDasharray="4 4"
+                    ifOverflow="extendDomain"
+                    data-testid={`baseline-band-${sensor.sensorType}`}
+                  />
+                );
+              })}
+            {baselines &&
+              visibleSensorData.map((sensor, index) => {
+                const baseline = baselines[sensor.sensorType];
+                if (!baseline) {
+                  return null;
+                }
+                const yAxisId =
+                  sensor.unit === uniqueUnits[0]
+                    ? "left"
+                    : uniqueUnits[1] && sensor.unit === uniqueUnits[1]
+                      ? "right"
+                      : "left";
+                return (
+                  <ReferenceLine
+                    key={`baseline-p50-${sensor.sensorType}`}
+                    y={baseline.p50}
+                    yAxisId={yAxisId}
+                    stroke={sensor.color || CHART_COLORS[index % CHART_COLORS.length]}
+                    strokeOpacity={0.5}
+                    strokeDasharray="6 3"
+                  />
+                );
+              })}
+
             {visibleSensorData.map((sensor, index) => {
               const sensorUnit = sensor.unit;
               const yAxisId =
@@ -294,6 +369,10 @@ export function MultiSensorChart({
                   dot={false}
                   activeDot={{ r: 4 }}
                   yAxisId={yAxisId}
+                  // Sensors sample at different instants, so the merged
+                  // rows interleave undefined values; without connectNulls
+                  // (and with dot={false}) recharts renders nothing at all.
+                  connectNulls
                   data-testid={`line-${sensor.sensorType}`}
                 />
               );

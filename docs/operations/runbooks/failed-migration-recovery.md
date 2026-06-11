@@ -1,6 +1,7 @@
 # Runbook — Failed Migration Recovery
 
 Trigger conditions:
+
 - Alert: `MigrationApplyFailed`, `MigrationDriftDetected`.
 - `npm run db:push` exits non-zero in deploy.
 - App boot fails with `column "..." does not exist` or

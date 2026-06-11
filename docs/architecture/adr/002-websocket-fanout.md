@@ -9,7 +9,7 @@
 
 `server/websocket.ts` runs as a single `TelemetryWebSocketServer` inside
 one Node process. Every broadcast iterates a local `Map<clientId, ws>`
-and writes to whichever sockets happen to be connected to *this*
+and writes to whichever sockets happen to be connected to _this_
 instance. The deployment consequences are explicit in the Push B
 sequencing doc:
 
@@ -143,10 +143,10 @@ needing to migrate again.
   tenant-scoped publishers, and once to `(SYSTEM_ORG_ID, channel)` for
   the legacy ones. Migrating a call site to publish per-tenant is a
   one-line change; when every call site is migrated, the
-  SYSTEM_ORG_ID sub can be removed and isolation becomes strict at the
+  SYSTEM*ORG_ID sub can be removed and isolation becomes strict at the
   substrate layer. Until that migration completes, operators should
-  understand that tenant-scoped *delivery* is enforced but tenant-
-  scoped *publishing* is best-effort — tracked as a follow-up.
+  understand that tenant-scoped \_delivery* is enforced but tenant-
+  scoped _publishing_ is best-effort — tracked as a follow-up.
 - **Canonical event ids are Redis-assigned.** When the Redis adapter is
   active, `XADD *` assigns the `<ms>-<seq>` id atomically server-side
   and that id is what gets dispatched locally and published to peers.

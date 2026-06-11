@@ -94,7 +94,7 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
     "/api/insights/v2/equipment/:id",
     generalApiRateLimit,
     withErrorHandling("generate technician insight", async (req, res) => {
-      const id = req.params['id'] ?? '';
+      const id = req.params["id"] ?? "";
       const orgId = authenticatedRequest(req).orgId;
 
       const { generateTechnicianInsight } = await import("../../insights-engine");
@@ -117,17 +117,24 @@ export function registerInsightsV2Routes(app: Express, deps: InsightsRouteDepend
       type StructuredLogging = {
         logInfo: (msg: string, ctx?: Record<string, unknown>) => void;
         logError: (msg: string, ctx?: Record<string, unknown>) => void;
-        createRequestContext: (req: unknown, extra?: Record<string, unknown>) => Record<string, unknown>;
+        createRequestContext: (
+          req: unknown,
+          extra?: Record<string, unknown>
+        ) => Record<string, unknown>;
       };
       type FleetMetrics = {
         fleetOverviewRequests: { inc: (labels: Record<string, string>) => void };
-        fleetOverviewResponseTime: { observe: (labels: Record<string, string>, value: number) => void };
+        fleetOverviewResponseTime: {
+          observe: (labels: Record<string, string>, value: number) => void;
+        };
       };
-      const { logInfo, logError, createRequestContext } =
-        (await import("../../structured-logging")) as object as StructuredLogging;
+      const { logInfo, logError, createRequestContext } = (await import(
+        "../../structured-logging"
+      )) as object as StructuredLogging;
       const { generateFleetTechnicianInsights } = await import("../../insights-engine");
-      const { fleetOverviewRequests, fleetOverviewResponseTime } =
-        (await import("../../ml-prometheus-metrics")) as object as FleetMetrics;
+      const { fleetOverviewRequests, fleetOverviewResponseTime } = (await import(
+        "../../ml-prometheus-metrics"
+      )) as object as FleetMetrics;
 
       const { vesselId } = req.query;
       const orgId = authenticatedRequest(req).orgId;

@@ -174,11 +174,11 @@ export function registerHubSyncRoutes(
     writeOperationRateLimit,
     withErrorHandling("create optimizer configuration", async (req: Request, res: Response) => {
       const rawBody = optimizerConfigBodySchema.parse(req.body);
-      const orgId = authenticatedRequest(req).orgId || (rawBody['orgId'] as string | undefined);
+      const orgId = authenticatedRequest(req).orgId || (rawBody["orgId"] as string | undefined);
       const configData = {
         ...rawBody,
         orgId,
-        config: JSON.stringify(rawBody['config'] ?? {}),
+        config: JSON.stringify(rawBody["config"] ?? {}),
       };
 
       const validatedConfig = insertOptimizerConfigurationSchema.parse(configData);

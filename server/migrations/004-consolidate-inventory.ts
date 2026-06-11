@@ -16,7 +16,7 @@ import { Pool } from "pg";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Migrations:004ConsolidateInventory");
 
-const DATABASE_URL = process.env['DATABASE_URL'];
+const DATABASE_URL = process.env["DATABASE_URL"];
 if (!DATABASE_URL) {
   logger.error("DATABASE_URL not set");
   process.exit(1);
@@ -188,7 +188,9 @@ async function migrate() {
       }
     }
 
-    logger.info(`  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`);
+    logger.info(
+      `  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`
+    );
     logger.info(`  parts_inventory → stock: ${stockCreated} created, ${stockMerged} merged`);
 
     logger.info("[Migration] Phase 2: Migrate inventory_parts → parts + stock");
@@ -320,7 +322,9 @@ async function migrate() {
       }
     }
 
-    logger.info(`  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`);
+    logger.info(
+      `  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`
+    );
     logger.info(`  inventory_parts → stock: ${ipStockCreated} created, ${ipStockMerged} merged`);
 
     logger.info("[Migration] Phase 3: Merge columns from parts_inventory into existing parts");

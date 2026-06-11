@@ -49,7 +49,9 @@ const baseUrl = process.env.BASE_URL ?? "http://localhost:5000";
 
 if (runner === "docker") {
   if (!hasCommand("docker")) {
-    console.error("[load-test] Docker runner requested, but `docker` is not installed or not on PATH.");
+    console.error(
+      "[load-test] Docker runner requested, but `docker` is not installed or not on PATH."
+    );
     process.exit(127);
   }
   process.exit(
@@ -68,13 +70,15 @@ if (runner === "docker") {
       "grafana/k6:latest",
       "run",
       script,
-    ]),
+    ])
   );
 }
 
 if (!hasCommand("k6")) {
   console.error("[load-test] `k6` is not installed or not on PATH.");
-  console.error("[load-test] Install it with `brew install k6`, or run with `K6_RUNNER=docker` if Docker is available.");
+  console.error(
+    "[load-test] Install it with `brew install k6`, or run with `K6_RUNNER=docker` if Docker is available."
+  );
   console.error(`[load-test] Example: BASE_URL=${baseUrl} npm run test:load:smoke`);
   process.exit(127);
 }

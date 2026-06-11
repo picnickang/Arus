@@ -35,16 +35,11 @@ import {
 interface CrewAccessTabProps {
   crewId: string;
   crewName: string;
-  crewEmail?: string | null;
-  crewVesselId?: string | null;
+  crewEmail?: string | null | undefined;
+  crewVesselId?: string | null | undefined;
 }
 
-export function CrewAccessTab({
-  crewId,
-  crewName,
-  crewEmail,
-  crewVesselId,
-}: CrewAccessTabProps) {
+export function CrewAccessTab({ crewId, crewName, crewEmail, crewVesselId }: CrewAccessTabProps) {
   const { toast } = useToast();
   const onError = (error: unknown) =>
     toast({
@@ -59,7 +54,7 @@ export function CrewAccessTab({
     queryFn: async () => {
       const json = await apiRequest<{ account: CrewUser | null }>(
         "GET",
-        `/api/admin/crew/members/${crewId}/account`,
+        `/api/admin/crew/members/${crewId}/account`
       );
       return json.account;
     },
@@ -103,13 +98,15 @@ export function CrewAccessTab({
         role,
         loginEnabled,
       };
-      if (email.trim()) {payload['email'] = email.trim();}
+      if (email.trim()) {
+        payload["email"] = email.trim();
+      }
       if (vesselScope === "__fleet__") {
-        payload['vesselId'] = null;
+        payload["vesselId"] = null;
       } else if (vesselScope === "__none__") {
-        payload['skipVesselAssignment'] = true;
+        payload["skipVesselAssignment"] = true;
       } else {
-        payload['vesselId'] = vesselScope;
+        payload["vesselId"] = vesselScope;
       }
       await apiRequest("POST", `/api/admin/crew/members/${crewId}/account`, payload);
     },
@@ -177,8 +174,8 @@ export function CrewAccessTab({
             <AlertDialogHeader>
               <AlertDialogTitle>Detach this login?</AlertDialogTitle>
               <AlertDialogDescription>
-                This removes the link between {crewName} and the login account. The account is
-                kept and can be re-linked later from User Accounts.
+                This removes the link between {crewName} and the login account. The account is kept
+                and can be re-linked later from User Accounts.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -200,9 +197,7 @@ export function CrewAccessTab({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Badge variant="outline">No login account</Badge>
-        <p className="text-sm text-muted-foreground">
-          Create a login so {crewName} can sign in.
-        </p>
+        <p className="text-sm text-muted-foreground">Create a login so {crewName} can sign in.</p>
       </div>
       <div className="space-y-3 rounded-md border p-3">
         <div>

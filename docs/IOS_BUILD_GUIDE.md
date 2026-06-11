@@ -9,21 +9,25 @@
 ## Quick Start
 
 ### 1. Build Frontend
+
 ```bash
 npm run build:renderer
 ```
 
 ### 2. Add iOS Platform (First Time Only)
+
 ```bash
 npx cap add ios
 ```
 
 ### 3. Sync Assets to iOS
+
 ```bash
 npx cap sync ios
 ```
 
 ### 4. Open in Xcode
+
 ```bash
 npx cap open ios
 ```
@@ -46,17 +50,21 @@ npx cap open ios
 ## App Configuration
 
 ### Bundle Identifier
+
 `com.arus.marine`
 
 ### Display Name
+
 ARUS Marine
 
 ### Minimum iOS Version
+
 iOS 13.0+ (supports iPad, iPhone)
 
 ## Development Workflow
 
 ### Make Changes to React App
+
 ```bash
 # 1. Edit your React code in client/src/
 # 2. Build
@@ -69,6 +77,7 @@ npx cap sync ios
 ```
 
 ### Add Native Plugins
+
 ```bash
 # Example: Add camera plugin
 npm install @capacitor/camera
@@ -78,16 +87,19 @@ npx cap sync ios
 ## Production Build
 
 ### 1. Build Optimized Frontend
+
 ```bash
 NODE_ENV=production npm run build:renderer
 ```
 
 ### 2. Sync to iOS
+
 ```bash
 npx cap sync ios
 ```
 
 ### 3. Archive in Xcode
+
 1. Product → Archive
 2. Distribute App → App Store Connect
 3. Upload for TestFlight or App Store Review
@@ -95,15 +107,18 @@ npx cap sync ios
 ## Troubleshooting
 
 ### "No development team selected"
+
 - Xcode → Preferences → Accounts → Add Apple ID
 - Select team in project settings
 
 ### "Module 'Capacitor' not found"
+
 ```bash
 npx cap sync ios
 ```
 
 ### Changes not showing in app
+
 ```bash
 npm run build:renderer
 npx cap sync ios
@@ -111,6 +126,7 @@ npx cap sync ios
 ```
 
 ### App crashes on launch
+
 - Check Console.app for crash logs
 - Verify all Capacitor plugins are installed
 - Rebuild: Xcode → Product → Clean Build Folder
@@ -118,19 +134,24 @@ npx cap sync ios
 ## Testing on Real iPad
 
 ### 1. Connect iPad via USB
+
 ### 2. Trust Computer on iPad
+
 ### 3. In Xcode, select your iPad from device menu
+
 ### 4. Click Run (may need to enable Developer Mode on iPad)
 
 ## Distribution
 
 ### TestFlight (Beta Testing)
+
 1. Archive app in Xcode
 2. Upload to App Store Connect
 3. Manage builds in TestFlight section
 4. Add testers via email
 
 ### App Store
+
 1. Complete App Store Connect listing
 2. Submit for review
 3. Requires screenshots, description, privacy policy
@@ -138,6 +159,7 @@ npx cap sync ios
 ## Key Features for iPad
 
 ### Supported
+
 ✅ Multi-window support (iPadOS 13+)
 ✅ Apple Pencil input
 ✅ Split View / Slide Over
@@ -146,6 +168,7 @@ npx cap sync ios
 ✅ Offline mode (SQLite database)
 
 ### Capacitor Plugins Used
+
 - `@capacitor/app` - App lifecycle
 - `@capacitor/filesystem` - File storage
 - `@capacitor/network` - Network status
@@ -156,10 +179,12 @@ npx cap sync ios
 Located in `ios/App/App/Assets.xcassets/`
 
 ### Required Assets
+
 - **AppIcon.appiconset** - App icons (all sizes)
 - **Splash.imageset** - Splash screen image
 
 ### Generate Icons
+
 Use online tool: https://www.appicon.co/
 Upload 1024x1024 icon, download iOS assets, replace in Xcode.
 

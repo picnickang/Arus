@@ -1,4 +1,5 @@
 # Phase 1: Detailed Implementation Plans
+
 **Date**: November 24, 2025  
 **Status**: 📝 **Design Phase - Awaiting Approval**  
 **Estimated Total Effort**: 16-22 hours
@@ -44,35 +45,35 @@ export interface RiskScore {
   equipmentType: string;
   vesselId: string;
   vesselName: string;
-  
+
   // Composite risk score (0-100, higher = more risk)
   riskScore: number;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  
+  riskLevel: "low" | "medium" | "high" | "critical";
+
   // Risk factor breakdown
   factors: {
-    healthScore: number;        // 0-100 (from health index)
-    rulScore: number;           // 0-100 (based on days remaining)
-    alertScore: number;         // 0-100 (based on active alerts)
-    dtcScore: number;           // 0-100 (based on fault codes)
+    healthScore: number; // 0-100 (from health index)
+    rulScore: number; // 0-100 (based on days remaining)
+    alertScore: number; // 0-100 (based on active alerts)
+    dtcScore: number; // 0-100 (based on fault codes)
   };
-  
+
   // Weights (sum to 1.0)
   weights: {
-    health: number;   // 0.4 (40%)
-    rul: number;      // 0.3 (30%)
-    alerts: number;   // 0.2 (20%)
-    dtc: number;      // 0.1 (10%)
+    health: number; // 0.4 (40%)
+    rul: number; // 0.3 (30%)
+    alerts: number; // 0.2 (20%)
+    dtc: number; // 0.1 (10%)
   };
-  
+
   // Trend (7-day change)
-  trend: 'increasing' | 'stable' | 'decreasing';
+  trend: "increasing" | "stable" | "decreasing";
   trendDelta: number; // +5 means 5 point increase in risk
-  
+
   // Next action
   recommendedAction: string;
-  urgency: 'immediate' | 'this_week' | 'this_month' | 'monitor';
-  
+  urgency: "immediate" | "this_week" | "this_month" | "monitor";
+
   lastUpdated: Date;
 }
 
@@ -80,20 +81,13 @@ export class RiskScoringService {
   /**
    * Calculate composite risk score for equipment
    */
-  async calculateRiskScore(
-    equipmentId: string,
-    orgId: string
-  ): Promise<RiskScore>;
-  
+  async calculateRiskScore(equipmentId: string, orgId: string): Promise<RiskScore>;
+
   /**
    * Get top N highest-risk equipment for fleet
    */
-  async getTopRisks(
-    orgId: string,
-    limit: number = 5,
-    vesselId?: string
-  ): Promise<RiskScore[]>;
-  
+  async getTopRisks(orgId: string, limit: number = 5, vesselId?: string): Promise<RiskScore[]>;
+
   /**
    * Calculate risk trend (7-day comparison)
    */
@@ -111,42 +105,42 @@ export class RiskScoringService {
 function calculateRiskScore(equipment) {
   // Factor 1: Health Score (0-100, inverted so lower health = higher risk)
   const healthScore = 100 - equipment.healthIndex;
-  
+
   // Factor 2: RUL Score (0-100, fewer days = higher risk)
   const rulDays = equipment.rulPrediction?.remainingDays || 365;
-  const rulScore = Math.max(0, 100 - (rulDays / 3.65)); // 365 days = 0 risk, 0 days = 100 risk
-  
+  const rulScore = Math.max(0, 100 - rulDays / 3.65); // 365 days = 0 risk, 0 days = 100 risk
+
   // Factor 3: Alert Score (0-100, based on active alerts)
-  const criticalAlerts = equipment.alerts.filter(a => a.severity === 'critical').length;
-  const highAlerts = equipment.alerts.filter(a => a.severity === 'high').length;
-  const alertScore = Math.min(100, (criticalAlerts * 25) + (highAlerts * 10));
-  
+  const criticalAlerts = equipment.alerts.filter((a) => a.severity === "critical").length;
+  const highAlerts = equipment.alerts.filter((a) => a.severity === "high").length;
+  const alertScore = Math.min(100, criticalAlerts * 25 + highAlerts * 10);
+
   // Factor 4: DTC Score (0-100, based on fault codes)
-  const criticalDtcs = equipment.dtcs.filter(d => d.severity === 1).length;
-  const highDtcs = equipment.dtcs.filter(d => d.severity === 2).length;
-  const dtcScore = Math.min(100, (criticalDtcs * 30) + (highDtcs * 15));
-  
+  const criticalDtcs = equipment.dtcs.filter((d) => d.severity === 1).length;
+  const highDtcs = equipment.dtcs.filter((d) => d.severity === 2).length;
+  const dtcScore = Math.min(100, criticalDtcs * 30 + highDtcs * 15);
+
   // Composite score (weighted average)
   const weights = { health: 0.4, rul: 0.3, alerts: 0.2, dtc: 0.1 };
-  const riskScore = 
-    (healthScore * weights.health) +
-    (rulScore * weights.rul) +
-    (alertScore * weights.alerts) +
-    (dtcScore * weights.dtc);
-  
+  const riskScore =
+    healthScore * weights.health +
+    rulScore * weights.rul +
+    alertScore * weights.alerts +
+    dtcScore * weights.dtc;
+
   return {
     riskScore: Math.round(riskScore),
     riskLevel: getRiskLevel(riskScore),
     factors: { healthScore, rulScore, alertScore, dtcScore },
-    weights
+    weights,
   };
 }
 
 function getRiskLevel(score) {
-  if (score >= 75) return 'critical';
-  if (score >= 50) return 'high';
-  if (score >= 25) return 'medium';
-  return 'low';
+  if (score >= 75) return "critical";
+  if (score >= 50) return "high";
+  if (score >= 25) return "medium";
+  return "low";
 }
 ```
 
@@ -155,19 +149,19 @@ function getRiskLevel(score) {
 ```typescript
 /**
  * GET /api/fleet/top-risks
- * 
+ *
  * Query params:
  *   - orgId: string (required, from header or query)
  *   - limit: number (default: 5, max: 20)
  *   - vesselId: string (optional, filter by vessel)
- * 
+ *
  * Response: RiskScore[]
  */
-app.get('/api/fleet/top-risks', requireOrgId, async (req, res) => {
+app.get("/api/fleet/top-risks", requireOrgId, async (req, res) => {
   const { orgId } = req as OrgRequest;
   const limit = Math.min(parseInt(req.query.limit as string) || 5, 20);
   const vesselId = req.query.vesselId as string | undefined;
-  
+
   const risks = await riskScoringService.getTopRisks(orgId, limit, vesselId);
   res.json(risks);
 });
@@ -191,8 +185,8 @@ interface TopRisksPanelProps {
   'data-testid'?: string;
 }
 
-export function TopRisksPanel({ 
-  orgId = 'default-org-id', 
+export function TopRisksPanel({
+  orgId = 'default-org-id',
   vesselId,
   limit = 5,
   'data-testid': testId = 'panel-top-risks'
@@ -201,10 +195,10 @@ export function TopRisksPanel({
     queryKey: ['/api/fleet/top-risks', { orgId, vesselId, limit }],
     refetchInterval: 60_000, // Refresh every minute
   });
-  
+
   if (isLoading) return <TopRisksSkeleton />;
   if (!risks?.length) return <EmptyRisks />;
-  
+
   return (
     <Card data-testid={testId}>
       <CardHeader>
@@ -230,9 +224,9 @@ function RiskCard({ risk, rank }: { risk: RiskScore; rank: number }) {
     stable: <Minus className="h-4 w-4 text-muted-foreground" />,
     decreasing: <TrendingDown className="h-4 w-4 text-green-500" />,
   }[risk.trend];
-  
+
   return (
-    <div 
+    <div
       className="p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
       onClick={() => navigateToEquipment(risk.equipmentId)}
       data-testid={`risk-card-${rank}`}
@@ -256,7 +250,7 @@ function RiskCard({ risk, rank }: { risk: RiskScore; rank: number }) {
           {risk.riskLevel.toUpperCase()}
         </Badge>
       </div>
-      
+
       {/* Risk score with progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
@@ -273,7 +267,7 @@ function RiskCard({ risk, rank }: { risk: RiskScore; rank: number }) {
         </div>
         <Progress value={risk.riskScore} className="h-2" />
       </div>
-      
+
       {/* Risk factors breakdown */}
       <div className="grid grid-cols-4 gap-2 mb-3">
         <FactorBadge label="Health" value={risk.factors.healthScore} />
@@ -281,7 +275,7 @@ function RiskCard({ risk, rank }: { risk: RiskScore; rank: number }) {
         <FactorBadge label="Alerts" value={risk.factors.alertScore} />
         <FactorBadge label="DTC" value={risk.factors.dtcScore} />
       </div>
-      
+
       {/* Recommended action */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{risk.recommendedAction}</span>
@@ -308,11 +302,13 @@ function FactorBadge({ label, value }: { label: string; value: number }) {
 ## 1.3 UI/UX Design
 
 **Dashboard Integration**:
+
 - Add TopRisksPanel to main dashboard (`dashboard.tsx`)
 - Position: Top section, full-width card
 - Collapsible on mobile
 
 **Visual Design**:
+
 - Risk score: Progress bar (0-100)
 - Risk level: Color-coded badge (green/yellow/orange/red)
 - Trend: Icon + delta (+5, -3, etc.)
@@ -320,6 +316,7 @@ function FactorBadge({ label, value }: { label: string; value: number }) {
 - Click card → navigate to equipment detail page
 
 **Color Scheme**:
+
 - Critical: `hsl(var(--destructive))` (red)
 - High: Orange
 - Medium: `hsl(var(--warning))` (yellow)
@@ -330,12 +327,14 @@ function FactorBadge({ label, value }: { label: string; value: number }) {
 ## 1.4 Data Integration
 
 **Data Sources** (existing):
+
 1. Equipment health: `GET /api/equipment/health`
 2. RUL predictions: From health response or `GET /api/predictions/:equipmentId`
 3. Active alerts: `GET /api/alerts?equipmentId=...`
 4. Active DTCs: `GET /api/dtc/active?equipmentId=...`
 
 **New Query**:
+
 - Risk scoring service aggregates data from above sources
 - Caches risk scores for 5 minutes
 - Recalculates on equipment health updates
@@ -345,48 +344,50 @@ function FactorBadge({ label, value }: { label: string; value: number }) {
 ## 1.5 Testing Strategy
 
 **Backend Tests** (`server/services/__tests__/risk-scoring.service.test.ts`):
+
 ```typescript
-describe('RiskScoringService', () => {
-  it('should calculate risk score for healthy equipment', async () => {
+describe("RiskScoringService", () => {
+  it("should calculate risk score for healthy equipment", async () => {
     // healthIndex: 95, RUL: 300 days, no alerts, no DTCs
     // Expected risk score: ~10-15 (low)
   });
-  
-  it('should calculate high risk for equipment with critical alerts', async () => {
+
+  it("should calculate high risk for equipment with critical alerts", async () => {
     // healthIndex: 50, RUL: 30 days, 2 critical alerts, 1 critical DTC
     // Expected risk score: 70-80 (high to critical)
   });
-  
-  it('should return top 5 risks sorted by score descending', async () => {
+
+  it("should return top 5 risks sorted by score descending", async () => {
     // Create 10 equipment with varying risk scores
     // Verify top 5 are correct
   });
-  
-  it('should filter risks by vesselId', async () => {
+
+  it("should filter risks by vesselId", async () => {
     // Verify only equipment from specified vessel returned
   });
 });
 ```
 
 **Frontend Tests** (Playwright):
+
 ```typescript
-test('Top Risks Panel displays correctly', async ({ page }) => {
-  await page.goto('/');
-  
+test("Top Risks Panel displays correctly", async ({ page }) => {
+  await page.goto("/");
+
   // Verify panel exists
-  const panel = page.getByTestId('panel-top-risks');
+  const panel = page.getByTestId("panel-top-risks");
   await expect(panel).toBeVisible();
-  
+
   // Verify 5 risk cards
   for (let i = 1; i <= 5; i++) {
     await expect(page.getByTestId(`risk-card-${i}`)).toBeVisible();
   }
-  
+
   // Verify risk score, factors, trend
-  const firstCard = page.getByTestId('risk-card-1');
+  const firstCard = page.getByTestId("risk-card-1");
   await expect(firstCard.getByText(/Risk Score/)).toBeVisible();
   await expect(firstCard.getByText(/Health/)).toBeVisible();
-  
+
   // Click card navigates to equipment detail
   await firstCard.click();
   await expect(page).toHaveURL(/\/equipment\/.+/);
@@ -440,48 +441,48 @@ import { StatusIndicator } from '@/components/shared/StatusIndicator';
 
 export default function VesselBridgePage() {
   const { vesselId } = useParams<{ vesselId: string }>();
-  
+
   // Fetch vessel data
   const { data: vessel } = useQuery({
     queryKey: ['/api/vessels', vesselId],
   });
-  
+
   // Fetch equipment for vessel
   const { data: equipment } = useQuery({
     queryKey: ['/api/equipment/health', { vesselId }],
     refetchInterval: 30_000, // 30s refresh
   });
-  
+
   // Fetch latest telemetry for vessel
   const { data: telemetry } = useQuery({
     queryKey: ['/api/telemetry/latest', { vesselId }],
     refetchInterval: 10_000, // 10s refresh for real-time feel
   });
-  
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       {/* Header: Vessel name + timestamp */}
       <VesselHeader vessel={vessel} />
-      
+
       {/* Main panel: Large gauges for critical equipment */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         {/* Main Engine RPM */}
         <MainEngineGauge telemetry={telemetry} />
-        
+
         {/* Fuel Pressure */}
         <FuelPressureGauge telemetry={telemetry} />
-        
+
         {/* Engine Temperature */}
         <EngineTemperatureGauge telemetry={telemetry} />
       </div>
-      
+
       {/* Equipment grid: All equipment with status */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-6">
         {equipment?.map(eq => (
           <EquipmentStatusCard key={eq.id} equipment={eq} />
         ))}
       </div>
-      
+
       {/* Alerts panel: Active alerts */}
       <ActiveAlertsPanel vesselId={vesselId} />
     </div>
@@ -491,7 +492,7 @@ export default function VesselBridgePage() {
 function MainEngineGauge({ telemetry }) {
   const rpm = telemetry?.find(t => t.sensorType === 'rpm')?.value || 0;
   const maxRpm = 1800; // Typical main engine max RPM
-  
+
   return (
     <Card className="bg-slate-800 border-slate-700 p-6">
       <h3 className="text-center text-lg font-semibold mb-4">Main Engine RPM</h3>
@@ -522,24 +523,24 @@ function EquipmentStatusCard({ equipment }) {
     good: 'bg-green-500',
     excellent: 'bg-green-500',
   }[equipment.status];
-  
+
   return (
-    <Card 
+    <Card
       className="bg-slate-800 border-slate-700 p-4 hover:bg-slate-700 cursor-pointer transition-colors"
       onClick={() => navigateToEquipment(equipment.id)}
       data-testid={`equipment-status-${equipment.id}`}
     >
       {/* Status indicator (traffic light) */}
       <div className={`w-3 h-3 rounded-full ${statusColor} mb-2`} />
-      
+
       {/* Equipment name */}
       <h4 className="font-semibold text-sm mb-1">{equipment.name}</h4>
-      
+
       {/* Health index */}
       <div className="text-xs text-muted-foreground">
         Health: {equipment.healthIndex}%
       </div>
-      
+
       {/* RUL */}
       {equipment.predictedDueDays && (
         <div className="text-xs text-muted-foreground">
@@ -581,20 +582,20 @@ export function GaugeChart({
   'data-testid': testId = 'chart-gauge',
 }: GaugeChartProps) {
   const percentage = ((value - min) / (max - min)) * 100;
-  
+
   // Create arc segments for color ranges
   const segments = ranges.map(range => ({
     name: range.label,
     value: ((range.max - range.min) / (max - min)) * 100,
     color: range.color,
   }));
-  
+
   const sizes = {
     small: { width: 150, height: 100, innerRadius: 50, outerRadius: 70 },
     medium: { width: 200, height: 130, innerRadius: 70, outerRadius: 90 },
     large: { width: 250, height: 160, innerRadius: 90, outerRadius: 110 },
   }[size];
-  
+
   return (
     <div className="relative" data-testid={testId}>
       <PieChart width={sizes.width} height={sizes.height}>
@@ -612,12 +613,12 @@ export function GaugeChart({
           ))}
         </Pie>
       </PieChart>
-      
+
       {/* Needle indicator */}
-      <NeedleIndicator 
-        percentage={percentage} 
-        width={sizes.width} 
-        height={sizes.height} 
+      <NeedleIndicator
+        percentage={percentage}
+        width={sizes.width}
+        height={sizes.height}
       />
     </div>
   );
@@ -629,6 +630,7 @@ export function GaugeChart({
 ## 2.3 UI/UX Design
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────────────┐
 │ MV Pacific Star          12:45:32 SGT       │
@@ -653,6 +655,7 @@ export function GaugeChart({
 ```
 
 **Color Scheme** (Bridge style):
+
 - Background: Dark slate (`bg-slate-900`)
 - Cards: Slate (`bg-slate-800`)
 - Text: White
@@ -660,6 +663,7 @@ export function GaugeChart({
 - Gauges: Color-coded ranges (red = danger, yellow = caution, green = normal)
 
 **Responsive**:
+
 - Desktop: 3 gauges + 6 equipment per row
 - Tablet: 2 gauges + 4 equipment per row
 - Mobile: 1 gauge + 2 equipment per row
@@ -669,12 +673,14 @@ export function GaugeChart({
 ## 2.4 Data Integration
 
 **Existing APIs** (no new endpoints needed):
+
 1. Vessel data: `GET /api/vessels/:vesselId`
 2. Equipment health: `GET /api/equipment/health?vesselId=...`
 3. Latest telemetry: `GET /api/telemetry/latest?vesselId=...`
 4. Active alerts: `GET /api/alerts?vesselId=...`
 
 **Real-Time Updates**:
+
 - WebSocket subscription: `subscribe('data:vessels')`
 - Poll telemetry every 10 seconds (faster than dashboard's 30s)
 - Show "Last Updated" timestamp
@@ -684,41 +690,42 @@ export function GaugeChart({
 ## 2.5 Testing Strategy
 
 **E2E Tests** (Playwright):
+
 ```typescript
-test('Vessel Bridge displays correctly', async ({ page }) => {
-  await page.goto('/vessel-bridge/test-vessel-id');
-  
+test("Vessel Bridge displays correctly", async ({ page }) => {
+  await page.goto("/vessel-bridge/test-vessel-id");
+
   // Verify vessel name in header
   await expect(page.getByText(/MV Pacific Star/)).toBeVisible();
-  
+
   // Verify large gauges
-  await expect(page.getByTestId('gauge-main-engine-rpm')).toBeVisible();
-  await expect(page.getByTestId('gauge-fuel-pressure')).toBeVisible();
-  await expect(page.getByTestId('gauge-engine-temperature')).toBeVisible();
-  
+  await expect(page.getByTestId("gauge-main-engine-rpm")).toBeVisible();
+  await expect(page.getByTestId("gauge-fuel-pressure")).toBeVisible();
+  await expect(page.getByTestId("gauge-engine-temperature")).toBeVisible();
+
   // Verify equipment grid (at least 6 cards)
   const equipmentCards = page.getByTestId(/equipment-status-/);
   await expect(equipmentCards).toHaveCount.greaterThanOrEqual(6);
-  
+
   // Verify alerts panel
   await expect(page.getByText(/Active Alerts/)).toBeVisible();
-  
+
   // Click equipment card navigates to detail
   await equipmentCards.first().click();
   await expect(page).toHaveURL(/\/equipment\/.+/);
 });
 
-test('Vessel Bridge updates in real-time', async ({ page }) => {
-  await page.goto('/vessel-bridge/test-vessel-id');
-  
+test("Vessel Bridge updates in real-time", async ({ page }) => {
+  await page.goto("/vessel-bridge/test-vessel-id");
+
   // Get initial RPM value
-  const initialRpm = await page.getByTestId('gauge-value-rpm').textContent();
-  
+  const initialRpm = await page.getByTestId("gauge-value-rpm").textContent();
+
   // Wait 15 seconds (2x refresh interval)
   await page.waitForTimeout(15_000);
-  
+
   // Verify RPM has updated (different value or same if simulator not running)
-  const updatedRpm = await page.getByTestId('gauge-value-rpm').textContent();
+  const updatedRpm = await page.getByTestId("gauge-value-rpm").textContent();
   // Test passes if value changed OR if timestamp updated
   await expect(page.getByText(/Last Updated/)).toContainText(/ago/);
 });
@@ -804,12 +811,12 @@ export function MultiSensorChart({
   const [visibleSensors, setVisibleSensors] = useState<Set<string>>(
     new Set(sensors.map(s => s.sensorType))
   );
-  
+
   // Merge all sensor data into single timeline
   const chartData = mergeTimeSeriesData(
     sensors.filter(s => visibleSensors.has(s.sensorType))
   );
-  
+
   const toggleSensor = (sensorType: string) => {
     const newVisible = new Set(visibleSensors);
     if (newVisible.has(sensorType)) {
@@ -819,7 +826,7 @@ export function MultiSensorChart({
     }
     setVisibleSensors(newVisible);
   };
-  
+
   return (
     <ChartWrapper
       title={title}
@@ -840,7 +847,7 @@ export function MultiSensorChart({
               onCheckedChange={() => toggleSensor(sensor.sensorType)}
               data-testid={`checkbox-${sensor.sensorType}`}
             />
-            <Label 
+            <Label
               htmlFor={`sensor-${sensor.sensorType}`}
               className="cursor-pointer"
               style={{ color: sensor.color }}
@@ -850,7 +857,7 @@ export function MultiSensorChart({
           </div>
         ))}
       </div>
-      
+
       {/* Multi-line chart with dual Y-axis */}
       <LineChart data={chartData} margin={{ top: 5, right: 60, left: 60, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -860,21 +867,21 @@ export function MultiSensorChart({
           className="text-xs"
           tick={{ fill: 'hsl(var(--foreground))' }}
         />
-        
+
         {/* Left Y-axis (first sensor) */}
         {visibleSensors.size > 0 && (
           <YAxis
             yAxisId="left"
             className="text-xs"
             tick={{ fill: 'hsl(var(--foreground))' }}
-            label={{ 
-              value: sensors[0]?.unit || '', 
-              angle: -90, 
-              position: 'insideLeft' 
+            label={{
+              value: sensors[0]?.unit || '',
+              angle: -90,
+              position: 'insideLeft'
             }}
           />
         )}
-        
+
         {/* Right Y-axis (second sensor, if different unit) */}
         {visibleSensors.size > 1 && sensors[1]?.unit !== sensors[0]?.unit && (
           <YAxis
@@ -882,17 +889,17 @@ export function MultiSensorChart({
             orientation="right"
             className="text-xs"
             tick={{ fill: 'hsl(var(--foreground))' }}
-            label={{ 
-              value: sensors[1]?.unit || '', 
-              angle: 90, 
-              position: 'insideRight' 
+            label={{
+              value: sensors[1]?.unit || '',
+              angle: 90,
+              position: 'insideRight'
             }}
           />
         )}
-        
+
         <Tooltip content={<CustomTooltip sensors={sensors} />} />
         <Legend />
-        
+
         {/* Render line for each visible sensor */}
         {sensors
           .filter(s => visibleSensors.has(s.sensorType))
@@ -920,7 +927,7 @@ export function MultiSensorChart({
  */
 function mergeTimeSeriesData(sensors: SensorData[]) {
   const merged: Record<number, any> = {};
-  
+
   sensors.forEach(sensor => {
     sensor.data.forEach(point => {
       const ts = point.timestamp.getTime();
@@ -930,7 +937,7 @@ function mergeTimeSeriesData(sensors: SensorData[]) {
       merged[ts][sensor.sensorType] = point.value;
     });
   });
-  
+
   return Object.values(merged).sort(
     (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
   );
@@ -938,7 +945,7 @@ function mergeTimeSeriesData(sensors: SensorData[]) {
 
 function CustomTooltip({ active, payload, sensors }: any) {
   if (!active || !payload?.length) return null;
-  
+
   return (
     <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
       <p className="font-medium text-sm mb-2">
@@ -997,6 +1004,7 @@ const { data: telemetryHistory } = useQuery({
 ## 3.3 UI/UX Design
 
 **Features**:
+
 - ✅ Checkbox toggles to show/hide sensors
 - ✅ Dual Y-axis support (left + right for different units)
 - ✅ Color-coded lines (consistent with sensor colors)
@@ -1005,6 +1013,7 @@ const { data: telemetryHistory } = useQuery({
 - ✅ Legend shows sensor names + units
 
 **Marine Use Cases**:
+
 1. **Diesel Engine**: Temperature + Pressure + RPM
 2. **Bearing Analysis**: Vibration + Temperature + Oil Pressure
 3. **Hydraulic System**: Pressure + Flow Rate + Temperature
@@ -1015,10 +1024,12 @@ const { data: telemetryHistory } = useQuery({
 ## 3.4 Data Integration
 
 **Existing APIs** (no new endpoints needed):
+
 - `GET /api/telemetry/history/:equipmentId/:sensorType?hours=24`
 - Call once per sensor type, then merge client-side
 
 **Optimization** (optional future):
+
 - New endpoint: `GET /api/telemetry/history-multi?equipmentId=...&sensorTypes=temp,pressure,vibration&hours=24`
 - Returns all sensor types in one call
 
@@ -1027,30 +1038,31 @@ const { data: telemetryHistory } = useQuery({
 ## 3.5 Testing Strategy
 
 **E2E Tests** (Playwright):
+
 ```typescript
-test('Multi-sensor chart displays correctly', async ({ page }) => {
-  await page.goto('/equipment/test-equipment-id');
-  
+test("Multi-sensor chart displays correctly", async ({ page }) => {
+  await page.goto("/equipment/test-equipment-id");
+
   // Verify chart exists
-  const chart = page.getByTestId('chart-multi-sensor');
+  const chart = page.getByTestId("chart-multi-sensor");
   await expect(chart).toBeVisible();
-  
+
   // Verify sensor checkboxes (3 sensors)
-  await expect(page.getByTestId('checkbox-temperature')).toBeChecked();
-  await expect(page.getByTestId('checkbox-pressure')).toBeChecked();
-  await expect(page.getByTestId('checkbox-vibration')).toBeChecked();
-  
+  await expect(page.getByTestId("checkbox-temperature")).toBeChecked();
+  await expect(page.getByTestId("checkbox-pressure")).toBeChecked();
+  await expect(page.getByTestId("checkbox-vibration")).toBeChecked();
+
   // Verify all 3 lines visible
-  await expect(page.getByTestId('line-temperature')).toBeVisible();
-  await expect(page.getByTestId('line-pressure')).toBeVisible();
-  await expect(page.getByTestId('line-vibration')).toBeVisible();
-  
+  await expect(page.getByTestId("line-temperature")).toBeVisible();
+  await expect(page.getByTestId("line-pressure")).toBeVisible();
+  await expect(page.getByTestId("line-vibration")).toBeVisible();
+
   // Uncheck temperature
-  await page.getByTestId('checkbox-temperature').click();
-  
+  await page.getByTestId("checkbox-temperature").click();
+
   // Verify temperature line hidden
-  await expect(page.getByTestId('line-temperature')).not.toBeVisible();
-  await expect(page.getByTestId('line-pressure')).toBeVisible();
+  await expect(page.getByTestId("line-temperature")).not.toBeVisible();
+  await expect(page.getByTestId("line-pressure")).toBeVisible();
 });
 ```
 
@@ -1099,70 +1111,51 @@ test('Multi-sensor chart displays correctly', async ({ page }) => {
  */
 export interface AlertImpact {
   alertId: string;
-  
+
   // Impact level (based on equipment criticality + alert severity)
-  impactLevel: 'low' | 'medium' | 'high' | 'critical';
-  
+  impactLevel: "low" | "medium" | "high" | "critical";
+
   // Safety risk
-  safetyRisk: 'low' | 'medium' | 'high' | 'critical';
-  
+  safetyRisk: "low" | "medium" | "high" | "critical";
+
   // Time to failure (from RUL if available)
   timeToFailure: number | null; // days
-  urgency: 'immediate' | 'this_week' | 'this_month' | 'monitor';
-  
+  urgency: "immediate" | "this_week" | "this_month" | "monitor";
+
   // Template-based descriptions
   description: string;
   recommendation: string;
-  
+
   // Equipment context
-  equipmentCriticality: 'critical' | 'important' | 'auxiliary';
+  equipmentCriticality: "critical" | "important" | "auxiliary";
 }
 
 export class ImpactAnalysisService {
   /**
    * Analyze alert impact
    */
-  async analyzeAlertImpact(
-    alertId: string,
-    orgId: string
-  ): Promise<AlertImpact> {
+  async analyzeAlertImpact(alertId: string, orgId: string): Promise<AlertImpact> {
     // Get alert + equipment + RUL
     const alert = await getAlert(alertId);
     const equipment = await getEquipment(alert.equipmentId);
     const rulPrediction = await getRulPrediction(alert.equipmentId);
-    
+
     // Determine equipment criticality
     const criticality = this.getEquipmentCriticality(equipment.type);
-    
+
     // Calculate impact level
-    const impactLevel = this.calculateImpactLevel(
-      alert.severity,
-      criticality
-    );
-    
+    const impactLevel = this.calculateImpactLevel(alert.severity, criticality);
+
     // Calculate safety risk
-    const safetyRisk = this.calculateSafetyRisk(
-      equipment.type,
-      alert.severity
-    );
-    
+    const safetyRisk = this.calculateSafetyRisk(equipment.type, alert.severity);
+
     // Determine urgency
-    const urgency = this.calculateUrgency(
-      rulPrediction?.remainingDays,
-      impactLevel
-    );
-    
+    const urgency = this.calculateUrgency(rulPrediction?.remainingDays, impactLevel);
+
     // Generate descriptions
-    const description = this.generateDescription(
-      equipment,
-      alert,
-      impactLevel
-    );
-    const recommendation = this.generateRecommendation(
-      urgency,
-      impactLevel
-    );
-    
+    const description = this.generateDescription(equipment, alert, impactLevel);
+    const recommendation = this.generateRecommendation(urgency, impactLevel);
+
     return {
       alertId,
       impactLevel,
@@ -1174,144 +1167,124 @@ export class ImpactAnalysisService {
       equipmentCriticality: criticality,
     };
   }
-  
+
   /**
    * Equipment criticality mapping
    */
-  private getEquipmentCriticality(
-    equipmentType: string
-  ): 'critical' | 'important' | 'auxiliary' {
-    const criticalEquipment = [
-      'Main Engine',
-      'Steering Gear',
-      'Fire Suppression',
-      'DP Thruster',
-    ];
-    
+  private getEquipmentCriticality(equipmentType: string): "critical" | "important" | "auxiliary" {
+    const criticalEquipment = ["Main Engine", "Steering Gear", "Fire Suppression", "DP Thruster"];
+
     const importantEquipment = [
-      'Generator',
-      'Bow Thruster',
-      'Stern Thruster',
-      'Fuel Pump',
-      'Cooling Pump',
+      "Generator",
+      "Bow Thruster",
+      "Stern Thruster",
+      "Fuel Pump",
+      "Cooling Pump",
     ];
-    
-    if (criticalEquipment.some(e => equipmentType.includes(e))) {
-      return 'critical';
+
+    if (criticalEquipment.some((e) => equipmentType.includes(e))) {
+      return "critical";
     }
-    if (importantEquipment.some(e => equipmentType.includes(e))) {
-      return 'important';
+    if (importantEquipment.some((e) => equipmentType.includes(e))) {
+      return "important";
     }
-    return 'auxiliary';
+    return "auxiliary";
   }
-  
+
   /**
    * Impact level calculation
    */
   private calculateImpactLevel(
     alertSeverity: string,
     equipmentCriticality: string
-  ): 'low' | 'medium' | 'high' | 'critical' {
+  ): "low" | "medium" | "high" | "critical" {
     // Matrix: severity × criticality
     const matrix = {
       critical: {
-        critical: 'critical',
-        important: 'high',
-        auxiliary: 'medium',
+        critical: "critical",
+        important: "high",
+        auxiliary: "medium",
       },
       high: {
-        critical: 'high',
-        important: 'high',
-        auxiliary: 'medium',
+        critical: "high",
+        important: "high",
+        auxiliary: "medium",
       },
       medium: {
-        critical: 'high',
-        important: 'medium',
-        auxiliary: 'low',
+        critical: "high",
+        important: "medium",
+        auxiliary: "low",
       },
       low: {
-        critical: 'medium',
-        important: 'low',
-        auxiliary: 'low',
+        critical: "medium",
+        important: "low",
+        auxiliary: "low",
       },
     };
-    
-    return matrix[alertSeverity]?.[equipmentCriticality] || 'low';
+
+    return matrix[alertSeverity]?.[equipmentCriticality] || "low";
   }
-  
+
   /**
    * Safety risk calculation
    */
   private calculateSafetyRisk(
     equipmentType: string,
     alertSeverity: string
-  ): 'low' | 'medium' | 'high' | 'critical' {
-    const safetyEquipment = [
-      'Main Engine',
-      'Steering Gear',
-      'Fire Suppression',
-      'Lifeboat System',
-    ];
-    
-    const isSafetyCritical = safetyEquipment.some(e => 
-      equipmentType.includes(e)
-    );
-    
-    if (isSafetyCritical && alertSeverity === 'critical') return 'critical';
-    if (isSafetyCritical) return 'high';
-    if (alertSeverity === 'critical') return 'high';
-    if (alertSeverity === 'high') return 'medium';
-    return 'low';
+  ): "low" | "medium" | "high" | "critical" {
+    const safetyEquipment = ["Main Engine", "Steering Gear", "Fire Suppression", "Lifeboat System"];
+
+    const isSafetyCritical = safetyEquipment.some((e) => equipmentType.includes(e));
+
+    if (isSafetyCritical && alertSeverity === "critical") return "critical";
+    if (isSafetyCritical) return "high";
+    if (alertSeverity === "critical") return "high";
+    if (alertSeverity === "high") return "medium";
+    return "low";
   }
-  
+
   /**
    * Urgency calculation
    */
   private calculateUrgency(
     rulDays: number | null,
     impactLevel: string
-  ): 'immediate' | 'this_week' | 'this_month' | 'monitor' {
-    if (impactLevel === 'critical') return 'immediate';
-    if (rulDays !== null && rulDays < 7) return 'immediate';
-    if (impactLevel === 'high' || (rulDays !== null && rulDays < 30)) {
-      return 'this_week';
+  ): "immediate" | "this_week" | "this_month" | "monitor" {
+    if (impactLevel === "critical") return "immediate";
+    if (rulDays !== null && rulDays < 7) return "immediate";
+    if (impactLevel === "high" || (rulDays !== null && rulDays < 30)) {
+      return "this_week";
     }
-    if (impactLevel === 'medium') return 'this_month';
-    return 'monitor';
+    if (impactLevel === "medium") return "this_month";
+    return "monitor";
   }
-  
+
   /**
    * Template-based description generation
    */
-  private generateDescription(
-    equipment: any,
-    alert: any,
-    impactLevel: string
-  ): string {
+  private generateDescription(equipment: any, alert: any, impactLevel: string): string {
     const templates = {
       critical: `CRITICAL: Failure of ${equipment.name} could result in loss of propulsion, steering, or safety systems. Immediate action required.`,
       high: `HIGH IMPACT: ${equipment.name} failure may cause significant operational disruption or safety concerns. Schedule urgent maintenance.`,
       medium: `MODERATE IMPACT: ${equipment.name} degradation could lead to increased maintenance costs or minor operational delays.`,
       low: `LOW IMPACT: ${equipment.name} issue is minor but should be addressed during next scheduled maintenance.`,
     };
-    
+
     return templates[impactLevel] || templates.low;
   }
-  
+
   /**
    * Template-based recommendation generation
    */
-  private generateRecommendation(
-    urgency: string,
-    impactLevel: string
-  ): string {
+  private generateRecommendation(urgency: string, impactLevel: string): string {
     const recommendations = {
-      immediate: 'Address immediately. Stop vessel operations if safe to do so and perform emergency repair.',
-      this_week: 'Schedule maintenance within 7 days. Monitor closely until repair.',
-      this_month: 'Add to maintenance schedule for next port call or within 30 days.',
-      monitor: 'Continue monitoring. No immediate action required.',
+      immediate:
+        "Address immediately. Stop vessel operations if safe to do so and perform emergency repair.",
+      this_week: "Schedule maintenance within 7 days. Monitor closely until repair.",
+      this_month: "Add to maintenance schedule for next port call or within 30 days.",
+      monitor: "Continue monitoring. No immediate action required.",
     };
-    
+
     return recommendations[urgency] || recommendations.monitor;
   }
 }
@@ -1321,9 +1294,9 @@ export class ImpactAnalysisService {
 
 ```typescript
 // Modify existing alert API to include impact
-app.get('/api/alerts', requireOrgId, async (req, res) => {
+app.get("/api/alerts", requireOrgId, async (req, res) => {
   const alerts = await getAlerts(orgId);
-  
+
   // Enrich with impact analysis
   const enrichedAlerts = await Promise.all(
     alerts.map(async (alert) => ({
@@ -1331,7 +1304,7 @@ app.get('/api/alerts', requireOrgId, async (req, res) => {
       impact: await impactAnalysisService.analyzeAlertImpact(alert.id, orgId),
     }))
   );
-  
+
   res.json(enrichedAlerts);
 });
 ```
@@ -1350,9 +1323,9 @@ interface AlertImpactBadgeProps {
   'data-testid'?: string;
 }
 
-export function AlertImpactBadge({ 
+export function AlertImpactBadge({
   impact,
-  'data-testid': testId = 'badge-alert-impact' 
+  'data-testid': testId = 'badge-alert-impact'
 }: AlertImpactBadgeProps) {
   const impactVariant = {
     critical: 'destructive',
@@ -1360,7 +1333,7 @@ export function AlertImpactBadge({
     medium: 'secondary',
     low: 'outline',
   }[impact.impactLevel];
-  
+
   return (
     <Tooltip>
       <TooltipTrigger>
@@ -1370,7 +1343,7 @@ export function AlertImpactBadge({
             <AlertTriangle className="h-3 w-3 mr-1" />
             {impact.impactLevel.toUpperCase()} IMPACT
           </Badge>
-          
+
           {/* Safety risk badge */}
           {impact.safetyRisk !== 'low' && (
             <Badge variant={impact.safetyRisk === 'critical' ? 'destructive' : 'default'}>
@@ -1378,7 +1351,7 @@ export function AlertImpactBadge({
               Safety: {impact.safetyRisk}
             </Badge>
           )}
-          
+
           {/* Urgency badge */}
           <Badge variant="outline">
             <Clock className="h-3 w-3 mr-1" />
@@ -1386,7 +1359,7 @@ export function AlertImpactBadge({
           </Badge>
         </div>
       </TooltipTrigger>
-      
+
       <TooltipContent className="max-w-sm">
         <div className="space-y-2">
           <p className="font-semibold">{impact.description}</p>
@@ -1418,7 +1391,7 @@ export function AlertImpactBadge({
           {alert.equipmentName} • {alert.vesselName}
         </p>
       </div>
-      
+
       {/* Impact badges */}
       <AlertImpactBadge impact={alert.impact} />
     </CardContent>
@@ -1431,12 +1404,14 @@ export function AlertImpactBadge({
 ## 4.3 UI/UX Design
 
 **Visual Elements**:
+
 - **Impact Level Badge**: Color-coded (red/orange/yellow/gray)
 - **Safety Risk Badge**: Shield icon (shown only if medium/high/critical)
 - **Urgency Badge**: Clock icon
 - **Tooltip**: Full description + recommendation on hover
 
 **Example Alert Card**:
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ ⚠ Main Engine oil pressure low                 │
@@ -1460,41 +1435,39 @@ export function AlertImpactBadge({
 ## 4.4 Testing Strategy
 
 **Backend Tests**:
+
 ```typescript
-describe('ImpactAnalysisService', () => {
-  it('should classify critical equipment + critical alert as critical impact', () => {
-    const impact = service.analyzeAlertImpact(
-      criticalAlertOnMainEngine
-    );
-    expect(impact.impactLevel).toBe('critical');
-    expect(impact.safetyRisk).toBe('critical');
-    expect(impact.urgency).toBe('immediate');
+describe("ImpactAnalysisService", () => {
+  it("should classify critical equipment + critical alert as critical impact", () => {
+    const impact = service.analyzeAlertImpact(criticalAlertOnMainEngine);
+    expect(impact.impactLevel).toBe("critical");
+    expect(impact.safetyRisk).toBe("critical");
+    expect(impact.urgency).toBe("immediate");
   });
-  
-  it('should classify auxiliary equipment + low alert as low impact', () => {
-    const impact = service.analyzeAlertImpact(
-      lowAlertOnAuxiliaryPump
-    );
-    expect(impact.impactLevel).toBe('low');
-    expect(impact.urgency).toBe('monitor');
+
+  it("should classify auxiliary equipment + low alert as low impact", () => {
+    const impact = service.analyzeAlertImpact(lowAlertOnAuxiliaryPump);
+    expect(impact.impactLevel).toBe("low");
+    expect(impact.urgency).toBe("monitor");
   });
 });
 ```
 
 **Frontend Tests** (Playwright):
+
 ```typescript
-test('Alert impact badges display correctly', async ({ page }) => {
-  await page.goto('/alerts');
-  
+test("Alert impact badges display correctly", async ({ page }) => {
+  await page.goto("/alerts");
+
   // Verify first alert has impact badges
-  const firstAlert = page.getByTestId('alert-card-0');
-  await expect(firstAlert.getByTestId('badge-alert-impact')).toBeVisible();
-  
+  const firstAlert = page.getByTestId("alert-card-0");
+  await expect(firstAlert.getByTestId("badge-alert-impact")).toBeVisible();
+
   // Verify impact level badge
   await expect(firstAlert.getByText(/CRITICAL IMPACT/i)).toBeVisible();
-  
+
   // Hover to see tooltip
-  await firstAlert.getByTestId('badge-alert-impact').hover();
+  await firstAlert.getByTestId("badge-alert-impact").hover();
   await expect(page.getByText(/Recommendation:/)).toBeVisible();
   await expect(page.getByText(/Time to Failure:/)).toBeVisible();
 });
@@ -1519,12 +1492,12 @@ test('Alert impact badges display correctly', async ({ page }) => {
 
 ## Total Estimated Effort: 16-22 hours
 
-| Feature | Effort | Status |
-|---|---|---|
-| Top 5 Fleet Risks Dashboard | 4-6h | Ready for implementation |
-| Bridge-Style Vessel View | 6-8h | Ready for implementation |
-| Multi-Sensor Time-Series Overlay | 3-4h | Ready for implementation |
-| Alert Impact Analysis (Simplified) | 3-4h | Ready for implementation |
+| Feature                            | Effort | Status                   |
+| ---------------------------------- | ------ | ------------------------ |
+| Top 5 Fleet Risks Dashboard        | 4-6h   | Ready for implementation |
+| Bridge-Style Vessel View           | 6-8h   | Ready for implementation |
+| Multi-Sensor Time-Series Overlay   | 3-4h   | Ready for implementation |
+| Alert Impact Analysis (Simplified) | 3-4h   | Ready for implementation |
 
 ---
 
@@ -1555,6 +1528,7 @@ test('Alert impact badges display correctly', async ({ page }) => {
 ## Architecture Validation ✅
 
 All features validated against:
+
 - ✅ **Offline-First**: All features work with cached data
 - ✅ **Dual-Mode**: No PostgreSQL-specific dependencies
 - ✅ **Multi-Tenant**: All queries org-scoped
@@ -1566,12 +1540,12 @@ All features validated against:
 
 ## Risks & Mitigation
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Risk scoring algorithm too slow | High | Cache scores for 5 minutes, async calculation |
-| Dual Y-axis chart performance | Medium | Limit to 10k points, use virtualization if needed |
-| Bridge view too complex for mobile | Low | Responsive design, progressive disclosure |
-| Impact analysis descriptions too generic | Low | Start simple, refine based on feedback |
+| Risk                                     | Impact | Mitigation                                        |
+| ---------------------------------------- | ------ | ------------------------------------------------- |
+| Risk scoring algorithm too slow          | High   | Cache scores for 5 minutes, async calculation     |
+| Dual Y-axis chart performance            | Medium | Limit to 10k points, use virtualization if needed |
+| Bridge view too complex for mobile       | Low    | Responsive design, progressive disclosure         |
+| Impact analysis descriptions too generic | Low    | Start simple, refine based on feedback            |
 
 ---
 

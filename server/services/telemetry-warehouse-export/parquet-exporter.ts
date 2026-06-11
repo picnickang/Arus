@@ -65,14 +65,23 @@ interface RollupRow {
 }
 
 function toNumberOrNull(v: unknown): number | null {
-  if (v === null || v === undefined) {return null;}
+  if (v === null || v === undefined) {
+    return null;
+  }
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-async function fetchRollups(db: unknown, orgId: string, dayStart: Date, dayEnd: Date): Promise<RollupRow[]> {
+async function fetchRollups(
+  db: unknown,
+  orgId: string,
+  dayStart: Date,
+  dayEnd: Date
+): Promise<RollupRow[]> {
   // Cast `db` only at the call site — the rest of the module is strongly typed.
-  const dbAny = db as { execute: (q: unknown) => Promise<{ rows?: Array<Record<string, unknown>> }> };
+  const dbAny = db as {
+    execute: (q: unknown) => Promise<{ rows?: Array<Record<string, unknown>> }>;
+  };
   const result = await dbAny.execute(sql`
     SELECT
       org_id, equipment_id, sensor_type, bucket_start, bucket_size,
@@ -88,21 +97,22 @@ async function fetchRollups(db: unknown, orgId: string, dayStart: Date, dayEnd: 
 
   const rows = result?.rows ?? [];
   return rows.map((r) => ({
-    org_id: String(r['org_id']),
-    equipment_id: String(r['equipment_id']),
-    sensor_type: String(r['sensor_type']),
-    bucket_start: r['bucket_start'] instanceof Date ? r['bucket_start'] : new Date(String(r['bucket_start'])),
-    bucket_size: String(r['bucket_size']),
-    count: Number(r['count'] ?? 0),
-    min_value: toNumberOrNull(r['min_value']),
-    max_value: toNumberOrNull(r['max_value']),
-    avg_value: toNumberOrNull(r['avg_value']),
-    stddev_value: toNumberOrNull(r['stddev_value']),
-    p50_value: toNumberOrNull(r['p50_value']),
-    p95_value: toNumberOrNull(r['p95_value']),
-    p99_value: toNumberOrNull(r['p99_value']),
-    first_value: toNumberOrNull(r['first_value']),
-    last_value: toNumberOrNull(r['last_value']),
+    org_id: String(r["org_id"]),
+    equipment_id: String(r["equipment_id"]),
+    sensor_type: String(r["sensor_type"]),
+    bucket_start:
+      r["bucket_start"] instanceof Date ? r["bucket_start"] : new Date(String(r["bucket_start"])),
+    bucket_size: String(r["bucket_size"]),
+    count: Number(r["count"] ?? 0),
+    min_value: toNumberOrNull(r["min_value"]),
+    max_value: toNumberOrNull(r["max_value"]),
+    avg_value: toNumberOrNull(r["avg_value"]),
+    stddev_value: toNumberOrNull(r["stddev_value"]),
+    p50_value: toNumberOrNull(r["p50_value"]),
+    p95_value: toNumberOrNull(r["p95_value"]),
+    p99_value: toNumberOrNull(r["p99_value"]),
+    first_value: toNumberOrNull(r["first_value"]),
+    last_value: toNumberOrNull(r["last_value"]),
   }));
 }
 
@@ -113,7 +123,7 @@ async function writeParquetFile(rows: RollupRow[], localPath: string): Promise<v
   const writer = await ParquetWriter.openFile(
     PARQUET_SCHEMA,
     localPath,
-    writerOpts as Parameters<typeof ParquetWriter.openFile>[2],
+    writerOpts as Parameters<typeof ParquetWriter.openFile>[2]
   );
   try {
     for (const row of rows) {
@@ -133,9 +143,11 @@ async function writeParquetFile(rows: RollupRow[], localPath: string): Promise<v
 export async function listOrgIdsWithRollups(
   db: unknown,
   dayStart: Date,
-  dayEnd: Date,
+  dayEnd: Date
 ): Promise<string[]> {
-  const dbAny = db as { execute: (q: unknown) => Promise<{ rows?: Array<Record<string, unknown>> }> };
+  const dbAny = db as {
+    execute: (q: unknown) => Promise<{ rows?: Array<Record<string, unknown>> }>;
+  };
   const result = await dbAny.execute(sql`
     SELECT DISTINCT org_id
     FROM telemetry_aggregated
@@ -145,7 +157,7 @@ export async function listOrgIdsWithRollups(
     ORDER BY org_id ASC
   `);
   return (result?.rows ?? [])
-    .map((r) => (typeof r['org_id'] === "string" ? r['org_id'] : String(r['org_id'])))
+    .map((r) => (typeof r["org_id"] === "string" ? r["org_id"] : String(r["org_id"])))
     .filter((s) => s.length > 0);
 }
 
@@ -159,7 +171,7 @@ export interface ExportOrgDayInput {
 }
 
 export async function exportOrgDayToParquet(
-  input: ExportOrgDayInput,
+  input: ExportOrgDayInput
 ): Promise<WarehouseExportRunSummary> {
   const { db, orgId, dayStart, dateStr } = input;
   const startedAt = new Date();
@@ -188,10 +200,7 @@ export async function exportOrgDayToParquet(
     // Stage to a unique temp file so concurrent runs (shouldn't happen,
     // but defensively) can't tear each other's output.
     const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "arus-warehouse-"));
-    const tmpFile = path.join(
-      tmpDir,
-      `part-${randomBytes(4).toString("hex")}.parquet`,
-    );
+    const tmpFile = path.join(tmpDir, `part-${randomBytes(4).toString("hex")}.parquet`);
 
     try {
       await writeParquetFile(rows, tmpFile);

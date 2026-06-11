@@ -8,7 +8,6 @@ const AnalyticsFinance = lazy(() => import("@/pages/analytics-finance"));
 const AnalyticsDataIntegrity = lazy(() => import("@/pages/analytics-data-integrity"));
 const KnowledgeBasePage = lazy(() => import("@/pages/knowledge-base"));
 const RagAnalyticsDashboard = lazy(() => import("@/features/kb/pages/RagAnalyticsDashboard"));
-const GovernanceDashboard = lazy(() => import("@/pages/governance-dashboard"));
 const ScheduledReports = lazy(() => import("@/pages/scheduled-reports"));
 const ScheduledReportsSettings = lazy(() => import("@/pages/scheduled-reports-settings"));
 const AIHealthDashboard = lazy(() => import("@/pages/ai-health-dashboard"));
@@ -25,7 +24,9 @@ export const analyticsRoutes = [
   { path: "/analytics/data-integrity", component: AnalyticsDataIntegrity },
   { path: "/knowledge-base", component: KnowledgeBasePage },
   { path: "/kb-analytics", component: RagAnalyticsDashboard },
-  { path: "/governance-dashboard", component: GovernanceDashboard },
+  // /governance-dashboard is redirect-only (routeMigrations → /logs?tab=compliance);
+  // its <Switch> registration here could never match. The page still renders as
+  // a tab inside compliance-consolidated.
   { path: "/scheduled-reports", component: ScheduledReports },
   { path: "/scheduled-reports-settings", component: ScheduledReportsSettings },
   { path: "/ai-health", component: AIHealthDashboard },

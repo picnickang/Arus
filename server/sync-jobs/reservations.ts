@@ -7,13 +7,13 @@ const logger = createLogger("SyncJobs:Reservations");
 import { db } from "../db.js";
 import { parts, stock, reservations } from "@shared/schema.js";
 import { eq, sql, and } from "drizzle-orm";
-import type { SyncJobCheckResult } from "./types.js";
+import type { DataIntegrityCheckResult } from "./types.js";
 
 /**
  * Check if reservations exceed available stock levels
  */
-export async function checkReservationOverflow(orgId: string): Promise<SyncJobCheckResult> {
-  const issues: SyncJobCheckResult["issues"] = [];
+export async function checkReservationOverflow(orgId: string): Promise<DataIntegrityCheckResult> {
+  const issues: DataIntegrityCheckResult["issues"] = [];
 
   try {
     const reservationOverflows = await db

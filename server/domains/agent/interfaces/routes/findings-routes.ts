@@ -51,9 +51,15 @@ export function registerFindingsRoutes(app: Express, deps: FindingsRouteDeps) {
         }
         const q = parsed.data;
         const filter: FindingsFilter = {};
-        if (q.source) {filter.source = q.source;}
-        if (q.severity) {filter.severity = q.severity;}
-        if (q.status) {filter.status = q.status;}
+        if (q.source) {
+          filter.source = q.source;
+        }
+        if (q.severity) {
+          filter.severity = q.severity;
+        }
+        if (q.status) {
+          filter.status = q.status;
+        }
         if (q.dateFrom) {
           if (isNaN(new Date(q.dateFrom).getTime())) {
             return res.status(400).json({ error: "Invalid dateFrom" });
@@ -75,7 +81,9 @@ export function registerFindingsRoutes(app: Express, deps: FindingsRouteDeps) {
         const result = await findingsService.getFindings(orgId, filter, pagination);
         return res.json(result);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );
@@ -90,7 +98,9 @@ export function registerFindingsRoutes(app: Express, deps: FindingsRouteDeps) {
         const summary = await findingsService.getSummary(orgId);
         return res.json(summary);
       } catch (error: unknown) {
-        return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+        return res
+          .status(500)
+          .json({ error: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   );

@@ -1,5 +1,7 @@
 import { createLogger } from "../../../../lib/structured-logger";
-const logger = createLogger("Domains:PdmPlatform:DigitalTwin:ResidualAnalysis:ResidualAnalysis.service");
+const logger = createLogger(
+  "Domains:PdmPlatform:DigitalTwin:ResidualAnalysis:ResidualAnalysis.service"
+);
 import { db } from "../../../../db";
 import { eq, and, desc } from "drizzle-orm";
 import {
@@ -33,7 +35,9 @@ function round(v: number): number {
 }
 
 function allowPdmDemoFallbacks(): boolean {
-  return process.env['NODE_ENV'] !== "production" || process.env['ALLOW_PDM_DEMO_FALLBACKS'] === "true";
+  return (
+    process.env["NODE_ENV"] !== "production" || process.env["ALLOW_PDM_DEMO_FALLBACKS"] === "true"
+  );
 }
 
 export class ResidualAnalysisService {
@@ -72,12 +76,19 @@ export class ResidualAnalysisService {
 
     if (Object.keys(observed).length === 0) {
       if (!allowPdmDemoFallbacks()) {
-        throw new Error("No twin state data available for residual analysis; demo fallback disabled in production.");
+        throw new Error(
+          "No twin state data available for residual analysis; demo fallback disabled in production."
+        );
       }
-      logger.warn(String(LOG_MODULE), { details: ["No state data for twin, generating demo fallback residuals", {
-        orgId,
-        twinId,
-      }] });
+      logger.warn(String(LOG_MODULE), {
+        details: [
+          "No state data for twin, generating demo fallback residuals",
+          {
+            orgId,
+            twinId,
+          },
+        ],
+      });
       return this.generateStubResiduals(orgId, twinId, template.equipmentType);
     }
 
@@ -132,11 +143,16 @@ export class ResidualAnalysisService {
     }
 
     const stored = await this.adapter.storeResiduals(records);
-    logger.info(String(LOG_MODULE), { details: ["Computed residuals", {
-      orgId,
-      twinId,
-      count: stored.length,
-    }] });
+    logger.info(String(LOG_MODULE), {
+      details: [
+        "Computed residuals",
+        {
+          orgId,
+          twinId,
+          count: stored.length,
+        },
+      ],
+    });
     return stored;
   }
 
@@ -191,4 +207,3 @@ function deterministicValue(id: string, seed: string, min: number, max: number):
   const normalized = (Math.abs(hash) % 10000) / 10000;
   return round(min + normalized * (max - min));
 }
-

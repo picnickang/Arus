@@ -23,15 +23,16 @@
 ```typescript
 // Standard Tailwind breakpoints
 const breakpoints = {
-  sm: '640px',   // Small tablets
-  md: '768px',   // Tablets (portrait)
-  lg: '1024px',  // Tablets (landscape) / Small laptops
-  xl: '1280px',  // Laptops
-  '2xl': '1536px' // Large desktops
+  sm: "640px", // Small tablets
+  md: "768px", // Tablets (portrait)
+  lg: "1024px", // Tablets (landscape) / Small laptops
+  xl: "1280px", // Laptops
+  "2xl": "1536px", // Large desktops
 };
 ```
 
 **Usage Pattern:**
+
 ```tsx
 // Mobile-first: Default is mobile, add larger screens
 <div className="flex flex-col lg:flex-row gap-4">
@@ -46,15 +47,18 @@ const breakpoints = {
 ### 1. KPI Cards
 
 **Mobile (< 768px):**
+
 - Horizontal scroll container
 - Cards: `min-w-[200px]` to prevent shrinking
 - Snap scroll for smooth UX
 
 **Desktop (≥ 768px):**
+
 - Grid layout: `grid-cols-2` → `lg:grid-cols-4`
 - Cards expand to fill space
 
 **Implementation:**
+
 ```tsx
 <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid lg:grid-cols-4 md:overflow-x-visible">
   <KpiCard
@@ -72,14 +76,17 @@ const breakpoints = {
 ### 2. Model Table
 
 **Mobile (< 768px):**
+
 - **Transform table → stacked cards**
 - Each row becomes a vertical card
 - Critical info visible, details in "View More" accordion
 
 **Desktop (≥ 768px):**
+
 - Standard table with all columns
 
 **Implementation:**
+
 ```tsx
 // Mobile card layout
 <div className="space-y-3 md:hidden">
@@ -93,7 +100,7 @@ const breakpoints = {
           </div>
           <StatusBadge status={model.status} />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-muted-foreground">Accuracy:</span>
@@ -104,7 +111,7 @@ const breakpoints = {
             <span className="ml-1 font-medium">{formatDate(model.lastValidation)}</span>
           </div>
         </div>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="w-full">
@@ -131,16 +138,19 @@ const breakpoints = {
 ### 3. Training Form (Unified)
 
 **Mobile (< 768px):**
+
 - Full-width form
 - Stacked sections (model type, data window, equipment)
 - Collapsible advanced options (closed by default)
 - Sticky submit button at bottom
 
 **Desktop (≥ 768px):**
+
 - Two-column layout where appropriate
 - Advanced options visible but collapsed
 
 **Implementation:**
+
 ```tsx
 <form className="space-y-6">
   {/* Model Type Selection - Full width on mobile */}
@@ -149,18 +159,18 @@ const breakpoints = {
     <ModelTypeCard type="random-forest" />
     <ModelTypeCard type="xgboost" />
   </div>
-  
+
   {/* Equipment & Data Window - Stack on mobile */}
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <FormField name="equipmentScope">
       <Select>{/* ... */}</Select>
     </FormField>
-    
+
     <FormField name="objective">
       <Select>{/* ... */}</Select>
     </FormField>
   </div>
-  
+
   {/* Data Window Presets - Horizontal scroll on mobile */}
   <div className="flex gap-3 overflow-x-auto pb-2 snap-x md:grid md:grid-cols-4">
     <DataWindowPreset tier="bronze" className="min-w-[150px] snap-start md:min-w-0" />
@@ -168,19 +178,17 @@ const breakpoints = {
     <DataWindowPreset tier="gold" className="min-w-[150px] snap-start md:min-w-0" />
     <DataWindowPreset tier="platinum" className="min-w-[150px] snap-start md:min-w-0" />
   </div>
-  
+
   {/* Advanced Options - Collapsible */}
   <Collapsible defaultOpen={false}>
     <CollapsibleTrigger>
       <Button variant="ghost">Advanced Options</Button>
     </CollapsibleTrigger>
     <CollapsibleContent>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        {/* Advanced fields */}
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">{/* Advanced fields */}</div>
     </CollapsibleContent>
   </Collapsible>
-  
+
   {/* Submit Button - Sticky on mobile */}
   <div className="sticky bottom-0 bg-background p-4 border-t md:static md:p-0 md:border-0">
     <Button type="submit" className="w-full md:w-auto">
@@ -195,31 +203,34 @@ const breakpoints = {
 ### 4. Charts (Recharts)
 
 **Mobile (< 768px):**
+
 - Full width
 - Reduce height: `h-[300px]` instead of `h-[400px]`
 - Hide legend or move to bottom
 - Reduce tick count for x-axis
 
 **Desktop (≥ 768px):**
+
 - Standard sizing
 - Legend visible on right/top
 - More granular tick marks
 
 **Implementation:**
+
 ```tsx
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 function AccuracyChart({ data }) {
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   return (
     <ResponsiveContainer width="100%" height={isMobile ? 300 : 400}>
       <LineChart data={data}>
         <XAxis
           dataKey="date"
           tick={{ fontSize: isMobile ? 10 : 12 }}
-          interval={isMobile ? 'preserveStartEnd' : 0}
+          interval={isMobile ? "preserveStartEnd" : 0}
         />
         <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
         <Tooltip />
@@ -232,9 +243,10 @@ function AccuracyChart({ data }) {
 ```
 
 **Custom Hook:**
+
 ```typescript
 // client/src/hooks/useMediaQuery.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
@@ -244,9 +256,9 @@ export function useMediaQuery(query: string): boolean {
     setMatches(media.matches);
 
     const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
-    media.addEventListener('change', listener);
-    
-    return () => media.removeEventListener('change', listener);
+    media.addEventListener("change", listener);
+
+    return () => media.removeEventListener("change", listener);
   }, [query]);
 
   return matches;
@@ -258,16 +270,19 @@ export function useMediaQuery(query: string): boolean {
 ### 5. Tabs (Multi-tab Dashboards)
 
 **Mobile (< 768px):**
+
 - Horizontal scroll tabs
 - Snap scroll for smooth navigation
 - Minimum touch target: 44px height
 - Active tab indicator highly visible
 
 **Desktop (≥ 768px):**
+
 - Standard tab layout
 - All tabs visible (no scroll)
 
 **Implementation:**
+
 ```tsx
 <Tabs defaultValue="metrics">
   <div className="overflow-x-auto pb-2">
@@ -291,7 +306,7 @@ export function useMediaQuery(query: string): boolean {
       {/* More tabs */}
     </TabsList>
   </div>
-  
+
   <TabsContent value="metrics">{/* Content */}</TabsContent>
   {/* More content */}
 </Tabs>
@@ -302,15 +317,18 @@ export function useMediaQuery(query: string): boolean {
 ### 6. Split Panels (Left/Right Layouts)
 
 **Mobile (< 768px):**
+
 - Stack vertically (left panel on top)
 - Use accordions to show/hide panels
 - OR: Single panel with navigation breadcrumbs
 
 **Desktop (≥ 768px):**
+
 - Side-by-side layout
 - Resizable divider (optional)
 
 **Implementation Pattern 1: Stack on Mobile**
+
 ```tsx
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
   {/* Left Panel - Full width on mobile, 1/3 on desktop */}
@@ -320,7 +338,7 @@ export function useMediaQuery(query: string): boolean {
       {/* List of items */}
     </Card>
   </div>
-  
+
   {/* Right Panel - Full width on mobile, 2/3 on desktop */}
   <div className="lg:col-span-2">
     <Card className="p-4">
@@ -332,11 +350,12 @@ export function useMediaQuery(query: string): boolean {
 ```
 
 **Implementation Pattern 2: Mobile Drawer**
+
 ```tsx
 // Mobile: Click item → Opens drawer
 // Desktop: Click item → Updates right panel
 
-const isMobile = useMediaQuery('(max-width: 1024px)');
+const isMobile = useMediaQuery("(max-width: 1024px)");
 const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
 return (
@@ -345,14 +364,14 @@ return (
       <div className="lg:col-span-1">
         <ItemList onSelect={setSelectedItem} />
       </div>
-      
+
       {!isMobile && (
         <div className="lg:col-span-2">
           <ItemDetails itemId={selectedItem} />
         </div>
       )}
     </div>
-    
+
     {/* Mobile Drawer */}
     {isMobile && (
       <Sheet open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
@@ -370,24 +389,27 @@ return (
 ### 7. Modals & Drawers
 
 **Mobile (< 768px):**
+
 - **Prefer bottom sheets** over center modals
 - Full height (80-90vh)
 - Swipe-to-dismiss gesture
 - Content scrollable
 
 **Desktop (≥ 768px):**
+
 - Center modal or right drawer
 - Fixed max-width (600-800px)
 
 **Implementation:**
+
 ```tsx
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 function ModelDetailsModal({ model, open, onClose }) {
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onClose}>
@@ -397,7 +419,7 @@ function ModelDetailsModal({ model, open, onClose }) {
       </Sheet>
     );
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
@@ -415,6 +437,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ### Condition Monitoring AI Studio
 
 **Mobile Layout:**
+
 ```
 ┌──────────────────────┐
 │  Page Header         │
@@ -440,6 +463,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ```
 
 **Desktop Layout:**
+
 ```
 ┌────────────────────────────────────────────────┐
 │  Page Header     [+ Train New Model Button]    │
@@ -462,6 +486,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ### AI Performance Dashboard
 
 **Mobile Layout:**
+
 ```
 ┌──────────────────────┐
 │  Tabs                │
@@ -481,6 +506,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ```
 
 **Desktop Layout:**
+
 ```
 ┌────────────────────────────────────────────────┐
 │  [Metrics]  [Explanations]  [Feedback]         │
@@ -502,6 +528,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ### AI Insights (Reports)
 
 **Mobile Layout:**
+
 ```
 ┌──────────────────────┐
 │  Form                │
@@ -519,6 +546,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ```
 
 **Desktop Layout:**
+
 ```
 ┌────────────────────────────────────────────────┐
 │  Left Panel (Form)   │   Right Panel (Preview) │
@@ -541,6 +569,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 **WCAG 2.1 AAA Standard:** 44x44 CSS pixels
 
 **Implementation:**
+
 ```tsx
 // Buttons
 <Button className="min-h-[44px] min-w-[44px]">Click Me</Button>
@@ -559,15 +588,18 @@ function ModelDetailsModal({ model, open, onClose }) {
 ### Gestures
 
 **Horizontal Scroll:**
+
 - KPI cards
 - Tabs
 - Data window presets
 
 **Swipe:**
+
 - Bottom sheets (dismiss)
 - Image galleries (if applicable)
 
 **Long Press:**
+
 - Context menus (optional)
 
 ---
@@ -575,6 +607,7 @@ function ModelDetailsModal({ model, open, onClose }) {
 ## Typography Scaling
 
 ### Mobile (< 768px)
+
 ```css
 h1: text-2xl (24px)
 h2: text-xl (20px)
@@ -584,6 +617,7 @@ small: text-xs (12px)
 ```
 
 ### Desktop (≥ 768px)
+
 ```css
 h1: text-3xl lg:text-4xl (30px → 36px)
 h2: text-2xl lg:text-3xl (24px → 30px)
@@ -593,10 +627,9 @@ small: text-sm (14px)
 ```
 
 **Implementation:**
+
 ```tsx
-<h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">
-  Condition Monitoring AI Studio
-</h1>
+<h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Condition Monitoring AI Studio</h1>
 ```
 
 ---
@@ -604,21 +637,22 @@ small: text-sm (14px)
 ## Spacing & Padding
 
 ### Mobile
+
 - Container padding: `p-4` (16px)
 - Card padding: `p-3` (12px)
 - Section gaps: `gap-4` (16px)
 
 ### Desktop
+
 - Container padding: `p-6` (24px)
 - Card padding: `p-4` to `p-6` (16-24px)
 - Section gaps: `gap-6` (24px)
 
 **Implementation:**
+
 ```tsx
 <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
-  <Card className="p-3 md:p-4 lg:p-6">
-    {/* Content */}
-  </Card>
+  <Card className="p-3 md:p-4 lg:p-6">{/* Content */}</Card>
 </div>
 ```
 
@@ -629,12 +663,14 @@ small: text-sm (14px)
 ### Manual Testing Devices
 
 **Physical Devices:**
+
 - iPhone SE (375x667) - Smallest modern iPhone
 - iPhone 12 Pro (390x844)
 - iPad Mini (768x1024)
 - iPad Pro (1024x1366)
 
 **Browser DevTools:**
+
 - Chrome DevTools responsive mode
 - Test all breakpoints: 375px, 640px, 768px, 1024px, 1280px, 1920px
 
@@ -646,28 +682,28 @@ small: text-sm (14px)
 // Mobile viewport
 test.use({ viewport: { width: 375, height: 667 } });
 
-test('Model table switches to card layout on mobile', async ({ page }) => {
-  await page.goto('/ml-training');
-  await page.getByTestId('tab-models').click();
-  
+test("Model table switches to card layout on mobile", async ({ page }) => {
+  await page.goto("/ml-training");
+  await page.getByTestId("tab-models").click();
+
   // Desktop table should be hidden
-  const table = page.locator('table');
+  const table = page.locator("table");
   await expect(table).toBeHidden();
-  
+
   // Mobile cards should be visible
   const mobileCards = page.getByTestId(/model-card-/);
   await expect(mobileCards.first()).toBeVisible();
 });
 
-test('KPI cards are horizontally scrollable', async ({ page }) => {
-  await page.goto('/ai-performance');
-  
-  const kpiContainer = page.getByTestId('kpi-container');
-  await expect(kpiContainer).toHaveCSS('overflow-x', 'auto');
-  
+test("KPI cards are horizontally scrollable", async ({ page }) => {
+  await page.goto("/ai-performance");
+
+  const kpiContainer = page.getByTestId("kpi-container");
+  await expect(kpiContainer).toHaveCSS("overflow-x", "auto");
+
   // Verify scrollable
-  const scrollWidth = await kpiContainer.evaluate(el => el.scrollWidth);
-  const clientWidth = await kpiContainer.evaluate(el => el.clientWidth);
+  const scrollWidth = await kpiContainer.evaluate((el) => el.scrollWidth);
+  const clientWidth = await kpiContainer.evaluate((el) => el.clientWidth);
   expect(scrollWidth).toBeGreaterThan(clientWidth);
 });
 ```
@@ -677,30 +713,24 @@ test('KPI cards are horizontally scrollable', async ({ page }) => {
 ## Performance Considerations
 
 ### Lazy Loading Images
+
 ```tsx
-<img
-  src={imageUrl}
-  alt={description}
-  loading="lazy"
-  className="w-full h-auto"
-/>
+<img src={imageUrl} alt={description} loading="lazy" className="w-full h-auto" />
 ```
 
 ### Conditional Rendering
+
 ```tsx
 // Don't render desktop components on mobile
-const isMobile = useMediaQuery('(max-width: 768px)');
+const isMobile = useMediaQuery("(max-width: 768px)");
 
-return (
-  <>
-    {isMobile ? <MobileLayout /> : <DesktopLayout />}
-  </>
-);
+return <>{isMobile ? <MobileLayout /> : <DesktopLayout />}</>;
 ```
 
 ### Virtual Scrolling for Long Lists
+
 ```tsx
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // For mobile card lists with 100+ items
 ```
@@ -710,10 +740,12 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 ## Accessibility (Mobile)
 
 ### Focus Management
+
 - Ensure keyboard users can navigate (external keyboards on tablets)
 - Focus trap in modals/drawers
 
 ### Screen Reader Announcements
+
 ```tsx
 <div aria-live="polite" aria-atomic="true">
   {message}
@@ -721,6 +753,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 ```
 
 ### Zoom Support
+
 - Test at 200% zoom
 - Text must be readable
 - Buttons still tappable
@@ -757,6 +790,7 @@ For each page/component:
 4. **Week 4:** Polish, test, fix edge cases
 
 **Tools:**
+
 - Chrome DevTools Device Mode
 - BrowserStack (real device testing)
 - Playwright mobile viewports

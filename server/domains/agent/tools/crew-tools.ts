@@ -102,7 +102,9 @@ registerTool({
           .limit(input.limit || 20);
       }
     } catch (err) {
-      logger.warn("[Agent] Schedule assignments query failed:", { details: err instanceof Error ? err.message : "unknown" });
+      logger.warn("[Agent] Schedule assignments query failed:", {
+        details: err instanceof Error ? err.message : "unknown",
+      });
       assignments = [];
     }
 

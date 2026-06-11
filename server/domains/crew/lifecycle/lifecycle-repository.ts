@@ -71,7 +71,7 @@ export class CrewLifecycleRepository {
     terminationType: "retired" | "cancelled",
     terminationDate: Date,
     terminationNotes?: string,
-    endDutyStatus = true,
+    endDutyStatus = true
   ): Promise<SelectCrew> {
     const updateValues: Partial<typeof crew.$inferInsert> = {
       active: false,
@@ -127,7 +127,9 @@ export class CrewLifecycleRepository {
     data: InsertCrewEmploymentHistory
   ): Promise<SelectCrewEmploymentHistory> {
     const results = await db.insert(crewEmploymentHistory).values(data).returning();
-    if (!results[0]) {throw new Error("Failed to create employment history");}
+    if (!results[0]) {
+      throw new Error("Failed to create employment history");
+    }
     return results[0];
   }
 

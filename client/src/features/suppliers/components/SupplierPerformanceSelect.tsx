@@ -79,7 +79,11 @@ export function SupplierPerformanceSelect({
     });
 
   return (
-    <Select value={value} onValueChange={onValueChange} {...(disabled !== undefined && { disabled })}>
+    <Select
+      value={value}
+      onValueChange={onValueChange}
+      {...(disabled !== undefined && { disabled })}
+    >
       <SelectTrigger className={className} data-testid={testId}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

@@ -93,14 +93,12 @@ async function stubCrewApis(page: Page, canManageDocs: boolean): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: permissionsBody(canManageDocs),
-    }),
+    })
   );
 }
 
 test.describe("Crew Upload docs click-through", () => {
-  test("drives landing -> roster -> member Documents action -> Documents tab", async ({
-    page,
-  }) => {
+  test("drives landing -> roster -> member Documents action -> Documents tab", async ({ page }) => {
     await stubCrewApis(page, true);
     await page.goto("/crew-management", { waitUntil: "domcontentloaded" });
 
@@ -128,9 +126,7 @@ test.describe("Crew Upload docs click-through", () => {
     await expect(page.getByTestId("button-add-document")).toBeVisible();
   });
 
-  test("hides the Upload docs action from a user without document capability", async ({
-    page,
-  }) => {
+  test("hides the Upload docs action from a user without document capability", async ({ page }) => {
     await stubCrewApis(page, false);
     await page.goto("/crew-management", { waitUntil: "domcontentloaded" });
 

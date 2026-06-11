@@ -7,6 +7,7 @@
 **Location:** `server/services/email-notification-service.ts`
 
 **Current Capabilities:**
+
 - SendGrid integration via API key from `SENDGRID_API_KEY` environment variable
 - Email queue with retry logic (exponential backoff, max 3 retries)
 - Digest mode support for batching notifications
@@ -14,6 +15,7 @@
 - Notification types: `compliance`, `alert`, `logbook`, `maintenance`
 
 **Key Functions:**
+
 - `sendComplianceNotification()` - Compliance findings
 - `sendLogbookReminderNotification()` - Unsigned log reminders
 - `sendAlertNotification()` - Equipment/telemetry alerts
@@ -25,6 +27,7 @@
 **Location:** `shared/schema.ts` (line ~8460)
 
 **Schema: `notification_settings`**
+
 - `id`, `orgId`, `vesselId` (nullable for org-wide)
 - `notificationType` (compliance, alert, logbook, maintenance)
 - `enabled`, `minSeverity`
@@ -38,6 +41,7 @@
 **Location:** `shared/schema.ts` (line ~8507)
 
 **Schema: `notification_queue`**
+
 - Queue for pending notifications with offline-first support
 - Status tracking: pending, processing, sent, failed
 - Retry count and error tracking
@@ -48,11 +52,13 @@
 **Location:** `server/domains/alerts/`
 
 **Components:**
+
 - `service.ts` - Business logic, event publishing
 - `repository.ts` - Data access
 - `routes.ts` - HTTP endpoints
 
 **Features:**
+
 - Alert configurations (per equipment/sensor type)
 - Alert notifications with WebSocket broadcast
 - Alert suppressions for temporary silencing
@@ -65,6 +71,7 @@
 **Schema Location:** `shared/schema.ts`
 
 **Existing Tables:**
+
 - `crew` - Crew members with roles, ranks, vessel assignment
 - `crew_cert` (crewCertification) - Certifications with expiry dates
 - `crew_documents` - Passport, visa, medical, endorsements with expiry

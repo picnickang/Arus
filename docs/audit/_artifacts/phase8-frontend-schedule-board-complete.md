@@ -19,6 +19,7 @@ Phase 8 delivered a comprehensive Schedule Board frontend with three-tab interfa
 **File**: `client/src/pages/schedule-board.tsx` (360 lines)
 
 **Features**:
+
 - Three-tab interface: Run History, Assignments, Unfilled Shifts
 - Planning configuration with day selection (3/7/14/30 days)
 - Dry Run and Execute operations with mutation handling
@@ -29,6 +30,7 @@ Phase 8 delivered a comprehensive Schedule Board frontend with three-tab interfa
 - Toast notifications for operations
 
 **Architecture Compliance**:
+
 - ✅ Uses default TanStack Query fetcher (no custom queryFn)
 - ✅ Proper `[baseUrl, paramsObject]` query key pattern
 - ✅ Organization context via `useOrganization` hook
@@ -50,7 +52,7 @@ Phase 8 delivered a comprehensive Schedule Board frontend with three-tab interfa
       <p className="text-muted-foreground">PdM-driven intelligent crew planning</p>
     </div>
   </div>
-  
+
   <div className="flex gap-2">
     <Button variant="outline" data-testid="button-plan-dryrun">
       Dry Run
@@ -93,33 +95,37 @@ Phase 8 delivered a comprehensive Schedule Board frontend with three-tab interfa
 ### Query Definitions
 
 **Runs Query**:
+
 ```typescript
 const { data: runs = [], isLoading: isLoadingRuns } = useQuery({
-  queryKey: ['/api/schedule/runs', currentOrgId],
+  queryKey: ["/api/schedule/runs", currentOrgId],
   enabled: !!currentOrgId,
-  refetchInterval: 30000
+  refetchInterval: 30000,
 });
 ```
 
 **Assignments Query**:
+
 ```typescript
 const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery({
-  queryKey: ['/api/schedule/assignments', currentOrgId, from, to],
+  queryKey: ["/api/schedule/assignments", currentOrgId, from, to],
   enabled: !!currentOrgId,
-  refetchInterval: 30000
+  refetchInterval: 30000,
 });
 ```
 
 **Unfilled Query** (with run filtering):
+
 ```typescript
 const { data: unfilled = [], isLoading: isLoadingUnfilled } = useQuery({
-  queryKey: ['/api/schedule/unfilled', { runId: selectedRunId }],
+  queryKey: ["/api/schedule/unfilled", { runId: selectedRunId }],
   enabled: !!currentOrgId,
-  refetchInterval: 30000
+  refetchInterval: 30000,
 });
 ```
 
 **Default Fetcher Pattern**:
+
 - When `selectedRunId` is set: `/api/schedule/unfilled?runId=xxx`
 - When `selectedRunId` is null: `/api/schedule/unfilled`
 - Null params automatically omitted from query string
@@ -132,29 +138,30 @@ const { data: unfilled = [], isLoading: isLoadingUnfilled } = useQuery({
 
 ```typescript
 const planMutation = useMutation({
-  mutationFn: async (mode: 'dry_run' | 'execute') => {
-    return apiRequest('POST', '/api/schedule/plan', {
+  mutationFn: async (mode: "dry_run" | "execute") => {
+    return apiRequest("POST", "/api/schedule/plan", {
       from,
       days,
       vessels: vessels.length > 0 ? vessels : undefined,
-      mode
+      mode,
     });
   },
   onSuccess: (data: any) => {
     // Invalidate all schedule queries
-    queryClient.invalidateQueries({ queryKey: ['/api/schedule/runs'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/schedule/assignments'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/schedule/unfilled'] });
-    
+    queryClient.invalidateQueries({ queryKey: ["/api/schedule/runs"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/schedule/assignments"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/schedule/unfilled"] });
+
     // Calculate coverage percentage
-    const coveragePercent = (data.stats.assigned / (data.stats.assigned + data.stats.unfilled)) * 100;
-    
+    const coveragePercent =
+      (data.stats.assigned / (data.stats.assigned + data.stats.unfilled)) * 100;
+
     // Show success toast
     toast({
       title: "Schedule Generated",
-      description: `Assigned ${data.stats.assigned} shifts (${coveragePercent.toFixed(1)}% coverage) in ${data.stats.duration_ms}ms`
+      description: `Assigned ${data.stats.assigned} shifts (${coveragePercent.toFixed(1)}% coverage) in ${data.stats.duration_ms}ms`,
     });
-    
+
     // Set selected run for filtering
     setSelectedRunId(data.runId);
   },
@@ -162,9 +169,9 @@ const planMutation = useMutation({
     toast({
       title: "Scheduling Failed",
       description: error.message || "Failed to generate schedule",
-      variant: "destructive"
+      variant: "destructive",
     });
-  }
+  },
 });
 ```
 
@@ -175,6 +182,7 @@ const planMutation = useMutation({
 ### 1. Run History Tab
 
 **Displays**:
+
 - Run ID (truncated, font-mono)
 - Mode badge (dry_run / execute / auto with color coding)
 - Started timestamp
@@ -184,11 +192,13 @@ const planMutation = useMutation({
 - Success/failure status icon
 
 **Interactions**:
+
 - Clickable rows to select run
 - Selected run filters unfilled shifts tab
 - Row hover effect for visual feedback
 
 **Empty State**:
+
 ```
 No scheduler runs yet. Click "Dry Run" or "Execute Schedule" to start.
 ```
@@ -196,6 +206,7 @@ No scheduler runs yet. Click "Dry Run" or "Execute Schedule" to start.
 ### 2. Assignments Tab
 
 **Displays**:
+
 - Date
 - Crew ID
 - Vessel (with Ship icon)
@@ -205,6 +216,7 @@ No scheduler runs yet. Click "Dry Run" or "Execute Schedule" to start.
 - Status badge (Executed / Planned)
 
 **Empty State**:
+
 ```
 No assignments for this period.
 ```
@@ -212,6 +224,7 @@ No assignments for this period.
 ### 3. Unfilled Shifts Tab
 
 **Features**:
+
 - Reason breakdown cards (grid of 3 columns)
   - Count of unfilled positions by reason
   - Visual card layout for quick scanning
@@ -222,6 +235,7 @@ No assignments for this period.
   - Reason badge
 
 **Success State** (all shifts filled):
+
 ```
 ✓ All shifts filled successfully!
 ```
@@ -235,12 +249,15 @@ No assignments for this period.
 **File**: `client/src/App.tsx`
 
 **Changes**:
+
 1. Added lazy-loaded import:
+
 ```typescript
 const ScheduleBoard = lazy(() => import("@/pages/schedule-board"));
 ```
 
 2. Registered route:
+
 ```typescript
 <Route path="/ops/schedule" component={ScheduleBoard} />
 ```
@@ -306,6 +323,7 @@ Toast Notification: "Schedule Generated" with stats
 ### Data-testid Coverage
 
 **Interactive Elements**:
+
 - `page-schedule-board` - Main container
 - `button-plan-dryrun` - Dry run button
 - `button-plan-execute` - Execute schedule button
@@ -313,6 +331,7 @@ Toast Notification: "Schedule Generated" with stats
 - `tab-runs`, `tab-assignments`, `tab-unfilled` - Tab triggers
 
 **Dynamic Elements**:
+
 - `row-run-{id}` - Run history rows
 - `row-assignment-{idx}` - Assignment rows
 - `row-unfilled-{idx}` - Unfilled shift rows
@@ -320,6 +339,7 @@ Toast Notification: "Schedule Generated" with stats
 - `text-runid-{id}`, `text-duration-{id}`, `text-assigned-{id}` - Data cells
 
 **State Indicators**:
+
 - `text-all-filled` - Success message when all shifts filled
 - `icon-success-{id}`, `icon-failed-{id}` - Status icons
 
@@ -330,16 +350,19 @@ Toast Notification: "Schedule Generated" with stats
 ### Empty States
 
 **No Runs**:
+
 ```
 No scheduler runs yet. Click "Dry Run" or "Execute Schedule" to start.
 ```
 
 **No Assignments**:
+
 ```
 No assignments for this period.
 ```
 
 **All Shifts Filled**:
+
 ```
 ✓ All shifts filled successfully!
 ```
@@ -347,11 +370,13 @@ No assignments for this period.
 ### Error States
 
 **Mutation Failure**:
+
 - Toast notification with error message
 - Button returns to enabled state
 - No state corruption
 
 **Loading States**:
+
 - "Loading runs..." / "Loading assignments..." / "Loading unfilled shifts..."
 - Prevents interaction during data fetch
 - Shows loading state for async operations
@@ -363,37 +388,41 @@ No assignments for this period.
 ### Initial Implementation Issues
 
 **Issue 1**: Custom queryFn violated architecture constraint
+
 ```typescript
 // WRONG (Initial Implementation)
 queryFn: async () => {
-  const url = selectedRunId 
+  const url = selectedRunId
     ? `/api/schedule/unfilled?runId=${selectedRunId}`
-    : '/api/schedule/unfilled';
-  return apiRequest('GET', url);
-}
+    : "/api/schedule/unfilled";
+  return apiRequest("GET", url);
+};
 ```
 
 **Fix**: Use default fetcher with params object
+
 ```typescript
 // CORRECT (Final Implementation)
-queryKey: ['/api/schedule/unfilled', { runId: selectedRunId }]
+queryKey: ["/api/schedule/unfilled", { runId: selectedRunId }];
 // Default fetcher constructs URL automatically
 ```
 
 **Issue 2**: Missing refetchInterval on unfilled query
+
 ```typescript
 // WRONG
 const { data: unfilled = [] } = useQuery({
-  queryKey: ['/api/schedule/unfilled', { runId: selectedRunId }]
+  queryKey: ["/api/schedule/unfilled", { runId: selectedRunId }],
 });
 ```
 
 **Fix**: Add 30-second refresh interval
+
 ```typescript
 // CORRECT
 const { data: unfilled = [] } = useQuery({
-  queryKey: ['/api/schedule/unfilled', { runId: selectedRunId }],
-  refetchInterval: 30000
+  queryKey: ["/api/schedule/unfilled", { runId: selectedRunId }],
+  refetchInterval: 30000,
 });
 ```
 
@@ -408,7 +437,7 @@ const { data: unfilled = [] } = useQuery({
 ✅ **Run Filtering**: selectedRunId properly filters unfilled shifts  
 ✅ **Real-time Updates**: All queries refresh every 30 seconds  
 ✅ **Cache Invalidation**: Hierarchical prefix-based invalidation  
-✅ **Organization Context**: Proper x-org-id header via getCurrentOrgId()  
+✅ **Organization Context**: Proper x-org-id header via getCurrentOrgId()
 
 ### LSP Validation
 
@@ -427,6 +456,7 @@ const { data: unfilled = [] } = useQuery({
 
 **Status**: Transient 502 network error in automated test environment  
 **Manual Verification**: Confirmed via logs
+
 - Server initialized successfully
 - Frontend loaded and initialized
 - No code-related errors
@@ -437,10 +467,12 @@ const { data: unfilled = [] } = useQuery({
 ## File Modifications
 
 ### client/src/pages/schedule-board.tsx (NEW)
+
 **Lines**: 360  
 **Description**: Complete Schedule Board implementation
 
 **Key Components**:
+
 - Planning configuration UI
 - Three-tab interface
 - Data fetching with TanStack Query
@@ -449,16 +481,20 @@ const { data: unfilled = [] } = useQuery({
 - Loading/empty/error states
 
 ### client/src/App.tsx
+
 **Lines Modified**: 2
 
 **Changes**:
+
 1. Added lazy import: `const ScheduleBoard = lazy(() => import("@/pages/schedule-board"));`
 2. Added route: `<Route path="/ops/schedule" component={ScheduleBoard} />`
 
 ### client/src/config/navigationConfig.ts
+
 **Lines Modified**: 1
 
 **Changes**:
+
 1. Added navigation entry: `{ name: "Schedule Board", href: "/ops/schedule", icon: Calendar }`
 
 ---
@@ -468,6 +504,7 @@ const { data: unfilled = [] } = useQuery({
 ### Backend API
 
 **Endpoints Used**:
+
 - `POST /api/schedule/plan` - Planning operations
 - `GET /api/schedule/runs` - Run history
 - `GET /api/schedule/assignments` - Assignment data
@@ -478,11 +515,13 @@ const { data: unfilled = [] } = useQuery({
 ### State Management
 
 **TanStack Query Queries**:
+
 - Runs query with 30s refresh
 - Assignments query with 30s refresh
 - Unfilled query with 30s refresh and run filtering
 
 **React State**:
+
 - `days` - Planning horizon (3/7/14/30)
 - `vessels` - Vessel filter (not yet implemented)
 - `selectedRunId` - Selected run for filtering

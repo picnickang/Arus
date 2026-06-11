@@ -45,6 +45,9 @@ export class DbSettingsStorage {
       return settings;
     }
     const [created] = await db.insert(systemSettings).values({ id: "system" }).returning();
+    if (!created) {
+      throw new Error("systemSettings bootstrap insert returned no row");
+    }
     return created;
   }
 

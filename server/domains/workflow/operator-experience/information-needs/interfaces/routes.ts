@@ -87,14 +87,26 @@ export function createRoleInformationNeedsRouter(service: RoleInformationNeedsSe
     withErrorHandling("get role information needs", async (req: Request, res: Response) => {
       const query = querySchema.parse(req.query);
       const summary = await service.buildSummary(getOrgId(req), query.role);
-      res.json(validateResponse(roleInformationNeedSummarySchema, summary, "GET /api/operator-experience/information-needs"));
+      res.json(
+        validateResponse(
+          roleInformationNeedSummarySchema,
+          summary,
+          "GET /api/operator-experience/information-needs"
+        )
+      );
     })
   );
 
   router.get(
     "/roles",
     withErrorHandling("list role information need roles", async (_req: Request, res: Response) => {
-      res.json(validateResponse(z.array(roleSchema), service.listRoles(), "GET /api/operator-experience/information-needs/roles"));
+      res.json(
+        validateResponse(
+          z.array(roleSchema),
+          service.listRoles(),
+          "GET /api/operator-experience/information-needs/roles"
+        )
+      );
     })
   );
 

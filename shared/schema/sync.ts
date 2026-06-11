@@ -93,7 +93,9 @@ export const eventOutbox = pgTable(
       .default(sql`gen_random_uuid()`),
     eventId: varchar("event_id").notNull(),
     eventType: text("event_type").notNull(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
     aggregateId: varchar("aggregate_id"),
     aggregateType: text("aggregate_type"),
     payload: jsonb("payload").notNull(),
@@ -108,10 +110,7 @@ export const eventOutbox = pgTable(
   },
   (table) => ({
     eventIdUnique: uniqueIndex("uniq_event_outbox_event_id").on(table.eventId),
-    pendingIdx: index("idx_event_outbox_pending").on(
-      table.status,
-      table.nextAttemptAt
-    ),
+    pendingIdx: index("idx_event_outbox_pending").on(table.status, table.nextAttemptAt),
     orgEventIdx: index("idx_event_outbox_org_event").on(table.orgId, table.eventType),
   })
 );

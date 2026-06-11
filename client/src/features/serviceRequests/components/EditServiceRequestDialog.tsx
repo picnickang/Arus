@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -21,6 +30,11 @@ import {
 import { Loader2 } from "lucide-react";
 import { useUpdateServiceRequest } from "../hooks/useServiceRequests";
 import { useToast } from "@/hooks/use-toast";
+import {
+  editServiceRequestSchema,
+  toUpdatePayload,
+  type EditServiceRequestFormData,
+} from "../lib/editServiceRequestSchema";
 import type { ServiceRequest } from "../types";
 
 interface EditServiceRequestDialogProps {
@@ -37,25 +51,31 @@ export function EditServiceRequestDialog({
   const { toast } = useToast();
   const updateMutation = useUpdateServiceRequest();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [urgency, setUrgency] = useState<string>("medium");
-  const [estimatedCost, setEstimatedCost] = useState<string>("");
-  const [serviceDetails, setServiceDetails] = useState("");
-  const [specialRequirements, setSpecialRequirements] = useState("");
+  const form = useForm<EditServiceRequestFormData, unknown, EditServiceRequestFormData>({
+    resolver: zodResolver(editServiceRequestSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      urgency: "medium",
+      estimatedCost: null,
+      serviceDetails: "",
+      specialRequirements: "",
+    },
+    mode: "onSubmit",
+  });
 
   useEffect(() => {
     if (serviceRequest && open) {
-      setTitle(serviceRequest.title || "");
-      setDescription(serviceRequest.description || "");
-      setUrgency(serviceRequest.urgency || "medium");
-      setEstimatedCost(
-        serviceRequest.estimatedCost != null ? String(serviceRequest.estimatedCost) : ""
-      );
-      setServiceDetails(serviceRequest.serviceDetails || "");
-      setSpecialRequirements(serviceRequest.specialRequirements || "");
+      form.reset({
+        title: serviceRequest.title || "",
+        description: serviceRequest.description || "",
+        urgency: serviceRequest.urgency || "medium",
+        estimatedCost: serviceRequest.estimatedCost != null ? serviceRequest.estimatedCost : null,
+        serviceDetails: serviceRequest.serviceDetails || "",
+        specialRequirements: serviceRequest.specialRequirements || "",
+      });
     }
-  }, [serviceRequest, open]);
+  }, [serviceRequest, open, form]);
 
   if (!serviceRequest) {
     return null;
@@ -63,24 +83,11 @@ export function EditServiceRequestDialog({
 
   const isApproved = serviceRequest.status === "approved";
 
-  const handleSubmit = () => {
-    if (!title.trim()) {
-      toast({ title: "Title is required", variant: "destructive" });
-      return;
-    }
-    // NOTE: use null (not undefined) for cleared optional fields so the
-    // backend PATCH actually clears them instead of leaving the prior value.
+  const onSubmit = (data: EditServiceRequestFormData) => {
     updateMutation.mutate(
       {
         id: serviceRequest.id,
-        data: {
-          title: title.trim(),
-          description: description || null,
-          urgency,
-          estimatedCost: estimatedCost ? parseFloat(estimatedCost) : null,
-          serviceDetails: serviceDetails || null,
-          specialRequirements: specialRequirements || null,
-        },
+        data: toUpdatePayload(data),
       },
       {
         onSuccess: () => {
@@ -109,88 +116,129 @@ export function EditServiceRequestDialog({
               : "Update the details of this service request."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="edit-sr-title">Title *</Label>
-            <Input
-              id="edit-sr-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              data-testid="input-edit-sr-title"
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-sr-description">Description</Label>
-            <Textarea
-              id="edit-sr-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              data-testid="input-edit-sr-description"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Urgency</Label>
-              <Select value={urgency} onValueChange={setUrgency}>
-                <SelectTrigger data-testid="select-edit-sr-urgency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-sr-cost">Estimated Cost</Label>
-              <Input
-                id="edit-sr-cost"
-                type="number"
-                step="0.01"
-                value={estimatedCost}
-                onChange={(e) => setEstimatedCost(e.target.value)}
-                data-testid="input-edit-sr-cost"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-3">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-edit-sr-title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} data-testid="input-edit-sr-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="urgency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Urgency</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-edit-sr-urgency">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="estimatedCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estimated Cost</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          data-testid="input-edit-sr-cost"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="serviceDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Details</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} data-testid="input-edit-sr-details" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="specialRequirements"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Special Requirements</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} data-testid="input-edit-sr-special" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
-          <div>
-            <Label htmlFor="edit-sr-details">Service Details</Label>
-            <Textarea
-              id="edit-sr-details"
-              value={serviceDetails}
-              onChange={(e) => setServiceDetails(e.target.value)}
-              data-testid="input-edit-sr-details"
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-sr-special">Special Requirements</Label>
-            <Textarea
-              id="edit-sr-special"
-              value={specialRequirements}
-              onChange={(e) => setSpecialRequirements(e.target.value)}
-              data-testid="input-edit-sr-special"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            data-testid="btn-cancel-edit-sr"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={updateMutation.isPending}
-            data-testid="btn-save-edit-sr"
-          >
-            {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save Changes
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                data-testid="btn-cancel-edit-sr"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                data-testid="btn-save-edit-sr"
+              >
+                {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -35,7 +35,14 @@ describe("isAllowedImageMimeType", () => {
   });
 
   it("rejects every other mimetype", () => {
-    for (const mime of ["image/gif", "image/svg+xml", "image/webp", "application/pdf", "text/html", ""]) {
+    for (const mime of [
+      "image/gif",
+      "image/svg+xml",
+      "image/webp",
+      "application/pdf",
+      "text/html",
+      "",
+    ]) {
       expect(isAllowedImageMimeType(mime)).toBe(false);
     }
   });

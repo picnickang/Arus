@@ -23,7 +23,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Settings,
@@ -478,7 +477,9 @@ function SoftwareUpdatesTab() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => patch.backupId && s.rollbackMutation.mutate(patch.backupId)}
+                            onClick={() =>
+                              patch.backupId && s.rollbackMutation.mutate(patch.backupId)
+                            }
                             disabled={s.rollbackMutation.isPending}
                             data-testid={`button-rollback-${patch.id}`}
                           >
@@ -529,9 +530,8 @@ function SoftwareUpdatesTab() {
                 <div>
                   <div className="font-medium">Publishing unavailable</div>
                   <p className="mt-0.5 text-xs">
-                    This environment has no patch-publishing service, so
-                    updates cannot be created or published here. Releases are
-                    managed directly in your deployment pipeline.
+                    This environment has no patch-publishing service, so updates cannot be created
+                    or published here. Releases are managed directly in your deployment pipeline.
                   </p>
                 </div>
               </div>

@@ -12,7 +12,9 @@ class FakeSignalPort implements RoleInformationSignalPort {
   }
 }
 
-function snapshot(overrides: Partial<OperatorExperienceSignalSnapshot> = {}): OperatorExperienceSignalSnapshot {
+function snapshot(
+  overrides: Partial<OperatorExperienceSignalSnapshot> = {}
+): OperatorExperienceSignalSnapshot {
   return {
     attentionItems: 8,
     criticalItems: 2,
@@ -51,7 +53,9 @@ describe("role information needs service", () => {
       status: "critical",
       priority: "critical",
     });
-    expect(summary.trustChecklist).toEqual(expect.arrayContaining(["sensor trend", "model confidence"]));
+    expect(summary.trustChecklist).toEqual(
+      expect.arrayContaining(["sensor trend", "model confidence"])
+    );
     expect(summary.uxGuidance.trust).toMatch(/source health/i);
   });
 

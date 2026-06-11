@@ -179,10 +179,10 @@ const REQUIRED_COLUMNS: ReadonlyArray<{ table: string; column: string; from: str
  * owned by db-config.ts and stays untouched).
  */
 export async function runBootMigrations(): Promise<void> {
-  if (!process.env['DATABASE_URL']) {
+  if (!process.env["DATABASE_URL"]) {
     throw new Error("runBootMigrations: DATABASE_URL is required");
   }
-  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
+  const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
   try {
     await runMigrations(pool);
   } finally {
@@ -195,12 +195,12 @@ async function main() {
   const isStatus = args.includes("--status");
   const isDeploy = args.includes("--deploy");
 
-  if (!process.env['DATABASE_URL']) {
+  if (!process.env["DATABASE_URL"]) {
     logger.error("DATABASE_URL environment variable is required");
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
+  const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
 
   if (isStatus) {
     await showStatus(pool);
@@ -259,9 +259,7 @@ function listRootUpMigrations(dir: string): string[] {
 }
 
 async function rootAppliedSet(pool: pg.Pool): Promise<Set<string>> {
-  const { rows } = await pool.query<{ filename: string }>(
-    "SELECT filename FROM arus_migrations"
-  );
+  const { rows } = await pool.query<{ filename: string }>("SELECT filename FROM arus_migrations");
   return new Set(rows.map((r) => r.filename));
 }
 
@@ -312,7 +310,9 @@ async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
   const serverMigrationsFolder = path.resolve(process.cwd(), SERVER_MIGRATIONS_DIRNAME);
 
   if (!fs.existsSync(serverMigrationsFolder)) {
-    logger.info("[Migrate] No server/migrations folder found; skipping supplemental SQL migrations");
+    logger.info(
+      "[Migrate] No server/migrations folder found; skipping supplemental SQL migrations"
+    );
     return;
   }
 
@@ -337,9 +337,10 @@ async function runServerSqlMigrations(pool: pg.Pool): Promise<void> {
     const sqlText = fs.readFileSync(fullPath, "utf-8").trim();
     if (!sqlText || sqlText.split("\n").every((line) => line.trim().startsWith("--"))) {
       logger.info(`[Migrate] Supplemental SQL migration has no executable SQL: ${file}`);
-      await pool.query("INSERT INTO arus_sql_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING", [
-        file,
-      ]);
+      await pool.query(
+        "INSERT INTO arus_sql_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING",
+        [file]
+      );
       continue;
     }
 
@@ -481,7 +482,9 @@ async function showStatus(pool: pg.Pool) {
     logger.info(
       `Root migrations (arus_migrations): applied=${applied.size} pending=${pending.length} last=${last}`
     );
-    for (const f of pending) {logger.info(`  - pending: ${f}`);}
+    for (const f of pending) {
+      logger.info(`  - pending: ${f}`);
+    }
   } catch (error) {
     logger.error("Root migrations: error reading ledger", undefined, error);
   }

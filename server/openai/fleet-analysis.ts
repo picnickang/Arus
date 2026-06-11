@@ -137,22 +137,19 @@ export async function analyzeFleetHealth(
   storageInstance?: unknown
 ): Promise<FleetAnalysis> {
   try {
-    logger.info(`[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`);
+    logger.info(
+      `[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`
+    );
 
-    const {
-      dbWorkOrderStorage,
-      dbAlertStorage,
-      dbDevicesStorage,
-      dbMaintenanceStorage,
-    } = await import("../repositories");
-    const storageToUse =
-      storageInstance ?? {
-        getWorkOrders: (equipmentId: string) => dbWorkOrderStorage.getWorkOrders(equipmentId),
-        getAlertNotifications: () => dbAlertStorage.getAlertNotifications(),
-        getPdmScores: (equipmentId: string) => dbDevicesStorage.getPdmScores(equipmentId),
-        getMaintenanceRecords: (equipmentId: string) =>
-          dbMaintenanceStorage.getMaintenanceRecords(equipmentId),
-      };
+    const { dbWorkOrderStorage, dbAlertStorage, dbDevicesStorage, dbMaintenanceStorage } =
+      await import("../repositories");
+    const storageToUse = storageInstance ?? {
+      getWorkOrders: (equipmentId: string) => dbWorkOrderStorage.getWorkOrders(equipmentId),
+      getAlertNotifications: () => dbAlertStorage.getAlertNotifications(),
+      getPdmScores: (equipmentId: string) => dbDevicesStorage.getPdmScores(equipmentId),
+      getMaintenanceRecords: (equipmentId: string) =>
+        dbMaintenanceStorage.getMaintenanceRecords(equipmentId),
+    };
 
     const equipmentDossiers = await buildEquipmentDossiers(equipmentHealthData, storageToUse);
     const telemetrySummary = buildTelemetrySummary(telemetryData);

@@ -24,7 +24,11 @@ export class EquipmentRepository {
     return dbEquipmentStorage.createEquipment(data);
   }
 
-  async update(id: string, data: WidenPartial<InsertEquipment>, orgId?: string): Promise<Equipment> {
+  async update(
+    id: string,
+    data: WidenPartial<InsertEquipment>,
+    orgId?: string
+  ): Promise<Equipment> {
     return dbEquipmentStorage.updateEquipment(id, data, orgId || "");
   }
 
@@ -45,7 +49,11 @@ export class EquipmentRepository {
     if (!equipment) {
       throw new Error("Equipment not found");
     }
-    await this.update(equipmentId, { vesselId: null } as object as WidenPartial<InsertEquipment>, orgId);
+    await this.update(
+      equipmentId,
+      { vesselId: null } as object as WidenPartial<InsertEquipment>,
+      orgId
+    );
   }
 
   async getSensorCoverage(equipmentId: string, orgId: string) {
@@ -64,7 +72,7 @@ export class EquipmentRepository {
     }
     const existing = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
     const existingTypes = new Set(existing.map((s) => s.sensorType));
-    const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS['default'] || [];
+    const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS["default"] || [];
     const created: import("@shared/schema/sensors").SensorConfiguration[] = [];
     for (const sensor of sensorsToCreate) {
       if (!existingTypes.has(sensor.type)) {
@@ -88,7 +96,7 @@ export class EquipmentRepository {
       totalSensors: existing.length + created.length,
       sensors: created.map((s) => {
         const isCritical =
-          "isCritical" in s ? (s as { isCritical?: boolean | null }).isCritical ?? null : null;
+          "isCritical" in s ? ((s as { isCritical?: boolean | null }).isCritical ?? null) : null;
         return {
           sensorType: s.sensorType,
           enabled: s.enabled ?? false,

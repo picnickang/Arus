@@ -17,7 +17,9 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
       const shifts = await dbCrewStorage.getShiftTemplates(vessel_id as string | undefined);
       const orgId = req.orgId;
       const filtered = orgId
-        ? shifts.filter((s) => !(s as { orgId?: string }).orgId || (s as { orgId?: string }).orgId === orgId)
+        ? shifts.filter(
+            (s) => !(s as { orgId?: string }).orgId || (s as { orgId?: string }).orgId === orgId
+          )
         : shifts;
       res.json(filtered);
     })
@@ -39,7 +41,7 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
       const orgId = req.orgId!;
       const shiftData = insertShiftTemplateSchema.partial().parse(req.body);
       const { orgId: _discard, ...updates } = shiftData;
-      const shift = await dbCrewStorage.updateShiftTemplate(req.params['id'] ?? '', updates, orgId);
+      const shift = await dbCrewStorage.updateShiftTemplate(req.params["id"] ?? "", updates, orgId);
       res.json(shift);
     })
   );
@@ -48,7 +50,7 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
     "/api/shifts/:id",
     withErrorHandling("delete shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      await dbCrewStorage.deleteShiftTemplate(req.params['id'] ?? '', orgId);
+      await dbCrewStorage.deleteShiftTemplate(req.params["id"] ?? "", orgId);
       res.json({ success: true });
     })
   );

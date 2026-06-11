@@ -11,6 +11,7 @@
 The ARUS platform implements a comprehensive ML Governance & Audit Trail system designed for production deployments requiring full transparency, reproducibility, and regulatory compliance.
 
 ### Key Features
+
 - ✅ **Model Lineage Tracking** - Complete dataset → training → promotion history
 - ✅ **Event Provenance** - Cryptographically-linked prediction audit trail
 - ✅ **Chain Verification** - SHA-256 hash chain for tamper detection
@@ -31,6 +32,7 @@ The ARUS platform implements a comprehensive ML Governance & Audit Trail system 
 ```
 
 **Design Rationale:**
+
 - **File-based** - Easy export, archival, and forensic analysis
 - **JSONL format** - Append-only, line-delimited for streaming
 - **Org-scoped** - Tenant isolation at filesystem level
@@ -81,23 +83,23 @@ The ARUS platform implements a comprehensive ML Governance & Audit Trail system 
 
 ```typescript
 interface LineageRecord {
-  id: string;                    // UUID
-  orgId: string;                 // Tenant isolation
-  modelType: 'lstm' | 'xgboost' | 'random_forest';
-  modelVersion: string;          // Semantic version (e.g., "1.2.3")
-  modelId: string;               // Unique model identifier
-  
+  id: string; // UUID
+  orgId: string; // Tenant isolation
+  modelType: "lstm" | "xgboost" | "random_forest";
+  modelVersion: string; // Semantic version (e.g., "1.2.3")
+  modelId: string; // Unique model identifier
+
   // Dataset provenance
-  datasetHash: string;           // SHA-256 of training data
-  datasetSize: number;           // Row count
-  datasetSources: string[];      // Source vessel IDs
-  
+  datasetHash: string; // SHA-256 of training data
+  datasetSize: number; // Row count
+  datasetSources: string[]; // Source vessel IDs
+
   // Training metadata
   hyperparameters: Record<string, any>;
-  trainingDuration: number;      // Seconds
-  trainedAt: string;             // ISO 8601 timestamp
-  trainedBy: string;             // User ID
-  
+  trainingDuration: number; // Seconds
+  trainedAt: string; // ISO 8601 timestamp
+  trainedBy: string; // User ID
+
   // Performance metrics
   metrics: {
     accuracy?: number;
@@ -108,21 +110,21 @@ interface LineageRecord {
     mae?: number;
     rmse?: number;
   };
-  
+
   // Model lifecycle
-  status: 'training' | 'validation' | 'promoted' | 'deprecated';
+  status: "training" | "validation" | "promoted" | "deprecated";
   promotedAt?: string;
   promotedBy?: string;
   deprecatedAt?: string;
-  
+
   // Artifact management
-  artifactPath: string;          // File path to saved model
-  artifactHash: string;          // SHA-256 of model file
+  artifactPath: string; // File path to saved model
+  artifactHash: string; // SHA-256 of model file
   artifactSizeBytes: number;
-  
+
   // Usage tracking
-  predictionCount: number;       // Cumulative predictions made
-  
+  predictionCount: number; // Cumulative predictions made
+
   // Audit
   createdAt: string;
   updatedAt: string;
@@ -179,31 +181,31 @@ interface LineageRecord {
 
 ```typescript
 interface ProvenanceEvent {
-  id: string;                    // Event UUID
-  orgId: string;                 // Tenant isolation
-  eventType: 'prediction' | 'alert' | 'retrain_trigger';
-  
+  id: string; // Event UUID
+  orgId: string; // Tenant isolation
+  eventType: "prediction" | "alert" | "retrain_trigger";
+
   // Temporal ordering
-  timestamp: string;             // ISO 8601 with milliseconds
-  sequenceNumber: number;        // Monotonic counter per org
-  
+  timestamp: string; // ISO 8601 with milliseconds
+  sequenceNumber: number; // Monotonic counter per org
+
   // Model reference
-  modelId: string;               // Links to lineage record
+  modelId: string; // Links to lineage record
   modelVersion: string;
-  
+
   // Input data
   telemetrySlice: {
     vesselId: string;
     equipmentId: string;
-    sensors: string[];           // Sensor names used
+    sensors: string[]; // Sensor names used
     timeWindow: {
       start: string;
       end: string;
-      duration: number;          // Seconds
+      duration: number; // Seconds
     };
-    dataHash: string;            // SHA-256 of input telemetry
+    dataHash: string; // SHA-256 of input telemetry
   };
-  
+
   // Output data
   prediction: {
     anomalyScore: number;
@@ -213,17 +215,17 @@ interface ProvenanceEvent {
       feature: string;
       contribution: number;
     }>;
-    rul?: number;                // Remaining Useful Life (days)
+    rul?: number; // Remaining Useful Life (days)
   };
-  
+
   // User context
-  requestedBy?: string;          // User ID (if manual)
-  automated: boolean;            // True if cron job
-  
+  requestedBy?: string; // User ID (if manual)
+  automated: boolean; // True if cron job
+
   // Cryptographic chain
-  previousEventHash?: string;    // Hash of previous event
-  currentEventHash: string;      // SHA-256 of this event
-  
+  previousEventHash?: string; // Hash of previous event
+  currentEventHash: string; // SHA-256 of this event
+
   // Audit
   createdAt: string;
 }
@@ -232,8 +234,9 @@ interface ProvenanceEvent {
 ### SHA-256 Chain Hashing
 
 **Hash Calculation:**
+
 ```typescript
-function calculateEventHash(event: Omit<ProvenanceEvent, 'currentEventHash'>): string {
+function calculateEventHash(event: Omit<ProvenanceEvent, "currentEventHash">): string {
   const hashInput = JSON.stringify({
     id: event.id,
     orgId: event.orgId,
@@ -243,48 +246,49 @@ function calculateEventHash(event: Omit<ProvenanceEvent, 'currentEventHash'>): s
     modelId: event.modelId,
     telemetryDataHash: event.telemetrySlice.dataHash,
     predictionOutput: event.prediction,
-    previousEventHash: event.previousEventHash || 'GENESIS'
+    previousEventHash: event.previousEventHash || "GENESIS",
   });
-  
-  return crypto.createHash('sha256').update(hashInput).digest('hex');
+
+  return crypto.createHash("sha256").update(hashInput).digest("hex");
 }
 ```
 
 **Chain Verification:**
+
 ```typescript
 async function verifyProvenanceChain(orgId: string): Promise<VerificationResult> {
   const events = await loadProvenanceEvents(orgId);
-  
+
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
     const expectedPrevHash = i > 0 ? events[i - 1].currentEventHash : undefined;
-    
+
     // Verify chain linkage
     if (event.previousEventHash !== expectedPrevHash) {
       return {
         valid: false,
         brokenAt: event.id,
-        reason: 'Chain linkage broken',
-        sequenceNumber: event.sequenceNumber
+        reason: "Chain linkage broken",
+        sequenceNumber: event.sequenceNumber,
       };
     }
-    
+
     // Verify hash integrity
     const recalculatedHash = calculateEventHash(event);
     if (event.currentEventHash !== recalculatedHash) {
       return {
         valid: false,
         brokenAt: event.id,
-        reason: 'Hash mismatch (tampered event)',
-        sequenceNumber: event.sequenceNumber
+        reason: "Hash mismatch (tampered event)",
+        sequenceNumber: event.sequenceNumber,
       };
     }
   }
-  
+
   return {
     valid: true,
     totalEvents: events.length,
-    lastEventHash: events[events.length - 1]?.currentEventHash
+    lastEventHash: events[events.length - 1]?.currentEventHash,
   };
 }
 ```
@@ -339,6 +343,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 **Endpoint:** `GET /api/governance/lineage`
 
 **Query Parameters:**
+
 - `modelType` - Filter by model type (lstm, xgboost, random_forest)
 - `status` - Filter by status (training, validation, promoted, deprecated)
 - `trainedAfter` - ISO date filter
@@ -347,6 +352,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 - `offset` - Pagination offset
 
 **Response:**
+
 ```json
 {
   "records": [LineageRecord],
@@ -366,6 +372,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 **Endpoint:** `GET /api/governance/events`
 
 **Query Parameters:**
+
 - `eventType` - Filter by type (prediction, alert, retrain_trigger)
 - `modelId` - Filter by model
 - `vesselId` - Filter by vessel
@@ -376,6 +383,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 - `offset` - Pagination
 
 **Response:**
+
 ```json
 {
   "events": [ProvenanceEvent],
@@ -395,6 +403,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 **Endpoint:** `POST /api/governance/verify-provenance`
 
 **Request Body:**
+
 ```json
 {
   "orgId": "default-org-id"
@@ -402,6 +411,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 ```
 
 **Response (Valid Chain):**
+
 ```json
 {
   "valid": true,
@@ -412,6 +422,7 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 ```
 
 **Response (Broken Chain):**
+
 ```json
 {
   "valid": false,
@@ -432,27 +443,29 @@ async function verifyProvenanceChain(orgId: string): Promise<VerificationResult>
 ### Multi-Tenant Isolation
 
 **Session-Based Org Derivation:**
+
 ```typescript
 // ✅ CORRECT: Always derive orgId from authenticated session
-app.post('/api/governance/lineage', requireAuthentication, async (req, res) => {
+app.post("/api/governance/lineage", requireAuthentication, async (req, res) => {
   const orgId = req.user.orgId; // From session, never from client
   const records = await governanceService.getLineage(orgId, req.query);
   res.json(records);
 });
 
 // ❌ WRONG: Never trust client-provided orgId
-app.post('/api/governance/lineage', async (req, res) => {
+app.post("/api/governance/lineage", async (req, res) => {
   const orgId = req.body.orgId; // SECURITY VIOLATION
   // ...
 });
 ```
 
 **Delta Replay Protection:**
+
 ```typescript
 // Validate that delta.orgId matches record.orgId before applying changes
 function applyDelta(delta: LineageDelta, existingRecord: LineageRecord): void {
   if (delta.orgId !== existingRecord.orgId) {
-    throw new SecurityError('Cross-tenant tampering attempt blocked');
+    throw new SecurityError("Cross-tenant tampering attempt blocked");
   }
   // Safe to apply delta
 }
@@ -480,17 +493,20 @@ All governance operations are logged to `audit_{orgId}.jsonl`:
 ## Compliance Readiness
 
 ### SOC 2 Type II
+
 - ✅ **Change Control** - Model lineage tracks all training/promotion events
 - ✅ **Audit Trail** - Immutable provenance chain with tamper detection
 - ✅ **Access Control** - Tenant isolation enforced at all layers
 - ✅ **Data Integrity** - SHA-256 hash verification
 
 ### ISO 27001
+
 - ✅ **Information Security** - Cryptographic chain prevents unauthorized modifications
 - ✅ **Access Management** - Session-based authentication
 - ✅ **Incident Detection** - Chain verification detects tampering
 
 ### Maritime Regulations
+
 - ✅ **Traceability** - Complete prediction → decision audit trail
 - ✅ **Reproducibility** - Dataset + hyperparameters enable retraining
 - ✅ **Evidence Preservation** - JSONL logs for regulatory review
@@ -526,6 +542,7 @@ All governance operations are logged to `audit_{orgId}.jsonl`:
 ## Appendix: Sample Verification Results
 
 ### Successful Verification
+
 ```bash
 $ curl -X POST http://localhost:5000/api/governance/verify-provenance \
   -H "Content-Type: application/json" \
@@ -542,6 +559,7 @@ $ curl -X POST http://localhost:5000/api/governance/verify-provenance \
 ```
 
 ### Failed Verification
+
 ```bash
 {
   "valid": false,

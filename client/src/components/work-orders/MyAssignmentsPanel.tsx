@@ -52,11 +52,10 @@ export function MyAssignmentsPanel() {
       response: "accept" | "decline";
       reason?: string;
     }) => {
-      return apiRequest(
-        "POST",
-        `/api/work-orders/${vars.workOrderId}/assignment-response`,
-        { response: vars.response, reason: vars.reason }
-      );
+      return apiRequest("POST", `/api/work-orders/${vars.workOrderId}/assignment-response`, {
+        response: vars.response,
+        reason: vars.reason,
+      });
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ASSIGNMENTS_QUERY_KEY });
@@ -124,7 +123,10 @@ export function MyAssignmentsPanel() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium" data-testid={`text-assignment-title-${wo.id}`}>
+                  <div
+                    className="truncate text-sm font-medium"
+                    data-testid={`text-assignment-title-${wo.id}`}
+                  >
                     {assignmentLabel(wo)}
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">

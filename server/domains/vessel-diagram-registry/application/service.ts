@@ -46,6 +46,21 @@ export class VesselDiagramRegistryService {
     };
   }
 
+  // Batch form of getSummary so fleet-wide views fetch one response instead of
+  // issuing a request per vessel (fleet hub previously did N+1 round trips).
+  async getSummaries(
+    actor: Omit<RegistryContext, "vesselId">,
+    vesselIds: string[]
+  ): Promise<Record<string, RegistrySummary>> {
+    const uniqueIds = Array.from(new Set(vesselIds));
+    const entries = await Promise.all(
+      uniqueIds.map(
+        async (vesselId) => [vesselId, await this.getSummary({ ...actor, vesselId })] as const
+      )
+    );
+    return Object.fromEntries(entries);
+  }
+
   listDiagrams(ctx: RegistryContext) {
     return this.store.listDiagrams(ctx);
   }
@@ -179,7 +194,7 @@ export class VesselDiagramRegistryService {
   async cloneSectionMap(
     ctx: RegistryContext,
     mapId: string,
-    input: { name: string; diagramId?: string; diagramVersionId?: string }
+    input: { name: string; diagramId?: string | undefined; diagramVersionId?: string | undefined }
   ) {
     return this.store.cloneSectionMap(ctx, mapId, input);
   }
@@ -188,7 +203,7 @@ export class VesselDiagramRegistryService {
     ctx: RegistryContext,
     sourceVesselId: string,
     sourceMapId: string,
-    input: { name: string; diagramId?: string; diagramVersionId?: string }
+    input: { name: string; diagramId?: string | undefined; diagramVersionId?: string | undefined }
   ) {
     const source = await this.store.getSectionMapForVessel(ctx, sourceVesselId, sourceMapId);
     if (!source) {
@@ -210,7 +225,11 @@ export class VesselDiagramRegistryService {
   async createSectionMapFromTemplate(
     ctx: RegistryContext,
     templateId: string,
-    input: { name?: string; diagramId?: string; diagramVersionId?: string }
+    input: {
+      name?: string | undefined;
+      diagramId?: string | undefined;
+      diagramVersionId?: string | undefined;
+    }
   ) {
     const template = getSectionMapTemplate(templateId);
     if (!template) {
@@ -244,11 +263,11 @@ export class VesselDiagramRegistryService {
     diagramId: string,
     input: DiagramUploadInput,
     behavior: {
-      mode?: "keep_existing" | "start_blank" | "copy_vessel" | "copy_template";
-      sourceVesselId?: string;
-      sourceMapId?: string;
-      templateId?: string;
-      mapName?: string;
+      mode?: "keep_existing" | "start_blank" | "copy_vessel" | "copy_template" | undefined;
+      sourceVesselId?: string | undefined;
+      sourceMapId?: string | undefined;
+      templateId?: string | undefined;
+      mapName?: string | undefined;
     }
   ) {
     const version = await this.uploadDiagramVersion(ctx, diagramId, input);
@@ -403,10 +422,10 @@ export class VesselDiagramRegistryService {
     mapId: string,
     sectionId: string,
     input: {
-      equipmentId?: string;
+      equipmentId?: string | undefined;
       equipmentName: string;
-      assetCode?: string;
-      system?: string;
+      assetCode?: string | undefined;
+      system?: string | undefined;
     }
   ) {
     return this.store.assignEquipment(ctx, mapId, sectionId, input);
@@ -543,7 +562,7 @@ function templateSections(prefix: string, names: string[]): CreateSectionInput[]
       sectionKey: `${prefix}_${index + 1}`,
       sectionNo: index + 1,
       name,
-      color: TEMPLATE_COLORS[index % TEMPLATE_COLORS.length],
+      color: TEMPLATE_COLORS[index % TEMPLATE_COLORS.length] ?? "#2563eb",
       polygonNormalized: [
         { x, y },
         { x: x + 0.22, y },

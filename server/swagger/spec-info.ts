@@ -58,7 +58,8 @@ Admin endpoints additionally require the \`x-admin-token\` header.
     },
     {
       url: "/api",
-      description: "Legacy unversioned surface — deprecated, sunset 2026-11-18. Responses carry Deprecation/Sunset/Link headers.",
+      description:
+        "Legacy unversioned surface — deprecated, sunset 2026-11-18. Responses carry Deprecation/Sunset/Link headers.",
     },
   ],
   tags: [

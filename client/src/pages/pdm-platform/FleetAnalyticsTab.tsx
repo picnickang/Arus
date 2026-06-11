@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { comparisonStatusBadgeVariant } from "@/lib/status-colors";
 import {
   useFleetBaselines,
   useFleetComparison,
@@ -29,9 +30,6 @@ export function FleetAnalyticsTab() {
   const { toast } = useToast();
   const equipmentTypes = useEquipmentTypes();
   const vesselName = useEquipmentVesselName(equipmentId);
-
-  const statusColor = (status: string) =>
-    status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
@@ -101,28 +99,30 @@ export function FleetAnalyticsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {baselines.map((b: {
-                    id: string;
-                    featureName: string;
-                    mean?: number;
-                    stddev?: number;
-                    p5?: number;
-                    p95?: number;
-                    sampleSize?: number;
-                  }) => (
-                    <tr
-                      key={b.id}
-                      className="border-b"
-                      data-testid={`row-baseline-${b.featureName}`}
-                    >
-                      <td className="p-2 font-medium">{b.featureName}</td>
-                      <td className="p-2 text-right">{b.mean?.toFixed(2)}</td>
-                      <td className="p-2 text-right">{b.stddev?.toFixed(2)}</td>
-                      <td className="p-2 text-right">{b.p5?.toFixed(2)}</td>
-                      <td className="p-2 text-right">{b.p95?.toFixed(2)}</td>
-                      <td className="p-2 text-right">{b.sampleSize}</td>
-                    </tr>
-                  ))}
+                  {baselines.map(
+                    (b: {
+                      id: string;
+                      featureName: string;
+                      mean?: number;
+                      stddev?: number;
+                      p5?: number;
+                      p95?: number;
+                      sampleSize?: number;
+                    }) => (
+                      <tr
+                        key={b.id}
+                        className="border-b"
+                        data-testid={`row-baseline-${b.featureName}`}
+                      >
+                        <td className="p-2 font-medium">{b.featureName}</td>
+                        <td className="p-2 text-right">{b.mean?.toFixed(2)}</td>
+                        <td className="p-2 text-right">{b.stddev?.toFixed(2)}</td>
+                        <td className="p-2 text-right">{b.p5?.toFixed(2)}</td>
+                        <td className="p-2 text-right">{b.p95?.toFixed(2)}</td>
+                        <td className="p-2 text-right">{b.sampleSize}</td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -145,41 +145,43 @@ export function FleetAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {comparison.map((c: {
-                featureName: string;
-                equipmentValue?: number;
-                fleetMean?: number;
-                fleetStddev?: number;
-                zScore?: number;
-                percentile?: number;
-                aboveFleetAvg?: boolean;
-                status: string;
-              }) => (
-                <div
-                  key={c.featureName}
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                  data-testid={`row-comparison-${c.featureName}`}
-                >
-                  <div className="font-medium w-32">{c.featureName}</div>
-                  <div className="flex items-center gap-4 text-sm flex-wrap">
-                    <span className="font-mono">{c.equipmentValue?.toFixed(2)}</span>
-                    <span className="text-muted-foreground">
-                      Fleet: {c.fleetMean?.toFixed(2)} ± {c.fleetStddev?.toFixed(2)}
-                    </span>
-                    <span className="font-mono">Z: {c.zScore?.toFixed(2)}</span>
-                    <span className="text-muted-foreground">P{c.percentile?.toFixed(0)}</span>
-                    <span className="flex items-center gap-1">
-                      {c.aboveFleetAvg ? (
-                        <ArrowUp className="w-3 h-3 text-orange-500" />
-                      ) : (
-                        <ArrowDown className="w-3 h-3 text-blue-500" />
-                      )}
-                      <span className="text-xs">{c.aboveFleetAvg ? "Above" : "Below"}</span>
-                    </span>
-                    <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+              {comparison.map(
+                (c: {
+                  featureName: string;
+                  equipmentValue?: number;
+                  fleetMean?: number;
+                  fleetStddev?: number;
+                  zScore?: number;
+                  percentile?: number;
+                  aboveFleetAvg?: boolean;
+                  status: string;
+                }) => (
+                  <div
+                    key={c.featureName}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                    data-testid={`row-comparison-${c.featureName}`}
+                  >
+                    <div className="font-medium w-32">{c.featureName}</div>
+                    <div className="flex items-center gap-4 text-sm flex-wrap">
+                      <span className="font-mono">{c.equipmentValue?.toFixed(2)}</span>
+                      <span className="text-muted-foreground">
+                        Fleet: {c.fleetMean?.toFixed(2)} ± {c.fleetStddev?.toFixed(2)}
+                      </span>
+                      <span className="font-mono">Z: {c.zScore?.toFixed(2)}</span>
+                      <span className="text-muted-foreground">P{c.percentile?.toFixed(0)}</span>
+                      <span className="flex items-center gap-1">
+                        {c.aboveFleetAvg ? (
+                          <ArrowUp className="w-3 h-3 text-orange-500" />
+                        ) : (
+                          <ArrowDown className="w-3 h-3 text-blue-500" />
+                        )}
+                        <span className="text-xs">{c.aboveFleetAvg ? "Above" : "Below"}</span>
+                      </span>
+                      <Badge variant={comparisonStatusBadgeVariant(c.status)}>{c.status}</Badge>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </CardContent>
         </Card>

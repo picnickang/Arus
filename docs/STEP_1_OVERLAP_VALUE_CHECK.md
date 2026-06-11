@@ -1,4 +1,5 @@
 # Step 1: Overlap & Value Check
+
 **Date**: November 24, 2025  
 **Task**: Validate Proposed Improvements vs Existing Features  
 **Status**: 🔍 **In Progress - Identifying Genuine Gaps**
@@ -8,6 +9,7 @@
 ## Executive Summary
 
 This document evaluates each proposed telemetry improvement against the existing ARUS infrastructure to determine:
+
 1. **Does this already exist?** (identify duplications)
 2. **Does it add genuine marine PdM value?** (not just cosmetic)
 3. **Does it conflict with architecture?** (offline-first, multi-tenant, dual-mode)
@@ -21,6 +23,7 @@ Based on Step 0 architecture scan and log analysis, I'm evaluating **5 proposed 
 ### Decision Criteria
 
 For each proposed improvement:
+
 - ✅ **PROCEED** - Adds genuine value, no overlap, no conflicts
 - ⚠️ **MODIFY** - Partially overlaps, needs refinement to add value
 - ❌ **REJECT** - Duplicates existing feature, no additional value
@@ -29,6 +32,7 @@ For each proposed improvement:
 ### Marine PdM Value Assessment
 
 Does this improvement help marine operators:
+
 1. **Prevent failures** - Detect issues before breakdown
 2. **Reduce downtime** - Faster diagnosis and repair
 3. **Lower costs** - Avoid unnecessary maintenance or emergencies
@@ -42,7 +46,9 @@ If NO to all 5 criteria → reject as cosmetic change.
 ## Proposed Improvement #1: Bridge-Style Vessel View
 
 ### Description
+
 Single-vessel dashboard styled like a ship's bridge control room with:
+
 - Large real-time gauges (engine RPM, speed, fuel pressure, temperature)
 - Equipment layout mimicking physical vessel layout
 - Traffic-light status indicators
@@ -51,6 +57,7 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 ### Overlap Analysis
 
 **Existing Features**:
+
 1. ✅ **Dashboard (`dashboard.tsx`)** - Real-time metrics, vessel filter, equipment health
 2. ✅ **Health Monitor (`health-monitor.tsx`)** - Equipment cards with health status
 3. ✅ **Fleet Overview (`FleetOverview.tsx`)** - Vessel-organized equipment view
@@ -58,6 +65,7 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 5. ✅ **Latest Telemetry Table** - 50 most recent readings on dashboard
 
 **What's Missing**:
+
 - ❌ No "bridge-style" layout with large gauges
 - ❌ No physical equipment layout (e.g., "port side engine room", "starboard thruster")
 - ❌ No large real-time visualization optimized for bridge monitoring
@@ -67,12 +75,14 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 **Marine PdM Value**: ✅ **High**
 
 **Reasoning**:
+
 1. **Prevent Failures** - Quick glance at critical equipment status
 2. **Reduce Downtime** - Faster situational awareness for crew
 3. **Safety** - Immediate visibility of critical equipment (main engine, steering, thrusters)
 4. **Usability** - Familiar layout for marine operators (mimics physical bridge)
 
 **Marine-Specific Benefits**:
+
 - Chief engineer can monitor engine room from bridge
 - Watch officers can see equipment status during navigation
 - Critical equipment (main engine, steering, DP thrusters) prioritized
@@ -81,12 +91,14 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 ### Architecture Compatibility
 
 **Check Against Architecture**:
+
 - ✅ **Offline-First** - Can use cached telemetry data
 - ✅ **Multi-Tenant** - Vessel-specific view (no cross-tenant data)
 - ✅ **Dual-Mode** - SQLite can support (no PostgreSQL-specific features required)
 - ✅ **Real-Time** - WebSocket updates already implemented
 
 **Implementation Complexity**: **Medium**
+
 - Requires new page component
 - Can reuse existing telemetry APIs
 - Can reuse existing chart components (gauges)
@@ -99,12 +111,14 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 **Recommendation**: Implement as **new page** (`/vessel-bridge/:vesselId`)
 
 **Rationale**:
+
 1. No overlap with existing dashboards (different use case)
 2. High marine PdM value (familiar interface for crew)
 3. Architecture-compatible (no breaking changes)
 4. Reuses existing infrastructure (telemetry APIs, WebSocket, charts)
 
 **Scope**:
+
 - Single-vessel view (not fleet-wide)
 - Real-time telemetry display
 - Critical equipment prioritization
@@ -115,7 +129,9 @@ Single-vessel dashboard styled like a ship's bridge control room with:
 ## Proposed Improvement #2: Multi-Sensor Time-Series Overlay
 
 ### Description
+
 Compare multiple sensors on one chart:
+
 - Overlay temperature, pressure, vibration on single timeline
 - Correlation analysis (e.g., "pressure spikes when temperature rises")
 - Dual Y-axis support (different units on same chart)
@@ -124,11 +140,13 @@ Compare multiple sensors on one chart:
 ### Overlap Analysis
 
 **Existing Features**:
+
 1. ✅ **TimeSeriesChart (`TimeSeriesChart.tsx`)** - Single sensor line/area chart
 2. ✅ **Telemetry History API** - `GET /api/telemetry/history/:equipmentId/:sensorType?hours=24`
 3. ✅ **Equipment Detail Pages** - Individual sensor charts
 
 **What's Missing**:
+
 - ❌ No multi-sensor overlay on single chart
 - ❌ No dual Y-axis support (currently single value label)
 - ❌ No correlation visualization
@@ -139,12 +157,14 @@ Compare multiple sensors on one chart:
 **Marine PdM Value**: ✅ **High**
 
 **Reasoning**:
+
 1. **Prevent Failures** - Detect correlated anomalies (e.g., temp + pressure + vibration)
 2. **Root Cause Analysis** - See cause-effect relationships
 3. **Diagnostics** - Faster troubleshooting with multi-sensor view
 4. **Pattern Detection** - Identify failure signatures (e.g., bearing failure = high vibration + high temperature)
 
 **Marine-Specific Benefits**:
+
 - Diesel engine diagnostics: Correlate exhaust temp, fuel pressure, RPM
 - Bearing analysis: Correlate vibration + temperature + oil pressure
 - Hydraulic system: Correlate pressure + flow rate + temperature
@@ -153,12 +173,14 @@ Compare multiple sensors on one chart:
 ### Architecture Compatibility
 
 **Check Against Architecture**:
+
 - ✅ **Offline-First** - Can use cached telemetry history
 - ✅ **Multi-Tenant** - Equipment-scoped queries (no cross-tenant data)
 - ✅ **Dual-Mode** - SQLite can support (no PostgreSQL-specific features)
 - ✅ **Real-Time** - Can update live with WebSocket
 
 **Implementation Complexity**: **Medium**
+
 - Extend TimeSeriesChart component
 - Add dual Y-axis support (Recharts supports this)
 - Add sensor selector UI
@@ -171,12 +193,14 @@ Compare multiple sensors on one chart:
 **Recommendation**: Extend **TimeSeriesChart** component with multi-sensor mode
 
 **Rationale**:
+
 1. No overlap (current charts are single-sensor only)
 2. High marine PdM value (correlation analysis critical for diagnostics)
 3. Architecture-compatible (no breaking changes)
 4. Reuses existing APIs (telemetry history)
 
 **Scope**:
+
 - Multi-sensor overlay (2-4 sensors on one chart)
 - Dual Y-axis support (different units)
 - Legend with sensor colors
@@ -188,7 +212,9 @@ Compare multiple sensors on one chart:
 ## Proposed Improvement #3: Top 5 Fleet Risks Dashboard
 
 ### Description
+
 Aggregated fleet-wide risk view:
+
 - Top 5 highest-risk equipment across entire fleet
 - Risk score combining: RUL + health index + threshold breaches + DTC severity
 - One-click navigation to equipment detail
@@ -198,23 +224,27 @@ Aggregated fleet-wide risk view:
 ### Overlap Analysis
 
 **Existing Features**:
+
 1. ✅ **Fleet Overview (`FleetOverview.tsx`)** - Fleet-wide insights, status filters
 2. ✅ **Health Monitor (`health-monitor.tsx`)** - Equipment health cards
 3. ✅ **Dashboard (`dashboard.tsx`)** - Fleet metrics (fleet health, risk alerts)
 4. ✅ **AI Insights (`ai-insights.tsx`)** - Vessel intelligence patterns, critical equipment
 
 **What's Missing**:
+
 - ❌ No "Top N" aggregated risk ranking across fleet
 - ❌ No composite risk score (currently separate: health index, RUL, alerts)
 - ❌ No risk trend visualization
 - ❌ No impact estimation (downtime cost, safety level)
 
 **What Exists (Partial Overlap)**:
+
 - ⚠️ Fleet Overview has "Critical" and "Action Required" filters
 - ⚠️ AI Insights has "risks.critical" array
 - ⚠️ Dashboard shows "riskAlerts" count
 
 **Difference**:
+
 - Existing features show lists of equipment needing attention
 - Proposed feature ranks equipment by composite risk score
 - Proposed feature shows impact estimation (cost, safety)
@@ -225,6 +255,7 @@ Aggregated fleet-wide risk view:
 **Marine PdM Value**: ✅ **Very High**
 
 **Reasoning**:
+
 1. **Prevent Failures** - Prioritize highest-risk equipment
 2. **Reduce Downtime** - Focus maintenance on most critical equipment
 3. **Lower Costs** - Avoid highest-impact failures
@@ -232,6 +263,7 @@ Aggregated fleet-wide risk view:
 5. **Resource Allocation** - Help fleet managers prioritize limited crew/parts
 
 **Marine-Specific Benefits**:
+
 - Fleet manager can prioritize across multiple vessels
 - Shore-based maintenance planning
 - Risk-based inspection scheduling
@@ -240,12 +272,14 @@ Aggregated fleet-wide risk view:
 ### Architecture Compatibility
 
 **Check Against Architecture**:
+
 - ✅ **Offline-First** - Can cache risk scores
 - ✅ **Multi-Tenant** - Fleet-scoped queries (org-level)
 - ✅ **Dual-Mode** - SQLite can support (aggregation queries)
 - ✅ **Real-Time** - Can update with WebSocket
 
 **Implementation Complexity**: **Medium-High**
+
 - Requires new risk scoring algorithm (composite of health + RUL + alerts + DTC)
 - New API endpoint: `GET /api/fleet/top-risks?limit=5`
 - New component: TopRisksPanel
@@ -258,12 +292,14 @@ Aggregated fleet-wide risk view:
 **Recommendation**: Implement as **new API + dashboard widget**
 
 **Rationale**:
+
 1. Minimal overlap (existing features don't rank or score risk)
 2. Very high marine PdM value (prioritization critical for fleet management)
 3. Architecture-compatible (standard aggregation queries)
 4. Complements existing features (doesn't replace)
 
 **Scope**:
+
 - Top 5 (or configurable N) highest-risk equipment
 - Composite risk score (0-100)
 - Risk factors breakdown (RUL contribution, health contribution, alert contribution)
@@ -276,7 +312,9 @@ Aggregated fleet-wide risk view:
 ## Proposed Improvement #4: Alert Impact Analysis
 
 ### Description
+
 For each alert, show "What happens if I ignore this?":
+
 - Estimated time to failure (from RUL)
 - Estimated repair cost (minor vs major failure)
 - Estimated downtime (hours/days)
@@ -286,12 +324,14 @@ For each alert, show "What happens if I ignore this?":
 ### Overlap Analysis
 
 **Existing Features**:
+
 1. ✅ **Alerts Page (`alerts.tsx`)** - Alert configurations, severity filtering
 2. ✅ **RUL Predictions** - Remaining useful life estimates
 3. ✅ **Work Orders** - Link alerts to work orders
 4. ✅ **AI Insights** - ROI calculations, compliance reports
 
 **What's Missing**:
+
 - ❌ No "impact if ignored" analysis on alert cards
 - ❌ No cost estimation for deferred maintenance
 - ❌ No downtime estimation
@@ -299,11 +339,13 @@ For each alert, show "What happens if I ignore this?":
 - ❌ No compliance impact on individual alerts
 
 **What Exists (Partial Overlap)**:
+
 - ⚠️ RUL predictions show "days remaining"
 - ⚠️ AI Insights show fleet-level ROI
 - ⚠️ Severity levels (low/medium/high/critical) indicate importance
 
 **Difference**:
+
 - Existing features show **what** is wrong
 - Proposed feature shows **consequences** of inaction
 - Existing features show fleet-level cost savings
@@ -314,6 +356,7 @@ For each alert, show "What happens if I ignore this?":
 **Marine PdM Value**: ✅ **Very High**
 
 **Reasoning**:
+
 1. **Prevent Failures** - Quantify urgency of response
 2. **Lower Costs** - Show cost of minor repair vs major failure
 3. **Ensure Safety** - Highlight safety-critical alerts
@@ -321,12 +364,14 @@ For each alert, show "What happens if I ignore this?":
 5. **Decision Support** - Help crew prioritize limited resources
 
 **Marine-Specific Benefits**:
+
 - Chief engineer can prioritize maintenance tasks
 - Shore-based planner can allocate budget
 - Demonstrate risk management for audits
 - Justify maintenance expenses to vessel owner
 
 **Example Scenarios**:
+
 - Alert: "Main engine oil pressure low"
   - Time to failure: 12 hours
   - Minor repair cost: $2,000 (replace oil pump seal)
@@ -337,12 +382,14 @@ For each alert, show "What happens if I ignore this?":
 ### Architecture Compatibility
 
 **Check Against Architecture**:
+
 - ✅ **Offline-First** - Can cache impact calculations
 - ✅ **Multi-Tenant** - Alert-scoped queries (no cross-tenant data)
 - ✅ **Dual-Mode** - SQLite can support (no PostgreSQL-specific features)
 - ✅ **Real-Time** - Can update with WebSocket
 
 **Implementation Complexity**: **High**
+
 - Requires cost estimation database (equipment type → repair costs)
 - Requires downtime estimation model
 - Requires safety risk matrix (alert type + equipment criticality)
@@ -356,29 +403,33 @@ For each alert, show "What happens if I ignore this?":
 **Recommendation**: Implement **simplified version** first (impact categories only)
 
 **Rationale**:
+
 1. Very high value (decision support critical for marine operators)
 2. No overlap (existing features don't show consequences)
 3. Architecture-compatible
 4. **BUT**: Full implementation is complex (cost database, downtime models)
 
 **Simplified Scope** (Phase 1):
+
 - Impact categories only (Low/Medium/High/Critical)
 - Safety risk level (based on equipment criticality)
 - Generic time to failure (from RUL)
 - Generic impact descriptions (template-based)
 
 **Full Scope** (Phase 2 - Future):
+
 - Equipment-specific cost database
 - Statistical downtime models
 - Regulatory compliance rules engine
 - Historical failure cost analysis
 
 **Phase 1 Implementation**:
+
 ```typescript
 interface AlertImpact {
   timeToFailure: number; // from RUL
-  impactLevel: 'low' | 'medium' | 'high' | 'critical';
-  safetyRisk: 'low' | 'medium' | 'high' | 'critical';
+  impactLevel: "low" | "medium" | "high" | "critical";
+  safetyRisk: "low" | "medium" | "high" | "critical";
   description: string; // template-based
   recommendation: string; // template-based
 }
@@ -389,7 +440,9 @@ interface AlertImpact {
 ## Proposed Improvement #5: Marine Terminology Consistency
 
 ### Description
+
 Ensure consistent use of marine industry terminology:
+
 - "Main Engine" (not "Primary Motor")
 - "Bow Thruster" (not "Front Propeller")
 - "Engine Room" (not "Machinery Space")
@@ -400,17 +453,20 @@ Ensure consistent use of marine industry terminology:
 ### Overlap Analysis
 
 **Existing Features**:
+
 1. ✅ **Equipment Registry** - Equipment types, names, locations
 2. ✅ **Equipment Constants** (`client/src/constants/equipment.ts`) - Equipment type definitions
 3. ✅ **UI Components** - Various labels, tooltips, descriptions
 
 **Current State**:
+
 - ✅ Equipment types use marine terminology (Main Engine, Bow Thruster, etc.)
 - ✅ Operating modes use marine terms (DP, Transit, Harbor, etc.)
 - ⚠️ Some UI labels may use generic terms
 - ⚠️ No enforcement of marine terminology in user-generated content
 
 **What's Missing**:
+
 - ❌ No terminology validation/suggestions
 - ❌ No glossary or help system
 - ❌ No consistency checking for custom equipment names
@@ -420,12 +476,14 @@ Ensure consistent use of marine industry terminology:
 **Marine PdM Value**: ⚠️ **Medium**
 
 **Reasoning**:
+
 1. **Usability** - Familiar terminology for marine operators
 2. **Professionalism** - Industry-standard language
 3. **Clarity** - Avoid confusion (e.g., "port" = harbor vs port side)
 4. **Training** - Easier onboarding for marine engineers
 
 **NOT High Priority Because**:
+
 - Doesn't directly prevent failures
 - Doesn't reduce costs
 - Doesn't improve safety
@@ -434,11 +492,13 @@ Ensure consistent use of marine industry terminology:
 ### Architecture Compatibility
 
 **Check Against Architecture**:
+
 - ✅ **Offline-First** - Terminology dictionary can be cached
 - ✅ **Multi-Tenant** - No impact
 - ✅ **Dual-Mode** - No impact
 
 **Implementation Complexity**: **Low-Medium**
+
 - Update UI labels (find/replace)
 - Create terminology dictionary
 - Add inline help/tooltips
@@ -451,12 +511,14 @@ Ensure consistent use of marine industry terminology:
 **Recommendation**: Implement as **audit + gradual improvement** (not urgent)
 
 **Rationale**:
+
 1. Medium value (usability, not PdM functionality)
 2. No blocking issues (existing terminology mostly correct)
 3. Architecture-compatible
 4. Low implementation risk
 
 **Scope**:
+
 1. **Audit** - Review all UI labels, tooltips, help text
 2. **Dictionary** - Create marine terminology reference
 3. **Gradual Updates** - Fix as we modify components
@@ -471,13 +533,13 @@ Ensure consistent use of marine industry terminology:
 
 ### Approved for Implementation ✅
 
-| # | Improvement | Value | Overlap | Decision | Priority |
-|---|---|---|---|---|---|
-| 1 | **Bridge-Style Vessel View** | High | None | ✅ Proceed | High |
-| 2 | **Multi-Sensor Time-Series Overlay** | High | None | ✅ Proceed | High |
-| 3 | **Top 5 Fleet Risks Dashboard** | Very High | Minimal | ✅ Proceed | Very High |
-| 4 | **Alert Impact Analysis** | Very High | None | ⚠️ Proceed (Simplified) | High |
-| 5 | **Marine Terminology Consistency** | Medium | Partial | ⚠️ Proceed (Low Priority) | Low |
+| #   | Improvement                          | Value     | Overlap | Decision                  | Priority  |
+| --- | ------------------------------------ | --------- | ------- | ------------------------- | --------- |
+| 1   | **Bridge-Style Vessel View**         | High      | None    | ✅ Proceed                | High      |
+| 2   | **Multi-Sensor Time-Series Overlay** | High      | None    | ✅ Proceed                | High      |
+| 3   | **Top 5 Fleet Risks Dashboard**      | Very High | Minimal | ✅ Proceed                | Very High |
+| 4   | **Alert Impact Analysis**            | Very High | None    | ⚠️ Proceed (Simplified)   | High      |
+| 5   | **Marine Terminology Consistency**   | Medium    | Partial | ⚠️ Proceed (Low Priority) | Low       |
 
 ### Rejected Improvements ❌
 
@@ -529,6 +591,7 @@ Ensure consistent use of marine industry terminology:
 ### No Breaking Changes Required ✅
 
 All approved improvements:
+
 - ✅ Use existing APIs (no new backend endpoints needed, except risk scoring)
 - ✅ Compatible with offline-first architecture
 - ✅ Compatible with dual-mode (PostgreSQL + SQLite)
@@ -538,16 +601,19 @@ All approved improvements:
 ### New Components Required
 
 **Backend**:
+
 - `risk-scoring.service.ts` - Composite risk score calculation
 - `impact-analysis.service.ts` - Alert impact categorization
 
 **Frontend**:
+
 - `/vessel-bridge/:vesselId` - Bridge-style vessel page
 - `TopRisksPanel.tsx` - Top N risks dashboard widget
 - `MultiSensorChart.tsx` - Multi-sensor overlay chart
 - `AlertImpactBadge.tsx` - Impact visualization on alerts
 
 **API Endpoints**:
+
 - `GET /api/fleet/top-risks?limit=5&orgId=...` - Top N risks
 - No other new endpoints needed (use existing telemetry/health APIs)
 
@@ -558,6 +624,7 @@ All approved improvements:
 ### Step 2: Implementation Planning
 
 **For each approved improvement**:
+
 1. Detailed component design
 2. API contract definition (for new endpoints)
 3. Data model updates (if needed)
@@ -571,6 +638,7 @@ All approved improvements:
 ## Conclusion
 
 **Key Findings**:
+
 1. ✅ **No duplications detected** - All proposed improvements add genuine value
 2. ✅ **High marine PdM value** - All features (except terminology) directly support predictive maintenance
 3. ✅ **Architecture-compatible** - No conflicts with offline-first, dual-mode, or multi-tenant design

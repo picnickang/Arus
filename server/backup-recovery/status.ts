@@ -63,7 +63,9 @@ export async function getBackupStatus(): Promise<{
       backupSizeTotal: 0,
       retentionSummary: { daily: 0, weekly: 0, monthly: 0 },
       healthStatus: "error",
-      issues: [`Failed to get backup status: ${error instanceof Error ? error.message : String(error)}`],
+      issues: [
+        `Failed to get backup status: ${error instanceof Error ? error.message : String(error)}`,
+      ],
     };
   }
 }

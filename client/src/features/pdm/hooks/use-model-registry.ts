@@ -52,10 +52,7 @@ export function useActiveDeployment(modelId: string) {
   return useQuery<ActiveDeploymentSummary | null>({
     queryKey: ["/api/pdm/models", modelId, "deployment", currentOrgId],
     queryFn: async () =>
-      apiRequest<ActiveDeploymentSummary | null>(
-        "GET",
-        `/api/pdm/models/${modelId}/deployment`,
-      ),
+      apiRequest<ActiveDeploymentSummary | null>("GET", `/api/pdm/models/${modelId}/deployment`),
     enabled: !!modelId && !!currentOrgId,
   });
 }

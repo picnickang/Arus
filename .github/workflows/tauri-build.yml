@@ -2,11 +2,10 @@ name: Build & Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
-
   build-macos:
     strategy:
       fail-fast: false
@@ -21,11 +20,11 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: "20", cache: "npm" }
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: '${{ matrix.target }}' }
+        with: { targets: "${{ matrix.target }}" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
 
@@ -46,28 +45,28 @@ jobs:
       - name: Build Tauri (vessel config)
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
-          APPLE_SIGNING_IDENTITY:             ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID:                           ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD:                     ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID:                      ${{ secrets.APPLE_TEAM_ID }}
-          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName:      ${{ github.ref_name }}
-          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          tagName: ${{ github.ref_name }}
+          releaseName: "ARUS Marine ${{ github.ref_name }}"
           releaseDraft: true
-          prerelease:   false
-          args:         --target ${{ matrix.target }} --config src-tauri/tauri.vessel.conf.json
+          prerelease: false
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.vessel.conf.json
 
   build-linux:
     name: Linux x64
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: "20", cache: "npm" }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
@@ -96,24 +95,24 @@ jobs:
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName:      ${{ github.ref_name }}
-          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          tagName: ${{ github.ref_name }}
+          releaseName: "ARUS Marine ${{ github.ref_name }}"
           releaseDraft: true
-          prerelease:   false
-          args:         --target x86_64-unknown-linux-gnu --config src-tauri/tauri.vessel.conf.json
+          prerelease: false
+          args: --target x86_64-unknown-linux-gnu --config src-tauri/tauri.vessel.conf.json
 
   build-windows-vessel:
     name: Windows x64 (Vessel)
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: "20", cache: "npm" }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: x86_64-pc-windows-msvc }
       - uses: Swatinem/rust-cache@v2
@@ -177,24 +176,24 @@ jobs:
       - name: Build Tauri (vessel installer)
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName:      ${{ github.ref_name }}
-          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          tagName: ${{ github.ref_name }}
+          releaseName: "ARUS Marine ${{ github.ref_name }}"
           releaseDraft: true
-          prerelease:   false
-          args:         --target x86_64-pc-windows-msvc --config src-tauri/tauri.vessel.conf.json
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.vessel.conf.json
 
   build-windows-cloud:
     name: Windows x64 (Cloud)
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: "20", cache: "npm" }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: x86_64-pc-windows-msvc }
       - uses: Swatinem/rust-cache@v2
@@ -245,12 +244,12 @@ jobs:
       - name: Build Tauri (cloud installer)
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName:      ${{ github.ref_name }}
-          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          tagName: ${{ github.ref_name }}
+          releaseName: "ARUS Marine ${{ github.ref_name }}"
           releaseDraft: true
-          prerelease:   false
-          args:         --target x86_64-pc-windows-msvc --config src-tauri/tauri.cloud.conf.json
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.cloud.conf.json

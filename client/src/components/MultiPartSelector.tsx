@@ -36,7 +36,6 @@ interface PartStockStatus {
   estimatedLeadTimeDays: number;
 }
 
-
 type ExistingPartUsage = {
   id?: string;
   partId: string;

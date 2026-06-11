@@ -13,18 +13,18 @@ import type { ReliableSyncConfig } from "./types.js";
 export function createDefaultConfig(
   overrides: Partial<ReliableSyncConfig> = {}
 ): ReliableSyncConfig {
-  const hostname = process.env['HOSTNAME'] || process.env['REPL_SLUG'] || "vessel_default";
+  const hostname = process.env["HOSTNAME"] || process.env["REPL_SLUG"] || "vessel_default";
 
   return {
-    brokerUrl: overrides.brokerUrl || process.env['MQTT_BROKER_URL'] || "mqtt://localhost:1883",
+    brokerUrl: overrides.brokerUrl || process.env["MQTT_BROKER_URL"] || "mqtt://localhost:1883",
     clientIdPrefix: overrides.clientIdPrefix || "arus_sync",
-    vesselId: overrides.vesselId || process.env['VESSEL_ID'] || hostname,
+    vesselId: overrides.vesselId || process.env["VESSEL_ID"] || hostname,
     reconnectPeriod: overrides.reconnectPeriod || 5000,
     qosLevel: overrides.qosLevel || 1, // Default to QoS 1 (at least once)
     maxQueueSize:
-      overrides.maxQueueSize || Number.parseInt(process.env['MQTT_MAX_QUEUE_SIZE'] || "10000"),
+      overrides.maxQueueSize || Number.parseInt(process.env["MQTT_MAX_QUEUE_SIZE"] || "10000"),
     enableTls:
-      overrides.enableTls ?? (process.env['MQTT_BROKER_URL']?.startsWith("mqtts://") || false),
+      overrides.enableTls ?? (process.env["MQTT_BROKER_URL"]?.startsWith("mqtts://") || false),
     queueDir: overrides.queueDir || path.join(process.cwd(), ".mqtt-queue"),
   };
 }

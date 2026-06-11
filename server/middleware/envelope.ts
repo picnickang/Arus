@@ -1,8 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import {
-  isEnvelope,
-  type ErrorEnvelope,
-} from "@shared/api-envelope";
+import { isEnvelope, type ErrorEnvelope } from "@shared/api-envelope";
 import { isEnvelopedPath } from "../lib/envelope-manifest";
 import { getCorrelationId } from "../logging";
 
@@ -52,7 +49,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function normalizeErrorBody(status: number, body: unknown): ErrorEnvelope {
   const record = isRecord(body) ? body : undefined;
 
-  const nested = record && isRecord(record["error"]) ? (record["error"] as Record<string, unknown>) : undefined;
+  const nested = record && isRecord(record["error"]) ? record["error"] : undefined;
   const message =
     (nested && typeof nested["message"] === "string" && nested["message"]) ||
     (record && typeof record["message"] === "string" && record["message"]) ||
@@ -82,6 +79,7 @@ export function normalizeErrorBody(status: number, body: unknown): ErrorEnvelope
       ...(correlationId ? { correlationId } : {}),
     },
     message,
+    code,
   };
 }
 

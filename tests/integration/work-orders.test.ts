@@ -17,6 +17,15 @@ const TEST_ORG_ID = "test-org-integration";
 const TEST_VESSEL_ID = "00000000-0000-0000-0000-000000000001";
 const TEST_EQUIPMENT_ID = "00000000-0000-0000-0000-000000000002";
 
+/** Unwraps the canonical response envelope on migrated domains. */
+function unwrap<T = Record<string, unknown>>(body: unknown): T {
+  const record = body as Record<string, unknown> | null;
+  if (record && typeof record === "object" && record["success"] === true && "data" in record) {
+    return record["data"] as T;
+  }
+  return body as T;
+}
+
 describe("Work Orders API", () => {
   let app: Express;
   let createdWorkOrderId: string;
@@ -37,7 +46,8 @@ describe("Work Orders API", () => {
         .expect(200);
 
       expect(response.body).toBeDefined();
-      expect(Array.isArray(response.body) || response.body.data).toBe(true);
+      const body = unwrap<unknown[] | { data?: unknown[] }>(response.body);
+      expect(Array.isArray(body) || Array.isArray((body as { data?: unknown[] }).data)).toBe(true);
     });
 
     it("should filter by vessel ID", async () => {
@@ -46,9 +56,10 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      const workOrders = (Array.isArray(response.body) ? response.body : response.body.data) as
-        | Array<{ vesselId?: string; status?: string }>
-        | undefined;
+      const listBody = unwrap<unknown[] | { data?: unknown[] }>(response.body);
+      const workOrders = (
+        Array.isArray(listBody) ? listBody : (listBody as { data?: unknown[] }).data
+      ) as Array<{ vesselId?: string; status?: string }> | undefined;
       if (workOrders && workOrders.length > 0) {
         expect(workOrders.every((wo) => wo.vesselId === TEST_VESSEL_ID)).toBe(true);
       }
@@ -60,9 +71,10 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      const workOrders = (Array.isArray(response.body) ? response.body : response.body.data) as
-        | Array<{ vesselId?: string; status?: string }>
-        | undefined;
+      const listBody = unwrap<unknown[] | { data?: unknown[] }>(response.body);
+      const workOrders = (
+        Array.isArray(listBody) ? listBody : (listBody as { data?: unknown[] }).data
+      ) as Array<{ vesselId?: string; status?: string }> | undefined;
       if (workOrders && workOrders.length > 0) {
         expect(workOrders.every((wo) => wo.status === "open")).toBe(true);
       }
@@ -88,11 +100,12 @@ describe("Work Orders API", () => {
         .expect("Content-Type", /json/)
         .expect(201);
 
-      expect(response.body).toBeDefined();
-      expect(response.body.id).toBeDefined();
-      expect(response.body.title).toBe(newWorkOrder.title);
+      const created = unwrap<{ id: string; title: string }>(response.body);
+      expect(created).toBeDefined();
+      expect(created.id).toBeDefined();
+      expect(created.title).toBe(newWorkOrder.title);
 
-      createdWorkOrderId = response.body.id;
+      createdWorkOrderId = created.id;
     });
 
     it("should reject invalid work order data", async () => {
@@ -124,7 +137,7 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      expect(response.body.id).toBe(createdWorkOrderId);
+      expect(unwrap(response.body)["id"]).toBe(createdWorkOrderId);
     });
 
     it("should return 404 for non-existent work order", async () => {
@@ -148,7 +161,7 @@ describe("Work Orders API", () => {
         .send({ status: "in_progress" })
         .expect(200);
 
-      expect(response.body.status).toBe("in_progress");
+      expect(unwrap(response.body)["status"]).toBe("in_progress");
     });
 
     it("should update work order priority", async () => {
@@ -163,7 +176,7 @@ describe("Work Orders API", () => {
         .send({ priority: "high" })
         .expect(200);
 
-      expect(response.body.priority).toBe("high");
+      expect(unwrap(response.body)["priority"]).toBe("high");
     });
   });
 
@@ -187,7 +200,7 @@ describe("Work Orders API", () => {
         .send(completionData)
         .expect(200);
 
-      expect(response.body.status).toBe("completed");
+      expect(unwrap(response.body)["status"]).toBe("completed");
     });
   });
 
@@ -203,7 +216,7 @@ describe("Work Orders API", () => {
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(Array.isArray(unwrap(response.body))).toBe(true);
     });
   });
 

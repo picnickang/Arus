@@ -23,13 +23,12 @@ const woPartParamSchema = z.object({
 });
 const partOnlyParamSchema = z.object({ partId: z.string().min(1) });
 
-const partBodySchema = z
-  .object({
-    partId: z.string().min(1),
-    quantity: z.number().positive(),
-    usedBy: z.string().min(1),
-    notes: z.string().optional(),
-  });
+const partBodySchema = z.object({
+  partId: z.string().min(1),
+  quantity: z.number().positive(),
+  usedBy: z.string().min(1),
+  notes: z.string().optional(),
+});
 
 const bulkPartsBodySchema = z.object({
   parts: z
@@ -97,7 +96,10 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       const { id } = idParamSchema.parse(req.params);
       const parsed = bulkPartsBodySchema.safeParse(req.body);
       if (!parsed.success) {
-        return sendBadRequest(res, "Parts array is required and each part must have partId, quantity, usedBy");
+        return sendBadRequest(
+          res,
+          "Parts array is required and each part must have partId, quantity, usedBy"
+        );
       }
       const { parts } = parsed.data;
 

@@ -18,8 +18,8 @@ import {
 import { useUpdateSectionMapCalibration } from "./registry-api";
 
 interface SideElevationFitControlsProps {
-  vesselId?: string;
-  mapId?: string;
+  vesselId?: string | undefined;
+  mapId?: string | undefined;
   canEditImageTransform: boolean;
   currentImageTransform: SectionMapImageTransform;
   savedImageTransform: SectionMapImageTransform;
@@ -106,6 +106,9 @@ export function SideElevationFitControls({
           max={IMAGE_SCALE_MAX * 100}
           step={IMAGE_SCALE_STEP * 100}
           onValueChange={([value]) => {
+            if (value === undefined) {
+              return;
+            }
             const next = clampImageScale(value / 100);
             onScaleXChange(next);
             onScaleYChange(next);
@@ -157,7 +160,9 @@ export function SideElevationFitControls({
               min={IMAGE_OFFSET_MIN * 100}
               max={IMAGE_OFFSET_MAX * 100}
               step={IMAGE_OFFSET_STEP * 100}
-              onValueChange={([value]) => onOffsetXChange(clampImageOffset(value / 100))}
+              onValueChange={([value = panXPercent]) =>
+                onOffsetXChange(clampImageOffset(value / 100))
+              }
               aria-label="Side elevation horizontal position"
               data-testid="side-elevation-pan-x-slider"
             />
@@ -172,7 +177,9 @@ export function SideElevationFitControls({
               min={IMAGE_OFFSET_MIN * 100}
               max={IMAGE_OFFSET_MAX * 100}
               step={IMAGE_OFFSET_STEP * 100}
-              onValueChange={([value]) => onOffsetYChange(clampImageOffset(value / 100))}
+              onValueChange={([value = panYPercent]) =>
+                onOffsetYChange(clampImageOffset(value / 100))
+              }
               aria-label="Side elevation vertical position"
               data-testid="side-elevation-pan-y-slider"
             />
@@ -192,7 +199,9 @@ export function SideElevationFitControls({
             min={IMAGE_SCALE_MIN * 100}
             max={IMAGE_SCALE_MAX * 100}
             step={IMAGE_SCALE_STEP * 100}
-            onValueChange={([value]) => onScaleXChange(clampImageScale(value / 100))}
+            onValueChange={([value = lengthPercent]) =>
+              onScaleXChange(clampImageScale(value / 100))
+            }
             aria-label="Side elevation length scale"
             data-testid="side-elevation-length-slider"
           />
@@ -209,7 +218,9 @@ export function SideElevationFitControls({
             min={IMAGE_SCALE_MIN * 100}
             max={IMAGE_SCALE_MAX * 100}
             step={IMAGE_SCALE_STEP * 100}
-            onValueChange={([value]) => onScaleYChange(clampImageScale(value / 100))}
+            onValueChange={([value = heightPercent]) =>
+              onScaleYChange(clampImageScale(value / 100))
+            }
             aria-label="Side elevation height scale"
             data-testid="side-elevation-height-slider"
           />

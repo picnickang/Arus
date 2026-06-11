@@ -8,10 +8,7 @@ interface AssignmentStatusBadgeProps {
   testId?: string;
 }
 
-const CONFIG: Record<
-  string,
-  { label: string; icon: typeof Clock; className: string }
-> = {
+const CONFIG: Record<string, { label: string; icon: typeof Clock; className: string }> = {
   assigned: {
     label: "Awaiting response",
     icon: Clock,

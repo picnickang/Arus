@@ -7,15 +7,8 @@
  * broadcast must not roll back the task mutation that triggered it.
  */
 
-import type {
-  ICrewTaskEffects,
-  ICrewTaskEventRepository,
-} from "../domain/ports";
-import type {
-  CrewTaskEntity,
-  CrewTaskActor,
-  CrewTaskEventEntity,
-} from "../domain/types";
+import type { ICrewTaskEffects, ICrewTaskEventRepository } from "../domain/ports";
+import type { CrewTaskEntity, CrewTaskActor, CrewTaskEventEntity } from "../domain/types";
 import { db } from "../../../db";
 import { crew, notificationQueue } from "@shared/schema-runtime";
 import { and, eq } from "drizzle-orm";
@@ -27,9 +20,7 @@ import { crewTaskEventRepository } from "./crew-task-event-repository-adapter";
 type AssignmentNoticeKind = "assignment" | "status";
 
 export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
-  constructor(
-    private readonly eventRepo: ICrewTaskEventRepository = crewTaskEventRepository,
-  ) {}
+  constructor(private readonly eventRepo: ICrewTaskEventRepository = crewTaskEventRepository) {}
 
   async onCreated(task: CrewTaskEntity, actor?: CrewTaskActor): Promise<void> {
     await this.audit("create", task, actor, undefined, this.snapshot(task), []);
@@ -44,7 +35,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     before: CrewTaskEntity,
     after: CrewTaskEntity,
     changedFields: string[],
-    actor?: CrewTaskActor,
+    actor?: CrewTaskActor
   ): Promise<void> {
     await this.audit(
       "update",
@@ -52,19 +43,15 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
       actor,
       this.snapshot(before),
       this.snapshot(after),
-      changedFields,
+      changedFields
     );
     await this.recordChangeEvents(before, after, changedFields, actor);
     this.broadcast("crew_task.updated", after);
 
-    const reassigned =
-      changedFields.includes("assignedCrewId") && !!after.assignedCrewId;
+    const reassigned = changedFields.includes("assignedCrewId") && !!after.assignedCrewId;
     const statusChanged = changedFields.includes("status");
     if ((reassigned || statusChanged) && after.assignedCrewId) {
-      await this.enqueueAssignmentNotice(
-        after,
-        reassigned ? "assignment" : "status",
-      );
+      await this.enqueueAssignmentNotice(after, reassigned ? "assignment" : "status");
     }
   }
 
@@ -76,7 +63,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
   async onCommented(
     task: CrewTaskEntity,
     event: CrewTaskEventEntity,
-    _actor?: CrewTaskActor,
+    _actor?: CrewTaskActor
   ): Promise<void> {
     this.broadcast("crew_task.commented", task, { eventId: event.id });
   }
@@ -86,7 +73,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     before: CrewTaskEntity,
     after: CrewTaskEntity,
     changedFields: string[],
-    actor?: CrewTaskActor,
+    actor?: CrewTaskActor
   ): Promise<void> {
     if (changedFields.includes("status")) {
       await this.recordEvent(
@@ -94,7 +81,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
         "status_changed",
         `Status changed from "${before.status}" to "${after.status}"`,
         actor,
-        { from: before.status, to: after.status },
+        { from: before.status, to: after.status }
       );
     }
     if (changedFields.includes("assignedCrewId")) {
@@ -108,18 +95,13 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
       });
     }
     if (changedFields.includes("assignedTo")) {
-      const message = after.assignedTo
-        ? `Owner set to ${after.assignedTo}`
-        : "Owner cleared";
+      const message = after.assignedTo ? `Owner set to ${after.assignedTo}` : "Owner cleared";
       await this.recordEvent(after, "owner_changed", message, actor, {
         from: before.assignedTo,
         to: after.assignedTo,
       });
     }
-    if (
-      changedFields.includes("linkedSourceId") ||
-      changedFields.includes("linkedSourceType")
-    ) {
+    if (changedFields.includes("linkedSourceId") || changedFields.includes("linkedSourceType")) {
       const message = after.linkedSourceId
         ? `Linked to ${after.linkedSourceLabel ?? after.linkedSourceType ?? "a source"}`
         : "Linked source removed";
@@ -136,7 +118,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     eventType: string,
     message: string,
     actor: CrewTaskActor | undefined,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.eventRepo.add({
@@ -158,11 +140,10 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     }
   }
 
-  private async crewName(
-    orgId: string,
-    crewId: string | null,
-  ): Promise<string | null> {
-    if (!crewId) {return null;}
+  private async crewName(orgId: string, crewId: string | null): Promise<string | null> {
+    if (!crewId) {
+      return null;
+    }
     try {
       const [member] = await db
         .select({ name: crew.name })
@@ -199,7 +180,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     actor: CrewTaskActor | undefined,
     previousState: Record<string, unknown> | undefined,
     newState: Record<string, unknown> | undefined,
-    changedFields: string[],
+    changedFields: string[]
   ): Promise<void> {
     try {
       await auditService.logEvent({
@@ -225,17 +206,9 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
     }
   }
 
-  private broadcast(
-    channel: string,
-    task: CrewTaskEntity,
-    extra?: Record<string, unknown>,
-  ): void {
+  private broadcast(channel: string, task: CrewTaskEntity, extra?: Record<string, unknown>): void {
     try {
-      getWebSocketServer()?.broadcast(
-        channel,
-        { task, ...extra },
-        task.orgId,
-      );
+      getWebSocketServer()?.broadcast(channel, { task, ...extra }, task.orgId);
     } catch (err) {
       log("warn", "CrewTasks", "broadcast failed", {
         taskId: task.id,
@@ -246,10 +219,12 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
 
   private async enqueueAssignmentNotice(
     task: CrewTaskEntity,
-    kind: AssignmentNoticeKind,
+    kind: AssignmentNoticeKind
   ): Promise<void> {
     try {
-      if (!task.assignedCrewId) {return;}
+      if (!task.assignedCrewId) {
+        return;
+      }
 
       const [member] = await db
         .select({ name: crew.name, email: crew.email })
@@ -269,8 +244,7 @@ export class CrewTaskEffectsAdapter implements ICrewTaskEffects {
 
       await db.insert(notificationQueue).values({
         orgId: task.orgId,
-        notificationType:
-          kind === "status" ? "crew_task_status" : "crew_task_assigned",
+        notificationType: kind === "status" ? "crew_task_status" : "crew_task_assigned",
         subject,
         body,
         recipients,

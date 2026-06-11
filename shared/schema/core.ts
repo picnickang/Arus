@@ -16,7 +16,6 @@ import {
   boolean,
   serial,
   index,
-  uniqueIndex,
   createInsertSchema,
   z,
 } from "./base";
@@ -34,9 +33,21 @@ export const organizations = pgTable("organizations", {
   maxEquipment: integer("max_equipment").default(1000),
   subscriptionTier: text("subscription_tier").notNull().default("basic"),
   isActive: boolean("is_active").default(true),
-  emergencyLaborMultiplier: numeric("emergency_labor_multiplier", { precision: 6, scale: 3, mode: "number" }).default(3),
-  emergencyPartsMultiplier: numeric("emergency_parts_multiplier", { precision: 6, scale: 3, mode: "number" }).default(1.5),
-  emergencyDowntimeMultiplier: numeric("emergency_downtime_multiplier", { precision: 6, scale: 3, mode: "number" }).default(3),
+  emergencyLaborMultiplier: numeric("emergency_labor_multiplier", {
+    precision: 6,
+    scale: 3,
+    mode: "number",
+  }).default(3),
+  emergencyPartsMultiplier: numeric("emergency_parts_multiplier", {
+    precision: 6,
+    scale: 3,
+    mode: "number",
+  }).default(1.5),
+  emergencyDowntimeMultiplier: numeric("emergency_downtime_multiplier", {
+    precision: 6,
+    scale: 3,
+    mode: "number",
+  }).default(3),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
@@ -45,43 +56,43 @@ export const organizations = pgTable("organizations", {
 export const users = pgTable(
   "users",
   {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  email: text("email").notNull(),
-  username: text("username"),
-  name: text("name").notNull(),
-  passwordHash: text("password_hash"),
-  // password_reset_token/_expires dropped in 0049: no reset flow ever
-  // shipped (zero readers/writers). If one is added, store only a hash
-  // of the token from day one.
-  passwordUpdatedAt: timestamp("password_updated_at", { mode: "date" }),
-  role: text("role").notNull().default("viewer"),
-  jobTitle: text("job_title"),
-  phone: text("phone"),
-  timezone: text("timezone").default("UTC"),
-  isActive: boolean("is_active").default(true),
-  loginEnabled: boolean("login_enabled").notNull().default(true),
-  mustChangePassword: boolean("must_change_password").notNull().default(false),
-  supervisorUserId: varchar("supervisor_user_id"),
-  // Explicit grant of admin-portal ("hub") access. Distinct from `role`: a
-  // manager-or-above user must be explicitly granted hub access before the
-  // admin hubs become reachable. Super-admin roles are always-on regardless.
-  hubAdmin: boolean("hub_admin").notNull().default(false),
-  // Per-admin hub allow-list (nav category ids). null = all hubs (full access).
-  hubAccess: text("hub_access").array(),
-  lastLoginAt: timestamp("last_login_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-  },
-  (table) => ({
-    // Tenant-scoped natural key (0039): the same email may exist in
-    // different orgs, never twice within one.
-    orgEmailUq: uniqueIndex("uq_users_org_email").on(table.orgId, table.email),
-  })
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    email: text("email").notNull(),
+    username: text("username"),
+    name: text("name").notNull(),
+    passwordHash: text("password_hash"),
+    // password_reset_token/_expires dropped in 0049: no reset flow ever
+    // shipped (zero readers/writers). If one is added, store only a hash
+    // of the token from day one.
+    passwordUpdatedAt: timestamp("password_updated_at", { mode: "date" }),
+    role: text("role").notNull().default("viewer"),
+    jobTitle: text("job_title"),
+    phone: text("phone"),
+    timezone: text("timezone").default("UTC"),
+    isActive: boolean("is_active").default(true),
+    loginEnabled: boolean("login_enabled").notNull().default(true),
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
+    supervisorUserId: varchar("supervisor_user_id"),
+    // Explicit grant of admin-portal ("hub") access. Distinct from `role`: a
+    // manager-or-above user must be explicitly granted hub access before the
+    // admin hubs become reachable. Super-admin roles are always-on regardless.
+    hubAdmin: boolean("hub_admin").notNull().default(false),
+    // Per-admin hub allow-list (nav category ids). null = all hubs (full access).
+    hubAccess: text("hub_access").array(),
+    lastLoginAt: timestamp("last_login_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  }
+  // Email uniqueness is migration-managed: 0039's uq_users_org_email was
+  // replaced in 0047 by uq_users_org_email_lower on (org_id, lower(email)),
+  // an expression index Drizzle cannot declare here. Do not re-add a TS
+  // uniqueIndex on email — push would recreate the case-sensitive index
+  // that 0047 drops.
 );
 
 // System settings

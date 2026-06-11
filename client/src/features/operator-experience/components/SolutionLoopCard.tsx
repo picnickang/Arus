@@ -26,7 +26,9 @@ export function SolutionLoopCard({ solutionMap }: { solutionMap: ExperienceSolut
             <div key={step.key} className="rounded-lg border p-3 min-h-[120px]">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-semibold">{step.label}</div>
-                {index < STEPS.length - 1 && <ArrowRight className="hidden h-4 w-4 text-muted-foreground xl:block" />}
+                {index < STEPS.length - 1 && (
+                  <ArrowRight className="hidden h-4 w-4 text-muted-foreground xl:block" />
+                )}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">{solutionMap[step.key]}</p>
             </div>

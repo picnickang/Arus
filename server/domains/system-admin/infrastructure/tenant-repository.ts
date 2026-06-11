@@ -31,10 +31,10 @@ export interface TenantRow {
 export interface ProvisionTenantInput {
   id: string;
   name: string;
-  slug?: string;
-  maxStorageBytes?: number;
-  maxEquipmentCount?: number;
-  maxTelemetryRowsPerDay?: number;
+  slug?: string | undefined;
+  maxStorageBytes?: number | undefined;
+  maxEquipmentCount?: number | undefined;
+  maxTelemetryRowsPerDay?: number | undefined;
 }
 
 export async function listTenants(): Promise<TenantRow[]> {

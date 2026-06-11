@@ -138,10 +138,12 @@ export const insertVesselSchema = createInsertSchema(vessels)
     condition: z.enum(["excellent", "good", "fair", "poor", "critical"]).optional(),
     // Columns are mode:"number" since 0049; coerce form/API strings at
     // the boundary ("" clears the rate to null).
-    dayRateSgd: z.preprocess(
-      (v) => (v === "" || v == null ? null : Number(v)),
-      z.number().nonnegative().nullable()
-    ).optional(),
+    dayRateSgd: z
+      .preprocess(
+        (v) => (v === "" || v == null ? null : Number(v)),
+        z.number().nonnegative().nullable()
+      )
+      .optional(),
     downtimeDays: z.coerce.number().nonnegative().optional(),
     operationDays: z.coerce.number().nonnegative().optional(),
   });

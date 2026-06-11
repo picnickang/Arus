@@ -87,123 +87,162 @@ export function createScheduledReportsRouter(
     return undefined;
   };
 
-  router.get("/schedules", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const schedules = await schedulerService.getSchedulesByOrg(orgId);
-      return res.json({ data: schedules });
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to list schedules", String(error));
-      return res.status(500).json({ error: "Failed to list schedules" });
-    }
-  });
-
-  router.get("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const schedule = await schedulerService.getSchedule(idParamSchema.parse(req.params).id, orgId);
-
-      if (!schedule) {
-        return res.status(404).json({ error: "Schedule not found" });
+  router.get(
+    "/schedules",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const schedules = await schedulerService.getSchedulesByOrg(orgId);
+        return res.json({ data: schedules });
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to list schedules", String(error));
+        return res.status(500).json({ error: "Failed to list schedules" });
       }
-
-      return res.json({ data: schedule });
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to get schedule", String(error));
-      return res.status(500).json({ error: "Failed to get schedule" });
     }
-  });
+  );
 
-  router.post("/schedules", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const userId = req.user?.id || "system";
+  router.get(
+    "/schedules/:id",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const schedule = await schedulerService.getSchedule(
+          idParamSchema.parse(req.params).id,
+          orgId
+        );
 
-      const validation = CreateScheduleSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          error: "Invalid request body",
-          details: validation.error.errors,
-        });
+        if (!schedule) {
+          return res.status(404).json({ error: "Schedule not found" });
+        }
+
+        return res.json({ data: schedule });
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to get schedule", String(error));
+        return res.status(500).json({ error: "Failed to get schedule" });
       }
-
-      const schedule = await schedulerService.createSchedule(orgId, stripUndefined(validation.data), userId);
-      return res.status(201).json({ data: schedule });
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to create schedule", String(error));
-      return res.status(500).json({ error: "Failed to create schedule" });
     }
-  });
+  );
 
-  router.patch("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const userId = req.user?.id || "system";
+  router.post(
+    "/schedules",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const userId = req.user?.id || "system";
 
-      const validation = UpdateScheduleSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          error: "Invalid request body",
-          details: validation.error.errors,
-        });
+        const validation = CreateScheduleSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid request body",
+            details: validation.error.errors,
+          });
+        }
+
+        const schedule = await schedulerService.createSchedule(
+          orgId,
+          stripUndefined(validation.data),
+          userId
+        );
+        return res.status(201).json({ data: schedule });
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to create schedule", String(error));
+        return res.status(500).json({ error: "Failed to create schedule" });
       }
+    }
+  );
 
-      const schedule = await schedulerService.updateSchedule(
-        idParamSchema.parse(req.params).id,
-        orgId,
-        stripUndefined(validation.data),
-        userId
-      );
-      return res.json({ data: schedule });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("not found")) {
-        return res.status(404).json({ error: "Schedule not found" });
+  router.patch(
+    "/schedules/:id",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const userId = req.user?.id || "system";
+
+        const validation = UpdateScheduleSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid request body",
+            details: validation.error.errors,
+          });
+        }
+
+        const schedule = await schedulerService.updateSchedule(
+          idParamSchema.parse(req.params).id,
+          orgId,
+          stripUndefined(validation.data),
+          userId
+        );
+        return res.json({ data: schedule });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("not found")) {
+          return res.status(404).json({ error: "Schedule not found" });
+        }
+        logger.error(LOG_CTX, "Failed to update schedule", message);
+        return res.status(500).json({ error: "Failed to update schedule" });
       }
-      logger.error(LOG_CTX, "Failed to update schedule", message);
-      return res.status(500).json({ error: "Failed to update schedule" });
     }
-  });
+  );
 
-  router.delete("/schedules/:id", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const userId = req.user?.id || "system";
+  router.delete(
+    "/schedules/:id",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const userId = req.user?.id || "system";
 
-      await schedulerService.deleteSchedule(idParamSchema.parse(req.params).id, orgId, userId);
-      return res.status(204).send();
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to delete schedule", String(error));
-      return res.status(500).json({ error: "Failed to delete schedule" });
-    }
-  });
-
-  router.post("/schedules/:id/run", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      await schedulerService.runScheduleNow(idParamSchema.parse(req.params).id, orgId);
-      return res.json({ message: "Report generation started" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("not found")) {
-        return res.status(404).json({ error: "Schedule not found" });
+        await schedulerService.deleteSchedule(idParamSchema.parse(req.params).id, orgId, userId);
+        return res.status(204).send();
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to delete schedule", String(error));
+        return res.status(500).json({ error: "Failed to delete schedule" });
       }
-      logger.error(LOG_CTX, "Failed to run schedule", message);
-      return res.status(500).json({ error: "Failed to run schedule" });
     }
-  });
+  );
 
-  router.get("/schedules/:id/history", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
-      const limit = limitQuerySchema.parse(req.query).limit ?? 10;
-      const reports = await schedulerService.getReportHistory(idParamSchema.parse(req.params).id, orgId, limit);
-      return res.json({ data: reports });
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to get report history", String(error));
-      return res.status(500).json({ error: "Failed to get report history" });
+  router.post(
+    "/schedules/:id/run",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        await schedulerService.runScheduleNow(idParamSchema.parse(req.params).id, orgId);
+        return res.json({ message: "Report generation started" });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("not found")) {
+          return res.status(404).json({ error: "Schedule not found" });
+        }
+        logger.error(LOG_CTX, "Failed to run schedule", message);
+        return res.status(500).json({ error: "Failed to run schedule" });
+      }
     }
-  });
+  );
+
+  router.get(
+    "/schedules/:id/history",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
+        const limit = limitQuerySchema.parse(req.query).limit ?? 10;
+        const reports = await schedulerService.getReportHistory(
+          idParamSchema.parse(req.params).id,
+          orgId,
+          limit
+        );
+        return res.json({ data: reports });
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to get report history", String(error));
+        return res.status(500).json({ error: "Failed to get report history" });
+      }
+    }
+  );
 
   router.get("/reports", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -321,51 +360,60 @@ export function createScheduledReportsRouter(
     }
   });
 
-  router.patch("/settings", requireCloudFeature, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const orgId = req.orgId || DEFAULT_ORG_ID;
+  router.patch(
+    "/settings",
+    requireCloudFeature,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const orgId = req.orgId || DEFAULT_ORG_ID;
 
-      const validation = UpdateSettingsSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          error: "Invalid request body",
-          details: validation.error.errors,
-        });
-      }
+        const validation = UpdateSettingsSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid request body",
+            details: validation.error.errors,
+          });
+        }
 
-      const updates = validation.data;
+        const updates = validation.data;
 
-      if (updates.reportRetentionDays !== undefined) {
-        await upsertSetting(orgId, "report_retention_days", updates.reportRetentionDays, "number");
-      }
-      if (updates.defaultTimezone !== undefined) {
-        await upsertSetting(orgId, "default_timezone", updates.defaultTimezone, "string");
-      }
-      if (updates.maxRecipientsPerSchedule !== undefined) {
-        await upsertSetting(
-          orgId,
-          "max_recipients_per_schedule",
-          updates.maxRecipientsPerSchedule,
-          "number"
-        );
-      }
-      if (updates.reportGenerationTimeoutSeconds !== undefined) {
-        await upsertSetting(
-          orgId,
-          "report_generation_timeout_seconds",
-          updates.reportGenerationTimeoutSeconds,
-          "number"
-        );
-      }
+        if (updates.reportRetentionDays !== undefined) {
+          await upsertSetting(
+            orgId,
+            "report_retention_days",
+            updates.reportRetentionDays,
+            "number"
+          );
+        }
+        if (updates.defaultTimezone !== undefined) {
+          await upsertSetting(orgId, "default_timezone", updates.defaultTimezone, "string");
+        }
+        if (updates.maxRecipientsPerSchedule !== undefined) {
+          await upsertSetting(
+            orgId,
+            "max_recipients_per_schedule",
+            updates.maxRecipientsPerSchedule,
+            "number"
+          );
+        }
+        if (updates.reportGenerationTimeoutSeconds !== undefined) {
+          await upsertSetting(
+            orgId,
+            "report_generation_timeout_seconds",
+            updates.reportGenerationTimeoutSeconds,
+            "number"
+          );
+        }
 
-      const updatedSettings = await getSettingsFromDb(orgId);
-      logger.info(LOG_CTX, "Settings updated", { orgId, updates });
-      return res.json({ data: updatedSettings });
-    } catch (error) {
-      logger.error(LOG_CTX, "Failed to update settings", String(error));
-      return res.status(500).json({ error: "Failed to update settings" });
+        const updatedSettings = await getSettingsFromDb(orgId);
+        logger.info(LOG_CTX, "Settings updated", { orgId, updates });
+        return res.json({ data: updatedSettings });
+      } catch (error) {
+        logger.error(LOG_CTX, "Failed to update settings", String(error));
+        return res.status(500).json({ error: "Failed to update settings" });
+      }
     }
-  });
+  );
 
   return router;
 }

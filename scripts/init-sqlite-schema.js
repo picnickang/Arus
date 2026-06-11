@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { createClient } from '@libsql/client';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { createClient } from "@libsql/client";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
-const DB_PATH = process.env.DATABASE_PATH || 'data/vessel-local.db';
+const DB_PATH = process.env.DATABASE_PATH || "data/vessel-local.db";
 
 console.log(`  Initializing database at: ${DB_PATH}`);
 
@@ -12,7 +12,7 @@ mkdirSync(dbDir, { recursive: true });
 
 try {
   const client = createClient({
-    url: `file:${DB_PATH}`
+    url: `file:${DB_PATH}`,
   });
 
   await client.execute(`
@@ -38,7 +38,7 @@ try {
     INSERT OR IGNORE INTO _schema_version (version) VALUES ('1.0.0-embedded');
   `);
 
-  console.log('  Creating critical system tables for embedded mode...');
+  console.log("  Creating critical system tables for embedded mode...");
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS organizations (
@@ -126,20 +126,29 @@ try {
     );
   `);
 
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_update_settings_org ON update_settings(org_id);`);
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_sessions_org ON admin_sessions(org_id);`);
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token);`);
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_audit_org ON admin_audit_events(org_id);`);
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category);`);
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_update_settings_org ON update_settings(org_id);`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_org ON admin_sessions(org_id);`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token);`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_admin_audit_org ON admin_audit_events(org_id);`
+  );
+  await client.execute(
+    `CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category);`
+  );
 
   client.close();
 
-  console.log('  ✓ Core schema created with critical tables');
-  console.log('  ✓ Default organization configured');
-  console.log('  ℹ️  Additional tables will be created on first application start');
+  console.log("  ✓ Core schema created with critical tables");
+  console.log("  ✓ Default organization configured");
+  console.log("  ℹ️  Additional tables will be created on first application start");
   process.exit(0);
-
 } catch (error) {
-  console.error('  ❌ Database initialization failed:', error.message);
+  console.error("  ❌ Database initialization failed:", error.message);
   process.exit(1);
 }

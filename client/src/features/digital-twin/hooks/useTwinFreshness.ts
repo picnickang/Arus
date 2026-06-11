@@ -2,17 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-function orgHeaders(orgId: string) {
-  return { "x-org-id": orgId };
-}
-
-async function fetchJson(url: string, orgId: string) {
-  const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) {
-    throw new Error(`Failed: ${res.statusText}`);
-  }
-  return res.json();
-}
+// Reads go through apiRequest (auth headers + envelope unwrapping).
 
 export interface TwinFreshnessInfo {
   twinId: string;
@@ -28,7 +18,7 @@ export function useTwinFreshness() {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinFreshnessInfo[]>({
     queryKey: ["/api/pdm/twin/updates/freshness", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/updates/freshness", currentOrgId!),
+    queryFn: () => apiRequest("GET", "/api/pdm/twin/updates/freshness"),
     enabled: !!currentOrgId,
     refetchInterval: 60000,
   });
@@ -38,7 +28,7 @@ export function useSingleTwinFreshness(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinFreshnessInfo>({
     queryKey: ["/api/pdm/twin/updates/freshness", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/updates/freshness/${twinId}`, currentOrgId!),
+    queryFn: () => apiRequest("GET", `/api/pdm/twin/updates/freshness/${twinId}`),
     enabled: !!currentOrgId && !!twinId,
     refetchInterval: 60000,
   });

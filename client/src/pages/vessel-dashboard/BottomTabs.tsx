@@ -119,7 +119,9 @@ export function BottomTabs({
                       </Badge>
                     </div>
                     <div className="text-[10px] text-slate-500">
-                      {wo.createdAt ? formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true }) : ""}
+                      {wo.createdAt
+                        ? formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true })
+                        : ""}
                     </div>
                   </div>
                 ))}

@@ -32,7 +32,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           storage: "available",
           cache: "available",
         },
-        version: process.env['APP_VERSION'] ?? "1.0",
+        version: process.env["APP_VERSION"] ?? "1.0",
       };
 
       res.json(health);
@@ -42,7 +42,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Scalability and load balancer health
   app.get(
     "/api/health/scalability",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get scalability health", async (req: Request, res: Response) => {
       const { getLoadBalancerHealth } = await import("../../scalability");
       res.json(getLoadBalancerHealth());
@@ -52,7 +52,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Background jobs health
   app.get(
     "/api/health/background-jobs",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get background job status", async (req: Request, res: Response) => {
       const { jobQueue } = await import("../../background-jobs");
       res.json({
@@ -67,7 +67,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Cache health
   app.get(
     "/api/health/cache",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get cache status", async (req: Request, res: Response) => {
       const { cache } = await import("../../scalability");
       res.json({
@@ -81,7 +81,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Telemetry health - batch writer and ingestion stats
   app.get(
     "/api/health/telemetry",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("get telemetry health status", async (req: Request, res: Response) => {
       const { telemetryBatchWriter } = await import("../../telemetry-batch-writer");
       const { getBridgeState } = await import("../../services/sqlite-bridge");
@@ -123,10 +123,10 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
           pgOffline: bridgeState.pgOffline,
         },
         configuration: {
-          batchIntervalMs: Number.parseInt(process.env['TELEMETRY_BATCH_INTERVAL_MS'] || "500", 10),
-          maxBufferSize: Number.parseInt(process.env['TELEMETRY_MAX_BUFFER_SIZE'] || "10000", 10),
-          evictionPercent: Number.parseFloat(process.env['TELEMETRY_EVICTION_PERCENT'] || "0.1"),
-          maxRetries: Number.parseInt(process.env['TELEMETRY_MAX_RETRIES'] || "3", 10),
+          batchIntervalMs: Number.parseInt(process.env["TELEMETRY_BATCH_INTERVAL_MS"] || "500", 10),
+          maxBufferSize: Number.parseInt(process.env["TELEMETRY_MAX_BUFFER_SIZE"] || "10000", 10),
+          evictionPercent: Number.parseFloat(process.env["TELEMETRY_EVICTION_PERCENT"] || "0.1"),
+          maxRetries: Number.parseInt(process.env["TELEMETRY_MAX_RETRIES"] || "3", 10),
         },
       });
     })
@@ -165,10 +165,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const orgId = DEFAULT_ORG_ID;
       const { equipmentId } = req.query;
 
-      const pdmScores = await dbDevicesStorage.getPdmScores(
-        equipmentId as string,
-        DEFAULT_ORG_ID
-      );
+      const pdmScores = await dbDevicesStorage.getPdmScores(equipmentId as string, DEFAULT_ORG_ID);
       const latestScore = pdmScores[0];
 
       const health = {
@@ -215,8 +212,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const avgHealth =
         equipmentHealth.length > 0
-          ? equipmentHealth.reduce((sum, e) => sum + e.healthScore, 0) /
-            equipmentHealth.length
+          ? equipmentHealth.reduce((sum, e) => sum + e.healthScore, 0) / equipmentHealth.length
           : 100;
 
       res.json({
@@ -265,7 +261,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
       const orgId = DEFAULT_ORG_ID;
-      await dbSystemAdminStorage.deleteErrorLog(req.params['id'] ?? '', orgId);
+      await dbSystemAdminStorage.deleteErrorLog(req.params["id"] ?? "", orgId);
       res.status(204).send();
     })
   );
@@ -294,12 +290,12 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentLogs = (logs ?? []).filter((log: Record<string, unknown>) => {
-        const ts = log['createdAt'] || log['timestamp'];
+        const ts = log["createdAt"] || log["timestamp"];
         return ts ? new Date(ts as string) >= last24h : false;
       });
 
       const getSeverity = (log: Record<string, unknown>) =>
-        ((log['level'] || log['severity'] || "") as string).toLowerCase();
+        ((log["level"] || log["severity"] || "") as string).toLowerCase();
       const summary = {
         totalErrors: recentLogs.length,
         byLevel: {
@@ -340,7 +336,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // Circuit breaker status for external services
   app.get(
     "/api/health/circuit-breakers",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("fetch circuit breaker status", async (req: Request, res: Response) => {
       const { getAllCircuitBreakerStatuses } = await import(
         "../../services/external-circuit-breakers"
@@ -375,7 +371,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   // External dependencies health check
   app.get(
     "/api/health/dependencies",
-    generalApiRateLimit,
+    requireOrgId,
     withErrorHandling("check dependency health", async (req: Request, res: Response) => {
       const { inventoryCache, analyticsCache, cacheConfig } = await import("../../lib/cache");
       const { mqttReliableSync: mqttReliableSyncService } = await import(

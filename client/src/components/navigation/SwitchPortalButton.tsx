@@ -14,10 +14,7 @@
 import { useLocation } from "wouter";
 import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  ROLE_STORAGE_KEY,
-  BOTTOM_NAV_OVERRIDE_STORAGE_KEY,
-} from "@/config/roles";
+import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { clearAllPortalState } from "@/infrastructure/navigation/nav-storage";
 
 /**

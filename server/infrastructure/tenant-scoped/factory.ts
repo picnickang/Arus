@@ -84,7 +84,11 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository, TLegacy = un
       const repository = this.repositoryFactory(this.orgId);
       return repositoryFn(repository);
     } catch (error) {
-      logger.error(`Repository read failed, falling back to legacy: ${errorMessage}`, undefined, error);
+      logger.error(
+        `Repository read failed, falling back to legacy: ${errorMessage}`,
+        undefined,
+        error
+      );
       return legacyFn(this.legacyStorage, this.orgId);
     }
   }
@@ -105,12 +109,18 @@ export class DualWriteAdapter<TRepo extends TenantScopedRepository, TLegacy = un
       try {
         await legacyFn(this.legacyStorage, this.orgId);
       } catch (legacyError) {
-        logger.warn(`Legacy write failed during dual-write: ${errorMessage}`, { details: legacyError });
+        logger.warn(`Legacy write failed during dual-write: ${errorMessage}`, {
+          details: legacyError,
+        });
       }
 
       return result;
     } catch (error) {
-      logger.error(`Repository write failed, falling back to legacy: ${errorMessage}`, undefined, error);
+      logger.error(
+        `Repository write failed, falling back to legacy: ${errorMessage}`,
+        undefined,
+        error
+      );
       return legacyFn(this.legacyStorage, this.orgId);
     }
   }

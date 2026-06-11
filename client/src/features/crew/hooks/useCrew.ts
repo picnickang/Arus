@@ -6,7 +6,6 @@ import type {
   CrewLeave,
   CrewAssignment,
   ShiftTemplate,
-  CrewRestSheet,
   CrewRestDay,
 } from "../types";
 
@@ -18,7 +17,6 @@ export const crewKeys = {
   leave: (crewId: string) => [...crewKeys.all, crewId, "leave"] as const,
   assignments: () => ["/api/crew/assignments"] as const,
   shifts: () => ["/api/shifts"] as const,
-  restSheets: (crewId: string, month: string) => ["/api/stcw/rest", crewId, month] as const,
   restDays: (sheetId: string) => ["/api/stcw/rest/days", sheetId] as const,
 };
 
@@ -26,7 +24,8 @@ export function useCrewList(vesselId?: string) {
   const filterKey = vesselId || "all";
   return useQuery<CrewMember[]>({
     queryKey: [...crewKeys.list(), filterKey],
-    queryFn: () => apiRequest<CrewMember[]>("GET", vesselId ? `/api/crew?vessel_id=${vesselId}` : "/api/crew"),
+    queryFn: () =>
+      apiRequest<CrewMember[]>("GET", vesselId ? `/api/crew?vessel_id=${vesselId}` : "/api/crew"),
   });
 }
 
@@ -64,15 +63,8 @@ export function useShiftTemplates() {
 export function useCrewAssignments(date?: string) {
   return useQuery<CrewAssignment[]>({
     queryKey: [...crewKeys.assignments(), date],
-    queryFn: () => apiRequest<CrewAssignment[]>("GET", `/api/crew/assignments${date ? `?date=${date}` : ""}`),
-  });
-}
-
-export function useRestSheet(crewId: string | undefined, month: string) {
-  return useQuery<CrewRestSheet>({
-    queryKey: crewKeys.restSheets(crewId || "", month),
-    queryFn: () => apiRequest<CrewRestSheet>("GET", `/api/stcw/rest/sheet?crewId=${crewId}&month=${month}`),
-    enabled: !!crewId && !!month,
+    queryFn: () =>
+      apiRequest<CrewAssignment[]>("GET", `/api/crew/assignments${date ? `?date=${date}` : ""}`),
   });
 }
 
@@ -146,19 +138,6 @@ export function useSaveRestDay() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.restDays(variables.sheetId) });
-    },
-  });
-}
-
-export function useSubmitRestSheet() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ sheetId }: { sheetId: string }) => {
-      return apiRequest("POST", `/api/stcw/rest/sheet/${sheetId}/submit`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stcw"] });
     },
   });
 }

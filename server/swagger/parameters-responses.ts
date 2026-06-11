@@ -9,7 +9,8 @@ export const securitySchemes = {
     type: "apiKey",
     in: "header",
     name: "x-org-id",
-    description: "Optional organization ID for single-tenant compatibility; must match the configured default organization",
+    description:
+      "Optional organization ID for single-tenant compatibility; must match the configured default organization",
   },
   adminToken: {
     type: "apiKey",
@@ -25,7 +26,8 @@ export const parameters = {
     in: "header",
     required: true,
     schema: { type: "string" },
-    description: "Optional organization ID for single-tenant compatibility; must match the configured default organization",
+    description:
+      "Optional organization ID for single-tenant compatibility; must match the configured default organization",
   },
   pageParam: {
     name: "page",

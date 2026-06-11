@@ -38,11 +38,15 @@ export async function getOpenAIApiKey(
       return settings.openaiApiKey;
     }
   } catch (error) {
-    logger.error("Failed to get API key from settings, falling back to environment:", undefined, error);
+    logger.error(
+      "Failed to get API key from settings, falling back to environment:",
+      undefined,
+      error
+    );
   }
 
   // Check environment variables in priority order
-  return process.env['OPENAI_API_KEY'] || process.env['AI_INTEGRATIONS_OPENAI_API_KEY'];
+  return process.env["OPENAI_API_KEY"] || process.env["AI_INTEGRATIONS_OPENAI_API_KEY"];
 }
 
 /**
@@ -181,7 +185,9 @@ export async function retryWithBackoff<T>(
       }
 
       if (attempt === maxRetries) {
-        logger.error(`Max retries (${maxRetries}) reached for OpenAI operation: ${errorAnalysis.recommendation}`);
+        logger.error(
+          `Max retries (${maxRetries}) reached for OpenAI operation: ${errorAnalysis.recommendation}`
+        );
         break;
       }
 
@@ -219,18 +225,23 @@ export async function callWithModelFallback(
   }
 ): Promise<ChatCreateResult> {
   try {
-    return await retryWithBackoff(() => openai.chat.completions.create(params as ChatCreateParams) as Promise<ChatCreateResult>);
+    return await retryWithBackoff(
+      () => openai.chat.completions.create(params as ChatCreateParams) as Promise<ChatCreateResult>
+    );
   } catch (error: unknown) {
     const errorAnalysis = analyzeErrorType(error);
 
     if (errorAnalysis.fallbackModel && params.model !== errorAnalysis.fallbackModel) {
-      logger.warn(`Falling back from ${params.model} to ${errorAnalysis.fallbackModel} due to: ${errorAnalysis.recommendation}`);
+      logger.warn(
+        `Falling back from ${params.model} to ${errorAnalysis.fallbackModel} due to: ${errorAnalysis.recommendation}`
+      );
 
-      return await retryWithBackoff(() =>
-        openai.chat.completions.create({
-          ...params,
-          model: errorAnalysis.fallbackModel!,
-        } as ChatCreateParams) as Promise<ChatCreateResult>
+      return await retryWithBackoff(
+        () =>
+          openai.chat.completions.create({
+            ...params,
+            model: errorAnalysis.fallbackModel!,
+          } as ChatCreateParams) as Promise<ChatCreateResult>
       );
     }
 

@@ -39,6 +39,7 @@ import { ArrowLeft, Plus, ShieldCheck } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { formatDate } from "@/lib/formatters";
 
 // Roles allowed to author a safety notice. Must stay identical to the
 // server gate `SAFETY_BULLETIN_WRITE_ROLES` in
@@ -71,10 +72,7 @@ interface Vessel {
   name?: string;
 }
 
-const SEVERITY_VARIANT: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
+const SEVERITY_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   critical: "destructive",
   warning: "default",
   advisory: "secondary",
@@ -100,19 +98,10 @@ const newNoticeSchema = z.object({
 
 type NewNoticeForm = z.infer<typeof newNoticeSchema>;
 
-function formatDate(value: string | null): string {
-  if (!value) {return "";}
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) {return "";}
-  return d.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function currentRole(): string | null {
-  if (typeof window === "undefined") {return null;}
+  if (typeof window === "undefined") {
+    return null;
+  }
   try {
     return window.localStorage.getItem(ROLE_STORAGE_KEY);
   } catch {
@@ -148,11 +137,15 @@ function NewNoticeDialog() {
       title: values.title,
       severity: values.severity,
     };
-    if (values.body && values.body.length > 0) {payload["body"] = values.body;}
-    if (values.reference && values.reference.length > 0)
-      {payload["reference"] = values.reference;}
-    if (values.vesselId && values.vesselId !== FLEET_WIDE_VALUE)
-      {payload["vesselId"] = values.vesselId;}
+    if (values.body && values.body.length > 0) {
+      payload["body"] = values.body;
+    }
+    if (values.reference && values.reference.length > 0) {
+      payload["reference"] = values.reference;
+    }
+    if (values.vesselId && values.vesselId !== FLEET_WIDE_VALUE) {
+      payload["vesselId"] = values.vesselId;
+    }
 
     try {
       await apiRequest("POST", "/api/safety-bulletins", payload);
@@ -182,8 +175,7 @@ function NewNoticeDialog() {
         <DialogHeader>
           <DialogTitle>Post a safety notice</DialogTitle>
           <DialogDescription>
-            Share a safety notice with the crew. Leave the vessel as
-            Fleet-wide to notify everyone.
+            Share a safety notice with the crew. Leave the vessel as Fleet-wide to notify everyone.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -231,10 +223,7 @@ function NewNoticeDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Severity</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-notice-severity">
                         <SelectValue placeholder="Select severity" />
@@ -263,36 +252,24 @@ function NewNoticeDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vessel</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-notice-vessel">
                         <SelectValue placeholder="Fleet-wide" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem
-                        value={FLEET_WIDE_VALUE}
-                        data-testid="option-vessel-fleet"
-                      >
+                      <SelectItem value={FLEET_WIDE_VALUE} data-testid="option-vessel-fleet">
                         Fleet-wide (all vessels)
                       </SelectItem>
                       {vessels.map((v) => (
-                        <SelectItem
-                          key={v.id}
-                          value={v.id}
-                          data-testid={`option-vessel-${v.id}`}
-                        >
+                        <SelectItem key={v.id} value={v.id} data-testid={`option-vessel-${v.id}`}>
                           {v.name || v.id}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Fleet-wide notices appear for every vessel.
-                  </FormDescription>
+                  <FormDescription>Fleet-wide notices appear for every vessel.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -325,11 +302,7 @@ function NewNoticeDialog() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                data-testid="button-submit-notice"
-              >
+              <Button type="submit" disabled={isSubmitting} data-testid="button-submit-notice">
                 {isSubmitting ? "Posting..." : "Post notice"}
               </Button>
             </DialogFooter>
@@ -361,10 +334,7 @@ export default function SafetyBulletinsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1
-          className="flex items-center gap-2 text-lg font-semibold"
-          data-testid="text-page-title"
-        >
+        <h1 className="flex items-center gap-2 text-lg font-semibold" data-testid="text-page-title">
           <ShieldCheck className="h-5 w-5 text-primary" /> Safety Notices
         </h1>
         {canPost && (
@@ -403,15 +373,21 @@ export default function SafetyBulletinsPage() {
                   </Badge>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {[formatDate(b.effectiveDate), b.reference]
+                  {[
+                    formatDate(b.effectiveDate, {
+                      locale: "auto",
+                      hour: undefined,
+                      minute: undefined,
+                      fallback: "",
+                    }),
+                    b.reference,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </div>
               </CardHeader>
               {b.body && (
-                <CardContent className="pt-0 text-sm text-muted-foreground">
-                  {b.body}
-                </CardContent>
+                <CardContent className="pt-0 text-sm text-muted-foreground">{b.body}</CardContent>
               )}
             </Card>
           ))}

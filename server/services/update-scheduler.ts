@@ -9,7 +9,7 @@
 
 import cron from "node-cron";
 import { getUpdateChecker } from "./update-checker";
-import { patchApplicator } from "./patch-applicator";
+import { getPatchApplicator } from "./patch-applicator";
 import { db } from "../db";
 import { updateSettings } from "../../shared/schema";
 import { eq } from "drizzle-orm";
@@ -108,18 +108,28 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
           continue;
         }
 
-        logger.info(`[UpdateScheduler] Org ${settings.orgId}: Update available - ${manifest.version} (${manifest.severity})`);
+        logger.info(
+          `[UpdateScheduler] Org ${settings.orgId}: Update available - ${manifest.version} (${manifest.severity})`
+        );
 
         // Register patch in database
         const patch = await updateChecker.registerPatch(settings.orgId, manifest);
 
         // ALWAYS download patch (background staging for marine vessels)
-        logger.info(`[UpdateScheduler] Org ${settings.orgId}: Starting background download for patch ${patch.id}...`);
+        logger.info(
+          `[UpdateScheduler] Org ${settings.orgId}: Starting background download for patch ${patch.id}...`
+        );
         try {
           const patchPath = await updateChecker.downloadPatch(patch.id, settings.orgId);
-          logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch downloaded and staged at ${patchPath}`);
+          logger.info(
+            `[UpdateScheduler] Org ${settings.orgId}: Patch downloaded and staged at ${patchPath}`
+          );
         } catch (downloadError) {
-          logger.error(`[UpdateScheduler] Org ${settings.orgId}: Background download failed:`, undefined, downloadError);
+          logger.error(
+            `[UpdateScheduler] Org ${settings.orgId}: Background download failed:`,
+            undefined,
+            downloadError
+          );
           // Continue to notify admin even if download fails
         }
 
@@ -140,14 +150,16 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
           (manifest.severity === "critical" || settings.autoUpdateCriticalOnly === false);
 
         if (shouldAutoApply) {
-          logger.info(`[UpdateScheduler] Org ${settings.orgId}: Auto-applying patch ${patch.id} during maintenance globalThis...`);
+          logger.info(
+            `[UpdateScheduler] Org ${settings.orgId}: Auto-applying patch ${patch.id} during maintenance globalThis...`
+          );
 
           // Import WebSocket server for broadcasting
           const { wsServer } = await import("../websocket");
 
           try {
             const patchPath = await updateChecker.downloadPatch(patch.id, settings.orgId);
-            const result = await patchApplicator.applyPatch(patch.id, patchPath);
+            const result = await getPatchApplicator().applyPatch(patch.id, patchPath);
 
             if (result.success) {
               logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch applied successfully`);
@@ -166,7 +178,11 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
                 },
               });
             } else {
-              logger.error(`[UpdateScheduler] Org ${settings.orgId}: Patch application failed:`, undefined, result.error);
+              logger.error(
+                `[UpdateScheduler] Org ${settings.orgId}: Patch application failed:`,
+                undefined,
+                result.error
+              );
 
               // Broadcast failure notification
               wsServer.broadcastUpdateNotification({
@@ -183,7 +199,11 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
               });
             }
           } catch (applyError) {
-            logger.error(`[UpdateScheduler] Org ${settings.orgId}: Error auto-applying patch:`, undefined, applyError);
+            logger.error(
+              `[UpdateScheduler] Org ${settings.orgId}: Error auto-applying patch:`,
+              undefined,
+              applyError
+            );
 
             // Broadcast failure notification
             wsServer.broadcastUpdateNotification({
@@ -226,7 +246,11 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
           });
         }
       } catch (orgError) {
-        logger.error(`[UpdateScheduler] Error checking updates for org ${settings.orgId}:`, undefined, orgError);
+        logger.error(
+          `[UpdateScheduler] Error checking updates for org ${settings.orgId}:`,
+          undefined,
+          orgError
+        );
       }
     }
 
@@ -242,12 +266,14 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
 export function setupUpdateScheduler(): void {
   // GUARD: Update scheduler only runs in CLOUD mode
   if (!isCloudMode || !canUseCloudFeature("updateScheduler")) {
-    logger.info("[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)");
+    logger.info(
+      "[UpdateScheduler] Disabled - update scheduler is cloud-only (vessel mode uses different update channels)"
+    );
     return;
   }
 
   // Get check interval from environment or use default (6 hours)
-  const checkIntervalHours = Number.parseInt(process.env['UPDATE_CHECK_INTERVAL_HOURS'] || "6", 10);
+  const checkIntervalHours = Number.parseInt(process.env["UPDATE_CHECK_INTERVAL_HOURS"] || "6", 10);
 
   // Schedule update checks
   // Default: every 6 hours at minute 0 (00:00, 06:00, 12:00, 18:00)
@@ -260,7 +286,7 @@ export function setupUpdateScheduler(): void {
   logger.info(`🔄 Update scheduler configured (checking every ${checkIntervalHours} hours)`);
 
   // Run initial check 5 minutes after startup (if enabled)
-  if (process.env['UPDATE_CHECK_ON_STARTUP'] !== "false") {
+  if (process.env["UPDATE_CHECK_ON_STARTUP"] !== "false") {
     setTimeout(
       async () => {
         logger.info("[UpdateScheduler] Running initial update check...");

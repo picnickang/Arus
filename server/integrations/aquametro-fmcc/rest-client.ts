@@ -70,9 +70,7 @@ export class FMCCRestClient {
   }
 
   async getInstantFlow(vesselId: string): Promise<FMCCInstantFlow> {
-    const data = await this.request<FMCCRawInstantFlow>(
-      `/api/v1/vessels/${vesselId}/flow/instant`
-    );
+    const data = await this.request<FMCCRawInstantFlow>(`/api/v1/vessels/${vesselId}/flow/instant`);
     return this.mapInstantFlowResponse(vesselId, data);
   }
 

@@ -82,12 +82,14 @@ export async function updatePRDraft(
 export interface AddItemResult {
   item: Awaited<ReturnType<typeof repo.addPurchaseRequestItem>>;
   /** Populated when quantityOnHand === 0 and substitutions exist */
-  substitutionSuggestions?: Array<{
-    partId: string;
-    partNumber: string;
-    partName: string;
-    quantityOnHand: number;
-  }> | undefined;
+  substitutionSuggestions?:
+    | Array<{
+        partId: string;
+        partNumber: string;
+        partName: string;
+        quantityOnHand: number;
+      }>
+    | undefined;
   outOfStock: boolean;
 }
 

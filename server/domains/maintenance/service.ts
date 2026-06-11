@@ -95,26 +95,26 @@ type LegacyTemplateExtras = {
 };
 
 function pickLegacyScheduleExtras(
-  data: WidenPartial<InsertMaintenanceSchedule>,
+  data: WidenPartial<InsertMaintenanceSchedule>
 ): LegacyScheduleExtras {
   const record = data as Record<string, unknown>;
   return {
     estimatedDurationHours:
-      typeof record['estimatedDurationHours'] === "number"
-        ? record['estimatedDurationHours']
+      typeof record["estimatedDurationHours"] === "number"
+        ? record["estimatedDurationHours"]
         : undefined,
-    notes: typeof record['notes'] === "string" ? record['notes'] : undefined,
+    notes: typeof record["notes"] === "string" ? record["notes"] : undefined,
   };
 }
 
 function pickLegacyTemplateExtras(
-  data: WidenPartial<InsertMaintenanceTemplate>,
+  data: WidenPartial<InsertMaintenanceTemplate>
 ): LegacyTemplateExtras {
   const record = data as Record<string, unknown>;
   return {
     estimatedDurationHours:
-      typeof record['estimatedDurationHours'] === "number"
-        ? record['estimatedDurationHours']
+      typeof record["estimatedDurationHours"] === "number"
+        ? record["estimatedDurationHours"]
         : undefined,
   };
 }
@@ -129,7 +129,7 @@ export class MaintenanceService {
   async listSchedules(
     orgId: string,
     equipmentId?: string,
-    status?: string,
+    status?: string
   ): Promise<MaintenanceSchedule[]> {
     const entities = await maintenanceAppService.listSchedules(orgId, equipmentId, status);
     return entities.map(scheduleEntityToSchema);

@@ -51,7 +51,7 @@ interface CurrentRosterProps {
     crewId: string,
     crewName: string,
     vesselName?: string,
-    contractPenalty?: number,
+    contractPenalty?: number
   ) => void;
   onSwitchToFormer: () => void;
   perms: CrewRowPermissions;
@@ -79,7 +79,7 @@ function CurrentCrewRow({
     crewId: string,
     crewName: string,
     vesselName?: string,
-    contractPenalty?: number,
+    contractPenalty?: number
   ) => void;
   perms: CrewRowPermissions;
 }) {
@@ -99,14 +99,20 @@ function CurrentCrewRow({
         className="min-w-0 flex-1 text-left"
         data-testid={`button-open-crew-${member.id}`}
       >
-        <p className="truncate text-sm font-semibold text-white" data-testid={`text-crew-name-${member.id}`}>
+        <p
+          className="truncate text-sm font-semibold text-white"
+          data-testid={`text-crew-name-${member.id}`}
+        >
           {member.name}
         </p>
         <p className="truncate text-xs text-slate-400">
           {formatRank(member.rank)} • {vesselName}
         </p>
         <div className="mt-1.5 flex flex-wrap gap-1">
-          <StatusPill tone={member.onDuty ? "success" : "neutral"} testId={`pill-duty-${member.id}`}>
+          <StatusPill
+            tone={member.onDuty ? "success" : "neutral"}
+            testId={`pill-duty-${member.id}`}
+          >
             {member.onDuty ? "On Duty" : "Off Duty"}
           </StatusPill>
           {!member.vesselId && (
@@ -193,9 +199,7 @@ function GroupSection({
           <p className="truncate text-sm font-semibold text-white">{title}</p>
           {subtitle && <p className="truncate text-xs text-slate-400">{subtitle}</p>}
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>
-          {count}
-        </span>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>{count}</span>
       </button>
       {!collapsed && <div className="space-y-2 px-3 pb-3">{children}</div>}
     </div>
@@ -236,16 +240,15 @@ export function CurrentRoster({
       return next;
     });
 
-  const groupByLabel =
-    groupMode === "role" ? "role" : groupMode === "vessel" ? "vessel" : "name";
+  const groupByLabel = groupMode === "role" ? "role" : groupMode === "vessel" ? "vessel" : "name";
 
   const roleGroups = useMemo(
     () => (groupMode === "role" ? groupCrewByRoleWith(displayCrew, d.roleLookup) : []),
-    [groupMode, displayCrew, d.roleLookup],
+    [groupMode, displayCrew, d.roleLookup]
   );
   const vesselGroups = useMemo(
     () => (groupMode === "vessel" ? groupCrewByVessel(displayCrew, d.getVesselName) : []),
-    [groupMode, displayCrew, d.getVesselName],
+    [groupMode, displayCrew, d.getVesselName]
   );
 
   const GROUP_CHIPS: { mode: GroupMode; label: string }[] = [
@@ -296,12 +299,7 @@ export function CurrentRoster({
           )}
           <CrewRoleManager canManage={perms.canManageCrew} />
           {canCreate && (
-            <Button
-              size="sm"
-              className="h-8"
-              onClick={onAddCrew}
-              data-testid="button-add-crew"
-            >
+            <Button size="sm" className="h-8" onClick={onAddCrew} data-testid="button-add-crew">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Crew
             </Button>
           )}
@@ -472,7 +470,9 @@ export function CurrentRoster({
                 id={id}
                 title={bucket.vesselName}
                 subtitle={
-                  bucket.isReliefPool ? "Relief / unassigned crew" : `${bucket.members.length} assigned`
+                  bucket.isReliefPool
+                    ? "Relief / unassigned crew"
+                    : `${bucket.members.length} assigned`
                 }
                 count={bucket.members.length}
                 collapsed={collapsed.has(id)}

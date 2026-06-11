@@ -71,8 +71,8 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
 
   const handleEditClick = (record: EmploymentHistoryRecord) => {
     setEditingRecord(record);
-    setEditStartDate(record.startDate ? record.startDate.split("T")[0] ?? "" : "");
-    setEditEndDate(record.endDate ? record.endDate.split("T")[0] ?? "" : "");
+    setEditStartDate(record.startDate ? (record.startDate.split("T")[0] ?? "") : "");
+    setEditEndDate(record.endDate ? (record.endDate.split("T")[0] ?? "") : "");
     setEditNotes(record.terminationNotes || "");
   };
 
@@ -342,13 +342,13 @@ interface ViewingCrewMember {
   id: string;
   name: string;
   rank: string;
-  vesselId?: string | null;
+  vesselId?: string | null | undefined;
   active: boolean;
   onDuty: boolean;
   maxHours7d: number;
   minRestH: number;
   hourlyRate?: number | null;
-  email?: string | null;
+  email?: string | null | undefined;
   phone?: string | null;
   address?: string | null;
   emergencyContactName?: string | null;
@@ -479,7 +479,7 @@ function CurrentAssignmentCard({
 }: {
   crew: ViewingCrewMember;
   vesselName: string;
-  reportsToName?: string | null;
+  reportsToName?: string | null | undefined;
 }) {
   const rotation = formatRotation(crew.rotationOnDays, crew.rotationOffDays);
   const reliefDue = crew.contractEndDate
@@ -495,21 +495,29 @@ function CurrentAssignmentCard({
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Vessel</p>
-            <p className="font-medium" data-testid="text-current-vessel">{vesselName}</p>
+            <p className="font-medium" data-testid="text-current-vessel">
+              {vesselName}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Rotation</p>
-            <p className="font-medium" data-testid="text-current-rotation">{rotation ?? "Not set"}</p>
+            <p className="font-medium" data-testid="text-current-rotation">
+              {rotation ?? "Not set"}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Reports to</p>
-            <p className="font-medium" data-testid="text-current-reports-to">{reportsToName || "Not set"}</p>
+            <p className="font-medium" data-testid="text-current-reports-to">
+              {reportsToName || "Not set"}
+            </p>
           </div>
           <div>
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarClock className="h-3 w-3" /> Relief / contract due
             </p>
-            <p className="font-medium" data-testid="text-current-relief">{reliefDue ?? "Open-ended"}</p>
+            <p className="font-medium" data-testid="text-current-relief">
+              {reliefDue ?? "Open-ended"}
+            </p>
           </div>
         </div>
       </CardContent>
@@ -559,9 +567,14 @@ function CrewProfileTasksTab({ crewId, crewName }: { crewId: string; crewName: s
               </Badge>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span data-testid={`text-crew-task-status-${task.id}`}>{statusLabel(task.status)}</span>
+              <span data-testid={`text-crew-task-status-${task.id}`}>
+                {statusLabel(task.status)}
+              </span>
               {due && (
-                <span className={overdue ? "text-destructive" : ""} data-testid={`text-crew-task-due-${task.id}`}>
+                <span
+                  className={overdue ? "text-destructive" : ""}
+                  data-testid={`text-crew-task-due-${task.id}`}
+                >
                   {due}
                 </span>
               )}
@@ -611,7 +624,9 @@ export function CrewViewDialogContent({
         </div>
         <div className="flex-1 space-y-2">
           <div>
-            <p className="text-lg font-semibold" data-testid="text-profile-name">{crew.name}</p>
+            <p className="text-lg font-semibold" data-testid="text-profile-name">
+              {crew.name}
+            </p>
             <p className="text-sm text-muted-foreground" data-testid="text-profile-subtitle">
               {formatRank(crew.rank)} · {vesselName}
               {crew.crewCode ? ` · ${crew.crewCode}` : ""}
@@ -638,12 +653,24 @@ export function CrewViewDialogContent({
           {canManage && (onEdit || onAssign || onArchive) && (
             <div className="flex flex-wrap gap-2 pt-1">
               {onEdit && (
-                <Button type="button" size="sm" variant="secondary" onClick={onEdit} data-testid="button-profile-edit">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={onEdit}
+                  data-testid="button-profile-edit"
+                >
                   <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
                 </Button>
               )}
               {onAssign && (
-                <Button type="button" size="sm" variant="outline" onClick={onAssign} data-testid="button-profile-assign">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={onAssign}
+                  data-testid="button-profile-assign"
+                >
                   <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Assign
                 </Button>
               )}
@@ -684,202 +711,213 @@ export function CrewViewDialogContent({
         onOpenChange={setPhotoModalOpen}
       />
 
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="w-full flex-wrap h-auto">
-        <TabsTrigger value="details" data-testid="tab-crew-details">
-          <User className="h-4 w-4 mr-2" />
-          Overview
-        </TabsTrigger>
-        <TabsTrigger value="history" data-testid="tab-crew-history">
-          <History className="h-4 w-4 mr-2" />
-          History
-        </TabsTrigger>
-        <TabsTrigger value="documents" data-testid="tab-crew-documents">
-          <FileText className="h-4 w-4 mr-2" />
-          Docs & Certs
-        </TabsTrigger>
-        <TabsTrigger value="notifications" data-testid="tab-crew-notifications">
-          <Bell className="h-4 w-4 mr-2" />
-          Alerts
-        </TabsTrigger>
-        <TabsTrigger value="tasks" data-testid="tab-crew-tasks">
-          <ListChecks className="h-4 w-4 mr-2" />
-          Tasks
-        </TabsTrigger>
-        {isAdmin && (
-          <TabsTrigger value="access" data-testid="tab-crew-access">
-            <KeyRound className="h-4 w-4 mr-2" />
-            Access & Login
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full flex-wrap h-auto">
+          <TabsTrigger value="details" data-testid="tab-crew-details">
+            <User className="h-4 w-4 mr-2" />
+            Overview
           </TabsTrigger>
-        )}
-      </TabsList>
-      <TabsContent value="details" className="mt-4 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Rank</p>
-            <p className="font-medium">{formatRank(crew.rank)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Vessel</p>
-            <p className="font-medium">
-              {vessels.find((v) => v.id === crew.vesselId)?.name || "Unassigned"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Status</p>
-            <Badge variant={crew.active ? "default" : "secondary"}>
-              {crew.active ? crewStatusLabel(crew.status) : "Inactive"}
-            </Badge>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Duty Status</p>
-            <Badge variant={crew.onDuty ? "default" : "outline"}>
-              {crew.onDuty ? "On Duty" : "Off Duty"}
-            </Badge>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Max Hours/Week</p>
-            <p className="font-medium">{crew.maxHours7d} hours</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Min Rest Required</p>
-            <p className="font-medium">{crew.minRestH} hours</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Hourly Salary</p>
-            <p className="font-medium" data-testid="text-crew-hourly-rate">
-              {crew.hourlyRate ? `$${crew.hourlyRate.toFixed(2)}/hr` : "Not set"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Crew Code</p>
-            <p className="font-medium" data-testid="text-crew-code">{crew.crewCode || "Not set"}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Employment Type</p>
-            <p className="font-medium" data-testid="text-employment-type">
-              {employmentTypeLabel(crew.employmentType)}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Reports To</p>
-            <p className="font-medium" data-testid="text-reports-to">{reportsToName || "Not set"}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Rotation</p>
-            <p className="font-medium" data-testid="text-rotation">{rotation ?? "Not set"}</p>
-          </div>
-        </div>
-
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium mb-3">Contact Information</h4>
+          <TabsTrigger value="history" data-testid="tab-crew-history">
+            <History className="h-4 w-4 mr-2" />
+            History
+          </TabsTrigger>
+          <TabsTrigger value="documents" data-testid="tab-crew-documents">
+            <FileText className="h-4 w-4 mr-2" />
+            Docs & Certs
+          </TabsTrigger>
+          <TabsTrigger value="notifications" data-testid="tab-crew-notifications">
+            <Bell className="h-4 w-4 mr-2" />
+            Alerts
+          </TabsTrigger>
+          <TabsTrigger value="tasks" data-testid="tab-crew-tasks">
+            <ListChecks className="h-4 w-4 mr-2" />
+            Tasks
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="access" data-testid="tab-crew-access">
+              <KeyRound className="h-4 w-4 mr-2" />
+              Access & Login
+            </TabsTrigger>
+          )}
+        </TabsList>
+        <TabsContent value="details" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium" data-testid="text-crew-email">
-                {crew.email || "Not set"}
+              <p className="text-sm text-muted-foreground">Rank</p>
+              <p className="font-medium">{formatRank(crew.rank)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Vessel</p>
+              <p className="font-medium">
+                {vessels.find((v) => v.id === crew.vesselId)?.name || "Unassigned"}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium" data-testid="text-crew-phone">
-                {crew.phone || "Not set"}
+              <p className="text-sm text-muted-foreground">Status</p>
+              <Badge variant={crew.active ? "default" : "secondary"}>
+                {crew.active ? crewStatusLabel(crew.status) : "Inactive"}
+              </Badge>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Duty Status</p>
+              <Badge variant={crew.onDuty ? "default" : "outline"}>
+                {crew.onDuty ? "On Duty" : "Off Duty"}
+              </Badge>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Max Hours/Week</p>
+              <p className="font-medium">{crew.maxHours7d} hours</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Min Rest Required</p>
+              <p className="font-medium">{crew.minRestH} hours</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Hourly Salary</p>
+              <p className="font-medium" data-testid="text-crew-hourly-rate">
+                {crew.hourlyRate ? `$${crew.hourlyRate.toFixed(2)}/hr` : "Not set"}
               </p>
             </div>
-            <div className="space-y-1 sm:col-span-2">
-              <p className="text-sm text-muted-foreground">Address</p>
-              <p className="font-medium" data-testid="text-crew-address">
-                {crew.address || "Not set"}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Crew Code</p>
+              <p className="font-medium" data-testid="text-crew-code">
+                {crew.crewCode || "Not set"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Employment Type</p>
+              <p className="font-medium" data-testid="text-employment-type">
+                {employmentTypeLabel(crew.employmentType)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Reports To</p>
+              <p className="font-medium" data-testid="text-reports-to">
+                {reportsToName || "Not set"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Rotation</p>
+              <p className="font-medium" data-testid="text-rotation">
+                {rotation ?? "Not set"}
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium mb-3">Emergency Contact</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium" data-testid="text-emergency-name">
-                {crew.emergencyContactName || "Not set"}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium" data-testid="text-emergency-phone">
-                {crew.emergencyContactPhone || "Not set"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium mb-3">Contract Details</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Contract Start</p>
-              <p className="font-medium" data-testid="text-start-date">
-                {crew.startDate ? format(new Date(crew.startDate), "MMM d, yyyy") : "Not set"}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Contract End</p>
-              <p className="font-medium" data-testid="text-contract-end">
-                {crew.contractEndDate
-                  ? format(new Date(crew.contractEndDate), "MMM d, yyyy")
-                  : "Not set"}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Cancellation Penalty</p>
-              <p className="font-medium" data-testid="text-contract-penalty">
-                {crew.contractPenalty ? `$${crew.contractPenalty.toFixed(2)}` : "Not set"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {crew.skills && crew.skills.length > 0 && (
           <div className="border-t pt-4">
-            <p className="text-sm font-medium mb-2">Skills</p>
-            <div className="flex gap-2 flex-wrap">
-              {crew.skills.map((skill: string) => (
-                <Badge key={skill} variant="secondary">
-                  {skill}
-                </Badge>
-              ))}
+            <h4 className="text-sm font-medium mb-3">Contact Information</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium" data-testid="text-crew-email">
+                  {crew.email || "Not set"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="font-medium" data-testid="text-crew-phone">
+                  {crew.phone || "Not set"}
+                </p>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-sm text-muted-foreground">Address</p>
+                <p className="font-medium" data-testid="text-crew-address">
+                  {crew.address || "Not set"}
+                </p>
+              </div>
             </div>
           </div>
-        )}
-      </TabsContent>
-      <TabsContent value="history" className="mt-4 space-y-4">
-        <CurrentAssignmentCard
-          crew={crew}
-          vesselName={vesselName}
-          reportsToName={reportsToName}
-        />
-        <EmploymentHistoryPanel crewId={crew.id} />
-      </TabsContent>
-      <TabsContent value="documents" className="mt-4">
-        <CrewDocumentsTab crewId={crew.id} crewName={crew.name} rank={crew.rank} />
-      </TabsContent>
-      <TabsContent value="notifications" className="mt-4">
-        <CrewNotificationSettingsTab crewId={crew.id} crewName={crew.name} crewVesselName={vesselName} {...(crew.email != null && { crewEmail: crew.email })} />
-      </TabsContent>
-      <TabsContent value="tasks" className="mt-4">
-        <CrewProfileTasksTab crewId={crew.id} crewName={crew.name} />
-      </TabsContent>
-      {isAdmin && (
-        <TabsContent value="access" className="mt-4">
-          <CrewAccessTab
+
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Emergency Contact</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium" data-testid="text-emergency-name">
+                  {crew.emergencyContactName || "Not set"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="font-medium" data-testid="text-emergency-phone">
+                  {crew.emergencyContactPhone || "Not set"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Contract Details</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Contract Start</p>
+                <p className="font-medium" data-testid="text-start-date">
+                  {crew.startDate ? format(new Date(crew.startDate), "MMM d, yyyy") : "Not set"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Contract End</p>
+                <p className="font-medium" data-testid="text-contract-end">
+                  {crew.contractEndDate
+                    ? format(new Date(crew.contractEndDate), "MMM d, yyyy")
+                    : "Not set"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Cancellation Penalty</p>
+                <p className="font-medium" data-testid="text-contract-penalty">
+                  {crew.contractPenalty ? `$${crew.contractPenalty.toFixed(2)}` : "Not set"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {crew.skills && crew.skills.length > 0 && (
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium mb-2">Skills</p>
+              <div className="flex gap-2 flex-wrap">
+                {crew.skills.map((skill: string) => (
+                  <Badge key={skill} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="history" className="mt-4 space-y-4">
+          <CurrentAssignmentCard
+            crew={crew}
+            vesselName={vesselName}
+            reportsToName={reportsToName}
+          />
+          <EmploymentHistoryPanel crewId={crew.id} />
+        </TabsContent>
+        <TabsContent value="documents" className="mt-4">
+          <CrewDocumentsTab crewId={crew.id} crewName={crew.name} rank={crew.rank} />
+        </TabsContent>
+        <TabsContent value="notifications" className="mt-4">
+          <CrewNotificationSettingsTab
             crewId={crew.id}
             crewName={crew.name}
-            crewEmail={crew.email}
-            crewVesselId={crew.vesselId}
+            crewVesselName={vesselName}
+            {...(crew.email != null && { crewEmail: crew.email })}
           />
         </TabsContent>
-      )}
-    </Tabs>
+        <TabsContent value="tasks" className="mt-4">
+          <CrewProfileTasksTab crewId={crew.id} crewName={crew.name} />
+        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="access" className="mt-4">
+            <CrewAccessTab
+              crewId={crew.id}
+              crewName={crew.name}
+              crewEmail={crew.email}
+              crewVesselId={crew.vesselId}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

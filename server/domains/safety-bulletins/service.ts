@@ -6,6 +6,4 @@
 import { SafetyBulletinApplicationService } from "./application/safety-bulletin-service";
 import { safetyBulletinRepository } from "./infrastructure/safety-bulletin-repository-adapter";
 
-export const safetyBulletinService = new SafetyBulletinApplicationService(
-  safetyBulletinRepository,
-);
+export const safetyBulletinService = new SafetyBulletinApplicationService(safetyBulletinRepository);

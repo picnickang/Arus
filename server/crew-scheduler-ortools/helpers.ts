@@ -82,7 +82,7 @@ export function isWindowAllowed(
 }
 
 export function isNightShift(startTime: string): boolean {
-  const hour = Number.parseInt(startTime.split(":")[0] ?? '0', 10);
+  const hour = Number.parseInt(startTime.split(":")[0] ?? "0", 10);
   return hour >= 20 || hour < 6;
 }
 

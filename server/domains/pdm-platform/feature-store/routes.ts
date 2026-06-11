@@ -30,7 +30,7 @@ router.post("/compute", async (req: Request, res: Response) => {
 router.get("/latest", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const equipmentId = req.query['equipmentId'] as string;
+    const equipmentId = req.query["equipmentId"] as string;
     if (!equipmentId) {
       return res.status(400).json({ error: "equipmentId query param required" });
     }
@@ -45,11 +45,11 @@ router.get("/latest", async (req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const orgId = DEFAULT_ORG_ID;
-    const equipmentId = req.query['equipmentId'] as string;
-    const from = req.query['from']
-      ? new Date(req.query['from'] as string)
+    const equipmentId = req.query["equipmentId"] as string;
+    const from = req.query["from"]
+      ? new Date(req.query["from"] as string)
       : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const to = req.query['to'] ? new Date(req.query['to'] as string) : new Date();
+    const to = req.query["to"] ? new Date(req.query["to"] as string) : new Date();
     if (!equipmentId) {
       return res.status(400).json({ error: "equipmentId query param required" });
     }

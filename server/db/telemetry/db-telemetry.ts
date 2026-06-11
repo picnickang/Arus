@@ -120,8 +120,8 @@ export class DatabaseTelemetryStorage {
           eq(equipmentTelemetry.orgId, reading.orgId),
           eq(equipmentTelemetry.equipmentId, reading.equipmentId),
           eq(equipmentTelemetry.sensorType, reading.sensorType),
-          eq(equipmentTelemetry.ts, ts),
-        ),
+          eq(equipmentTelemetry.ts, ts)
+        )
       )
       .limit(1);
     if (!existing) {
@@ -184,7 +184,7 @@ export class DatabaseTelemetryStorage {
       // SCHEMA GAP: equipmentTelemetry has no vesselId column. Filter is a
       // best-effort lookup against a column that may or may not exist at
       // runtime; bypass the column-type system so callers don't crash.
-      const vesselCol = tableColumns(equipmentTelemetry)['vesselId'];
+      const vesselCol = tableColumns(equipmentTelemetry)["vesselId"];
       if (vesselCol) {
         conditions.push(eq(vesselCol, vesselId as never));
       }
@@ -288,7 +288,9 @@ export class DatabaseTelemetryStorage {
       .insert(pdmScoreLogs)
       .values({ id: randomUUID(), ts: new Date(), ...score })
       .returning();
-    if (!n) {throw new Error("createPdmScore: insert returned no row");}
+    if (!n) {
+      throw new Error("createPdmScore: insert returned no row");
+    }
     return n;
   }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> {
@@ -319,20 +321,24 @@ export class DatabaseTelemetryStorage {
     const e = await this.getHeartbeat(hb.deviceId);
     if (e) {
       const eRow = e as EdgeHeartbeat & { id?: string };
-      const idCol = tableColumns(edgeHeartbeats)['id'];
+      const idCol = tableColumns(edgeHeartbeats)["id"];
       const [u] = await db
         .update(edgeHeartbeats)
         .set({ ...heartbeat, ts: new Date() } as never)
         .where(eq(idCol as never, eRow.id as never))
         .returning();
-      if (!u) {throw new Error("upsertHeartbeat: update returned no row");}
+      if (!u) {
+        throw new Error("upsertHeartbeat: update returned no row");
+      }
       return u;
     }
     const [n] = await db
       .insert(edgeHeartbeats)
       .values({ id: randomUUID(), ...heartbeat, ts: new Date() } as never)
       .returning();
-    if (!n) {throw new Error("upsertHeartbeat: insert returned no row");}
+    if (!n) {
+      throw new Error("upsertHeartbeat: insert returned no row");
+    }
     return n;
   }
 }

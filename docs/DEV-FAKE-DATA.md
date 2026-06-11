@@ -40,15 +40,15 @@ npx tsx scripts/seed-fake-logs.ts --help
 
 ### CLI Options
 
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--engine` | `-e` | Seed engine room log test data | false |
-| `--deck` | `-d` | Seed deck log test data | false |
-| `--hours` | `-h` | Number of hours back to generate | 24 |
-| `--vessel` | `-v` | Specific vessel ID (uses first vessel if not specified) | - |
-| `--org` | `-o` | Organization ID | default-org-id |
-| `--interval` | `-i` | Data interval in minutes | 30 |
-| `--vessel-type` | `-t` | Vessel type profile (tug, psv, tanker, cargo, ferry) | tug |
+| Option          | Alias | Description                                             | Default        |
+| --------------- | ----- | ------------------------------------------------------- | -------------- |
+| `--engine`      | `-e`  | Seed engine room log test data                          | false          |
+| `--deck`        | `-d`  | Seed deck log test data                                 | false          |
+| `--hours`       | `-h`  | Number of hours back to generate                        | 24             |
+| `--vessel`      | `-v`  | Specific vessel ID (uses first vessel if not specified) | -              |
+| `--org`         | `-o`  | Organization ID                                         | default-org-id |
+| `--interval`    | `-i`  | Data interval in minutes                                | 30             |
+| `--vessel-type` | `-t`  | Vessel type profile (tug, psv, tanker, cargo, ferry)    | tug            |
 
 ### Using the API Endpoint
 
@@ -118,13 +118,13 @@ The generated data includes:
 
 Different vessel types generate different characteristic data:
 
-| Type | Navigation Pattern | Typical Speed |
-|------|-------------------|---------------|
-| tug | Harbor area, short distances | 8-12 knots |
-| psv | Offshore transit | 10-15 knots |
-| tanker | Long transit | 8-12 knots |
-| cargo | Medium transit | 10-14 knots |
-| ferry | Regular routes | 12-18 knots |
+| Type   | Navigation Pattern           | Typical Speed |
+| ------ | ---------------------------- | ------------- |
+| tug    | Harbor area, short distances | 8-12 knots    |
+| psv    | Offshore transit             | 10-15 knots   |
+| tanker | Long transit                 | 8-12 knots    |
+| cargo  | Medium transit               | 10-14 knots   |
+| ferry  | Regular routes               | 12-18 knots   |
 
 ## Verification Steps
 
@@ -190,6 +190,7 @@ Fake Data Service
 ### "ENABLE_FAKE_TELEMETRY=1 environment variable required"
 
 Set the environment variable before running:
+
 ```bash
 ENABLE_FAKE_TELEMETRY=1 npx tsx scripts/seed-fake-logs.ts --engine
 ```

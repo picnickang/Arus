@@ -1,16 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-} from "lucide-react";
-import {
-  useTwinTimeline,
-} from "@/features/digital-twin/hooks/useTwinApi";
-
-
-
-
+import { Loader2 } from "lucide-react";
+import { useTwinTimeline } from "@/features/digital-twin/hooks/useTwinApi";
 
 export function ReplayTab() {
   const [twinId, setTwinId] = useState("");
@@ -54,22 +46,26 @@ export function ReplayTab() {
         </div>
       )}
 
-      {timeline?.length > 0 ? (
+      {(timeline?.length ?? 0) > 0 ? (
         <Card data-testid="card-timeline">
           <CardHeader>
-            <CardTitle className="text-base">Event Timeline ({timeline.length} events)</CardTitle>
+            <CardTitle className="text-base">
+              Event Timeline ({timeline?.length ?? 0} events)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {(timeline as Array<{
-                id?: string;
-                eventType?: string;
-                type?: string;
-                timestamp: string | number | Date;
-                source?: string;
-                description?: string;
-                payload?: unknown;
-              }>).map((evt, i) => (
+              {(
+                timeline as Array<{
+                  id?: string;
+                  eventType?: string;
+                  type?: string;
+                  timestamp: string | number | Date;
+                  source?: string;
+                  description?: string;
+                  payload?: unknown;
+                }>
+              ).map((evt, i) => (
                 <div
                   key={evt.id || i}
                   className="flex items-start gap-3 border-l-2 pl-4 pb-3"
@@ -116,4 +112,3 @@ export function ReplayTab() {
     </div>
   );
 }
-

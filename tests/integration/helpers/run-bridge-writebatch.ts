@@ -38,16 +38,14 @@ async function main(): Promise<void> {
   }
   const payload = JSON.parse(raw) as Payload;
 
-  const { telemetryBatchWriter } = await import(
-    "../../../server/telemetry-batch-writer"
-  );
+  const { telemetryBatchWriter } = await import("../../../server/telemetry-batch-writer");
 
   let blocked: { total: number; perOrg: Record<string, number> } | null = null;
   telemetryBatchWriter.on(
     "quotaBlocked",
     (p: { total: number; perOrg: Record<string, number> }) => {
       blocked = p;
-    },
+    }
   );
 
   await telemetryBatchWriter.writeBatch(
@@ -60,7 +58,7 @@ async function main(): Promise<void> {
         orgId: payload.orgId,
       },
     ],
-    { source: "sqlite-bridge" },
+    { source: "sqlite-bridge" }
   );
 
   emit({ blocked });

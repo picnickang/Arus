@@ -59,7 +59,7 @@ function useAuthedPreview(path?: string | null): string | null {
 interface CrewPhotoModalProps {
   crewId: string;
   crewName: string;
-  photoPath?: string | null;
+  photoPath?: string | null | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -227,8 +227,15 @@ export function CrewPhotoModal({
         body: formData,
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `Upload failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as {
+          error?: unknown;
+          message?: string;
+        } | null;
+        throw new Error(
+          payload?.message ||
+            (typeof payload?.error === "string" ? payload.error : undefined) ||
+            `Upload failed (${res.status}).`
+        );
       }
       afterMutation();
       toast({ title: "Profile photo updated", description: crewName });
@@ -250,8 +257,15 @@ export function CrewPhotoModal({
         credentials: "include",
       });
       if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `Remove failed (${res.status}).`);
+        const payload = (await res.json().catch(() => null)) as {
+          error?: unknown;
+          message?: string;
+        } | null;
+        throw new Error(
+          payload?.message ||
+            (typeof payload?.error === "string" ? payload.error : undefined) ||
+            `Remove failed (${res.status}).`
+        );
       }
       afterMutation();
       toast({ title: "Profile photo removed", description: crewName });
@@ -398,7 +412,11 @@ export function CrewPhotoModal({
               disabled={busy}
               data-testid="button-remove-photo"
             >
-              {previewSrc ? <Trash2 className="mr-2 h-4 w-4" /> : <ImageOff className="mr-2 h-4 w-4" />}
+              {previewSrc ? (
+                <Trash2 className="mr-2 h-4 w-4" />
+              ) : (
+                <ImageOff className="mr-2 h-4 w-4" />
+              )}
               Remove current photo
             </Button>
           )}

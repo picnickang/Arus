@@ -12,6 +12,7 @@ end-to-end against the in-process fan-out bus and the in-memory replay
 buffer.
 
 Turn this on when:
+
 - More than one Node instance serves `/ws` behind a load balancer, OR
 - You want autoscale-out for WebSocket-heavy tenants, OR
 - You want clients that briefly disconnect (mobile sleep, transient
@@ -84,7 +85,7 @@ In `.replit` or the deployment UI:
 - Max instances: tune to expected concurrent WS connections / 4,000.
 - Scaling signal: CPU (built-in). The WS-connection metric is exposed
   for observability but the platform's autoscaler only currently
-  consumes CPU — use the connection gauge to *validate* scale events
+  consumes CPU — use the connection gauge to _validate_ scale events
   after the fact and to tune the max-instances ceiling.
 
 ### Kubernetes HPA (reference)
@@ -131,6 +132,7 @@ BASE_URL=https://<deployment>.replit.app k6 run tests/load/spike.js
 ```
 
 Pass criteria (per the test's `thresholds` block):
+
 - `http_req_failed` rate < 5%.
 - p95 `http_req_duration` < 1500ms.
 

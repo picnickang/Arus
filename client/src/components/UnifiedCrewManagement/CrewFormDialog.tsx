@@ -16,12 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
+import { DiscardConfirmDialog, useDiscardGuard } from "@/hooks/useDiscardGuard";
 import {
   AlertTriangle,
   ChevronDown,
@@ -61,7 +58,11 @@ const CREW_DEPARTMENTS = [
 ] as const;
 
 const STEPS: { key: StepKey; label: string; fields: (keyof CrewFormData)[] }[] = [
-  { key: "identify", label: "Identify", fields: ["name", "rank", "crewCode", "status", "employmentType"] },
+  {
+    key: "identify",
+    label: "Identify",
+    fields: ["name", "rank", "crewCode", "status", "employmentType"],
+  },
   {
     key: "profile",
     label: "Profile",
@@ -214,7 +215,7 @@ function AssignmentInsights({ d }: { d: UnifiedCrewData }) {
         c.id !== selfId &&
         c.vesselId === vesselId &&
         c.active &&
-        (c.rank || "").toLowerCase() === rank.toLowerCase(),
+        (c.rank || "").toLowerCase() === rank.toLowerCase()
     );
     if (dup) {
       conflicts.push(`${dup.name} is already an active ${formatRank(rank)} on this vessel.`);
@@ -245,10 +246,10 @@ function AssignmentInsights({ d }: { d: UnifiedCrewData }) {
   const hasOn = onDays != null;
   const hasOff = offDays != null;
   if (hasOn && hasOff) {
-    if ((onDays) + (offDays) > 365) {
+    if (onDays + offDays > 365) {
       conflicts.push("Rotation on + off days exceed a full year.");
     }
-    if ((onDays) > 0 && offDays === 0) {
+    if (onDays > 0 && offDays === 0) {
       conflicts.push("Days-on is set but days-off is zero — check the rotation.");
     }
   } else if (hasOn !== hasOff) {
@@ -258,7 +259,10 @@ function AssignmentInsights({ d }: { d: UnifiedCrewData }) {
   const access = accessChipsForRank(rank);
 
   return (
-    <div className="space-y-3 rounded-md border bg-muted/30 p-3" data-testid="panel-assignment-insights">
+    <div
+      className="space-y-3 rounded-md border bg-muted/30 p-3"
+      data-testid="panel-assignment-insights"
+    >
       {conflicts.length > 0 ? (
         <div className="space-y-1.5" data-testid="list-assignment-conflicts">
           {conflicts.map((c, i) => (
@@ -334,8 +338,19 @@ export function CrewFormDialog({
   const isLast = step === STEPS.length - 1;
   const isFirst = step === 0;
 
+  // Dirty closes (overlay click, Esc, Cancel) get a discard confirm first.
+  const guard = useDiscardGuard({
+    isDirty: d.crewForm.formState.isDirty,
+    onOpenChange: (o) => {
+      if (!o) {
+        setContactSectionOpen(false);
+        d.closeCrewDialog();
+      }
+    },
+  });
+
   const handleNext = async () => {
-    const valid = await d.crewForm.trigger(STEPS[step].fields);
+    const valid = await d.crewForm.trigger(STEPS[step]?.fields);
     if (valid) {
       setStep((s) => Math.min(s + 1, STEPS.length - 1));
     }
@@ -369,510 +384,475 @@ export function CrewFormDialog({
   };
 
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) {
-          setContactSectionOpen(false);
-          d.closeCrewDialog();
+    <>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={guard.handleOpenChange}
+        title={d.editingCrew ? "Edit Crew Member" : "Add New Crew Member"}
+        description={
+          d.editingCrew
+            ? "Update crew member information"
+            : "Register a new crew member with maritime qualifications"
         }
-      }}
-      title={d.editingCrew ? "Edit Crew Member" : "Add New Crew Member"}
-      description={
-        d.editingCrew
-          ? "Update crew member information"
-          : "Register a new crew member with maritime qualifications"
-      }
-      footer={
-        <div className="flex w-full gap-2">
-          {isFirst ? (
-            <Button type="button" variant="outline" onClick={d.closeCrewDialog} className="flex-1">
-              Cancel
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setStep((s) => Math.max(s - 1, 0))}
-              className="flex-1"
-              data-testid="button-crew-back"
-            >
-              Back
-            </Button>
-          )}
-          {isLast ? (
-            <Button
-              type="submit"
-              onClick={d.crewForm.handleSubmit(d.onSubmitCrew)}
-              disabled={d.createCrewMutation.isPending || d.updateCrewMutation.isPending}
-              className="flex-1"
-              data-testid="button-save-crew"
-            >
-              {d.editingCrew ? "Update" : "Add"} Crew Member
-            </Button>
-          ) : (
-            <Button type="button" onClick={handleNext} className="flex-1" data-testid="button-crew-next">
-              Next
-            </Button>
-          )}
-        </div>
-      }
-    >
-      {/* Stepper indicator */}
-      <div className="mb-4 flex items-center gap-2" data-testid="crew-form-stepper">
-        {STEPS.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
-            <div
-              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                i === step
-                  ? "bg-primary text-primary-foreground"
-                  : i < step
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : "bg-white/[0.06] text-muted-foreground"
-              }`}
-            >
-              {i + 1}
-            </div>
-            <span className={`text-xs ${i === step ? "font-medium" : "text-muted-foreground"}`}>
-              {s.label}
-            </span>
-            {i < STEPS.length - 1 && <span className="text-muted-foreground">·</span>}
+        footer={
+          <div className="flex w-full gap-2">
+            {isFirst ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => guard.handleOpenChange(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep((s) => Math.max(s - 1, 0))}
+                className="flex-1"
+                data-testid="button-crew-back"
+              >
+                Back
+              </Button>
+            )}
+            {isLast ? (
+              <Button
+                type="submit"
+                onClick={d.crewForm.handleSubmit(d.onSubmitCrew)}
+                disabled={d.createCrewMutation.isPending || d.updateCrewMutation.isPending}
+                className="flex-1"
+                data-testid="button-save-crew"
+              >
+                {d.editingCrew ? "Update" : "Add"} Crew Member
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleNext}
+                className="flex-1"
+                data-testid="button-crew-next"
+              >
+                Next
+              </Button>
+            )}
           </div>
-        ))}
-      </div>
-
-      <Form {...d.crewForm}>
-        <form className="space-y-5">
-          {/* STEP 1 — IDENTIFY */}
-          {step === 0 && (
-            <div className="space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-semibold">
-                <User className="h-4 w-4" />
-                Identity
-              </h4>
-              {!d.editingCrew && <CrewIntakePhotoPicker d={d} />}
-              <FormField
-                control={d.crewForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Full name"
-                        onChange={(e) => field.onChange(capitalizeNames(e.target.value))}
-                        data-testid="input-crew-name"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={d.crewForm.control}
-                  name="rank"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          applyRoleDefaults(value);
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-crew-rank">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {d.rankOptions.map((rank) => (
-                            <SelectItem key={rank} value={rank}>
-                              {rank}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="crewCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <IdCard className="h-3.5 w-3.5" /> Crew Code
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value ?? ""}
-                          placeholder="CRW-0001"
-                          data-testid="input-crew-code"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        }
+      >
+        {/* Stepper indicator */}
+        <div className="mb-4 flex items-center gap-2" data-testid="crew-form-stepper">
+          {STEPS.map((s, i) => (
+            <div key={s.key} className="flex items-center gap-2">
+              <div
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                  i === step
+                    ? "bg-primary text-primary-foreground"
+                    : i < step
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : "bg-white/[0.06] text-muted-foreground"
+                }`}
+              >
+                {i + 1}
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={d.crewForm.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select
-                        value={field.value || CREW_DEPT_NONE}
-                        onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-crew-department">
-                            <SelectValue placeholder="None" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={CREW_DEPT_NONE}>None</SelectItem>
-                          {CREW_DEPARTMENTS.map((dep) => (
-                            <SelectItem key={dep.value} value={dep.value}>
-                              {dep.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="watchKeeping"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Watch / Shift Pattern</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value ?? ""}
-                          placeholder="e.g. 0000–0400 / 1200–1600"
-                          data-testid="input-crew-watchkeeping"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={d.crewForm.control}
-                name="roleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <ShieldCheck className="h-3.5 w-3.5" /> App Access (suggested)
-                    </FormLabel>
-                    <Select
-                      value={field.value || CREW_DEPT_NONE}
-                      onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-crew-access">
-                          <SelectValue placeholder="No app access" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={CREW_DEPT_NONE}>No app access</SelectItem>
-                        {d.permissionRoles.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.displayName || r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Suggested from the role — change or clear it as needed.
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={d.crewForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select value={field.value || "active"} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-crew-status">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {CREW_STATUSES.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="employmentType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Employment Type</FormLabel>
-                      <Select
-                        value={field.value || "_unset"}
-                        onValueChange={(v) => field.onChange(v === "_unset" ? "" : v)}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-employment-type">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="_unset">Not set</SelectItem>
-                          {EMPLOYMENT_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <span className={`text-xs ${i === step ? "font-medium" : "text-muted-foreground"}`}>
+                {s.label}
+              </span>
+              {i < STEPS.length - 1 && <span className="text-muted-foreground">·</span>}
             </div>
-          )}
+          ))}
+        </div>
 
-          {/* STEP 2 — PROFILE & ASSIGNMENT */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-semibold">
-                <Ship className="h-4 w-4" />
-                Assignment
-              </h4>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Form {...d.crewForm}>
+          <form className="space-y-5">
+            {/* STEP 1 — IDENTIFY */}
+            {step === 0 && (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-2 text-sm font-semibold">
+                  <User className="h-4 w-4" />
+                  Identity
+                </h4>
+                {!d.editingCrew && <CrewIntakePhotoPicker d={d} />}
                 <FormField
                   control={d.crewForm.control}
-                  name="vesselId"
-                  render={({ field }) => {
-                    const activeVessels = d.vessels.filter((v) => v.active);
-                    return (
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Full name"
+                          onChange={(e) => field.onChange(capitalizeNames(e.target.value))}
+                          data-testid="input-crew-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="rank"
+                    render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Vessel (Optional)</FormLabel>
+                        <FormLabel>Role</FormLabel>
                         <Select
-                          value={field.value || "_unassigned"}
-                          onValueChange={(v) => field.onChange(v === "_unassigned" ? "" : v)}
-                          disabled={d.vesselsLoading}
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            applyRoleDefaults(value);
+                          }}
                         >
                           <FormControl>
-                            <SelectTrigger data-testid="select-crew-vessel">
-                              <SelectValue
-                                placeholder={d.vesselsLoading ? "Loading vessels..." : "Select vessel"}
-                              />
+                            <SelectTrigger data-testid="select-crew-rank">
+                              <SelectValue />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="_unassigned">Unassigned</SelectItem>
-                            {activeVessels.map((v: VesselListItem) => (
-                              <SelectItem key={v.id} value={v.id}>
-                                {v.name}
+                            {d.rankOptions.map((rank) => (
+                              <SelectItem key={rank} value={rank}>
+                                {rank}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
-                    );
-                  }}
-                />
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="crewCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          <IdCard className="h-3.5 w-3.5" /> Crew Code
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            value={field.value ?? ""}
+                            placeholder="CRW-0001"
+                            data-testid="input-crew-code"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <Select
+                          value={field.value || CREW_DEPT_NONE}
+                          onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="select-crew-department">
+                              <SelectValue placeholder="None" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={CREW_DEPT_NONE}>None</SelectItem>
+                            {CREW_DEPARTMENTS.map((dep) => (
+                              <SelectItem key={dep.value} value={dep.value}>
+                                {dep.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="watchKeeping"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Watch / Shift Pattern</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            value={field.value ?? ""}
+                            placeholder="e.g. 0000–0400 / 1200–1600"
+                            data-testid="input-crew-watchkeeping"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={d.crewForm.control}
-                  name="reportsToId"
+                  name="roleId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Reports To (Optional)</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <ShieldCheck className="h-3.5 w-3.5" /> App Access (suggested)
+                      </FormLabel>
                       <Select
-                        value={field.value || "_none"}
-                        onValueChange={(v) => field.onChange(v === "_none" ? "" : v)}
+                        value={field.value || CREW_DEPT_NONE}
+                        onValueChange={(v) => field.onChange(v === CREW_DEPT_NONE ? "" : v)}
                       >
                         <FormControl>
-                          <SelectTrigger data-testid="select-reports-to">
-                            <SelectValue placeholder="Select supervisor" />
+                          <SelectTrigger data-testid="select-crew-access">
+                            <SelectValue placeholder="No app access" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="_none">None</SelectItem>
-                          {reportsToOptions.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name} · {formatRank(c.rank)}
+                          <SelectItem value={CREW_DEPT_NONE}>No app access</SelectItem>
+                          {d.permissionRoles.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.displayName || r.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Suggested from the role — change or clear it as needed.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={d.crewForm.control}
-                  name="rotationOnDays"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rotation — Days On</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min="0"
-                          placeholder="e.g. 28"
-                          data-testid="input-rotation-on"
-                          value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(e.target.value ? Number.parseInt(e.target.value) : undefined)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="rotationOffDays"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rotation — Days Off</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min="0"
-                          placeholder="e.g. 28"
-                          data-testid="input-rotation-off"
-                          value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(e.target.value ? Number.parseInt(e.target.value) : undefined)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <AssignmentInsights d={d} />
-
-              <div className="border-t pt-4">
-                <Collapsible open={contactSectionOpen} onOpenChange={setContactSectionOpen}>
-                  <CollapsibleTrigger
-                    className="flex w-full items-center justify-between"
-                    data-testid="toggle-contact-section"
-                  >
-                    <h4 className="flex items-center gap-2 text-sm font-semibold">
-                      <Phone className="h-4 w-4" />
-                      Contact & Emergency
-                    </h4>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span>{contactSectionOpen ? "Hide" : "Show"}</span>
-                      {contactSectionOpen ? (
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      )}
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 space-y-4">
-                    <FormField
-                      control={d.crewForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email (for alert notifications)</FormLabel>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select value={field.value || "active"} onValueChange={field.onChange}>
                           <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="email@example.com"
-                              data-testid="input-crew-email"
-                            />
+                            <SelectTrigger data-testid="select-crew-status">
+                              <SelectValue />
+                            </SelectTrigger>
                           </FormControl>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Used for certification and document expiry alerts
-                          </p>
+                          <SelectContent>
+                            {CREW_STATUSES.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                {s.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="employmentType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employment Type</FormLabel>
+                        <Select
+                          value={field.value || "_unset"}
+                          onValueChange={(v) => field.onChange(v === "_unset" ? "" : v)}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="select-employment-type">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="_unset">Not set</SelectItem>
+                            {EMPLOYMENT_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2 — PROFILE & ASSIGNMENT */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-2 text-sm font-semibold">
+                  <Ship className="h-4 w-4" />
+                  Assignment
+                </h4>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="vesselId"
+                    render={({ field }) => {
+                      const activeVessels = d.vessels.filter((v) => v.active);
+                      return (
+                        <FormItem>
+                          <FormLabel>Vessel (Optional)</FormLabel>
+                          <Select
+                            value={field.value || "_unassigned"}
+                            onValueChange={(v) => field.onChange(v === "_unassigned" ? "" : v)}
+                            disabled={d.vesselsLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-crew-vessel">
+                                <SelectValue
+                                  placeholder={
+                                    d.vesselsLoading ? "Loading vessels..." : "Select vessel"
+                                  }
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="_unassigned">Unassigned</SelectItem>
+                              {activeVessels.map((v: VesselListItem) => (
+                                <SelectItem key={v.id} value={v.id}>
+                                  {v.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      );
+                    }}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="reportsToId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reports To (Optional)</FormLabel>
+                        <Select
+                          value={field.value || "_none"}
+                          onValueChange={(v) => field.onChange(v === "_none" ? "" : v)}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="select-reports-to">
+                              <SelectValue placeholder="Select supervisor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="_none">None</SelectItem>
+                            {reportsToOptions.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name} · {formatRank(c.rank)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="rotationOnDays"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rotation — Days On</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 28"
+                            data-testid="input-rotation-on"
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value ? Number.parseInt(e.target.value) : undefined
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="rotationOffDays"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rotation — Days Off</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 28"
+                            data-testid="input-rotation-off"
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value ? Number.parseInt(e.target.value) : undefined
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <AssignmentInsights d={d} />
+
+                <div className="border-t pt-4">
+                  <Collapsible open={contactSectionOpen} onOpenChange={setContactSectionOpen}>
+                    <CollapsibleTrigger
+                      className="flex w-full items-center justify-between"
+                      data-testid="toggle-contact-section"
+                    >
+                      <h4 className="flex items-center gap-2 text-sm font-semibold">
+                        <Phone className="h-4 w-4" />
+                        Contact & Emergency
+                      </h4>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span>{contactSectionOpen ? "Hide" : "Show"}</span>
+                        {contactSectionOpen ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-4">
                       <FormField
                         control={d.crewForm.control}
-                        name="phone"
+                        name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Phone</FormLabel>
+                            <FormLabel>Email (for alert notifications)</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="+65 9123 4567" data-testid="input-crew-phone" />
+                              <Input
+                                {...field}
+                                type="email"
+                                placeholder="email@example.com"
+                                data-testid="input-crew-email"
+                              />
                             </FormControl>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Used for certification and document expiry alerts
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={d.crewForm.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Home address" data-testid="input-crew-address" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="mt-2 border-t pt-3">
-                      <h5 className="mb-3 text-xs font-medium text-muted-foreground">Emergency Contact</h5>
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <FormField
                           control={d.crewForm.control}
-                          name="emergencyContactName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Name</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="Emergency contact name"
-                                  data-testid="input-emergency-name"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={d.crewForm.control}
-                          name="emergencyContactPhone"
+                          name="phone"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Phone</FormLabel>
@@ -880,7 +860,24 @@ export function CrewFormDialog({
                                 <Input
                                   {...field}
                                   placeholder="+65 9123 4567"
-                                  data-testid="input-emergency-phone"
+                                  data-testid="input-crew-phone"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={d.crewForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Home address"
+                                  data-testid="input-crew-address"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -888,104 +885,173 @@ export function CrewFormDialog({
                           )}
                         />
                       </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
+                      <div className="mt-2 border-t pt-3">
+                        <h5 className="mb-3 text-xs font-medium text-muted-foreground">
+                          Emergency Contact
+                        </h5>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={d.crewForm.control}
+                            name="emergencyContactName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Emergency contact name"
+                                    data-testid="input-emergency-name"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={d.crewForm.control}
+                            name="emergencyContactPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="+65 9123 4567"
+                                    data-testid="input-emergency-phone"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={d.crewForm.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Start Date</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" data-testid="input-start-date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="contractEndDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract End Date</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" data-testid="input-contract-end-date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contract Start Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" data-testid="input-start-date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="contractEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contract End Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" data-testid="input-contract-end-date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* STEP 3 — PAY & HOURS */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-semibold">
-                <DollarSign className="h-4 w-4" />
-                Pay & Hours
-              </h4>
-              <FormField
-                control={d.crewForm.control}
-                name="hourlyRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hourly Salary (SGD)</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="e.g. 45.00"
-                        data-testid="input-hourly-rate"
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(e.target.value ? Number.parseFloat(e.target.value) : undefined)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* STEP 3 — PAY & HOURS */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-2 text-sm font-semibold">
+                  <DollarSign className="h-4 w-4" />
+                  Pay & Hours
+                </h4>
                 <FormField
                   control={d.crewForm.control}
-                  name="maxHours7d"
+                  name="hourlyRate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Max Hours/Week</FormLabel>
+                      <FormLabel>Hourly Salary (SGD)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="number"
-                          data-testid="input-max-hours"
-                          onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 72)}
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 45.00"
+                          data-testid="input-hourly-rate"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? Number.parseFloat(e.target.value) : undefined
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="maxHours7d"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Hours/Week</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            data-testid="input-max-hours"
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 72)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="minRestH"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Min Rest Hours</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            data-testid="input-min-rest"
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 10)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={d.crewForm.control}
-                  name="minRestH"
+                  name="contractPenalty"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Min Rest Hours</FormLabel>
+                      <FormLabel>Contract Cancellation Penalty (SGD)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="number"
-                          data-testid="input-min-rest"
-                          onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 10)}
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 5000.00"
+                          data-testid="input-contract-penalty"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? Number.parseFloat(e.target.value) : undefined
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -993,34 +1059,15 @@ export function CrewFormDialog({
                   )}
                 />
               </div>
-              <FormField
-                control={d.crewForm.control}
-                name="contractPenalty"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contract Cancellation Penalty (SGD)</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="e.g. 5000.00"
-                        data-testid="input-contract-penalty"
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(e.target.value ? Number.parseFloat(e.target.value) : undefined)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          )}
-        </form>
-      </Form>
-    </ResponsiveDialog>
+            )}
+          </form>
+        </Form>
+      </ResponsiveDialog>
+      <DiscardConfirmDialog
+        open={guard.confirmOpen}
+        onConfirm={guard.onConfirm}
+        onCancel={guard.onCancel}
+      />
+    </>
   );
 }

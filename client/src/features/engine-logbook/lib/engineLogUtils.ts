@@ -21,6 +21,12 @@ export interface EngineEventUIConfig {
   color: string;
 }
 
+const CUSTOM_ENGINE_EVENT_CONFIG: EngineEventUIConfig = {
+  label: "Custom",
+  icon: Settings,
+  color: "bg-slate-500",
+};
+
 export const ENGINE_EVENT_TYPES_UI: Record<string, EngineEventUIConfig> = {
   ME_START: { label: "ME Start", icon: Power, color: "bg-green-500" },
   ME_STOP: { label: "ME Stop", icon: Power, color: "bg-red-500" },
@@ -42,7 +48,7 @@ export const ENGINE_EVENT_TYPES_UI: Record<string, EngineEventUIConfig> = {
   PRESSURE_ALERT: { label: "Press Alert", icon: Gauge, color: "bg-orange-600" },
   MANUAL_ENTRY: { label: "Manual Entry", icon: FileText, color: "bg-gray-500" },
   REMARK: { label: "Remark", icon: FileText, color: "bg-gray-400" },
-  CUSTOM: { label: "Custom", icon: Settings, color: "bg-slate-500" },
+  CUSTOM: CUSTOM_ENGINE_EVENT_CONFIG,
 };
 
 export const MANUAL_ENGINE_EVENT_TYPES = [
@@ -103,7 +109,7 @@ export const manualEngineEventFormSchema = z.object({
 export type ManualEngineEventFormValues = z.infer<typeof manualEngineEventFormSchema>;
 
 export function getEngineEventTypeConfig(eventType: string): EngineEventUIConfig {
-  return ENGINE_EVENT_TYPES_UI[eventType] ?? ENGINE_EVENT_TYPES_UI['CUSTOM'];
+  return ENGINE_EVENT_TYPES_UI[eventType] ?? CUSTOM_ENGINE_EVENT_CONFIG;
 }
 
 export function createDefaultManualEventFormValues(): Partial<ManualEngineEventFormValues> {

@@ -84,7 +84,7 @@ export function registerSafetyAlarmRoutes(
   rateLimit: {
     generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
     writeOperationRateLimit?: import("../../../lib/rate-limit-factory").RateLimit;
-  },
+  }
 ) {
   const { generalApiRateLimit, writeOperationRateLimit } = rateLimit;
   const writeLimit = writeOperationRateLimit || generalApiRateLimit;
@@ -106,7 +106,7 @@ export function registerSafetyAlarmRoutes(
         .parse(req.query);
       const types = await safetyAlarmService.listTypes(orgId, includeInactive);
       return res.json(types);
-    }),
+    })
   );
 
   app.post(
@@ -135,10 +135,12 @@ export function registerSafetyAlarmRoutes(
         });
         return res.status(201).json(created);
       } catch (error) {
-        if (handleAlarmError(error, res)) {return undefined;}
+        if (handleAlarmError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.patch(
@@ -150,7 +152,11 @@ export function registerSafetyAlarmRoutes(
       const authReq = authenticatedRequest(req);
       const data = updateTypeSchema.parse(req.body);
       try {
-        const updated = await safetyAlarmService.updateType(authReq.orgId, req.params['id'], data);
+        const updated = await safetyAlarmService.updateType(
+          authReq.orgId,
+          req.params["id"] ?? "",
+          data
+        );
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "configuration_change",
@@ -163,10 +169,12 @@ export function registerSafetyAlarmRoutes(
         });
         return res.json(updated);
       } catch (error) {
-        if (handleAlarmError(error, res)) {return undefined;}
+        if (handleAlarmError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.delete(
@@ -177,22 +185,24 @@ export function registerSafetyAlarmRoutes(
     withErrorHandling("delete safety alarm type", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
       try {
-        await safetyAlarmService.deleteType(authReq.orgId, req.params['id']);
+        await safetyAlarmService.deleteType(authReq.orgId, req.params["id"] ?? "");
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "configuration_change",
           eventType: "delete",
           entityType: "safety_alarm_type",
-          entityId: req.params['id'],
+          entityId: req.params["id"] ?? "",
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
         });
         return res.status(204).send();
       } catch (error) {
-        if (handleAlarmError(error, res)) {return undefined;}
+        if (handleAlarmError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.get(
@@ -216,7 +226,7 @@ export function registerSafetyAlarmRoutes(
         ...(vesselId !== undefined && { vesselId }),
       });
       return res.json(alarms);
-    }),
+    })
   );
 
   app.post(
@@ -235,7 +245,7 @@ export function registerSafetyAlarmRoutes(
             triggeredBy: authReq.user?.id,
             triggeredByName: authReq.user?.name ?? authReq.user?.email,
           },
-          confirmed ?? false,
+          confirmed ?? false
         );
         await auditService.logEvent({
           orgId: authReq.orgId,
@@ -256,10 +266,12 @@ export function registerSafetyAlarmRoutes(
         });
         return res.status(201).json(alarm);
       } catch (error) {
-        if (handleAlarmError(error, res)) {return undefined;}
+        if (handleAlarmError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 
   app.post(
@@ -273,10 +285,10 @@ export function registerSafetyAlarmRoutes(
       try {
         const cleared = await safetyAlarmService.clearAlarm(
           authReq.orgId,
-          req.params['id'],
+          req.params["id"] ?? "",
           authReq.user?.id,
           authReq.user?.name ?? authReq.user?.email,
-          resolutionNote,
+          resolutionNote
         );
         await auditService.logEvent({
           orgId: authReq.orgId,
@@ -294,9 +306,11 @@ export function registerSafetyAlarmRoutes(
         });
         return res.json(cleared);
       } catch (error) {
-        if (handleAlarmError(error, res)) {return undefined;}
+        if (handleAlarmError(error, res)) {
+          return undefined;
+        }
         throw error;
       }
-    }),
+    })
   );
 }

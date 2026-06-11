@@ -1,15 +1,9 @@
 /** Shared visual helpers for the equipment hub page family (dark
  * IntelligenceLayout theme). Extracted verbatim from the pre-split page. */
 
-export function riskColor(r: string) {
-  if (r === "critical") {
-    return "text-red-500";
-  }
-  if (r === "warning") {
-    return "text-yellow-500";
-  }
-  return "text-green-500";
-}
+// Risk → text color now lives in the shared status-colors lib; re-exported
+// under its original name for this page family's importers.
+export { riskTextClass as riskColor } from "@/lib/status-colors";
 export function riskBg(r: string) {
   if (r === "critical") {
     return "bg-red-500/10 border-red-500/20";
@@ -48,11 +42,38 @@ export function HealthRing({
   size = 72,
   stroke = 6,
 }: {
-  value: number;
+  value: number | null;
   size?: number;
   stroke?: number;
 }) {
   const r = (size - stroke) / 2;
+  // No PdM score yet — dashed neutral ring instead of a fabricated value.
+  if (value == null) {
+    return (
+      <svg width={size} height={size} data-testid="health-ring-none">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(148,163,184,0.35)"
+          strokeWidth={2}
+          strokeDasharray="4 4"
+        />
+        <text
+          x={size / 2}
+          y={size / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#64748b"
+          fontSize={size * 0.28}
+          fontWeight={800}
+        >
+          —
+        </text>
+      </svg>
+    );
+  }
   const circ = 2 * Math.PI * r;
   const offset = circ - (value / 100) * circ;
   const color = healthStroke(value);

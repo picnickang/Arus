@@ -11,14 +11,18 @@ import { insertMaintenanceCostSchema } from "@shared/schema-runtime";
 const idParamSchema = z.object({ id: z.string().min(1) });
 const prBodySchema = z.object({
   supplierId: z.string().optional(),
-  items: z.array(z.object({
-    partId: z.string().optional(),
-    supplierId: z.string().optional(),
-    quantity: z.number().optional(),
-    uom: z.string().optional(),
-    notes: z.string().optional(),
-    description: z.string().optional(),
-  })).optional(),
+  items: z
+    .array(
+      z.object({
+        partId: z.string().optional(),
+        supplierId: z.string().optional(),
+        quantity: z.number().optional(),
+        uom: z.string().optional(),
+        notes: z.string().optional(),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
   notes: z.string().optional(),
   priority: z.string().optional(),
   requestedDeliveryDate: z.string().optional(),
@@ -137,7 +141,9 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
         return sendNotFound(res, "Work order");
       }
 
-      const { supplierId, items, notes, requestedDeliveryDate } = prBodySchema.parse(req.body ?? {});
+      const { supplierId, items, notes, requestedDeliveryDate } = prBodySchema.parse(
+        req.body ?? {}
+      );
       if (!items || !Array.isArray(items) || items.length === 0) {
         return sendBadRequest(res, "At least one item is required");
       }

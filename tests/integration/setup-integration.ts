@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 
 import { startIntegrationTestServer } from "./utils/test-server.js";
 
-process.env.TEST_BASE_URL ||= "http://127.0.0.1:5000";
+process.env["TEST_BASE_URL"] ||= "http://127.0.0.1:5000";
 
 type RunningServer = Awaited<ReturnType<typeof startIntegrationTestServer>>;
 
@@ -55,7 +55,7 @@ beforeAll(async () => {
     return;
   }
 
-  if (process.env.EMBEDDED_MODE !== "true" && process.env.LOCAL_MODE !== "true") {
+  if (process.env["EMBEDDED_MODE"] !== "true" && process.env["LOCAL_MODE"] !== "true") {
     return;
   }
 
@@ -64,7 +64,7 @@ beforeAll(async () => {
 
   if (needsFetchBackedServer(source)) {
     integrationServer = await startIntegrationTestServer({ port: 5000 });
-    process.env.TEST_BASE_URL = integrationServer.baseUrl;
+    process.env["TEST_BASE_URL"] = integrationServer.baseUrl;
   }
 }, 60000);
 

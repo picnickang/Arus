@@ -15,7 +15,7 @@ import { handleEquipmentSummary } from "./summary-handler";
 export function registerEquipmentContextRoutes(app: Express) {
   app.get("/api/context/equipment/:equipmentId", generalApiRateLimit, async (req, res) => {
     try {
-      const equipmentId = req.params['equipmentId'] ?? '';
+      const equipmentId = req.params["equipmentId"] ?? "";
       const queryResult = contextQuerySchema.safeParse(req.query);
 
       if (!queryResult.success) {
@@ -62,7 +62,7 @@ export function registerEquipmentContextRoutes(app: Express) {
       logger.error("Failed to generate equipment context", {
         error: errorMessage,
         stack: errorStack,
-        equipmentId: req.params['equipmentId'],
+        equipmentId: req.params["equipmentId"],
       });
       return res
         .status(500)

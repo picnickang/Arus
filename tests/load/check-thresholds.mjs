@@ -29,7 +29,7 @@ for (const entry of readdirSync(dir)) {
   const summary = JSON.parse(readFileSync(path, "utf8"));
   const metrics = summary.metrics ?? {};
   const declared = Object.entries(metrics).filter(
-    ([, m]) => m && typeof m === "object" && m.thresholds,
+    ([, m]) => m && typeof m === "object" && m.thresholds
   );
 
   if (declared.length === 0) {

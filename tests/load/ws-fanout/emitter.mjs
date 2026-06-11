@@ -34,7 +34,7 @@ const redis = new Redis(REDIS_URL, { lazyConnect: true });
 async function main() {
   await redis.connect();
   console.log(
-    `[emitter] org=${ORG} channel=${CHANNEL} rate=${RATE_HZ}Hz duration=${DURATION_MS}ms`,
+    `[emitter] org=${ORG} channel=${CHANNEL} rate=${RATE_HZ}Hz duration=${DURATION_MS}ms`
   );
 
   const intervalMs = Math.max(1, Math.round(1000 / RATE_HZ));
@@ -54,7 +54,7 @@ async function main() {
         STREAM_MAXLEN,
         "*",
         "p",
-        JSON.stringify(baseEvent),
+        JSON.stringify(baseEvent)
       );
       const tagged = { ...baseEvent, eventId: streamId, _origin: ORIGIN };
       await redis.publish(PUBSUB_KEY, JSON.stringify(tagged));
@@ -68,9 +68,7 @@ async function main() {
     if (sleep > 0) await new Promise((r) => setTimeout(r, sleep));
   }
 
-  console.log(
-    `[emitter] done. emitted=${tag} failures=${publishFailures}`,
-  );
+  console.log(`[emitter] done. emitted=${tag} failures=${publishFailures}`);
   await redis.quit();
 }
 

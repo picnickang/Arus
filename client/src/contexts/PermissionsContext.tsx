@@ -117,55 +117,55 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     };
   }, [data, isLoading, error, effectiveDevMode]);
 
-  const hasPermission = (resource: string, action: string): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {
-      return true;
-    }
-    if (permissions.isLoading) {
-      return false;
-    }
-    return permissions.permissions[resource]?.[action] === true;
-  };
+  // The context value (object + the nine checker closures) is memoized on the
+  // already-memoized `permissions` snapshot. Without this, every provider
+  // render handed a fresh object identity to all consumers, re-rendering the
+  // entire shell/nav tree even when permissions had not changed.
+  const value = useMemo<PermissionsContextType>(() => {
+    const hasPermission = (resource: string, action: string): boolean => {
+      if (import.meta.env.DEV && permissions.isDevMode) {
+        return true;
+      }
+      if (permissions.isLoading) {
+        return false;
+      }
+      return permissions.permissions[resource]?.[action] === true;
+    };
 
-  const hasAnyPermission = (resource: string, actions: string[]): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {
-      return true;
-    }
-    if (permissions.isLoading) {
-      return false;
-    }
-    return actions.some((action) => permissions.permissions[resource]?.[action] === true);
-  };
+    const hasAnyPermission = (resource: string, actions: string[]): boolean => {
+      if (import.meta.env.DEV && permissions.isDevMode) {
+        return true;
+      }
+      if (permissions.isLoading) {
+        return false;
+      }
+      return actions.some((action) => permissions.permissions[resource]?.[action] === true);
+    };
 
-  const hasAllPermissions = (checks: Array<{ resource: string; action: string }>): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) {
-      return true;
-    }
-    if (permissions.isLoading) {
-      return false;
-    }
-    return checks.every(
-      (check) => permissions.permissions[check.resource]?.[check.action] === true
-    );
-  };
+    const hasAllPermissions = (checks: Array<{ resource: string; action: string }>): boolean => {
+      if (import.meta.env.DEV && permissions.isDevMode) {
+        return true;
+      }
+      if (permissions.isLoading) {
+        return false;
+      }
+      return checks.every(
+        (check) => permissions.permissions[check.resource]?.[check.action] === true
+      );
+    };
 
-  const canView = (resource: string) => hasPermission(resource, "view");
-  const canCreate = (resource: string) => hasPermission(resource, "create");
-  const canEdit = (resource: string) => hasPermission(resource, "edit");
-  const canDelete = (resource: string) => hasPermission(resource, "delete");
-  const canExport = (resource: string) => hasPermission(resource, "export");
-
-  const value: PermissionsContextType = {
-    permissions,
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-    canView,
-    canCreate,
-    canEdit,
-    canDelete,
-    canExport,
-  };
+    return {
+      permissions,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      canView: (resource: string) => hasPermission(resource, "view"),
+      canCreate: (resource: string) => hasPermission(resource, "create"),
+      canEdit: (resource: string) => hasPermission(resource, "edit"),
+      canDelete: (resource: string) => hasPermission(resource, "delete"),
+      canExport: (resource: string) => hasPermission(resource, "export"),
+    };
+  }, [permissions]);
 
   return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
 }

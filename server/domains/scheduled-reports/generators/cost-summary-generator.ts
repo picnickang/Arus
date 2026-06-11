@@ -69,12 +69,14 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
 
         for (const wo of workOrders) {
           const w = wo as object as Record<string, unknown>;
-          const completedDate = w['actualEndDate'] ? new Date(w['actualEndDate'] as string | Date) : null;
+          const completedDate = w["actualEndDate"]
+            ? new Date(w["actualEndDate"] as string | Date)
+            : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
-            const plannedRate = Number(w['estimatedCostPerHour'] ?? 0) || 0;
-            const actualRate = Number(w['actualCostPerHour'] ?? plannedRate) || 0;
-            const plannedHours = Number(w['estimatedHours'] ?? 0) || 0;
-            const actualHours = Number(w['actualHours'] ?? plannedHours) || 0;
+            const plannedRate = Number(w["estimatedCostPerHour"] ?? 0) || 0;
+            const actualRate = Number(w["actualCostPerHour"] ?? plannedRate) || 0;
+            const plannedHours = Number(w["estimatedHours"] ?? 0) || 0;
+            const actualHours = Number(w["actualHours"] ?? plannedHours) || 0;
             plannedCost += plannedRate * plannedHours;
             actualCost += actualRate * actualHours;
           }
@@ -117,11 +119,13 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
 
         for (const wo of workOrders) {
           const w = wo as object as Record<string, unknown>;
-          const completedDate = w['actualEndDate'] ? new Date(w['actualEndDate'] as string | Date) : null;
+          const completedDate = w["actualEndDate"]
+            ? new Date(w["actualEndDate"] as string | Date)
+            : null;
           if (completedDate && completedDate >= startDate && completedDate <= endDate) {
-            const category = (w['workOrderType'] as string) || "Other";
-            const rate = Number(w['actualCostPerHour'] ?? w['estimatedCostPerHour'] ?? 0) || 0;
-            const hours = Number(w['actualHours'] ?? w['estimatedHours'] ?? 0) || 0;
+            const category = (w["workOrderType"] as string) || "Other";
+            const rate = Number(w["actualCostPerHour"] ?? w["estimatedCostPerHour"] ?? 0) || 0;
+            const hours = Number(w["actualHours"] ?? w["estimatedHours"] ?? 0) || 0;
             const cost = rate * hours;
             categoryTotals[category] = (categoryTotals[category] || 0) + cost;
           }

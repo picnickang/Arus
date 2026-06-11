@@ -5,8 +5,11 @@
 
 import { z } from "zod";
 import { crewAppService as crewService } from "../application/index.js";
-import { authenticatedRequest, requireOrgId,
-  requireOrgIdAndValidateBody, } from "../../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { CrewRouteDeps } from "./types.js";
 
@@ -19,7 +22,7 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
     generalApiRateLimit,
     withErrorHandling("fetch notification settings", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { crewId = '' } = req.params;
+      const { crewId = "" } = req.params;
 
       const crew = await crewService.getCrewById(crewId, orgId);
       if (!crew) {
@@ -50,7 +53,7 @@ export function registerNotificationRoutes({ app, rateLimit }: CrewRouteDeps): v
     writeOperationRateLimit,
     withErrorHandling("update notification settings", async (req, res) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { crewId = '' } = req.params;
+      const { crewId = "" } = req.params;
 
       const crew = await crewService.getCrewById(crewId, orgId);
       if (!crew) {

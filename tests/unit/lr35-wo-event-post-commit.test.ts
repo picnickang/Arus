@@ -52,12 +52,21 @@ type WorkOrderEvent =
 type Tx = { __tx__: true };
 const fakeTx: Tx = { __tx__: true };
 
-function makePublisher(bus: EventEmitter, enqueue: (envelope: unknown, tx?: unknown) => Promise<void>) {
+function makePublisher(
+  bus: EventEmitter,
+  enqueue: (envelope: unknown, tx?: unknown) => Promise<void>
+) {
   function envelopeFor(event: WorkOrderEvent) {
     if (event.type === "WORK_ORDER_CREATED") {
-      return { name: "work_order.created", envelope: { id: event.workOrderId, orgId: event.orgId } };
+      return {
+        name: "work_order.created",
+        envelope: { id: event.workOrderId, orgId: event.orgId },
+      };
     }
-    return { name: "work_order.updated", envelope: { id: event.workOrderId, orgId: event.orgId, changes: event.changes } };
+    return {
+      name: "work_order.updated",
+      envelope: { id: event.workOrderId, orgId: event.orgId, changes: event.changes },
+    };
   }
 
   async function publish(event: WorkOrderEvent, tx?: unknown): Promise<(() => void) | null> {
@@ -70,15 +79,24 @@ function makePublisher(bus: EventEmitter, enqueue: (envelope: unknown, tx?: unkn
     return () => bus.emit(built.name, built.envelope);
   }
 
-  async function publishBatch(events: WorkOrderEvent[], tx?: unknown): Promise<(() => void) | null> {
+  async function publishBatch(
+    events: WorkOrderEvent[],
+    tx?: unknown
+  ): Promise<(() => void) | null> {
     const deferred: Array<() => void> = [];
     for (const e of events) {
       const thunk = await publish(e, tx);
-      if (thunk) {deferred.push(thunk);}
+      if (thunk) {
+        deferred.push(thunk);
+      }
     }
-    if (deferred.length === 0) {return null;}
+    if (deferred.length === 0) {
+      return null;
+    }
     return () => {
-      for (const fn of deferred) {fn();}
+      for (const fn of deferred) {
+        fn();
+      }
     };
   }
 
@@ -88,7 +106,9 @@ function makePublisher(bus: EventEmitter, enqueue: (envelope: unknown, tx?: unkn
 describe("LR-3.5 TX-1 — work-order event publisher post-commit contract", () => {
   const created = jest.fn();
   const updated = jest.fn();
-  const enqueue = jest.fn<(e: unknown, tx?: unknown) => Promise<void>>().mockResolvedValue(undefined);
+  const enqueue = jest
+    .fn<(e: unknown, tx?: unknown) => Promise<void>>()
+    .mockResolvedValue(undefined);
   let bus: EventEmitter;
   let pub: ReturnType<typeof makePublisher>;
 
@@ -105,7 +125,7 @@ describe("LR-3.5 TX-1 — work-order event publisher post-commit contract", () =
   it("defers the in-process emit when a tx is supplied (returns a thunk)", async () => {
     const postCommit = await pub.publish(
       { type: "WORK_ORDER_CREATED", workOrderId: "wo-1", orgId: "org-test" },
-      fakeTx,
+      fakeTx
     );
 
     expect(enqueue).toHaveBeenCalledTimes(1);
@@ -118,7 +138,7 @@ describe("LR-3.5 TX-1 — work-order event publisher post-commit contract", () =
   it("on rollback (thunk never invoked) emits nothing to the bus", async () => {
     const postCommit = await pub.publish(
       { type: "WORK_ORDER_CREATED", workOrderId: "wo-1", orgId: "org-test" },
-      fakeTx,
+      fakeTx
     );
     expect(postCommit).not.toBeNull();
     // … surrounding db.transaction(...) rolls back … thunk NEVER invoked …
@@ -129,7 +149,7 @@ describe("LR-3.5 TX-1 — work-order event publisher post-commit contract", () =
   it("emits on the bus only after the thunk is invoked (post-commit)", async () => {
     const postCommit = await pub.publish(
       { type: "WORK_ORDER_CREATED", workOrderId: "wo-1", orgId: "org-test" },
-      fakeTx,
+      fakeTx
     );
     expect(created).not.toHaveBeenCalled();
 
@@ -157,7 +177,7 @@ describe("LR-3.5 TX-1 — work-order event publisher post-commit contract", () =
         { type: "WORK_ORDER_CREATED", workOrderId: "wo-1", orgId: "org-test" },
         { type: "WORK_ORDER_CREATED", workOrderId: "wo-3", orgId: "org-test" },
       ],
-      fakeTx,
+      fakeTx
     );
 
     expect(enqueue).toHaveBeenCalledTimes(2);

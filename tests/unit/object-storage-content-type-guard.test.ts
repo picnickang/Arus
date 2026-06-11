@@ -31,9 +31,9 @@ describe("sniffMimeFamily — known-safe families", () => {
   });
 
   it("recognises PNG", () => {
-    expect(
-      sniffMimeFamily(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
-    ).toBe("image/png");
+    expect(sniffMimeFamily(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
+      "image/png"
+    );
   });
 
   it("recognises GIF (87a and 89a)", () => {
@@ -162,7 +162,9 @@ describe("pickSafeContentType — mismatches force attachment", () => {
   });
 
   it("forces attachment for a claimed type not in the safe-list", () => {
-    expect(pickSafeContentType("application/octet-stream", "image/jpeg").forceAttachment).toBe(true);
+    expect(pickSafeContentType("application/octet-stream", "image/jpeg").forceAttachment).toBe(
+      true
+    );
     expect(pickSafeContentType("", "image/png").forceAttachment).toBe(true);
   });
 });
