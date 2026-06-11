@@ -7,7 +7,7 @@
     "ts-expect-error": 0,
     "todo-markers": 7,
     "dense-oneliners": 1,
-    "long-files": 102
+    "long-files": 100
   },
   "policy": {
     "long-files": {

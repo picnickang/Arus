@@ -27,4 +27,31 @@ describe("client tail component extractions", () => {
     expect(parts).toContain('href="/stormgeo-settings"');
     expect(parts).toContain("Notification Settings");
   });
+
+  it("keeps agent activity route rendering split behind the page", () => {
+    const page = read("client/src/pages/agent-activity.tsx");
+    const parts = read("client/src/pages/agent-activity-parts.tsx");
+
+    expect(page).toContain('from "./agent-activity-parts"');
+    expect(page).toContain("<SummaryMetrics summary={summary} />");
+    expect(page).toContain("<ActivityRow key={item.id} item={item} />");
+    expect(parts).toContain("export function SummaryMetrics");
+    expect(parts).toContain("export function ActivityRow");
+    expect(parts).toContain('data-testid={`activity-row-${item.id}`}');
+  });
+
+  it("keeps schedule planner vessel queries in a read-model helper", () => {
+    const readModel = read(
+      "server/domains/crew-extensions/infrastructure/schedule-planner-read-model.ts"
+    );
+    const vesselQueries = read(
+      "server/domains/crew-extensions/infrastructure/schedule-planner-vessel-queries.ts"
+    );
+
+    expect(readModel).toContain('from "./schedule-planner-vessel-queries.js"');
+    expect(readModel).toContain("fetchVessels(filter.orgId, filter.vesselIds)");
+    expect(vesselQueries).toContain("export async function fetchVessels");
+    expect(vesselQueries).toContain("export async function fetchCurrentCrewPerVessel");
+    expect(vesselQueries).toContain("export async function fetchRequiredCrewPerVessel");
+  });
 });
