@@ -24,6 +24,7 @@ import {
 import { Equipment, SensorConfiguration } from "@shared/schema";
 import { LoadingState } from "@/components/patterns/LoadingState";
 import { ErrorState } from "@/components/patterns/ErrorState";
+import { QueryBoundary } from "@/components/patterns/QueryBoundary";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
@@ -120,94 +121,88 @@ interface EquipmentStepProps {
 
 function EquipmentStep({ equipment, onNext, "data-testid": dataTestId }: EquipmentStepProps) {
   const { existingSensors, sensorsByType, isLoading, error } = useEquipmentStepData(equipment.id);
-  if (isLoading) {
-    return (
-      <div data-testid={dataTestId}>
-        <LoadingState variant="card" />
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div data-testid={dataTestId}>
-        <ErrorState error={error} />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6" data-testid={dataTestId}>
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Equipment Name</Label>
-            <div className="text-lg font-semibold" data-testid="equipment-name-display">
-              {equipment.name}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+    <QueryBoundary
+      isLoading={isLoading}
+      error={error}
+      loadingVariant="card"
+      data-testid={dataTestId}
+    >
+      <div className="space-y-6" data-testid={dataTestId}>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Equipment Type</Label>
-              <div className="font-medium" data-testid="equipment-type-display">
-                {String(formatEquipmentType(equipment.type) ?? "")}
+              <Label className="text-muted-foreground">Equipment Name</Label>
+              <div className="text-lg font-semibold" data-testid="equipment-name-display">
+                {equipment.name}
               </div>
             </div>
-            {equipment.status && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Status</Label>
-                <div data-testid="equipment-status-display">
-                  <Badge variant={equipment.status === "active" ? "default" : "outline"}>
-                    {String(equipment.status)}
-                  </Badge>
+                <Label className="text-muted-foreground">Equipment Type</Label>
+                <div className="font-medium" data-testid="equipment-type-display">
+                  {String(formatEquipmentType(equipment.type) ?? "")}
                 </div>
               </div>
+              {equipment.status && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div data-testid="equipment-status-display">
+                    <Badge variant={equipment.status === "active" ? "default" : "outline"}>
+                      {String(equipment.status)}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </div>
+            {equipment.location && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Location</Label>
+                <div data-testid="equipment-location-display">{equipment.location}</div>
+              </div>
             )}
+          </CardContent>
+        </Card>
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            We'll recommend sensors optimized for{" "}
+            <strong>{formatEquipmentType(equipment.type)}</strong> equipment based on industry best
+            practices and predictive maintenance requirements.
+          </AlertDescription>
+        </Alert>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Current Sensor Configuration</h3>
+            <Badge variant="secondary" className="text-sm" data-testid="sensor-count-badge">
+              {existingSensors.length} sensor{existingSensors.length !== 1 ? "s" : ""}
+            </Badge>
           </div>
-          {equipment.location && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Location</Label>
-              <div data-testid="equipment-location-display">{equipment.location}</div>
+          {existingSensors.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">
+                  No sensors configured yet. Let's set up your first sensors!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(sensorsByType).map(([type, sensors]) => (
+                <SensorTypeCard key={type} type={type} sensors={sensors} />
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
-        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-blue-900 dark:text-blue-100">
-          We'll recommend sensors optimized for{" "}
-          <strong>{formatEquipmentType(equipment.type)}</strong> equipment based on industry best
-          practices and predictive maintenance requirements.
-        </AlertDescription>
-      </Alert>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Current Sensor Configuration</h3>
-          <Badge variant="secondary" className="text-sm" data-testid="sensor-count-badge">
-            {existingSensors.length} sensor{existingSensors.length !== 1 ? "s" : ""}
-          </Badge>
         </div>
-        {existingSensors.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="pt-6 text-center text-muted-foreground">
-              <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No sensors configured yet. Let's set up your first sensors!</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {Object.entries(sensorsByType).map(([type, sensors]) => (
-              <SensorTypeCard key={type} type={type} sensors={sensors} />
-            ))}
-          </div>
-        )}
+        <div className="flex justify-end pt-4">
+          <Button onClick={onNext} data-testid="button-next-step">
+            Next: Select Bundle
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
       </div>
-      <div className="flex justify-end pt-4">
-        <Button onClick={onNext} data-testid="button-next-step">
-          Next: Select Bundle
-          <ChevronRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-    </div>
+    </QueryBoundary>
   );
 }
 

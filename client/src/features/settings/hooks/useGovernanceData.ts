@@ -63,6 +63,10 @@ export function useGovernanceData() {
       if (lineageFilters.toDate) {
         params.set("to", lineageFilters.toDate);
       }
+      // Opt-in safety cap (server max 1000). Below 1000 records the response
+      // is identical to the uncapped fetch; above it, `count` carries the
+      // server-side total while `records` holds the newest 1000.
+      params.set("limit", "1000");
       return apiRequest<{ success: boolean; count: number; records: LineageRecord[] }>(
         "GET",
         `/api/governance/model/lineage?${params.toString()}`
@@ -130,8 +134,11 @@ export function useGovernanceData() {
 
   const stats = useMemo(() => {
     const records = lineageRecords;
+    // totalModels uses the server-side total (count is pre-slice when the
+    // limit kicks in); the remaining stats are computed over the fetched
+    // page, which is exact below the 1000-record cap.
     return {
-      totalModels: records.length,
+      totalModels: lineageData?.count ?? records.length,
       productionModels: records.filter((r) => r.promotion.stage === "production").length,
       totalPredictions: records.reduce((acc, r) => acc + r.predictionCount, 0),
       familyCounts: {
@@ -140,7 +147,7 @@ export function useGovernanceData() {
         rf: records.filter((r) => r.family === "rf").length,
       },
     };
-  }, [lineageRecords]);
+  }, [lineageRecords, lineageData?.count]);
 
   const handleViewModelDetails = (model: LineageRecord) => {
     setSelectedModel(model);

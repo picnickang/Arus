@@ -373,10 +373,17 @@ export async function startSyncServices(isLocalMode: boolean): Promise<void> {
 }
 
 export async function initializeTelemetryBatchWriter(): Promise<void> {
-  logger.info("→ Starting telemetry batch writer...");
-  const { telemetryBatchWriter } = await import("../telemetry-batch-writer");
-  telemetryBatchWriter.start();
-  logger.info("✓ Telemetry batch writer started");
+  logger.info("→ Starting telemetry batch writer + ingestion...");
+  // startIngestion() starts the batch writer AND the SQLite-bridge
+  // ingress (Hardware → C# Agent → SQLite → bridge → Postgres). The
+  // bridge half was defined in server/ingestion/startIngestion.ts but
+  // nothing in the boot path ever called it, leaving the only production
+  // ingestion path dormant. It self-gates: without ARUS_SQLITE_PATH it
+  // logs "SQLite bridge disabled" and runs the writer only, so cloud
+  // deployments are an explicit no-op for the bridge half.
+  const { startIngestion } = await import("../ingestion/startIngestion");
+  startIngestion();
+  logger.info("✓ Telemetry batch writer started (bridge per ARUS_SQLITE_PATH)");
 }
 
 export async function initializeAutoReplanPolicy(): Promise<void> {

@@ -24,6 +24,8 @@ const lineageQuerySchema = z.object({
   vesselId: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 const promotionSchema = z.object({
@@ -75,10 +77,19 @@ router.get("/model/lineage", async (req, res, next) => {
 
     const records = await getLineageRecords(filters);
 
+    // Optional safety cap: when limit/offset are supplied, `count` is the
+    // pre-slice total (mirrors the provenance endpoint's `total`); without
+    // them the response is identical to the historical uncapped behavior.
+    const offset = query.offset ?? 0;
+    const paginated =
+      query.limit !== undefined || query.offset !== undefined
+        ? records.slice(offset, offset + (query.limit ?? records.length))
+        : records;
+
     return res.json({
       success: true,
       count: records.length,
-      records,
+      records: paginated,
     });
   } catch (error) {
     return next(error);

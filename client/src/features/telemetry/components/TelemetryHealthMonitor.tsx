@@ -13,6 +13,7 @@ import {
   XCircle,
   Gauge,
 } from "lucide-react";
+import { telemetryStatusBadgeClass } from "@/lib/status-colors";
 
 interface TelemetryHealth {
   status: "healthy" | "degraded" | "unhealthy";
@@ -79,12 +80,7 @@ export function TelemetryHealthMonitor() {
       <XCircle className="h-5 w-5 text-destructive" />
     );
 
-  const statusColor =
-    health.status === "healthy"
-      ? "bg-green-500/10 text-green-500 border-green-500/30"
-      : health.status === "degraded"
-        ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-        : "bg-destructive/10 text-destructive border-destructive/30";
+  const statusColor = telemetryStatusBadgeClass(health.status);
 
   return (
     <div className="space-y-4">

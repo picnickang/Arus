@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -455,7 +456,8 @@ function ActiveAlarmsSection() {
   const { data: alarms = [] } = useQuery<ActiveAlarm[]>({
     queryKey: ["/api/admin/safety-alarms", { includeCleared: false }],
     queryFn: () => apiRequest<ActiveAlarm[]>("GET", "/api/admin/safety-alarms"),
-    refetchInterval: 20000,
+    // FAST: live alarm panel — keep at least the pre-helper 20s cadence.
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
   const { data: vessels = [] } = useQuery<VesselLite[]>({ queryKey: ["/api/vessels"] });
 

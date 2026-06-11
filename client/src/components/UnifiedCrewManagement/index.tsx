@@ -136,7 +136,7 @@ export function UnifiedCrewManagement({ accessReadinessEnabled }: UnifiedCrewMan
       label: getDocumentTypeLabel(doc.documentType),
       daysUntilExpiry: doc.daysUntilExpiry,
       urgency: doc.urgencyLevel,
-      href: "/compliance-consolidated",
+      href: "/logs/compliance",
     }));
     return [...certItems, ...docItems].sort((a, b) => {
       const byUrgency = URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];

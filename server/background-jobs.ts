@@ -49,6 +49,7 @@ export const JOB_TYPES = {
   TELEMETRY_ROLLUP_HOURLY: "telemetry-rollup-hourly",
   TELEMETRY_RETENTION: "telemetry-retention-daily",
   TELEMETRY_PARTITION_MAINTENANCE: "telemetry-partition-maintenance-daily",
+  DLQ_REPLAY: "dlq-replay-hourly",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];

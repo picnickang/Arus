@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import { Ship } from "lucide-react";
 import { format, isToday, isSameDay } from "date-fns";
@@ -13,22 +13,7 @@ import type { DragCompliancePreview } from "./types";
 
 import { AssignmentBlock } from "./AssignmentBlock";
 
-export function VesselRow({
-  vessel,
-  assignments,
-  timelineDays,
-  calculateBlockPosition,
-  getConstraintSummary,
-  getCrewFatigue,
-  onAssignmentClick,
-  onEmptyCellClick,
-  isMobile = false,
-  onPointerDragStart,
-  dragState,
-  dragCompliancePreview,
-  dragTargetVesselId,
-  dragTargetDate,
-}: {
+interface VesselRowProps {
   vessel: { id: string; name: string; type?: string | undefined };
   assignments: ScheduleAssignment[];
   timelineDays: Date[];
@@ -45,7 +30,24 @@ export function VesselRow({
   dragCompliancePreview?: DragCompliancePreview | null | undefined;
   dragTargetVesselId?: string | null | undefined;
   dragTargetDate?: Date | null | undefined;
-}) {
+}
+
+function VesselRowImpl({
+  vessel,
+  assignments,
+  timelineDays,
+  calculateBlockPosition,
+  getConstraintSummary,
+  getCrewFatigue,
+  onAssignmentClick,
+  onEmptyCellClick,
+  isMobile = false,
+  onPointerDragStart,
+  dragState,
+  dragCompliancePreview,
+  dragTargetVesselId,
+  dragTargetDate,
+}: VesselRowProps) {
   const totalDays = timelineDays.length;
   const uniqueRoles = useMemo(() => {
     const roles = new Set(assignments.map((a) => a.role));
@@ -175,3 +177,46 @@ export function VesselRow({
     </div>
   );
 }
+
+// A row only depends on drag state when it is the drag source (its assignment
+// is being moved) or the current drop target (highlight + cell rings).
+function isInvolvedInDrag(props: VesselRowProps): boolean {
+  if (!props.dragState) {
+    return false;
+  }
+  return (
+    props.dragTargetVesselId === props.vessel.id || props.dragState.vesselId === props.vessel.id
+  );
+}
+
+function vesselRowPropsEqual(prev: VesselRowProps, next: VesselRowProps): boolean {
+  if (
+    prev.vessel !== next.vessel ||
+    prev.assignments !== next.assignments ||
+    prev.timelineDays !== next.timelineDays ||
+    prev.calculateBlockPosition !== next.calculateBlockPosition ||
+    prev.getConstraintSummary !== next.getConstraintSummary ||
+    prev.getCrewFatigue !== next.getCrewFatigue ||
+    prev.onAssignmentClick !== next.onAssignmentClick ||
+    prev.onEmptyCellClick !== next.onEmptyCellClick ||
+    prev.isMobile !== next.isMobile ||
+    prev.onPointerDragStart !== next.onPointerDragStart
+  ) {
+    return false;
+  }
+  // Drag start/end must reach every row: the cell click guards close over
+  // dragState, and a stale null/non-null flip there changes click behavior.
+  const prevDragActive = Boolean(prev.dragState);
+  const nextDragActive = Boolean(next.dragState);
+  if (prevDragActive !== nextDragActive) {
+    return false;
+  }
+  if (!nextDragActive) {
+    return true;
+  }
+  // Mid-drag (dragState identity churns every pointer move): only re-render
+  // rows entering, leaving, or participating in the drag.
+  return !isInvolvedInDrag(prev) && !isInvolvedInDrag(next);
+}
+
+export const VesselRow = memo(VesselRowImpl, vesselRowPropsEqual);

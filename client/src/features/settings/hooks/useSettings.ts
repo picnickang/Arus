@@ -100,26 +100,11 @@ export function useUpdateIntegrationConfig() {
   });
 }
 
-export function useTestIntegration() {
-  return useMutation({
-    mutationFn: async (integrationId: string) => {
-      return apiRequest("POST", `/api/integrations/${integrationId}/test`);
-    },
-  });
-}
-
-export function useSyncIntegration() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (integrationId: string) => {
-      return apiRequest("POST", `/api/integrations/${integrationId}/sync`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: settingsKeys.integrations() });
-    },
-  });
-}
+// useTestIntegration / useSyncIntegration were removed here: they POSTed
+// /api/integrations/:id/{test,sync}, routes no server ever registered, and
+// no component consumed the hooks (route-contract triage, 2026-06). The
+// integration config CRUD above (/api/admin/integrations) is the live
+// surface.
 
 export function useUpdateTransportSettings() {
   const queryClient = useQueryClient();

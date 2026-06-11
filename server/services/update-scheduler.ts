@@ -9,7 +9,7 @@
 
 import cron from "node-cron";
 import { getUpdateChecker } from "./update-checker";
-import { patchApplicator } from "./patch-applicator";
+import { getPatchApplicator } from "./patch-applicator";
 import { db } from "../db";
 import { updateSettings } from "../../shared/schema";
 import { eq } from "drizzle-orm";
@@ -159,7 +159,7 @@ async function checkForUpdatesAllOrgs(): Promise<void> {
 
           try {
             const patchPath = await updateChecker.downloadPatch(patch.id, settings.orgId);
-            const result = await patchApplicator.applyPatch(patch.id, patchPath);
+            const result = await getPatchApplicator().applyPatch(patch.id, patchPath);
 
             if (result.success) {
               logger.info(`[UpdateScheduler] Org ${settings.orgId}: Patch applied successfully`);

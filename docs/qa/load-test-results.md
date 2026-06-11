@@ -61,7 +61,13 @@ one equipment, default sensor set.
   messages queued. Inserts conflict-skip on the natural key `(org_id, equipment_id, sensor_type, ts)`
   (`uq_equipment_telemetry_natural`, migration 0024), and the stress generator reuses timestamps
   within a tick, so most generated readings are natural-key duplicates. `totalFlushed` counts
-  attempted rows; PostgreSQL silently skips duplicates by design.
+  attempted rows; PostgreSQL silently skips duplicates by design. The collapse rate is now
+  surfaced as `arus_telemetry_natural_key_conflicts_total` (`server/telemetry-batch-writer.ts`),
+  because millisecond-resolution timestamps mean two GENUINE samples for one sensor in the
+  same millisecond also collapse — acceptable at the documented 10 Hz per-sensor target,
+  a hazard for future high-rate sources. Escalation path if a source legitimately needs
+  sub-millisecond cadence: µs-resolution timestamps, or a sequence component added to the
+  natural key by the agent.
 - **Direct-write comparison** (`useBatchWriter: false`, per-row INSERTs): requested 200 msg/s,
   **achieved 122 msg/s** (3,663 rows in 30s, 0 errors) — the per-row path saturates ~16× below
   the batched path, confirming the batch writer is the right production default.

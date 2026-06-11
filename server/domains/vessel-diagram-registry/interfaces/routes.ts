@@ -25,6 +25,20 @@ const upload = multer({
 });
 
 const vesselParamsSchema = z.object({ vesselId: z.string().min(1) });
+// Comma-separated vessel ids for the batch summaries endpoint; capped so a
+// single request cannot fan out unboundedly.
+const summariesQuerySchema = z.object({
+  vesselIds: z
+    .string()
+    .min(1)
+    .transform((value) =>
+      value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+    )
+    .pipe(z.array(z.string().min(1).max(120)).min(1).max(100)),
+});
 const diagramParamsSchema = vesselParamsSchema.extend({ diagramId: z.string().min(1) });
 const versionParamsSchema = diagramParamsSchema.extend({ versionId: z.string().min(1) });
 const mapParamsSchema = vesselParamsSchema.extend({ mapId: z.string().min(1) });
@@ -220,6 +234,21 @@ export function registerVesselDiagramRegistryRoutes(
         const params = templateParamsSchema.parse(req.params);
         const service = await getService();
         res.json(service.getSectionMapTemplate(params.templateId));
+      }
+    )
+  );
+
+  app.get(
+    "/api/vessel-intelligence/summaries",
+    orgGate,
+    deps.generalApiRateLimit,
+    readPermission,
+    withErrorHandling(
+      "fetch vessel intelligence summaries",
+      async (req: AuthenticatedRequest, res) => {
+        const { vesselIds } = summariesQuerySchema.parse(req.query);
+        const service = await getService();
+        res.json(await service.getSummaries({ orgId: req.orgId, userId: req.user?.id }, vesselIds));
       }
     )
   );

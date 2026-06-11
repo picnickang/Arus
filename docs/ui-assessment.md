@@ -40,13 +40,13 @@ Three generations of the records/navigation IA coexist:
 
 Consequences:
 
-| Issue                                         | Evidence                                                                                                                          |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 91 routes vs ~40 nav items                    | `routes/*.ts` vs `navigationConfig.ts`                                                                                            |
-| Shadowed dead registrations                   | `records.ts`: `/deck-logbook`, `/engine-logbook`, `/logs-compliance`, `/condition-monitoring-log`                                 |
-| Likely fully dead pages (only route shadowed) | `pages/pdm-pack.tsx` (815 ln), `pages/inventory-management.tsx` (817 ln) — verify imports before deleting                         |
-| 4+ vessel entry points                        | `/fleet/:vesselId`, `/vessel-intelligence/:vesselId`, `/vessels/:id` (distinct VesselDashboard), `/equipment-schematic/:vesselId` |
-| ~10 orphan routes (no nav entry)              | `/operating-parameters`, `/storage-settings`, `/transport-settings`, `/admin/*` — typed-URL-only                                  |
+| Issue                                            | Evidence                                                                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 91 routes vs ~40 nav items                       | `routes/*.ts` vs `navigationConfig.ts`                                                                                                                                                                       |
+| Shadowed dead registrations                      | `records.ts`: `/deck-logbook`, `/engine-logbook`, `/logs-compliance`, `/condition-monitoring-log`                                                                                                            |
+| Suspected dead pages — disproven on verification | `pages/pdm-pack.tsx` and `pages/inventory-management.tsx` are live as lazily-loaded hub tab content (pdm-platform diagnostics tab, logistics inventory tab); only their shadowed standalone routes were dead |
+| 4+ vessel entry points                           | `/fleet/:vesselId`, `/vessel-intelligence/:vesselId`, `/vessels/:id` (distinct VesselDashboard), `/equipment-schematic/:vesselId`                                                                            |
+| ~10 orphan routes (no nav entry)                 | `/operating-parameters`, `/storage-settings`, `/transport-settings`, `/admin/*` — typed-URL-only                                                                                                             |
 
 **Recommendation**: finish the migration — remove shadowed registrations, delete
 verified-dead pages, land `/logs/<x>` on the consolidated shell, migrate redundant vessel
@@ -66,10 +66,17 @@ inner sub-tab sets — 16 `TabsContent` panels two levels deep in one page. Note
 problem only; Radix unmounts inactive tabs and the queries live in the child tab components,
 so the raw audit's "all tabs hydrate on mount" claim was **wrong**.
 
-**Recommendation**: a `/system/settings` shell (IconGridLayout, the `/logs` pattern) grouping
-the pages into sections (General / Notifications & Email / Integrations / Access / Data &
-Assets), reusing the existing pages as lazily-loaded section content; old URLs redirect via
-`routeMigrations`. Flatten system-administration to URL-addressable sections.
+**Found during implementation**: the shells already partially existed — `/configuration`
+(TabbedPageLayout: settings, transport, storage, operating-parameters, diagnostics) and
+`/notifications` (preferences, AI suggestions, alert rules, templates) already host most of
+these pages as URL-synced tabs. The sprawl was the same half-finished-migration pattern as §2:
+the standalone routes were never retired. Bonus finds: the ConfigurationHub "Permissions &
+Roles" tab mounted a pure-redirect page that kicked users out of the hub, and
+`/permissions-settings` itself was a one-line redirect to `/crew-management?view=roles`.
+
+**Recommendation**: finish the migration — retire the standalone routes via `routeMigrations`
+into their hub tabs, remove the redirect-trap tab, and make system-administration sections
+URL-addressable.
 
 ## 4. Finding: fleet-hub data loading (worst runtime inefficiency)
 
@@ -130,4 +137,63 @@ is shared with other pages.
 
 ## 8. Remediation status
 
-Updated as work lands on this branch. Currently: **assessment only — no remediation yet.**
+Delivered on this branch (all phases verified by `npm run check`, `npm run check:guards`,
+`npm run lint`, the full unit lane (1,346 tests) and integration lane (144 tests)):
+
+**Routes & IA (§2, §3)**
+
+- Removed every redirect-shadowed registration (`records.ts` 16 → 6 routes; `/governance-dashboard`
+  from analytics; `/inventory-management` + `/vendors` from logistics; `/operating-parameters`
+  from fleet) — all covered by `routeMigrations`.
+- `/logs/deck|engine|compliance|equipment` now render the same consolidated shells the
+  `/logs?tab=*` hub loads; the four standalone `/*-consolidated` routes retired into
+  `routeMigrations`; in-app links re-pointed (`UnifiedCrewManagement`, logistics role dock).
+- Retired the 7 standalone settings routes into their hub tabs
+  (`/configuration?tab=…`, `/notifications?tab=…`); `/permissions-settings` now migrates
+  straight to `/crew-management?view=roles`; deleted the redirect-only
+  `pages/permissions-settings.tsx` and the ConfigurationHub trap tab.
+- Documented the three param-carrying vessel aliases in `fleet.ts` as deliberate
+  (exact-match redirects can't carry params); `/admin/tenants` left as a deep link per
+  ADR-002 single-tenancy.
+- `system-administration` sections are URL-addressable via `?section=` (deep-linkable,
+  back-button aware).
+
+**Runtime (§4, §6)**
+
+- New org-scoped batch endpoint `GET /api/vessel-intelligence/summaries?vesselIds=…`
+  (vessel-diagram-registry domain, capped at 100 ids, unit-tested); fleet-hub now issues one
+  summaries request instead of one per vessel.
+- `SafetyTab` poll now uses `pollingInterval(POLL_INTERVALS.STANDARD)`.
+- `VesselRow` is memoized with a drag-aware comparator (mid-drag, only the source and target
+  rows re-render); planner callbacks stabilized; per-vessel assignment arrays memoized.
+- `AdminAccessContext`: removed the consumer-less per-second countdown state (the 1 s tick now
+  only enforces expiry, rendering nothing) and memoized the context value.
+- App pending-count poller only runs while something is pending.
+
+**Redundancy (§5)**
+
+- `formatDate`/`formatCurrency` locals re-pointed to `lib/formatters.ts` (extended
+  backward-compatibly with locale/fallback/display options; every call site's rendered output
+  preserved — verified against ICU). `certificate-registry`'s day-first format deliberately
+  kept local (Intl cannot reproduce it exactly).
+- New `lib/status-colors.ts` consolidates the risk/status/severity color maps as named
+  variants (verbatim classes); the two `StatusBadge` tables were left separate because every
+  overlapping key renders differently — forcing one config would change the UI.
+
+**Follow-ups (§5, §6 — this branch)**
+
+- New `QueryBoundary` pattern component (`components/patterns/`) consolidating the
+  `useQuery → loading → error → empty → content` if-chains by composing the existing
+  LoadingState/ErrorState; piloted on 4 sites (pdm-equipment-detail, SensorSetupWizard
+  EquipmentStep, SensorHealthDashboard, analytics-hub PredictiveInsightsCard) with component
+  tests in the client jsdom lane. En route, fixed ErrorState silently ignoring its documented
+  `title` prop. ~94 inline repetitions remain for opportunistic adoption.
+- Governance model-lineage table virtualized (`components/governance/VirtualizedLineageTable`,
+  hybrid header + `@tanstack/react-virtual` body copying the inventory/work-order pattern;
+  testids and cells preserved). The lineage and maintenance-templates list endpoints gained
+  **optional** `limit`/`offset` (1–1000, no default — existing consumers byte-identical;
+  unit tests pin the no-param back-compat shape). The lineage client opts in at the
+  1000-record safety cap and reads `stats.totalModels` from the server-side total.
+
+Still open (recommendations only): broader `QueryBoundary` rollout, polling→WebSocket
+migration, eventual StatusBadge/PageHeader unification.

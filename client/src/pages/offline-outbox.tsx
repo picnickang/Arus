@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { replayQueuedApiRequests } from "@/lib/queryClient";
+import { formatDate } from "@/lib/formatters";
 import {
   clearAllOperations,
   getOfflineSyncSnapshot,
@@ -16,16 +17,17 @@ import {
   type SyncConflict,
 } from "@/lib/offline-sync";
 
-function formatDate(value?: string | Date | null) {
-  if (!value) {
-    return "Never";
-  }
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown";
-  }
-  return date.toLocaleString();
-}
+// Matches the previous `toLocaleString()` rendering exactly (browser locale,
+// all-numeric date + time).
+const SYNC_DATE_FORMAT = {
+  locale: "auto",
+  month: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+  fallback: "Never",
+  invalidFallback: "Unknown",
+} as const;
 
 function labelForOperation(op: PendingOperation): string {
   const target = op.request?.url || op.entityId;
@@ -212,7 +214,9 @@ export default function OfflineOutboxPage() {
             </div>
             <div className="rounded-lg border p-4">
               <div className="text-sm font-medium">Last sync</div>
-              <div className="mt-1 text-sm text-muted-foreground">{formatDate(lastSyncTime)}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {formatDate(lastSyncTime, SYNC_DATE_FORMAT)}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -310,7 +314,7 @@ export default function OfflineOutboxPage() {
                       </div>
                       <h3 className="mt-2 font-semibold">{labelForOperation(op)}</h3>
                       <p className="text-xs text-muted-foreground">
-                        Queued {formatDate(op.createdAt)}
+                        Queued {formatDate(op.createdAt, SYNC_DATE_FORMAT)}
                       </p>
                     </div>
                     <Button

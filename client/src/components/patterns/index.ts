@@ -16,3 +16,6 @@ export type { LoadingVariant } from "./LoadingState";
 
 export { ErrorState } from "./ErrorState";
 export type { NormalizedError } from "./ErrorState";
+
+export { QueryBoundary } from "./QueryBoundary";
+export type { QueryBoundaryProps } from "./QueryBoundary";

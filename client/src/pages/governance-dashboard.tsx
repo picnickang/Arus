@@ -1,14 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -40,7 +32,6 @@ import {
   RefreshCw,
   FileCheck,
   Filter,
-  Eye,
   Link,
   Hash,
   Cpu,
@@ -49,6 +40,7 @@ import {
   Layers,
 } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
+import { VirtualizedLineageTable } from "@/components/governance/VirtualizedLineageTable";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import {
   useGovernanceData,
@@ -258,81 +250,12 @@ export default function GovernanceDashboard() {
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <ScrollArea className="h-[500px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Model ID</TableHead>
-                          <TableHead>Family</TableHead>
-                          <TableHead>Profile</TableHead>
-                          <TableHead>Version</TableHead>
-                          <TableHead>Stage</TableHead>
-                          <TableHead>Predictions</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {lineageRecords.map((record) => (
-                          <TableRow
-                            key={record.modelId}
-                            data-testid={`row-model-${record.modelId}`}
-                          >
-                            <TableCell className="font-mono text-xs">
-                              {record.modelId.substring(0, 12)}...
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={FAMILY_COLORS[record.family]}>
-                                {record.family.toUpperCase()}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{record.profile}</TableCell>
-                            <TableCell>v{record.version}</TableCell>
-                            <TableCell>
-                              <Badge className={STAGE_COLORS[record.promotion.stage]}>
-                                {record.promotion.stage}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{formatNumber(record.predictionCount)}</TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDistanceToNow(parseISO(record.createdAt), { addSuffix: true })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleViewModelDetails(record)}
-                                  data-testid={`button-view-model-${record.modelId}`}
-                                  title="View Details"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleToggleComparison(record)}
-                                  className={
-                                    comparisonModel?.modelId === record.modelId
-                                      ? "bg-primary/10"
-                                      : ""
-                                  }
-                                  data-testid={`button-compare-model-${record.modelId}`}
-                                  title={
-                                    comparisonModel?.modelId === record.modelId
-                                      ? "Deselect"
-                                      : "Compare"
-                                  }
-                                >
-                                  <GitBranch className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
+                  <VirtualizedLineageTable
+                    records={lineageRecords}
+                    comparisonModel={comparisonModel}
+                    onViewDetails={handleViewModelDetails}
+                    onToggleComparison={handleToggleComparison}
+                  />
                 )}
               </CardContent>
             </Card>

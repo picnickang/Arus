@@ -468,11 +468,12 @@ export function useSchedulePlannerData() {
     setDateRangeStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
-  const openAssignmentDrawer = (assignmentId: string) => {
+  // Stable so memoized rows (VesselRow) don't re-render when the planner does.
+  const openAssignmentDrawer = useCallback((assignmentId: string) => {
     setSelectedAssignmentId(assignmentId);
     setIsDrawerOpen(true);
     setDrawerTab("details");
-  };
+  }, []);
 
   const closeDrawer = () => {
     setIsDrawerOpen(false);

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Calendar, MapPin, User, Eye, Edit } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/formatters";
 import type { PurchaseRequest } from "../types";
 import { PRStatusBadge } from "./PRStatusBadge";
 
@@ -11,13 +11,7 @@ interface PRCardProps {
   onEdit?: (pr: PurchaseRequest) => void;
 }
 
-function formatDate(date: Date | string | null | undefined): string {
-  if (!date) {
-    return "-";
-  }
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "MMM d, yyyy");
-}
+const PR_DATE_FORMAT = { hour: undefined, minute: undefined, fallback: "-" } as const;
 
 export function PRCard({ pr, onView, onEdit }: PRCardProps) {
   const isEditable = pr.status === "draft";
@@ -41,7 +35,7 @@ export function PRCard({ pr, onView, onEdit }: PRCardProps) {
         {pr.requiredByDate && (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span>Required by: {formatDate(pr.requiredByDate)}</span>
+            <span>Required by: {formatDate(pr.requiredByDate, PR_DATE_FORMAT)}</span>
           </div>
         )}
         {pr.deliveryLocation && (
@@ -51,7 +45,7 @@ export function PRCard({ pr, onView, onEdit }: PRCardProps) {
           </div>
         )}
         <div className="text-xs text-muted-foreground pt-2">
-          Created: {formatDate(pr.createdAt)}
+          Created: {formatDate(pr.createdAt, PR_DATE_FORMAT)}
         </div>
         <div className="flex gap-2 pt-3 border-t">
           {onView && (

@@ -13,9 +13,14 @@ global:
 #           - alertmanager:9093
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# The path is relative to THIS config file's directory. Launch from the repo root with
+#   prometheus --config.file=monitoring/prometheus.yml
+# and validate the pair with
+#   promtool check config monitoring/prometheus.yml
+# Without this entry every alert in ops/prometheus/rules.yaml is inert —
+# Prometheus evaluates nothing it hasn't been told to load.
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "../ops/prometheus/rules.yaml"
 
 # A scrape configuration containing exactly one endpoint to scrape:
 scrape_configs:

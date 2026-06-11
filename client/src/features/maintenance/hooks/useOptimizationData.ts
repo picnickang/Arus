@@ -283,8 +283,7 @@ export function useOptimizationData() {
     const variant = getStatusVariant(status);
     return { variant, iconName: variant.iconName, color: variant.color };
   };
-  const formatCurrency = (amount: number | null) =>
-    amount === null ? "N/A" : formatCurrencyUtil(amount);
+  const formatCurrency = (amount: number | null) => formatCurrencyUtil(amount, { fallback: "N/A" });
 
   const filteredConfigurations =
     configurations?.filter((config) =>

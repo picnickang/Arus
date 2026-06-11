@@ -74,7 +74,7 @@ export async function getStoredResponse(
   }
 }
 
-export async function storeResponse(entry: {
+export interface IdempotencyStoreEntry {
   fullKey: string;
   orgId: string;
   idempotencyKey: string;
@@ -82,8 +82,19 @@ export async function storeResponse(entry: {
   statusCode: number;
   body: unknown;
   ttlMs: number;
-}): Promise<void> {
-  const now = new Date();
+}
+
+/**
+ * Pure values builder, exported so the driver-conditional shape is directly
+ * testable against both tables: the sqlite DDL has NOT NULL org_id /
+ * idempotency_key / request_hash columns that the pg table lacks
+ * (see tests/unit/idempotency-dual-driver.test.ts).
+ */
+export function buildIdempotencyInsertValues(
+  entry: IdempotencyStoreEntry,
+  isLocal: boolean,
+  now: Date = new Date()
+): Record<string, unknown> {
   const expiresAt = new Date(now.getTime() + entry.ttlMs);
   const responseBody = JSON.stringify({
     h: entry.requestHash,
@@ -97,12 +108,17 @@ export async function storeResponse(entry: {
     expiresAt,
     createdAt: now,
   };
-  if (isLocalMode) {
+  if (isLocal) {
     // NOT NULL columns that only exist in the sqlite DDL.
     values["orgId"] = entry.orgId;
     values["idempotencyKey"] = entry.idempotencyKey;
     values["requestHash"] = entry.requestHash;
   }
+  return values;
+}
+
+export async function storeResponse(entry: IdempotencyStoreEntry): Promise<void> {
+  const values = buildIdempotencyInsertValues(entry, isLocalMode);
 
   await db
     .insert(table)

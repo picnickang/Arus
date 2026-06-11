@@ -362,9 +362,7 @@ export function CrewRegistryLanding({
         {!expiryLoading && attentionItems.length > 0 && (
           <button
             type="button"
-            onClick={() =>
-              hasComplianceItems ? setLocation("/compliance-consolidated") : onOpenTasks()
-            }
+            onClick={() => (hasComplianceItems ? setLocation("/logs/compliance") : onOpenTasks())}
             className="inline-flex items-center gap-1 text-xs font-medium text-sky-300 hover:text-sky-200"
             data-testid="button-attention-view-all"
           >
@@ -468,7 +466,7 @@ export function CrewRegistryLanding({
         icon={<Shield className="h-5 w-5 text-amber-300" />}
         label="Compliance"
         hint="Certs & docs"
-        onClick={() => setLocation("/compliance-consolidated")}
+        onClick={() => setLocation("/logs/compliance")}
         testId="action-compliance"
       />
     </Cluster>

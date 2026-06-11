@@ -5,6 +5,7 @@ import { type ReactNode } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { formatDate as formatDateBase } from "@/lib/formatters";
 
 export interface PermissionSet {
   canConfigure: boolean;
@@ -116,13 +117,16 @@ export function EmptyState({ message }: { message: string }) {
   );
 }
 
-export function formatDate(value: unknown) {
-  if (!value) {
-    return "Not recorded";
-  }
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return "Not recorded";
-  }
-  return date.toLocaleDateString();
+// Output matches the pre-split local helper (browser-locale numeric date,
+// "Not recorded" for missing/invalid values) via the canonical formatter.
+const REGISTRY_DATE_FORMAT = {
+  locale: "auto",
+  month: "numeric",
+  hour: undefined,
+  minute: undefined,
+  fallback: "Not recorded",
+} as const;
+
+export function formatDate(value: string | Date | null | undefined) {
+  return formatDateBase(value, REGISTRY_DATE_FORMAT);
 }

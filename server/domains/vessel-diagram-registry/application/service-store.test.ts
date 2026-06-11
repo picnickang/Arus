@@ -75,6 +75,37 @@ describe("VesselDiagramRegistryService with in-memory store", () => {
     service = new VesselDiagramRegistryService(store, media);
   });
 
+  it("batches per-vessel summaries, dedupes ids, and scopes each to its vessel", async () => {
+    const alphaDiagram = await service.createDiagram(ctx, {
+      diagramType: "side_elevation",
+      title: "Alpha side elevation",
+    });
+    await service.createDiagram(otherCtx, {
+      diagramType: "deck_plan",
+      title: "Beta deck plan",
+    });
+
+    const summaries = await service.getSummaries({ orgId: ctx.orgId, userId: ctx.userId }, [
+      ctx.vesselId,
+      otherCtx.vesselId,
+      ctx.vesselId, // duplicate must not produce extra work or entries
+      "vessel-without-records",
+    ]);
+
+    expect(Object.keys(summaries).sort()).toEqual(
+      [ctx.vesselId, otherCtx.vesselId, "vessel-without-records"].sort()
+    );
+    expect(summaries[ctx.vesselId].diagrams).toHaveLength(1);
+    expect(summaries[ctx.vesselId].diagrams[0].id).toBe(alphaDiagram.id);
+    expect(summaries[otherCtx.vesselId].diagrams).toHaveLength(1);
+    expect(summaries[otherCtx.vesselId].diagrams[0].title).toBe("Beta deck plan");
+    expect(summaries["vessel-without-records"]).toMatchObject({
+      diagrams: [],
+      activeDiagram: null,
+      sectionMaps: [],
+    });
+  });
+
   it("keeps diagrams, versions, section maps, assignments, and thumbnails tenant-scoped", async () => {
     const diagram = await service.createDiagram(ctx, {
       diagramType: "side_elevation",

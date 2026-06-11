@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Gauge, Loader2, RefreshCw, Ship, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,26 +83,25 @@ export default function FleetPage() {
   const workOrders = toArray<VesselIntelligenceWorkOrderRecord>(workOrdersQuery.data);
   const alerts = toArray<VesselIntelligenceAlertRecord>(alertsQuery.data);
 
-  const summaryQueries = useQueries({
-    queries: vessels.map((vessel) => {
-      const vesselId = vesselIdFor(vessel);
-      return {
-        queryKey: ["/api/vessel-intelligence", vesselId, "summary"],
-        queryFn: () =>
-          apiRequest<RegistrySummaryRecord>("GET", `/api/vessel-intelligence/${vesselId}/summary`),
-        enabled: Boolean(vesselId) && !redirectedTarget,
-      };
-    }),
+  // One batch request for every vessel's registry summary instead of a
+  // request per vessel (the triage model needs all of them to rank vessels).
+  const vesselIds = vessels.map((vessel) => vesselIdFor(vessel)).filter(Boolean);
+  const summariesQuery = useQuery({
+    queryKey: ["/api/vessel-intelligence/summaries", vesselIds.join(",")],
+    queryFn: () =>
+      apiRequest<Record<string, RegistrySummaryRecord>>(
+        "GET",
+        `/api/vessel-intelligence/summaries?vesselIds=${encodeURIComponent(vesselIds.join(","))}`
+      ),
+    enabled: vesselIds.length > 0 && !redirectedTarget,
   });
 
   if (redirectedTarget) {
     return null;
   }
 
-  const summariesByVesselId: Record<string, RegistrySummaryRecord | undefined> = {};
-  vessels.forEach((vessel, index) => {
-    summariesByVesselId[vesselIdFor(vessel)] = summaryQueries[index]?.data;
-  });
+  const summariesByVesselId: Record<string, RegistrySummaryRecord | undefined> =
+    summariesQuery.data ?? {};
 
   const model = buildFleetTriageViewModel({
     vessels,
@@ -133,14 +132,14 @@ export default function FleetPage() {
     equipmentQuery.isLoading ||
     workOrdersQuery.isLoading ||
     alertsQuery.isLoading ||
-    summaryQueries.some((query) => query.isLoading);
+    summariesQuery.isLoading;
   const hasLiveDataError =
     vesselsQuery.isError ||
     equipmentQuery.isError ||
     workOrdersQuery.isError ||
     alertsQuery.isError ||
     pdmQuery.isError ||
-    summaryQueries.some((query) => query.isError);
+    summariesQuery.isError;
   const linkedEquipment = selectedVesselId
     ? equipment.filter((item) => belongsToVessel(item, selectedVesselId)).length
     : equipment.length;
@@ -151,7 +150,7 @@ export default function FleetPage() {
     void workOrdersQuery.refetch();
     void alertsQuery.refetch();
     void pdmQuery.refetch();
-    summaryQueries.forEach((query) => void query.refetch());
+    void summariesQuery.refetch();
   };
 
   return (

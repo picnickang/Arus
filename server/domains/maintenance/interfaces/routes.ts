@@ -37,6 +37,8 @@ const autoScheduleBodySchema = z.object({
 const templatesListQuerySchema = z.object({
   equipmentType: z.string().optional(),
   isActive: z.enum(["true", "false"]).optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 export function registerMaintenanceRoutes(
@@ -174,14 +176,24 @@ export function registerMaintenanceRoutes(
     generalApiRateLimit,
     withErrorHandling("fetch maintenance templates", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      const { equipmentType, isActive } = templatesListQuerySchema.parse(req.query);
+      const { equipmentType, isActive, limit, offset } = templatesListQuerySchema.parse(req.query);
 
       const templates = await maintenanceService.listTemplates(
         orgId,
         equipmentType,
         isActive === undefined ? undefined : isActive === "true"
       );
-      return res.json(templates);
+      // Optional safety cap with NO default: existing consumers (work-order
+      // form dropdown, hub views, integration journeys) rely on the full
+      // bare-array response. Sliced at the route layer rather than threading
+      // limit/offset through the repository port — the table is small and
+      // user-authored, so SQL pushdown isn't worth the extra surface.
+      const start = offset ?? 0;
+      const paginated =
+        limit !== undefined || offset !== undefined
+          ? templates.slice(start, start + (limit ?? templates.length))
+          : templates;
+      return res.json(paginated);
     })
   );
 

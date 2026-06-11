@@ -171,7 +171,10 @@ export function useNotificationSettings() {
     },
     [vessels]
   );
-  const goBack = useCallback(() => setLocation("/settings"), [setLocation]);
+  const goBack = useCallback(
+    () => setLocation("/configuration?tab=system-settings"),
+    [setLocation]
+  );
 
   return {
     emailStatus,

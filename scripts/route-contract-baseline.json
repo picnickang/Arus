@@ -50,8 +50,6 @@
   "/api/import/telemetry/csv",
   "/api/import/telemetry/json",
   "/api/insight-reports",
-  "/api/integrations/*/sync",
-  "/api/integrations/*/test",
   "/api/inventory",
   "/api/labor-rates",
   "/api/llm/models",

@@ -1,18 +1,18 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-06-11T09:55:54.608Z",
+  "generatedAt": "2026-06-11T11:47:35.508Z",
   "errors": 0,
-  "warnings": 2665,
+  "warnings": 2662,
   "summary": {
     "byTopRules": {
-      "@typescript-eslint/prefer-nullish-coalescing": 1039,
-      "no-nested-ternary": 505,
+      "@typescript-eslint/prefer-nullish-coalescing": 1041,
+      "no-nested-ternary": 502,
       "@typescript-eslint/no-unused-vars": 222,
-      "complexity": 200,
+      "complexity": 201,
       "@typescript-eslint/explicit-function-return-type": 143,
       "max-nested-callbacks": 138,
-      "no-restricted-syntax": 91,
-      "max-lines-per-function": 76,
+      "no-restricted-syntax": 89,
+      "max-lines-per-function": 75,
       "react-hooks/exhaustive-deps": 54,
       "require-atomic-updates": 43,
       "no-return-await": 34,
@@ -22,16 +22,16 @@
       "sonarjs/no-collapsible-if": 10
     },
     "byTopFiles": {
-      "/home/user/Arus/client/src/features/deck-logbook/lib/deckExport.ts": 52,
-      "/home/user/Arus/client/src/components/scheduling/ScheduleGeneratorPanel.tsx": 35,
-      "/home/user/Arus/server/db/system-admin/index.ts": 31,
-      "/home/user/Arus/server/db/inventory/index.ts": 26,
-      "/home/user/Arus/client/src/features/crew/hooks/useUnifiedCrewData.ts": 24,
-      "/home/user/Arus/client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx": 21,
-      "/home/user/Arus/client/src/features/inventory/hooks/useInventoryManagementData.ts": 20,
-      "/home/user/Arus/server/db/workorders/index.ts": 20,
-      "/home/user/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 19,
-      "/home/user/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/deck-logbook/lib/deckExport.ts": 52,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/components/scheduling/ScheduleGeneratorPanel.tsx": 35,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/system-admin/index.ts": 31,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/inventory/index.ts": 26,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/crew/hooks/useUnifiedCrewData.ts": 24,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx": 21,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/inventory/hooks/useInventoryManagementData.ts": 20,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/workorders/index.ts": 20,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/analytics/hooks/useMissionOverviewData.ts": 19,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19
     }
   }
 }

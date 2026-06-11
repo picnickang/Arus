@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, CheckCircle, Clock, Loader2, Target, Wrench } from "lucide-react";
 import { formatDecimal, formatPercent } from "@/lib/formatters";
+import { riskLevelBgClass } from "@/lib/status-colors";
 
 interface ComponentStatus {
   componentType: string;
@@ -28,12 +29,7 @@ export function RulTab({ o }: { o: OptimizationData }) {
         if (!eq || !rulData) {
           return null;
         }
-        const riskColor =
-          rulData.riskLevel === "high"
-            ? "bg-red-500"
-            : rulData.riskLevel === "medium"
-              ? "bg-yellow-500"
-              : "bg-green-500";
+        const riskColor = riskLevelBgClass(rulData.riskLevel);
         return (
           <Card key={eq.id} data-testid={`card-rul-${eq.id}`}>
             <CardHeader>

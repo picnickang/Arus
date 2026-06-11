@@ -128,13 +128,6 @@ function getStatusBadge(status: string) {
   );
 }
 
-function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return formatCurrency(value);
-}
-
 function SortableHeader({
   column,
   sortField,
@@ -400,10 +393,10 @@ export function VirtualizedInventoryTable({
                   {item.stock?.quantityReserved ?? 0}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(unitCost)}
+                  {formatCurrency(unitCost, { fallback: "-" })}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(totalValue)}
+                  {formatCurrency(totalValue, { fallback: "-" })}
                 </div>
                 <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}

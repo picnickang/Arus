@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { comparisonStatusBadgeVariant } from "@/lib/status-colors";
 import {
   useFleetBaselines,
   useFleetComparison,
@@ -29,9 +30,6 @@ export function FleetAnalyticsTab() {
   const { toast } = useToast();
   const equipmentTypes = useEquipmentTypes();
   const vesselName = useEquipmentVesselName(equipmentId);
-
-  const statusColor = (status: string) =>
-    status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
@@ -179,7 +177,7 @@ export function FleetAnalyticsTab() {
                         )}
                         <span className="text-xs">{c.aboveFleetAvg ? "Above" : "Below"}</span>
                       </span>
-                      <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+                      <Badge variant={comparisonStatusBadgeVariant(c.status)}>{c.status}</Badge>
                     </div>
                   </div>
                 )

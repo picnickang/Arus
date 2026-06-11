@@ -20,6 +20,7 @@ import { processTelemetryWarehouseExport } from "./telemetry-warehouse-processor
 import { processTelemetryRollup } from "./telemetry-rollup-processor";
 import { processTelemetryRetention } from "./telemetry-retention-processor";
 import { processTelemetryPartitionMaintenance } from "./telemetry-partition-processor";
+import { processDlqReplay } from "./dlq-replay-processor";
 
 export function registerJobProcessors(): void {
   jobQueue.registerProcessor(JOB_TYPES.AI_EQUIPMENT_ANALYSIS, processEquipmentAnalysis);
@@ -76,6 +77,13 @@ export function registerJobProcessors(): void {
     processTelemetryPartitionMaintenance,
     { tenantScope: "fleet-wide" }
   );
+  // Hourly DLQ auto-replay sweep: enumerates every registered dead-letter
+  // queue (sqlite-bridge today) and replays transient failures; replay
+  // handlers re-enter their original org-aware write paths, so the cron
+  // payload carries no orgId.
+  jobQueue.registerProcessor(JOB_TYPES.DLQ_REPLAY, processDlqReplay, {
+    tenantScope: "fleet-wide",
+  });
 
   logger.info("[Background Jobs] All processors registered successfully");
 }
