@@ -179,6 +179,7 @@ export class PatchApplicator {
    */
   private async assertSafeArchive(patchPath: string, extractDir: string): Promise<void> {
     const violations: string[] = [];
+    const safeExtractDir = fs.realpathSync(extractDir);
 
     await tar.list({
       file: patchPath,
@@ -194,9 +195,9 @@ export class PatchApplicator {
           violations.push(`absolute path '${entryPath}'`);
           return;
         }
-        try {
-          validatePath(extractDir, entryPath);
-        } catch {
+        const resolvedEntryPath = path.resolve(safeExtractDir, entryPath);
+        const relativeEntryPath = path.relative(safeExtractDir, resolvedEntryPath);
+        if (relativeEntryPath.startsWith("..") || path.isAbsolute(relativeEntryPath)) {
           violations.push(`path escapes extraction dir: '${entryPath}'`);
         }
       },

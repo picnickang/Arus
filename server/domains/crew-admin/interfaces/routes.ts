@@ -15,7 +15,7 @@ import {
 import { requireRole } from "../../../middleware/role-auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { auditService } from "../../../compliance/immutable-audit";
-import { isHubId } from "@shared/role-dashboard";
+import { isHubId, roleDashboardConfigSchema } from "@shared/role-dashboard";
 
 const CREW_ADMIN_ROLES = ["super_admin", "system_admin", "company_admin", "admin"] as const;
 const requireCrewAdminRole = requireRole(...CREW_ADMIN_ROLES);
@@ -97,6 +97,9 @@ const createCrewAccountSchema = z.object({
   skipVesselAssignment: z.boolean().optional(),
 });
 const linkAccountSchema = z.object({ userId: z.string().min(1) });
+const idParamsSchema = z.object({ id: z.string().min(1) });
+const roleDashboardParamsSchema = z.object({ roleId: z.string().min(1) });
+const crewMemberParamsSchema = z.object({ crewId: z.string().min(1) });
 
 function statusForError(code: string): number {
   switch (code) {
@@ -207,9 +210,10 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("update crew role", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const data = updateRoleSchema.parse(req.body);
       try {
-        const role = await crewAdminService.updateRole(authReq.orgId, req.params["id"] ?? "", data);
+        const role = await crewAdminService.updateRole(authReq.orgId, id, data);
         await audit(authReq, "update", "role", role.id, { changed: Object.keys(data) });
         return res.json(role);
       } catch (error) {
@@ -228,9 +232,10 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("delete crew role", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       try {
-        await crewAdminService.deleteRole(authReq.orgId, req.params["id"] ?? "");
-        await audit(authReq, "delete", "role", req.params["id"] ?? "");
+        await crewAdminService.deleteRole(authReq.orgId, id);
+        await audit(authReq, "delete", "role", id);
         return res.status(204).send();
       } catch (error) {
         if (handleCrewError(error, res)) {
@@ -248,11 +253,12 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew role hub access", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
       try {
         const { role, previousHubState } = await crewAdminService.setRoleHubAccess(
           authReq.orgId,
-          req.params["id"] ?? "",
+          id,
           hubAdmin,
           hubAccess ?? null
         );
@@ -261,7 +267,7 @@ export function registerCrewAdminRoutes(
           eventCategory: "security_event",
           eventType: "permission_changed",
           entityType: "role",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           previousState: {
@@ -300,10 +306,9 @@ export function registerCrewAdminRoutes(
     generalApiRateLimit,
     withErrorHandling("get role dashboard", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { roleId } = roleDashboardParamsSchema.parse(req.params);
       try {
-        return res.json(
-          await crewAdminService.getDashboardConfig(authReq.orgId, req.params["roleId"] ?? "")
-        );
+        return res.json(await crewAdminService.getDashboardConfig(authReq.orgId, roleId));
       } catch (error) {
         if (handleCrewError(error, res)) {
           return undefined;
@@ -320,14 +325,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("save role dashboard", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { roleId } = roleDashboardParamsSchema.parse(req.params);
+      const data = roleDashboardConfigSchema.parse(req.body);
       try {
         const config = await crewAdminService.saveDashboardConfig(
           authReq.orgId,
-          req.params["roleId"] ?? "",
-          req.body,
+          roleId,
+          data,
           authReq.user?.id
         );
-        await audit(authReq, "config_updated", "role_dashboard", req.params["roleId"] ?? "");
+        await audit(authReq, "config_updated", "role_dashboard", roleId);
         return res.json(config);
       } catch (error) {
         if (handleCrewError(error, res)) {
@@ -345,12 +352,10 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("reset role dashboard", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { roleId } = roleDashboardParamsSchema.parse(req.params);
       try {
-        const config = await crewAdminService.resetDashboardConfig(
-          authReq.orgId,
-          req.params["roleId"] ?? ""
-        );
-        await audit(authReq, "config_updated", "role_dashboard", req.params["roleId"] ?? "", {
+        const config = await crewAdminService.resetDashboardConfig(authReq.orgId, roleId);
+        await audit(authReq, "config_updated", "role_dashboard", roleId, {
           reset: true,
         });
         return res.json(config);
@@ -405,7 +410,8 @@ export function registerCrewAdminRoutes(
     generalApiRateLimit,
     withErrorHandling("get crew user assignments", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
-      return res.json(await crewAdminService.getAssignments(orgId, req.params["id"] ?? ""));
+      const { id } = idParamsSchema.parse(req.params);
+      return res.json(await crewAdminService.getAssignments(orgId, id));
     })
   );
 
@@ -416,15 +422,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew user assignments", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { assignments } = assignmentsSchema.parse(req.body);
       try {
         const result = await crewAdminService.setAssignments(
           authReq.orgId,
-          req.params["id"] ?? "",
+          id,
           assignments,
           authReq.user?.id
         );
-        await audit(authReq, "update", "user_vessel_assignment", req.params["id"] ?? "", {
+        await audit(authReq, "update", "user_vessel_assignment", id, {
           count: result.length,
         });
         return res.json(result);
@@ -444,15 +451,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("change crew user role", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { role } = roleChangeSchema.parse(req.body);
       try {
-        await crewAdminService.changeRole(authReq.orgId, req.params["id"] ?? "", role);
+        await crewAdminService.changeRole(authReq.orgId, id, role);
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "security_event",
           eventType: "permission_changed",
           entityType: "user",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { role },
@@ -474,8 +482,9 @@ export function registerCrewAdminRoutes(
     generalApiRateLimit,
     withErrorHandling("get crew user roles", async (req: Request, res: Response) => {
       const orgId = authenticatedRequest(req).orgId;
+      const { id } = idParamsSchema.parse(req.params);
       try {
-        return res.json(await crewAdminService.getRoleAssignments(orgId, req.params["id"] ?? ""));
+        return res.json(await crewAdminService.getRoleAssignments(orgId, id));
       } catch (error) {
         if (handleCrewError(error, res)) {
           return undefined;
@@ -492,20 +501,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew user roles", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { roleIds } = roleAssignmentsSchema.parse(req.body);
       try {
-        await crewAdminService.setRoleAssignments(
-          authReq.orgId,
-          req.params["id"] ?? "",
-          roleIds,
-          authReq.user?.id
-        );
+        await crewAdminService.setRoleAssignments(authReq.orgId, id, roleIds, authReq.user?.id);
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "security_event",
           eventType: "permission_changed",
           entityType: "user_role_assignment",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { roleIds },
@@ -527,14 +532,11 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew user supervisor", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { supervisorUserId } = supervisorSchema.parse(req.body);
       try {
-        await crewAdminService.setSupervisor(
-          authReq.orgId,
-          req.params["id"] ?? "",
-          supervisorUserId
-        );
-        await audit(authReq, "update", "user", req.params["id"] ?? "", { supervisorUserId });
+        await crewAdminService.setSupervisor(authReq.orgId, id, supervisorUserId);
+        await audit(authReq, "update", "user", id, { supervisorUserId });
         return res.json({ success: true });
       } catch (error) {
         if (handleCrewError(error, res)) {
@@ -552,20 +554,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew user hub access", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { hubAdmin, hubAccess } = hubAccessSchema.parse(req.body);
       try {
-        await crewAdminService.setHubAccess(
-          authReq.orgId,
-          req.params["id"] ?? "",
-          hubAdmin,
-          hubAccess ?? null
-        );
+        await crewAdminService.setHubAccess(authReq.orgId, id, hubAdmin, hubAccess ?? null);
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "security_event",
           eventType: "permission_changed",
           entityType: "user",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { hubAdmin, hubAccess: hubAccess ?? null },
@@ -589,15 +587,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("toggle crew user login", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { enabled } = loginEnabledSchema.parse(req.body);
       try {
-        await crewAdminService.setLoginEnabled(authReq.orgId, req.params["id"] ?? "", enabled);
+        await crewAdminService.setLoginEnabled(authReq.orgId, id, enabled);
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "security_event",
           eventType: "config_updated",
           entityType: "user",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { loginEnabled: enabled },
@@ -619,11 +618,12 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("set crew user credentials", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const data = credentialsSchema.parse(req.body);
       try {
         await crewAdminService.setCredentials({
           orgId: authReq.orgId,
-          userId: req.params["id"] ?? "",
+          userId: id,
           ...data,
         });
         await auditService.logEvent({
@@ -631,7 +631,7 @@ export function registerCrewAdminRoutes(
           eventCategory: "security_event",
           eventType: "config_updated",
           entityType: "user_credentials",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           changedFields: Object.keys(data),
@@ -653,15 +653,16 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("reset crew user password", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { id } = idParamsSchema.parse(req.params);
       const { password } = resetPasswordSchema.parse(req.body);
       try {
-        await crewAdminService.resetPassword(authReq.orgId, req.params["id"] ?? "", password);
+        await crewAdminService.resetPassword(authReq.orgId, id, password);
         await auditService.logEvent({
           orgId: authReq.orgId,
           eventCategory: "security_event",
           eventType: "config_updated",
           entityType: "user_credentials",
-          entityId: req.params["id"] ?? "",
+          entityId: id,
           performedBy: authReq.user?.id ?? "unknown",
           performedByRole: authReq.user?.role,
           newState: { passwordReset: true },
@@ -685,11 +686,9 @@ export function registerCrewAdminRoutes(
     generalApiRateLimit,
     withErrorHandling("get crew member account", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { crewId } = crewMemberParamsSchema.parse(req.params);
       try {
-        const account = await crewAdminService.getCrewAccount(
-          authReq.orgId,
-          req.params["crewId"] ?? ""
-        );
+        const account = await crewAdminService.getCrewAccount(authReq.orgId, crewId);
         return res.json({ account });
       } catch (error) {
         if (handleCrewError(error, res)) {
@@ -707,17 +706,18 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("create crew member account", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { crewId } = crewMemberParamsSchema.parse(req.params);
       const data = createCrewAccountSchema.parse(req.body);
       try {
         const account = await crewAdminService.createAndLinkAccount({
           orgId: authReq.orgId,
-          crewId: req.params["crewId"] ?? "",
+          crewId,
           assignedBy: authReq.user?.id,
           ...data,
         });
         await audit(authReq, "config_updated", "crew_account", account.id, {
           action: "create_and_link",
-          crewId: req.params["crewId"],
+          crewId,
           role: account.role,
         });
         return res.status(201).json({ account });
@@ -737,16 +737,13 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("link crew member account", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { crewId } = crewMemberParamsSchema.parse(req.params);
       const { userId } = linkAccountSchema.parse(req.body);
       try {
-        await crewAdminService.linkExistingAccount(
-          authReq.orgId,
-          req.params["crewId"] ?? "",
-          userId
-        );
+        await crewAdminService.linkExistingAccount(authReq.orgId, crewId, userId);
         await audit(authReq, "config_updated", "crew_account", userId, {
           action: "link",
-          crewId: req.params["crewId"],
+          crewId,
         });
         return res.json({ success: true });
       } catch (error) {
@@ -765,9 +762,10 @@ export function registerCrewAdminRoutes(
     writeLimit,
     withErrorHandling("unlink crew member account", async (req: Request, res: Response) => {
       const authReq = authenticatedRequest(req);
+      const { crewId } = crewMemberParamsSchema.parse(req.params);
       try {
-        await crewAdminService.unlinkAccount(authReq.orgId, req.params["crewId"] ?? "");
-        await audit(authReq, "config_updated", "crew_account", req.params["crewId"] ?? "", {
+        await crewAdminService.unlinkAccount(authReq.orgId, crewId);
+        await audit(authReq, "config_updated", "crew_account", crewId, {
           action: "unlink",
         });
         return res.json({ success: true });

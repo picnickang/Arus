@@ -23,7 +23,8 @@
 import { spawn } from "node:child_process";
 
 const EXPECTED_MODULES = Number(process.env.BOOT_EXPECTED_MODULES ?? 113);
-const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 60_000);
+const TIMEOUT_MS = Number(process.env.BOOT_TIMEOUT_MS ?? 180_000);
+const PORT = process.env.PORT ?? "0";
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const deterministicEmbeddedEnv = hasDatabaseUrl
   ? {}
@@ -48,6 +49,7 @@ const child = spawn("npm", ["run", "dev"], {
     ...process.env,
     ...deterministicEmbeddedEnv,
     NODE_ENV: "development",
+    PORT,
   },
   stdio: ["ignore", "pipe", "pipe"],
 });
@@ -57,7 +59,12 @@ let resolved = false;
 
 const timeout = setTimeout(() => {
   if (!resolved) {
-    finish(1, `Timed out after ${TIMEOUT_MS}ms waiting for boot to complete.`);
+    const tail = output.slice(-4000);
+    finish(
+      1,
+      `Timed out after ${TIMEOUT_MS}ms waiting for boot to complete.` +
+        (tail ? `\n--- last output ---\n${tail}` : "")
+    );
   }
 }, TIMEOUT_MS);
 

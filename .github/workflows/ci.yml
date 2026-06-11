@@ -43,7 +43,7 @@ jobs:
         run: npm run check:guards
 
       - name: Hexagonal storage boundary (db imports outside infrastructure)
-        run: node scripts/check-hex-storage-boundaries.mjs
+        run: npm run check:hex-storage
 
       - name: Dual-schema parity (PG vs SQLite)
         run: node scripts/validate-dual-schema.mjs
@@ -78,12 +78,21 @@ jobs:
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
 
+      - name: API contract ratchet
+        run: npm run check:api-contracts
+
+      - name: Client wire-parse ratchet
+        run: npm run check:client-wire-parses
+
+      - name: Server wire-parse ratchet
+        run: npm run check:server-wire-parses
+
       # Guards against client↔server route drift (e.g. /api/pdm/health was
       # swagger-documented and client-queried but never implemented).
       # Boots the real registerRoutes() to dump the actual route table;
       # pre-existing drift is ratcheted in scripts/route-contract-baseline.json.
       - name: Route contract (client /api refs ↔ server route table)
-        run: node scripts/check-route-contract.mjs
+        run: npm run check:route-contract
 
       # Orphaned files/exports ratchet (e.g. PowerSTWChart was built but
       # never imported by any page until the performance view mounted it).

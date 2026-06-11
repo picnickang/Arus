@@ -314,7 +314,7 @@ async function expectPrimaryMobileTargetsAtLeast(page: Page, min = 44): Promise<
         .map((element) => {
           const rect = element.getBoundingClientRect();
           return {
-            testId: element.dataset.testid,
+            testId: element.dataset["testid"],
             text: element.textContent?.trim().slice(0, 60),
             width: Math.round(rect.width),
             height: Math.round(rect.height),
@@ -338,13 +338,13 @@ async function expectHorizontalNavAffordance(page: Page): Promise<void> {
         if (!scrollport || scrollport.scrollWidth <= scrollport.clientWidth + 2) {
           return null;
         }
-        return nav.dataset.overflowAffordance === "edge-fade"
+        return nav.dataset["overflowAffordance"] === "edge-fade"
           ? null
           : {
-              testId: nav.dataset.testid,
+              testId: nav.dataset["testid"],
               scrollWidth: scrollport.scrollWidth,
               clientWidth: scrollport.clientWidth,
-              affordance: nav.dataset.overflowAffordance,
+              affordance: nav.dataset["overflowAffordance"],
             };
       })
       .filter(Boolean);

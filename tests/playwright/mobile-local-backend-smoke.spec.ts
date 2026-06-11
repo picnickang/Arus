@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
 test.skip(
-  process.env.PLAYWRIGHT_LOCAL_BACKEND !== "1",
+  process.env["PLAYWRIGHT_LOCAL_BACKEND"] !== "1",
   "Set PLAYWRIGHT_LOCAL_BACKEND=1 to run this opt-in real-backend mobile smoke."
 );
 
@@ -42,7 +42,9 @@ async function expectNotShellOnly(page: import("@playwright/test").Page): Promis
     ];
     const marker = markers.find((selector) => document.querySelector(selector));
     const bodyText = document.body.innerText.trim();
-    const textMarker = ["Data table", "No Work Orders Found"].find((text) => bodyText.includes(text));
+    const textMarker = ["Data table", "No Work Orders Found"].find((text) =>
+      bodyText.includes(text)
+    );
     return {
       hasShell: Boolean(shell),
       marker: marker ?? textMarker,
@@ -59,7 +61,9 @@ async function expectNotShellOnly(page: import("@playwright/test").Page): Promis
 test.describe("local backend mobile smoke", () => {
   test.setTimeout(90_000);
 
-  test("dev admin can reach core mobile admin routes without shell-only bodies", async ({ page }) => {
+  test("dev admin can reach core mobile admin routes without shell-only bodies", async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto("/portal-login", { waitUntil: "domcontentloaded", timeout: 60_000 });
     const devAdminButton = page.getByTestId("button-dev-login-admin");

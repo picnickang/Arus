@@ -10,9 +10,8 @@ const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
 
 // LR-3.5 / SEC-2: constant-time compare lives in
-// `server/lib/constant-time-compare.ts` so unit tests can import it
-// without dragging the DB-bearing auth-routes module in.
-export { constantTimeEqualString };
+// `server/lib/constant-time-compare.ts` so unit tests import it without
+// dragging the DB-bearing auth-routes module in.
 
 function isLoopbackAddress(address: string): boolean {
   const normalized = address.replace(/^::ffff:/, "");
