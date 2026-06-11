@@ -64,6 +64,9 @@ import {
 
 type AssignmentFilter = "all" | "published" | "drafts" | "generated";
 
+// Stable reference for vessels with no assignments, so memoized rows compare equal.
+const EMPTY_ASSIGNMENTS: ScheduleAssignment[] = [];
+
 export function SchedulePlanner() {
   const planner = useSchedulePlannerData();
   const { toast } = useToast();
@@ -132,12 +135,20 @@ export function SchedulePlanner() {
     });
   }, [planner.assignments, assignmentFilter]);
 
-  const getFilteredAssignmentsForVessel = useCallback(
-    (vesselId: string): ScheduleAssignment[] => {
-      return filteredAssignments.filter((a) => a.vesselId === vesselId);
-    },
-    [filteredAssignments]
-  );
+  // Grouped once per filter change so each VesselRow receives a referentially
+  // stable array (required for the rows' React.memo to hold during drags).
+  const assignmentsByVessel = useMemo(() => {
+    const byVessel = new Map<string, ScheduleAssignment[]>();
+    for (const assignment of filteredAssignments) {
+      const existing = byVessel.get(assignment.vesselId);
+      if (existing) {
+        existing.push(assignment);
+      } else {
+        byVessel.set(assignment.vesselId, [assignment]);
+      }
+    }
+    return byVessel;
+  }, [filteredAssignments]);
 
   const handlePointerDragStart = useCallback(
     (e: React.PointerEvent, assignment: ScheduleAssignment) => {
@@ -422,10 +433,10 @@ export function SchedulePlanner() {
     setMobileFilterOpen(false);
   };
 
-  const handleEmptyCellClick = (vesselId: string, vesselName: string, date: Date) => {
+  const handleEmptyCellClick = useCallback((vesselId: string, vesselName: string, date: Date) => {
     setCreatePrefillData({ vesselId, vesselName, startDate: date });
     setIsCreateSheetOpen(true);
-  };
+  }, []);
 
   const handleCloseCreateSheet = () => {
     setIsCreateSheetOpen(false);
@@ -943,7 +954,7 @@ export function SchedulePlanner() {
                   <VesselRow
                     key={vessel.id}
                     vessel={vessel}
-                    assignments={getFilteredAssignmentsForVessel(vessel.id)}
+                    assignments={assignmentsByVessel.get(vessel.id) ?? EMPTY_ASSIGNMENTS}
                     timelineDays={planner.timelineDays}
                     calculateBlockPosition={planner.calculateBlockPosition}
                     getConstraintSummary={planner.getConstraintSummary}

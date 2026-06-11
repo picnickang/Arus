@@ -39,6 +39,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/formatters";
 import { SectionedVesselMap } from "./SectionedVesselMap";
 import {
   DIAGRAM_TYPES,
@@ -81,6 +82,16 @@ import {
   useValidateSectionMap,
   useVesselDiagrams,
 } from "./registry-api";
+
+// Matches the previous `toLocaleDateString()` rendering exactly (browser
+// locale, all-numeric date).
+const REGISTRY_DATE_FORMAT = {
+  locale: "auto",
+  month: "numeric",
+  hour: undefined,
+  minute: undefined,
+  fallback: "Not recorded",
+} as const;
 
 interface RegistryRouteScreenProps {
   vesselId: string;
@@ -314,7 +325,7 @@ export function DiagramTypeCard({
         />
         <StatusLine
           label="Last updated"
-          value={formatDate((diagram as { updatedAt?: string })?.updatedAt)}
+          value={formatDate((diagram as { updatedAt?: string })?.updatedAt, REGISTRY_DATE_FORMAT)}
         />
         <StatusLine label="Record" value={diagram ? "Created" : "Not uploaded"} />
       </div>
@@ -844,10 +855,11 @@ function VersionRow({
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {version.originalFileName} | uploaded by {version.uploadedBy ?? "unknown"} |{" "}
-          {formatDate(version.uploadedAt)}
+          {formatDate(version.uploadedAt, REGISTRY_DATE_FORMAT)}
         </p>
         <p className="text-xs text-muted-foreground">
-          published by {version.publishedBy ?? "not published"} | {formatDate(version.publishedAt)}
+          published by {version.publishedBy ?? "not published"} |{" "}
+          {formatDate(version.publishedAt, REGISTRY_DATE_FORMAT)}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -1752,15 +1764,4 @@ function defaultPolygonText() {
     null,
     2
   );
-}
-
-function formatDate(value: unknown) {
-  if (!value) {
-    return "Not recorded";
-  }
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return "Not recorded";
-  }
-  return date.toLocaleDateString();
 }

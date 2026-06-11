@@ -1,8 +1,3 @@
-export const statusColor = (s: string) =>
-  s === "operational"
-    ? "text-green-500"
-    : s === "degraded" || s === "warning"
-      ? "text-yellow-500"
-      : s === "critical"
-        ? "text-red-500"
-        : "text-slate-400";
+// Equipment status → text color now lives in the shared status-colors lib;
+// re-exported under its original name for this page's importers.
+export { equipmentStatusTextClass as statusColor } from "@/lib/status-colors";

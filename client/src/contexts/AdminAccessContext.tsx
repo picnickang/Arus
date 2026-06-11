@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { getApiSessionToken, setApiSessionToken } from "@/lib/sessionToken";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { isSuperAdminRole } from "@shared/role-dashboard";
@@ -13,8 +21,6 @@ interface AdminAccessContextType {
   unlockAdminFromUserSession: (token: string, expiresInSeconds: number) => void;
   lockAdmin: () => void;
   logout: () => Promise<void>;
-  timeUntilExpiry: number | null;
-  timeUntilIdleTimeout: number | null;
 }
 
 const AdminAccessContext = createContext<AdminAccessContextType | undefined>(undefined);
@@ -46,8 +52,6 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
-  const [timeUntilExpiry, setTimeUntilExpiry] = useState<number | null>(null);
-  const [timeUntilIdleTimeout, setTimeUntilIdleTimeout] = useState<number | null>(null);
 
   const lastActivityRef = useRef<number>(Date.now());
   const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,8 +94,6 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     setIsAdminUnlocked(false);
     setSessionToken(null);
     setSessionExpiresAt(null);
-    setTimeUntilExpiry(null);
-    setTimeUntilIdleTimeout(null);
 
     // Clear in-memory API session token
     setApiSessionToken(null);
@@ -154,49 +156,41 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
   // Users will need to re-authenticate after page reload
   // This is a security vs. convenience trade-off in favor of security
 
-  // Set up expiry and idle timeout timers
+  // Enforce session expiry / idle timeout while unlocked. The checks run on an
+  // interval but do NOT touch state on each tick (the old per-second countdown
+  // state had no consumers and re-rendered the provider once a second), so the
+  // only render this effect ever causes is the lockAdmin() teardown itself.
+  // Skipped in dev so a real admin session used for local testing isn't torn
+  // down mid-session; production always enforces the cap. (The server token
+  // still expires regardless.)
   useEffect(() => {
-    if (!isAdminUnlocked || !sessionExpiresAt) {
+    if (!isAdminUnlocked || !sessionExpiresAt || DEV_MODE) {
       return;
     }
 
-    // Update countdown timers every second
-    const updateTimers = () => {
+    const checkSessionTimeouts = () => {
       const now = Date.now();
       const expiryMs = sessionExpiresAt.getTime() - now;
       const idleMs = IDLE_TIMEOUT_MS - (now - lastActivityRef.current);
 
-      setTimeUntilExpiry(Math.max(0, Math.floor(expiryMs / 1000)));
-      setTimeUntilIdleTimeout(Math.max(0, Math.floor(idleMs / 1000)));
-
-      // Auto-lock on expiry. Skipped in dev so a real admin session used for
-      // local testing isn't torn down mid-session; production always enforces
-      // the cap. (The server token still expires regardless.)
-      if (!DEV_MODE && expiryMs <= 0) {
+      if (expiryMs <= 0) {
         console.info("⏰ Session expired (max duration reached)");
         lockAdmin();
         return;
       }
 
-      // Auto-lock on idle timeout (skipped in dev — see note above).
-      if (!DEV_MODE && idleMs <= 0) {
+      if (idleMs <= 0) {
         console.info("⏰ Session expired (idle timeout)");
         lockAdmin();
-        return;
       }
     };
 
-    // Initial update
-    updateTimers();
-
-    // Update every second
-    const timerId = setInterval(updateTimers, 1000);
+    checkSessionTimeouts();
+    const timerId = setInterval(checkSessionTimeouts, 1000);
     expiryTimerRef.current = timerId;
 
     return () => {
-      if (timerId) {
-        clearInterval(timerId);
-      }
+      clearInterval(timerId);
     };
   }, [isAdminUnlocked, sessionExpiresAt, lockAdmin]);
 
@@ -223,16 +217,18 @@ export function AdminAccessProvider({ children }: { children: React.ReactNode })
     };
   }, [isAdminUnlocked, updateActivity]);
 
-  const value: AdminAccessContextType = {
-    isAdminUnlocked,
-    sessionToken,
-    sessionExpiresAt,
-    unlockAdminFromUserSession,
-    lockAdmin,
-    logout,
-    timeUntilExpiry,
-    timeUntilIdleTimeout,
-  };
+  // Memoized so consumers only re-render on real session transitions.
+  const value: AdminAccessContextType = useMemo(
+    () => ({
+      isAdminUnlocked,
+      sessionToken,
+      sessionExpiresAt,
+      unlockAdminFromUserSession,
+      lockAdmin,
+      logout,
+    }),
+    [isAdminUnlocked, sessionToken, sessionExpiresAt, unlockAdminFromUserSession, lockAdmin, logout]
+  );
 
   return <AdminAccessContext.Provider value={value}>{children}</AdminAccessContext.Provider>;
 }

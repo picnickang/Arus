@@ -152,7 +152,15 @@ function ActionTile({
   );
 }
 
-function Cluster({ title, testId, children }: { title: string; testId: string; children: React.ReactNode }) {
+function Cluster({
+  title,
+  testId,
+  children,
+}: {
+  title: string;
+  testId: string;
+  children: React.ReactNode;
+}) {
   return (
     <div data-testid={testId}>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
@@ -161,7 +169,13 @@ function Cluster({ title, testId, children }: { title: string; testId: string; c
   );
 }
 
-function AttentionRow({ item, onOpen }: { item: CrewAttentionItem; onOpen: (item: CrewAttentionItem) => void }) {
+function AttentionRow({
+  item,
+  onOpen,
+}: {
+  item: CrewAttentionItem;
+  onOpen: (item: CrewAttentionItem) => void;
+}) {
   const days = item.daysUntilExpiry;
   const daysLabel =
     item.kind === "task"
@@ -178,7 +192,9 @@ function AttentionRow({ item, onOpen }: { item: CrewAttentionItem; onOpen: (item
       className="ops-card flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:border-sky-500/40"
       data-testid={`attention-row-${item.id}`}
     >
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${URGENCY_TONE[item.urgency]}`}>
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${URGENCY_TONE[item.urgency]}`}
+      >
         {item.kind === "cert" ? (
           <Shield className="h-4 w-4" />
         ) : item.kind === "task" ? (
@@ -191,7 +207,9 @@ function AttentionRow({ item, onOpen }: { item: CrewAttentionItem; onOpen: (item
         <p className="truncate text-sm font-medium text-white">{item.crewName}</p>
         <p className="truncate text-xs text-slate-400">{item.label}</p>
       </div>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${URGENCY_TONE[item.urgency]}`}>
+      <span
+        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${URGENCY_TONE[item.urgency]}`}
+      >
         {daysLabel}
       </span>
     </button>
@@ -277,9 +295,7 @@ export function CrewRegistryLanding({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">Open current roster</p>
-          <p className="text-xs text-slate-400">
-            {counts.current} active • sort by role or vessel
-          </p>
+          <p className="text-xs text-slate-400">{counts.current} active • sort by role or vessel</p>
         </div>
         <ArrowRight className="h-4 w-4 text-slate-400" />
       </button>
@@ -340,11 +356,13 @@ export function CrewRegistryLanding({
   const attention = (
     <div key="attention" ref={attentionRef}>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Needs attention</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Needs attention
+        </p>
         {!expiryLoading && attentionItems.length > 0 && (
           <button
             type="button"
-            onClick={() => (hasComplianceItems ? setLocation("/compliance-consolidated") : onOpenTasks())}
+            onClick={() => (hasComplianceItems ? setLocation("/logs/compliance") : onOpenTasks())}
             className="inline-flex items-center gap-1 text-xs font-medium text-sky-300 hover:text-sky-200"
             data-testid="button-attention-view-all"
           >
@@ -353,11 +371,17 @@ export function CrewRegistryLanding({
         )}
       </div>
       {expiryLoading ? (
-        <div className="ops-card rounded-2xl p-4 text-sm text-slate-400" data-testid="attention-loading">
+        <div
+          className="ops-card rounded-2xl p-4 text-sm text-slate-400"
+          data-testid="attention-loading"
+        >
           Checking what needs attention…
         </div>
       ) : attentionItems.length === 0 ? (
-        <div className="ops-card rounded-2xl p-4 text-sm text-slate-400" data-testid="attention-empty">
+        <div
+          className="ops-card rounded-2xl p-4 text-sm text-slate-400"
+          data-testid="attention-empty"
+        >
           Nothing needs your attention right now.
         </div>
       ) : (
@@ -442,7 +466,7 @@ export function CrewRegistryLanding({
         icon={<Shield className="h-5 w-5 text-amber-300" />}
         label="Compliance"
         hint="Certs & docs"
-        onClick={() => setLocation("/compliance-consolidated")}
+        onClick={() => setLocation("/logs/compliance")}
         testId="action-compliance"
       />
     </Cluster>

@@ -12,13 +12,6 @@ const Diagnostics = lazy(() => import("@/pages/DiagnosticsDashboard"));
 const ManualTelemetryUpload = lazy(() => import("@/pages/manual-telemetry-upload"));
 const CopilotAdmin = lazy(() => import("@/pages/copilot-admin"));
 const AgentActivity = lazy(() => import("@/pages/agent-activity"));
-const Settings = lazy(() => import("@/pages/settings"));
-const NotificationSettings = lazy(() => import("@/pages/notification-settings"));
-const EmailTemplates = lazy(() => import("@/pages/email-templates"));
-const EmailAlertsSettings = lazy(() => import("@/pages/email-alerts-settings"));
-const PermissionsSettings = lazy(() => import("@/pages/permissions-settings"));
-const StorageSettings = lazy(() => import("@/pages/storage-settings"));
-const TransportSettings = lazy(() => import("@/pages/transport-settings"));
 const AdminTenants = lazy(() => import("@/pages/admin/tenants"));
 const Admin3DModels = lazy(() => import("@/pages/admin/3d-models"));
 const AdminEquipmentDependencies = lazy(() => import("@/pages/admin/equipment-dependencies"));
@@ -38,13 +31,10 @@ export const systemRoutes = [
   { path: "/telemetry-upload", component: ManualTelemetryUpload },
   { path: "/copilot-admin", component: CopilotAdmin },
   { path: "/agent/activity", component: AgentActivity },
-  { path: "/settings", component: Settings },
-  { path: "/notification-settings", component: NotificationSettings },
-  { path: "/email-templates", component: EmailTemplates },
-  { path: "/email-alerts-settings", component: EmailAlertsSettings },
-  { path: "/permissions-settings", component: PermissionsSettings },
-  { path: "/storage-settings", component: StorageSettings },
-  { path: "/transport-settings", component: TransportSettings },
+  // Standalone settings routes intentionally unregistered: routeMigrations
+  // sends them into the hubs that host the same pages as tabs
+  // (/configuration?tab=… and /notifications?tab=…); /permissions-settings
+  // goes straight to the consolidated role manager in Crew.
   { path: "/admin/tenants", component: AdminTenants },
   { path: "/admin/3d-models", component: Admin3DModels },
   { path: "/admin/equipment-dependencies", component: AdminEquipmentDependencies },

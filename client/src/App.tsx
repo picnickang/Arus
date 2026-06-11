@@ -283,7 +283,6 @@ function ConnectivityBannerWithSync() {
         void replayQueuedApiRequests().finally(refreshPendingCount);
       }
     };
-    const interval = window.setInterval(refreshPendingCount, 15000);
     window.addEventListener("arus:offline-sync-changed", handleSyncChange);
     window.addEventListener("online", handleOnline);
     navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
@@ -294,12 +293,22 @@ function ConnectivityBannerWithSync() {
 
     return () => {
       unsubscribe();
-      window.clearInterval(interval);
       window.removeEventListener("arus:offline-sync-changed", handleSyncChange);
       window.removeEventListener("online", handleOnline);
       navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
     };
   }, [refreshPendingCount]);
+
+  // Poll only while something is pending. A transition from zero is always
+  // announced by the mutation cache subscription or the offline-sync event
+  // (broadcastOfflineSyncChange fires on enqueue), which re-arms this.
+  useEffect(() => {
+    if (pendingCount === 0) {
+      return;
+    }
+    const interval = window.setInterval(refreshPendingCount, 15000);
+    return () => window.clearInterval(interval);
+  }, [pendingCount, refreshPendingCount]);
   return <ConnectivityBanner pendingSyncCount={pendingCount} />;
 }
 

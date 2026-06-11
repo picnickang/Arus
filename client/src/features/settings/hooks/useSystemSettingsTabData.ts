@@ -130,11 +130,11 @@ export function useSystemSettingsTabData() {
   }, [form]);
 
   const navigateToEmailSettings = useCallback(() => {
-    setLocation("/email-alerts-settings");
+    setLocation("/notifications?tab=alert-rules");
   }, [setLocation]);
 
   const navigateToNotificationSettings = useCallback(() => {
-    setLocation("/notification-settings");
+    setLocation("/notifications?tab=preferences");
   }, [setLocation]);
 
   const settingsList = useMemo(() => (settings ?? []) as AdminSystemSetting[], [settings]);

@@ -48,7 +48,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Calendar, Mail, FileText, Clock, Play, Trash2, Eye, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
+import { formatDate } from "@/lib/formatters";
 import type { ReportSchedule } from "@shared/schema/scheduled-reports";
+
+// Matches the previous `new Date(x).toLocaleString()` rendering exactly
+// (browser locale, all-numeric date + time).
+const RUN_DATE_FORMAT = {
+  locale: "auto",
+  month: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+  fallback: "Never",
+} as const;
 
 const REPORT_TYPES = [
   { id: "fleet_health", name: "Fleet Health Summary" },
@@ -316,13 +328,6 @@ export default function ScheduledReports() {
     return REPORT_TYPES.find((t) => t.id === id)?.name || id;
   };
 
-  const formatDate = (date: string | Date | null) => {
-    if (!date) {
-      return "Never";
-    }
-    return new Date(date).toLocaleString();
-  };
-
   return (
     <div className="container mx-auto" data-testid="page-scheduled-reports">
       <PageHeader title="Scheduled Reports" />
@@ -544,15 +549,18 @@ export default function ScheduledReports() {
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <p>Last run: {formatDate(schedule.lastRunAt)}</p>
-                    <p>Next run: {formatDate(schedule.nextRunAt)}</p>
+                    <p>Last run: {formatDate(schedule.lastRunAt, RUN_DATE_FORMAT)}</p>
+                    <p>Next run: {formatDate(schedule.nextRunAt, RUN_DATE_FORMAT)}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt ? String(schedule.lastRunAt) : "" })
+                        runNowMutation.mutate({
+                          id: schedule.id,
+                          lastRunAt: schedule.lastRunAt ? String(schedule.lastRunAt) : "",
+                        })
                       }
                       disabled={runNowMutation.isPending}
                       data-testid={`button-run-${schedule.id}`}

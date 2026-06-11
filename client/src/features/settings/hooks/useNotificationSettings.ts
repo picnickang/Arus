@@ -88,7 +88,7 @@ export function useNotificationSettings() {
     },
   });
   const testMutation = useMutation<{ message: string }, Error, string>({
-    mutationFn: ((async (email: string) =>
+    mutationFn: (async (email: string) =>
       apiRequest("/api/notifications/email/test", {
         method: "POST",
         body: JSON.stringify({
@@ -96,7 +96,7 @@ export function useNotificationSettings() {
           subject: "ARUS Marine Test",
           message: "This is a test notification.",
         }),
-      })) as object as (email: string) => Promise<{ message: string }>),
+      })) as object as (email: string) => Promise<{ message: string }>,
     onSuccess: (data: { message: string }) => {
       toast({ title: data.message || "Test notification sent" });
     },
@@ -171,7 +171,10 @@ export function useNotificationSettings() {
     },
     [vessels]
   );
-  const goBack = useCallback(() => setLocation("/settings"), [setLocation]);
+  const goBack = useCallback(
+    () => setLocation("/configuration?tab=system-settings"),
+    [setLocation]
+  );
 
   return {
     emailStatus,

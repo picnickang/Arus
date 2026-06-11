@@ -500,6 +500,23 @@ export const routeMigrations: Record<string, string> = {
   "/outbox": "/offline-outbox",
   "/sync-outbox": "/offline-outbox",
   "/compliance/findings": "/logs/compliance?tab=findings",
+  // Standalone consolidated-wrapper routes retired; /logs/<area> renders the
+  // same shells (UI assessment route consolidation, 2026-06).
+  "/compliance-consolidated": "/logs/compliance",
+  "/deck-log-consolidated": "/logs/deck",
+  "/engine-log-consolidated": "/logs/engine",
+  "/equipment-log-consolidated": "/logs/equipment",
+  // Standalone settings pages retired; the Configuration and Notifications
+  // hubs host the same pages as tabs (UI assessment settings consolidation).
+  "/settings": "/configuration?tab=system-settings",
+  "/transport-settings": "/configuration?tab=data-transport",
+  "/storage-settings": "/configuration?tab=storage",
+  "/notification-settings": "/notifications?tab=preferences",
+  "/email-alerts-settings": "/notifications?tab=alert-rules",
+  "/email-templates": "/notifications?tab=templates",
+  // Permissions management lives in Crew → Roles & Dashboards.
+  "/permissions-settings": "/crew-management?view=roles",
+  "/operating-parameters": "/configuration?tab=operating-parameters",
   "/vessel-intelligence/fleet": "/fleet",
   "/fleet-map": "/fleet",
   "/predictive-maintenance": "/vessel-intelligence?target=overview",

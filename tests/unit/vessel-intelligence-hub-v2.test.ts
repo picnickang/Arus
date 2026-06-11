@@ -131,7 +131,9 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(fleetPage).toContain('"/api/equipment"');
     expect(fleetPage).toContain('"/api/work-orders"');
     expect(fleetPage).toContain('"/api/alerts"');
-    expect(fleetPage).toContain('"/api/vessel-intelligence"');
+    // Registry summaries arrive via the batch endpoint (one request per fleet,
+    // not one per vessel).
+    expect(fleetPage).toContain('"/api/vessel-intelligence/summaries"');
     expect(fleetPage).toContain("selectedDiagramMediaUrl");
     expect(fleetPage).toContain("FleetVesselDiagramPreview");
     expect(fleetPage).toContain("FleetRegistryAccessPanel");
