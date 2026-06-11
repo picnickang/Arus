@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:09:43.906Z
+Generated: 2026-06-11T23:14:17.436Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `106` counted files.
-- The current counted inventory is `106` files.
+- The temporary ceiling is `104` counted files.
+- The current counted inventory is `104` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   106 |
+| Total counted long files  |   104 |
 | Server                    |    36 |
 | Server route-like files   |     9 |
 | Server service-like files |     9 |
-| Client                    |    70 |
+| Client                    |    68 |
 | Client page files         |    28 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -77,6 +77,8 @@ Completed splits:
 - `client/src/lib/offline-sync.ts` dropped below the threshold by moving offline sync public types and IndexedDB schema typing to a sibling type module while preserving the public runtime entry point.
 - `client/src/components/UnifiedCrewManagement/CurrentRoster.tsx` dropped below the threshold by moving current roster row and group-section rendering to a sibling component module while preserving roster grouping controls and test IDs.
 - `client/src/features/suppliers/components/SupplierForm.tsx` dropped below the threshold by moving supplier form schema/default-value helpers to a sibling module while preserving the public form component.
+- `client/src/components/engine-logbook/row-components.tsx` dropped below the threshold by moving event/watch card rendering to a sibling module while preserving the existing row-components import path.
+- `client/src/pages/work-orders.tsx` dropped below the threshold by moving loading, error, and statistic-card presentation to a sibling page-parts module while preserving the route component.
 
 ## Top 30 Longest Files
 
@@ -236,7 +238,5 @@ Completed splits:
 530 server/domains/crew-extensions/infrastructure/schedule-planner-read-model.ts
 530 client/src/pages/agent-activity.tsx
 530 client/src/features/work-orders/hooks/useWorkOrdersPageData.ts
-528 client/src/pages/work-orders.tsx
-527 client/src/components/engine-logbook/row-components.tsx
 521 client/src/pages/logs-compliance-hub.tsx
 ```
