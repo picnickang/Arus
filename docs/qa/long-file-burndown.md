@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T20:55:05.773Z
+Generated: 2026-06-11T21:35:21.045Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `129` counted files.
-- The current counted inventory is `129` files.
+- The temporary ceiling is `126` counted files.
+- The current counted inventory is `126` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,13 +20,13 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   129 |
-| Server                    |    47 |
+| Total counted long files  |   126 |
+| Server                    |    46 |
 | Server route-like files   |    10 |
-| Server service-like files |    14 |
-| Client                    |    74 |
+| Server service-like files |    13 |
+| Client                    |    73 |
 | Client page files         |    28 |
-| Shared                    |     8 |
+| Shared                    |     7 |
 | Counted tests             |     1 |
 | Excluded test fixtures    |     1 |
 
@@ -55,46 +55,48 @@ Completed splits:
 - `server/config/default-role-templates.ts` dropped below the threshold by moving role-template groups and types to focused config modules.
 - `server/config/permission-registry.ts` dropped below the threshold by moving action, resource, category, and type definitions to focused config modules.
 - `server/domains/crew-admin/interfaces/routes.ts` dropped below the threshold by moving role, dashboard, user, credential, and account route groups to focused modules.
+- `server/services/domains/work-order-service.ts` dropped below the threshold by moving query, lifecycle, clone, completion, and shared type operations to focused service modules.
+- `shared/schema/admin.ts` dropped below the threshold by moving admin schema table groups to focused schema modules while preserving the public barrel.
 
 ## Top 30 Longest Files
 
-| Rank | Lines | File                                                                      |
-| ---: | ----: | ------------------------------------------------------------------------- |
-|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`                       |
-|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx`                          |
-|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             |
-|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          |
-|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx`                         |
-|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    |
-|    7 |   990 | `client/src/pages/ml-training.tsx`                                        |
-|    8 |   937 | `shared/schema/ml-analytics-advanced.ts`                                  |
-|    9 |   923 | `client/src/components/unified-crew-components.tsx`                       |
-|   10 |   917 | `server/domains/agent/application/orchestrator.ts`                        |
-|   11 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
-|   12 |   880 | `server/services/domains/work-order-service.ts`                           |
-|   13 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
-|   14 |   869 | `client/src/pages/system-administration.tsx`                              |
-|   15 |   852 | `server/domains/workflow/application/attention-service.ts`                |
-|   16 |   843 | `client/src/pages/findings.tsx`                                           |
-|   17 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
-|   18 |   832 | `shared/schema/logbooks.ts`                                               |
-|   19 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
-|   20 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
-|   21 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   22 |   819 | `client/src/pages/inventory-management.tsx` |
-|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
-|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
-|   25 |   809 | `client/src/pages/pdm-pack.tsx` |
-|   26 |   791 | `server/routes/service-request-routes.ts` |
-|   27 |   787 | `server/routes/rag-routes.ts` |
-|   28 |   786 | `client/src/pages/maintenance-schedules.tsx` |
-|   29 |   779 | `client/src/components/CrewDocumentsTab.tsx` |
-|   30 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx` |
+| Rank | Lines | File |
+| ---: | ----: | ---- |
+|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx` |
+|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx` |
+|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx` |
+|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx` |
+|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx` |
+|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx` |
+|    7 |   990 | `client/src/pages/ml-training.tsx` |
+|    8 |   937 | `shared/schema/ml-analytics-advanced.ts` |
+|    9 |   923 | `client/src/components/unified-crew-components.tsx` |
+|   10 |   917 | `server/domains/agent/application/orchestrator.ts` |
+|   11 |   899 | `client/src/pages/admin/3d-models.tsx` |
+|   12 |   875 | `client/src/pages/copilot-admin.tsx` |
+|   13 |   869 | `client/src/pages/system-administration.tsx` |
+|   14 |   852 | `server/domains/workflow/application/attention-service.ts` |
+|   15 |   843 | `client/src/pages/findings.tsx` |
+|   16 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
+|   17 |   832 | `shared/schema/logbooks.ts` |
+|   18 |   832 | `client/src/pages/deck-logbook/index.tsx` |
+|   19 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
+|   20 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   21 |   819 | `client/src/pages/inventory-management.tsx` |
+|   22 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
+|   23 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
+|   24 |   809 | `client/src/pages/pdm-pack.tsx` |
+|   25 |   791 | `server/routes/service-request-routes.ts` |
+|   26 |   787 | `server/routes/rag-routes.ts` |
+|   27 |   786 | `client/src/pages/maintenance-schedules.tsx` |
+|   28 |   779 | `client/src/components/CrewDocumentsTab.tsx` |
+|   29 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx` |
+|   30 |   755 | `client/src/pages/organization-management.tsx` |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize work-order service, workflow attention service, the remaining vessel diagram service, agent orchestration, and equipment intelligence repositories.
+   - Prioritize workflow attention service, the remaining vessel diagram service, agent orchestration, and equipment intelligence repositories.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -122,7 +124,6 @@ Completed splits:
 923 client/src/components/unified-crew-components.tsx
 917 server/domains/agent/application/orchestrator.ts
 899 client/src/pages/admin/3d-models.tsx
-880 server/services/domains/work-order-service.ts
 875 client/src/pages/copilot-admin.tsx
 869 client/src/pages/system-administration.tsx
 852 server/domains/workflow/application/attention-service.ts
@@ -141,7 +142,6 @@ Completed splits:
 786 client/src/pages/maintenance-schedules.tsx
 779 client/src/components/CrewDocumentsTab.tsx
 768 client/src/components/CrewNotificationSettingsTab.tsx
-758 shared/schema/admin.ts
 755 client/src/pages/organization-management.tsx
 755 client/src/pages/MaintenanceTemplatesPage.tsx
 748 client/src/components/ai-health/TrainingTab.tsx
@@ -194,7 +194,7 @@ Completed splits:
 604 server/domains/equipment/routes.ts
 603 server/domains/agent/application/suggestion-engine.ts
 598 client/src/lib/queryClient.ts
-596 server/services/patch-applicator.ts
+597 server/services/patch-applicator.ts
 594 server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts
 593 server/routes/wo-so-bridge-routes.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
@@ -239,5 +239,4 @@ Completed splits:
 514 client/src/features/suppliers/components/SupplierForm.tsx
 509 server/domains/rms/routes.ts
 507 client/src/components/UnifiedCrewManagement/CurrentRoster.tsx
-503 client/src/components/scheduling/schedule-planner-dialogs.tsx
 ```
