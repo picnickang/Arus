@@ -16,4 +16,15 @@ describe("client tail component extractions", () => {
     expect(secondary).toContain('data-testid={`event-${event.id}`}');
     expect(secondary).toContain('data-testid={`input-watch-${period}-chief`}');
   });
+  it("keeps logs compliance logbook status rendering in a page part", () => {
+    const page = read("client/src/pages/logs-compliance-hub.tsx");
+    const parts = read("client/src/pages/logs-compliance-hub-parts.tsx");
+
+    expect(page).toContain('from "./logs-compliance-hub-parts"');
+    expect(page).toContain("<LogbookStatusTab />");
+    expect(page).toContain('data-testid="tab-logbooks"');
+    expect(parts).toContain("export function LogbookStatusTab");
+    expect(parts).toContain('href="/stormgeo-settings"');
+    expect(parts).toContain("Notification Settings");
+  });
 });
