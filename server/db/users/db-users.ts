@@ -2,7 +2,7 @@
  * Users - Database Storage
  */
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { organizations, users } from "@shared/schema-runtime";
 import type { Organization, InsertOrganization, User, InsertUser } from "@shared/schema";
@@ -65,7 +65,9 @@ export class DatabaseUserStorage {
     return result;
   }
   async getUserByEmail(email: string, orgId?: string): Promise<User | undefined> {
-    const conditions = [eq(users.email, email)];
+    // Case-insensitive match backed by uq_users_org_email_lower (0047);
+    // stored casing is preserved for display.
+    const conditions = [sql`lower(${users.email}) = lower(${email})`];
     if (orgId) {
       conditions.push(eq(users.orgId, orgId));
     }
@@ -78,7 +80,12 @@ export class DatabaseUserStorage {
   async createUser(user: InsertUser): Promise<User> {
     const [result] = await db
       .insert(users)
-      .values({ ...user, createdAt: new Date(), updatedAt: new Date() })
+      .values({
+        ...user,
+        email: user.email.toLowerCase(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
       .returning();
     if (!result) {
       throw new Error("Failed to create user");
@@ -92,7 +99,11 @@ export class DatabaseUserStorage {
     }
     const [result] = await db
       .update(users)
-      .set({ ...user, updatedAt: new Date() })
+      .set({
+        ...user,
+        ...(user.email !== undefined && { email: user.email.toLowerCase() }),
+        updatedAt: new Date(),
+      })
       .where(and(...conditions))
       .returning();
     if (!result) {

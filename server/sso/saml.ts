@@ -53,7 +53,11 @@ export async function validateSamlAssertion(
   const nameId = String(p['nameID'] || p["nameID"] || "");
   if (!nameId) {throw new Error("SAML profile missing nameID");}
 
-  const email = typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined);
+  // Normalized at the IdP boundary: assertions carry arbitrary casing,
+  // lookups are lower()-based (0047).
+  const email = (
+    typeof p['email'] === "string" ? p['email'] : (p['nameID'] as string | undefined)
+  )?.toLowerCase();
   const displayName =
     (p['displayName'] as string | undefined) ||
     (p['cn'] as string | undefined) ||
