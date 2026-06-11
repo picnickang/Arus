@@ -1,8 +1,17 @@
 {
+  // Project for ESLint's type-aware rules (client/src + shared only — see
+  // eslint.config.js "Phase 2"). The two index/optional strict flags are
+  // pinned to their pre-flip values here so the lint-warnings ratchet keeps
+  // a stable measurement basis: flipping them in tsconfig.json surfaced +97
+  // pre-existing `||`-over-nullable sites to prefer-nullish-coalescing.
+  // Un-pin these together with burning down that backlog (and re-baseline
+  // scripts/lint-warnings-baseline.json deliberately in the same change).
   "extends": "./tsconfig.json",
   "include": ["client/src/**/*", "shared/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "src-tauri/**", "ios/**"],
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
   }
 }
