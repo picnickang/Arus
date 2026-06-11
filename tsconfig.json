@@ -9,6 +9,8 @@
     "target": "es2022",
     "strict": true,
     "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",

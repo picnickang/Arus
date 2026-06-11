@@ -1,6 +1,6 @@
 {
-  "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
-  "generatedAt": "2026-06-04T21:12:18.903Z",
+  "_comment": "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. No directories are exempt (the former adapter-boundary exemptions reached zero and were removed).",
+  "generatedAt": "2026-06-11T06:49:29.393Z",
   "total": 4,
   "summary": {
     "byTopFiles": {

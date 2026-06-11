@@ -2,9 +2,8 @@
 /**
  * Type-Cast Burndown Guard
  *
- * Counts `as any` and `as unknown as` casts in TypeScript source (excluding
- * adapter boundaries where `any` is intentional) and enforces a monotonic
- * decrease against scripts/cast-burndown-baseline.json.
+ * Counts `as any` and `as unknown as` casts in TypeScript source and enforces
+ * a monotonic decrease against scripts/cast-burndown-baseline.json.
  *
  * Same pattern as check-ts-burndown.mjs and drift-burndown.json.
  *
@@ -12,10 +11,6 @@
  *   node scripts/check-cast-burndown.mjs                  # check (CI mode)
  *   node scripts/check-cast-burndown.mjs --write-baseline # lock new floor
  *   node scripts/check-cast-burndown.mjs --report         # show top offending files
- *
- * Adapter-boundary directories are exempt — they handle raw external data
- * where `any` is the correct type. Keep this list in sync with eslint.config.js
- * (Stage 5 "True ingestion/adapter boundaries").
  */
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -25,13 +20,11 @@ const ROOT = process.cwd();
 
 const SCAN_DIRS = ["client/src", "server", "shared"];
 
-// Adapter boundaries where `any` is intentional. Mirror eslint.config.js Stage 5.
-const EXEMPT_PATH_FRAGMENTS = [
-  "server/telemetry/",
-  "server/sync/",
-  "server/vessel-simulator/",
-  "server/external-integrations/",
-];
+// Adapter boundaries may be exempted here when `any` is genuinely required for
+// raw external data. The original four exemptions (server/telemetry/, server/sync/,
+// server/vessel-simulator/, server/external-integrations/) reached zero casts and
+// were removed; re-adding a path requires a justification comment.
+const EXEMPT_PATH_FRAGMENTS = [];
 
 const SKIP_DIR_NAMES = new Set(["node_modules", "dist", "build", ".git", ".cache", "coverage"]);
 
@@ -127,7 +120,10 @@ function main() {
 
   const { total, perFile } = countCasts();
   console.log(`Type-cast occurrences (\`as any\` + \`as unknown as\`): ${total}`);
-  console.log(`Scanned: ${SCAN_DIRS.join(", ")} (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`);
+  const exemptNote = EXEMPT_PATH_FRAGMENTS.length
+    ? ` (excluding ${EXEMPT_PATH_FRAGMENTS.join(", ")})`
+    : "";
+  console.log(`Scanned: ${SCAN_DIRS.join(", ")}${exemptNote}`);
 
   if (showReport) {
     const summary = summarize(perFile);
@@ -145,7 +141,7 @@ function main() {
     const summary = summarize(perFile);
     const payload = {
       _comment:
-        "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. Adapter boundaries (telemetry/sync/vessel-simulator/external-integrations) are exempt.",
+        "Type-cast burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-cast-burndown.mjs --write-baseline. No directories are exempt (the former adapter-boundary exemptions reached zero and were removed).",
       generatedAt: new Date().toISOString(),
       total,
       summary,

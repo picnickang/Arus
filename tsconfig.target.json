@@ -15,11 +15,11 @@
     "strict": true,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
-    "noImplicitOverride": false,
+    "noImplicitOverride": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "useUnknownInCatchVariables": "default (true under strict)",
-    "forceConsistentCasingInFileNames": false
+    "forceConsistentCasingInFileNames": "default (true since TS 5.0)"
   }
 }
