@@ -126,7 +126,8 @@ export function registerSoftwareUpdatesRoutes(
     async (req: Request, res: Response) => {
       const { id = '' } = req.params;
       try {
-        const { patchApplicator } = await import("../../services/patch-applicator");
+        const { getPatchApplicator } = await import("../../services/patch-applicator");
+        const patchApplicator = getPatchApplicator();
         const { patchPath } = req.body;
 
         if (!patchPath) {
@@ -205,7 +206,8 @@ export function registerSoftwareUpdatesRoutes(
     async (req: Request, res: Response) => {
       const { backupId = '' } = req.params;
       try {
-        const { patchApplicator } = await import("../../services/patch-applicator");
+        const { getPatchApplicator } = await import("../../services/patch-applicator");
+        const patchApplicator = getPatchApplicator();
 
         await patchApplicator.rollback(backupId);
 
@@ -246,7 +248,8 @@ export function registerSoftwareUpdatesRoutes(
     generalApiRateLimit,
     auditAdminAction("VIEW_BACKUPS"),
     withErrorHandling("list backups", async (req: Request, res: Response) => {
-      const { patchApplicator } = await import("../../services/patch-applicator");
+      const { getPatchApplicator } = await import("../../services/patch-applicator");
+      const patchApplicator = getPatchApplicator();
       const backups = patchApplicator.listBackups();
       return res.json(backups);
     })

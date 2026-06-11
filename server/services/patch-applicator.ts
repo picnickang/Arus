@@ -582,5 +582,15 @@ export class PatchApplicator {
   }
 }
 
-// Singleton instance
-export const patchApplicator = new PatchApplicator();
+// Lazy singleton: the constructor calls assertCloudMode, so eager
+// instantiation at module eval crashed vessel-mode imports of any module in
+// this file's import graph (update-scheduler). Construct on first use only —
+// cloud-only call sites are already behind isCloudMode guards.
+let patchApplicatorInstance: PatchApplicator | null = null;
+
+export function getPatchApplicator(): PatchApplicator {
+  if (!patchApplicatorInstance) {
+    patchApplicatorInstance = new PatchApplicator();
+  }
+  return patchApplicatorInstance;
+}
