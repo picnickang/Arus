@@ -46,6 +46,21 @@ export class VesselDiagramRegistryService {
     };
   }
 
+  // Batch form of getSummary so fleet-wide views fetch one response instead of
+  // issuing a request per vessel (fleet hub previously did N+1 round trips).
+  async getSummaries(
+    actor: Omit<RegistryContext, "vesselId">,
+    vesselIds: string[]
+  ): Promise<Record<string, RegistrySummary>> {
+    const uniqueIds = Array.from(new Set(vesselIds));
+    const entries = await Promise.all(
+      uniqueIds.map(
+        async (vesselId) => [vesselId, await this.getSummary({ ...actor, vesselId })] as const
+      )
+    );
+    return Object.fromEntries(entries);
+  }
+
   listDiagrams(ctx: RegistryContext) {
     return this.store.listDiagrams(ctx);
   }

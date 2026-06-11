@@ -169,7 +169,7 @@ export const ROLES: Record<string, RoleConfig> = {
     description: "Inventory, purchasing, and vessel supplies",
     icon: ClipboardCheck,
     quickActions: [
-      { label: "Inventory", icon: ClipboardCheck, href: "/inventory-management" },
+      { label: "Inventory", icon: ClipboardCheck, href: "/logistics?tab=inventory" },
       { label: "Logistics Hub", icon: ClipboardCheck, href: "/logistics" },
       { label: "Attention Inbox", icon: AlertTriangle, href: "/attention-inbox" },
     ],

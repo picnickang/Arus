@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { TabsContent } from "@/components/ui/tabs";
 import { Activity, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { healthStatusTextClass } from "@/lib/status-colors";
 import type { EquipmentItem } from "./types";
 
 export function EquipmentHealthTab({
@@ -24,14 +25,9 @@ export function EquipmentHealthTab({
       </TabsContent>
     );
   }
-  const healthIndex = (equipment.health['healthIndex'] as number | undefined) || 0;
-  const predictedDueDays = equipment.health['predictedDueDays'] as number | undefined;
-  const statusColor =
-    equipment.health.status === "healthy"
-      ? "text-green-600"
-      : equipment.health.status === "warning"
-        ? "text-yellow-600"
-        : "text-red-600";
+  const healthIndex = (equipment.health["healthIndex"] as number | undefined) || 0;
+  const predictedDueDays = equipment.health["predictedDueDays"] as number | undefined;
+  const statusColor = healthStatusTextClass(equipment.health.status);
   const progressColor =
     healthIndex >= 70
       ? "[&>div]:bg-green-500"

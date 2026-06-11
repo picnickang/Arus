@@ -5,10 +5,9 @@ import { SOStatusBadge } from "./SOStatusBadge";
 import { SOProgressBar } from "./SOProgressBar";
 import { LinkedWorkOrderBadge } from "@/components/service-orders/LinkedWorkOrderBadge";
 import { Calendar, Clock, DollarSign, Building2, Ship, Undo2, ClipboardList } from "lucide-react";
-import { format } from "date-fns";
 import { useLocation } from "wouter";
 import type { ServiceOrder } from "../types";
-import { formatNumber } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 
 interface SOCardProps {
   order: ServiceOrder;
@@ -38,20 +37,6 @@ export function SOCard({
   highlighted,
 }: SOCardProps) {
   const [, setLocation] = useLocation();
-  const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) {
-      return "—";
-    }
-    return format(new Date(date), "MMM d, yyyy");
-  };
-
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount == null) {
-      return "—";
-    }
-    return `${order.currency || "USD"} ${formatNumber(amount)}`;
-  };
-
   const isRevertible =
     !!order.originatingRequestId && ["draft", "sent", "confirmed"].includes(order.status);
 
@@ -110,7 +95,9 @@ export function SOCard({
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span>{formatDate(order.scheduledStartDate)}</span>
+            <span>
+              {formatDate(order.scheduledStartDate, { hour: undefined, minute: undefined })}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +105,13 @@ export function SOCard({
           </div>
           <div className="flex items-center gap-2 col-span-2">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span>Quote: {formatCurrency(order.quotedAmount)}</span>
+            <span>
+              Quote:{" "}
+              {formatCurrency(order.quotedAmount, {
+                currency: order.currency || "USD",
+                display: "code-prefix",
+              })}
+            </span>
           </div>
         </div>
         {order.scope && <p className="text-sm text-muted-foreground line-clamp-2">{order.scope}</p>}

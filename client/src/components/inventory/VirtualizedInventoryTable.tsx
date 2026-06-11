@@ -138,11 +138,12 @@ function getStatusBadge(status: string) {
     unknown: { variant: "outline", label: "Unknown", icon: Package },
   };
 
-  const config = statusConfig[status] || statusConfig['unknown'] || {
-    variant: "outline" as const,
-    label: "Unknown",
-    icon: Package,
-  };
+  const config = statusConfig[status] ||
+    statusConfig["unknown"] || {
+      variant: "outline" as const,
+      label: "Unknown",
+      icon: Package,
+    };
   const Icon = config.icon;
 
   return (
@@ -151,13 +152,6 @@ function getStatusBadge(status: string) {
       <span className="hidden sm:inline">{config.label}</span>
     </Badge>
   );
-}
-
-function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return formatCurrency(value);
 }
 
 function SortableHeader({
@@ -327,7 +321,9 @@ export function VirtualizedInventoryTable({
         >
           {virtualItems.map((virtualRow) => {
             const item = items[virtualRow.index];
-            if (!item) {return null;}
+            if (!item) {
+              return null;
+            }
             const status = getStockStatus(item);
             const available = item.stock
               ? Math.max(0, item.stock.quantityOnHand - item.stock.quantityReserved)
@@ -423,10 +419,10 @@ export function VirtualizedInventoryTable({
                   {item.stock?.quantityReserved ?? 0}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(unitCost)}
+                  {formatCurrency(unitCost, { fallback: "-" })}
                 </div>
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
-                  {formatCurrencyDisplay(totalValue)}
+                  {formatCurrency(totalValue, { fallback: "-" })}
                 </div>
                 <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}
@@ -434,7 +430,11 @@ export function VirtualizedInventoryTable({
                     status === "low_stock" ||
                     status === "out_of_stock") && (
                     <span onClick={(e) => e.stopPropagation()}>
-                      <QuickReorderButton part={item as object as Parameters<typeof QuickReorderButton>[0]["part"]} variant="icon" onReorderCreated={() => {}} />
+                      <QuickReorderButton
+                        part={item as object as Parameters<typeof QuickReorderButton>[0]["part"]}
+                        variant="icon"
+                        onReorderCreated={() => {}}
+                      />
                     </span>
                   )}
                 </div>

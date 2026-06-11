@@ -93,13 +93,6 @@ function getStockStatus(part: PartsInventoryItem): {
   return { status: "adequate", label: "Adequate", color: "text-green-600", icon: CheckCircle };
 }
 
-function formatCurrencyDisplay(value: number | null | undefined): string {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  return formatCurrency(value);
-}
-
 function StatCard({
   title,
   value,
@@ -236,10 +229,14 @@ export function PartDetailDrawer({
               subtitle={`${part.stock?.quantityReserved ?? 0} reserved`}
               icon={Package}
             />
-            <StatCard title="Unit Cost" value={formatCurrencyDisplay(unitCost)} icon={DollarSign} />
+            <StatCard
+              title="Unit Cost"
+              value={formatCurrency(unitCost, { fallback: "-" })}
+              icon={DollarSign}
+            />
             <StatCard
               title="Total Value"
-              value={formatCurrencyDisplay(totalValue)}
+              value={formatCurrency(totalValue, { fallback: "-" })}
               subtitle={`${part.stock?.quantityOnHand ?? 0} units`}
               icon={BarChart3}
             />

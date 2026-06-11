@@ -1,3 +1,4 @@
+import { formatCurrency as formatCurrencyCanonical } from "@/lib/formatters";
 import type { ServiceRequest } from "@/features/serviceRequests/types";
 import type { ServiceOrder } from "@/features/serviceOrders/types";
 import type { SupplierWithStats } from "@/features/suppliers/types";
@@ -96,14 +97,12 @@ export function parseLogisticsTab(search: string): LogisticsTab {
   }
 }
 
+/** Compact "$1.2k" rendering for KPI helpers; NaN/null render "N/A". */
 export function formatCurrency(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) {
     return "N/A";
   }
-  if (Math.abs(value) >= 1000) {
-    return `$${(value / 1000).toFixed(1)}k`;
-  }
-  return `$${value.toFixed(0)}`;
+  return formatCurrencyCanonical(value, { display: "compact-k" });
 }
 
 export function formatLogisticsError(error: unknown): LogisticsSafeError {
