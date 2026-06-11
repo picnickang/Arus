@@ -4,6 +4,8 @@ import {
 } from "../../server/integrations/fmcc-types";
 import { createDomainEvent } from "../../server/lib/domain-event-bus/types";
 import { rmsRouter } from "../../server/domains/rms/routes";
+import "../../server/domains/agent/tools/weather-tools";
+import { getTool } from "../../server/domains/agent/tools/registry";
 
 describe("server public contract barrels", () => {
   it("keeps domain event factory exports available from the public types module", () => {
@@ -65,5 +67,17 @@ describe("server public contract barrels", () => {
   it("keeps RMS routes importable from the public route module", () => {
     expect(rmsRouter).toBeDefined();
     expect(rmsRouter.stack?.length).toBeGreaterThan(0);
+  });
+
+  it("keeps weather tools registered from the public tool module", () => {
+    expect(getTool("getMarineWeather")).toEqual(
+      expect.objectContaining({ name: "getMarineWeather", category: "fleet" })
+    );
+    expect(getTool("getWeatherRiskForMaintenance")).toEqual(
+      expect.objectContaining({
+        name: "getWeatherRiskForMaintenance",
+        category: "maintenance",
+      })
+    );
   });
 });
