@@ -229,6 +229,17 @@ describe("consolidated crew landing source-scan", () => {
     expect(src).toContain("scrollIntoView");
   });
 
+  it("landing keeps counter tile rendering in a sibling component", () => {
+    const landing = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
+    const counterTile = read(
+      "client/src/components/UnifiedCrewManagement/CrewRegistryLandingCounterTile.tsx"
+    );
+
+    expect(landing).toContain('from "./CrewRegistryLandingCounterTile"');
+    expect(counterTile).toContain("export function CounterTile");
+    expect(counterTile).toContain("data-testid={testId}");
+  });
+
   it("index merges cert + doc expiries into a ranked attention feed", () => {
     const src = read("client/src/components/UnifiedCrewManagement/index.tsx");
     expect(src).toContain("attentionItems");

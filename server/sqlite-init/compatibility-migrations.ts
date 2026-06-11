@@ -308,3 +308,19 @@ export async function runPermissionCompatibilityMigration(client: LibsqlClient):
   );
   logger.info("✓ Permission compatibility migration completed");
 }
+
+export async function runImportManifestCompatibilityMigration(client: LibsqlClient): Promise<void> {
+  const cols = await getTableColumns(client, "import_manifest");
+  if (!cols.length) {
+    return;
+  }
+
+  if (!cols.includes("created_at")) {
+    await safeAddColumn(client, "import_manifest", "created_at", "INTEGER");
+  }
+  if (!cols.includes("updated_at")) {
+    await safeAddColumn(client, "import_manifest", "updated_at", "INTEGER");
+  }
+
+  logger.info("✓ Import manifest compatibility migration completed");
+}

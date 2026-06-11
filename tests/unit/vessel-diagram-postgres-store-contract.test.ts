@@ -7,6 +7,15 @@ const POSTGRES_STORE = resolve(
   REPO_ROOT,
   "server/domains/vessel-diagram-registry/infrastructure/postgres-store.ts"
 );
+const POSTGRES_MAPPERS = resolve(
+  REPO_ROOT,
+  "server/domains/vessel-diagram-registry/infrastructure/postgres-mappers.ts"
+);
+const ROUTES = resolve(REPO_ROOT, "server/domains/vessel-diagram-registry/interfaces/routes.ts");
+const ROUTE_HELPERS = resolve(
+  REPO_ROOT,
+  "server/domains/vessel-diagram-registry/interfaces/route-helpers.ts"
+);
 const OBJECT_MEDIA_STORE = resolve(
   REPO_ROOT,
   "server/domains/vessel-diagram-registry/infrastructure/object-storage-media-store.ts"
@@ -28,15 +37,28 @@ function functionBody(file: string, name: string): string {
 describe("vessel diagram postgres store contract", () => {
   it("maps and persists diagram version publish metadata", () => {
     const store = source(POSTGRES_STORE);
+    const mappers = source(POSTGRES_MAPPERS);
     const schema = source(SCHEMA);
     const migration = source(MIGRATION);
 
-    expect(store).toContain("publishedBy: row.publishedBy ?? null");
-    expect(store).toContain("publishedAt: row.publishedAt ?? null");
+    expect(store).toContain('from "./postgres-mappers"');
+    expect(mappers).toContain("publishedBy: row.publishedBy ?? null");
+    expect(mappers).toContain("publishedAt: row.publishedAt ?? null");
     expect(schema).toContain('publishedAt: timestamp("published_at"');
     expect(schema).toContain('publishedBy: varchar("published_by")');
     expect(migration).toContain('ADD COLUMN IF NOT EXISTS "published_by"');
     expect(migration).toContain('ADD COLUMN IF NOT EXISTS "published_at"');
+  });
+
+  it("keeps route parsing and media response helpers outside the route registry", () => {
+    const routes = source(ROUTES);
+    const helpers = source(ROUTE_HELPERS);
+
+    expect(routes).toContain('from "./route-helpers"');
+    expect(routes).not.toContain("function parseUpload(");
+    expect(helpers).toContain("export function parseUpload");
+    expect(helpers).toContain("export function versionResponse");
+    expect(helpers).toContain("export function thumbnailResponse");
   });
 
   it("serializes version creation and active-version publishing inside transactions", () => {

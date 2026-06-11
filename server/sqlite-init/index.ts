@@ -27,6 +27,7 @@ import {
   getTableColumns,
   runAdminSettingsCompatibilityMigration,
   runEquipmentCompatibilityMigration,
+  runImportManifestCompatibilityMigration,
   runPermissionCompatibilityMigration,
   runSystemSettingsCompatibilityMigration,
   safeAddColumn,
@@ -67,6 +68,7 @@ export async function initializeSqliteDatabase(): Promise<void> {
   await runAdminSettingsCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
+  await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 
@@ -84,6 +86,7 @@ export async function applyInventoryMigrations(): Promise<void> {
   await runAdminSettingsCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
+  await runImportManifestCompatibilityMigration(libsqlClient);
   await runInventoryMigrations(libsqlClient);
   await verifyInventorySchema(libsqlClient);
 }

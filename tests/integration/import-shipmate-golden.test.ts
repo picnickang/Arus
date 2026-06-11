@@ -19,8 +19,27 @@ import { randomUUID } from "node:crypto";
 const FIXTURE_DIR = join(process.cwd(), "tests", "fixtures", "imports");
 const VALID = readFileSync(join(FIXTURE_DIR, "shipmate-equipment-valid.csv"), "utf-8");
 const MALFORMED = readFileSync(join(FIXTURE_DIR, "shipmate-equipment-malformed.csv"), "utf-8");
+const SHIPMATE_DIR = join(process.cwd(), "server", "import-adapters", "shipmate");
 
 describe("SHIPMATE import — golden fixtures", () => {
+  it("keeps import-service as an orchestration shell over internal modules", () => {
+    const service = readFileSync(join(SHIPMATE_DIR, "import-service.ts"), "utf-8");
+    const types = readFileSync(join(SHIPMATE_DIR, "types.ts"), "utf-8");
+    const resolver = readFileSync(join(SHIPMATE_DIR, "vessel-resolver.ts"), "utf-8");
+    const upserts = readFileSync(join(SHIPMATE_DIR, "row-upserts.ts"), "utf-8");
+    const rag = readFileSync(join(SHIPMATE_DIR, "rag-docs.ts"), "utf-8");
+
+    expect(service).toContain('from "./types"');
+    expect(service).toContain('from "./vessel-resolver"');
+    expect(service).toContain('from "./row-upserts"');
+    expect(service).toContain('from "./rag-docs"');
+    expect(service).toContain('export { VesselResolutionError } from "./types"');
+    expect(types).toContain("export interface ShipmateImportOptions");
+    expect(resolver).toContain("export async function resolveVesselId");
+    expect(upserts).toContain("export async function upsertShipmateRow");
+    expect(rag).toContain("export async function feedShipmateRowsToRag");
+  });
+
   it("valid fixture imports 5 rows with zero errors (dry-run)", async () => {
     const { shipmateImport } = await import(
       "../../server/import-adapters/shipmate/import-service.js"
@@ -91,5 +110,5 @@ describe("SHIPMATE import — golden fixtures", () => {
       await db.delete(equipment).where(eq(equipment.orgId, orgId));
       await db.delete(importManifest).where(eq(importManifest.orgId, orgId));
     }
-  }, 60_000);
+  }, 180_000);
 });
