@@ -98,8 +98,8 @@ export function PanelHeader({
 }: {
   title: string;
   description: string;
-  actionHref: string;
-  actionLabel: string;
+  actionHref?: string;
+  actionLabel?: string;
   actionTestId?: string;
 }) {
   return (
@@ -108,17 +108,19 @@ export function PanelHeader({
         <h2 className="text-sm font-semibold">{title}</h2>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Button
-        asChild
-        variant="ghost"
-        size="sm"
-        className="gap-1 text-xs"
-        data-testid={actionTestId}
-      >
-        <Link href={actionHref}>
-          {actionLabel} <ChevronRight className="h-3 w-3" />
-        </Link>
-      </Button>
+      {actionHref && actionLabel && (
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="gap-1 text-xs"
+          data-testid={actionTestId}
+        >
+          <Link href={actionHref}>
+            {actionLabel} <ChevronRight className="h-3 w-3" />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -140,39 +142,6 @@ export function QueueRow({ row }: { row: LogisticsQueueItem }) {
         {row.action} <ChevronRight className="inline h-3 w-3" />
       </span>
     </Link>
-  );
-}
-
-export function SummaryPanel({
-  title,
-  description,
-  rows,
-  empty,
-  href,
-  testId,
-}: {
-  title: string;
-  description: string;
-  rows: LogisticsQueueItem[];
-  empty: string;
-  href: string;
-  testId: string;
-}) {
-  return (
-    <Card data-testid={testId}>
-      <CardContent className="p-0">
-        <PanelHeader title={title} description={description} actionHref={href} actionLabel="Open" />
-        {rows.length === 0 ? (
-          <EmptyState message={empty} compact />
-        ) : (
-          <div className="divide-y">
-            {rows.slice(0, 2).map((row) => (
-              <QueueRow key={row.id} row={row} />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -205,43 +174,33 @@ export function EmptyState({
   );
 }
 
-export function DataHealthPanel({ sources }: { sources: LogisticsDataSourceStatus[] }) {
+/**
+ * One-line source-status strip. Replaces the old Data Health card — the
+ * overview's job is the queue; source state only needs a glance.
+ */
+export function DataHealthStrip({ sources }: { sources: LogisticsDataSourceStatus[] }) {
   return (
-    <Card data-testid="logistics-data-health">
-      <CardContent className="p-0">
-        <div className="border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">Data Health</h2>
-          <p className="text-xs text-muted-foreground">Source status for this Logistics view</p>
-        </div>
-        <div className="divide-y">
-          {sources.map((source) => (
-            <div key={source.id} className="flex items-center gap-3 px-4 py-3">
-              <DatabaseZap
-                className={`h-4 w-4 ${
-                  source.state === "degraded" ? "text-amber-600" : "text-emerald-600"
-                }`}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{source.label}</div>
-                <div className="text-xs text-muted-foreground truncate">{source.detail}</div>
-              </div>
-              <Badge
-                variant="outline"
-                className={`${
-                  source.state === "degraded"
-                    ? toneClass("amber")
-                    : source.state === "empty"
-                      ? toneClass("blue")
-                      : toneClass("green")
-                } border-transparent`}
-              >
-                {source.state}
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div
+      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground"
+      data-testid="logistics-data-health"
+    >
+      <span className="font-medium">Sources:</span>
+      {sources.map((source) => (
+        <span key={source.id} className="flex items-center gap-1.5" title={source.detail}>
+          <DatabaseZap
+            className={`h-3.5 w-3.5 ${
+              source.state === "degraded" ? "text-amber-600" : "text-emerald-600"
+            }`}
+          />
+          {source.label}
+          {source.state !== "healthy" && (
+            <span className={source.state === "degraded" ? "text-amber-600" : ""}>
+              — {source.state}
+            </span>
+          )}
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -11,6 +11,91 @@ function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+type AdminSession = NonNullable<
+  Awaited<ReturnType<typeof dbSystemAdminStorage.getAdminSessionByToken>>
+>;
+type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof dbUserStorage.getUser>>>;
+
+/**
+ * Hot-path cache: every authenticated request was doing a session SELECT, a
+ * user SELECT, and an awaited activity UPDATE. Entries live 30s (bounded
+ * revocation/disable staleness — the expiry check still runs every request),
+ * and activity writes are throttled to one per session per minute,
+ * fire-and-forget.
+ */
+const SESSION_CACHE_TTL_MS = 30_000;
+const ACTIVITY_WRITE_INTERVAL_MS = 60_000;
+const SESSION_CACHE_MAX_ENTRIES = 1000;
+
+interface CachedAuth {
+  session: AdminSession;
+  user: AuthenticatedUser;
+  cachedAt: number;
+}
+
+const sessionCache = new Map<string, CachedAuth>();
+const lastActivityWrite = new Map<string, number>();
+
+/** Call when a session is revoked/logged out so the cache can't outlive it. */
+export function invalidateSessionCache(tokenHash?: string): void {
+  if (tokenHash) {
+    sessionCache.delete(tokenHash);
+  } else {
+    sessionCache.clear();
+  }
+}
+
+function readSessionCache(tokenHash: string): CachedAuth | null {
+  const entry = sessionCache.get(tokenHash);
+  if (!entry) {
+    return null;
+  }
+  if (Date.now() - entry.cachedAt >= SESSION_CACHE_TTL_MS) {
+    sessionCache.delete(tokenHash);
+    return null;
+  }
+  return entry;
+}
+
+function writeSessionCache(tokenHash: string, entry: CachedAuth): void {
+  if (sessionCache.size >= SESSION_CACHE_MAX_ENTRIES) {
+    const now = Date.now();
+    for (const [key, value] of sessionCache) {
+      if (now - value.cachedAt >= SESSION_CACHE_TTL_MS) {
+        sessionCache.delete(key);
+      }
+    }
+    if (sessionCache.size >= SESSION_CACHE_MAX_ENTRIES) {
+      sessionCache.clear();
+    }
+  }
+  sessionCache.set(tokenHash, entry);
+}
+
+function touchSessionActivity(sessionId: string): void {
+  const now = Date.now();
+  const last = lastActivityWrite.get(sessionId) ?? 0;
+  if (now - last < ACTIVITY_WRITE_INTERVAL_MS) {
+    return;
+  }
+  lastActivityWrite.set(sessionId, now);
+  if (lastActivityWrite.size > SESSION_CACHE_MAX_ENTRIES * 2) {
+    lastActivityWrite.clear();
+  }
+  void dbSystemAdminStorage.updateAdminSessionActivity(sessionId).catch((error: unknown) => {
+    logger.warn("Failed to record session activity:", undefined, error);
+  });
+}
+
+export const _sessionCacheInternals = {
+  sessionCache,
+  lastActivityWrite,
+  clear(): void {
+    sessionCache.clear();
+    lastActivityWrite.clear();
+  },
+};
+
 export async function requireAuthentication(req: Request, res: Response, next: NextFunction) {
   try {
     if (isPublicApiPath(req)) {
@@ -59,10 +144,12 @@ export async function requireAuthentication(req: Request, res: Response, next: N
     }
 
     const tokenHash = hashSessionToken(token);
-    const session = await dbSystemAdminStorage.getAdminSessionByToken(tokenHash);
+    const cached = readSessionCache(tokenHash);
+    const session = cached?.session ?? (await dbSystemAdminStorage.getAdminSessionByToken(tokenHash));
 
     if (session) {
       if (new Date(session.expiresAt) < new Date()) {
+        invalidateSessionCache(tokenHash);
         return res.status(401).json({
           error: "Session expired",
           code: "SESSION_EXPIRED",
@@ -70,7 +157,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
         });
       }
 
-      await dbSystemAdminStorage.updateAdminSessionActivity(session.id);
+      touchSessionActivity(session.id);
 
       // Push B1: source orgId from the persisted user record. In legacy
       // mode (REQUIRE_TENANT_AUTH unset) we still auto-provision the
@@ -79,14 +166,17 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       // a `userId` pointing at a real user — there's no safe "default
       // tenant" to land in.
       const tenantAuth = requireTenantAuth();
-      let user = session.userId
-        ? await dbUserStorage.getUser(session.userId)
-        : tenantAuth
-          ? null
-          : await dbUserStorage.getUserByEmail(
-              session.adminEmail || "admin@example.com",
-              DEFAULT_ORG_ID
-            );
+      let user: AuthenticatedUser | null | undefined = cached?.user;
+      if (!user) {
+        user = session.userId
+          ? await dbUserStorage.getUser(session.userId)
+          : tenantAuth
+            ? null
+            : await dbUserStorage.getUserByEmail(
+                session.adminEmail || "admin@example.com",
+                DEFAULT_ORG_ID
+              );
+      }
 
       if (!user) {
         if (tenantAuth) {
@@ -106,10 +196,15 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       }
 
       if (!user.isActive) {
+        invalidateSessionCache(tokenHash);
         return res.status(401).json({
           error: "User account is disabled",
           code: "ACCOUNT_DISABLED",
         });
+      }
+
+      if (!cached) {
+        writeSessionCache(tokenHash, { session, user, cachedAt: Date.now() });
       }
 
       req.user = {

@@ -10,6 +10,7 @@
 
 import * as fs from "node:fs";
 import path from "node:path";
+import * as tar from "tar";
 import { db } from "../db";
 import { softwarePatches } from "../../shared/schema-runtime";
 import type { PatchManifest, FileChange } from "./update-checker";
@@ -19,6 +20,19 @@ import crypto from "node:crypto";
 import { runTrustedExecutable, validatePath } from "../lib/secure-exec";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Services:PatchApplicator");
+
+/**
+ * Tar entry types that are safe to extract to disk. Everything else —
+ * symlinks, hardlinks, device nodes, FIFOs and exotic GNU types — is rejected
+ * during the pre-extraction scan. Symlink/hardlink entries are the classic
+ * tar-slip primitive for writing outside the extraction directory.
+ */
+const ALLOWED_TAR_ENTRY_TYPES: ReadonlySet<string> = new Set([
+  "File",
+  "OldFile",
+  "ContiguousFile",
+  "Directory",
+]);
 
 export interface ApplyResult {
   success: boolean;
@@ -60,10 +74,12 @@ export class PatchApplicator {
     logger.info(`[PatchApplicator] Creating backup: ${backupId}`);
 
     for (const file of files) {
-      const sourcePath = path.join(this.appDir, file);
+      // Security: contain the backup source (app dir) and destination (backup
+      // dir). createBackup runs before per-change validation, so guard here too.
+      const sourcePath = validatePath(this.appDir, file);
 
       if (fs.existsSync(sourcePath)) {
-        const destPath = path.join(backupPath, file);
+        const destPath = validatePath(backupPath, file);
         const destDir = path.dirname(destPath);
 
         // Ensure destination directory exists
@@ -141,12 +157,58 @@ export class PatchApplicator {
       fs.mkdirSync(safeExtractDir, { recursive: true });
     }
 
+    // Security: pre-scan every archive entry and refuse the whole archive if
+    // any entry is a symlink/hardlink/device, has an absolute path, or escapes
+    // the extraction directory. This runs BEFORE extraction so a tar-slip
+    // payload never touches the filesystem.
+    await this.assertSafeArchive(safePatchPath, safeExtractDir);
+
     logger.info(`[PatchApplicator] Extracting patch to ${safeExtractDir}...`);
 
     // Security (S2076): runTrustedExecutable uses constant 'tar' from allowlist
     await runTrustedExecutable("tar", ["-xzf", safePatchPath, "-C", safeExtractDir]);
 
     logger.info("[PatchApplicator] Patch extracted successfully");
+  }
+
+  /**
+   * Scan a tar.gz archive and throw if any entry is unsafe to extract: a
+   * disallowed type (symlink, hardlink, device, FIFO, …), an absolute path, or
+   * a path that escapes `extractDir` (e.g. `../../etc/cron.d/x`). Violations are
+   * collected so the error names the offending entries.
+   */
+  private async assertSafeArchive(patchPath: string, extractDir: string): Promise<void> {
+    const violations: string[] = [];
+
+    await tar.list({
+      file: patchPath,
+      onReadEntry: (entry: tar.ReadEntry) => {
+        const entryPath = String(entry.path);
+        const entryType = String(entry.type);
+
+        if (!ALLOWED_TAR_ENTRY_TYPES.has(entryType)) {
+          violations.push(`unsupported entry type '${entryType}' (${entryPath})`);
+          return;
+        }
+        if (path.isAbsolute(entryPath)) {
+          violations.push(`absolute path '${entryPath}'`);
+          return;
+        }
+        try {
+          validatePath(extractDir, entryPath);
+        } catch {
+          violations.push(`path escapes extraction dir: '${entryPath}'`);
+        }
+      },
+    });
+
+    if (violations.length > 0) {
+      throw new Error(
+        `Unsafe patch archive rejected (${violations.length} violation(s)): ${violations
+          .slice(0, 10)
+          .join("; ")}`
+      );
+    }
   }
 
   /**
@@ -170,8 +232,11 @@ export class PatchApplicator {
    * Apply a single file change
    */
   private async applyFileChange(change: FileChange, extractDir: string): Promise<void> {
-    const sourcePath = path.join(extractDir, change.path);
-    const destPath = path.join(this.appDir, change.path);
+    // Security: contain both the source (inside the extraction dir) and the
+    // destination (inside the app dir). A manifest entry whose path escapes
+    // either root (e.g. `../../etc/passwd`) is rejected before any I/O.
+    const sourcePath = validatePath(extractDir, change.path);
+    const destPath = validatePath(this.appDir, change.path);
 
     switch (change.action) {
       case "create":
@@ -230,8 +295,17 @@ export class PatchApplicator {
     for (const migration of manifest.migrations) {
       logger.info(`[PatchApplicator] Running migration: ${migration.description}`);
 
-      // Security: Validate migration path to prevent path traversal
+      // Security: Validate migration path to prevent path traversal AND
+      // require it to live under <extractDir>/migrations/, so a manifest can
+      // never point `db.execute` / `node` at an arbitrary extracted file.
       const migrationPath = validatePath(extractDir, migration.file);
+      const migrationsRoot = path.resolve(extractDir, "migrations");
+      if (
+        migrationPath !== migrationsRoot &&
+        !migrationPath.startsWith(migrationsRoot + path.sep)
+      ) {
+        throw new Error(`Migration file must live under migrations/: ${migration.file}`);
+      }
 
       if (!fs.existsSync(migrationPath)) {
         throw new Error(`Migration file not found: ${migration.file}`);
@@ -296,6 +370,46 @@ export class PatchApplicator {
   }
 
   /**
+   * Enforce update-package trust before applying.
+   *
+   * Verifies the manifest's Ed25519 signature against
+   * `UPDATE_SIGNING_PUBLIC_KEY`. Fails closed: if no public key is configured
+   * the patch is refused, UNLESS this is a non-production environment that has
+   * explicitly opted into unsigned patches via `ALLOW_UNSIGNED_PATCHES=true`
+   * (logged loudly). Production always enforces; a present-but-invalid
+   * signature is always rejected regardless of environment.
+   */
+  private async verifyPatchTrust(manifest: PatchManifest): Promise<void> {
+    const publicKeyHex = process.env["UPDATE_SIGNING_PUBLIC_KEY"];
+    const isProduction = process.env["NODE_ENV"] === "production";
+    const allowUnsigned = !isProduction && process.env["ALLOW_UNSIGNED_PATCHES"] === "true";
+
+    if (!publicKeyHex) {
+      if (allowUnsigned) {
+        logger.warn(
+          "[PatchApplicator] UPDATE_SIGNING_PUBLIC_KEY is unset and ALLOW_UNSIGNED_PATCHES=true " +
+            "(non-production) — applying patch WITHOUT signature verification. This MUST NOT be used in production."
+        );
+        return;
+      }
+      throw new Error(
+        "Patch signature cannot be verified: UPDATE_SIGNING_PUBLIC_KEY is not configured. Refusing to apply patch."
+      );
+    }
+
+    // Lazy import so update-checker's eager singleton is not pulled into this
+    // module's load (and only constructed when a signing key is actually set).
+    const { getUpdateChecker } = await import("./update-checker");
+    const checker = await getUpdateChecker();
+    const verified = await checker.verifySignature(manifest, publicKeyHex);
+    if (!verified) {
+      throw new Error("Patch signature verification failed. Refusing to apply untrusted patch.");
+    }
+
+    logger.info("[PatchApplicator] Patch signature verified.");
+  }
+
+  /**
    * Apply a patch atomically
    */
   async applyPatch(patchId: string, patchPath: string, userId?: string): Promise<ApplyResult> {
@@ -319,6 +433,11 @@ export class PatchApplicator {
       }
 
       const manifest: PatchManifest = patch.manifest as object as PatchManifest;
+
+      // Security: verify the patch is signed and trusted BEFORE doing any work.
+      // Fails closed — an unsigned/unverifiable patch is never applied (except
+      // an explicit non-production escape hatch).
+      await this.verifyPatchTrust(manifest);
 
       // Update patch status
       await db.update(patchesTable).set({ status: "applying" }).where(eq(patchesTable.id, patchId));

@@ -46,8 +46,26 @@ interface TelemetryData {
 interface UseWebSocketOptions {
   url?: string;
   autoConnect?: boolean;
+  /** Failed attempts before connectionState reports "degraded" (reconnection never stops). */
   reconnectAttempts?: number;
+  /** Base backoff delay in ms; doubles per attempt with jitter, capped at 60s. */
   reconnectInterval?: number;
+}
+
+export type WebSocketConnectionState =
+  | "connected"
+  | "connecting"
+  | "reconnecting"
+  | "degraded"
+  | "disconnected";
+
+const RECONNECT_DELAY_CAP_MS = 60_000;
+
+function reconnectDelay(baseMs: number, attempt: number): number {
+  const exponential = Math.min(baseMs * 2 ** Math.max(attempt - 1, 0), RECONNECT_DELAY_CAP_MS);
+  // Full jitter on the upper half avoids thundering-herd reconnects when a
+  // vessel's link comes back and every client lost the socket together.
+  return exponential / 2 + Math.random() * (exponential / 2);
 }
 
 interface AlertData {
@@ -84,6 +102,8 @@ interface UpdateNotificationData {
 interface UseWebSocketReturn {
   isConnected: boolean;
   isConnecting: boolean;
+  /** Degrades (but never gives up) after `reconnectAttempts` failures. */
+  connectionState: WebSocketConnectionState;
   lastMessage: WebSocketMessage | null;
   latestTelemetry: TelemetryData | null;
   latestAlert: AlertData | null;
@@ -108,6 +128,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionState, setConnectionState] = useState<WebSocketConnectionState>("disconnected");
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetryData | null>(null);
   const [latestAlert, setLatestAlert] = useState<AlertData | null>(null);
@@ -118,6 +139,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectCountRef = useRef(0);
+  const intentionalCloseRef = useRef(false);
   const subscriptionsRef = useRef<Set<string>>(new Set());
   /** Push B2 — per-(orgId, channel) replay cursor, keyed as
    *  `${orgId}::${channel}`. A client can receive events on the same
@@ -139,7 +161,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       return;
     }
 
+    intentionalCloseRef.current = false;
     setIsConnecting(true);
+    setConnectionState((prev) => (prev === "connected" || prev === "disconnected" ? "connecting" : prev));
 
     try {
       // Push B2 — propagate the session token on the upgrade URL so the
@@ -167,6 +191,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       ws.onopen = () => {
         setIsConnected(true);
         setIsConnecting(false);
+        setConnectionState("connected");
         reconnectCountRef.current = 0;
         setConnectionCount((prev) => prev + 1);
 
@@ -261,13 +286,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         setIsConnected(false);
         setIsConnecting(false);
 
-        // Attempt reconnection
-        if (reconnectCountRef.current < reconnectAttempts) {
-          reconnectCountRef.current++;
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, reconnectInterval);
+        if (intentionalCloseRef.current) {
+          setConnectionState("disconnected");
+          return;
         }
+
+        // Reconnect forever with exponential backoff + jitter. After
+        // `reconnectAttempts` failures the state degrades so the UI can show
+        // a banner, but on a vessel the link WILL come back — giving up
+        // permanently meant a silent stale dashboard until manual refresh.
+        reconnectCountRef.current++;
+        setConnectionState(
+          reconnectCountRef.current > reconnectAttempts ? "degraded" : "reconnecting"
+        );
+        reconnectTimeoutRef.current = setTimeout(
+          () => {
+            connect();
+          },
+          reconnectDelay(reconnectInterval, reconnectCountRef.current)
+        );
       };
 
       ws.onerror = () => {
@@ -280,6 +317,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   }, [url, reconnectAttempts, reconnectInterval]);
 
   const disconnect = useCallback(() => {
+    intentionalCloseRef.current = true;
+    reconnectCountRef.current = 0;
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -292,6 +331,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
     setIsConnected(false);
     setIsConnecting(false);
+    setConnectionState("disconnected");
   }, []);
 
   const send = useCallback((message: Record<string, unknown>) => {
@@ -326,6 +366,37 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     };
   }, [autoConnect, connect, disconnect]);
 
+  // Network restoration and tab visibility are the natural reconnect
+  // triggers on vessels — don't wait out a 60s backoff when the OS just told
+  // us the link is back or the operator just returned to the tab.
+  useEffect(() => {
+    if (!autoConnect) {
+      return;
+    }
+    const reconnectNow = () => {
+      if (wsRef.current?.readyState === WebSocket.OPEN || intentionalCloseRef.current) {
+        return;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      reconnectCountRef.current = 0;
+      connect();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        reconnectNow();
+      }
+    };
+    window.addEventListener("online", reconnectNow);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("online", reconnectNow);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [autoConnect, connect]);
+
   // When the in-memory auth token changes (login / logout / tenant switch), the
   // current socket is bound to the old tenant (or anonymous). Tear it down and
   // reconnect so the upgrade carries the new token and resolves the right org.
@@ -351,6 +422,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   return {
     isConnected,
     isConnecting,
+    connectionState,
     lastMessage,
     latestTelemetry,
     latestAlert,

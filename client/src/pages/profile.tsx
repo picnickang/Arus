@@ -9,16 +9,30 @@
  * control performs a real action and reports real success/failure.
  */
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { UserCircle, Loader2, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { SwitchPortalButton } from "@/components/navigation/SwitchPortalButton";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  passwordChangeSchema,
+  PASSWORD_CHANGE_DEFAULTS,
+  type PasswordChangeData,
+} from "@/lib/password-change";
 
 type ChangeState =
   | { kind: "idle" }
@@ -30,35 +44,26 @@ export default function ProfilePage() {
   const { permissions } = usePermissions();
   const { logout } = useAdminAccess();
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [state, setState] = useState<ChangeState>({ kind: "idle" });
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const roleLabel =
-    permissions.roleNames.length > 0 ? permissions.roleNames.join(", ") : "—";
+  const form = useForm<PasswordChangeData, unknown, PasswordChangeData>({
+    resolver: zodResolver(passwordChangeSchema),
+    defaultValues: PASSWORD_CHANGE_DEFAULTS,
+    mode: "onChange",
+  });
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setState({ kind: "error", message: "New password and confirmation do not match." });
-      return;
-    }
-    if (newPassword.length < 8) {
-      setState({ kind: "error", message: "New password must be at least 8 characters." });
-      return;
-    }
+  const roleLabel = permissions.roleNames.length > 0 ? permissions.roleNames.join(", ") : "—";
+
+  async function onSubmit(data: PasswordChangeData) {
     setState({ kind: "saving" });
     try {
       await apiRequest("POST", "/api/me/change-password", {
-        currentPassword,
-        newPassword,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       });
       setState({ kind: "success" });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      form.reset(PASSWORD_CHANGE_DEFAULTS);
     } catch (err) {
       setState({
         kind: "error",
@@ -134,59 +139,82 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={onSubmit} noValidate>
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                disabled={state.kind === "saving"}
-                data-testid="input-current-password"
+          <Form {...form}>
+            <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+              <FormField
+                control={form.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Current password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        disabled={state.kind === "saving"}
+                        data-testid="input-current-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-                disabled={state.kind === "saving"}
-                data-testid="input-new-password"
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>New password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="new-password"
+                        disabled={state.kind === "saving"}
+                        data-testid="input-new-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm new password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                disabled={state.kind === "saving"}
-                data-testid="input-confirm-password"
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>Confirm new password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="new-password"
+                        disabled={state.kind === "saving"}
+                        data-testid="input-confirm-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={state.kind === "saving"}
-              data-testid="button-change-password"
-            >
-              {state.kind === "saving" ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Update Password"
-              )}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={state.kind === "saving"}
+                data-testid="button-change-password"
+              >
+                {state.kind === "saving" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

@@ -14,7 +14,9 @@
 import { describe, it, expect } from "@jest/globals";
 import { DefaultLLMGateway } from "../../server/lib/llm-gateway/gateway";
 import { estimateCostUsd } from "../../server/lib/llm-gateway/cost-meter";
+import { redactMessages } from "../../server/lib/llm-gateway/pii-redactor";
 import type {
+  BudgetGuardPort,
   CostMeter,
   CostMeterEvent,
   LLMChatParams,
@@ -39,13 +41,20 @@ function makeResponse(overrides: Partial<LLMChatResponse> = {}): LLMChatResponse
 
 class FakeProvider implements LLMProviderPort {
   readonly name = "fake";
-  constructor(private readonly nextResponse: LLMChatResponse, private readonly stream: LLMStreamChunk[] = []) {}
-  async isAvailable() { return true; }
+  constructor(
+    private readonly nextResponse: LLMChatResponse,
+    private readonly stream: LLMStreamChunk[] = []
+  ) {}
+  async isAvailable() {
+    return true;
+  }
   async chat(_params: LLMChatParams): Promise<LLMChatResponse> {
     return this.nextResponse;
   }
   async *chatStream(_params: LLMChatParams): AsyncIterable<LLMStreamChunk> {
-    for (const c of this.stream) {yield c;}
+    for (const c of this.stream) {
+      yield c;
+    }
   }
 }
 
@@ -96,9 +105,13 @@ describe("DefaultLLMGateway", () => {
     const provider: LLMProviderPort = {
       name: "broken",
       isAvailable: async () => true,
-      chat: async () => { throw new Error("nope"); },
+      chat: async () => {
+        throw new Error("nope");
+      },
       // eslint-disable-next-line require-yield
-      async *chatStream () { throw new Error("nope"); },
+      async *chatStream() {
+        throw new Error("nope");
+      },
     };
     const meter = new RecordingMeter();
     const gateway = new DefaultLLMGateway({ provider, meter });
@@ -110,7 +123,9 @@ describe("DefaultLLMGateway", () => {
   it("swallows synchronous meter failures so the LLM response still resolves", async () => {
     const provider = new FakeProvider(makeResponse());
     const meter: CostMeter = {
-      record: () => { throw new Error("meter exploded"); },
+      record: () => {
+        throw new Error("meter exploded");
+      },
     };
     const gateway = new DefaultLLMGateway({ provider, meter });
 
@@ -145,7 +160,9 @@ describe("DefaultLLMGateway", () => {
     const gateway = new DefaultLLMGateway({ provider, meter });
 
     const got: string[] = [];
-    for await (const c of gateway.chatStream(baseParams)) {got.push(c.contentDelta);}
+    for await (const c of gateway.chatStream(baseParams)) {
+      got.push(c.contentDelta);
+    }
 
     expect(got.join("")).toBe("hello");
     expect(meter.events).toHaveLength(1);
@@ -159,13 +176,148 @@ describe("DefaultLLMGateway", () => {
     const meter = new RecordingMeter();
     const gateway = new DefaultLLMGateway({ provider, meter });
 
-    for await (const _ of gateway.chatStream(baseParams)) { /* drain */ }
+    for await (const _ of gateway.chatStream(baseParams)) {
+      /* drain */
+    }
     expect(meter.events).toHaveLength(0);
   });
 
   it("exposes the provider name via gateway.name", () => {
     const gateway = new DefaultLLMGateway({ provider: new FakeProvider(makeResponse()) });
     expect(gateway.name).toBe("fake");
+  });
+});
+
+// A provider that records the params it was handed, so we can assert on what
+// actually crossed the boundary (redaction) and whether it was invoked at all.
+class CapturingProvider implements LLMProviderPort {
+  readonly name = "capturing";
+  public lastParams: LLMChatParams | undefined;
+  public chatCalls = 0;
+  constructor(private readonly nextResponse: LLMChatResponse) {}
+  async isAvailable() {
+    return true;
+  }
+  async chat(params: LLMChatParams): Promise<LLMChatResponse> {
+    this.chatCalls++;
+    this.lastParams = params;
+    return this.nextResponse;
+  }
+  // eslint-disable-next-line require-yield
+  async *chatStream(params: LLMChatParams): AsyncIterable<LLMStreamChunk> {
+    this.chatCalls++;
+    this.lastParams = params;
+  }
+}
+
+class FakeBudgetGuard implements BudgetGuardPort {
+  public preflightCalls: Array<{ orgId: string; projectedTokens: number }> = [];
+  public recordCalls: Array<{ orgId: string; model: string; tokens: number }> = [];
+  constructor(private readonly rejectPreflight = false) {}
+  preflight(orgId: string, projectedTokens: number): void {
+    this.preflightCalls.push({ orgId, projectedTokens });
+    if (this.rejectPreflight) {
+      throw new Error("over budget");
+    }
+  }
+  record(orgId: string, model: string, tokens: number): void {
+    this.recordCalls.push({ orgId, model, tokens });
+  }
+}
+
+describe("DefaultLLMGateway — budget enforcement", () => {
+  const baseParams: LLMChatParams = {
+    model: "gpt-4o",
+    messages: [{ role: "user", content: "hi" }],
+    meta: { caller: "unit-test", orgId: "org-1" },
+  };
+
+  it("preflights before calling the provider and records actual usage after", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const budgetGuard = new FakeBudgetGuard();
+    const gateway = new DefaultLLMGateway({ provider, budgetGuard });
+
+    await gateway.chat(baseParams);
+
+    expect(budgetGuard.preflightCalls).toHaveLength(1);
+    expect(budgetGuard.preflightCalls[0].orgId).toBe("org-1");
+    expect(budgetGuard.preflightCalls[0].projectedTokens).toBeGreaterThan(0);
+    expect(budgetGuard.recordCalls).toEqual([{ orgId: "org-1", model: "gpt-4o", tokens: 30 }]);
+  });
+
+  it("aborts an over-budget call before the provider is hit", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const budgetGuard = new FakeBudgetGuard(true);
+    const gateway = new DefaultLLMGateway({ provider, budgetGuard });
+
+    await expect(gateway.chat(baseParams)).rejects.toThrow("over budget");
+    expect(provider.chatCalls).toBe(0);
+    expect(budgetGuard.recordCalls).toHaveLength(0);
+  });
+
+  it("does not preflight when the call carries no orgId (budgets are per-tenant)", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const budgetGuard = new FakeBudgetGuard(true); // would throw if called
+    const gateway = new DefaultLLMGateway({ provider, budgetGuard });
+
+    await expect(
+      gateway.chat({ model: "gpt-4o", messages: [{ role: "user", content: "hi" }] })
+    ).resolves.toMatchObject({ content: "hello" });
+    expect(budgetGuard.preflightCalls).toHaveLength(0);
+    expect(provider.chatCalls).toBe(1);
+  });
+
+  it("is backward-compatible: no budget guard means no enforcement", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const gateway = new DefaultLLMGateway({ provider });
+    await expect(gateway.chat(baseParams)).resolves.toMatchObject({ content: "hello" });
+    expect(provider.chatCalls).toBe(1);
+  });
+});
+
+describe("DefaultLLMGateway — PII redaction", () => {
+  const orgMeta = { caller: "unit-test", orgId: "org-1" };
+
+  it("redacts PII in message content before it reaches the provider", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const gateway = new DefaultLLMGateway({ provider, redactor: { redactMessages } });
+
+    await gateway.chat({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: "email me at alice@example.com" }],
+      meta: orgMeta,
+    });
+
+    const sent = provider.lastParams?.messages[0]?.content;
+    expect(sent).toBe("email me at [REDACTED_EMAIL]");
+  });
+
+  it("redacts streaming messages too", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const gateway = new DefaultLLMGateway({ provider, redactor: { redactMessages } });
+
+    for await (const _ of gateway.chatStream({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: "ssn 123-45-6789 please" }],
+      meta: orgMeta,
+    })) {
+      /* drain */
+    }
+
+    expect(provider.lastParams?.messages[0]?.content).toBe("ssn [REDACTED_SSN] please");
+  });
+
+  it("is backward-compatible: no redactor means content passes through unchanged", async () => {
+    const provider = new CapturingProvider(makeResponse());
+    const gateway = new DefaultLLMGateway({ provider });
+
+    await gateway.chat({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: "alice@example.com" }],
+      meta: orgMeta,
+    });
+
+    expect(provider.lastParams?.messages[0]?.content).toBe("alice@example.com");
   });
 });
 

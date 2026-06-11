@@ -7,9 +7,16 @@
  * unchanged — moved verbatim from the service. Validation/business logic stays
  * in the service.
  */
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import { users, adminSessions, userDashboardPreferences, crew } from "@shared/schema-runtime";
+import {
+  users,
+  adminSessions,
+  userDashboardPreferences,
+  crew,
+  pilotFeedback,
+} from "@shared/schema-runtime";
+import type { InsertPilotFeedback, PilotFeedback } from "@shared/schema";
 
 export async function getMustChangePassword(
   orgId: string,
@@ -98,6 +105,67 @@ export async function getUserById(orgId: string, userId: string) {
     .where(and(eq(users.orgId, orgId), eq(users.id, userId)))
     .limit(1);
   return record;
+}
+
+export async function insertPilotFeedback(values: InsertPilotFeedback): Promise<PilotFeedback> {
+  const [row] = await db.insert(pilotFeedback).values(values).returning();
+  if (!row) {
+    throw new Error("pilot_feedback insert returned no row");
+  }
+  return row;
+}
+
+/** Newest-first feedback submitted by this user (their "My reports" list). */
+export async function listPilotFeedbackForUser(
+  orgId: string,
+  userId: string,
+  limit = 50
+): Promise<PilotFeedback[]> {
+  return db
+    .select()
+    .from(pilotFeedback)
+    .where(and(eq(pilotFeedback.orgId, orgId), eq(pilotFeedback.userId, userId)))
+    .orderBy(desc(pilotFeedback.createdAt))
+    .limit(limit);
+}
+
+export type PilotFeedbackWithSubmitter = PilotFeedback & { submitterName: string | null };
+
+/**
+ * Newest-first feedback across the whole org (office review queue).
+ * Left-joins the submitter's display name — dev-login sessions reference
+ * synthetic user ids with no users row, so the name may be null.
+ */
+export async function listPilotFeedbackForOrg(
+  orgId: string,
+  limit = 200
+): Promise<PilotFeedbackWithSubmitter[]> {
+  const rows = await db
+    .select({ feedback: pilotFeedback, submitterName: users.name })
+    .from(pilotFeedback)
+    .leftJoin(users, and(eq(users.id, pilotFeedback.userId), eq(users.orgId, pilotFeedback.orgId)))
+    .where(eq(pilotFeedback.orgId, orgId))
+    .orderBy(desc(pilotFeedback.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({ ...r.feedback, submitterName: r.submitterName ?? null }));
+}
+
+/** Apply an office review action; returns the updated row or undefined if absent. */
+export async function updatePilotFeedbackReview(
+  orgId: string,
+  id: string,
+  patch: {
+    status: string;
+    resolutionNote?: string | null;
+    linkedWorkOrderId?: string | null;
+  }
+): Promise<PilotFeedback | undefined> {
+  const [row] = await db
+    .update(pilotFeedback)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(pilotFeedback.orgId, orgId), eq(pilotFeedback.id, id)))
+    .returning();
+  return row;
 }
 
 export async function updateUserPassword(

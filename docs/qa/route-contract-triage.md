@@ -46,6 +46,12 @@ reconcile the path scheme rather than implementing duplicates.
   `useAdjustStock`/`useTransferStock` (0 callers; stock mutations go through
   `/api/parts-inventory/:id/stock`).
 
+**2026-06-10 (merge with main)** — main's work resolved `/api/pdm/risk` and
+`/api/optimization/trend-insights`; two new baseline entries entered with known false-positive
+dispositions: `/api/observability` is a self-log classifier pattern in `errorHandler.ts`
+(never fetched), and `/api/optimization` is a deliberate queryKey base kept for prefix
+invalidation (the real fetch is `/api/optimization/dashboard`, which exists).
+
 **Reclassifications (entries that stay in the baseline but are NOT missing APIs):**
 
 - _classifier-literal_: `/api/logbook`, `/api/logbook/deck`, `/api/logbook/engine`,

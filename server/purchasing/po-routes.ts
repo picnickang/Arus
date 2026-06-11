@@ -80,13 +80,9 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
         updatedAt: purchaseOrders.updatedAt,
         supplierName: suppliers.name,
         supplierCode: suppliers.code,
-        totalQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)`.as("totalQty"),
-        receivedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)`.as(
-          "receivedQty"
-        ),
-        rejectedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)`.as(
-          "rejectedQty"
-        ),
+        totalQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.quantity}), 0)::float8`.as("totalQty"),
+        receivedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.receivedQuantity}), 0)::float8`.as("receivedQty"),
+        rejectedQty: sql<number>`COALESCE(SUM(${purchaseOrderItems.rejectedQuantity}), 0)::float8`.as("rejectedQty"),
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))

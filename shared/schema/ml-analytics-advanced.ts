@@ -590,65 +590,6 @@ export const digitalTwins = pgTable(
   })
 );
 
-// Digital twin simulation scenarios
-export const twinSimulations = pgTable("twin_simulations", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  digitalTwinId: varchar("digital_twin_id")
-    .references(() => digitalTwins.id)
-    .notNull(),
-  scenarioName: varchar("scenario_name").notNull(),
-  scenarioType: varchar("scenario_type").notNull(),
-  inputParameters: jsonb("input_parameters"),
-  simulationResults: jsonb("simulation_results"),
-  startTime: timestamp("start_time", { withTimezone: true }).defaultNow(),
-  endTime: timestamp("end_time", { withTimezone: true }),
-  status: varchar("status").default("running"),
-  progressPercentage: real("progress_percentage").default(0),
-  recommendedActions: jsonb("recommended_actions"),
-  costBenefitAnalysis: jsonb("cost_benefit_analysis"),
-  metadata: jsonb("metadata"),
-});
-
-// 3D visualization assets
-export const visualizationAssets = pgTable("visualization_assets", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  assetType: varchar("asset_type").notNull(),
-  name: varchar("name").notNull(),
-  filePath: varchar("file_path").notNull(),
-  fileFormat: varchar("file_format"),
-  fileSizeBytes: integer("file_size_bytes"),
-  targetPlatform: varchar("target_platform"),
-  lodLevel: integer("lod_level"),
-  boundingBox: jsonb("bounding_box"),
-  textureResolution: varchar("texture_resolution"),
-  compressionType: varchar("compression_type"),
-  optimizationLevel: varchar("optimization_level"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
-
-// AR maintenance procedures
-export const arMaintenanceProcedures = pgTable("ar_maintenance_procedures", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  equipmentId: varchar("equipment_id").references(() => equipment.id),
-  procedureName: varchar("procedure_name").notNull(),
-  procedureType: varchar("procedure_type").notNull(),
-  arAssets: jsonb("ar_assets"),
-  steps: jsonb("steps"),
-  safetyRequirements: jsonb("safety_requirements"),
-  requiredTools: jsonb("required_tools"),
-  estimatedDuration: integer("estimated_duration"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
-
 // Model registry for ML model versioning and management
 export const modelRegistry = pgTable(
   "model_registry",
@@ -861,17 +802,6 @@ export const insertDigitalTwinSchema = createInsertSchema(digitalTwins).omit({
   createdAt: true,
   updatedAt: true,
 });
-export const insertTwinSimulationSchema = createInsertSchema(twinSimulations).omit({ id: true });
-export const insertVisualizationAssetSchema = createInsertSchema(visualizationAssets).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export const insertArMaintenanceProcedureSchema = createInsertSchema(arMaintenanceProcedures).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 export const insertModelRegistrySchema = createInsertSchema(modelRegistry).omit({
   id: true,
   createdAt: true,
@@ -921,12 +851,6 @@ export type RetrainingTrigger = typeof retrainingTriggers.$inferSelect;
 export type InsertRetrainingTrigger = z.infer<typeof insertRetrainingTriggerSchema>;
 export type DigitalTwin = typeof digitalTwins.$inferSelect;
 export type InsertDigitalTwin = z.infer<typeof insertDigitalTwinSchema>;
-export type TwinSimulation = typeof twinSimulations.$inferSelect;
-export type InsertTwinSimulation = z.infer<typeof insertTwinSimulationSchema>;
-export type VisualizationAsset = typeof visualizationAssets.$inferSelect;
-export type InsertVisualizationAsset = z.infer<typeof insertVisualizationAssetSchema>;
-export type ArMaintenanceProcedure = typeof arMaintenanceProcedures.$inferSelect;
-export type InsertArMaintenanceProcedure = z.infer<typeof insertArMaintenanceProcedureSchema>;
 export type ModelRegistry = typeof modelRegistry.$inferSelect;
 export type InsertModelRegistry = z.infer<typeof insertModelRegistrySchema>;
 export type MlModelAccuracyHistory = typeof mlModelAccuracyHistory.$inferSelect;

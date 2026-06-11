@@ -12,7 +12,7 @@
  * and surfaces a clear forbidden/unavailable state instead of a blank screen.
  */
 import { useQuery } from "@tanstack/react-query";
-import { createHeaders, resolveUrl } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,21 +83,9 @@ interface DiagnosticResponse {
 const DIAGNOSTIC_PATH = "/api/permissions/dev-diagnostic";
 
 async function fetchDiagnostic(): Promise<DiagnosticResponse> {
-  const res = await fetch(resolveUrl(DIAGNOSTIC_PATH), {
-    credentials: "include",
-    headers: createHeaders(),
-  });
-  if (!res.ok) {
-    let message = `${res.status}`;
-    try {
-      const body = (await res.json()) as { message?: string };
-      if (body?.message) {message = `${res.status}: ${body.message}`;}
-    } catch {
-      // non-JSON body — keep the status-only message
-    }
-    throw new Error(message);
-  }
-  return (await res.json()) as DiagnosticResponse;
+  // ApiError carries the same "{status}: {message}" text the manual parser
+  // built, plus envelope unwrapping on the success path.
+  return apiRequest<DiagnosticResponse>("GET", DIAGNOSTIC_PATH);
 }
 
 function formatTimestamp(value: string | null | undefined): string {

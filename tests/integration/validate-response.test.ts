@@ -4,6 +4,15 @@ import type { Express } from "express";
 
 const TEST_ORG_ID = "default-org-id";
 
+/** Unwraps the canonical response envelope on migrated domains. */
+function unwrap<T = Record<string, unknown>>(body: unknown): T {
+  const record = body as Record<string, unknown> | null;
+  if (record && typeof record === "object" && record["success"] === true && "data" in record) {
+    return record["data"] as T;
+  }
+  return body as T;
+}
+
 describe("validateResponse-wired endpoints", () => {
   let app: Express;
 
@@ -28,10 +37,11 @@ describe("validateResponse-wired endpoints", () => {
         .get("/api/pdm/filter-options")
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
-      expect(res.body).toHaveProperty("vessels");
-      expect(res.body).toHaveProperty("equipmentTypes");
-      expect(Array.isArray(res.body.vessels)).toBe(true);
-      expect(Array.isArray(res.body.equipmentTypes)).toBe(true);
+      const body = unwrap(res.body);
+      expect(body).toHaveProperty("vessels");
+      expect(body).toHaveProperty("equipmentTypes");
+      expect(Array.isArray(body["vessels"])).toBe(true);
+      expect(Array.isArray(body["equipmentTypes"])).toBe(true);
     });
 
     it("GET /api/pdm/risk-queue/:status returns an array", async () => {
@@ -39,7 +49,7 @@ describe("validateResponse-wired endpoints", () => {
         .get("/api/pdm/risk-queue/open")
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(unwrap(res.body))).toBe(true);
     });
   });
 
@@ -103,7 +113,7 @@ describe("validateResponse-wired endpoints", () => {
           .set("x-org-id", TEST_ORG_ID)
           .expect("Content-Type", /json/)
           .expect(200);
-        assert(res.body);
+        assert(unwrap(res.body));
       });
     }
   });
@@ -114,7 +124,7 @@ describe("validateResponse-wired endpoints", () => {
         .get("/api/permissions/resources")
         .set("x-org-id", TEST_ORG_ID)
         .expect(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(unwrap(res.body))).toBe(true);
     });
   });
 });

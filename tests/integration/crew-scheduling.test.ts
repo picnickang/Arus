@@ -15,6 +15,16 @@ import type { Express } from "express";
 const TEST_ORG_ID = "test-org-integration";
 const TEST_VESSEL_ID = "00000000-0000-0000-0000-000000000001";
 
+
+/** Unwraps the canonical response envelope on migrated domains. */
+function unwrap<T = Record<string, unknown>>(body: unknown): T {
+  const record = body as Record<string, unknown> | null;
+  if (record && typeof record === "object" && record["success"] === true && "data" in record) {
+    return record["data"] as T;
+  }
+  return body as T;
+}
+
 describe("Crew Scheduling API", () => {
   let app: Express;
   let createdCrewMemberId: string;
@@ -36,7 +46,8 @@ describe("Crew Scheduling API", () => {
         .expect(200);
 
       expect(response.body).toBeDefined();
-      expect(Array.isArray(response.body) || response.body.data).toBe(true);
+      const body = unwrap<unknown[] | { data?: unknown[] }>(response.body);
+      expect(Array.isArray(body) || Array.isArray((body as { data?: unknown[] }).data)).toBe(true);
     });
 
     it("should filter by vessel ID", async () => {
@@ -67,10 +78,11 @@ describe("Crew Scheduling API", () => {
         .expect("Content-Type", /json/);
 
       if (response.status === 201) {
-        expect(response.body).toBeDefined();
-        expect(response.body.id).toBeDefined();
-        expect(response.body.firstName).toBe(newCrewMember.firstName);
-        createdCrewMemberId = response.body.id;
+        const created = unwrap<{ id: string; firstName: string }>(response.body);
+        expect(created).toBeDefined();
+        expect(created.id).toBeDefined();
+        expect(created.firstName).toBe(newCrewMember.firstName);
+        createdCrewMemberId = created.id;
       } else {
         console.log("Crew creation returned:", response.status, response.body);
       }

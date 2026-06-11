@@ -305,7 +305,7 @@ function OverviewTab({
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                 {(healthData.pFail30d ?? 0) > 70 && <li>Critical failure risk within 30 days</li>}
-                {(healthData.healthScore ?? 100) < 50 && (
+                {healthData.healthScore != null && healthData.healthScore < 50 && (
                   <li>Low health score indicates degradation</li>
                 )}
                 {healthData.status === "critical" && (

@@ -1,33 +1,16 @@
 /**
  * Diagnostics Routes - Type Definitions
+ *
+ * The health/check/service shapes are the canonical diagnostics DTOs in
+ * `@shared/diagnostics-types`; re-exported here under their historical names so
+ * existing imports (`./types.js`) keep working without re-declaring the types.
  */
 
-export interface HealthCheckResult {
-  status: "healthy" | "degraded" | "unhealthy";
-  timestamp: string;
-  version: string;
-  uptime: number;
-  checks: {
-    database: CheckResult;
-    telemetry: CheckResult;
-    memory: CheckResult;
-    services: ServiceStatus[];
-  };
-}
-
-export interface CheckResult {
-  status: "pass" | "warn" | "fail";
-  responseTimeMs?: number;
-  message?: string;
-  details?: Record<string, unknown>;
-}
-
-export interface ServiceStatus {
-  name: string;
-  status: "running" | "stopped" | "error";
-  lastHealthCheck?: string;
-  details?: Record<string, unknown>;
-}
+export type {
+  DiagnosticsCheckResult as CheckResult,
+  DiagnosticsServiceStatus as ServiceStatus,
+  DiagnosticsHealthResult as HealthCheckResult,
+} from "@shared/diagnostics-types";
 
 export interface SystemMetrics {
   memory: {

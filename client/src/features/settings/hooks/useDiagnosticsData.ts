@@ -1,40 +1,18 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { POLL_INTERVALS, pollingInterval } from "@/lib/polling";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, AlertTriangle, XCircle, Loader2, TestTube } from "lucide-react";
+import type { DiagnosticsHealthResult } from "@shared/diagnostics-types";
 
-export interface HealthCheckResult {
-  status: "healthy" | "degraded" | "unhealthy";
-  timestamp: string;
-  version: string;
-  uptime: number;
-  checks: {
-    database: CheckResult;
-    telemetry: CheckResult;
-    memory: CheckResult;
-    services: ServiceStatus[];
-  };
-}
-
-export interface CheckResult {
-  status: "pass" | "warn" | "fail";
-  responseTimeMs?: number;
-  message?: string;
-  details?: {
-    bufferUtilization?: number;
-    utilizationPercent?: number;
-    heapUsedMB?: number;
-    [key: string]: unknown;
-  };
-}
-
-export interface ServiceStatus {
-  name: string;
-  status: "running" | "stopped" | "error";
-  lastHealthCheck?: string;
-  details?: Record<string, unknown>;
-}
+// Re-export the canonical diagnostics DTOs under the historical local names so
+// downstream imports (settings/index.ts) keep resolving.
+export type {
+  DiagnosticsCheckResult as CheckResult,
+  DiagnosticsServiceStatus as ServiceStatus,
+  DiagnosticsHealthResult as HealthCheckResult,
+} from "@shared/diagnostics-types";
 
 export interface DiagnosticsConfig {
   telemetry?: {
@@ -108,25 +86,25 @@ export function useDiagnosticsData() {
     null
   );
 
-  const { data: health, isLoading: healthLoading } = useQuery<HealthCheckResult>({
+  const { data: health, isLoading: healthLoading } = useQuery<DiagnosticsHealthResult>({
     queryKey: ["/api/diagnostics/health"],
     staleTime: 30000,
-    refetchInterval: 60000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.SLOW),
   });
   const { data: metrics, isLoading: metricsLoading } = useQuery<SystemMetrics>({
     queryKey: ["/api/diagnostics/metrics"],
     staleTime: 15000,
-    refetchInterval: 60000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.SLOW),
   });
   const { data: telemetryStats } = useQuery<TelemetryStats>({
     queryKey: ["/api/diagnostics/telemetry/stats"],
     staleTime: 10000,
-    refetchInterval: 15000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
   const { data: testSuites, refetch: refetchTestSuites } = useQuery<{ suites: TestSuite[] }>({
     queryKey: ["/api/diagnostics/test-suites"],
     staleTime: 5000,
-    refetchInterval: 10000,
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
   const { data: config } = useQuery<DiagnosticsConfig>({
     queryKey: ["/api/diagnostics/config"],

@@ -2,17 +2,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-function orgHeaders(orgId: string) {
-  return { "x-org-id": orgId };
-}
-
-async function fetchJson(url: string, orgId: string) {
-  const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) {
-    throw new Error(`Failed: ${res.statusText}`);
-  }
-  return res.json();
-}
+// All reads go through apiRequest: real auth/org headers plus envelope
+// unwrapping (/api/pdm/* is an enveloped domain).
 
 export interface TwinTemplateSummary {
   id: string;
@@ -25,10 +16,7 @@ export function useTemplates() {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinTemplateSummary[]>({
     queryKey: ["/api/pdm/twin/def/templates", currentOrgId],
-    queryFn: () =>
-      fetchJson("/api/pdm/twin/def/templates", currentOrgId ?? "") as Promise<
-        TwinTemplateSummary[]
-      >,
+    queryFn: () => apiRequest<TwinTemplateSummary[]>("GET", "/api/pdm/twin/def/templates"),
     enabled: !!currentOrgId,
   });
 }
@@ -55,8 +43,7 @@ export function useTwins() {
   const { currentOrgId } = useOrganization();
   return useQuery<TwinSummary[]>({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId],
-    queryFn: () =>
-      fetchJson("/api/pdm/twin/def/twins", currentOrgId ?? "") as Promise<TwinSummary[]>,
+    queryFn: () => apiRequest<TwinSummary[]>("GET", "/api/pdm/twin/def/twins"),
     enabled: !!currentOrgId,
   });
 }
@@ -65,7 +52,7 @@ export function useTwin(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/def/twins", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/def/twins/${twinId}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest("GET", `/api/pdm/twin/def/twins/${twinId}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -81,11 +68,33 @@ export function useCreateTwin() {
   });
 }
 
+/** Minimal computed-state shape consumed by the twin overview/state cards. */
+export interface LatestTwinState {
+  healthScore?: number;
+  efficiencyScore?: number;
+  remainingUsefulLifeHours?: number;
+  error?: string;
+  observedValues?: Record<string, number>;
+  expectedValues?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+/** Timeline event shape consumed by the replay tab. */
+export interface TwinTimelineEvent {
+  id?: string;
+  eventType?: string;
+  type?: string;
+  source?: string;
+  timestamp?: string;
+  payload?: unknown;
+  [key: string]: unknown;
+}
+
 export function useLatestTwinState(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/latest", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/state/latest/${twinId}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest<LatestTwinState>("GET", `/api/pdm/twin/state/latest/${twinId}`),
     enabled: !!currentOrgId && !!twinId,
     retry: false,
   });
@@ -95,7 +104,7 @@ export function useTwinStateHistory(twinId: string, limit = 50) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/state/history", currentOrgId, twinId, limit],
-    queryFn: () => fetchJson(`/api/pdm/twin/state/history/${twinId}?limit=${limit}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest("GET", `/api/pdm/twin/state/history/${twinId}?limit=${limit}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -119,7 +128,7 @@ export function useTwinResiduals(twinId: string, limit = 100) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/twin", currentOrgId, twinId, limit],
-    queryFn: () => fetchJson(`/api/pdm/twin/residuals/twin/${twinId}?limit=${limit}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest("GET", `/api/pdm/twin/residuals/twin/${twinId}?limit=${limit}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -128,7 +137,7 @@ export function useResidualRankings() {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/residuals/rankings", currentOrgId],
-    queryFn: () => fetchJson("/api/pdm/twin/residuals/rankings", currentOrgId ?? ""),
+    queryFn: () => apiRequest("GET", "/api/pdm/twin/residuals/rankings"),
     enabled: !!currentOrgId,
   });
 }
@@ -148,7 +157,7 @@ export function useTwinScenarios(twinId: string) {
   const { currentOrgId } = useOrganization();
   return useQuery({
     queryKey: ["/api/pdm/twin/scenarios/twins", currentOrgId, twinId],
-    queryFn: () => fetchJson(`/api/pdm/twin/scenarios/twins/${twinId}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest("GET", `/api/pdm/twin/scenarios/twins/${twinId}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }
@@ -177,7 +186,7 @@ export function useTwinTimeline(twinId: string, startTime?: string, endTime?: st
   }
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
-    queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId ?? ""),
+    queryFn: () => apiRequest<TwinTimelineEvent[]>("GET", `/api/pdm/twin/replay/timeline?${params}`),
     enabled: !!currentOrgId && !!twinId,
   });
 }

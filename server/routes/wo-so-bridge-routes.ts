@@ -163,6 +163,8 @@ export async function createServiceOrderFromWorkOrder(
       status: row["status"],
       org_id: row["org_id"],
       work_order_id: typeof workOrderIdCol === "string" ? workOrderIdCol : null,
+      // numeric columns reach raw RETURNING rows as strings (0041)
+      quoted_amount: row["quoted_amount"] != null ? Number(row["quoted_amount"]) : null,
     };
     return created;
   });
@@ -196,9 +198,9 @@ export function registerWoSoBridgeRoutes(
           so.scope,
           so.service_details AS "serviceDetails",
           so.special_requirements AS "specialRequirements",
-          so.quoted_amount AS "quotedAmount",
-          so.actual_amount AS "actualAmount",
-          so.revised_amount AS "revisedAmount",
+          so.quoted_amount::float8 AS "quotedAmount",
+          so.actual_amount::float8 AS "actualAmount",
+          so.revised_amount::float8 AS "revisedAmount",
           so.revision_notes AS "revisionNotes",
           so.currency,
           so.scheduled_start_date AS "scheduledStartDate",

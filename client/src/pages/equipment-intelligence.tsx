@@ -6,6 +6,12 @@ import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
+import {
+  riskColor,
+  riskBadgeVariant,
+  HealthRing,
+  MiniSparkline,
+} from "@/pages/equipment-hub/shared";
 
 function PageTitle({ title }: { title: string }) {
   useEffect(() => {
@@ -19,13 +25,13 @@ interface EquipmentRiskItem {
   name: string;
   vessel: string;
   vesselId: string;
-  health: number;
-  rul: number;
+  health: number | null;
+  rul: number | null;
   risk: "critical" | "warning" | "low";
   status: string;
   type: string;
   prediction: string;
-  confidence: number;
+  confidence: number | null;
   trend: "declining" | "stable" | "improving";
   lastService: string | null;
   nextDue: string | null;
@@ -41,16 +47,18 @@ interface FleetSummaryVessel {
   critical: number;
   warning: number;
   healthy: number;
-  avgHealth: number;
+  noData: number;
+  avgHealth: number | null;
 }
 
 interface FleetSummary {
-  fleetHealth: number;
+  fleetHealth: number | null;
   vessels: FleetSummaryVessel[];
   totalEquipment: number;
   criticalCount: number;
   warningCount: number;
   healthyCount: number;
+  noDataCount: number;
   dataStatus: "ok" | "degraded";
 }
 
@@ -68,36 +76,6 @@ interface IntelligenceData {
   systemDetails?: SystemDetails;
 }
 
-function riskColor(r: string) {
-  if (r === "critical") {
-    return "text-red-500";
-  }
-  if (r === "warning") {
-    return "text-yellow-500";
-  }
-  return "text-green-500";
-}
-
-function riskBg(r: string) {
-  if (r === "critical") {
-    return "bg-red-500/10 border-red-500/20";
-  }
-  if (r === "warning") {
-    return "bg-yellow-500/8 border-yellow-500/15";
-  }
-  return "bg-green-500/5 border-green-500/10";
-}
-
-function riskBadgeVariant(r: string) {
-  if (r === "critical") {
-    return "destructive" as const;
-  }
-  if (r === "warning") {
-    return "outline" as const;
-  }
-  return "secondary" as const;
-}
-
 function riskStroke(r: string) {
   if (r === "critical") {
     return "#ef4444";
@@ -106,106 +84,6 @@ function riskStroke(r: string) {
     return "#eab308";
   }
   return "#22c55e";
-}
-
-function healthStroke(v: number) {
-  if (v > 70) {
-    return "#22c55e";
-  }
-  if (v > 40) {
-    return "#eab308";
-  }
-  return "#ef4444";
-}
-
-function MiniSparkline({
-  data,
-  color,
-  w = 64,
-  h = 20,
-}: {
-  data: number[];
-  color: string;
-  w?: number;
-  h?: number;
-}) {
-  if (!data || data.length < 2) {
-    return null;
-  }
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const points = data
-    .map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`)
-    .join(" ");
-  return (
-    <svg width={w} height={h} className="block">
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function HealthRing({
-  value,
-  size = 56,
-  stroke = 5,
-}: {
-  value: number;
-  size?: number;
-  stroke?: number;
-}) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (value / 100) * circ;
-  const color = healthStroke(value);
-  return (
-    <svg
-      width={size}
-      height={size}
-      style={{ transform: "rotate(-90deg)" }}
-      data-testid={`health-ring-${value}`}
-    >
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="rgba(255,255,255,0.04)"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={stroke}
-        strokeDasharray={circ}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        className="transition-all duration-700"
-      />
-      <text
-        x={size / 2}
-        y={size / 2}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill={color}
-        fontSize={size * 0.3}
-        fontWeight={800}
-        style={{ transform: "rotate(90deg)", transformOrigin: "center" }}
-      >
-        {value}
-      </text>
-    </svg>
-  );
 }
 
 export default function EquipmentIntelligence() {
@@ -245,7 +123,7 @@ export default function EquipmentIntelligence() {
     return items;
   }, [equipment, vesselFilter, riskFilter]);
 
-  const fleetHealth = fleet?.fleetHealth ?? 0;
+  const fleetHealth = fleet?.fleetHealth ?? null;
   const criticalCount = fleet?.criticalCount ?? 0;
   const warningCount = fleet?.warningCount ?? 0;
   const healthyCount = fleet?.healthyCount ?? 0;
@@ -305,10 +183,10 @@ export default function EquipmentIntelligence() {
                 Fleet Health
               </div>
               <div
-                className={`text-sm font-bold ${fleetHealth > 70 ? "text-green-500" : fleetHealth > 40 ? "text-yellow-500" : "text-red-500"}`}
+                className={`text-sm font-bold ${fleetHealth == null ? "text-slate-500" : fleetHealth > 70 ? "text-green-500" : fleetHealth > 40 ? "text-yellow-500" : "text-red-500"}`}
                 data-testid="fleet-health-value"
               >
-                {fleetHealth}%
+                {fleetHealth == null ? "No scores yet" : `${fleetHealth}%`}
               </div>
             </div>
           </div>
@@ -444,12 +322,21 @@ export default function EquipmentIntelligence() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-100">{item.name}</span>
-                  <Badge
-                    variant={riskBadgeVariant(item.risk)}
-                    className="text-[10px] uppercase px-1.5 py-0"
-                  >
-                    {item.risk}
-                  </Badge>
+                  {item.health == null ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] uppercase px-1.5 py-0 text-slate-500 border-slate-600/40"
+                    >
+                      No data
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant={riskBadgeVariant(item.risk)}
+                      className="text-[10px] uppercase px-1.5 py-0"
+                    >
+                      {item.risk}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-0.5 truncate">{item.prediction}</div>
               </div>
@@ -460,7 +347,11 @@ export default function EquipmentIntelligence() {
 
               <div className="text-right min-w-[50px]">
                 <div className="text-[9px] text-slate-600 uppercase">RUL</div>
-                <div className={`text-sm font-bold ${riskColor(item.risk)}`}>{item.rul}d</div>
+                <div
+                  className={`text-sm font-bold ${item.rul == null ? "text-slate-600" : riskColor(item.risk)}`}
+                >
+                  {item.rul == null ? "—" : `${item.rul}d`}
+                </div>
               </div>
 
               <div className="hidden sm:block">
@@ -469,7 +360,9 @@ export default function EquipmentIntelligence() {
 
               <div className="text-right min-w-[45px]">
                 <div className="text-[9px] text-slate-600 uppercase">Conf.</div>
-                <div className="text-[13px] font-semibold text-slate-300">{item.confidence}%</div>
+                <div className="text-[13px] font-semibold text-slate-300">
+                  {item.confidence == null ? "—" : `${item.confidence}%`}
+                </div>
               </div>
             </div>
           ))}

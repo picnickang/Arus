@@ -23,6 +23,7 @@
 
 import PgBoss from "pg-boss";
 import type { db as DbInstance } from "../../db";
+import type { TrainingResult } from "../../ml-training-pipeline";
 import { logger } from "../../utils/logger";
 
 const LOG_CTX = "MlTrainingJobQueue";
@@ -48,7 +49,16 @@ export interface MlTrainingJobResult {
   metrics?: Record<string, number> | undefined;
   error?: string | undefined;
   durationMs: number;
-  evaluationPassed?: boolean | undefined;
+  /**
+   * Outcome of the held-out evaluation gate for this run:
+   *  - "passed"        — ModelEvaluationGate ran and approved the model.
+   *  - "failed"        — gate ran and rejected the model.
+   *  - "not_evaluated" — no held-out test data was available, or the gate
+   *                      itself errored. NEVER reported as "passed".
+   * Replaces the old `evaluationPassed: true` placeholder, which dishonestly
+   * claimed every model passed an evaluation that never actually ran.
+   */
+  evaluationStatus?: "passed" | "not_evaluated" | "failed" | undefined;
 }
 
 export interface MlJobStatus {
@@ -67,11 +77,7 @@ export interface MlJobStatus {
  * Matches `server/websocket.ts` `broadcast(channel, data, orgId?)` signature.
  */
 export interface WsBroadcaster {
-  broadcast: (
-    channel: string,
-    data: Record<string, unknown>,
-    orgId?: string
-  ) => void;
+  broadcast: (channel: string, data: Record<string, unknown>, orgId?: string) => void;
 }
 
 type DbHandle = typeof DbInstance;
@@ -132,17 +138,13 @@ export class MlTrainingJobQueue {
 
     // pg-boss v10: concurrency is controlled by `batchSize` (max jobs per
     // fetch). Keep training serialized by fetching one at a time.
-    await this.boss.work<MlTrainingJobData>(
-      QUEUE_NAME,
-      { batchSize: 1 },
-      async (jobs) => {
-        const results: MlTrainingJobResult[] = [];
-        for (const job of jobs) {
-          results.push(await this.processTrainingJob(job));
-        }
-        return results.length === 1 ? results[0] : results;
+    await this.boss.work<MlTrainingJobData>(QUEUE_NAME, { batchSize: 1 }, async (jobs) => {
+      const results: MlTrainingJobResult[] = [];
+      for (const job of jobs) {
+        results.push(await this.processTrainingJob(job));
       }
-    );
+      return results.length === 1 ? results[0] : results;
+    });
 
     this.isWorkerRegistered = true;
     logger.info(LOG_CTX, "ML training worker registered");
@@ -178,11 +180,9 @@ export class MlTrainingJobQueue {
    * returns `JobWithMetadata<T> | null` with camelCase metadata fields.
    */
   async getJobStatus(jobId: string): Promise<MlJobStatus | null> {
-    const job = await this.boss.getJobById<MlTrainingJobData>(
-      QUEUE_NAME,
-      jobId,
-      { includeArchive: true }
-    );
+    const job = await this.boss.getJobById<MlTrainingJobData>(QUEUE_NAME, jobId, {
+      includeArchive: true,
+    });
     if (!job) {
       return null;
     }
@@ -229,19 +229,19 @@ export class MlTrainingJobQueue {
           return [];
         }
         const row = raw as Record<string, unknown>;
-        const id = row['id'];
-        const state = row['state'];
-        const createdon = row['createdon'];
+        const id = row["id"];
+        const state = row["state"];
+        const createdon = row["createdon"];
         if (typeof id !== "string" || typeof state !== "string") {
           return [];
         }
         if (!(typeof createdon === "string" || createdon instanceof Date)) {
           return [];
         }
-        const startedon = row['startedon'];
-        const completedon = row['completedon'];
-        const data = (row['data'] ?? {}) as MlTrainingJobData;
-        const output = (row['output'] ?? undefined) as MlTrainingJobResult | undefined;
+        const startedon = row["startedon"];
+        const completedon = row["completedon"];
+        const data = (row["data"] ?? {}) as MlTrainingJobData;
+        const output = (row["output"] ?? undefined) as MlTrainingJobResult | undefined;
         return [
           {
             jobId: id,
@@ -269,6 +269,43 @@ export class MlTrainingJobQueue {
   // Private: Job processing
   // ===========================================================================
 
+  /**
+   * Run the model-evaluation gate for a completed training run.
+   *
+   * Returns "not_evaluated" when the run carried no held-out test data (the
+   * current reality — the training pipeline is a stub) OR when the gate itself
+   * errors. A gate error must never be laundered into a "passed": a model that
+   * was not genuinely evaluated is reported as such so downstream deployment
+   * logic cannot treat it as validated.
+   */
+  private async runEvaluationGate(
+    orgId: string,
+    result: TrainingResult | undefined
+  ): Promise<"passed" | "not_evaluated" | "failed"> {
+    const evaluation = result?.evaluation;
+    if (!evaluation || evaluation.testData.length === 0 || !this.db) {
+      return "not_evaluated";
+    }
+    const db = this.db;
+    try {
+      const { ModelEvaluationGate } = await import("./model-evaluation-gate");
+      // Worker evaluations always use the gate's DEFAULT_CONFIG thresholds.
+      // Request-provided thresholds (as accepted by /api/ml/evaluate-model)
+      // are not threaded through training jobs.
+      const gate = new ModelEvaluationGate(db);
+      const gateResult = await gate.evaluate(
+        orgId,
+        evaluation.modelId,
+        evaluation.testData,
+        evaluation.predict
+      );
+      return gateResult.approved ? "passed" : "failed";
+    } catch (error) {
+      logger.error(LOG_CTX, "Model evaluation gate errored; recording run as not_evaluated", error);
+      return "not_evaluated";
+    }
+  }
+
   private async processTrainingJob(
     job: PgBoss.Job<MlTrainingJobData>
   ): Promise<MlTrainingJobResult> {
@@ -280,7 +317,7 @@ export class MlTrainingJobQueue {
     });
 
     try {
-      let result: { metrics?: Record<string, number> } | undefined;
+      let result: TrainingResult | undefined;
       const equipmentType = data.equipmentType ?? "unknown";
 
       if (data.modelType === "all") {
@@ -294,7 +331,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "lstm",
-          ...((data.config['lstmConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["lstmConfig"] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "random_forest") {
         const { trainRFForHealthClassification } = await import("../../ml-training-pipeline");
@@ -303,7 +340,7 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "random_forest",
-          ...((data.config['rfConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["rfConfig"] as Record<string, unknown> | undefined) || {}),
         });
       } else if (data.modelType === "xgboost") {
         const { trainXGBoostForHealthClassification } = await import("../../ml-training-pipeline");
@@ -312,35 +349,32 @@ export class MlTrainingJobQueue {
           orgId: data.orgId,
           equipmentType,
           modelType: "xgboost",
-          ...((data.config['xgboostConfig'] as Record<string, unknown> | undefined) || {}),
+          ...((data.config["xgboostConfig"] as Record<string, unknown> | undefined) || {}),
         });
       }
 
       const durationMs = Date.now() - startTime;
 
-      // Optionally run evaluation gate before marking as successful
-      const evaluationPassed = true;
-      try {
-        await import("./model-evaluation-gate");
-        // Evaluation would run here if test data is available
-        // For now, mark as passed — the gate can be wired in when test data infra exists
-      } catch {
-        // Evaluation gate not available
-      }
+      // Run the held-out evaluation gate before reporting success. When the
+      // training run surfaced no test data the status is "not_evaluated" —
+      // we never claim a model "passed" an evaluation that did not run.
+      const evaluationStatus = await this.runEvaluationGate(data.orgId, result);
 
       // Notify via WebSocket
       this.notifyCompletion(data.orgId, job.id, data.modelType, true, durationMs);
 
-      logger.info(LOG_CTX, `Training job ${job.id} completed in ${durationMs}ms`, {
-        orgId: data.orgId,
-      });
+      logger.info(
+        LOG_CTX,
+        `Training job ${job.id} completed in ${durationMs}ms (evaluation: ${evaluationStatus})`,
+        { orgId: data.orgId }
+      );
 
       return {
         modelType: data.modelType,
         success: true,
         metrics: result?.metrics,
         durationMs,
-        evaluationPassed,
+        evaluationStatus,
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;

@@ -121,7 +121,13 @@ export function LinkTemplateDialog({
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Select Template</label>
+                <label className="text-sm font-medium">
+                  Select Template
+                  <span aria-hidden="true" className="text-destructive">
+                    {" "}
+                    *
+                  </span>
+                </label>
                 <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                   <SelectTrigger data-testid="select-link-template">
                     <SelectValue placeholder="Choose a template..." />
@@ -145,6 +151,9 @@ export function LinkTemplateDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {!selectedTemplateId && (
+                  <p className="text-xs text-muted-foreground">Select a template to continue.</p>
+                )}
               </div>
 
               {selectedTemplate && (
