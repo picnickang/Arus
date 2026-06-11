@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useChartToggles } from "@/hooks/use-chart-toggles";
 import { useUnitPreferences } from "@/hooks/use-unit-preferences";
 import { convertPower, convertSpeed } from "@/lib/unit-conversions";
@@ -87,6 +88,25 @@ export function usePowerSTWData({
       "power-stw-analysis",
       { start: startDateStr, end: endDateStr },
     ],
+    // Explicit queryFn: the default fetcher only understands 1- and
+    // 2-segment keys — this 4-segment key fell through to join("/") and
+    // produced "/api/vessels/<id>/power-stw-analysis/[object Object]",
+    // so the chart could never load. Server expects startDate/endDate
+    // (ISO) and defaults to the trailing 30 days when omitted.
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (startDateStr) {
+        params.append("startDate", startDateStr);
+      }
+      if (endDateStr) {
+        params.append("endDate", endDateStr);
+      }
+      const qs = params.toString();
+      return apiRequest<PowerSTWResponse>(
+        "GET",
+        `/api/vessels/${vesselId}/power-stw-analysis${qs ? `?${qs}` : ""}`
+      );
+    },
     enabled: !!vesselId,
     refetchInterval: 300000,
     staleTime: 120000,
@@ -132,11 +152,14 @@ export function usePowerSTWData({
       }
     }
 
-    const combinedData: { speed: number; actualPower?: number | undefined; baselinePower?: number | undefined }[] =
-      data.actual.map((point) => ({
-        speed: point.x,
-        actualPower: point.y,
-      }));
+    const combinedData: {
+      speed: number;
+      actualPower?: number | undefined;
+      baselinePower?: number | undefined;
+    }[] = data.actual.map((point) => ({
+      speed: point.x,
+      actualPower: point.y,
+    }));
 
     for (const baselinePoint of data.baseline) {
       const existing = combinedData.find((d) => Math.abs(d.speed - baselinePoint.x) < 0.1);

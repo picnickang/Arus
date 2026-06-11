@@ -112,6 +112,14 @@ export const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
   },
   {
+    // Checklist/worklog routes the client has always called but which were
+    // never registered — see docs/qa/route-contract-triage.md.
+    name: "MaintenanceChecklists",
+    importPath: "../domains/maintenance/index.js",
+    functionName: "registerChecklistRoutes",
+    getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }),
+  },
+  {
     name: "Inventory",
     importPath: "../domains/inventory/index.js",
     functionName: "registerInventoryRoutes",
@@ -828,6 +836,17 @@ export const domainRouters: DomainRouterConfig[] = [
     importPath: "../domains/pdm-platform/feature-store/routes.js",
     functionName: "featureStoreRouter",
     mountPath: "/api/pdm/features",
+    middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }),
+  },
+  {
+    // The PdM equipment-detail page's health query. Documented in
+    // swagger/paths-pdm.ts long before it was implemented — keep this
+    // mount or the page crashes on Vite's HTML 404 fallback.
+    name: "PdmHealth",
+    importPath: "../domains/pdm-platform/health/routes.js",
+    functionName: "pdmHealthRouter",
+    mountPath: "/api/pdm/health",
     middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
     getDeps: () => ({ requireOrgId, generalApiRateLimit }),
   },

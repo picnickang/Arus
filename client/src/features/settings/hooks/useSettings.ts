@@ -20,14 +20,18 @@ export const settingsKeys = {
 export function useSystemSettings(category?: string) {
   return useQuery<SystemSettings[]>({
     queryKey: [...settingsKeys.system(), category ?? "all"],
-    queryFn: () => apiRequest<SystemSettings[]>("GET", `/api/settings${category ? `?category=${category}` : ""}`),
+    queryFn: () =>
+      apiRequest<SystemSettings[]>(
+        "GET",
+        `/api/settings${category ? `?category=${category}` : ""}`
+      ),
   });
 }
 
 export function useIntegrationConfigs() {
   return useQuery<IntegrationConfig[]>({
     queryKey: settingsKeys.integrations(),
-    queryFn: () => apiRequest<IntegrationConfig[]>("GET", "/api/integrations"),
+    queryFn: () => apiRequest<IntegrationConfig[]>("GET", "/api/admin/integrations"),
   });
 }
 
@@ -51,7 +55,8 @@ export function useAuditEvents(filters?: {
 
   return useQuery<AuditEvent[]>({
     queryKey: [...settingsKeys.audit(), filterKey],
-    queryFn: () => apiRequest<AuditEvent[]>("GET", `/api/admin/audit${queryString ? `?${queryString}` : ""}`),
+    queryFn: () =>
+      apiRequest<AuditEvent[]>("GET", `/api/admin/audit${queryString ? `?${queryString}` : ""}`),
   });
 }
 
@@ -87,7 +92,7 @@ export function useUpdateIntegrationConfig() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<IntegrationConfig> & { id: string }) => {
-      return apiRequest("PATCH", `/api/integrations/${id}`, data);
+      return apiRequest("PATCH", `/api/admin/integrations/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.integrations() });
