@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Archive,
@@ -15,7 +15,6 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +80,16 @@ import {
   useValidateSectionMap,
   useVesselDiagrams,
 } from "./registry-api";
+import {
+  ActionButton,
+  EmptyState,
+  ErrorState,
+  formatDate,
+  LoadingState,
+  PermissionDeniedInline,
+  StatusLine,
+  type PermissionSet,
+} from "./registry-screens/shared";
 
 interface RegistryRouteScreenProps {
   vesselId: string;
@@ -88,17 +97,6 @@ interface RegistryRouteScreenProps {
   mapId?: string;
   selectedVessel?: VesselRecord;
   equipment: EquipmentRecord[];
-}
-
-interface PermissionSet {
-  canConfigure: boolean;
-  canUploadDiagram: boolean;
-  canRollbackDiagram: boolean;
-  canEditMap: boolean;
-  canPublishMap: boolean;
-  canReplaceSectionThumbnail: boolean;
-  canReplaceEquipmentThumbnail: boolean;
-  canAssignEquipment: boolean;
 }
 
 export function isRegistryRoute(location: string) {
@@ -1538,32 +1536,6 @@ function ThumbnailCard({
   );
 }
 
-export function PermissionDeniedInline({ message }: { message: string }) {
-  return (
-    <Alert>
-      <AlertTitle>Permission denied</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
-}
-
-export function DeadControlGuard({
-  allowed,
-  reason,
-  children,
-}: {
-  allowed: boolean;
-  reason: string;
-  children: ReactNode;
-}) {
-  return (
-    <span className="inline-flex flex-col gap-1">
-      {children}
-      {!allowed && <span className="text-xs text-muted-foreground">{reason}</span>}
-    </span>
-  );
-}
-
 function useRegistryPermissions(): PermissionSet {
   const { hasAnyPermission } = usePermissions();
   return {
@@ -1580,79 +1552,6 @@ function useRegistryPermissions(): PermissionSet {
     ]),
     canAssignEquipment: hasAnyPermission("vessel-intelligence", ["assign-equipment"]),
   };
-}
-
-function ActionButton({
-  icon: Icon,
-  label,
-  allowed,
-  reason = "Not available",
-  loading,
-  testId,
-  onClick,
-}: {
-  icon: typeof Plus;
-  label: string;
-  allowed: boolean;
-  reason?: string;
-  loading?: boolean;
-  testId?: string;
-  onClick: () => void;
-}) {
-  return (
-    <DeadControlGuard allowed={allowed} reason={reason}>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onClick}
-        disabled={!allowed || loading}
-        title={allowed ? label : reason}
-        data-testid={testId}
-      >
-        {loading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Icon className="mr-2 h-4 w-4" />
-        )}
-        {label}
-      </Button>
-    </DeadControlGuard>
-  );
-}
-
-function StatusLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
-      <p className="font-medium">{value}</p>
-    </div>
-  );
-}
-
-function LoadingState({ message }: { message: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border p-4 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      {message}
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string }) {
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-      {message}
-    </div>
-  );
 }
 
 function ValidationColumn({
@@ -1752,15 +1651,4 @@ function defaultPolygonText() {
     null,
     2
   );
-}
-
-function formatDate(value: unknown) {
-  if (!value) {
-    return "Not recorded";
-  }
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return "Not recorded";
-  }
-  return date.toLocaleDateString();
 }
