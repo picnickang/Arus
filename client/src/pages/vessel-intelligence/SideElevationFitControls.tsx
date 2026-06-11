@@ -18,8 +18,8 @@ import {
 import { useUpdateSectionMapCalibration } from "./registry-api";
 
 interface SideElevationFitControlsProps {
-  vesselId?: string;
-  mapId?: string;
+  vesselId?: string | undefined;
+  mapId?: string | undefined;
   canEditImageTransform: boolean;
   currentImageTransform: SectionMapImageTransform;
   savedImageTransform: SectionMapImageTransform;

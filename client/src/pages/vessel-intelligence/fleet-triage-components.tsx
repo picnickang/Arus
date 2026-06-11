@@ -248,8 +248,8 @@ export function FleetVesselDiagramPreview({
   onReplaceSideElevation,
 }: {
   vesselName: string;
-  diagramTitle?: string | null;
-  mediaUrl?: string;
+  diagramTitle?: string | null | undefined;
+  mediaUrl?: string | undefined;
   sectionMap?: VesselSectionMapDefinition | null;
   sideElevationStatus: string;
   onOpenDiagram: () => void;

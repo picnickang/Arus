@@ -77,7 +77,7 @@ export function RowLink({
   href: string;
   title: string;
   meta: string;
-  badge?: string;
+  badge?: string | undefined;
   testId: string;
 }) {
   return (

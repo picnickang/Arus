@@ -84,9 +84,9 @@ import {
 
 interface RegistryRouteScreenProps {
   vesselId: string;
-  diagramId?: string;
-  mapId?: string;
-  selectedVessel?: VesselRecord;
+  diagramId?: string | undefined;
+  mapId?: string | undefined;
+  selectedVessel?: VesselRecord | undefined;
   equipment: EquipmentRecord[];
 }
 
@@ -280,8 +280,8 @@ export function DiagramTypeCard({
   onThumbnails,
 }: {
   type: DiagramTypeDefinition;
-  diagram?: RegistryDiagramRecord;
-  sectionMap?: RegistrySectionMapRecord;
+  diagram?: RegistryDiagramRecord | undefined;
+  sectionMap?: RegistrySectionMapRecord | undefined;
   permissions: PermissionSet;
   creating: boolean;
   onCreate: () => void;

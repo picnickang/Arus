@@ -46,11 +46,7 @@ import {
   type CrewTaskFilter,
   type UpdateCrewTaskInput,
 } from "@/features/crew";
-import {
-  CREW_TASK_PRIORITIES,
-  type CrewTaskStatus,
-  type CrewTaskPriority,
-} from "@shared/schema";
+import { CREW_TASK_PRIORITIES, type CrewTaskStatus, type CrewTaskPriority } from "@shared/schema";
 
 interface CrewOption {
   id: string;
@@ -205,23 +201,29 @@ export function CrewTaskTracker({
   useEffect(() => {
     if (lastMessage?.channel?.startsWith("crew_task")) {
       invalidateCrewTasks();
-      if (selectedId) {invalidateCrewTaskEvents(selectedId);}
+      if (selectedId) {
+        invalidateCrewTaskEvents(selectedId);
+      }
     }
   }, [lastMessage, selectedId]);
 
   const myTaskIds = useMemo(
     () => new Set(meTasks.filter((t) => t.source === "crew_tasks").map((t) => t.id)),
-    [meTasks],
+    [meTasks]
   );
 
   const crewName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const c of crew) {map.set(c.id, c.name);}
+    for (const c of crew) {
+      map.set(c.id, c.name);
+    }
     return map;
   }, [crew]);
   const vesselName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const v of vessels) {map.set(v.id, v.name);}
+    for (const v of vessels) {
+      map.set(v.id, v.name);
+    }
     return map;
   }, [vessels]);
 
@@ -246,7 +248,7 @@ export function CrewTaskTracker({
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedId) ?? null,
-    [tasks, selectedId],
+    [tasks, selectedId]
   );
 
   return (
@@ -350,24 +352,38 @@ export function CrewTaskTracker({
       </div>
 
       {isLoading ? (
-        <div className="ops-card flex items-center gap-2 rounded-2xl p-4 text-sm text-slate-400" data-testid="tasks-loading">
+        <div
+          className="ops-card flex items-center gap-2 rounded-2xl p-4 text-sm text-slate-400"
+          data-testid="tasks-loading"
+        >
           <Loader2 className="h-4 w-4 animate-spin" /> Loading tasks…
         </div>
       ) : isError ? (
         <div className="ops-card rounded-2xl p-4 text-sm text-rose-300" data-testid="tasks-error">
           Could not load tasks.{" "}
-          <button type="button" onClick={() => refetch()} className="underline" data-testid="button-tasks-retry">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="underline"
+            data-testid="button-tasks-retry"
+          >
             Retry
           </button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="ops-card rounded-2xl p-6 text-center text-sm text-slate-400" data-testid="tasks-empty">
+        <div
+          className="ops-card rounded-2xl p-6 text-center text-sm text-slate-400"
+          data-testid="tasks-empty"
+        >
           No tasks match this view.
         </div>
       ) : (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-200" data-testid="text-priority-heading">
+            <h3
+              className="text-sm font-semibold text-slate-200"
+              data-testid="text-priority-heading"
+            >
               {showAll ? "All tasks" : "Priority tasks"}
             </h3>
             {hasMore && (
@@ -463,7 +479,9 @@ function TaskRow({
           >
             {statusLabel(task.status)}
           </span>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${PRIORITY_TONE[task.priority]}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${PRIORITY_TONE[task.priority]}`}
+          >
             {priorityLabel(task.priority)}
           </span>
           {task.assignedCrewId && (
@@ -541,9 +559,7 @@ function TaskFormDialog({
   const [assignedCrewId, setAssignedCrewId] = useState(task?.assignedCrewId ?? "");
   const [assignedTo, setAssignedTo] = useState(task?.assignedTo ?? "");
   const [vesselId, setVesselId] = useState(task?.vesselId ?? "");
-  const [dueDate, setDueDate] = useState(
-    task?.dueDate ? task.dueDate.slice(0, 10) : "",
-  );
+  const [dueDate, setDueDate] = useState(task?.dueDate ? task.dueDate.slice(0, 10) : "");
   // Composite key "type:id" so one picker can offer both crew documents and
   // vessel certificates. Empty string = no link.
   const initialSourceKey =
@@ -557,14 +573,12 @@ function TaskFormDialog({
   // the label at save time).
   const { data: documents = [] } = useQuery<CrewDocumentItem[]>({
     queryKey: ["/api/crew", assignedCrewId, "documents"],
-    queryFn: () =>
-      apiRequest<CrewDocumentItem[]>(`/api/crew/${assignedCrewId}/documents`),
+    queryFn: () => apiRequest<CrewDocumentItem[]>(`/api/crew/${assignedCrewId}/documents`),
     enabled: Boolean(assignedCrewId),
   });
   const { data: certificates = [] } = useQuery<CertificateItem[]>({
     queryKey: ["/api/certificates", { vesselId }],
-    queryFn: () =>
-      apiRequest<CertificateItem[]>(`/api/certificates?vesselId=${vesselId}`),
+    queryFn: () => apiRequest<CertificateItem[]>(`/api/certificates?vesselId=${vesselId}`),
     enabled: Boolean(vesselId),
   });
 
@@ -577,13 +591,11 @@ function TaskFormDialog({
    * choose to leave the existing link untouched rather than corrupt it.
    */
   const resolveLink = (
-    key: string,
-  ):
-    | Pick<
-        UpdateCrewTaskInput,
-        "linkedSourceType" | "linkedSourceId" | "linkedSourceLabel"
-      >
-    | null => {
+    key: string
+  ): Pick<
+    UpdateCrewTaskInput,
+    "linkedSourceType" | "linkedSourceId" | "linkedSourceLabel"
+  > | null => {
     if (!key) {
       return {
         linkedSourceType: null,
@@ -617,7 +629,9 @@ function TaskFormDialog({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {return;}
+    if (!title.trim()) {
+      return;
+    }
 
     const onError = () =>
       toast({
@@ -647,20 +661,19 @@ function TaskFormDialog({
             ...linkPatch,
           },
         },
-        { onSuccess: onSaved, onError },
+        { onSuccess: onSaved, onError }
       );
       return;
     }
 
     const resolved = resolveLink(linkedKey);
-    const linkFields =
-      resolved?.linkedSourceId
-        ? {
-            linkedSourceType: resolved.linkedSourceType ?? undefined,
-            linkedSourceId: resolved.linkedSourceId,
-            linkedSourceLabel: resolved.linkedSourceLabel ?? undefined,
-          }
-        : {};
+    const linkFields = resolved?.linkedSourceId
+      ? {
+          linkedSourceType: resolved.linkedSourceType ?? undefined,
+          linkedSourceId: resolved.linkedSourceId,
+          linkedSourceLabel: resolved.linkedSourceLabel ?? undefined,
+        }
+      : {};
     createTask.mutate(
       {
         title: title.trim(),
@@ -672,7 +685,7 @@ function TaskFormDialog({
         ...(dueDate && { dueDate: new Date(dueDate).toISOString() }),
         ...linkFields,
       },
-      { onSuccess: onSaved, onError },
+      { onSuccess: onSaved, onError }
     );
   };
 
@@ -735,7 +748,9 @@ function TaskFormDialog({
               onChange={(e) => {
                 setAssignedCrewId(e.target.value);
                 // A document link belongs to the previous crew member — drop it.
-                if (linkedKey.startsWith("crew_document:")) {setLinkedKey("");}
+                if (linkedKey.startsWith("crew_document:")) {
+                  setLinkedKey("");
+                }
               }}
               className={inputClass}
               data-testid="select-task-assignee"
@@ -764,7 +779,9 @@ function TaskFormDialog({
             onChange={(e) => {
               setVesselId(e.target.value);
               // A certificate link belongs to the previous vessel — drop it.
-              if (linkedKey.startsWith("certificate:")) {setLinkedKey("");}
+              if (linkedKey.startsWith("certificate:")) {
+                setLinkedKey("");
+              }
             }}
             className={inputClass}
             data-testid="select-task-vessel"
@@ -786,17 +803,12 @@ function TaskFormDialog({
             data-testid="select-task-linked-source"
           >
             <option value="">
-              {assignedCrewId || vesselId
-                ? "None"
-                : "Pick a crew member or vessel first"}
+              {assignedCrewId || vesselId ? "None" : "Pick a crew member or vessel first"}
             </option>
             {documents.length > 0 && (
               <optgroup label="Crew documents">
                 {documents.map((d) => (
-                  <option
-                    key={d.id}
-                    value={sourceKey("crew_document", d.id)}
-                  >
+                  <option key={d.id} value={sourceKey("crew_document", d.id)}>
                     {documentLabel(d)}
                   </option>
                 ))}
@@ -805,10 +817,7 @@ function TaskFormDialog({
             {certificates.length > 0 && (
               <optgroup label="Vessel certificates">
                 {certificates.map((c) => (
-                  <option
-                    key={c.id}
-                    value={sourceKey("certificate", c.id)}
-                  >
+                  <option key={c.id} value={sourceKey("certificate", c.id)}>
                     {certificateLabel(c)}
                   </option>
                 ))}
@@ -862,7 +871,13 @@ function ActionButton({
       ? `${base} bg-emerald-500/90 text-white hover:bg-emerald-500`
       : `${base} ops-card text-slate-200 hover:border-sky-500/40`;
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={cls} data-testid={testId}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cls}
+      data-testid={testId}
+    >
       {icon}
       {label}
     </button>
@@ -888,7 +903,7 @@ function TaskDetailDialog({
   vesselName: Map<string, string>;
   canEdit: boolean;
   canDelete: boolean;
-  onOpenCrewProfile?: (crewId: string) => void;
+  onOpenCrewProfile?: ((crewId: string) => void) | undefined;
   onClose: () => void;
   onDeleted: () => void;
 }) {
@@ -911,20 +926,21 @@ function TaskDetailDialog({
         id: task.id,
         patch: {
           status,
-          blockedReason: status === "blocked" ? blockedReason ?? null : null,
+          blockedReason: status === "blocked" ? (blockedReason ?? null) : null,
         },
       },
       {
         onSuccess: () => toast({ title: "Task updated" }),
-        onError: () =>
-          toast({ title: "Could not update task", variant: "destructive" }),
-      },
+        onError: () => toast({ title: "Could not update task", variant: "destructive" }),
+      }
     );
   };
 
   const block = () => {
     const reason = window.prompt("Why is this task blocked?")?.trim();
-    if (reason === undefined) {return;}
+    if (reason === undefined) {
+      return;
+    }
     setStatus("blocked", reason || undefined);
   };
 
@@ -936,28 +952,27 @@ function TaskDetailDialog({
           setReassignOpen(false);
           toast({ title: "Task reassigned" });
         },
-        onError: () =>
-          toast({ title: "Could not reassign", variant: "destructive" }),
-      },
+        onError: () => toast({ title: "Could not reassign", variant: "destructive" }),
+      }
     );
   };
 
   const remove = () => {
     deleteTask.mutate(task.id, {
       onSuccess: onDeleted,
-      onError: () =>
-        toast({ title: "Could not delete task", variant: "destructive" }),
+      onError: () => toast({ title: "Could not delete task", variant: "destructive" }),
     });
   };
 
   const submitComment = (e: React.FormEvent) => {
     e.preventDefault();
     const text = comment.trim();
-    if (!text) {return;}
+    if (!text) {
+      return;
+    }
     addComment.mutate(text, {
       onSuccess: () => setComment(""),
-      onError: () =>
-        toast({ title: "Could not add comment", variant: "destructive" }),
+      onError: () => toast({ title: "Could not add comment", variant: "destructive" }),
     });
   };
 
@@ -980,10 +995,14 @@ function TaskDetailDialog({
     <Overlay onClose={onClose} title={task.title} testId="dialog-task-detail">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[task.status]}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[task.status]}`}
+          >
             {statusLabel(task.status)}
           </span>
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_TONE[task.priority]}`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_TONE[task.priority]}`}
+          >
             {priorityLabel(task.priority)}
           </span>
           {task.assignedCrewId && (
@@ -1017,21 +1036,24 @@ function TaskDetailDialog({
           <div>
             <p className="text-xs text-slate-400">Vessel</p>
             <p className="font-medium text-white">
-              {task.vesselId ? vesselName.get(task.vesselId) ?? "Vessel" : "—"}
+              {task.vesselId ? (vesselName.get(task.vesselId) ?? "Vessel") : "—"}
             </p>
           </div>
           <div>
             <p className="text-xs text-slate-400">Crew member</p>
             <p className="font-medium text-white">
               {task.assignedCrewId
-                ? crewName.get(task.assignedCrewId) ?? "Unknown"
+                ? (crewName.get(task.assignedCrewId) ?? "Unknown")
                 : "Unassigned"}
             </p>
           </div>
         </div>
 
         {task.status === "blocked" && task.blockedReason && (
-          <div className="rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-200" data-testid="text-detail-blocked">
+          <div
+            className="rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
+            data-testid="text-detail-blocked"
+          >
             Blocked: {task.blockedReason}
           </div>
         )}
@@ -1123,7 +1145,10 @@ function TaskDetailDialog({
         <div className="border-t border-slate-700 pt-3">
           <h4 className="mb-2 text-sm font-semibold text-slate-200">Activity log</h4>
           {eventsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-400" data-testid="events-loading">
+            <div
+              className="flex items-center gap-2 text-sm text-slate-400"
+              data-testid="events-loading"
+            >
               <Loader2 className="h-4 w-4 animate-spin" /> Loading activity…
             </div>
           ) : events.length === 0 ? (
@@ -1154,11 +1179,7 @@ function TaskDetailDialog({
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-sky-500/90 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
                 data-testid="button-add-comment"
               >
-                {addComment.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Post"
-                )}
+                {addComment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
               </button>
             </form>
           )}
@@ -1222,9 +1243,7 @@ function TaskDetailDialog({
 }
 
 function ActivityEntry({ event }: { event: CrewTaskEventView }) {
-  const when = event.createdAt
-    ? new Date(event.createdAt).toLocaleString()
-    : "";
+  const when = event.createdAt ? new Date(event.createdAt).toLocaleString() : "";
   const isComment = event.eventType === "comment";
   return (
     <li className="flex gap-2 text-sm" data-testid={`event-${event.id}`}>

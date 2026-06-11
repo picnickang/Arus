@@ -114,7 +114,7 @@ export function CrewAvatar({
 }: {
   name: string;
   id: string;
-  photoPath?: string | null;
+  photoPath?: string | null | undefined;
 }) {
   const photoUrl = useAuthedObjectUrl(photoPath);
   if (photoUrl) {

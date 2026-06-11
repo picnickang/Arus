@@ -1,5 +1,5 @@
 {
-  "$note": "Reference target for tsconfig.json strictness. Task #163 documents the goal; subsequent burndown tasks (#164–#167) flip these flags on as the underlying code is cleaned up. When tsconfig.json matches this file exactly under compilerOptions, the burndown is complete (gated by scripts/check-tsconfig-target.mjs — to be added in #167 acceptance).",
+  "$note": "Reference target for tsconfig.json strictness, reached in full as of 2026-06: every flag below is live in tsconfig.json and pinned by scripts/check-tsconfig-target.mjs (wired into check:guards). The tests lane (tsconfig.tests.json) still pins noUncheckedIndexedAccess/exactOptionalPropertyTypes off — flipping those for test code is the remaining follow-up.",
   "compilerOptions": {
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -13,13 +13,13 @@
   },
   "currentlyEnabled": {
     "strict": true,
-    "noUncheckedIndexedAccess": false,
-    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
-    "useUnknownInCatchVariables": "default (true under strict)",
-    "forceConsistentCasingInFileNames": "default (true since TS 5.0)"
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true
   }
 }
