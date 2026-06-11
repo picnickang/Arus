@@ -36,7 +36,6 @@ import {
   sensorMapping,
   discoveredSignals,
   requestIdempotency,
-  telemetryRollups,
   rulModels,
   rulFitHistory,
   portCall,
@@ -55,7 +54,6 @@ import {
   weibullEstimates,
   pdmBaseline,
   pdmAlerts,
-  telemetryAggregates,
   thresholdOptimizations,
   rawTelemetry,
   equipmentTelemetry,
@@ -78,7 +76,6 @@ import {
   failureHistory,
   modelPerformanceValidations,
   predictionFeedback,
-  mlModelsLegacy,
   shiftTemplate,
 } from "./schema/index";
 
@@ -93,7 +90,6 @@ export const insertSensorTypeSchema = createInsertSchema(sensorTypes);
 export const insertSensorMappingSchema = createInsertSchema(sensorMapping);
 export const insertDiscoveredSignalSchema = createInsertSchema(discoveredSignals);
 export const insertRequestIdempotencySchema = createInsertSchema(requestIdempotency);
-export const insertTelemetryRollupSchema = createInsertSchema(telemetryRollups);
 export const insertRulModelSchema = createInsertSchema(rulModels);
 export const insertRulFitHistorySchema = createInsertSchema(rulFitHistory);
 export const insertPortCallSchema = createInsertSchema(portCall);
@@ -112,7 +108,6 @@ export const insertVibrationAnalysisSchema = createInsertSchema(vibrationAnalysi
 export const insertWeibullEstimateSchema = createInsertSchema(weibullEstimates);
 export const insertPdmBaselineSchema = createInsertSchema(pdmBaseline);
 export const insertPdmAlertSchema = createInsertSchema(pdmAlerts);
-export const insertTelemetryAggregateSchema = createInsertSchema(telemetryAggregates);
 export const insertThresholdOptimizationSchema = createInsertSchema(thresholdOptimizations);
 export const insertRawTelemetrySchema = createInsertSchema(rawTelemetry);
 export const insertTelemetrySchema = createInsertSchema(equipmentTelemetry);
@@ -138,7 +133,6 @@ export const insertModelPerformanceValidationSchema = createInsertSchema(
   modelPerformanceValidations
 );
 export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback);
-export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy);
 export const insertShiftTemplateSchema = createInsertSchema(shiftTemplate);
 // insertMaintenanceChecklistCompletionSchema, insertMaintenanceChecklistItemSchema are exported from modular schema
 

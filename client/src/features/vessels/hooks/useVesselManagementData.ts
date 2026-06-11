@@ -164,7 +164,7 @@ export function useVesselManagementData() {
         specifications: v.specifications,
         operatingParameters: v.operatingParameters,
       } as object),
-      dayRateSgd: vessel.dayRateSgd || "",
+      dayRateSgd: vessel.dayRateSgd ?? null,
     });
     setIsEditDialogOpen(true);
   };

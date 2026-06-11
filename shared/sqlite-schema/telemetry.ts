@@ -45,49 +45,6 @@ export const rawTelemetrySqlite = sqliteTable(
   })
 );
 
-export const telemetryAggregatesSqlite = sqliteTable(
-  "telemetry_aggregates",
-  {
-    id: text("id").primaryKey(),
-    orgId: text("org_id").notNull(),
-    equipmentId: text("equipment_id").notNull(),
-    sensorType: text("sensor_type").notNull(),
-    periodStart: integer("period_start", { mode: "timestamp" }).notNull(),
-    periodEnd: integer("period_end", { mode: "timestamp" }).notNull(),
-    aggregationType: text("aggregation_type").notNull(),
-    minValue: real("min_value"),
-    maxValue: real("max_value"),
-    avgValue: real("avg_value"),
-    sumValue: real("sum_value"),
-    sampleCount: integer("sample_count"),
-    createdAt: integer("created_at", { mode: "timestamp" }),
-  },
-  (table) => ({
-    equipmentPeriodIdx: index("idx_agg_equipment_period").on(table.equipmentId, table.periodStart),
-  })
-);
-
-export const telemetryRollupsSqlite = sqliteTable(
-  "telemetry_rollups",
-  {
-    id: text("id").primaryKey(),
-    orgId: text("org_id").notNull(),
-    equipmentId: text("equipment_id").notNull(),
-    sensorType: text("sensor_type").notNull(),
-    rollupDate: integer("rollup_date", { mode: "timestamp" }).notNull(),
-    rollupType: text("rollup_type").notNull(),
-    minValue: real("min_value"),
-    maxValue: real("max_value"),
-    avgValue: real("avg_value"),
-    stdDev: real("std_dev"),
-    sampleCount: integer("sample_count"),
-    createdAt: integer("created_at", { mode: "timestamp" }),
-  },
-  (table) => ({
-    equipmentDateIdx: index("idx_rollup_equipment_date").on(table.equipmentId, table.rollupDate),
-  })
-);
-
 export const edgeHeartbeatsSqlite = sqliteTable(
   "edge_heartbeats",
   {

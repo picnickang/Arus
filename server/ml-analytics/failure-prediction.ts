@@ -6,8 +6,8 @@
  */
 
 import { db } from "../db";
-import { telemetryAggregates } from "@shared/schema-runtime";
-import { eq, and, gte, asc } from "drizzle-orm";
+import { equipmentTelemetry } from "@shared/schema-runtime";
+import { eq, and, gte, sql } from "drizzle-orm";
 import type {
   FailurePredictionResult,
   DegradationMetrics,
@@ -26,17 +26,22 @@ export async function getMultiSensorData(
 ): Promise<MlAnalyticsTelemetryReading[]> {
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
+  // Hourly buckets aggregated on the fly from live telemetry (0044 — the
+  // former telemetry_aggregates table was never written, so this path
+  // previously always returned an empty series).
+  const hourBucket = sql`date_trunc('hour', ${equipmentTelemetry.ts})`;
   const data = await db
-    .select()
-    .from(telemetryAggregates)
+    .select({
+      sensorType: equipmentTelemetry.sensorType,
+      windowStart: sql<Date>`${hourBucket}`.as("window_start"),
+      avgValue: sql<number>`avg(${equipmentTelemetry.value})::float8`.as("avg_value"),
+    })
+    .from(equipmentTelemetry)
     .where(
-      and(
-        eq(telemetryAggregates.equipmentId, equipmentId),
-        eq(telemetryAggregates.timeWindow, "1h"),
-        gte(telemetryAggregates.windowStart, startDate)
-      )
+      and(eq(equipmentTelemetry.equipmentId, equipmentId), gte(equipmentTelemetry.ts, startDate))
     )
-    .orderBy(asc(telemetryAggregates.windowStart));
+    .groupBy(equipmentTelemetry.sensorType, hourBucket)
+    .orderBy(hourBucket);
 
   return data as MlAnalyticsTelemetryReading[];
 }

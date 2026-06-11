@@ -20,10 +20,13 @@ let latestPerEquipmentSensor: (readings: Reading[]) => Map<string, Map<string, R
 
 beforeAll(async () => {
   // The batch-writer module pulls repositories/quota at import time; stub
-  // the heavy edges the same way sibling suites do.
+  // the heavy edges the same way sibling suites do. dbSensorsStorage is
+  // required by telemetry-ingest-config (static import since 79a7f3a)
+  // which batch-writer pulls transitively.
   jest.unstable_mockModule("../../server/repositories", () => ({
     __esModule: true,
     dbTelemetryStorage: { createTelemetryReadingsBulk: jest.fn() },
+    dbSensorsStorage: { getSensorConfigurations: jest.fn().mockResolvedValue([]) },
   }));
   jest.unstable_mockModule("../../server/tenancy/quota-service", () => ({
     __esModule: true,

@@ -5,7 +5,7 @@
  *
  * CONSOLIDATION NOTE (Task #8):
  * The canonical model is `parts` (catalog) + `stock` (per-location quantities).
- * `partsInventory` and `inventoryParts` are DEPRECATED — kept for rollback but
+ * `partsInventory` is DEPRECATED — kept for rollback but
  * all new code should use `parts` + `stock` instead.
  */
 
@@ -275,33 +275,6 @@ export const inventoryMovements = pgTable("inventory_movements", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
-
-/**
- * @deprecated Use `parts` + `stock` instead. Kept for rollback window.
- * Simple inventory parts for optimizer — DEPRECATED (Task #8)
- * Optimizer should query `parts` joined with `stock` for the same data.
- */
-export const inventoryParts = pgTable("inventory_parts", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  orgId: varchar("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  partNumber: text("part_number").notNull(),
-  description: text("description").notNull(),
-  currentStock: integer("current_stock").notNull().default(0),
-  minStockLevel: integer("min_stock_level").notNull(),
-  maxStockLevel: integer("max_stock_level").notNull(),
-  leadTimeDays: integer("lead_time_days").notNull(),
-  unitCost: real("unit_cost"),
-  supplier: text("supplier"),
-  lastUsage30d: integer("last_usage_30d").default(0),
-  riskLevel: text("risk_level").notNull().default("low"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
-
 // Insert schemas
 export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
@@ -346,12 +319,6 @@ export const insertInventoryMovementSchema = createInsertSchema(inventoryMovemen
 });
 
 /** @deprecated Use insertPartSchema instead */
-export const insertInventoryPartSchema = createInsertSchema(inventoryParts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 // Types
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
@@ -377,9 +344,7 @@ export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
 
 /** @deprecated Use Part type instead */
-export type InventoryPart = typeof inventoryParts.$inferSelect;
 /** @deprecated Use InsertPart instead */
-export type InsertInventoryPart = z.infer<typeof insertInventoryPartSchema>;
 
 /**
  * Consolidated view type: Part with stock data joined.

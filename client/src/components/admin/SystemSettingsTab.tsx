@@ -47,8 +47,6 @@ import {
   FileText,
   ChevronRight,
   Key,
-  Eye,
-  EyeOff,
   CheckCircle,
   XCircle,
   Loader2,
@@ -64,9 +62,9 @@ function OpenAIKeyCard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
 
-  const settingsQuery = useQuery<{ openaiApiKey?: string | null; llmModel?: string | null }>({
+  // The API never returns key material (0043) — only hasOpenaiKey.
+  const settingsQuery = useQuery<{ hasOpenaiKey?: boolean; llmModel?: string | null }>({
     queryKey: ["/api/settings"],
   });
 
@@ -98,7 +96,7 @@ function OpenAIKeyCard() {
   const saveMutation = useMutation({
     mutationFn: async (key: string) => {
       const res = await apiRequest("PUT", "/api/settings", { openaiApiKey: key });
-      return res as { openaiApiKey?: string | null };
+      return res as { hasOpenaiKey?: boolean };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
@@ -123,7 +121,6 @@ function OpenAIKeyCard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      setShowKey(false);
       toast({ title: "API key removed", description: "Your OpenAI API key has been cleared." });
     },
     onError: (error: Error) => {
@@ -135,9 +132,7 @@ function OpenAIKeyCard() {
     },
   });
 
-  const openaiApiKey = settingsQuery.data?.openaiApiKey;
-  const hasKey = !!openaiApiKey;
-  const maskedKey = openaiApiKey ? `sk-...${openaiApiKey.slice(-4)}` : null;
+  const hasKey = !!settingsQuery.data?.hasOpenaiKey;
 
   const statusBadge = () => {
     if (saveMutation.isPending || removeMutation.isPending) {
@@ -202,16 +197,8 @@ function OpenAIKeyCard() {
         {hasKey && (
           <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
             <span className="text-sm font-mono flex-1" data-testid="text-current-key">
-              {showKey ? openaiApiKey : maskedKey}
+              sk-••••••••••••
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowKey(!showKey)}
-              data-testid="button-toggle-key-visibility"
-            >
-              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
             <Button
               variant="outline"
               size="sm"

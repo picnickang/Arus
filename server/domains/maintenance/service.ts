@@ -77,7 +77,7 @@ function templateEntityToSchema(entity: MaintenanceTemplateEntity): MaintenanceT
     estimatedDurationMinutes: null,
     checklistItems: entity.checklistItems ?? null,
     intervalDays: entity.intervalDays ?? null,
-    intervalHours: entity.intervalHours != null ? String(entity.intervalHours) : null,
+    intervalHours: entity.intervalHours ?? null,
   };
 }
 
@@ -237,10 +237,7 @@ export class MaintenanceService {
       requiredParts: (data.requiredParts as string[] | null | undefined) ?? undefined,
       checklistItems: (data.checklistItems as string[] | null | undefined) ?? undefined,
       intervalDays: data.intervalDays ?? undefined,
-      intervalHours:
-        data.intervalHours != null && data.intervalHours !== ""
-          ? Number(data.intervalHours)
-          : undefined,
+      intervalHours: data.intervalHours ?? undefined,
       isActive: data.isActive ?? undefined,
     };
     const entity = await maintenanceAppService.createTemplate(command, userId);
@@ -263,10 +260,7 @@ export class MaintenanceService {
       requiredParts: (data.requiredParts as string[] | null | undefined) ?? undefined,
       checklistItems: (data.checklistItems as string[] | null | undefined) ?? undefined,
       intervalDays: data.intervalDays ?? undefined,
-      intervalHours:
-        data.intervalHours != null && data.intervalHours !== ""
-          ? Number(data.intervalHours)
-          : undefined,
+      intervalHours: data.intervalHours ?? undefined,
       isActive: data.isActive ?? undefined,
     };
     const entity = await maintenanceAppService.updateTemplate(id, command, orgId, userId);

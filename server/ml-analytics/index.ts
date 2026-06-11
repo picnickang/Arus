@@ -147,6 +147,7 @@ export class MLAnalyticsService extends EventEmitter {
   }
 
   async optimizeThresholds(
+    orgId: string,
     equipmentId: string,
     sensorType: string,
     currentThresholds: { warning: number; critical: number }
@@ -171,6 +172,7 @@ export class MLAnalyticsService extends EventEmitter {
       }
 
       await recordThresholdOptimization(
+        orgId,
         equipmentId,
         sensorType,
         currentThresholds,

@@ -4,7 +4,6 @@
   "missingTables": ["organizations", "syncConflicts", "syncJournal", "syncOutbox", "users"],
   "columnDrift": {
     "vessels": {
-      "pgOnly": ["schematicLayout"],
       "sqliteOnly": ["id", "orgId"]
     },
     "equipment": {

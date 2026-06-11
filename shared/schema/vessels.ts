@@ -40,10 +40,14 @@ export const vessels = pgTable("vessels", {
   yearBuilt: integer("year_built"),
   active: boolean("active").default(true),
   notes: text("notes"),
-  dayRateSgd: numeric("day_rate_sgd", { precision: 10, scale: 2 }),
-  downtimeDays: numeric("downtime_days", { precision: 10, scale: 2 }).default("0"),
+  // mode:"number" added in 0049 — DB type unchanged (money/day
+  // quantities stay numeric per the 0041 policy); consumers no longer
+  // parse strings. Raw-sql aggregates (SUM(...)) still return strings —
+  // cast ::float8 or wrap in Number() at that boundary.
+  dayRateSgd: numeric("day_rate_sgd", { precision: 10, scale: 2, mode: "number" }),
+  downtimeDays: numeric("downtime_days", { precision: 10, scale: 2, mode: "number" }).default(0),
   downtimeResetAt: timestamp("downtime_reset_at", { mode: "date" }),
-  operationDays: numeric("operation_days", { precision: 10, scale: 2 }).default("0"),
+  operationDays: numeric("operation_days", { precision: 10, scale: 2, mode: "number" }).default(0),
   operationResetAt: timestamp("operation_reset_at", { mode: "date" }),
   lastDailyUpdateDate: text("last_daily_update_date"),
   commissionDate: timestamp("commission_date", { mode: "date" }),
@@ -132,6 +136,16 @@ export const insertVesselSchema = createInsertSchema(vessels)
     name: z.string().min(1).max(100),
     vesselType: z.string().optional(),
     condition: z.enum(["excellent", "good", "fair", "poor", "critical"]).optional(),
+    // Columns are mode:"number" since 0049; coerce form/API strings at
+    // the boundary ("" clears the rate to null).
+    dayRateSgd: z
+      .preprocess(
+        (v) => (v === "" || v == null ? null : Number(v)),
+        z.number().nonnegative().nullable()
+      )
+      .optional(),
+    downtimeDays: z.coerce.number().nonnegative().optional(),
+    operationDays: z.coerce.number().nonnegative().optional(),
   });
 
 export const insertWeatherCacheSchema = createInsertSchema(weatherCache).omit({
