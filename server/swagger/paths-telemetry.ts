@@ -98,7 +98,7 @@ export const telemetryPaths = {
       ],
       responses: {
         "200": {
-          description: "Telemetry readings, newest first",
+          description: "Telemetry readings in ascending timestamp order",
           content: {
             "application/json": {
               schema: {

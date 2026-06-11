@@ -140,6 +140,100 @@ export function registerTelemetryRoutes(
     })
   );
 
+  // Per-equipment sensor-health rollup for SensorHealthDashboard (the PdM
+  // equipment page). The component shipped against this contract but no
+  // route ever existed. Status comes from each sensor's newest reading in
+  // a 24h window; sensors are the configured set when configurations
+  // exist, otherwise the sensor types observed in the window (so
+  // unconfigured-but-reporting equipment isn't rendered as sensor-less).
+  app.get(
+    "/api/equipment/:equipmentId/sensor-health",
+    generalApiRateLimit,
+    withErrorHandling("fetch equipment sensor health", async (req, res) => {
+      const { equipmentId } = z.object({ equipmentId: z.string().min(1) }).parse(req.params);
+      const orgId = req.orgId!;
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const [configs, readings, openAlerts] = await Promise.all([
+        dbSensorsStorage.getSensorConfigurations(orgId, equipmentId),
+        dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, since, new Date()),
+        (async () => {
+          const { dbAlertStorage } = await import("../../repositories");
+          return dbAlertStorage.getAlertNotifications(false, orgId);
+        })(),
+      ]);
+
+      // Newest reading + sample count per sensor type. Rows arrive in
+      // ASCENDING ts order (getTelemetryByEquipmentAndDateRange), so the
+      // last row seen per sensor is the newest — overwrite as we go.
+      const bySensor = new Map<string, { status: string; count: number }>();
+      for (const reading of readings) {
+        const entry = bySensor.get(reading.sensorType);
+        if (entry) {
+          entry.count++;
+          entry.status = reading.status ?? "normal";
+        } else {
+          bySensor.set(reading.sensorType, { status: reading.status ?? "normal", count: 1 });
+        }
+      }
+
+      const sensorTypes =
+        configs.length > 0
+          ? configs.map((c) => ({ type: c.sensorType, enabled: c.enabled !== false }))
+          : Array.from(bySensor.keys()).map((type) => ({ type, enabled: true }));
+
+      let normalSensors = 0;
+      let warningSensors = 0;
+      let criticalSensors = 0;
+      let offlineSensors = 0;
+      let consistentSensors = 0;
+      for (const sensor of sensorTypes) {
+        const latest = bySensor.get(sensor.type);
+        if (!sensor.enabled || !latest) {
+          offlineSensors++;
+          continue;
+        }
+        if (latest.count >= 10) {
+          consistentSensors++;
+        }
+        if (latest.status === "critical") {
+          criticalSensors++;
+        } else if (latest.status === "warning") {
+          warningSensors++;
+        } else {
+          normalSensors++;
+        }
+      }
+
+      const totalSensors = sensorTypes.length;
+      const activeSensors = totalSensors - offlineSensors;
+      const recentAnomalies = openAlerts.filter(
+        (a) => a.equipmentId === equipmentId && a.createdAt && new Date(a.createdAt) >= since
+      ).length;
+      const pct = (n: number) => (totalSensors === 0 ? 0 : Math.round((n / totalSensors) * 100));
+
+      res.json({
+        totalSensors,
+        activeSensors,
+        normalSensors,
+        warningSensors,
+        criticalSensors,
+        offlineSensors,
+        // Weighted: normal=100, warning=60, critical=20, offline=0.
+        overallHealthScore:
+          totalSensors === 0
+            ? 0
+            : Math.round(
+                (normalSensors * 100 + warningSensors * 60 + criticalSensors * 20) / totalSensors
+              ),
+        // Share of sensors reporting consistently (>=10 samples in 24h).
+        dataQualityScore: pct(consistentSensors),
+        recentAnomalies,
+        uptimePercentage: pct(activeSensors),
+      });
+    })
+  );
+
   // Get telemetry history for equipment/sensor
   app.get(
     "/api/telemetry/history/:equipmentId/:sensorType",
@@ -167,9 +261,11 @@ export function registerTelemetryRoutes(
       if (history.length > MAX_POINTS) {
         const stride = Math.ceil(history.length / MAX_POINTS);
         const decimated = history.filter((_, i) => i % stride === 0);
-        const newest = history[0];
-        if (newest && decimated[0] !== newest) {
-          decimated.unshift(newest);
+        // Rows are in ASCENDING ts order — the newest reading is the LAST
+        // element; always retain it so charts show the latest value.
+        const newest = history[history.length - 1];
+        if (newest && decimated[decimated.length - 1] !== newest) {
+          decimated.push(newest);
         }
         res.json(decimated);
         return;

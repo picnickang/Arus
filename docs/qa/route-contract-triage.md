@@ -28,6 +28,36 @@ family cannot back it and no `/api/organizations` routes exist at all), and the 
 families have a server-side Logbook domain whose paths differ from what the client calls —
 reconcile the path scheme rather than implementing duplicates.
 
+**2026-06-10 (pass 3)** — 5 entries resolved, baseline 139 → 134:
+
+- **Implemented** `GET /api/equipment/:equipmentId/sensor-health` (telemetry domain) — the
+  SensorHealthDashboard panel on the PdM equipment page shipped against this contract with no
+  route; verified live (6 sensors, status rollup, recentAnomalies from open alerts). The baseline
+  entry was actually a stale doc-comment path (`sensors/health`); the real fetch is a 3-segment
+  queryKey joining to `sensor-health`.
+- **Fixed a live-page joined-queryKey bug**: the condition-monitoring vessel summary's 4-segment
+  key ended in a params object → `…/summary/[object Object]`; now an explicit queryFn against
+  `/api/logbook/condition/vessel/:vesselId/summary`.
+- **Fixed two ascending-order bugs found en route**: the history decimation kept the oldest
+  reading instead of the newest, and sensor-health initially took first-row-as-latest —
+  `getTelemetryByEquipmentAndDateRange` returns ASCENDING ts.
+- **Deleted dead client code** — `useDeckLog`/`useEngineLog` (0 callers; their flat
+  `/logbook/deck|engine` + `/complete` scheme never matched the server's daily-log API) and
+  `useAdjustStock`/`useTransferStock` (0 callers; stock mutations go through
+  `/api/parts-inventory/:id/stock`).
+
+**Reclassifications (entries that stay in the baseline but are NOT missing APIs):**
+
+- _classifier-literal_: `/api/logbook`, `/api/logbook/deck`, `/api/logbook/engine`,
+  `/api/attention`, `/api/pdm/risk`, and the remaining `/api/maintenance-checklist` ref — these are
+  `path.startsWith(...)` prefix classifiers in `offline-sync.ts`, not requests.
+- _queryKey-base (works at runtime)_: `/api/logbook/deck/vessel` and `/api/logbook/engine/vessel`
+  — 4-segment string keys whose default-fetcher `join("/")` resolves to the real
+  `…/vessel/:vesselId/date/:logDate` routes. `/api/logbook/condition/vessel` is the same class,
+  now with an explicit queryFn.
+- The **logbook family is therefore fully accounted for** — the server's 64-route daily-log domain
+  was never missing; the flagged entries were dead hooks, classifiers, and key bases.
+
 ## Verdict
 
 - **146 missing-api** — the client ships UI that calls routes the server never registers.
