@@ -210,9 +210,7 @@ export const TENANT_TABLES: readonly TenantTableSpec[] = Object.freeze([
   { table: "model_versions" },
   { table: "model_metrics" },
   { table: "ml_models" },
-  // Deprecated legacy model table; listed while it still exists (drop
-  // planned in 0050 — 0040 already retargeted all FKs off it).
-  { table: "ml_models_legacy" },
+  // ml_models_legacy dropped in 0050 (0040 had retargeted all FKs off it).
   { table: "model_artifacts" },
   { table: "training_runs" },
   { table: "training_datasets" },

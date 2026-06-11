@@ -26,34 +26,8 @@ import { organizations } from "./core";
 import { equipment } from "./equipment";
 import { workOrders } from "./work-orders";
 
-// LEGACY ML model management and versioning
-export const mlModelsLegacy = pgTable(
-  "ml_models_legacy",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id")
-      .notNull()
-      .references(() => organizations.id),
-    name: varchar("name").notNull(),
-    version: varchar("version").notNull(),
-    modelType: varchar("model_type").notNull(),
-    targetEquipmentType: varchar("target_equipment_type"),
-    trainingDataFeatures: jsonb("training_data_features"),
-    hyperparameters: jsonb("hyperparameters"),
-    performance: jsonb("performance"),
-    modelArtifactPath: varchar("model_artifact_path"),
-    status: varchar("status").default("training"),
-    deployedAt: timestamp("deployed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  },
-  (table) => ({
-    nameVersionIdx: index("idx_ml_models_legacy_name_version").on(table.name, table.version),
-    orgIdx: index("idx_ml_models_legacy_org").on(table.orgId),
-  })
-);
+// ml_models_legacy dropped in 0050 — superseded by mlModels +
+// modelVersions; 0040 retargeted the last FKs off it.
 
 // Active ML models
 export const mlModels = pgTable(
@@ -399,11 +373,6 @@ export const failureHistory = pgTable(
 );
 
 // Insert schemas
-export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 export const insertMlModelSchema = createInsertSchema(mlModels).omit({
   id: true,
   createdAt: true,
@@ -440,8 +409,6 @@ export const insertFailureHistorySchema = createInsertSchema(failureHistory).omi
 });
 
 // Types
-export type MlModelLegacy = typeof mlModelsLegacy.$inferSelect;
-export type InsertMlModelLegacy = z.infer<typeof insertMlModelLegacySchema>;
 export type MlModel = typeof mlModels.$inferSelect;
 export type InsertMlModel = z.infer<typeof insertMlModelSchema>;
 export type UpdateMlModel = z.infer<typeof updateMlModelSchema>;

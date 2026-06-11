@@ -76,7 +76,6 @@ import {
   failureHistory,
   modelPerformanceValidations,
   predictionFeedback,
-  mlModelsLegacy,
   shiftTemplate,
 } from "./schema/index";
 
@@ -134,7 +133,6 @@ export const insertModelPerformanceValidationSchema = createInsertSchema(
   modelPerformanceValidations
 );
 export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback);
-export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy);
 export const insertShiftTemplateSchema = createInsertSchema(shiftTemplate);
 // insertMaintenanceChecklistCompletionSchema, insertMaintenanceChecklistItemSchema are exported from modular schema
 

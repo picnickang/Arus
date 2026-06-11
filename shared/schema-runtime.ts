@@ -386,7 +386,6 @@ export const weatherCache = cloudOnly(pgSchema.weatherCache);
 export const schedulerRuns = (IS_POSTGRES ? pgSchema.schedulerRuns : sqliteVessel.schedulerRunsSqlite) as typeof pgSchema.schedulerRuns;
 export const scheduleAssignments = (IS_POSTGRES ? pgSchema.scheduleAssignments : sqliteVessel.scheduleAssignmentsSqlite) as typeof pgSchema.scheduleAssignments;
 export const scheduleUnfilled = (IS_POSTGRES ? pgSchema.scheduleUnfilled : sqliteVessel.scheduleUnfilledSqlite) as typeof pgSchema.scheduleUnfilled;
-export const mlModelsLegacy = cloudOnly(pgSchema.mlModelsLegacy);
 export const modelVersions = cloudOnly(pgSchema.modelVersions);
 export const calibrationCurves = cloudOnly(pgSchema.calibrationCurves);
 export const realTimePredictions = cloudOnly(pgSchema.realTimePredictions);
@@ -533,7 +532,6 @@ export {
   insertOilChangeRecordSchema,
   insertMqttDeviceSchema,
   insertDataQualityMetricSchema,
-  insertMlModelLegacySchema,
   insertCalibrationCurveSchema,
   insertAnomalyDetectionSchema,
   insertFailurePredictionSchema,
