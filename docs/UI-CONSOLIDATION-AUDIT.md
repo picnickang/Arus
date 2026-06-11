@@ -23,7 +23,7 @@ problems are concentrated in **the unfinished half of that consolidation**:
 | 6   | **`IconGridLayout` re-creates `lazy()` per tab selection** → revisiting a tab remounts content, refetches, flashes the loader                                        | High     | `components/layouts/IconGridLayout.tsx:111-132`                                              |
 | 7   | Header/stat-card/severity-color logic is re-implemented per page: 97 hand-rolled headers in 33 files, 10 `getSeverityColor` implementations, 5+ stat-card variants   | Medium   | §3, §5                                                                                       |
 | 8   | 10 god-files (817–1,766 lines), 129 `key={index}` sites, only 10 `React.memo` uses app-wide                                                                          | Medium   | §6                                                                                           |
-| 9   | Confirmed dead code: 2 components, 2 hooks, 1 CSS file, 1 duplicated theme block, 2 deprecated stub pages, 1 unused layout helper                                    | Low      | §5                                                                                           |
+| 9   | Confirmed dead code: 2 hooks, 1 orphan CSS file, 2 duplicated theme blocks, 2 deprecated stub pages, 1 unused layout helper                                          | Low      | §5                                                                                           |
 
 Target outcome of this plan: **98 routed surfaces → ~72**, one URL grammar per destination,
 one shell + one header contract, and the three verified re-render bugs fixed (items 4–6 are
@@ -361,7 +361,6 @@ redirect, not a 404.
 
 | Artifact                                                           | Lines | Evidence                                                                           |
 | ------------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------- |
-| `components/FairnessViz.tsx`                                       | 72    | no importers                                                                       |
 | `hooks/use-upload.ts`                                              | 93    | no importers                                                                       |
 | `hooks/useDashboardPreferences.ts`                                 | 49    | no importers                                                                       |
 | `styles/bridge-and-daylight.css`                                   | 70    | never imported; content duplicated in `index.css`                                  |
@@ -369,6 +368,11 @@ redirect, not a 404.
 | `createIconGridLegacyRedirects` (`IconGridLayout.tsx:288-301`)     | 14    | exported, never called; `GridItem.legacyRoutes` metadata it consumes is also inert |
 | `pages/sensor-optimization.tsx`, `pages/sensor-management.tsx`     | ~43   | "moved" placeholder stubs (C5)                                                     |
 | 9 shadowed route registrations                                     | —     | §2.1                                                                               |
+
+Correction (Wave 1): `components/FairnessViz.tsx` was initially flagged dead but is consumed
+via a **relative** import (`scheduling/enhanced-schedule-results-card.tsx:17`) that the
+alias-only grep missed — kept. Lesson folded into §10: dead-code detection must resolve
+relative imports, which is exactly what `knip` does and ad-hoc greps don't.
 
 Near-dead: `components/unified-crew-components.tsx` is **885 lines consumed for one export**
 (`CrewViewDialogContent`, imported once at `UnifiedCrewManagement/index.tsx:8`). Extract that
@@ -708,19 +712,20 @@ export default function FuelEmissionsLog() {
 
 ### Fix immediately (verified bugs; ≤1 day total)
 
-- [ ] Memoize `PermissionsContext` value — `contexts/PermissionsContext.tsx:158` (§8.1)
-- [ ] Memoize `AdminAccessContext` value + extract 1 Hz countdown — `contexts/AdminAccessContext.tsx:193,226` (§8.2)
-- [ ] Cache lazy components in `IconGridLayout` — `components/layouts/IconGridLayout.tsx:111-132` (§8.3)
-- [ ] Delete 9 shadowed route registrations — `routes/records.ts:22-27`, `routes/logistics.ts`, `routes/analytics.ts` (§2.1)
+- [x] Memoize `PermissionsContext` value — `contexts/PermissionsContext.tsx:158` (§8.1) — done, Wave 1
+- [x] Memoize `AdminAccessContext` value + drop the 1 Hz countdown state — `contexts/AdminAccessContext.tsx` (§8.2) — done, Wave 1; `timeUntilExpiry`/`timeUntilIdleTimeout` had **zero consumers**, so they were removed outright (no `useAdminCountdown` hook needed; the interval now only enforces auto-lock)
+- [x] Cache lazy components in `IconGridLayout` — `components/layouts/IconGridLayout.tsx` (§8.3) — done, Wave 1
+- [x] Delete 9 shadowed route registrations — `routes/records.ts`, `routes/logistics.ts`, `routes/analytics.ts` (§2.1) — done, Wave 1
 - [ ] Fix Records nav/grammar fork so both menus show the same Deck/Engine/Equipment/Compliance UI (§2.2, §8.5)
 - [ ] Move `/equipment/:equipmentId` into the fleet route group (hub-gating seam, §2.3)
 - [ ] Dedup `SafetyTab` 20 s + 30 s concurrent polls — `components/crew-admin/SafetyTab.tsx`
 
 ### Static (purge & centralize; 1–2 days)
 
-- [ ] Delete: `FairnessViz.tsx`, `use-upload.ts`, `useDashboardPreferences.ts`,
-      `styles/bridge-and-daylight.css`, duplicate `.bridge`/`.daylight` block in `index.css:415-448,553-573`,
-      `createIconGridLegacyRedirects` + `GridItem.legacyRoutes`, sensor stub pages (§5.2)
+- [x] Delete: `use-upload.ts`, `useDashboardPreferences.ts`, `styles/bridge-and-daylight.css`,
+      duplicate `.bridge`/`.daylight` blocks in `index.css`,
+      `createIconGridLegacyRedirects` + `GridItem.legacyRoutes` — done, Wave 1
+      (`FairnessViz.tsx` kept — see correction in §5.2; sensor stub pages deferred to C5)
 - [ ] Decide `NavigationCard`/`NavigationGroup`: bless for hubs or delete (§3.2)
 - [ ] Extract `CrewViewDialogContent`; delete rest of `unified-crew-components.tsx` (885 lines) (§5.2)
 - [ ] Create `lib/severity.ts`; delete 8 duplicate `getSeverityColor` implementations (§5.3)
