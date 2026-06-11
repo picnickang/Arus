@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:41:50.799Z
+Generated: 2026-06-11T23:48:05.590Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `96` counted files.
-- The current counted inventory is `96` files.
+- The temporary ceiling is `94` counted files.
+- The current counted inventory is `94` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    96 |
-| Server                    |    34 |
+| Total counted long files  |    94 |
+| Server                    |    32 |
 | Server route-like files   |     9 |
-| Server service-like files |     9 |
+| Server service-like files |     6 |
 | Client                    |    62 |
 | Client page files         |    24 |
 | Shared                    |     0 |
@@ -87,6 +87,8 @@ Completed splits:
 - `client/src/features/crew/hooks/useShiftPlanning.ts` dropped below the threshold by moving scheduling payload and data-shape types to a sibling hook type module while preserving the exported hook and return type.
 - `client/src/pages/pdm-equipment-detail.tsx` dropped below the threshold by moving anomaly and maintenance history tab rendering to a sibling tab module while preserving the route component.
 - `server/integrations/fmcc-polling-service.ts` dropped below the threshold by moving FMCC raw poll normalization to a pure snapshot builder while preserving the polling service exports.
+- `server/services/anomaly-correlation/anomaly-correlator.ts` dropped below the threshold by moving sensor normalization and failure-signature matching to a pure helper module while preserving `AnomalyCorrelator`.
+- `server/services/ml/prediction-outcome-tracker.ts` dropped below the threshold by moving tracker config and payload/data-shape types to a sibling type module while preserving `PredictionOutcomeTracker`.
 
 ## Top 30 Longest Files
 
@@ -236,7 +238,5 @@ Completed splits:
 564 client/src/components/scheduling/crew-scheduler-cards.tsx
 561 client/src/pages/analytics-hub.tsx
 559 server/scripts/migrate.ts
-554 server/services/ml/prediction-outcome-tracker.ts
-548 server/services/anomaly-correlation/anomaly-correlator.ts
 532 server/db/equipment/db-equipment.ts
 ```

@@ -18,96 +18,19 @@
  */
 
 import { logger } from "../../utils/logger";
-import type { db as DbInstance } from "../../db";
+import {
+  DEFAULT_CONFIG,
+  type DbHandle,
+  type EligiblePrediction,
+  type OutcomeEvaluationReport,
+  type OutcomeTrackerDeps,
+  type PredictionOutcome,
+  type TrackerAlert,
+  type TrackerConfig,
+  type TrackerWorkOrder,
+} from "./prediction-outcome-tracker-types";
 
 const LOG_CTX = "PredictionOutcomeTracker";
-
-type DbHandle = typeof DbInstance;
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface PredictionOutcome {
-  predictionId: number;
-  equipmentId: string;
-  modelId: string | null;
-  predictedProbability: number;
-  predictedFailureDate: Date | null;
-  riskLevel: string;
-  actualOutcome: "true_positive" | "true_negative" | "false_positive" | "false_negative";
-  outcomeRecordedAt: Date;
-}
-
-interface OutcomeEvaluationReport {
-  orgId: string;
-  evaluatedAt: Date;
-  totalPredictionsEvaluated: number;
-  totalAlreadyTracked: number;
-  newOutcomesRecorded: number;
-  accuracy: number;
-  precision: number;
-  recall: number;
-  f1Score: number;
-  confusionMatrix: {
-    truePositive: number;
-    trueNegative: number;
-    falsePositive: number;
-    falseNegative: number;
-  };
-  retrainingTriggered: boolean;
-  retrainingReason: string | null;
-  modelAccuracies: Record<string, { accuracy: number; total: number; shouldRetrain: boolean }>;
-}
-
-interface TrackerConfig {
-  /** Days after predicted failure date to wait before evaluating outcome */
-  outcomeWindowDays: number;
-  /** Days before/after predicted date to look for actual failures */
-  matchWindowDays: number;
-  /** Accuracy threshold below which retraining is triggered */
-  retrainAccuracyThreshold: number;
-  /** Minimum predictions needed before evaluating a model */
-  minPredictionsForEval: number;
-}
-
-const DEFAULT_CONFIG: TrackerConfig = {
-  outcomeWindowDays: 14,
-  matchWindowDays: 7,
-  retrainAccuracyThreshold: 0.7,
-  minPredictionsForEval: 20,
-};
-
-// ============================================================================
-// Main Service
-// ============================================================================
-
-interface TrackerWorkOrder {
-  createdAt: string | Date | null;
-  type?: string | null;
-  priority?: number | null;
-  equipmentId?: string | null;
-}
-
-interface TrackerAlert {
-  createdAt: string | Date | null;
-  equipmentId?: string | null;
-  alertType?: string | null;
-}
-
-interface OutcomeTrackerDeps {
-  getWorkOrders: (equipmentId?: string, orgId?: string) => Promise<TrackerWorkOrder[]>;
-  getAlertNotifications: (acknowledged?: boolean, orgId?: string) => Promise<TrackerAlert[]>;
-}
-
-interface EligiblePrediction {
-  id: number;
-  equipmentId: string;
-  modelId: string | null;
-  failureProbability?: number | null;
-  predictedFailureDate: string | Date | null;
-  riskLevel?: string | null;
-}
 
 export class PredictionOutcomeTracker {
   private db: DbHandle;
