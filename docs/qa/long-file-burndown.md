@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T18:09:45Z
+Generated: 2026-06-11T18:52:33.149Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `138` counted files.
-- The current counted inventory is `138` files.
+- The temporary ceiling is `136` counted files.
+- The current counted inventory is `136` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |   138 |
-| Server                    |    56 |
-| Server route-like files   |    14 |
-| Server service-like files |    17 |
+| Total counted long files  |   136 |
+| Server                    |    54 |
+| Server route-like files   |    13 |
+| Server service-like files |    13 |
 | Client                    |    74 |
 | Client page files         |    28 |
 | Shared                    |     8 |
@@ -46,6 +46,8 @@ Completed splits:
 - `server/import-adapters/amos/import-service.ts` dropped below the threshold by moving AMOS types, row upserts, and RAG document helpers to sibling modules.
 - The vessel diagram registry route file dropped below the threshold by moving schemas, context, and route groups to focused modules.
 - The vessel diagram Postgres store dropped below the threshold by moving diagram, section-map, section, assignment, validation, thumbnail, and helper persistence groups to focused modules.
+- `server/domains/crew-extensions/interfaces/scheduler-routes.ts` dropped below the threshold by moving schemas and endpoint groups to focused scheduler route modules.
+- `server/domains/crew-admin/application/crew-admin-service.ts` dropped below the threshold by moving role, dashboard, readiness, credential, and account/offboarding workflows to internal helper modules.
 
 ## Top 30 Longest Files
 
@@ -56,36 +58,36 @@ Completed splits:
 |    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx` |
 |    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx` |
 |    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx` |
-|    6 |  1064 | `server/domains/crew-extensions/interfaces/scheduler-routes.ts` |
-|    7 |  1055 | `server/domains/crew-admin/application/crew-admin-service.ts` |
-|    8 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx` |
-|    9 |   990 | `client/src/pages/ml-training.tsx` |
-|   10 |   971 | `server/websocket.ts` |
-|   11 |   951 | `server/telemetry-batch-writer.ts` |
-|   12 |   937 | `shared/schema/ml-analytics-advanced.ts` |
-|   13 |   923 | `client/src/components/unified-crew-components.tsx` |
-|   14 |   917 | `server/domains/agent/application/orchestrator.ts` |
-|   15 |   899 | `client/src/pages/admin/3d-models.tsx` |
-|   16 |   889 | `server/domains/permissions/routes.ts` |
-|   17 |   880 | `server/services/domains/work-order-service.ts` |
-|   18 |   875 | `client/src/pages/copilot-admin.tsx` |
-|   19 |   869 | `client/src/pages/system-administration.tsx` |
-|   20 |   852 | `server/domains/workflow/application/attention-service.ts` |
-|   21 |   843 | `client/src/pages/findings.tsx` |
-|   22 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
-|   23 |   832 | `shared/schema/logbooks.ts` |
-|   24 |   832 | `client/src/pages/deck-logbook/index.tsx` |
-|   25 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
-|   26 |   829 | `server/pdm/routes.ts` |
-|   27 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   28 |   819 | `client/src/pages/inventory-management.tsx` |
-|   29 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
-|   30 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
+|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx` |
+|    7 |   990 | `client/src/pages/ml-training.tsx` |
+|    8 |   971 | `server/websocket.ts` |
+|    9 |   951 | `server/telemetry-batch-writer.ts` |
+|   10 |   937 | `shared/schema/ml-analytics-advanced.ts` |
+|   11 |   923 | `client/src/components/unified-crew-components.tsx` |
+|   12 |   917 | `server/domains/agent/application/orchestrator.ts` |
+|   13 |   899 | `client/src/pages/admin/3d-models.tsx` |
+|   14 |   889 | `server/domains/permissions/routes.ts` |
+|   15 |   880 | `server/services/domains/work-order-service.ts` |
+|   16 |   875 | `client/src/pages/copilot-admin.tsx` |
+|   17 |   869 | `client/src/pages/system-administration.tsx` |
+|   18 |   852 | `server/domains/workflow/application/attention-service.ts` |
+|   19 |   843 | `client/src/pages/findings.tsx` |
+|   20 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
+|   21 |   832 | `shared/schema/logbooks.ts` |
+|   22 |   832 | `client/src/pages/deck-logbook/index.tsx` |
+|   23 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
+|   24 |   829 | `server/pdm/routes.ts` |
+|   25 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   26 |   819 | `client/src/pages/inventory-management.tsx` |
+|   27 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
+|   28 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
+|   29 |   809 | `client/src/pages/pdm-pack.tsx` |
+|   30 |   791 | `server/routes/service-request-routes.ts` |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize crew extensions scheduler routes, crew admin service, WebSocket, telemetry batch writer, permissions routes, work-order service, PDM routes, and workflow attention service.
+   - Prioritize WebSocket, telemetry batch writer, permissions routes, work-order service, PDM routes, workflow attention service, and the remaining vessel diagram service.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -107,8 +109,6 @@ Completed splits:
 1090 client/src/components/scheduling/ScheduleGeneratorPanel.tsx
 1073 client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx
 1072 client/src/components/HoursOfRestGrid/index.tsx
-1064 server/domains/crew-extensions/interfaces/scheduler-routes.ts
-1055 server/domains/crew-admin/application/crew-admin-service.ts
 1051 client/src/components/scheduling/SchedulePlanner.tsx
 990 client/src/pages/ml-training.tsx
 971 server/websocket.ts
