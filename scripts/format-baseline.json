@@ -1,7 +1,7 @@
 {
   "_comment": "Prettier formatting debt ratchet. Current unformatted file count must not exceed `count`; lower this count only after formatting debt is removed. Regenerate with: node scripts/check-format-ratchet.mjs --write-baseline --write-report",
-  "generatedAt": "2026-06-08T08:05:30.228Z",
-  "count": 1685,
+  "generatedAt": "2026-06-11T07:37:35.968Z",
+  "count": 1540,
   "policy": {
     "mode": "ratchet-ceiling",
     "rawCheck": "npm run format:check",

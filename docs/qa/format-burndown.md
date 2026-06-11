@@ -1,6 +1,6 @@
 # Format Burndown
 
-Generated: 2026-06-08T08:05:30.383Z
+Generated: 2026-06-11T07:37:35.996Z
 
 ## Policy
 
@@ -17,54 +17,54 @@ Formatting debt is tracked as a ratcheted release gate:
 
 ## Current Count
 
-Current unformatted file count: 1685
-Committed ceiling: 1685
+Current unformatted file count: 1540
+Committed ceiling: 1540
 
-| Area    | Count |
-| ------- | ----: |
-| server  |   739 |
-| client  |   308 |
-| shared  |    26 |
-| tests   |   152 |
-| scripts |    41 |
-| docs    |   224 |
-| config  |    26 |
-| other   |   169 |
+| Area | Count |
+| --- | ---: |
+| server | 674 |
+| client | 267 |
+| shared | 30 |
+| tests | 125 |
+| scripts | 42 |
+| docs | 235 |
+| config | 7 |
+| other | 160 |
 
 ## Top Directories
 
-| Directory                  | Count |
-| -------------------------- | ----: |
-| `client/src`               |   300 |
-| `server/domains`           |   268 |
-| `tests/integration`        |    71 |
-| `server/services`          |    68 |
-| `artifacts/mockup-sandbox` |    66 |
-| `server/db`                |    60 |
-| `tests/unit`               |    55 |
-| `server/routes`            |    35 |
-| `server/lib`               |    30 |
-| `docs/audit`               |    29 |
-| `tests/playwright`         |    17 |
-| `.agents/memory`           |    15 |
-| `server/compliance`        |    13 |
-| `.agents/skills`           |    10 |
-| `docs/operations`          |    10 |
-| `shared/schema`            |    10 |
-| `docs/design`              |     8 |
-| `ops/grafana`              |     8 |
-| `server/purchasing`        |     8 |
-| `tests/load`               |     8 |
-| `docs/architecture`        |     7 |
-| `server/beast`             |     7 |
-| `server/job-processors`    |     7 |
-| `server/middleware`        |     7 |
-| `server/observability`     |     7 |
-| `server/openai`            |     7 |
-| `server/storage`           |     7 |
-| `server/utils`             |     7 |
-| `client/tests`             |     6 |
-| `server/bootstrap`         |     6 |
+| Directory | Count |
+| --- | ---: |
+| `client/src` | 260 |
+| `server/domains` | 236 |
+| `artifacts/mockup-sandbox` | 66 |
+| `server/services` | 62 |
+| `tests/integration` | 61 |
+| `server/db` | 59 |
+| `tests/unit` | 43 |
+| `docs/audit` | 29 |
+| `server/routes` | 28 |
+| `server/lib` | 25 |
+| `docs/design` | 22 |
+| `shared/schema` | 16 |
+| `.agents/memory` | 15 |
+| `server/compliance` | 12 |
+| `tests/playwright` | 12 |
+| `.agents/skills` | 10 |
+| `docs/operations` | 10 |
+| `server/middleware` | 9 |
+| `ops/grafana` | 8 |
+| `server/purchasing` | 8 |
+| `server/storage` | 8 |
+| `tests/load` | 8 |
+| `docs/architecture` | 7 |
+| `server/beast` | 7 |
+| `server/observability` | 7 |
+| `server/openai` | 7 |
+| `server/utils` | 7 |
+| `client/tests` | 6 |
+| `server/scheduler` | 6 |
+| `docs/enhancements` | 5 |
 
 ## Touched-File Enforcement
 
@@ -110,11 +110,8 @@ The first 100 unformatted files are listed as a sample. Use `npm run format:chec
 .github/workflows/load-nightly.yml
 .github/workflows/tauri-build.yml
 .lintstagedrc.json
-ARUS_FIX_SUMMARY.md
-ARUS_Professional_Evaluation.md
 CONTRIBUTING.md
 SETUP.md
-WORKFLOW_UPDATE_SUMMARY.md
 apps/agent/README.md
 artifacts/mockup-sandbox/index.html
 artifacts/mockup-sandbox/mockupPreviewPlugin.ts
@@ -182,4 +179,7 @@ artifacts/mockup-sandbox/src/hooks/use-mobile.tsx
 artifacts/mockup-sandbox/src/hooks/use-toast.ts
 artifacts/mockup-sandbox/src/index.css
 artifacts/mockup-sandbox/src/lib/utils.ts
+client/replit_integrations/audio/audio-playback-worklet.js
+client/src/components/ActiveDtcsPanel.tsx
+client/src/components/BottomNav.tsx
 ```
