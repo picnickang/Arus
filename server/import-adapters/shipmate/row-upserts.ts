@@ -1,15 +1,17 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "../../db";
 import { createLogger } from "../../lib/structured-logger";
-import { equipment, parts, stock, workOrders } from "@shared/schema";
+import { equipment, parts, stock, workOrders } from "@shared/schema-runtime";
+import type { db as shipmateDb } from "../../db";
 import type { ShipmateModuleType } from "./field-mapping";
 import type { PendingEquipmentProjection, ShipmateUpsertResult } from "./types";
 
 const logger = createLogger("shipmate-import");
+type ShipmateDatabase = typeof shipmateDb;
+type ShipmateTransaction = Parameters<Parameters<ShipmateDatabase["transaction"]>[0]>[0];
 
 export async function upsertShipmateRow(
-  tx: typeof db,
+  tx: ShipmateTransaction,
   orgId: string,
   module: ShipmateModuleType,
   data: Record<string, unknown>,
@@ -35,7 +37,7 @@ export async function upsertShipmateRow(
 }
 
 async function upsertEquipment(
-  tx: typeof db,
+  tx: ShipmateTransaction,
   orgId: string,
   data: Record<string, unknown>,
   pendingEquipmentProjections: PendingEquipmentProjection[]
@@ -148,7 +150,7 @@ async function upsertEquipment(
 }
 
 async function upsertJob(
-  tx: typeof db,
+  tx: ShipmateTransaction,
   orgId: string,
   data: Record<string, unknown>
 ): Promise<ShipmateUpsertResult> {
@@ -199,7 +201,7 @@ async function upsertJob(
 }
 
 async function upsertPart(
-  tx: typeof db,
+  tx: ShipmateTransaction,
   orgId: string,
   data: Record<string, unknown>
 ): Promise<ShipmateUpsertResult> {

@@ -1,8 +1,8 @@
 import { ADMIN_CAPABLE_ROLE_KEYS, PROTECTED_ROLE_KEYS } from "@shared/role-dashboard";
 import { CrewAdminError } from "./crew-admin-errors.js";
 
-export const MIN_PASSWORD_LENGTH = 8;
-export const MAX_PASSWORD_LENGTH = 128;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
 export const OFFBOARDING_SAFE_ROLE = "viewer";
 
 const BASE_ROLE_NAMES = ["admin", "manager", "technician", "viewer"] as const;

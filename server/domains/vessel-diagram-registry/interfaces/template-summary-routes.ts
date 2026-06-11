@@ -1,41 +1,11 @@
 import { withErrorHandling } from "../../../lib/route-utils";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
-import {
-  context,
-  parseUpload,
-  parseUploadBehavior,
-  permission,
-  thumbnailResponse,
-  versionResponse,
-} from "./route-helpers";
+import { context } from "./route-helpers";
 import type { VesselDiagramRouteContext } from "./route-context";
-import {
-  assignmentParamsSchema,
-  assignEquipmentSchema,
-  cloneMapSchema,
-  createDiagramSchema,
-  createSectionMapSchema,
-  diagramParamsSchema,
-  fromTemplateSchema,
-  importSectionMapSchema,
-  mapParamsSchema,
-  polygonSchema,
-  sectionParamsSchema,
-  sectionSchema,
-  summariesQuerySchema,
-  templateParamsSchema,
-  thumbnailEquipmentParamsSchema,
-  thumbnailSectionParamsSchema,
-  updateDiagramSchema,
-  updateEquipmentSchema,
-  updateSectionMapSchema,
-  updateSectionSchema,
-  versionParamsSchema,
-  vesselParamsSchema,
-} from "./route-schemas";
+import { summariesQuerySchema, templateParamsSchema, vesselParamsSchema } from "./route-schemas";
 
 export function registerTemplateSummaryRoutes(routeContext: VesselDiagramRouteContext): void {
-  const { app, deps, getMediaStore, getService, orgGate, readPermission, storageQuota, upload, writeLimit } = routeContext;
+  const { app, deps, getService, orgGate, readPermission } = routeContext;
 
   app.get(
     "/api/vessel-intelligence/section-map-templates",

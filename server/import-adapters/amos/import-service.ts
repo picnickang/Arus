@@ -34,6 +34,7 @@ import {
 import { feedAmosRowsToRag } from "./rag-docs";
 import { topologicalSortAmosRows, upsertAmosRow } from "./row-upserts";
 import type { ImportError, ImportOptions, ImportResult, ImportType } from "./types";
+import { db } from "../../db";
 import { createLogger } from "../../lib/structured-logger";
 
 export type { ImportError, ImportOptions, ImportResult, ImportType } from "./types";
@@ -138,7 +139,7 @@ class AmosImportService {
 
     for (const row of sortedRows) {
       try {
-        const result = await upsertAmosRow(orgId, options.type, row.data, options.vesselId);
+        const result = await upsertAmosRow(db, orgId, options.type, row.data, options.vesselId);
         if (result === "inserted") {
           imported++;
         } else if (result === "updated") {

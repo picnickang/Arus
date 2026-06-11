@@ -160,7 +160,10 @@ export async function listFormerCrewAccessRisks(
   repo: ICrewAdminRepository,
   orgId: string
 ): Promise<FormerCrewAccessRisk[]> {
-  const [crewMembers, users] = await Promise.all([repo.listCrewMembers(orgId), repo.listUsers(orgId)]);
+  const [crewMembers, users] = await Promise.all([
+    repo.listCrewMembers(orgId),
+    repo.listUsers(orgId),
+  ]);
   const usersById = new Map(users.map((user) => [user.id, user]));
 
   return crewMembers

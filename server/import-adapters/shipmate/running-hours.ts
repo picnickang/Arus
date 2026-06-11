@@ -1,12 +1,14 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "../../db";
 import { createLogger } from "../../lib/structured-logger";
-import { equipment } from "@shared/schema";
+import { equipment } from "@shared/schema-runtime";
+import type { db as shipmateDb } from "../../db";
 
 const logger = createLogger("shipmate-import");
+type ShipmateDatabase = typeof shipmateDb;
 
 export async function syncShipmateRunningHours(
+  database: ShipmateDatabase,
   orgId: string,
   rows: Record<string, unknown>[]
 ): Promise<void> {
@@ -19,7 +21,7 @@ export async function syncShipmateRunningHours(
     }
 
     try {
-      await db
+      await database
         .update(equipment)
         .set({ runningHours: hours, updatedAt: new Date() } as object as never)
         .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId)));

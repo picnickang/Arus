@@ -1,11 +1,5 @@
-import {
-  batchWriterFlushDuration,
-  batchWriterFlushSize,
-} from "./telemetry-batch-writer-metrics";
-import {
-  filterOverQuotaReadings,
-  incrementQuotaUsage,
-} from "./telemetry-batch-writer-quota";
+import { batchWriterFlushDuration, batchWriterFlushSize } from "./telemetry-batch-writer-metrics";
+import { filterOverQuotaReadings, incrementQuotaUsage } from "./telemetry-batch-writer-quota";
 import type {
   BatchWriterInternalStats,
   TelemetryBatchReading,
@@ -45,16 +39,13 @@ export async function writeTelemetryBatchDirect(
 
   const startTime = Date.now();
 
-  const allowedReadings = await filterOverQuotaReadings(
-    readings,
-    (totalDropped, droppedPerOrg) => {
-      context.stats.totalDropped += totalDropped;
-      context.emit("quotaBlocked", {
-        total: totalDropped,
-        perOrg: Object.fromEntries(droppedPerOrg),
-      });
-    }
-  );
+  const allowedReadings = await filterOverQuotaReadings(readings, (totalDropped, droppedPerOrg) => {
+    context.stats.totalDropped += totalDropped;
+    context.emit("quotaBlocked", {
+      total: totalDropped,
+      perOrg: Object.fromEntries(droppedPerOrg),
+    });
+  });
 
   if (allowedReadings.length === 0) {
     context.emit("batchWritten", {

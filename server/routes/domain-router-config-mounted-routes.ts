@@ -1,52 +1,9 @@
-import { createWorkflowAttentionSources } from "../composition/workflow-attention-sources.js";
-import { loginRateLimit } from "../middleware/rate-limiters";
-import {
-  generalApiRateLimit,
-  writeOperationRateLimit,
-  criticalOperationRateLimit,
-  crewOperationRateLimit,
-  reportGenerationRateLimit,
-  telemetryRateLimit,
-  requireOrgId,
-  requireValidOrgId,
-  validateHMAC,
-  requireAdminAuth,
-  auditAdminAction,
-  getSyncMetrics,
-  processPendingEvents,
-  recordAndPublish,
-  schedulerEventBus,
-  adaptiveTrainingWindow,
-  getWebSocketServer,
-  getFMCCService,
-  updateFleetHealthScore,
-  checkMonthCompliance,
-  normalizeRestDays,
-  generatePdfFilename,
-  renderRestPdf,
-  incrementIdempotencyHit,
-  incrementHorImport,
-  incrementHorPdfExport,
-  incrementRangeQuery,
-  recordRangeQueryDuration,
-  mqttIngestionService,
-  mlAnalyticsService,
-  digitalTwinService,
-  db,
-  upload,
-  adminPasswordVerifySchema,
-  adminPasswordChangeSchema,
-  insertAdminAuditEventSchema,
-  insertAdminSystemSettingSchema,
-  insertIntegrationConfigSchema,
-  insertMaintenanceWindowSchema,
-  insertSystemPerformanceMetricSchema,
-  configAuditLog,
-} from "./route-dependencies";
+import { generalApiRateLimit, requireOrgId } from "./route-dependencies";
 
 import type { DomainRouterConfig } from "./domain-router-config-types";
 
-export const mountedDomainRouters: DomainRouterConfig[] = [  // ===== Direct router mounts (mountPath mode — no wrapper layer) =====
+export const mountedDomainRouters: DomainRouterConfig[] = [
+  // ===== Direct router mounts (mountPath mode — no wrapper layer) =====
 
   {
     name: "BeastMode",

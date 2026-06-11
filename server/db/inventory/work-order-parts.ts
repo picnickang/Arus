@@ -277,10 +277,7 @@ export async function addBulkPartsAndReserveInventory(
   return result;
 }
 
-export async function releasePartsFromWorkOrder(
-  workOrderId: string,
-  orgId: string
-): Promise<void> {
+export async function releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> {
   if (!orgId) {
     throw new Error("orgId is required for tenant isolation");
   }

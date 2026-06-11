@@ -72,7 +72,11 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return getPostgresDiagram(ctx, diagramId);
   }
 
-  async updateDiagram(ctx: RegistryContext, diagramId: string, input: UpdateDiagramInput): Promise<DiagramRecord> {
+  async updateDiagram(
+    ctx: RegistryContext,
+    diagramId: string,
+    input: UpdateDiagramInput
+  ): Promise<DiagramRecord> {
     return updatePostgresDiagram(ctx, diagramId, input);
   }
 
@@ -84,19 +88,36 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return listPostgresVersions(ctx, diagramId);
   }
 
-  async getVersion(ctx: RegistryContext, diagramId: string, versionId: string): Promise<DiagramVersionRecord | null> {
+  async getVersion(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string
+  ): Promise<DiagramVersionRecord | null> {
     return getPostgresVersion(ctx, diagramId, versionId);
   }
 
-  async addVersion(ctx: RegistryContext, diagramId: string, input: Omit<DiagramVersionRecord, "id" | "vesselId" | "diagramId" | "versionNumber">): Promise<DiagramVersionRecord> {
+  async addVersion(
+    ctx: RegistryContext,
+    diagramId: string,
+    input: Omit<DiagramVersionRecord, "id" | "vesselId" | "diagramId" | "versionNumber">
+  ): Promise<DiagramVersionRecord> {
     return addPostgresVersion(ctx, diagramId, input);
   }
 
-  async setActiveVersion(ctx: RegistryContext, diagramId: string, versionId: string): Promise<DiagramVersionRecord> {
+  async setActiveVersion(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string
+  ): Promise<DiagramVersionRecord> {
     return setPostgresActiveVersion(ctx, diagramId, versionId);
   }
 
-  async updateVersionStatus(ctx: RegistryContext, diagramId: string, versionId: string, status: VesselDiagramVersionStatus): Promise<DiagramVersionRecord> {
+  async updateVersionStatus(
+    ctx: RegistryContext,
+    diagramId: string,
+    versionId: string,
+    status: VesselDiagramVersionStatus
+  ): Promise<DiagramVersionRecord> {
     return updatePostgresVersionStatus(ctx, diagramId, versionId, status);
   }
 
@@ -104,7 +125,10 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return listPostgresSectionMaps(ctx);
   }
 
-  async createSectionMap(ctx: RegistryContext, input: CreateSectionMapInput): Promise<SectionMapRecord> {
+  async createSectionMap(
+    ctx: RegistryContext,
+    input: CreateSectionMapInput
+  ): Promise<SectionMapRecord> {
     return createPostgresSectionMap(ctx, input);
   }
 
@@ -112,11 +136,19 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return getPostgresSectionMap(ctx, mapId);
   }
 
-  async getSectionMapForVessel(ctx: RegistryContext, vesselId: string, mapId: string): Promise<SectionMapRecord | null> {
+  async getSectionMapForVessel(
+    ctx: RegistryContext,
+    vesselId: string,
+    mapId: string
+  ): Promise<SectionMapRecord | null> {
     return getPostgresSectionMapForVessel(ctx, vesselId, mapId);
   }
 
-  async updateSectionMap(ctx: RegistryContext, mapId: string, input: UpdateSectionMapInput): Promise<SectionMapRecord> {
+  async updateSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    input: UpdateSectionMapInput
+  ): Promise<SectionMapRecord> {
     return updatePostgresSectionMap(ctx, mapId, input);
   }
 
@@ -124,15 +156,28 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return deletePostgresSectionMap(ctx, mapId);
   }
 
-  async cloneSectionMap(ctx: RegistryContext, mapId: string, input: { name: string; diagramId?: string; diagramVersionId?: string }): Promise<SectionMapRecord> {
+  async cloneSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    input: { name: string; diagramId?: string; diagramVersionId?: string }
+  ): Promise<SectionMapRecord> {
     return clonePostgresSectionMap(ctx, mapId, input);
   }
 
-  async addSection(ctx: RegistryContext, mapId: string, input: CreateSectionInput): Promise<SectionRecord> {
+  async addSection(
+    ctx: RegistryContext,
+    mapId: string,
+    input: CreateSectionInput
+  ): Promise<SectionRecord> {
     return addPostgresSection(ctx, mapId, input);
   }
 
-  async updateSection(ctx: RegistryContext, mapId: string, sectionId: string, input: UpdateSectionInput): Promise<SectionRecord> {
+  async updateSection(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: UpdateSectionInput
+  ): Promise<SectionRecord> {
     return updatePostgresSection(ctx, mapId, sectionId, input);
   }
 
@@ -140,51 +185,104 @@ export class PostgresVesselDiagramRegistryStore implements VesselDiagramRegistry
     return deletePostgresSection(ctx, mapId, sectionId);
   }
 
-  async updateSectionPolygon(ctx: RegistryContext, mapId: string, sectionId: string, input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }): Promise<SectionRecord> {
+  async updateSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { polygonNormalized: NormalizedPoint[]; labelNormalized: NormalizedPoint }
+  ): Promise<SectionRecord> {
     return updatePostgresSectionPolygon(ctx, mapId, sectionId, input);
   }
 
-  async deleteSectionPolygon(ctx: RegistryContext, mapId: string, sectionId: string): Promise<SectionRecord> {
+  async deleteSectionPolygon(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string
+  ): Promise<SectionRecord> {
     return deletePostgresSectionPolygon(ctx, mapId, sectionId);
   }
 
-  async publishSectionMap(ctx: RegistryContext, mapId: string, validation: { summary: SectionMapRecord["validationSummary"]; issues: VesselDiagramValidationIssue[] }): Promise<SectionMapRecord> {
+  async publishSectionMap(
+    ctx: RegistryContext,
+    mapId: string,
+    validation: {
+      summary: SectionMapRecord["validationSummary"];
+      issues: VesselDiagramValidationIssue[];
+    }
+  ): Promise<SectionMapRecord> {
     return publishPostgresSectionMap(ctx, mapId, validation);
   }
 
-  async assignEquipment(ctx: RegistryContext, mapId: string, sectionId: string, input: { equipmentId?: string; equipmentName: string; assetCode?: string; system?: string }): Promise<EquipmentAssignmentRecord> {
+  async assignEquipment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    input: { equipmentId?: string; equipmentName: string; assetCode?: string; system?: string }
+  ): Promise<EquipmentAssignmentRecord> {
     return assignPostgresEquipment(ctx, mapId, sectionId, input);
   }
 
-  async listEquipmentAssignments(ctx: RegistryContext, mapId: string): Promise<EquipmentAssignmentRecord[]> {
+  async listEquipmentAssignments(
+    ctx: RegistryContext,
+    mapId: string
+  ): Promise<EquipmentAssignmentRecord[]> {
     return listPostgresEquipmentAssignments(ctx, mapId);
   }
 
-  async updateEquipmentAssignment(ctx: RegistryContext, mapId: string, sectionId: string, assignmentId: string, input: UpdateAssignmentInput): Promise<EquipmentAssignmentRecord> {
+  async updateEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string,
+    input: UpdateAssignmentInput
+  ): Promise<EquipmentAssignmentRecord> {
     return updatePostgresEquipmentAssignment(ctx, mapId, sectionId, assignmentId, input);
   }
 
-  async deleteEquipmentAssignment(ctx: RegistryContext, mapId: string, sectionId: string, assignmentId: string): Promise<void> {
+  async deleteEquipmentAssignment(
+    ctx: RegistryContext,
+    mapId: string,
+    sectionId: string,
+    assignmentId: string
+  ): Promise<void> {
     return deletePostgresEquipmentAssignment(ctx, mapId, sectionId, assignmentId);
   }
 
-  async saveValidationResults(ctx: RegistryContext, refs: { mapId?: string; diagramId?: string; diagramVersionId?: string }, issues: VesselDiagramValidationIssue[]): Promise<void> {
+  async saveValidationResults(
+    ctx: RegistryContext,
+    refs: { mapId?: string; diagramId?: string; diagramVersionId?: string },
+    issues: VesselDiagramValidationIssue[]
+  ): Promise<void> {
     return savePostgresValidationResults(ctx, refs, issues);
   }
 
-  async listValidationResults(ctx: RegistryContext, refs?: { mapId?: string }): Promise<VesselDiagramValidationIssue[]> {
+  async listValidationResults(
+    ctx: RegistryContext,
+    refs?: { mapId?: string }
+  ): Promise<VesselDiagramValidationIssue[]> {
     return listPostgresValidationResults(ctx, refs);
   }
 
-  async upsertThumbnail(ctx: RegistryContext, input: Omit<ThumbnailRecord, "id" | "vesselId">): Promise<ThumbnailRecord> {
+  async upsertThumbnail(
+    ctx: RegistryContext,
+    input: Omit<ThumbnailRecord, "id" | "vesselId">
+  ): Promise<ThumbnailRecord> {
     return upsertPostgresThumbnail(ctx, input);
   }
 
-  async getThumbnail(ctx: RegistryContext, ownerType: "section" | "equipment", ownerId: string): Promise<ThumbnailRecord | null> {
+  async getThumbnail(
+    ctx: RegistryContext,
+    ownerType: "section" | "equipment",
+    ownerId: string
+  ): Promise<ThumbnailRecord | null> {
     return getPostgresThumbnail(ctx, ownerType, ownerId);
   }
 
-  async deleteThumbnail(ctx: RegistryContext, ownerType: "section" | "equipment", ownerId: string): Promise<void> {
+  async deleteThumbnail(
+    ctx: RegistryContext,
+    ownerType: "section" | "equipment",
+    ownerId: string
+  ): Promise<void> {
     return deletePostgresThumbnail(ctx, ownerType, ownerId);
   }
 }

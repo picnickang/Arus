@@ -5,10 +5,7 @@
  */
 
 import type { Express, Request, Response } from "express";
-import {
-  permissionRepository,
-  getUserPrimaryRole,
-} from "./repository";
+import { permissionRepository, getUserPrimaryRole } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { withErrorHandling } from "../../lib/route-utils";

@@ -8,10 +8,7 @@ import type { CreateRoleCommand, RoleSummary, UpdateRoleCommand } from "../domai
 import { CrewAdminError } from "./crew-admin-errors.js";
 import { isAdminCapableRole, isProtectedRoleName } from "./crew-admin-role-policy.js";
 
-export async function listRoles(
-  repo: ICrewAdminRepository,
-  orgId: string
-): Promise<RoleSummary[]> {
+export async function listRoles(repo: ICrewAdminRepository, orgId: string): Promise<RoleSummary[]> {
   return repo.listRoles(orgId);
 }
 
@@ -82,12 +79,7 @@ export async function setRoleHubAccess(
     hubAccess: role.hubAccess,
   };
   const normalized = normalizeRoleHubAccess(hubAdmin, hubAccess);
-  const updated = await repo.setRoleHubAccess(
-    orgId,
-    id,
-    normalized.hubAdmin,
-    normalized.hubAccess
-  );
+  const updated = await repo.setRoleHubAccess(orgId, id, normalized.hubAdmin, normalized.hubAccess);
   if (!updated) {
     throw new CrewAdminError("Role not found", "NOT_FOUND");
   }

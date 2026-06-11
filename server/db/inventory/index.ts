@@ -49,7 +49,6 @@ import type {
   InsertWorkOrderHistory,
   InventoryMovement,
   PartsInventory,
-  Part,
   Stock,
   InsertStock,
   InsertSupplier,
@@ -67,8 +66,6 @@ import {
 } from "./work-order-parts.js";
 
 export * from "./types.js";
-export { DbPartsStorage } from "./db-parts.js";
-export { DbStockStorage } from "./db-stock.js";
 export { fireInventoryMovementProjections } from "./inventory-projections.js";
 export type { PendingMovementProjection } from "./inventory-projections.js";
 

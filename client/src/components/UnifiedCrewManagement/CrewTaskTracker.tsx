@@ -1,24 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  CalendarClock,
-  Ban,
-  Plus,
-  Search,
-  Loader2,
-  ArrowLeft,
-} from "lucide-react";
+import { AlertTriangle, CalendarClock, Ban, Plus, Search, Loader2, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/hooks/use-toast";
 import {
   useCrewTasks,
-  useCreateCrewTask,
-  useUpdateCrewTask,
-  useDeleteCrewTask,
-  useCrewTaskEvents,
-  useAddCrewTaskComment,
   invalidateCrewTasks,
   invalidateCrewTaskEvents,
   countTasks,

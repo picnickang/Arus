@@ -7,11 +7,7 @@ import {
   compareEventIds,
   isTenantStrictModeEnabled,
 } from "./websocket-fanout";
-import {
-  BroadcastPayload,
-  WebSocketClient,
-  deliveryKey,
-} from "./websocket-types";
+import { BroadcastPayload, WebSocketClient, deliveryKey } from "./websocket-types";
 
 type LogFn = (message: string) => void;
 

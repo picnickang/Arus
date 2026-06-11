@@ -12,11 +12,7 @@ import {
   usersWithRolesResponseSchema,
 } from "./response-schemas";
 import { permissionService } from "./service";
-import {
-  auditQuerySchema,
-  userIdParamSchema,
-  userIdRoleIdParamSchema,
-} from "./route-shared";
+import { auditQuerySchema, userIdParamSchema, userIdRoleIdParamSchema } from "./route-shared";
 
 export function registerPermissionUserAdminRoutes(app: Express) {
   app.get(

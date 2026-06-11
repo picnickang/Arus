@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 
-import { db } from "../../db";
-import { vessels } from "@shared/schema";
+import { vessels } from "@shared/schema-runtime";
+import type { db as shipmateDb } from "../../db";
 import { VesselResolutionError } from "./types";
 
 // ============================================================================
@@ -17,7 +17,10 @@ import { VesselResolutionError } from "./types";
 // to the importFile() call, not a process-wide cache.
 // ============================================================================
 
+type ShipmateDatabase = typeof shipmateDb;
+
 export async function resolveVesselId(
+  database: ShipmateDatabase,
   orgId: string,
   vesselName?: string,
   vesselId?: string
@@ -39,7 +42,7 @@ export async function resolveVesselId(
   }
 
   // EXACT case-insensitive match only. No LIKE, no partial, no substring.
-  const matches = await db
+  const matches = await database
     .select({ id: vessels.id, name: vessels.name })
     .from(vessels)
     .where(and(eq(vessels.orgId, orgId), sql`LOWER(${vessels.name}) = LOWER(${trimmedName})`));
@@ -52,7 +55,7 @@ export async function resolveVesselId(
     // Give the caller a useful error: include candidates that share a
     // prefix/substring so they can tell whether the name was a typo or
     // whether the vessel genuinely doesn't exist yet.
-    const candidates = await db
+    const candidates = await database
       .select({ name: vessels.name })
       .from(vessels)
       .where(

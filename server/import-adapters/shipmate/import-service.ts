@@ -55,10 +55,7 @@
 import { parseAmosCSV } from "../amos/parser";
 import { applyMapping } from "../amos/field-mapping";
 import { randomUUID } from "node:crypto";
-import {
-  getShipmateMapping,
-  normalizeShipmateHeaders,
-} from "./field-mapping";
+import { getShipmateMapping, normalizeShipmateHeaders } from "./field-mapping";
 import { db } from "../../db";
 import { eq } from "drizzle-orm";
 import { importManifest } from "@shared/schema";
@@ -127,6 +124,7 @@ class ShipmateImportService {
     // propagate so the caller's HTTP handler returns a clear 4xx error.
     // Do NOT catch-and-swallow; that was the bug.
     const resolvedVesselId = await resolveVesselId(
+      db,
       orgId,
       options.vesselName || this.extractVesselNameFromRows(normalizedRows),
       options.vesselId
@@ -243,7 +241,7 @@ class ShipmateImportService {
         for (const row of validRows) {
           try {
             const result = await upsertShipmateRow(
-              tx as object as typeof db,
+              tx,
               orgId,
               options.module,
               row.data,
@@ -389,6 +387,7 @@ class ShipmateImportService {
     // Step 10: Sync running hours (outside the transaction — non-critical)
     if (options.syncRunningHours && options.module === "pms_equipment") {
       await syncShipmateRunningHours(
+        db,
         orgId,
         validRows.map((r) => r.data)
       );

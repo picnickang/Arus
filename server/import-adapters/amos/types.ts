@@ -30,5 +30,4 @@ export interface ImportError {
   data?: Record<string, unknown>;
 }
 
-export type AmosImportRow = { rowNum: number; data: Record<string, unknown> };
 export type AmosUpsertResult = "inserted" | "updated" | "skipped";
