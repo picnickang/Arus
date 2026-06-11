@@ -47,6 +47,12 @@ const SIDE_ELEVATION_CALIBRATION_PATH = resolve(
   "client/src/pages/vessel-intelligence/side-elevation-calibration.ts"
 );
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
+const DOMAIN_REGISTRY_CONFIG_PATHS = [
+  DOMAIN_REGISTRY_PATH,
+  resolve(REPO_ROOT, "server/routes/domain-router-config-core.ts"),
+  resolve(REPO_ROOT, "server/routes/domain-router-config-domain-routes.ts"),
+  resolve(REPO_ROOT, "server/routes/domain-router-config-mounted-routes.ts"),
+];
 
 const EXPECTED_ROUTES = [
   "/vessel-intelligence",
@@ -83,6 +89,11 @@ const EXPECTED_LEGACY_REDIRECTS: Record<string, string> = {
 
 async function load(path: string): Promise<string> {
   return readFile(path, "utf8");
+}
+
+async function loadDomainRouterRegistry(): Promise<string> {
+  const sources = await Promise.all(DOMAIN_REGISTRY_CONFIG_PATHS.map(load));
+  return sources.join("\n");
 }
 
 /** The registry screens are split across the dispatcher module and one file
@@ -229,7 +240,7 @@ describe("Vessel Intelligence Hub v2 live-data binding", () => {
 
 describe("Vessel Intelligence Hub v2 backend registry", () => {
   it("mounts the dedicated diagram registry domain", async () => {
-    const registry = await load(DOMAIN_REGISTRY_PATH);
+    const registry = await loadDomainRouterRegistry();
 
     expect(registry).toContain('name: "VesselDiagramRegistry"');
     expect(registry).toContain("../domains/vessel-diagram-registry/index.js");
