@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { z } from "zod";
 import { dbTelemetryStorage, dbDevicesStorage, dbSensorsStorage } from "../../repositories";
+import { getSensorBaselines } from "./infrastructure/telemetry-baseline.js";
+import { listUnacknowledgedAlertNotifications } from "../../composition/telemetry-alerts.js";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 
@@ -102,39 +104,7 @@ export function registerTelemetryRoutes(
         .object({ days: z.coerce.number().int().positive().max(365).default(30) })
         .parse(req.query);
 
-      const { db } = await import("../../db.js");
-      const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`
-        SELECT sensor_type,
-               percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS p50,
-               avg(value)    AS avg,
-               stddev(value) AS stddev,
-               min(value)    AS min,
-               max(value)    AS max,
-               count(*)::int AS sample_count
-        FROM equipment_telemetry
-        WHERE equipment_id = ${equipmentId}
-          AND ts > now() - make_interval(days => ${days})
-        GROUP BY sensor_type
-        ORDER BY sensor_type
-      `);
-
-      const baselines = (result.rows as Array<Record<string, unknown>>).map((row) => {
-        const p50 = Number(row["p50"]);
-        const stddev = Number(row["stddev"] ?? 0) || 0;
-        return {
-          sensorType: String(row["sensor_type"]),
-          p50,
-          avg: Number(row["avg"]),
-          stddev,
-          min: Number(row["min"]),
-          max: Number(row["max"]),
-          sampleCount: Number(row["sample_count"]),
-          // Expected operating envelope: median ± 2σ.
-          bandLow: p50 - 2 * stddev,
-          bandHigh: p50 + 2 * stddev,
-        };
-      });
+      const baselines = await getSensorBaselines(equipmentId, days);
 
       res.json({ equipmentId, days, baselines });
     })
@@ -157,10 +127,7 @@ export function registerTelemetryRoutes(
       const [configs, readings, openAlerts] = await Promise.all([
         dbSensorsStorage.getSensorConfigurations(orgId, equipmentId),
         dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, since, new Date()),
-        (async () => {
-          const { dbAlertStorage } = await import("../../repositories");
-          return dbAlertStorage.getAlertNotifications(false, orgId);
-        })(),
+        listUnacknowledgedAlertNotifications(orgId),
       ]);
 
       // Newest reading + sample count per sensor type. Rows arrive in

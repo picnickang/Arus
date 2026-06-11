@@ -34,6 +34,17 @@ beforeAll(async () => {
     getWebSocketServer: () => null,
     setWebSocketServer: jest.fn(),
   }));
+  // The flush fan-out's alert evaluation now imports these statically
+  // (previously lazy dynamic imports — see the domain-leak burndown), so
+  // their heavy chains need the same stubbing as the edges above.
+  jest.unstable_mockModule("../../server/services/telemetry-processing", () => ({
+    __esModule: true,
+    checkAndCreateAlerts: jest.fn(),
+  }));
+  jest.unstable_mockModule("../../server/middleware/db-context", () => ({
+    __esModule: true,
+    withTenantContext: jest.fn(async (_orgId: string, fn: () => Promise<unknown>) => fn()),
+  }));
 
   ({ latestPerEquipmentSensor } = (await import(
     "../../server/telemetry-batch-writer"
