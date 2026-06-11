@@ -456,7 +456,8 @@ function ActiveAlarmsSection() {
   const { data: alarms = [] } = useQuery<ActiveAlarm[]>({
     queryKey: ["/api/admin/safety-alarms", { includeCleared: false }],
     queryFn: () => apiRequest<ActiveAlarm[]>("GET", "/api/admin/safety-alarms"),
-    refetchInterval: pollingInterval(POLL_INTERVALS.STANDARD),
+    // FAST: live alarm panel — keep at least the pre-helper 20s cadence.
+    refetchInterval: pollingInterval(POLL_INTERVALS.FAST),
   });
   const { data: vessels = [] } = useQuery<VesselLite[]>({ queryKey: ["/api/vessels"] });
 
