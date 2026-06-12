@@ -326,4 +326,20 @@ describe("client tail component extractions", () => {
     expect(pins).toContain('data-testid={`viewer-3d-${vesselId}`}');
   });
 
+  it("keeps Copilot admin configuration behind sibling modules", () => {
+    const page = read("client/src/pages/copilot-admin.tsx");
+    const types = read("client/src/pages/copilot-admin-types.ts");
+    const dialog = read("client/src/pages/copilot-admin-config-dialog.tsx");
+
+    expect(page).toContain('from "./copilot-admin-config-dialog"');
+    expect(page).toContain('from "./copilot-admin-types"');
+    expect(page).toContain("<ConfigDialog");
+    expect(types).toContain("export interface AgentConfig");
+    expect(types).toContain("export interface UsageStats");
+    expect(types).toContain("export interface EffectivenessSummary");
+    expect(dialog).toContain("export function ConfigDialog");
+    expect(dialog).toContain('data-testid="button-save-config"');
+    expect(dialog).toContain('data-testid="select-permission-tier"');
+  });
+
 });

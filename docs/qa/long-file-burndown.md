@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T10:40:52.220Z
+Generated: 2026-06-12T10:51:11.392Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `21` counted files.
-- The current counted inventory is `21` files.
+- The temporary ceiling is `20` counted files.
+- The current counted inventory is `20` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    21 |
+| Total counted long files  |    20 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    21 |
-| Client page files         |    10 |
+| Client                    |    20 |
+| Client page files         |     9 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -146,32 +146,32 @@ Completed splits:
 - `client/src/pages/ml-training.tsx` dropped below the threshold by moving training tabs, model table, reset dialogs, export card, and shared page types to sibling modules while preserving the route component, query hook, action callbacks, and test IDs.
 - `client/src/components/ai-health/TrainingTab.tsx` dropped below the threshold by moving training, model/export, reset, and tab-shell surfaces to sibling modules while preserving the AI-health tab export and test IDs.
 - `client/src/pages/admin/3d-models.tsx` dropped below the threshold by moving model metadata helpers, vessel upload cards, history management, and pin editor state/rendering to sibling modules while preserving route behavior and test IDs.
+- `client/src/pages/copilot-admin.tsx` dropped below the threshold by moving config dialog, data-management controls, and page data types to sibling modules while preserving route behavior, query keys, action callbacks, and test IDs.
 
-## Top 21 Longest Files
+## Top 20 Longest Files
 
-| Rank | Lines | File                                                             |
-| ---: | ----: | ---------------------------------------------------------------- |
-|    1 |   875 | `client/src/pages/copilot-admin.tsx`                             |
-|    2 |   869 | `client/src/pages/system-administration.tsx`                     |
-|    3 |   843 | `client/src/pages/findings.tsx`                                  |
-|    4 |   836 | `client/src/components/analytics/FinanceMode.tsx`                |
-|    5 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`            |
-|    6 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`           |
-|    7 |   786 | `client/src/pages/maintenance-schedules.tsx`                     |
-|    8 |   755 | `client/src/pages/organization-management.tsx`                   |
-|    9 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                  |
-|   10 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`             |
-|   11 |   712 | `client/src/pages/equipment/index.tsx`                           |
-|   12 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx` |
-|   13 |   704 | `client/src/pages/findings-cards.tsx`                            |
-|   14 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`           |
-|   15 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`       |
-|   16 |   680 | `client/src/components/stormgeo-settings.tsx`                    |
-|   17 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
-|   18 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                |
-|   19 |   647 | `client/src/pages/vessel-management/index.tsx`                   |
-|   20 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                      |
-|   21 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`            |
+| Rank | Lines | File                                                              |
+| ---: | ----: | ----------------------------------------------------------------- |
+|    1 |   869 | `client/src/pages/system-administration.tsx`                      |
+|    2 |   843 | `client/src/pages/findings.tsx`                                   |
+|    3 |   836 | `client/src/components/analytics/FinanceMode.tsx`                 |
+|    4 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`             |
+|    5 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`            |
+|    6 |   786 | `client/src/pages/maintenance-schedules.tsx`                      |
+|    7 |   755 | `client/src/pages/organization-management.tsx`                    |
+|    8 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                   |
+|    9 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`              |
+|   10 |   712 | `client/src/pages/equipment/index.tsx`                            |
+|   11 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`  |
+|   12 |   704 | `client/src/pages/findings-cards.tsx`                             |
+|   13 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
+|   14 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
+|   15 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
+|   16 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
+|   17 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
+|   18 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
+|   19 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
+|   20 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
 
 ## Recommended Extraction Plan
 
@@ -194,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-875 client/src/pages/copilot-admin.tsx
 869 client/src/pages/system-administration.tsx
 843 client/src/pages/findings.tsx
 836 client/src/components/analytics/FinanceMode.tsx
