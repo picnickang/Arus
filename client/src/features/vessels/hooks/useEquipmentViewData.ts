@@ -10,7 +10,12 @@ import {
   useCustomMutation,
 } from "@/hooks/useCrudMutations";
 import { useToast } from "@/hooks/use-toast";
-import { insertSensorConfigSchema, Equipment, SensorConfiguration } from "@shared/schema";
+import {
+  insertSensorConfigSchema,
+  type Equipment,
+  type SensorConfiguration,
+  type TelemetryReading,
+} from "@shared/schema";
 import {
   sensorKeys,
   telemetryKeys,
@@ -45,13 +50,12 @@ interface AlertItem {
   message: string;
   acknowledged: boolean;
 }
-interface TelemetryReading {
-  id: string;
-  equipmentId: string;
-  sensorType: string;
-  value: number;
+type LatestEquipmentTelemetryReading = Pick<
+  TelemetryReading,
+  "id" | "equipmentId" | "sensorType" | "value"
+> & {
   timestamp: string;
-}
+};
 interface OperatingParam {
   id: string;
   equipmentType: string;
@@ -137,7 +141,7 @@ export function useEquipmentViewData(
       ),
     enabled: !!equipment?.id && isOpen,
   });
-  const { data: equipmentTelemetry = [] } = useQuery<TelemetryReading[]>({
+  const { data: equipmentTelemetry = [] } = useQuery<LatestEquipmentTelemetryReading[]>({
     queryKey: telemetryKeys.latest({
       ...(equipment?.id !== undefined && { equipmentId: equipment.id }),
       limit: 20,

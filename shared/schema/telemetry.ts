@@ -220,6 +220,7 @@ export const insertRawTelemetrySchema = createInsertSchema(rawTelemetry).omit({
 export const insertTelemetryRetentionPolicySchema = createInsertSchema(telemetryRetentionPolicies);
 
 // Types
+export type TelemetryReading = typeof equipmentTelemetry.$inferSelect;
 export type EquipmentTelemetry = typeof equipmentTelemetry.$inferSelect;
 export type InsertEquipmentTelemetry = z.infer<typeof insertEquipmentTelemetrySchema>;
 

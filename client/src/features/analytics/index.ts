@@ -1,7 +1,5 @@
 export * from "./types";
-export * from "./hooks/useAnalytics";
 export * from "./hooks/useAdvancedAnalyticsData";
-export * from "./hooks/usePdmEquipmentDetailData";
 export * from "./hooks/useDashboardSummary";
 export * from "./hooks/useReportsData";
 export * from "./hooks/useExpenseTrackingData";

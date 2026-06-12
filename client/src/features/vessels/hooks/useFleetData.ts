@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import type { TechnicianInsight } from "@/components/TechnicianInsightCard";
+import type { TelemetryReading } from "@shared/schema";
 
 interface VesselData {
   id: string;
@@ -21,13 +22,10 @@ interface EquipmentHealth {
   pFail30d?: number;
   status: "healthy" | "warning" | "critical" | "unknown";
 }
-interface TelemetryReading {
-  equipmentId: string;
-  sensorType: string;
-  value: number;
+type FleetTelemetryReading = Pick<TelemetryReading, "equipmentId" | "sensorType" | "value"> & {
   unit: string;
   timestamp: string;
-}
+};
 interface VesselInsights {
   vesselId: string;
   vesselName: string;
@@ -57,7 +55,7 @@ export function useFleetData() {
     queryKey: ["/api/equipment/health"],
     refetchInterval: 120000,
   });
-  const { data: latestTelemetry = [] } = useQuery<TelemetryReading[]>({
+  const { data: latestTelemetry = [] } = useQuery<FleetTelemetryReading[]>({
     queryKey: ["/api/telemetry/latest", selectedVesselId],
     refetchInterval: 60000,
     enabled: viewMode === "status",
@@ -203,7 +201,7 @@ export function useFleetData() {
 export type {
   VesselData,
   EquipmentHealth,
-  TelemetryReading,
+  FleetTelemetryReading,
   VesselInsights,
   FleetOverviewResponse,
   ViewMode,

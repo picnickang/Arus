@@ -1,5 +1,3 @@
-export * from "./types";
-export * from "./hooks/useTelemetry";
 export * from "./hooks/useSensorWizardData";
 export * from "./hooks/useSensorConfigData";
 export * from "./hooks/useOperatingParametersData";
