@@ -275,6 +275,8 @@ jobs:
           }
 
           $env:RUST_BACKTRACE = "1"
+          $panicLog = Join-Path $env:RUNNER_TEMP "arus-desktop-panic.log"
+          $env:ARUS_DESKTOP_PANIC_LOG = $panicLog
           $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--disable-gpu --enable-logging --v=1"
           $startTime = Get-Date
           $process = Start-Process -FilePath $appExe -PassThru
@@ -285,6 +287,10 @@ jobs:
             Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = $startTime.AddSeconds(-5) } -MaxEvents 20 -ErrorAction SilentlyContinue |
               Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
               Format-List
+            if (Test-Path $panicLog) {
+              Write-Host "ARUS Desktop panic log:"
+              Get-Content $panicLog
+            }
             Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode) ($exitHex)."
             exit 1
           }

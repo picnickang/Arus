@@ -234,6 +234,8 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   it("launches and terminates the installed desktop app during the smoke", () => {
     expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
     expect(windowsWorkflow).toContain("$appExe = $env:ARUS_APP_EXE");
+    expect(windowsWorkflow).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(windowsWorkflow).toContain("ARUS Desktop panic log");
     expect(windowsWorkflow).toContain("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
     expect(windowsWorkflow).toContain("--disable-gpu");
     expect(windowsWorkflow).toContain("Get-WinEvent");
@@ -655,10 +657,10 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   });
 
   it("sidecar sets correct environment variables", () => {
-    expect(libRs).toContain('.env("NODE_ENV"');
-    expect(libRs).toContain('.env("PORT",');
+    expect(libRs).toMatch(/\.env\(\s*"NODE_ENV"/);
+    expect(libRs).toContain('.env("PORT", "5000")');
     expect(libRs).toContain('.env("DEPLOYMENT_MODE", "VESSEL")');
-    expect(libRs).toContain('.env("LOCAL_MODE",      "true")');
+    expect(libRs).toContain('.env("LOCAL_MODE", "true")');
     expect(libRs).toContain('.env("DATABASE_PATH"');
   });
 
@@ -691,6 +693,13 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   it("hides console window in release builds on Windows", () => {
     const mainRs = read("src-tauri/src/main.rs");
     expect(mainRs).toContain('#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]');
+  });
+
+  it("installs a file-backed panic hook for Windows launch diagnostics", () => {
+    expect(libRs).toContain("fn install_panic_logger()");
+    expect(libRs).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(libRs).toContain("std::panic::set_hook");
+    expect(libRs).toContain("install_panic_logger();");
   });
 });
 
