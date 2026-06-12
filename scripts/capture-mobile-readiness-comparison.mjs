@@ -41,6 +41,11 @@ const captures = [
     reference: "figma-telemetry-pdm.png",
   },
   { id: "work", route: "/work-orders", reference: "figma-work-logs.png" },
+  {
+    id: "work-execution",
+    route: "/work-orders/so-4481",
+    reference: "figma-work-logs.png",
+  },
   { id: "logs", route: "/logs", reference: "figma-work-logs.png" },
   { id: "crew", route: "/crew-management", reference: "figma-crew-inventory-settings.png" },
   { id: "inventory", route: "/logistics", reference: "figma-crew-inventory-settings.png" },

@@ -42,15 +42,25 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("MobileCrewPage");
     expect(screenSrc).toContain("MobileInventoryPage");
     expect(screenSrc).toContain("MobileSettingsPage");
+    expect(screenSrc).toContain("MobileWorkExecutionPage");
     expect(screenSrc).toContain("PdM Risk Queue");
+    expect(screenSrc).toContain("Work Queue");
+    expect(screenSrc).toContain("Checklist");
     expect(screenSrc).toContain("Crew Readiness Overview");
+    expect(screenSrc).toContain("View All Current Crew");
+    expect(screenSrc).toContain("Former Crew (24)");
     expect(screenSrc).toContain("Inventory & Logistics");
+    expect(screenSrc).toContain("View Full Inventory");
+    expect(screenSrc).toContain("Logistics Tasks");
+    expect(screenSrc).toContain("Log Out");
     expect(modelSrc).toContain("System Configuration");
     expect(modelSrc).toContain("Copilot + Knowledge Base Settings");
   });
 
   it("routes service fulfillment lanes back into the work queue", async () => {
     const routes = await readSrc("client/src/routes/logistics.ts");
+    const maintenanceRoutes = await readSrc("client/src/routes/maintenance.ts");
+    expect(maintenanceRoutes).toContain('path: "/work-orders/:workOrderId"');
     expect(routes).toContain('path: "/service-orders"');
     expect(routes).toContain('path: "/service-requests"');
     expect(routes).toContain("component: WorkOrders");

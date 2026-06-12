@@ -137,6 +137,20 @@ describe("mobile readiness replacement model", () => {
       "In Progress",
       "Blocked",
     ]);
+    expect(screens.work.queue.map((item) => item.href)).toEqual([
+      "/work-orders/sr-1258",
+      "/work-orders/so-4476",
+      "/work-orders/so-4481",
+      "/work-orders/sr-1266",
+      "/work-orders/sr-1271",
+    ]);
+    expect(screens.work.execution).toMatchObject({
+      orderNumber: "SO-4481",
+      vesselName: "M/V Ocean Pioneer",
+      assetId: "vessel-borealis",
+      priority: "Medium",
+      syncState: "Syncing...",
+    });
     expect(screens.work.execution.checklistProgress).toBe("4 / 6");
     expect(screens.work.execution.photoAssetIds).toEqual([
       "work-compressor",
@@ -155,6 +169,11 @@ describe("mobile readiness replacement model", () => {
       "Condition Log",
       "Captain Signoff",
     ]);
+    expect(screens.logs.complianceRows.map((row) => row.status)).toEqual([
+      "Signed",
+      "Signed",
+      "Signed",
+    ]);
   });
 
   it("moves admin and governance controls into mobile settings while keeping crew and inventory action-first", () => {
@@ -170,6 +189,20 @@ describe("mobile readiness replacement model", () => {
       "Deliveries",
       "Linked to WO",
     ]);
+    expect(screens.inventory.rows).toHaveLength(5);
+    expect(screens.inventory.rows.at(-1)).toMatchObject({
+      partNumber: "500-700-200",
+      name: "Bearing BRG-700",
+      reorderStatus: "OK",
+    });
+    expect(screens.inventory.linkedWorkOrders[0]).toMatchObject({
+      id: "WO-2025-1348",
+      status: "3 items",
+    });
+    expect(screens.inventory.logisticsTasks[0]).toMatchObject({
+      id: "DEL-2025-0891",
+      eta: "ETA: 16 May 2025",
+    });
     expect(screens.settings.items.map((item) => item.label)).toEqual([
       "Profile",
       "Switch Portal / Organization",

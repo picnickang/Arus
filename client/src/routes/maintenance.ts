@@ -9,6 +9,7 @@ const DigitalTwin = lazy(() => import("@/pages/digital-twin"));
 
 export const maintenanceRoutes = [
   { path: "/maint", component: MaintenanceHub },
+  { path: "/work-orders/:workOrderId", component: WorkOrders },
   { path: "/work-orders", component: WorkOrders },
   { path: "/maintenance", component: MaintenanceSchedules },
   { path: "/maintenance-templates", component: MaintenanceTemplatesPage },

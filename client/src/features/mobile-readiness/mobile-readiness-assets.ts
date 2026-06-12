@@ -53,21 +53,43 @@ function vesselSvg(name: string, hull: string, accent: string, sky = "#dff2ff"):
 function avatarSvg(initials: string, skin: string, shirt: string): string {
   return svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-      <rect width="96" height="96" rx="48" fill="#e8edf5"/>
-      <circle cx="48" cy="34" r="18" fill="${skin}"/>
-      <path d="M18 88c5-23 20-34 30-34s25 11 30 34" fill="${shirt}"/>
-      <text x="48" y="90" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#fff">${initials}</text>
+      <defs>
+        <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="#f8fafc"/>
+          <stop offset="1" stop-color="#dbe3ef"/>
+        </linearGradient>
+      </defs>
+      <rect width="96" height="96" rx="48" fill="url(#bg)"/>
+      <path d="M15 91c5-24 20-37 33-37s28 13 33 37" fill="${shirt}"/>
+      <path d="M35 58l13 12 13-12v20H35Z" fill="#f8fafc" opacity=".92"/>
+      <rect x="39" y="48" width="18" height="17" rx="8" fill="${skin}"/>
+      <ellipse cx="48" cy="35" rx="18" ry="21" fill="${skin}"/>
+      <path d="M29 32c3-17 14-25 29-20 10 3 15 11 15 23-8-8-20-7-30-13-4 8-8 11-14 10Z" fill="#263241"/>
+      <circle cx="33" cy="38" r="4" fill="${skin}"/>
+      <circle cx="63" cy="38" r="4" fill="${skin}"/>
+      <circle cx="41" cy="36" r="2.2" fill="#182335"/>
+      <circle cx="55" cy="36" r="2.2" fill="#182335"/>
+      <path d="M48 39l-3 9h6" fill="none" stroke="#9a6749" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M41 52c5 4 10 4 15 0" fill="none" stroke="#7c4a36" stroke-width="2" stroke-linecap="round"/>
+      <path d="M27 91h42l-21-18Z" fill="#0b2d5b" opacity=".28"/>
+      <circle cx="70" cy="74" r="11" fill="#03295a"/>
+      <text x="70" y="79" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700" fill="#fff">${initials}</text>
     </svg>
   `);
 }
 
+function workPhotoBody(kind: "compressor" | "gauge" | "motor"): string {
+  if (kind === "gauge") {
+    return '<circle cx="80" cy="58" r="34" fill="#f8fafc" stroke="#64748b" stroke-width="8"/><path d="M80 58l22-16" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/><text x="80" y="112" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">0.08</text>';
+  }
+  if (kind === "motor") {
+    return '<rect x="30" y="45" width="100" height="48" rx="12" fill="#64748b"/><circle cx="40" cy="69" r="28" fill="#334155"/><circle cx="128" cy="69" r="24" fill="#94a3b8"/><path d="M38 102h80" stroke="#475569" stroke-width="12" stroke-linecap="round"/>';
+  }
+  return '<rect x="22" y="42" width="116" height="50" rx="8" fill="#475569"/><path d="M35 54h90M35 68h90M35 82h90" stroke="#cbd5e1" stroke-width="5"/><circle cx="48" cy="106" r="14" fill="#334155"/><circle cx="112" cy="106" r="14" fill="#334155"/>';
+}
+
 function workPhotoSvg(kind: "compressor" | "gauge" | "motor"): string {
-  const body =
-    kind === "gauge"
-      ? '<circle cx="80" cy="58" r="34" fill="#f8fafc" stroke="#64748b" stroke-width="8"/><path d="M80 58l22-16" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/><text x="80" y="112" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">0.08</text>'
-      : kind === "motor"
-        ? '<rect x="30" y="45" width="100" height="48" rx="12" fill="#64748b"/><circle cx="40" cy="69" r="28" fill="#334155"/><circle cx="128" cy="69" r="24" fill="#94a3b8"/><path d="M38 102h80" stroke="#475569" stroke-width="12" stroke-linecap="round"/>'
-        : '<rect x="22" y="42" width="116" height="50" rx="8" fill="#475569"/><path d="M35 54h90M35 68h90M35 82h90" stroke="#cbd5e1" stroke-width="5"/><circle cx="48" cy="106" r="14" fill="#334155"/><circle cx="112" cy="106" r="14" fill="#334155"/>';
+  const body = workPhotoBody(kind);
   return svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 128">
       <rect width="160" height="128" rx="12" fill="#e5e7eb"/>
