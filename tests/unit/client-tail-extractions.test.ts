@@ -93,4 +93,18 @@ describe("client tail component extractions", () => {
     expect(tabs).toContain("No anomalies detected for this equipment.");
     expect(tabs).toContain("No maintenance history for this equipment.");
   });
+
+  it("keeps scheduler qualification helpers behind crew scheduler cards", () => {
+    const cards = read("client/src/components/scheduling/crew-scheduler-cards.tsx");
+    const qualification = read(
+      "client/src/components/scheduling/crew-scheduler-qualification.tsx"
+    );
+
+    expect(cards).toContain('from "./crew-scheduler-qualification"');
+    expect(cards).toContain("export type { CrewCert, SchedulerCrew }");
+    expect(cards).toContain("export function SchedulingConfigCard");
+    expect(qualification).toContain("export function QualificationBridge");
+    expect(qualification).toContain("export const CREW_CERTIFICATION_TYPES");
+    expect(qualification).toContain('data-testid="qualification-bridge"');
+  });
 });

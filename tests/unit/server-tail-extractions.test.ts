@@ -58,4 +58,15 @@ describe("server tail extractions", () => {
     expect(criticalObjects).toContain("export const REQUIRED_COLUMNS");
     expect(schemaReadme).toContain("server/scripts/migration-critical-objects.ts");
   });
+
+  it("keeps prediction calibration math in a sibling helper", () => {
+    const service = read("server/services/ml/prediction-calibration.ts");
+    const math = read("server/services/ml/prediction-calibration-math.ts");
+
+    expect(service).toContain('from "./prediction-calibration-math"');
+    expect(service).toContain("export class PredictionCalibrator");
+    expect(math).toContain("export function fitPlattScaling");
+    expect(math).toContain("export function fitIsotonicRegression");
+    expect(math).toContain("export interface CalibrationReport");
+  });
 });
