@@ -47,7 +47,12 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("Work Queue");
     expect(screenSrc).toContain("Checklist");
     expect(screenSrc).toContain("Crew Readiness Overview");
+    expect(screenSrc).toContain("View All Current Crew");
+    expect(screenSrc).toContain("Former Crew (24)");
     expect(screenSrc).toContain("Inventory & Logistics");
+    expect(screenSrc).toContain("View Full Inventory");
+    expect(screenSrc).toContain("Logistics Tasks");
+    expect(screenSrc).toContain("Log Out");
     expect(modelSrc).toContain("System Configuration");
     expect(modelSrc).toContain("Copilot + Knowledge Base Settings");
   });

@@ -53,10 +53,27 @@ function vesselSvg(name: string, hull: string, accent: string, sky = "#dff2ff"):
 function avatarSvg(initials: string, skin: string, shirt: string): string {
   return svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-      <rect width="96" height="96" rx="48" fill="#e8edf5"/>
-      <circle cx="48" cy="34" r="18" fill="${skin}"/>
-      <path d="M18 88c5-23 20-34 30-34s25 11 30 34" fill="${shirt}"/>
-      <text x="48" y="90" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#fff">${initials}</text>
+      <defs>
+        <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="#f8fafc"/>
+          <stop offset="1" stop-color="#dbe3ef"/>
+        </linearGradient>
+      </defs>
+      <rect width="96" height="96" rx="48" fill="url(#bg)"/>
+      <path d="M15 91c5-24 20-37 33-37s28 13 33 37" fill="${shirt}"/>
+      <path d="M35 58l13 12 13-12v20H35Z" fill="#f8fafc" opacity=".92"/>
+      <rect x="39" y="48" width="18" height="17" rx="8" fill="${skin}"/>
+      <ellipse cx="48" cy="35" rx="18" ry="21" fill="${skin}"/>
+      <path d="M29 32c3-17 14-25 29-20 10 3 15 11 15 23-8-8-20-7-30-13-4 8-8 11-14 10Z" fill="#263241"/>
+      <circle cx="33" cy="38" r="4" fill="${skin}"/>
+      <circle cx="63" cy="38" r="4" fill="${skin}"/>
+      <circle cx="41" cy="36" r="2.2" fill="#182335"/>
+      <circle cx="55" cy="36" r="2.2" fill="#182335"/>
+      <path d="M48 39l-3 9h6" fill="none" stroke="#9a6749" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M41 52c5 4 10 4 15 0" fill="none" stroke="#7c4a36" stroke-width="2" stroke-linecap="round"/>
+      <path d="M27 91h42l-21-18Z" fill="#0b2d5b" opacity=".28"/>
+      <circle cx="70" cy="74" r="11" fill="#03295a"/>
+      <text x="70" y="79" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700" fill="#fff">${initials}</text>
     </svg>
   `);
 }

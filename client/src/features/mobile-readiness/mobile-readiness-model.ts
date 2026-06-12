@@ -1160,6 +1160,15 @@ function buildInventoryScreen(): InventoryScreen {
         reorderStatus: "Low",
         tone: "medium",
       },
+      {
+        partNumber: "500-700-200",
+        name: "Bearing BRG-700",
+        location: "FWD Store Bin 7",
+        onHand: 7,
+        available: 4,
+        reorderStatus: "OK",
+        tone: "good",
+      },
     ],
     linkedWorkOrders: [
       {
