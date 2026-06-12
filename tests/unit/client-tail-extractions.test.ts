@@ -283,4 +283,26 @@ describe("client tail component extractions", () => {
     expect(exportCard).toContain('data-testid="button-export-complete-json"');
   });
 
+  it("keeps AI health training tab surfaces behind sibling modules", () => {
+    const tab = read("client/src/components/ai-health/TrainingTab.tsx");
+    const shell = read("client/src/components/ai-health/TrainingTabShell.tsx");
+    const trainingSections = read("client/src/components/ai-health/TrainingTabTrainingSections.tsx");
+    const managementSections = read(
+      "client/src/components/ai-health/TrainingTabManagementSections.tsx"
+    );
+
+    expect(tab).toContain('from "./TrainingTabShell"');
+    expect(tab).toContain("<TrainingTabShell");
+    expect(shell).toContain("export function TrainingTabShell");
+    expect(shell).toContain("<LstmTrainingSection");
+    expect(shell).toContain("<ResetTrainingDataSection");
+    expect(trainingSections).toContain("export function LstmTrainingSection");
+    expect(trainingSections).toContain("export function RandomForestTrainingSection");
+    expect(trainingSections).toContain("export function AcousticAnalysisSection");
+    expect(managementSections).toContain("export function TrainedModelsSection");
+    expect(managementSections).toContain("export function DataExportSection");
+    expect(managementSections).toContain("export function ResetTrainingDataSection");
+    expect(managementSections).toContain('data-testid="button-reset-ml-data-keep-models"');
+  });
+
 });
