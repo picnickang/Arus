@@ -121,4 +121,16 @@ describe("server tail extractions", () => {
     expect(backups).toContain("export function listPatchBackups");
     expect(backups).toContain("export function cleanOldPatchBackups");
   });
+
+  it("keeps crew application port contracts beside the service shell", () => {
+    const service = read("server/domains/crew/application/crew-service.ts");
+    const ports = read("server/domains/crew/application/crew-service-ports.ts");
+
+    expect(service).toContain('from "./crew-service-ports.js"');
+    expect(service).toContain("export class CrewApplicationService");
+    expect(service).toContain("CrewStoragePort");
+    expect(service).toContain("PermissionRolesPort");
+    expect(ports).toContain("export interface CrewServiceDependencies");
+    expect(ports).toContain("export interface CrewExtensionsStoragePort");
+  });
 });
