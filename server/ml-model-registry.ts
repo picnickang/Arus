@@ -69,5 +69,3 @@ export const mlModelRegistry: MlModelRegistry = registry;
 export function getModelRegistry(): MlModelRegistry {
   return registry;
 }
-
-export default mlModelRegistry;

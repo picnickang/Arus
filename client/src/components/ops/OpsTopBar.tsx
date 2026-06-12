@@ -51,5 +51,3 @@ export function OpsTopBar({
     </header>
   );
 }
-
-export default OpsTopBar;

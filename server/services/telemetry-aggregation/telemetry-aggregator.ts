@@ -411,5 +411,3 @@ export class TelemetryAggregator {
     return { minuteDeleted, hourDeleted };
   }
 }
-
-export default TelemetryAggregator;

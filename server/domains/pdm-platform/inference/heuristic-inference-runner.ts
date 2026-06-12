@@ -79,6 +79,3 @@ export class HeuristicInferenceRunner implements InferenceRunnerPort {
     };
   }
 }
-
-// Backward-compatible name for older imports/tests.
-export const StubInferenceRunner = HeuristicInferenceRunner;

@@ -119,4 +119,3 @@ class ImmutableAuditService {
 }
 
 export const auditService = ImmutableAuditService.getInstance();
-export default auditService;

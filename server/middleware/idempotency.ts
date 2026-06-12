@@ -192,8 +192,6 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
   };
 }
 
-export default idempotencyMiddleware;
-
 export const _internals = {
   cleanupExpiredKeys,
   processedKeys,

@@ -49,6 +49,3 @@ export const MAINTENANCE_TYPES = [
   { value: "predictive", label: "Predictive Maintenance" },
   { value: "emergency", label: "Emergency Repair" },
 ] as const;
-
-export const PRIORITY_OPTIONS = WORK_ORDER_FORM_PRIORITY_OPTIONS;
-export const STATUS_OPTIONS = WORK_ORDER_FORM_STATUS_OPTIONS;

@@ -7,7 +7,7 @@
 import { z } from "zod";
 
 // orgId can be a UUID or a friendly string like "default-org-id" for single-tenant mode
-export const baseMetadataSchema = z.object({
+const baseMetadataSchema = z.object({
   orgId: z.string().min(1),
   timestamp: z.coerce.date(),
   version: z.string().default("1.0"),

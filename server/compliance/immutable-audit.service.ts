@@ -15,4 +15,4 @@
  */
 
 export * from "./immutable-audit/index";
-export { default, auditService } from "./immutable-audit/index";
+export { auditService } from "./immutable-audit/index";

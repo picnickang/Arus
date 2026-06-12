@@ -258,5 +258,3 @@ export function EnhancedServiceRequestDialog({
     </Dialog>
   );
 }
-
-export default EnhancedServiceRequestDialog;

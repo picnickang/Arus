@@ -292,5 +292,3 @@ export function WorkOrderCloseoutWizard({
     </Dialog>
   );
 }
-
-export default WorkOrderCloseoutWizard;

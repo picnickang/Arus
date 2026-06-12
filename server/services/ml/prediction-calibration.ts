@@ -566,5 +566,3 @@ export class PredictionCalibrator {
     }
   }
 }
-
-export default PredictionCalibrator;

@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
+function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
   const existingId = req.headers[REQUEST_ID_HEADER.toLowerCase()] as string;
   const requestId = existingId || randomUUID();
 
@@ -19,10 +19,6 @@ export function correlationIdMiddleware(req: Request, res: Response, next: NextF
   res.setHeader(REQUEST_ID_HEADER, requestId);
 
   next();
-}
-
-export function getRequestId(req: Request): string {
-  return req.requestId || "unknown";
 }
 
 export default correlationIdMiddleware;

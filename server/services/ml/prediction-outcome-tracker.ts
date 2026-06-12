@@ -550,5 +550,3 @@ export class PredictionOutcomeTracker {
     }
   }
 }
-
-export default PredictionOutcomeTracker;

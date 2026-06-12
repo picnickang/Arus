@@ -328,5 +328,3 @@ export function MultiLinePartsRequestDialog({
     </Dialog>
   );
 }
-
-export default MultiLinePartsRequestDialog;

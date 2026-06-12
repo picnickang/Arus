@@ -339,5 +339,3 @@ export function WorkOrderRequestsTab({
     </div>
   );
 }
-
-export default WorkOrderRequestsTab;

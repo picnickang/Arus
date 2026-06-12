@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "@jest/globals";
 
-import PredictionCalibrator from "../../server/services/ml/prediction-calibration";
+import { PredictionCalibrator } from "../../server/services/ml/prediction-calibration";
 
 // Since PredictionCalibrator requires a DB connection, we test the pure functions
 // by importing them indirectly. We extract and test the mathematical core.

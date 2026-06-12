@@ -7,7 +7,11 @@ const AnalyticsMaintenance = lazy(() => import("@/pages/analytics-maintenance"))
 const AnalyticsFinance = lazy(() => import("@/pages/analytics-finance"));
 const AnalyticsDataIntegrity = lazy(() => import("@/pages/analytics-data-integrity"));
 const KnowledgeBasePage = lazy(() => import("@/pages/knowledge-base"));
-const RagAnalyticsDashboard = lazy(() => import("@/features/kb/pages/RagAnalyticsDashboard"));
+const RagAnalyticsDashboard = lazy(() =>
+  import("@/features/kb/pages/RagAnalyticsDashboard").then(({ RagAnalyticsDashboard }) => ({
+    default: RagAnalyticsDashboard,
+  }))
+);
 const ScheduledReports = lazy(() => import("@/pages/scheduled-reports"));
 const ScheduledReportsSettings = lazy(() => import("@/pages/scheduled-reports-settings"));
 const AIHealthDashboard = lazy(() => import("@/pages/ai-health-dashboard"));

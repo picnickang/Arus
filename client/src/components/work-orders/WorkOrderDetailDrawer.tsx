@@ -577,5 +577,3 @@ export function WorkOrderDetailDrawer({
     </Sheet>
   );
 }
-
-export default WorkOrderDetailDrawer;

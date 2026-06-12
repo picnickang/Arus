@@ -43,5 +43,3 @@ export const mlPredictionService: MlPredictionServiceShim = {
     return { state: "closed", failureCount: 0, lastFailureTime: null };
   },
 };
-
-export default mlPredictionService;

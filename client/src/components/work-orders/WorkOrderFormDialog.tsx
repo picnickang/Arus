@@ -37,8 +37,8 @@ import type { WorkOrder } from "@shared/schema";
 import {
   useWorkOrderFormDialogData,
   MAINTENANCE_TYPES,
-  PRIORITY_OPTIONS,
-  STATUS_OPTIONS,
+  WORK_ORDER_FORM_PRIORITY_OPTIONS,
+  WORK_ORDER_FORM_STATUS_OPTIONS,
   type WorkOrderFormData,
 } from "@/features/work-orders";
 
@@ -302,7 +302,7 @@ export function WorkOrderFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {PRIORITY_OPTIONS.map((option) => (
+                        {WORK_ORDER_FORM_PRIORITY_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value.toString()}>
                             <span className={option.color}>{option.label}</span>
                           </SelectItem>
@@ -329,7 +329,7 @@ export function WorkOrderFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((option) => (
+                        {WORK_ORDER_FORM_STATUS_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>

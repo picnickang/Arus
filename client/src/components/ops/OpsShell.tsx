@@ -47,5 +47,3 @@ export function OpsShell({
     </div>
   );
 }
-
-export default OpsShell;

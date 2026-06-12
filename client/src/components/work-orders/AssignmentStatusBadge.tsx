@@ -60,5 +60,3 @@ export function AssignmentStatusBadge({
     </span>
   );
 }
-
-export default AssignmentStatusBadge;

@@ -426,5 +426,3 @@ export class MlTrainingJobQueue {
     }
   }
 }
-
-export default MlTrainingJobQueue;

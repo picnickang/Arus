@@ -515,5 +515,3 @@ export class ModelEvaluationGate {
 function emptyFailureMetrics(total: number): PredictionFailureMetrics {
   return { total, succeeded: 0, failed: 0, errorRate: 0, sampleFailureMessages: [] };
 }
-
-export default ModelEvaluationGate;

@@ -80,5 +80,3 @@ export function OpsSidebar({
     </aside>
   );
 }
-
-export default OpsSidebar;

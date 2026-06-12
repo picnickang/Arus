@@ -332,5 +332,4 @@ export function WorkOrderFilterPanel({
   );
 }
 
-export default WorkOrderFilterPanel;
 export type { WorkOrderFilters };

@@ -544,5 +544,3 @@ export class AnomalyCorrelator {
     return `Correlated anomalies across ${sensorTypes.length} sensor types (${sensorTypes.slice(0, 3).join(", ")}${sensorTypes.length > 3 ? "..." : ""}) on ${equipmentType}`;
   }
 }
-
-export default AnomalyCorrelator;

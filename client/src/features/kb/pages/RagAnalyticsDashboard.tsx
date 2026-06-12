@@ -350,5 +350,3 @@ export function RagAnalyticsDashboard() {
     </div>
   );
 }
-
-export default RagAnalyticsDashboard;

@@ -266,5 +266,3 @@ function InventoryTimelineItem({
     </div>
   );
 }
-
-export default WorkOrderHistoryTab;

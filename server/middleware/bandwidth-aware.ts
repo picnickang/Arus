@@ -1,12 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 
-export function isLowBandwidth(req: Request): boolean {
+function isLowBandwidth(req: Request): boolean {
   return (
     req.headers["x-bandwidth-mode"] === "low" || req.headers["x-bandwidth-mode"] === "satellite"
   );
 }
 
-export function compactResponse(data: unknown, maxStringLength = 100): unknown {
+function compactResponse(data: unknown, maxStringLength = 100): unknown {
   if (data === null || data === undefined) {
     return undefined;
   }
@@ -71,7 +71,7 @@ export function compactResponse(data: unknown, maxStringLength = 100): unknown {
   return data;
 }
 
-export function bandwidthAwareMiddleware(req: Request, res: Response, next: NextFunction): void {
+function bandwidthAwareMiddleware(req: Request, res: Response, next: NextFunction): void {
   if (!isLowBandwidth(req)) {
     return next();
   }

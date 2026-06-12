@@ -411,5 +411,3 @@ function TableFooter({ count }: { count: number }) {
     </div>
   );
 }
-
-export default VirtualizedWorkOrderTable;

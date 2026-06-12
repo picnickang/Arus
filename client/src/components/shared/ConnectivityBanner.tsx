@@ -168,5 +168,3 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
     </div>
   );
 }
-
-export default ConnectivityBanner;
