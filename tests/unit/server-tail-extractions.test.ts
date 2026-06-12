@@ -340,4 +340,20 @@ describe("server tail extractions", () => {
     expect(formatters).toContain("export function resolveAudience");
     expect(formatters).toContain("export async function generatePdfBuffer");
   });
+
+  it("keeps checklist workflow and work-order records behind the checklist storage shell", () => {
+    const storage = read("server/db/checklists/db-checklists.ts");
+    const workflow = read("server/db/checklists/db-checklists-template-workflow.ts");
+    const workOrders = read("server/db/checklists/db-checklists-work-order-records.ts");
+
+    expect(storage).toContain('from "./db-checklists-work-order-records.js"');
+    expect(storage).toContain("export class DatabaseChecklistsStorage");
+    expect(storage).toContain("extends DatabaseChecklistWorkOrderRecordsStorage");
+    expect(workflow).toContain("export class DatabaseChecklistTemplateWorkflowStorage");
+    expect(workflow).toContain("async cloneMaintenanceTemplate");
+    expect(workflow).toContain("async initializeChecklistFromTemplate");
+    expect(workOrders).toContain("extends DatabaseChecklistTemplateWorkflowStorage");
+    expect(workOrders).toContain("async getWorkOrderTasks");
+    expect(workOrders).toContain("async calculateWorklogCosts");
+  });
 });

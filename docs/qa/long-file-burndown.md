@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T05:25:14.716Z
+Generated: 2026-06-12T05:41:30.129Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `61` counted files.
-- The current counted inventory is `61` files.
+- The temporary ceiling is `59` counted files.
+- The current counted inventory is `59` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    61 |
-| Server                    |     6 |
+| Total counted long files  |    59 |
+| Server                    |     5 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
-| Client                    |    55 |
+| Client                    |    54 |
 | Client page files         |    21 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -122,6 +122,7 @@ Completed splits:
 - `server/db/analytics/db-analytics.ts` dropped below the threshold by moving finance/inventory helpers and metrics history/insight snapshot persistence to sibling modules while preserving `DatabaseAnalyticsStorage`.
 - `server/objectStorage.ts` dropped below the threshold by moving lazy client initialization, MIME content-type policy, and object path signing helpers to sibling modules while preserving `ObjectStorageService` and public helper exports.
 - `server/domains/agent/tools/enhanced-report-tools.ts` dropped below the threshold by moving report artifact persistence and report formatting/export helpers to sibling modules while preserving registered tool names and `getReportArtifact`.
+- `server/db/checklists/db-checklists.ts` dropped below the threshold by moving template workflow and work-order task/checklist/worklog record groups to sibling storage base classes while preserving `DatabaseChecklistsStorage`.
 
 ## Top 30 Longest Files
 
@@ -210,7 +211,6 @@ Completed splits:
 744 client/src/pages/home.tsx
 731 client/src/components/ai-health/PerformanceTab.tsx
 718 server/scheduler/scheduler-controller.ts
-717 server/db/checklists/db-checklists.ts
 712 client/src/pages/equipment/index.tsx
 711 client/src/components/work-orders/LinkedServiceOrdersPanel.tsx
 704 client/src/pages/findings-cards.tsx
@@ -233,7 +233,6 @@ Completed splits:
 623 client/src/components/work-orders/WorkOrderFormDialog.tsx
 617 client/src/components/analytics/OperationsMode.tsx
 615 client/src/pages/scheduled-reports.tsx
-614 client/src/components/crew/CrewComplianceDashboard.tsx
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
 598 client/src/lib/queryClient.ts
