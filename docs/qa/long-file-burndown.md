@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T00:52:53.069Z
+Generated: 2026-06-12T00:59:03.810Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `82` counted files.
-- The current counted inventory is `82` files.
+- The temporary ceiling is `81` counted files.
+- The current counted inventory is `81` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    82 |
-| Server                    |    27 |
+| Total counted long files  |    81 |
+| Server                    |    26 |
 | Server route-like files   |     8 |
-| Server service-like files |     5 |
+| Server service-like files |     4 |
 | Client                    |    55 |
 | Client page files         |    21 |
 | Shared                    |     0 |
@@ -101,6 +101,7 @@ Completed splits:
 - `client/src/config/navigationConfig.ts` dropped below the threshold by moving the route-to-resource map to a sibling config module while preserving the original public export.
 - `server/routes/kb-routes.ts` dropped below the threshold by moving KB upload storage, MIME filtering, and multer error normalization to a sibling route middleware module while preserving route URLs.
 - `server/db/crew-extensions/db-crew-extensions.ts` dropped below the threshold by moving notification/alert and port/drydock scheduling persistence helpers to sibling modules while preserving `DbCrewExtensionsStorage`.
+- `server/compliance/data-anonymization/service.ts` dropped below the threshold by moving field-name and likely-contact classification helpers to a sibling pure module while preserving `DataAnonymizationService`.
 
 ## Top 30 Longest Files
 
@@ -235,7 +236,6 @@ Completed splits:
 593 server/routes/wo-so-bridge-routes.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
 591 server/pdm/adapters/pdm-postgres.repository.ts
-589 server/compliance/data-anonymization/service.ts
 588 server/domains/crew/application/crew-service.ts
 584 server/domains/equipment-intelligence/infrastructure/postgres-repository.ts
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx

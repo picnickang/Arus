@@ -98,4 +98,15 @@ describe("server tail extractions", () => {
     expect(scheduling).toContain("export async function getPortCalls");
     expect(scheduling).toContain("export async function getDrydockWindows");
   });
+
+  it("keeps data anonymization field classification in a pure helper", () => {
+    const service = read("server/compliance/data-anonymization/service.ts");
+    const helper = read("server/compliance/data-anonymization/field-classification.ts");
+
+    expect(service).toContain('from "./field-classification.js"');
+    expect(service).toContain("export class DataAnonymizationService");
+    expect(helper).toContain("export function isPotentialPiiField");
+    expect(helper).toContain("export function isSensitiveFieldName");
+    expect(helper).toContain("export function isLikelyPiiString");
+  });
 });
