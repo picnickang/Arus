@@ -593,6 +593,19 @@ describe("client tail component extractions", () => {
     expect(types).toContain("export type DiagnosticsDashboardModel");
   });
 
+  it("keeps sensor setup bundle selection behind the wizard shell", () => {
+    const wizard = read("client/src/components/sensors/SensorSetupWizard.tsx");
+    const bundle = read("client/src/components/sensors/SensorSetupWizardBundleStep.tsx");
+
+    expect(wizard).toContain('from "./SensorSetupWizardBundleStep"');
+    expect(wizard).toContain("<BundleStep");
+    expect(wizard).toContain("export function SensorSetupWizard");
+    expect(bundle).toContain("export function BundleStep");
+    expect(bundle).toContain('data-testid="bundle-option-custom"');
+    expect(bundle).toContain('data-testid={`checkbox-template-${template.kind}`}');
+    expect(bundle).toContain('data-testid="button-next-step"');
+  });
+
   it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
     const page = read("client/src/pages/equipment/index.tsx");
     const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");

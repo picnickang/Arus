@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T13:59:59.287Z
+Generated: 2026-06-12T14:06:02.251Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `1` counted file.
-- The current counted inventory is `1` file.
+- The temporary ceiling is `0` counted files.
+- The current counted inventory is `0` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |     1 |
+| Total counted long files  |     0 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |     1 |
+| Client                    |     0 |
 | Client page files         |     0 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -166,18 +166,17 @@ Completed splits:
 - `client/src/components/ai-health/InsightsTab.tsx` dropped below the threshold by moving vessel intelligence fetching and rendering to a sibling module while preserving the default tab export and test IDs.
 - `client/src/pages/vessel-management/index.tsx` dropped below the threshold by moving action/create-dialog, fleet table, and edit/delete dialog surfaces to sibling route modules while preserving the default route export and test IDs.
 - `client/src/pages/DiagnosticsDashboard.tsx` dropped below the threshold by moving health status panels and status icon rendering to sibling route modules while preserving the default route export and test IDs.
+- `client/src/components/sensors/SensorSetupWizard.tsx` dropped below the threshold by moving bundle selection to a sibling component while preserving the public wizard export and test IDs.
 
 ## Top Remaining Long Files
 
-| Rank | Lines | File                                                     |
-| ---: | ----: | -------------------------------------------------------- |
-|    1 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`    |
+_No counted long files remain._
 
 ## Recommended Extraction Plan
 
-1. Continue with client characterization before large UI splits.
-   - Server and shared counted sources are now under the threshold.
-   - Prioritize settings panels, equipment dialogs, AI-health tabs, vessel/diagnostics pages, and sensor setup.
+1. Keep the ratchet at zero for new work.
+   - Run strict hygiene before landing large server, client, or shared changes.
+   - Split new orchestration files before they cross the 500-line limit.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Split client route pages and components by stable UI sub-surfaces.
@@ -188,11 +187,9 @@ Completed splits:
    - Preserve existing barrels and exported names for any future touch-ups.
    - Required proof: typecheck, strict hygiene, and focused guard tests for touched surfaces.
 
-4. Burn down the 501-649 tail with small colocated extractions.
+4. Preserve headroom in near-threshold files.
    - Use hooks, helper modules, route groups, and constant modules to leave orchestration files with headroom under 450 lines where practical.
 
 ## Full Counted Inventory
 
-```text
-633 client/src/components/sensors/SensorSetupWizard.tsx
-```
+_No counted long files remain._
