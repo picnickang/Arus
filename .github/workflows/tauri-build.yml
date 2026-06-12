@@ -122,7 +122,11 @@ jobs:
         shell: pwsh
         run: choco install imagemagick -y --no-progress
 
-      - run: npm ci
+      - name: Install dependencies for Windows desktop build
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild better-sqlite3
 
       - name: Generate icons
         shell: pwsh

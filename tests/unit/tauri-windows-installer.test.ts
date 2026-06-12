@@ -172,46 +172,54 @@ describe("Tauri Windows Installer — Sidecar Compiler Pinning", () => {
 
 describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   const workflow = read(".github/workflows/tauri-build.yml");
+  const windowsWorkflow = workflow.match(/  build-windows-desktop:[\s\S]*$/)?.[0] ?? "";
 
   it("runs the Windows desktop job on a real Windows runner", () => {
-    expect(workflow).toContain("build-windows-desktop:");
-    expect(workflow).toContain("runs-on: windows-latest");
-    expect(workflow).toContain("Build Tauri (desktop setup installer)");
-    expect(workflow).toContain("--target x86_64-pc-windows-msvc");
-    expect(workflow).toContain("--config src-tauri/tauri.conf.json");
+    expect(windowsWorkflow).toContain("build-windows-desktop:");
+    expect(windowsWorkflow).toContain("runs-on: windows-latest");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer)");
+    expect(windowsWorkflow).toContain("--target x86_64-pc-windows-msvc");
+    expect(windowsWorkflow).toContain("--config src-tauri/tauri.conf.json");
   });
 
   it("uploads the produced NSIS setup executable as an artifact", () => {
-    expect(workflow).toContain("Confirm NSIS setup exe exists");
-    expect(workflow).toContain("ARUS Desktop Setup.exe was not produced");
-    expect(workflow).toContain("actions/upload-artifact@v4");
-    expect(workflow).toContain("arus-desktop-windows-setup");
-    expect(workflow).toContain("bundle\\nsis");
+    expect(windowsWorkflow).toContain("Confirm NSIS setup exe exists");
+    expect(windowsWorkflow).toContain("ARUS Desktop Setup.exe was not produced");
+    expect(windowsWorkflow).toContain("actions/upload-artifact@v4");
+    expect(windowsWorkflow).toContain("arus-desktop-windows-setup");
+    expect(windowsWorkflow).toContain("bundle\\nsis");
+  });
+
+  it("avoids Windows npm lifecycle-script failures while rebuilding required sidecar natives", () => {
+    expect(windowsWorkflow).toContain("Install dependencies for Windows desktop build");
+    expect(windowsWorkflow).toContain("npm ci --ignore-scripts");
+    expect(windowsWorkflow).toContain("npm rebuild better-sqlite3");
+    expect(windowsWorkflow).not.toContain("- run: npm ci\n\n      - name: Generate icons");
   });
 
   it("silently installs the setup exe into a temporary Windows smoke directory", () => {
-    expect(workflow).toContain("Smoke install ARUS Desktop setup");
-    expect(workflow).toContain('Start-Process -FilePath $setup.FullName');
-    expect(workflow).toContain('"/S"');
-    expect(workflow).toContain('"/D=$installDir"');
-    expect(workflow).toContain("$env:RUNNER_TEMP");
+    expect(windowsWorkflow).toContain("Smoke install ARUS Desktop setup");
+    expect(windowsWorkflow).toContain('Start-Process -FilePath $setup.FullName');
+    expect(windowsWorkflow).toContain('"/S"');
+    expect(windowsWorkflow).toContain('"/D=$installDir"');
+    expect(windowsWorkflow).toContain("$env:RUNNER_TEMP");
   });
 
   it("asserts installed app and sidecar executables, then runs sidecar health check offline", () => {
-    expect(workflow).toContain("$appExe = Join-Path $installDir");
-    expect(workflow).toContain("ARUS Desktop.exe");
-    expect(workflow).toContain("$sidecarExe = Get-ChildItem $installDir -Recurse");
-    expect(workflow).toContain("arus-server");
-    expect(workflow).toContain("--health-check");
-    expect(workflow).toContain("LOCAL_MODE");
-    expect(workflow).toContain("DATABASE_PATH");
+    expect(windowsWorkflow).toContain("$appExe = Join-Path $installDir");
+    expect(windowsWorkflow).toContain("ARUS Desktop.exe");
+    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installDir -Recurse");
+    expect(windowsWorkflow).toContain("arus-server");
+    expect(windowsWorkflow).toContain("--health-check");
+    expect(windowsWorkflow).toContain("LOCAL_MODE");
+    expect(windowsWorkflow).toContain("DATABASE_PATH");
   });
 
   it("launches and terminates the installed desktop app during the smoke", () => {
-    expect(workflow).toContain("Smoke launch installed ARUS Desktop");
-    expect(workflow).toContain("Start-Process -FilePath $appExe");
-    expect(workflow).toContain("HasExited");
-    expect(workflow).toContain("Stop-Process");
+    expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
+    expect(windowsWorkflow).toContain("Start-Process -FilePath $appExe");
+    expect(windowsWorkflow).toContain("HasExited");
+    expect(windowsWorkflow).toContain("Stop-Process");
   });
 });
 
