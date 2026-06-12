@@ -152,6 +152,32 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
   });
 
+  it("keeps equipment decommission sections behind the public dialog component", () => {
+    const dialog = read("client/src/components/equipment/EquipmentDecommissionDialog.tsx");
+    const model = read("client/src/components/equipment/EquipmentDecommissionDialogModel.ts");
+    const sections = read("client/src/components/equipment/EquipmentDecommissionDialogSections.tsx");
+    const optionalSections = read(
+      "client/src/components/equipment/EquipmentDecommissionDialogOptionalSections.tsx"
+    );
+
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogModel"');
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogSections"');
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogOptionalSections"');
+    expect(dialog).toContain("<DecommissionReasonFields");
+    expect(dialog).toContain("<DecommissionFinancialSummary");
+    expect(dialog).toContain("export function EquipmentDecommissionDialog");
+    expect(model).toContain("export const decommissionFormSchema");
+    expect(model).toContain("export function calculateDepreciation");
+    expect(sections).toContain("export function DecommissionReasonFields");
+    expect(sections).toContain("export function DecommissionFinancialSummary");
+    expect(sections).toContain('data-testid="select-decommission-reason"');
+    expect(sections).toContain('data-testid="button-submit-decommission"');
+    expect(optionalSections).toContain("export function DecommissionSaleDetails");
+    expect(optionalSections).toContain("export function DecommissionDisposalDetails");
+    expect(optionalSections).toContain('data-testid="collapsible-sale-details"');
+    expect(optionalSections).toContain('data-testid="collapsible-disposal-details"');
+  });
+
   it("keeps mobile readiness screen clusters behind the route shell", () => {
     const route = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
     const shared = read("client/src/features/mobile-readiness/MobileReadinessShared.tsx");
