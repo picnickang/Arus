@@ -342,4 +342,24 @@ describe("client tail component extractions", () => {
     expect(dialog).toContain('data-testid="select-permission-tier"');
   });
 
+  it("keeps system administration tabs behind the route shell", () => {
+    const page = read("client/src/pages/system-administration.tsx");
+    const config = read("client/src/pages/system-administration-configuration-tab.tsx");
+    const software = read("client/src/pages/system-administration-software-updates-tab.tsx");
+    const github = read("client/src/pages/system-administration-github-settings-tab.tsx");
+
+    expect(page).toContain('from "./system-administration-configuration-tab"');
+    expect(page).toContain('from "./system-administration-software-updates-tab"');
+    expect(page).toContain("<ConfigurationTab />");
+    expect(page).toContain("<SoftwareUpdatesTab />");
+    expect(config).toContain("export function ConfigurationTab");
+    expect(config).toContain('data-testid="input-current-password"');
+    expect(config).toContain('data-testid="button-submit-password-change"');
+    expect(software).toContain("export function SoftwareUpdatesTab");
+    expect(software).toContain("<GitHubSettingsTab />");
+    expect(software).toContain('data-testid="button-check-updates"');
+    expect(github).toContain("export function GitHubSettingsTab");
+    expect(github).toContain('data-testid={`button-select-repo-${repo.name}`}');
+  });
+
 });
