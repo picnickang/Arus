@@ -516,4 +516,26 @@ describe("client tail component extractions", () => {
     expect(explainability).toContain('data-testid="select-filter-equipment"');
   });
 
+  it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/equipment/index.tsx");
+    const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");
+    const tabs = read("client/src/pages/equipment/EquipmentPageTabs.tsx");
+    const dialogs = read("client/src/pages/equipment/EquipmentPageDialogs.tsx");
+
+    expect(page).toContain('from "./EquipmentPageStats"');
+    expect(page).toContain('from "./EquipmentPageTabs"');
+    expect(page).toContain('from "./EquipmentPageDialogs"');
+    expect(page).toContain("<EquipmentPageStats");
+    expect(page).toContain("<EquipmentRegistryTabs");
+    expect(page).toContain("<EquipmentPageDialogs");
+    expect(stats).toContain("export function EquipmentPageStats");
+    expect(stats).toContain('data-testid="button-add-equipment"');
+    expect(tabs).toContain("export function EquipmentRegistryTabs");
+    expect(tabs).toContain('data-testid="tab-active-equipment"');
+    expect(tabs).toContain('data-testid={`button-sensors-mobile-${item.id}`}');
+    expect(dialogs).toContain("export function EquipmentPageDialogs");
+    expect(dialogs).toContain("<SensorSetupWizard");
+    expect(dialogs).toContain("<EquipmentDecommissionDialog");
+  });
+
 });
