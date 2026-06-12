@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T01:37:57.246Z
+Generated: 2026-06-12T01:42:16.565Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `75` counted files.
-- The current counted inventory is `75` files.
+- The temporary ceiling is `74` counted files.
+- The current counted inventory is `74` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    75 |
-| Server                    |    20 |
+| Total counted long files  |    74 |
+| Server                    |    19 |
 | Server route-like files   |     7 |
-| Server service-like files |     2 |
+| Server service-like files |     1 |
 | Client                    |    55 |
 | Client page files         |    21 |
 | Shared                    |     0 |
@@ -108,6 +108,7 @@ Completed splits:
 - `server/pdm/adapters/pdm-postgres.repository.ts` dropped below the threshold by moving risk queue presentation mappers and relative-time helpers to a sibling module while preserving `pdmPostgresRepository`.
 - `server/domains/equipment-intelligence/infrastructure/postgres-repository.ts` dropped below the threshold by moving risk/trend/status, signal parsing, work-order summary, and label helpers to a sibling module while preserving `PostgresEquipmentIntelligenceRepository`.
 - `server/routes/wo-so-bridge-routes.ts` dropped below the threshold by moving create/sync bridge operations to a sibling module while preserving route URLs and compatibility exports.
+- `server/domains/agent/application/suggestion-engine.ts` dropped below the threshold by moving preference/severity helpers, prediction cost formatting, AI summarization, and notification queueing to a sibling support module while preserving `SuggestionEngine`.
 
 ## Top 30 Longest Files
 
@@ -235,7 +236,6 @@ Completed splits:
 611 client/src/pages/vessel-dashboard/index.tsx
 607 server/domains/scheduling/routes.ts
 604 server/domains/equipment/routes.ts
-603 server/domains/agent/application/suggestion-engine.ts
 598 client/src/lib/queryClient.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx

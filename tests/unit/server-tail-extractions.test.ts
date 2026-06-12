@@ -186,4 +186,17 @@ describe("server tail extractions", () => {
     expect(operations).toContain("export async function syncWorkOrderFromServiceOrders");
     expect(operations).toContain("export interface CreateSOParams");
   });
+
+  it("keeps agent suggestion support helpers beside the engine shell", () => {
+    const engine = read("server/domains/agent/application/suggestion-engine.ts");
+    const support = read("server/domains/agent/application/suggestion-engine-support.ts");
+
+    expect(engine).toContain('from "./suggestion-engine-support"');
+    expect(engine).toContain("export class SuggestionEngine");
+    expect(engine).toContain("await summarizeSuggestionsWithAi(this.repo, newSuggestions)");
+    expect(support).toContain("export const DEFAULT_PREFERENCES");
+    expect(support).toContain("export function meetsMinSeverity");
+    expect(support).toContain("export function buildPredictionCostLine");
+    expect(support).toContain("export async function queueSuggestionNotifications");
+  });
 });
