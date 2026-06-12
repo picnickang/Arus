@@ -415,4 +415,20 @@ describe("client tail component extractions", () => {
     expect(offboarding).toContain("export function composeOffboardingNote");
   });
 
+  it("keeps hours-of-rest hook actions and types behind the public hook path", () => {
+    const hook = read("client/src/features/crew/hooks/useHoursOfRestData.ts");
+    const actions = read("client/src/features/crew/hooks/useHoursOfRestActions.ts");
+    const types = read("client/src/features/crew/hooks/useHoursOfRestDataTypes.ts");
+
+    expect(hook).toContain('from "./useHoursOfRestActions"');
+    expect(hook).toContain('from "./useHoursOfRestDataTypes"');
+    expect(hook).toContain("useHoursOfRestActions");
+    expect(actions).toContain("export function useHoursOfRestActions");
+    expect(actions).toContain("copyMonthToYear");
+    expect(actions).toContain("loadFromProposedPlan");
+    expect(types).toContain("export interface ComplianceResult");
+    expect(types).toContain("export interface HoursOfRestMeta");
+    expect(types).toContain("export interface UseHoursOfRestDataReturn");
+  });
+
 });
