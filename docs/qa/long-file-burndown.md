@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T07:37:04.364Z
+Generated: 2026-06-12T07:50:14.217Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `51` counted files.
-- The current counted inventory is `51` files.
+- The temporary ceiling is `50` counted files.
+- The current counted inventory is `50` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    51 |
+| Total counted long files  |    50 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    51 |
+| Client                    |    50 |
 | Client page files         |    19 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -132,6 +132,7 @@ Completed splits:
 - `client/src/pages/vessel-intelligence/registry-api.ts` dropped below the threshold by moving registry API types, shared query/invalidation/upload helpers, and diagram/version hooks to sibling modules while preserving the public `registry-api` import path.
 - `client/src/features/crew/hooks/useUnifiedCrewData.ts` dropped below the threshold by moving aggregate/access queries, access indexes, roster filtering, and photo upload mechanics to a sibling hook-parts module while preserving the public `useUnifiedCrewData` import path.
 - `client/src/features/mobile-readiness/mobile-readiness-model.ts` dropped below the threshold by moving model types, navigation, queue/fleet data, machinery/work data, and support screen builders to sibling modules while preserving the public model import path.
+- `client/src/components/work-orders/WorkOrderDetailDrawer.tsx` dropped below the threshold by moving detail tabs and drawer actions to sibling modules while preserving the public drawer export and test IDs.
 
 ## Top 30 Longest Files
 
@@ -239,5 +240,4 @@ Completed splits:
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
 593 client/src/components/equipment/EquipmentFormDialog.tsx
-581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
 ```

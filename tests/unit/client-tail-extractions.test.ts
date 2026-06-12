@@ -202,4 +202,20 @@ describe("client tail component extractions", () => {
     expect(request).toContain("export class TenantQuotaExceededError");
     expect(request).toContain("queueOfflineApiRequest");
   });
+
+  it("keeps work-order detail drawer presentation behind sibling modules", () => {
+    const drawer = read("client/src/components/work-orders/WorkOrderDetailDrawer.tsx");
+    const parts = read("client/src/components/work-orders/WorkOrderDetailDrawerParts.tsx");
+    const actions = read("client/src/components/work-orders/WorkOrderDetailDrawerActions.tsx");
+
+    expect(drawer).toContain('from "./WorkOrderDetailDrawerParts"');
+    expect(drawer).toContain('from "./WorkOrderDetailDrawerActions"');
+    expect(drawer).toContain("export function WorkOrderDetailDrawer");
+    expect(parts).toContain("export function WorkOrderDetailTabs");
+    expect(parts).toContain('data-testid="tab-wo-details"');
+    expect(parts).toContain('data-testid="cost-grand-total"');
+    expect(actions).toContain("export function WorkOrderDrawerActions");
+    expect(actions).toContain('data-testid="button-complete-wo-drawer"');
+    expect(actions).toContain('data-testid="button-delete-wo-drawer"');
+  });
 });
