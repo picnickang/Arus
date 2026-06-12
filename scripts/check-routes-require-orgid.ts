@@ -25,7 +25,7 @@ const SERVER = join(ROOT, "server");
 // Files known to mount under `/api` via `server/routes.ts` get the
 // global `requireOrgId` middleware for free — those don't need a
 // per-route gate. Routes mounted via other paths (admin namespace,
-// public health endpoints, edge HMAC, SSO callbacks) are listed here
+// public health endpoints, edge HMAC) are listed here
 // so the audit doesn't false-positive on them.
 const EXEMPT_FILES = new Set<string>([
   // Health/diagnostics — explicitly public.
@@ -33,8 +33,6 @@ const EXEMPT_FILES = new Set<string>([
   // Admin namespace — uses its own admin-session middleware chain.
   "server/routes/admin-auth-routes.ts",
   "server/routes/admin-routes.ts",
-  // SSO endpoints — handle their own tenant resolution from SAML/OIDC.
-  "server/sso/routes.ts",
   // Setup token — bootstraps the first admin before tenants exist.
   "server/routes/setup-token-routes.ts",
   // Edge HMAC — tenant resolved from device identity, not session.

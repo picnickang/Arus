@@ -14,14 +14,11 @@ Each bullet is one wave from the v2 ARUS Gap-Fill Plan. Implementation details l
 
 **Wave 1 — Enterprise Auth & Crypto**
 
-- **1.1 SSO (SAML 2.0 + OIDC)**: `shared/schema/sso.ts` (`sso_configs` per `(orgId, protocol)`); `server/sso/{saml,oidc,routes}.ts`. `@node-saml/passport-saml` v5 + `openid-client` v6 lazy-imported. PKCE state in httpOnly cookie (10min TTL). Session issuance via `SsoSessionIssuer` port — NOT auto-mounted.
 - **1.2 TOTP MFA**: `server/lib/mfa-totp.ts` — `otpauth` wrapper, ±1 step skew, 160-bit secrets, recovery codes (Crockford-ish, caller must hash). Reuses `userSessions.mfaVerified`.
-- **1.3 KMS Envelope Encryption**: `server/lib/kms-envelope.ts` — wraps inner AES-256-GCM DEK under cloud KMS CMK via `@aws-sdk/client-kms` (lazy). Gated `KMS_KEY_ID`. DEK `.fill(0)`'d in `finally`. `rewrapEnvelope` for rotation.
 
 **Wave 2 — Observability & Resilience**
 
-- **2.1 OpenTelemetry**: `server/otel.ts` absolute-first import (before Sentry), auto-instruments Express/http/pg/pg-boss. Gated `OTEL_EXPORTER_OTLP_ENDPOINT`; fs noise off. `server/lib/pg-boss-trace.ts` `injectTraceContext`/`withTraceContext` propagates across queue. `client/src/lib/otel.ts` web tracer + Fetch/XHR stitches FE→BE traceparent.
-- **2.2 Loki Log Shipping**: `server/lib/loki-transport.ts` — optional Pino transport gated `LOKI_URL`; runs in Worker. stdout JSON stays canonical sink. `LOKI_BASIC_AUTH`/`LOKI_BEARER_TOKEN`.
+- **2.1 OpenTelemetry**: `server/otel.ts` absolute-first import (before Sentry), auto-instruments Express/http/pg/pg-boss. Gated `OTEL_EXPORTER_OTLP_ENDPOINT`; fs noise off. `client/src/lib/otel.ts` web tracer + Fetch/XHR stitches FE→BE traceparent.
 - **2.5 Generalized Idempotency**: `server/middleware/idempotency.ts` reads `clientMutationId` from body when `Idempotency-Key` absent. Key `(orgId:method:path:key)`, 24h TTL, 2xx caching.
 - **2.6 k6 Load Tests**: `tests/load/{smoke,steady,spike}.js` with embedded SLO thresholds. Out of unit runner; k6 installed out-of-band.
 - **2.3 Backup Verification Harness**: `scripts/dr/verify-backup.mjs` — restores a `pg_dump` into a scratch DB, asserts schema parity + per-table row-count drift (±20% default) + anchor-table non-emptiness vs live read-only. Exits non-zero w/ JSON report for CI gating. Refuses to validate <1KiB dumps (catches 0-byte "success" failures). Companion to runbook §10 drill.
@@ -33,11 +30,9 @@ Each bullet is one wave from the v2 ARUS Gap-Fill Plan. Implementation details l
 - **3.1 Model Drift KPIs**: `server/observability/ml-metrics.ts` — PSI/KL/MAE/accuracy gauges. PSI <0.1 stable / 0.1-0.25 monitor / >0.25 retrain.
 - **3.2 Model Registry Promote/Rollback**: `POST /api/v1/ml/models/:id/{promote,rollback}` atomically swap deployed-for-equipmentType. Built on existing `mlModels`.
 - **3.3 Shadow + Canary**: `server/ml-prediction/shadow-canary.ts` `serveWithShadowOrCanary<T>()`. Mode inferred from inputs. Candidate errors NEVER propagate.
-- **3.4 Copilot Eval Harness**: `server/copilot/eval-harness.ts` — dependency-free; caller injects `CopilotCallable` so CI is mock-deterministic. 6 seed questions.
 - **3.5 Prompt Registry**: `server/prompts/{registry,templates}.ts` — versioned `id@semver`, mutation throws (version-bump required), strict `{{var}}` interpolation.
 - **3.6 PII Redaction**: `server/lib/llm-gateway/pii-redactor.ts` strips email/phone/SSN/long-digit IDs pre-LLM call. Idempotent.
 - **3.7 OpenAI Cost Guardrails**: `server/lib/llm-gateway/budget-guard.ts` — per-tenant daily/monthly token budgets, 80% soft / 100% hard throw. UTC window rotation.
-- **3.8 ISO 14224 Taxonomy**: `shared/taxonomy/iso14224.ts` — typed Table B.1 const + `coerceFailureMode(freeText)` ("vibration"→canonical, fallback "OTH"). Code-resident (slow-changing, not tenant data).
 
 **Wave 5 — Client Hardening**
 
@@ -110,8 +105,6 @@ set_config('app.current_org_id', $orgId, true); …; COMMIT/ROLLBACK`
 **Wave 6 — Compliance & Eventing**
 
 - **6.6 GDPR Tenant-Delete**: `server/domains/gdpr/tenant-delete-service.ts` single tx, SERIALIZABLE (best-effort), identifiers allowlisted, PII redacted not deleted. HMAC-SHA256 `DeletionCertificate`.
-- **6.7 Outbound Webhooks**: `server/webhooks/webhook-delivery.ts` Stripe-style HMAC over `timestamp.body`, 5 attempts exp backoff + jitter, 10s AbortController, `verifySignature()` timing-safe.
-- **6.8 Telemetry Data Quality**: `server/observability/data-quality.ts` `DataQualityMonitor` — range/freshness/monotonic rules (does NOT block ingestion). Prom assertion-breach/freshness/last-value gauges.
 
 ## Hardening Notes
 

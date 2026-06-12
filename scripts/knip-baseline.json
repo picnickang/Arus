@@ -1,16 +1,16 @@
 {
   "$note": "Monotonic-decrease ratchet for knip dead-code buckets. Regenerate with: node scripts/check-knip.mjs --write-baseline. Do not raise a bucket unless the new debt is intentionally accepted.",
-  "generatedAt": "2026-06-11T22:02:45.638Z",
+  "generatedAt": "2026-06-12T06:17:09.344Z",
   "counts": {
-    "files": 53,
-    "dependencies": 47,
-    "devDependencies": 7,
+    "files": 0,
+    "dependencies": 40,
+    "devDependencies": 6,
     "optionalPeerDependencies": 0,
-    "exports": 2704,
-    "types": 1124,
+    "exports": 2685,
+    "types": 1122,
     "enumMembers": 0,
     "duplicates": 54,
     "catalog": 0
   },
-  "totalAtomic": 3989
+  "totalAtomic": 3907
 }
