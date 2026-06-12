@@ -332,6 +332,37 @@ function KpiStrip({ metrics, compact = false }: { metrics: SummaryMetric[]; comp
   );
 }
 
+function FleetCardKpiStrip({ metrics }: { metrics: SummaryMetric[] }) {
+  const labelById: Record<string, string> = {
+    readiness: "Ready",
+    alarms: "Alarms",
+    overdue: "WO",
+    crew: "Crew",
+    logs: "Logs",
+    trust: "Trust",
+  };
+  return (
+    <div className="grid grid-cols-6 overflow-hidden rounded-md border border-slate-200 bg-white">
+      {metrics.map((metric) => {
+        const tone = toneClasses(metric.tone);
+        return (
+          <div
+            key={metric.id}
+            className="min-w-0 border-r border-slate-200 px-1 py-1 text-center last:border-r-0"
+          >
+            <div className={cn("truncate text-base font-extrabold leading-none", tone.text)}>
+              {metric.value}
+            </div>
+            <div className="mt-0.5 truncate text-[10px] font-medium leading-none text-slate-500">
+              {labelById[metric.id] ?? metric.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function QueueCard({ item, testId }: { item: QueueItem; testId?: string }) {
   return (
     <Link
@@ -590,7 +621,7 @@ export function MobileFleetPage() {
                 </div>
               </div>
               <div className="border-y border-slate-200 px-2 py-2">
-                <KpiStrip metrics={vessel.kpis} compact />
+                <FleetCardKpiStrip metrics={vessel.kpis} />
               </div>
               <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs">
                 <div>
@@ -1060,13 +1091,13 @@ function PdmRiskQueueCard({ risk }: { risk: PdmRiskCard }) {
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
       </div>
-      <div className="grid grid-cols-[1fr_1fr_78px] gap-0 px-3 py-1 text-[11px]">
+      <div className="grid grid-cols-[1fr_1fr_78px] gap-0 px-3 py-1.5 text-[11px]">
         <div className="min-w-0 border-r border-slate-200 pr-2">
           <div className="truncate text-slate-500">{signalName}</div>
           <div className={cn("truncate font-semibold", tone.text)}>{signalDetail}</div>
         </div>
         <div className="min-w-0 border-r border-slate-200 px-2">
-          <div className="truncate text-red-600">{risk.action}</div>
+          <div className="line-clamp-2 leading-tight text-red-600">{risk.action}</div>
           <div className="font-semibold text-red-500">Action</div>
         </div>
         <div className="min-w-0 pl-2">
