@@ -289,4 +289,20 @@ describe("server tail extractions", () => {
     expect(cloud).toContain("export async function createEngineerOverride");
     expect(cloud).toContain("export async function getRulModels");
   });
+
+  it("keeps analytics finance and history helpers behind the storage shell", () => {
+    const storage = read("server/db/analytics/db-analytics.ts");
+    const finance = read("server/db/analytics/db-analytics-finance-inventory.ts");
+    const history = read("server/db/analytics/db-analytics-history.ts");
+
+    expect(storage).toContain('from "./db-analytics-finance-inventory.js"');
+    expect(storage).toContain('from "./db-analytics-history.js"');
+    expect(storage).toContain("export class DatabaseAnalyticsStorage");
+    expect(storage).toContain("return updatePartCost(partId, updateData, orgId)");
+    expect(storage).toContain("return getMetricsHistory(orgId, days)");
+    expect(finance).toContain("export async function updatePartStockQuantities");
+    expect(finance).toContain("export async function updateExpenseStatus");
+    expect(history).toContain("export async function recordMetricsHistory");
+    expect(history).toContain("export async function getLatestInsightSnapshot");
+  });
 });

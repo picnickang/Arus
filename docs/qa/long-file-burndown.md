@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T04:54:12.167Z
+Generated: 2026-06-12T05:02:18.850Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `64` counted files.
-- The current counted inventory is `64` files.
+- The temporary ceiling is `63` counted files.
+- The current counted inventory is `63` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    64 |
-| Server                    |     9 |
+| Total counted long files  |    63 |
+| Server                    |     8 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    55 |
@@ -119,6 +119,7 @@ Completed splits:
 - `server/import-adapters/shipmate/field-mapping.ts` dropped below the threshold by moving Shipmate value transforms and CSV header normalization to sibling helper modules while preserving the public mapping exports.
 - `server/domains/permissions/repository.ts` dropped below the threshold by moving access, dashboard seeding, and permissions diagnostic queries to a sibling repository query module while preserving the public repository exports.
 - `server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts` dropped below the threshold by moving crew user access, assignment, credential, session, and crew-login link persistence to a sibling infrastructure module while preserving `CrewAdminRepositoryAdapter`.
+- `server/db/analytics/db-analytics.ts` dropped below the threshold by moving finance/inventory helpers and metrics history/insight snapshot persistence to sibling modules while preserving `DatabaseAnalyticsStorage`.
 
 ## Top 30 Longest Files
 
@@ -214,7 +215,6 @@ Completed splits:
 697 client/src/components/crew-admin/RolesDashboardsTab.tsx
 696 server/domains/agent/tools/enhanced-report-tools.ts
 695 server/objectStorage.ts
-691 server/db/analytics/db-analytics.ts
 687 client/src/components/agent/AgentChatPanel/index.tsx
 685 client/src/features/crew/hooks/useSchedulePlannerData.ts
 683 client/src/pages/governance-dashboard.tsx
