@@ -34,8 +34,6 @@
   "/api/analytics/threshold-optimizations/*/reject",
   "/api/analytics/trends/*",
   "/api/analytics/vessel-intelligence/*",
-  "/api/crew-extensions/scheduler/constraints",
-  "/api/crew-extensions/scheduler/suggestions",
   "/api/drydock-windows",
   "/api/dtc",
   "/api/edge/heartbeat",
