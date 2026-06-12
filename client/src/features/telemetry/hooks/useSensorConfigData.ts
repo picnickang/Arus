@@ -31,7 +31,7 @@ export interface SensorConfigFormData {
   emaAlpha: number | null;
   orgId: string;
 }
-export const defaultSensorConfigFormData: SensorConfigFormData = {
+const defaultSensorConfigFormData: SensorConfigFormData = {
   equipmentId: "",
   sensorType: "",
   enabled: true,

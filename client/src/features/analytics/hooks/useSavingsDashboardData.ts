@@ -25,7 +25,7 @@ export interface SavingsTrend {
   savingsCount: number;
 }
 
-export const SAVINGS_COLORS = {
+const SAVINGS_COLORS = {
   labor: "#3b82f6",
   parts: "#10b981",
   downtime: "#f59e0b",

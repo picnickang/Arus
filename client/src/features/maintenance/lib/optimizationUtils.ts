@@ -116,7 +116,7 @@ export interface StatusVariant {
   iconName: "loader" | "check" | "x";
 }
 
-export const STATUS_VARIANTS: Record<OptimizationStatus, StatusVariant> = {
+const STATUS_VARIANTS: Record<OptimizationStatus, StatusVariant> = {
   running: { color: "bg-blue-500", iconName: "loader" },
   completed: { color: "bg-green-500", iconName: "check" },
   failed: { color: "bg-red-500", iconName: "x" },
@@ -126,13 +126,13 @@ export function getStatusVariant(status: string): StatusVariant {
   return STATUS_VARIANTS[status as OptimizationStatus] || STATUS_VARIANTS.failed;
 }
 
-export const ALGORITHM_LABELS: Record<string, string> = {
+const ALGORITHM_LABELS: Record<string, string> = {
   greedy: "Greedy (Fast)",
   genetic: "Genetic Algorithm",
   simulated_annealing: "Simulated Annealing",
 };
 
-export const CONFLICT_RESOLUTION_LABELS: Record<string, string> = {
+const CONFLICT_RESOLUTION_LABELS: Record<string, string> = {
   priority_based: "Priority Based",
   cost_based: "Cost Based",
   earliest_first: "Earliest First",

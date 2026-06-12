@@ -80,20 +80,15 @@ export interface WorkOrderWorklog {
   createdAt?: Date;
 }
 
-export const WORK_ORDER_PRIORITIES = ["low", "medium", "high", "critical"] as const;
-export const WORK_ORDER_STATUSES = [
-  "open",
-  "in_progress",
-  "on_hold",
-  "awaiting_service",
-  "completed",
-  "cancelled",
-] as const;
-export const WORK_ORDER_TYPES = ["corrective", "preventive", "predictive", "emergency"] as const;
-
-export type WorkOrderPriority = (typeof WORK_ORDER_PRIORITIES)[number];
-export type WorkOrderStatus = (typeof WORK_ORDER_STATUSES)[number];
-export type WorkOrderType = (typeof WORK_ORDER_TYPES)[number];
+export type WorkOrderPriority = "low" | "medium" | "high" | "critical";
+export type WorkOrderStatus =
+  | "open"
+  | "in_progress"
+  | "on_hold"
+  | "awaiting_service"
+  | "completed"
+  | "cancelled";
+export type WorkOrderType = "corrective" | "preventive" | "predictive" | "emergency";
 
 export interface MaintenanceCost {
   id: string;

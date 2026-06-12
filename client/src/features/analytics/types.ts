@@ -85,8 +85,7 @@ export interface ThresholdOptimization {
   status: "pending" | "applied" | "rejected";
 }
 
-export const TREND_PERIODS = ["7d", "30d", "90d", "1y"] as const;
-export type TrendPeriod = (typeof TREND_PERIODS)[number];
+export type TrendPeriod = "7d" | "30d" | "90d" | "1y";
 
 export interface MlModel {
   id: string;

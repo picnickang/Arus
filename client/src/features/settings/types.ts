@@ -59,22 +59,12 @@ export interface StorageConfig {
   config?: Record<string, unknown>;
 }
 
-export const SETTING_CATEGORIES = [
-  "general",
-  "notifications",
-  "security",
-  "integrations",
-  "maintenance",
-  "analytics",
-] as const;
+export type SettingCategory =
+  | "general"
+  | "notifications"
+  | "security"
+  | "integrations"
+  | "maintenance"
+  | "analytics";
 
-export const INTEGRATION_TYPES = [
-  "stormgeo",
-  "aquametro_fmcc",
-  "openweather",
-  "sendgrid",
-  "openai",
-] as const;
-
-export type SettingCategory = (typeof SETTING_CATEGORIES)[number];
-export type IntegrationType = (typeof INTEGRATION_TYPES)[number];
+export type IntegrationType = "stormgeo" | "aquametro_fmcc" | "openweather" | "sendgrid" | "openai";

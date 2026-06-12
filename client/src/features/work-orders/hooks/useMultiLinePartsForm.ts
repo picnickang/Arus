@@ -11,7 +11,7 @@ import { z } from "zod";
  * payload mapping stays in one place.
  */
 
-export const partsRequestRowSchema = z.object({
+const partsRequestRowSchema = z.object({
   rowId: z.string(),
   inventoryItemId: z.string().optional(),
   partNumber: z.string().optional(),

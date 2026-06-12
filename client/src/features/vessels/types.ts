@@ -67,35 +67,23 @@ export interface Device {
   macAddress?: string;
 }
 
-export const VESSEL_TYPES = [
-  "Bulk Carrier",
-  "Container Ship",
-  "Tanker",
-  "LNG Carrier",
-  "Passenger Ship",
-  "Ro-Ro",
-  "General Cargo",
-  "Tug",
-  "Offshore Support",
-  "Research Vessel",
-] as const;
+export type VesselType =
+  | "Bulk Carrier"
+  | "Container Ship"
+  | "Tanker"
+  | "LNG Carrier"
+  | "Passenger Ship"
+  | "Ro-Ro"
+  | "General Cargo"
+  | "Tug"
+  | "Offshore Support"
+  | "Research Vessel";
 
-export const VESSEL_STATUSES = [
-  "active",
-  "in_port",
-  "at_anchor",
-  "in_drydock",
-  "laid_up",
-  "decommissioned",
-] as const;
-export const EQUIPMENT_STATUSES = [
-  "operational",
-  "degraded",
-  "warning",
-  "critical",
-  "offline",
-] as const;
-
-export type VesselType = (typeof VESSEL_TYPES)[number];
-export type VesselStatus = (typeof VESSEL_STATUSES)[number];
-export type EquipmentStatus = (typeof EQUIPMENT_STATUSES)[number];
+export type VesselStatus =
+  | "active"
+  | "in_port"
+  | "at_anchor"
+  | "in_drydock"
+  | "laid_up"
+  | "decommissioned";
+export type EquipmentStatus = "operational" | "degraded" | "warning" | "critical" | "offline";

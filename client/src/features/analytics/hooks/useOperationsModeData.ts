@@ -263,5 +263,3 @@ export function useOperationsModeData() {
     getDriftThreshold,
   };
 }
-
-export { getDriftThreshold, DRIFT_THRESHOLDS, DEFAULT_DRIFT_THRESHOLD };

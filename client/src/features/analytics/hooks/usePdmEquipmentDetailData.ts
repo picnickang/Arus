@@ -45,7 +45,7 @@ export interface SensorConfig {
   notes?: string;
 }
 
-export const SENSOR_COLORS: Record<string, string> = {
+const SENSOR_COLORS: Record<string, string> = {
   temperature: "hsl(0, 84%, 60%)",
   pressure: "hsl(220, 70%, 50%)",
   vibration: "hsl(142, 70%, 45%)",

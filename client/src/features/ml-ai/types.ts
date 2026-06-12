@@ -65,32 +65,26 @@ export interface RULPrediction {
   lastUpdated: Date;
 }
 
-export const MODEL_TYPES = ["lstm", "xgboost", "random_forest", "ensemble"] as const;
-export const MODEL_STATUSES = ["training", "validating", "active", "deprecated", "failed"] as const;
-
-export type ModelType = (typeof MODEL_TYPES)[number];
-export type ModelStatus = (typeof MODEL_STATUSES)[number];
+export type ModelType = "lstm" | "xgboost" | "random_forest" | "ensemble";
+export type ModelStatus = "training" | "validating" | "active" | "deprecated" | "failed";
 
 // -------------------------------------------------------------------------
 // AI Insights / LLM-side types
 // -------------------------------------------------------------------------
 
-export const REPORT_TYPES = ["health", "fleet", "maintenance", "compliance"] as const;
-export type ReportType = (typeof REPORT_TYPES)[number];
+export type ReportType = "health" | "fleet" | "maintenance" | "compliance";
 
-export const AUDIENCE_TYPES = ["executive", "engineer", "technician", "regulator"] as const;
-export type AudienceType = (typeof AUDIENCE_TYPES)[number];
+export type AudienceType = "executive" | "engineer" | "technician" | "regulator";
 
 /** Identifier strings for LLM models exposed by the platform (gpt-4o, claude, etc.). */
-export const LLM_MODEL_TYPES = [
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-4-turbo",
-  "claude-sonnet-4-5",
-  "claude-opus-4-1",
-  "claude-haiku-4-5",
-] as const;
-export type LlmModelType = (typeof LLM_MODEL_TYPES)[number] | string;
+export type LlmModelType =
+  | "gpt-4o"
+  | "gpt-4o-mini"
+  | "gpt-4-turbo"
+  | "claude-sonnet-4-5"
+  | "claude-opus-4-1"
+  | "claude-haiku-4-5"
+  | string;
 
 /**
  * LLM model record returned by /api/llm/models. The shape is intentionally

@@ -1,8 +1,6 @@
 import type { DayRow, ShiftPattern } from "./restGridUtils";
 import { DEFAULT_PATTERNS } from "./restGridUtils";
 
-export { DEFAULT_PATTERNS };
-
 export function applyPatternToRows(
   rows: DayRow[],
   patternId: string,

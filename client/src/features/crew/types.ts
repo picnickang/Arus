@@ -91,8 +91,6 @@ export interface RestPeriod {
   isRest: boolean;
 }
 
-export const DEPARTMENTS = ["Deck", "Engine", "Catering", "Radio", "Medical"] as const;
-
 export const RANKS = {
   Deck: [
     "Master",
@@ -128,4 +126,4 @@ export const LEAVE_TYPES = [
   "Shore Leave",
 ] as const;
 
-export type Department = (typeof DEPARTMENTS)[number];
+export type Department = "Deck" | "Engine" | "Catering" | "Radio" | "Medical";

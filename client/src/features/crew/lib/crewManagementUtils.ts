@@ -48,7 +48,7 @@ export interface CrewListItem {
   terminationNotes?: string;
 }
 
-export const EMPLOYMENT_TYPES = [
+const EMPLOYMENT_TYPES = [
   { value: "permanent", label: "Permanent" },
   { value: "contract", label: "Contract" },
   { value: "temporary", label: "Temporary" },
@@ -144,7 +144,7 @@ const RANK_DISPLAY_MAP: Record<string, string> = {
   engineer: "Engineer",
 };
 
-export function formatRank(rank: string): string {
+function formatRank(rank: string): string {
   if (!rank) {
     return "Unassigned";
   }
@@ -499,7 +499,7 @@ const RANK_TO_ROLE_GROUP: Record<string, RoleGroup> = {
   chief_cook: "Catering",
 };
 
-export function getRoleGroup(rank: string | null | undefined): RoleGroup {
+function getRoleGroup(rank: string | null | undefined): RoleGroup {
   if (!rank) {
     return "Other";
   }

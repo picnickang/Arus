@@ -40,7 +40,7 @@ const stcwRestKeys = {
     ["/api/stcw/rest", crewId, year, month] as const,
 };
 
-export const MONTHS_LIST = [
+const MONTHS_LIST = [
   { value: "01", label: "January" },
   { value: "02", label: "February" },
   { value: "03", label: "March" },

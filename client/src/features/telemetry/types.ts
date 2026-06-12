@@ -69,20 +69,16 @@ export interface DeviceHeartbeat {
   firmwareVersion?: string;
 }
 
-export const SENSOR_TYPES = [
-  "temperature",
-  "pressure",
-  "vibration",
-  "rpm",
-  "flow",
-  "level",
-  "voltage",
-  "current",
-  "power",
-  "humidity",
-] as const;
+export type SensorType =
+  | "temperature"
+  | "pressure"
+  | "vibration"
+  | "rpm"
+  | "flow"
+  | "level"
+  | "voltage"
+  | "current"
+  | "power"
+  | "humidity";
 
-export const SENSOR_STATUSES = ["normal", "warning", "critical", "offline"] as const;
-
-export type SensorType = (typeof SENSOR_TYPES)[number];
-export type SensorStatus = (typeof SENSOR_STATUSES)[number];
+export type SensorStatus = "normal" | "warning" | "critical" | "offline";

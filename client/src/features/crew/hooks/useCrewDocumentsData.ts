@@ -40,7 +40,7 @@ export interface CrewDocument {
   updatedAt?: string;
 }
 
-export const DOCUMENT_TYPES = [
+const DOCUMENT_TYPES = [
   { value: "passport", label: "Passport" },
   { value: "seaman_book", label: "Seaman's Book" },
   { value: "visa", label: "Visa" },
@@ -72,7 +72,7 @@ export const COMMON_COUNTRIES = [
   "Greece",
 ];
 
-export const documentFormSchema = z.object({
+const documentFormSchema = z.object({
   // "new" vs "renewal" only affects messaging + the renewal-task copy; both
   // paths persist the same document record (extra keys are stripped server-side).
   action: z.enum(["new", "renewal"]).default("new"),

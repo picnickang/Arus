@@ -1,32 +1,5 @@
 import { z } from "zod";
 
-export const integrationConfigSchema = z.object({
-  orgId: z.string().min(1, "Organization ID is required"),
-  integrationType: z.string().min(1, "Integration type is required"),
-  name: z.string().min(1, "Name is required"),
-  config: z.string().min(1, "Configuration is required"),
-  isActive: z.boolean().default(true),
-});
-
-export const maintenanceWindowSchema = z.object({
-  orgId: z.string().min(1, "Organization ID is required"),
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  isActive: z.boolean().default(true),
-});
-
-export const healthCheckSchema = z.object({
-  orgId: z.string().min(1, "Organization ID is required"),
-  name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
-  endpoint: z.string().min(1, "Endpoint is required"),
-  expectedStatus: z.number().min(100).max(599, "Valid HTTP status code required"),
-  timeoutMs: z.number().min(100, "Timeout must be at least 100ms"),
-  isActive: z.boolean().default(true),
-});
-
 export const publishPatchSchema = z.object({
   fromVersion: z.string().min(1, "From version is required (e.g., 1.0)"),
   version: z.string().min(1, "Version is required (e.g., 1.1)"),
@@ -53,9 +26,30 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
-export type IntegrationConfigForm = z.infer<typeof integrationConfigSchema>;
-export type MaintenanceWindowForm = z.infer<typeof maintenanceWindowSchema>;
-export type HealthCheckForm = z.infer<typeof healthCheckSchema>;
+export interface IntegrationConfigForm {
+  orgId: string;
+  integrationType: string;
+  name: string;
+  config: string;
+  isActive: boolean;
+}
+export interface MaintenanceWindowForm {
+  orgId: string;
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+export interface HealthCheckForm {
+  orgId: string;
+  name: string;
+  description?: string;
+  endpoint: string;
+  expectedStatus: number;
+  timeoutMs: number;
+  isActive: boolean;
+}
 export type PublishPatchForm = z.infer<typeof publishPatchSchema>;
 export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 

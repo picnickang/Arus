@@ -20,7 +20,7 @@ export interface STCWSummaryStats {
   criticalViolations: number;
 }
 
-export const STCW_RULES = {
+const STCW_RULES = {
   MIN_REST_24H: 10,
   MIN_REST_7D: 77,
   MAX_REST_BLOCKS: 2,
@@ -109,7 +109,7 @@ export function isNightHour(hour: number): boolean {
   return hour >= STCW_RULES.NIGHT_START || hour < STCW_RULES.NIGHT_END;
 }
 
-export function getSevenDayRestTotal(dayIndex: number, rows: DayRow[]): number {
+function getSevenDayRestTotal(dayIndex: number, rows: DayRow[]): number {
   let total = 0;
   const startIdx = Math.max(0, dayIndex - 6);
   for (let i = startIdx; i <= dayIndex; i++) {

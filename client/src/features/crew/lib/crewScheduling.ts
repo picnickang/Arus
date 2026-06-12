@@ -174,7 +174,7 @@ interface CertificationRecord {
   expiresAt?: string;
 }
 
-export function groupCertificationsByCrew(certifications: CertificationRecord[]): {
+function groupCertificationsByCrew(certifications: CertificationRecord[]): {
   [crewId: string]: CertificationRecord[];
 } {
   return certifications.reduce((acc: Record<string, CertificationRecord[]>, cert) => {

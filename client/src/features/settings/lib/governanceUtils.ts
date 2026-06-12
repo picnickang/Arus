@@ -67,19 +67,19 @@ export interface EventTypeConfig {
   label: string;
 }
 
-export const FAMILY_COLORS: Record<string, string> = {
+const FAMILY_COLORS: Record<string, string> = {
   lstm: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
   xgboost: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
   rf: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
 };
 
-export const STAGE_COLORS: Record<string, string> = {
+const STAGE_COLORS: Record<string, string> = {
   dev: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100",
   staging: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
   production: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
 };
 
-export const EVENT_TYPE_CONFIG: Record<string, EventTypeConfig> = {
+const EVENT_TYPE_CONFIG: Record<string, EventTypeConfig> = {
   prediction: { icon: Brain, color: "text-blue-500", label: "Prediction" },
   alert: { icon: AlertTriangle, color: "text-orange-500", label: "Alert" },
   anomaly: { icon: Activity, color: "text-red-500", label: "Anomaly" },
