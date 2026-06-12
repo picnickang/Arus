@@ -189,6 +189,20 @@ describe("mobile readiness replacement model", () => {
       "Deliveries",
       "Linked to WO",
     ]);
+    expect(screens.inventory.rows).toHaveLength(5);
+    expect(screens.inventory.rows.at(-1)).toMatchObject({
+      partNumber: "500-700-200",
+      name: "Bearing BRG-700",
+      reorderStatus: "OK",
+    });
+    expect(screens.inventory.linkedWorkOrders[0]).toMatchObject({
+      id: "WO-2025-1348",
+      status: "3 items",
+    });
+    expect(screens.inventory.logisticsTasks[0]).toMatchObject({
+      id: "DEL-2025-0891",
+      eta: "ETA: 16 May 2025",
+    });
     expect(screens.settings.items.map((item) => item.label)).toEqual([
       "Profile",
       "Switch Portal / Organization",
