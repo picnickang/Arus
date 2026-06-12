@@ -5,6 +5,8 @@ import { isDesktop, getDesktopAPI } from "./desktop";
 const STORAGE_KEY = "arus_backend_url";
 const LEGACY_KEY = "arus-backend-url";
 const DEFAULT_URL = "http://localhost:5000";
+const SETUP_COMPLETE_KEY = "arus-setup-complete";
+const CLOUD_LINK_PENDING_KEY = "arus-cloud-link-pending";
 
 let _cachedUrl: string | null = null;
 
@@ -21,6 +23,19 @@ interface TauriCoreModule extends Record<string, unknown> {
 interface BackendConfig {
   url: string;
   mode: string;
+}
+
+export interface DesktopSetupReadiness {
+  isDesktop: boolean;
+  localSetupComplete: boolean;
+  localBackendHealthy: boolean;
+  cloudReachable: boolean;
+}
+
+export interface DesktopSetupSummary {
+  setupComplete: boolean;
+  localReady: boolean;
+  cloudStatus: "connected" | "pending" | "offline";
 }
 
 function isTauriCoreModule(module: Record<string, unknown> | null): module is TauriCoreModule {
@@ -128,17 +143,36 @@ export async function testBackendConnection(
   }
 }
 
+export function canCompleteDesktopSetup(readiness: DesktopSetupReadiness): boolean {
+  if (!readiness.isDesktop) {
+    return true;
+  }
+  return readiness.localSetupComplete || readiness.localBackendHealthy;
+}
+
+export function summarizeDesktopSetupReadiness(
+  readiness: DesktopSetupReadiness
+): DesktopSetupSummary {
+  const localReady = readiness.localSetupComplete || readiness.localBackendHealthy;
+  return {
+    setupComplete: canCompleteDesktopSetup(readiness),
+    localReady,
+    cloudStatus: readiness.cloudReachable ? "connected" : localReady ? "pending" : "offline",
+  };
+}
+
 export async function isDesktopSetupComplete(): Promise<boolean> {
   if (!isDesktop()) {
     return true;
   }
 
-  const url = await resolveBackendUrl();
-
-  const reachable = await testBackendConnection(url);
-  if (!reachable.ok) {
-    return false;
+  const localSetupComplete = isDesktopSetupCompleteSync();
+  if (localSetupComplete) {
+    return true;
   }
+
+  const url = await resolveBackendUrl();
+  const reachable = await testBackendConnection(url);
 
   try {
     const controller = new AbortController();
@@ -152,21 +186,42 @@ export async function isDesktopSetupComplete(): Promise<boolean> {
       return false;
     }
     const body = (await res.json()) as { complete: boolean };
-    return body.complete === true;
+    if (body.complete === true) {
+      return true;
+    }
   } catch {
-    return true;
+    // A healthy local backend is enough for offline-first setup; cloud setup
+    // status can be resolved after connectivity returns.
   }
+
+  return canCompleteDesktopSetup({
+    isDesktop: true,
+    localSetupComplete,
+    localBackendHealthy: reachable.ok,
+    cloudReachable: false,
+  });
 }
 
 export function isDesktopSetupCompleteSync(): boolean {
   if (!isDesktop()) {
     return true;
   }
-  return localStorage.getItem("arus-setup-complete") === "true";
+  return localStorage.getItem(SETUP_COMPLETE_KEY) === "true";
 }
 
-export function markSetupComplete(): void {
-  localStorage.setItem("arus-setup-complete", "true");
+export function markCloudLinkPending(pending = true): void {
+  localStorage.setItem(CLOUD_LINK_PENDING_KEY, pending ? "true" : "false");
+}
+
+export function isCloudLinkPending(): boolean {
+  return localStorage.getItem(CLOUD_LINK_PENDING_KEY) === "true";
+}
+
+export function markSetupComplete(options: { cloudLinkPending?: boolean } = {}): void {
+  localStorage.setItem(SETUP_COMPLETE_KEY, "true");
+  if (typeof options.cloudLinkPending === "boolean") {
+    markCloudLinkPending(options.cloudLinkPending);
+  }
 }
 
 export async function bootstrapDesktopBackend(): Promise<boolean> {
@@ -174,7 +229,7 @@ export async function bootstrapDesktopBackend(): Promise<boolean> {
     return true;
   }
 
-  if (localStorage.getItem("arus-setup-complete") === "true") {
+  if (localStorage.getItem(SETUP_COMPLETE_KEY) === "true") {
     const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (stored) {
       _cachedUrl = stored;
@@ -190,8 +245,7 @@ export async function bootstrapDesktopBackend(): Promise<boolean> {
         const result = await testBackendConnection(url);
         if (result.ok) {
           setBackendUrl(url);
-          markSetupComplete();
-          return true;
+          return isDesktopSetupCompleteSync();
         }
       }
     } catch (err) {

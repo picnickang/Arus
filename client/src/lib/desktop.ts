@@ -6,6 +6,18 @@ export interface UpdateInfo {
   body?: string | undefined;
 }
 
+export interface BackendDiagnostics {
+  running: boolean;
+  mode: string;
+  url: string;
+  app_data_dir: string;
+  database_path: string;
+  log_dir: string;
+  queue_depth: number;
+  cloud_status: string;
+  last_sync_at?: string | null;
+}
+
 export interface DesktopAPI {
   getAppVersion: () => Promise<string>;
   isPackaged: () => Promise<boolean>;
@@ -14,6 +26,7 @@ export interface DesktopAPI {
   getAppDataDir: () => Promise<string>;
   getRuntimeMode: () => Promise<"packaged" | "dev">;
   getBackendUrl: () => Promise<string>;
+  getBackendDiagnostics: () => Promise<BackendDiagnostics | null>;
 }
 
 declare global {
@@ -172,6 +185,15 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       } catch (err) {
         console.warn("[Desktop] getBackendUrl:", err);
         return "";
+      }
+    },
+
+    async getBackendDiagnostics(): Promise<BackendDiagnostics | null> {
+      try {
+        return await tauriInvoke<BackendDiagnostics>("get_backend_diagnostics");
+      } catch (err) {
+        console.warn("[Desktop] getBackendDiagnostics:", err);
+        return null;
       }
     },
   };

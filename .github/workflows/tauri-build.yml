@@ -105,8 +105,8 @@ jobs:
           prerelease: false
           args: --target x86_64-unknown-linux-gnu --config src-tauri/tauri.vessel.conf.json
 
-  build-windows-vessel:
-    name: Windows x64 (Vessel)
+  build-windows-desktop:
+    name: Windows x64 (ARUS Desktop Setup)
     runs-on: windows-latest
 
     steps:
@@ -122,7 +122,11 @@ jobs:
         shell: pwsh
         run: choco install imagemagick -y --no-progress
 
-      - run: npm ci
+      - name: Install dependencies for Windows desktop build
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild better-sqlite3
 
       - name: Generate icons
         shell: pwsh
@@ -137,43 +141,7 @@ jobs:
       - name: Build sidecar (Windows)
         run: node scripts/build-sidecar.mjs
 
-      - name: Download NSSM
-        shell: pwsh
-        run: |
-          $zip = "$env:TEMP\nssm.zip"
-          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" `
-                            -OutFile $zip -UseBasicParsing
-          Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
-          New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
-          Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `
-                    "src-tauri\windows\bin\nssm.exe"
-
-      - name: Download WebView2 offline installer
-        shell: pwsh
-        run: |
-          Invoke-WebRequest `
-            -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" `
-            -OutFile "src-tauri\MicrosoftEdgeWebview2Setup.exe" `
-            -UseBasicParsing
-          Write-Host "WebView2 size: $((Get-Item src-tauri\MicrosoftEdgeWebview2Setup.exe).Length) bytes"
-
-      - name: Stage WiX resources
-        shell: pwsh
-        run: |
-          $wixDir = "src-tauri\target\release\bundle\wix"
-          $resourcesDir = "$wixDir\resources"
-
-          New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
-
-          Copy-Item "src-tauri\windows\bin\nssm.exe" `
-                    "$resourcesDir\nssm.exe" -Force
-          Copy-Item "src-tauri\binaries\arus-server-x86_64-pc-windows-msvc.exe" `
-                    "$resourcesDir\arus-server.exe" -Force
-
-          Write-Host "WiX resources staged:"
-          Get-ChildItem $resourcesDir
-
-      - name: Build Tauri (vessel installer)
+      - name: Build Tauri (desktop setup installer)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -184,72 +152,96 @@ jobs:
           releaseName: "ARUS Marine ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
-          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.vessel.conf.json
+          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json
 
-  build-windows-cloud:
-    name: Windows x64 (Cloud)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with: { node-version: "20", cache: "npm" }
-      - uses: dtolnay/rust-toolchain@stable
-        with: { targets: x86_64-pc-windows-msvc }
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: src-tauri }
-
-      - name: Install ImageMagick
-        shell: pwsh
-        run: choco install imagemagick -y --no-progress
-
-      - run: npm ci
-
-      - name: Generate icons
+      - name: Confirm NSIS setup exe exists
         shell: pwsh
         run: |
-          node scripts/generate-icons.mjs
-          magick convert `
-            src-tauri/icons/32x32.png `
-            src-tauri/icons/128x128.png `
-            src-tauri/icons/icon.png `
-            src-tauri/icons/icon.ico
+          $setup = Get-ChildItem "src-tauri\target" -Recurse -Filter "*.exe" |
+            Where-Object { $_.FullName -match "\\bundle\\nsis\\" -and $_.Name -match "Setup" } |
+            Select-Object -First 1
+          if (-not $setup) {
+            Write-Error "ARUS Desktop Setup.exe was not produced under the NSIS bundle output."
+            exit 1
+          }
+          Write-Host "Found setup installer: $($setup.FullName)"
 
-      - name: Build sidecar
-        run: node scripts/build-sidecar.mjs
-
-      - name: Download NSSM
-        shell: pwsh
-        run: |
-          $zip = "$env:TEMP\nssm.zip"
-          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" `
-                            -OutFile $zip -UseBasicParsing
-          Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
-          New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
-          Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `
-                    "src-tauri\windows\bin\nssm.exe"
-
-      - name: Stage WiX resources
-        shell: pwsh
-        run: |
-          $resourcesDir = "src-tauri\target\release\bundle\wix\resources"
-          New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
-          Copy-Item "src-tauri\windows\bin\nssm.exe" `
-                    "$resourcesDir\nssm.exe" -Force
-          Copy-Item "src-tauri\binaries\arus-server-x86_64-pc-windows-msvc.exe" `
-                    "$resourcesDir\arus-server.exe" -Force
-          Write-Host "WiX resources staged:"
-          Get-ChildItem $resourcesDir
-
-      - name: Build Tauri (cloud installer)
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Upload ARUS Desktop setup artifact
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "ARUS Marine ${{ github.ref_name }}"
-          releaseDraft: true
-          prerelease: false
-          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.cloud.conf.json
+          name: arus-desktop-windows-setup
+          path: src-tauri\target\**\bundle\nsis\*Setup*.exe
+          if-no-files-found: error
+
+      - name: Smoke install ARUS Desktop setup
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem "src-tauri\target" -Recurse -Filter "*.exe" |
+            Where-Object { $_.FullName -match "\\bundle\\nsis\\" -and $_.Name -match "Setup" } |
+            Select-Object -First 1
+          if (-not $setup) {
+            Write-Error "ARUS Desktop Setup.exe was not produced under the NSIS bundle output."
+            exit 1
+          }
+
+          $installDir = Join-Path $env:RUNNER_TEMP "ArusDesktopSmokeInstall"
+          if (Test-Path $installDir) {
+            Remove-Item $installDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $installDir | Out-Null
+
+          $install = Start-Process -FilePath $setup.FullName `
+            -ArgumentList @("/S", "/D=$installDir") `
+            -Wait `
+            -PassThru
+          if ($install.ExitCode -ne 0) {
+            Write-Error "Silent install failed with exit code $($install.ExitCode)."
+            exit $install.ExitCode
+          }
+
+          $appExe = Join-Path $installDir "ARUS Desktop.exe"
+          if (-not (Test-Path $appExe)) {
+            Write-Error "Installed app executable missing: $appExe"
+            Get-ChildItem $installDir -Recurse | Select-Object FullName
+            exit 1
+          }
+
+          $sidecarExe = Get-ChildItem $installDir -Recurse -Filter "arus-server*.exe" |
+            Select-Object -First 1
+          if (-not $sidecarExe) {
+            Write-Error "Installed sidecar executable matching arus-server*.exe was not found."
+            Get-ChildItem $installDir -Recurse | Select-Object FullName
+            exit 1
+          }
+
+          $env:DEPLOYMENT_MODE = "VESSEL"
+          $env:EMBEDDED_MODE = "true"
+          $env:LOCAL_MODE = "true"
+          $env:NODE_ENV = "production"
+          $env:DATABASE_PATH = Join-Path $env:RUNNER_TEMP "arus-desktop-smoke.db"
+          $env:PORT = "0"
+          & $sidecarExe.FullName --health-check
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Installed sidecar health check failed with exit code $LASTEXITCODE."
+            exit $LASTEXITCODE
+          }
+
+      - name: Smoke launch installed ARUS Desktop
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP "ArusDesktopSmokeInstall"
+          $appExe = Join-Path $installDir "ARUS Desktop.exe"
+          if (-not (Test-Path $appExe)) {
+            Write-Error "Installed app executable missing: $appExe"
+            exit 1
+          }
+
+          $process = Start-Process -FilePath $appExe -PassThru
+          Start-Sleep -Seconds 10
+          if ($process.HasExited) {
+            Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode)."
+            exit 1
+          }
+
+          Stop-Process -Id $process.Id -Force
+          Write-Host "ARUS Desktop launched and stayed alive for smoke verification."

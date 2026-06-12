@@ -12,6 +12,12 @@ import { fileURLToPath } from "node:url";
 import { createLogger } from "../lib/structured-logger";
 const logger = createLogger("Bootstrap:StaticServing");
 
+function currentDirname(): string {
+  return typeof import.meta.url === "string"
+    ? path.dirname(fileURLToPath(import.meta.url))
+    : __dirname;
+}
+
 export async function configureStaticServing(app: Express, server: Server): Promise<void> {
   const isEmbeddedMode = process.env["EMBEDDED_MODE"] === "true";
   const isDevelopmentEnv = app.get("env") === "development";
@@ -31,8 +37,7 @@ export async function configureStaticServing(app: Express, server: Server): Prom
   }
 
   try {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const projectRoot = path.resolve(__dirname, "../..");
+    const projectRoot = path.resolve(currentDirname(), "../..");
 
     const candidateStaticRoots = [
       path.join(projectRoot, "dist"),
