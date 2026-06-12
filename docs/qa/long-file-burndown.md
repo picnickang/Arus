@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T03:55:44.853Z
+Generated: 2026-06-12T04:06:49.362Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `70` counted files.
-- The current counted inventory is `70` files.
+- The temporary ceiling is `69` counted files.
+- The current counted inventory is `69` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    70 |
-| Server                    |    15 |
-| Server route-like files   |     4 |
+| Total counted long files  |    69 |
+| Server                    |    14 |
+| Server route-like files   |     3 |
 | Server service-like files |     0 |
 | Client                    |    55 |
 | Client page files         |    21 |
@@ -113,6 +113,7 @@ Completed splits:
 - `server/domains/scheduling/routes.ts` dropped below the threshold by moving scheduling-settings endpoints to a sibling route group while preserving `registerSchedulingRoutes` and route URLs.
 - `server/domains/me-portal/me-portal-service.ts` dropped below the threshold by moving personal task-feed assembly to a sibling helper while preserving `MePortalService.getTasks`.
 - `server/purchasing/po-routes.ts` dropped below the threshold by moving purchase-order fulfillment and events endpoints to a sibling route group while preserving the default router and route URLs.
+- `server/ml-routes/model-routes.ts` dropped below the threshold by moving ML promotion approval, promote, and rollback routes to a sibling route group while preserving `modelRoutes` and route URLs.
 
 ## Top 30 Longest Files
 
@@ -228,7 +229,6 @@ Completed splits:
 632 server/compliance/routes/data-privacy-routes.ts
 632 client/src/components/crew-admin/UserAssignmentTab.tsx
 631 client/src/features/crew/hooks/useUnifiedCrewData.ts
-630 server/ml-routes/model-routes.ts
 625 client/src/components/crew-admin/UserAccessEditor.tsx
 623 client/src/components/work-orders/WorkOrderFormDialog.tsx
 617 client/src/components/analytics/OperationsMode.tsx

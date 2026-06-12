@@ -248,4 +248,18 @@ describe("server tail extractions", () => {
     expect(fulfillmentRoutes).toContain('"/:id/events"');
     expect(fulfillmentRoutes).toContain("await fulfillItem");
   });
+
+  it("keeps ML promotion routes behind the model route shell", () => {
+    const routes = read("server/ml-routes/model-routes.ts");
+    const promotionRoutes = read("server/ml-routes/model-promotion-routes.ts");
+
+    expect(routes).toContain('from "./model-promotion-routes.js"');
+    expect(routes).toContain("registerModelPromotionRoutes(router)");
+    expect(routes).toContain("export const modelRoutes = router");
+    expect(promotionRoutes).toContain("export function registerModelPromotionRoutes");
+    expect(promotionRoutes).toContain('"/ml/models/:id/promote/request"');
+    expect(promotionRoutes).toContain('"/ml/models/:id/promote"');
+    expect(promotionRoutes).toContain('"/ml/models/:id/rollback"');
+    expect(promotionRoutes).toContain("PROMOTION_SELF_APPROVAL_FORBIDDEN");
+  });
 });
