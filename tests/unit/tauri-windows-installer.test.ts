@@ -12,6 +12,7 @@ const PRIMARY_CONF_PATH = "src-tauri/tauri.conf.json" as const;
 type TauriConf = {
   $schema: string;
   productName: string;
+  mainBinaryName?: string;
   version: string;
   identifier: string;
   build: {
@@ -63,6 +64,7 @@ describe("Tauri Windows Installer — Primary Desktop Configuration", () => {
   it("is the one default offline-first desktop product", () => {
     expect(conf.$schema).toMatch(/tauri\.app/);
     expect(conf.productName).toBe("ARUS Desktop");
+    expect(conf.mainBinaryName).toBe("ARUS Desktop");
     expect(conf.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(conf.identifier).toBe("com.arus.marine");
   });
@@ -217,9 +219,12 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   });
 
   it("asserts installed app and sidecar executables, then runs sidecar health check offline", () => {
-    expect(windowsWorkflow).toContain("$appExe = Join-Path $installDir");
+    expect(windowsWorkflow).toContain("$defaultInstallDirs");
+    expect(windowsWorkflow).toContain('Get-ChildItem $root -Recurse -Filter "ARUS Desktop.exe"');
+    expect(windowsWorkflow).toContain("Get-ItemProperty $root");
+    expect(windowsWorkflow).toContain("ARUS_APP_EXE");
     expect(windowsWorkflow).toContain("ARUS Desktop.exe");
-    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installDir -Recurse");
+    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installedRoot -Recurse");
     expect(windowsWorkflow).toContain("arus-server");
     expect(windowsWorkflow).toContain("--health-check");
     expect(windowsWorkflow).toContain("LOCAL_MODE");
@@ -228,6 +233,7 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
 
   it("launches and terminates the installed desktop app during the smoke", () => {
     expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
+    expect(windowsWorkflow).toContain("$appExe = $env:ARUS_APP_EXE");
     expect(windowsWorkflow).toContain("Start-Process -FilePath $appExe");
     expect(windowsWorkflow).toContain("HasExited");
     expect(windowsWorkflow).toContain("Stop-Process");
