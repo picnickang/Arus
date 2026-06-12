@@ -175,6 +175,28 @@ describe("server tail extractions", () => {
     expect(helpers).toContain("export function recommendedActionText");
   });
 
+  it("keeps equipment hub summary and timeline helpers beside the repository", () => {
+    const repository = read(
+      "server/domains/equipment-intelligence/infrastructure/hub-repository.ts"
+    );
+    const helpers = read(
+      "server/domains/equipment-intelligence/infrastructure/hub-repository-helpers.ts"
+    );
+    const timeline = read(
+      "server/domains/equipment-intelligence/infrastructure/hub-repository-timeline.ts"
+    );
+
+    expect(repository).toContain('from "./hub-repository-helpers.js"');
+    expect(repository).toContain('from "./hub-repository-timeline.js"');
+    expect(repository).toContain("export class PostgresEquipmentHubRepository");
+    expect(repository).toContain("return getActivityTimelineForEquipment");
+    expect(helpers).toContain("export function computeRisk");
+    expect(helpers).toContain("export function collectInsightSignals");
+    expect(helpers).toContain("export async function fetchWorkOrders");
+    expect(timeline).toContain("export async function getActivityTimelineForEquipment");
+    expect(timeline).toContain('type: "telemetry_anomaly"');
+  });
+
   it("keeps WO-SO bridge operations behind the route compatibility module", () => {
     const routes = read("server/routes/wo-so-bridge-routes.ts");
     const operations = read("server/routes/wo-so-bridge-operations.ts");
