@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T00:59:03.810Z
+Generated: 2026-06-12T01:04:03.593Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `81` counted files.
-- The current counted inventory is `81` files.
+- The temporary ceiling is `80` counted files.
+- The current counted inventory is `80` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    81 |
-| Server                    |    26 |
+| Total counted long files  |    80 |
+| Server                    |    25 |
 | Server route-like files   |     8 |
-| Server service-like files |     4 |
+| Server service-like files |     3 |
 | Client                    |    55 |
 | Client page files         |    21 |
 | Shared                    |     0 |
@@ -102,6 +102,7 @@ Completed splits:
 - `server/routes/kb-routes.ts` dropped below the threshold by moving KB upload storage, MIME filtering, and multer error normalization to a sibling route middleware module while preserving route URLs.
 - `server/db/crew-extensions/db-crew-extensions.ts` dropped below the threshold by moving notification/alert and port/drydock scheduling persistence helpers to sibling modules while preserving `DbCrewExtensionsStorage`.
 - `server/compliance/data-anonymization/service.ts` dropped below the threshold by moving field-name and likely-contact classification helpers to a sibling pure module while preserving `DataAnonymizationService`.
+- `server/services/patch-applicator.ts` dropped below the threshold by moving backup creation, rollback, listing, and cleanup lifecycle helpers to a sibling module while preserving `PatchApplicator`.
 
 ## Top 30 Longest Files
 
@@ -231,7 +232,6 @@ Completed splits:
 604 server/domains/equipment/routes.ts
 603 server/domains/agent/application/suggestion-engine.ts
 598 client/src/lib/queryClient.ts
-597 server/services/patch-applicator.ts
 594 server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts
 593 server/routes/wo-so-bridge-routes.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx

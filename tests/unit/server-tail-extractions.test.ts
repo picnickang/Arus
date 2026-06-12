@@ -109,4 +109,16 @@ describe("server tail extractions", () => {
     expect(helper).toContain("export function isSensitiveFieldName");
     expect(helper).toContain("export function isLikelyPiiString");
   });
+
+  it("keeps patch-applicator backup lifecycle in a sibling helper", () => {
+    const applicator = read("server/services/patch-applicator.ts");
+    const backups = read("server/services/patch-applicator-backups.ts");
+
+    expect(applicator).toContain('from "./patch-applicator-backups"');
+    expect(applicator).toContain("export class PatchApplicator");
+    expect(backups).toContain("export async function createPatchBackup");
+    expect(backups).toContain("export async function rollbackPatchBackup");
+    expect(backups).toContain("export function listPatchBackups");
+    expect(backups).toContain("export function cleanOldPatchBackups");
+  });
 });
