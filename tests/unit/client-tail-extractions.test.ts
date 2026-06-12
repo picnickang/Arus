@@ -397,4 +397,22 @@ describe("client tail component extractions", () => {
     expect(savings).toContain('data-testid={`button-dispute-${savingsId}`}');
   });
 
+  it("keeps crew management utility groups behind compatibility exports", () => {
+    const utils = read("client/src/features/crew/lib/crewManagementUtils.ts");
+    const roles = read("client/src/features/crew/lib/crewManagementRoles.ts");
+    const vessels = read("client/src/features/crew/lib/crewManagementVesselGroups.ts");
+    const offboarding = read("client/src/features/crew/lib/crewManagementOffboarding.ts");
+
+    expect(utils).toContain('export * from "./crewManagementRoles"');
+    expect(utils).toContain('export * from "./crewManagementVesselGroups"');
+    expect(utils).toContain('export * from "./crewManagementOffboarding"');
+    expect(roles).toContain("export function formatRank");
+    expect(roles).toContain("export function groupCrewByRole");
+    expect(roles).toContain("export function buildRoleLookup");
+    expect(vessels).toContain("export function groupCrewByVessel");
+    expect(vessels).toContain('export const RELIEF_POOL_ID = "__relief_pool__"');
+    expect(offboarding).toContain("export function deriveRehireStatus");
+    expect(offboarding).toContain("export function composeOffboardingNote");
+  });
+
 });
