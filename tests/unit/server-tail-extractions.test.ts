@@ -133,4 +133,19 @@ describe("server tail extractions", () => {
     expect(ports).toContain("export interface CrewServiceDependencies");
     expect(ports).toContain("export interface CrewExtensionsStoragePort");
   });
+
+  it("keeps vessel-diagram in-memory record helpers beside the store", () => {
+    const store = read(
+      "server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts"
+    );
+    const helpers = read(
+      "server/domains/vessel-diagram-registry/infrastructure/in-memory-store-helpers.ts"
+    );
+
+    expect(store).toContain('from "./in-memory-store-helpers.js"');
+    expect(store).toContain("export class InMemoryVesselDiagramRegistryStore");
+    expect(helpers).toContain("export function buildSectionMap");
+    expect(helpers).toContain("export function applySectionMapUpdate");
+    expect(helpers).toContain("export function buildEquipmentAssignment");
+  });
 });

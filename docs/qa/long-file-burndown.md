@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T01:09:52.873Z
+Generated: 2026-06-12T01:15:24.682Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `79` counted files.
-- The current counted inventory is `79` files.
+- The temporary ceiling is `78` counted files.
+- The current counted inventory is `78` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    79 |
-| Server                    |    24 |
+| Total counted long files  |    78 |
+| Server                    |    23 |
 | Server route-like files   |     8 |
 | Server service-like files |     2 |
 | Client                    |    55 |
@@ -104,6 +104,7 @@ Completed splits:
 - `server/compliance/data-anonymization/service.ts` dropped below the threshold by moving field-name and likely-contact classification helpers to a sibling pure module while preserving `DataAnonymizationService`.
 - `server/services/patch-applicator.ts` dropped below the threshold by moving backup creation, rollback, listing, and cleanup lifecycle helpers to a sibling module while preserving `PatchApplicator`.
 - `server/domains/crew/application/crew-service.ts` dropped below the threshold by moving crew application port contracts to a sibling type module while preserving public type exports from `crew-service`.
+- `server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts` dropped below the threshold by moving in-memory record builders and mutation helpers to a sibling module while preserving `InMemoryVesselDiagramRegistryStore`.
 
 ## Top 30 Longest Files
 
@@ -233,7 +234,6 @@ Completed splits:
 604 server/domains/equipment/routes.ts
 603 server/domains/agent/application/suggestion-engine.ts
 598 client/src/lib/queryClient.ts
-594 server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts
 593 server/routes/wo-so-bridge-routes.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
 591 server/pdm/adapters/pdm-postgres.repository.ts
