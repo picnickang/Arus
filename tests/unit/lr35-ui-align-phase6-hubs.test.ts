@@ -31,8 +31,12 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
   });
 
   it("shared mobile readiness screens contain the Figma panel concepts", async () => {
-    const screenSrc = await readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
-    const modelSrc = await readSrc("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    const screenSrc = await readSrc(
+      "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
+    );
+    const modelSrc = await readSrc(
+      "client/src/features/mobile-readiness/mobile-readiness-model.ts"
+    );
 
     expect(screenSrc).toContain("MobilePdmPage");
     expect(screenSrc).toContain("MobileCrewPage");
@@ -111,7 +115,9 @@ describe("UI Align Phase 6 — RBAC behaviour stays in role-navigation-policy", 
     };
     const { getPrimaryCategoriesForRole } = await loadPolicy();
     const cats = getPrimaryCategoriesForRole("system_admin");
-    const byId = new Map(cats.map((category: { id: string; hubRoute: string }) => [category.id, category]));
+    const byId = new Map(
+      cats.map((category: { id: string; hubRoute: string }) => [category.id, category])
+    );
     for (const hubId of HUB_IDS) {
       const category = byId.get(hubId);
       expect(category?.hubRoute).toBe(expected[hubId].path);

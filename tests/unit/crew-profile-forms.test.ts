@@ -15,8 +15,9 @@
  *    window, escalates priority inside 30 days, and NEVER spawns a duplicate
  *    when an open task already links the same document.
  *  - The new crew-form schema + label/rotation helpers accept the new fields.
- *  - Source-scan: the new offboarding / photo / doc-upload / alert-log controls
- *    the spec requires are actually wired into the components.
+ *  - Source-scan: the live crew-management route delegates to the mobile
+ *    readiness replacement and still exposes crew document / former-crew
+ *    signals in the replacement model.
  *
  * What this does NOT verify (covered by CI Playwright + backend API tests):
  *  live rendering, real API wiring, permissions.
@@ -248,18 +249,26 @@ describe("new crew field helpers + schema", () => {
   });
 });
 
-describe("source-scan: redesign controls are wired", () => {
+describe("source-scan: mobile crew replacement preserves profile signals", () => {
   const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-  it("offboarding dialog exposes the new fields + rehire preview", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/LifecycleDialog.tsx");
-    expect(src).toContain("input-offboard-end-date");
-    expect(src).toContain("select-offboard-reason");
-    expect(src).toContain("checkbox-handover-docs");
-    expect(src).toContain("input-offboard-exit-notes");
-    expect(src).toContain("badge-rehire-eligibility");
-    expect(src).toContain("previewRehireFromAction");
-    expect(src).toContain("composeOffboardingNote");
+  it("crew-management delegates to the mobile crew page, not the removed legacy shell", () => {
+    const page = read("client/src/pages/crew-management.tsx");
+    expect(page).toContain("MobileCrewPage");
+    expect(page).not.toContain("UnifiedCrewManagement");
+    expect(page).not.toContain("LifecycleDialog");
+  });
+
+  it("the replacement model keeps document and former-crew profile signals visible", () => {
+    const screens = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    const model = read("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    expect(screens).toContain("Crew Readiness Overview");
+    expect(screens).toContain("Former Crew");
+    expect(screens).toContain("{person.docs}");
+    expect(model).toContain("currentCrew");
+    expect(model).toContain("formerCrew");
+    expect(model).toContain("Certificate Expired");
+    expect(model).toContain("Signed Off");
   });
 
   it("renewal task creation goes through the pure decision helper", () => {

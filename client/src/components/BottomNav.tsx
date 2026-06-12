@@ -1,7 +1,5 @@
 import { useEffect } from "react";
-import {
-  pruneOverrideToPolicyIds,
-} from "@/application/navigation/role-navigation-policy";
+import { pruneOverrideToPolicyIds } from "@/application/navigation/role-navigation-policy";
 import {
   readUserRole,
   readNavOverride,

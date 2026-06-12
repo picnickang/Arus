@@ -1,4 +1,4 @@
-export type MobileReadinessAssetKind =
+type MobileReadinessAssetKind =
   | "vessel-thumbnail"
   | "crew-avatar"
   | "work-photo"
@@ -6,7 +6,7 @@ export type MobileReadinessAssetKind =
   | "chart"
   | "icon";
 
-export type MobileReadinessAssetStatus = "exported" | "recreated" | "fallback";
+type MobileReadinessAssetStatus = "exported" | "recreated" | "fallback";
 
 export interface MobileReadinessAsset {
   id: string;

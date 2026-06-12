@@ -34,8 +34,12 @@ describe("Phase 2 — mobile readiness replaces admin no-hubs fallback", () => {
   });
 
   it("the replacement command center carries the actionable status-reason-action contract", async () => {
-    const screenSrc = await readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
-    const modelSrc = await readSrc("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    const screenSrc = await readSrc(
+      "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
+    );
+    const modelSrc = await readSrc(
+      "client/src/features/mobile-readiness/mobile-readiness-model.ts"
+    );
 
     expect(screenSrc).toContain("MobileCommandCenterPage");
     expect(screenSrc).toContain("today-card-");

@@ -347,7 +347,7 @@ export function isOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine !== false;
 }
 
-export type OnlineStatusCallback = (online: boolean) => void;
+type OnlineStatusCallback = (online: boolean) => void;
 const onlineStatusListeners: Set<OnlineStatusCallback> = new Set();
 
 export function subscribeToOnlineStatus(callback: OnlineStatusCallback): () => void {

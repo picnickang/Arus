@@ -51,7 +51,7 @@ export interface LinkedServiceOrder {
   updatedAt: string;
 }
 
-export interface LinkedWorkOrder {
+interface LinkedWorkOrder {
   id: string;
   workOrderNumber: string;
   description: string;

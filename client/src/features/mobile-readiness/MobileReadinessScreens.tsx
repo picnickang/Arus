@@ -209,13 +209,13 @@ function AppHeader({
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
-            className="grid h-11 w-11 place-items-center rounded-lg text-[#062a58] md:hidden"
+            className="grid h-11 w-11 place-items-center rounded-lg text-blue-950 md:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
           <div className="min-w-0">
-            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-[#082756] md:text-2xl">
+            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-blue-950 md:text-2xl">
               {title}
             </div>
             {subtitle ? <div className="truncate text-sm text-slate-500">{subtitle}</div> : null}
@@ -228,7 +228,7 @@ function AppHeader({
                 <div className="text-sm font-semibold text-slate-900">{vesselName}</div>
               ) : null}
               {roleLabel ? (
-                <div className="text-xs font-semibold text-[#0d4da1]">{roleLabel}</div>
+                <div className="text-xs font-semibold text-blue-700">{roleLabel}</div>
               ) : null}
             </div>
           ) : null}
@@ -251,7 +251,7 @@ function NavyHeader({
   right?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-[#03295a] text-white shadow-sm">
+    <header className="sticky top-0 z-20 bg-blue-950 text-white shadow-sm">
       <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-3 px-4">
         {left ?? (
           <button
@@ -275,7 +275,7 @@ function NavyHeader({
 function MobilePageShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={cn("min-h-screen bg-[#f6f8fb] text-slate-950", className)}
+      className={cn("min-h-screen bg-slate-50 text-slate-950", className)}
       data-testid="mobile-readiness-shell"
     >
       {children}
@@ -430,7 +430,7 @@ function MobileBottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#0a376b] bg-[#03295a] pb-safe text-white shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.9)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-blue-900 bg-blue-950 pb-safe text-white shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.9)] md:hidden"
       aria-label="Mobile readiness navigation"
       data-testid="mobile-readiness-bottom-nav"
       data-nav-variant={variant}
@@ -482,7 +482,7 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
             <h1 className="text-xl font-bold text-slate-950">Today</h1>
             <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
           </div>
-          <span className="text-sm font-semibold text-[#0d4da1]">
+          <span className="text-sm font-semibold text-blue-700">
             {screens.today.itemCount} items
           </span>
         </div>
@@ -570,7 +570,7 @@ export function MobileFleetPage() {
                   <div className="text-slate-500">Next action</div>
                   <div className="font-semibold text-slate-900">{vessel.nextAction}</div>
                 </div>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+                <span className="inline-flex items-center gap-1 font-semibold text-blue-700">
                   View <ChevronRight className="h-4 w-4" aria-hidden="true" />
                 </span>
               </div>
@@ -579,7 +579,7 @@ export function MobileFleetPage() {
         </div>
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>Updated 2 min ago</span>
-          <button className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+          <button className="inline-flex items-center gap-1 font-semibold text-blue-700">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
           </button>
         </div>
@@ -589,11 +589,12 @@ export function MobileFleetPage() {
 }
 
 export function MobileVesselDetailPage() {
-  const { fleet } = useScreens("admin");
+  const screens = useScreens("admin");
+  const { fleet } = screens;
   const [location] = useLocation();
   const detail = fleet.vesselDetail;
   if (location.includes("/3d") || location.includes("diagram")) {
-    return <MobileVesselDiagramView screens={useScreens("admin")} />;
+    return <MobileVesselDiagramView screens={screens} />;
   }
   return (
     <MobilePageShell>
@@ -663,7 +664,7 @@ export function MobileVesselDetailPage() {
                 className={cn(
                   "shrink-0 border-b-2 px-1 pb-2",
                   index === 0
-                    ? "border-[#0d4da1] text-[#0d4da1]"
+                    ? "border-blue-700 text-blue-700"
                     : "border-transparent text-slate-600"
                 )}
               >
@@ -680,7 +681,7 @@ export function MobileVesselDetailPage() {
             <MiniState label="Flag" value="Singapore" tone="normal" />
           </div>
         </SectionCard>
-        <VesselDiagramPanel screens={useScreens("admin")} compact />
+        <VesselDiagramPanel screens={screens} compact />
       </Content>
     </MobilePageShell>
   );
@@ -719,7 +720,7 @@ function VesselDiagramPanel({
   return (
     <SectionCard
       title="Vessel diagram"
-      action={<button className="text-sm font-semibold text-[#0d4da1]">Legend</button>}
+      action={<button className="text-sm font-semibold text-blue-700">Legend</button>}
     >
       <div className="flex gap-2 overflow-x-auto px-3 py-3">
         {detail.diagramModes.map((mode, index) => (
@@ -729,7 +730,7 @@ function VesselDiagramPanel({
             className={cn(
               "min-h-12 shrink-0 rounded-lg border px-3 text-xs font-semibold",
               index === 0
-                ? "border-[#03295a] bg-[#03295a] text-white"
+                ? "border-blue-950 bg-blue-950 text-white"
                 : "border-slate-200 bg-white text-slate-600"
             )}
           >
@@ -761,7 +762,7 @@ function VesselDiagramPanel({
               <span className="h-2 w-2 rounded-full bg-orange-500" />
               {detail.selectedZone.name}
             </div>
-            <button className="text-xs font-semibold text-[#0d4da1]">View section</button>
+            <button className="text-xs font-semibold text-blue-700">View section</button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
             <div>
@@ -877,7 +878,7 @@ function PdmTabs({ active }: { active: "summary" | "telemetry" }) {
             type="button"
             className={cn(
               "min-h-10 border-b-2 border-transparent px-1",
-              selected && "border-[#0d4da1] text-[#0d4da1]"
+              selected && "border-blue-700 text-blue-700"
             )}
           >
             {tab}
@@ -1122,7 +1123,7 @@ function MobilePdmTelemetryPage({
               type="button"
               className={cn(
                 "min-h-10 border-r border-slate-200 px-1 last:border-r-0",
-                segment === "Advanced Graph" && "bg-[#03295a] text-white"
+                segment === "Advanced Graph" && "bg-blue-950 text-white"
               )}
             >
               {segment}
@@ -1137,7 +1138,7 @@ function MobilePdmTelemetryPage({
                 type="button"
                 className={cn(
                   "min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600",
-                  range === "7d" && "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  range === "7d" && "border-blue-700 bg-blue-50 text-blue-700"
                 )}
               >
                 {range}
@@ -1175,14 +1176,14 @@ function MobilePdmTelemetryPage({
           />
           <Link
             href={`/pdm/equipment/${selectedRisk.equipmentId}`}
-            className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-[#0d4da1]"
+            className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-blue-700"
           >
             Details <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
         <SectionCard
           title="Raw Readings (Latest)"
-          action={<span className="text-xs font-semibold text-[#0d4da1]">CSV</span>}
+          action={<span className="text-xs font-semibold text-blue-700">CSV</span>}
         >
           <div className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500">
             <span>Time (UTC)</span>
@@ -1245,7 +1246,7 @@ export function MobileWorkOrdersPage() {
       <Content>
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-950">Work Queue</h1>
-          <button className="inline-flex items-center gap-1 text-sm font-semibold text-[#0d4da1]">
+          <button className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700">
             Filters <Filter className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -1253,7 +1254,7 @@ export function MobileWorkOrdersPage() {
           {work.filters.map((filter) => (
             <button
               key={filter.id}
-              className="shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm font-semibold text-slate-600 first:border-[#0d4da1] first:text-[#0d4da1]"
+              className="shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm font-semibold text-slate-600 first:border-blue-700 first:text-blue-700"
             >
               {filter.label} ({filter.value})
             </button>
@@ -1266,7 +1267,7 @@ export function MobileWorkOrdersPage() {
               className={cn(
                 "min-h-14 min-w-24 shrink-0 rounded-lg border px-3 text-sm font-semibold",
                 chip.id === "in-progress"
-                  ? "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  ? "border-blue-700 bg-blue-50 text-blue-700"
                   : "border-slate-200 bg-white text-slate-600"
               )}
             >
@@ -1327,7 +1328,7 @@ export function MobileWorkOrdersPage() {
                       className="aspect-square rounded-lg border border-slate-200 object-cover"
                     />
                   ))}
-                  <button className="grid aspect-square place-items-center rounded-lg border border-slate-200 text-[#0d4da1]">
+                  <button className="grid aspect-square place-items-center rounded-lg border border-slate-200 text-blue-700">
                     <Plus className="h-6 w-6" aria-hidden="true" />
                     <span className="text-xs font-semibold">Add</span>
                   </button>
@@ -1336,10 +1337,10 @@ export function MobileWorkOrdersPage() {
               <InfoRow label="Parts Used" value={work.execution.partsUsed} />
               <InfoRow label="Time & Labor" value={work.execution.labor} />
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <button className="min-h-12 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-[#0d4da1]">
+                <button className="min-h-12 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-blue-700">
                   {work.execution.offlineDraftAction}
                 </button>
-                <button className="min-h-12 rounded-lg bg-[#03295a] text-sm font-semibold text-white">
+                <button className="min-h-12 rounded-lg bg-blue-950 text-sm font-semibold text-white">
                   {work.execution.primaryAction}
                 </button>
               </div>
@@ -1375,9 +1376,7 @@ export function MobileLogsPage() {
               key={tab}
               className={cn(
                 "shrink-0 border-b-2 px-1 pb-2 text-sm font-semibold",
-                index === 0
-                  ? "border-[#0d4da1] text-[#0d4da1]"
-                  : "border-transparent text-slate-600"
+                index === 0 ? "border-blue-700 text-blue-700" : "border-transparent text-slate-600"
               )}
             >
               {tab}
@@ -1386,7 +1385,7 @@ export function MobileLogsPage() {
         </div>
         <SectionCard
           title="Engine Log (Autofill Review)"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           <div className="p-3">
             <div className="rounded-lg border border-slate-200 p-3">
@@ -1500,7 +1499,7 @@ export function MobileCrewPage() {
         </SectionCard>
         <SectionCard
           title="Current Crew (18)"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           {crew.currentCrew.map((person) => (
             <div
@@ -1524,7 +1523,7 @@ export function MobileCrewPage() {
         </SectionCard>
         <SectionCard
           title="Former Crew"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">History</button>}
+          action={<button className="text-sm font-semibold text-blue-700">History</button>}
         >
           {crew.formerCrew.map((person) => (
             <div
@@ -1597,7 +1596,7 @@ export function MobileInventoryPage() {
           <KpiStrip metrics={inventory.actionRequired} />
         </div>
         <div className="grid grid-cols-3 rounded-lg bg-slate-100 p-1 text-sm font-semibold">
-          <button className="rounded-md bg-[#03295a] py-2 text-white">Inventory</button>
+          <button className="rounded-md bg-blue-950 py-2 text-white">Inventory</button>
           <button className="py-2 text-slate-600">Logistics</button>
           <button className="py-2 text-slate-600">Vendors</button>
         </div>
@@ -1611,7 +1610,7 @@ export function MobileInventoryPage() {
             <div className="flex items-center gap-2">
               <div className="grid grid-cols-2 rounded-md border border-slate-200 bg-white p-0.5">
                 <button
-                  className="grid h-8 w-8 place-items-center rounded bg-[#03295a] text-white"
+                  className="grid h-8 w-8 place-items-center rounded bg-blue-950 text-white"
                   aria-label="Card view"
                 >
                   <Grid2X2 className="h-4 w-4" aria-hidden="true" />
@@ -1653,7 +1652,7 @@ export function MobileInventoryPage() {
         </SectionCard>
         <SectionCard
           title="Linked Work Orders"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           {inventory.linkedWorkOrders.map((order) => (
             <InfoRow key={order.id} label={`${order.id} - ${order.title}`} value={order.status} />
@@ -1661,7 +1660,7 @@ export function MobileInventoryPage() {
         </SectionCard>
         <SectionCard
           title="Logistics Tasks"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           {inventory.logisticsTasks.map((task) => (
             <InfoRow key={task.id} label={`${task.id} - ${task.title}`} value={task.eta} />
@@ -1739,7 +1738,7 @@ export function MobileSettingsPage() {
   );
 }
 
-export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
+function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
   switch (screen) {
     case "fleet":
       return <MobileFleetPage />;
@@ -1781,6 +1780,6 @@ export function isMobileReadinessReplacementPath(path: string): boolean {
   );
 }
 
-export function MobileReadinessCopilotSuppressionMarker() {
+function MobileReadinessCopilotSuppressionMarker() {
   return null;
 }

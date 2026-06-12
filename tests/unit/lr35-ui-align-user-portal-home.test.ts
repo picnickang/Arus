@@ -52,7 +52,9 @@ describe("UI Align Phase 4 — user-portal route replacement contract", () => {
 
   it("removes the legacy user-portal branch from /home", () => {
     expect(homeSrc).toContain("MobileCommandCenterPage");
-    expect(homeSrc).not.toMatch(/function UserPortalHome|card-todays-overview|card-user-feedback-cta/);
+    expect(homeSrc).not.toMatch(
+      /function UserPortalHome|card-todays-overview|card-user-feedback-cta/
+    );
   });
 
   it("maps crew-heavy users to the Figma My Tasks / Logs / Safety nav", () => {

@@ -14,8 +14,8 @@
  *    tree (no infinite recursion).
  *  - `makeMemberComparator` (the exact comparator the chart applies to a
  *    manager's children) orders reports by role rank then name.
- *  - Source-scan: the chart wires the children through that comparator and a node
- *    click through `d.handleViewProfile`.
+ *  - Source-scan: the route now delegates to the mobile crew replacement while
+ *    the extracted reporting-tree helpers remain covered by the pure tests.
  *
  * What this does NOT verify (covered by the CI Playwright crew specs): live DOM
  * rendering, real hook/API wiring, permissions. The unit suite runs in a Node
@@ -189,21 +189,23 @@ describe("makeMemberComparator — children render in role order", () => {
   });
 });
 
-describe("CrewOrgChart wiring source-scan", () => {
-  const src = readFileSync(
-    resolve(process.cwd(), "client/src/components/UnifiedCrewManagement/CrewOrgChart.tsx"),
-    "utf8"
-  );
+describe("mobile crew route source-scan", () => {
+  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-  it("builds the tree and orders children through the extracted helpers", () => {
-    expect(src).toContain("buildReportingTree(activeCrew)");
-    expect(src).toContain("makeMemberComparator(d.roleLookup.sortIndex)");
-    // A manager's children are run through the same comparator before rendering.
-    expect(src).toContain("sortMembers(rawChildren)");
+  it("routes crew-management to the mobile crew replacement", () => {
+    const page = read("client/src/pages/crew-management.tsx");
+    expect(page).toContain("MobileCrewPage");
+    expect(page).not.toContain("CrewOrgChart");
+    expect(page).not.toContain("UnifiedCrewManagement");
   });
 
-  it("clicking a node opens that member's profile via handleViewProfile", () => {
-    expect(src).toContain("d.handleViewProfile(member)");
-    expect(src).toContain("data-testid={`orgnode-open-${member.id}`}");
+  it("the replacement screen keeps current crew rows as the active reporting surface", () => {
+    const screens = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    const model = read("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    expect(screens).toContain("crew.currentCrew.map");
+    expect(screens).toContain("Current Crew (18)");
+    expect(model).toContain("currentCrew");
+    expect(model).toContain("Chief Officer");
+    expect(model).toContain("Chief Engineer");
   });
 });
