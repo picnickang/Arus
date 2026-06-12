@@ -230,6 +230,29 @@ describe("server tail extractions", () => {
     expect(utils).toContain("export interface ServiceRequestRow");
   });
 
+  it("keeps RAG route groups behind the route facade", () => {
+    const routes = read("server/routes/rag-routes.ts");
+    const askRoutes = read("server/routes/rag-ask-routes.ts");
+    const conversationRoutes = read("server/routes/rag-conversation-routes.ts");
+    const extendedRoutes = read("server/routes/rag-extended-routes.ts");
+    const utils = read("server/routes/rag-route-utils.ts");
+
+    expect(routes).toContain("export function registerRagRoutes");
+    expect(routes).toContain("registerRagAskRoutes(app)");
+    expect(routes).toContain("registerRagConversationRoutes(app");
+    expect(routes).toContain("registerRagExtendedRoutes(app");
+    expect(askRoutes).toContain('"/api/rag/ask"');
+    expect(askRoutes).toContain('"/api/rag/ask-stream"');
+    expect(conversationRoutes).toContain('"/api/rag/conversations"');
+    expect(conversationRoutes).toContain('"/api/rag/feedback"');
+    expect(conversationRoutes).toContain('"/api/rag/cache"');
+    expect(extendedRoutes).toContain('"/api/rag/conversations/:id/export"');
+    expect(extendedRoutes).toContain('"/api/rag/compare"');
+    expect(extendedRoutes).toContain('"/api/rag/alerts/:alertId/acknowledge"');
+    expect(utils).toContain("export function getConversationIdentity");
+    expect(utils).toContain("export function toExportDate");
+  });
+
   it("keeps agent suggestion support helpers beside the engine shell", () => {
     const engine = read("server/domains/agent/application/suggestion-engine.ts");
     const support = read("server/domains/agent/application/suggestion-engine-support.ts");
