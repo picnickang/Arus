@@ -137,6 +137,20 @@ describe("mobile readiness replacement model", () => {
       "In Progress",
       "Blocked",
     ]);
+    expect(screens.work.queue.map((item) => item.href)).toEqual([
+      "/work-orders/sr-1258",
+      "/work-orders/so-4476",
+      "/work-orders/so-4481",
+      "/work-orders/sr-1266",
+      "/work-orders/sr-1271",
+    ]);
+    expect(screens.work.execution).toMatchObject({
+      orderNumber: "SO-4481",
+      vesselName: "M/V Ocean Pioneer",
+      assetId: "vessel-borealis",
+      priority: "Medium",
+      syncState: "Syncing...",
+    });
     expect(screens.work.execution.checklistProgress).toBe("4 / 6");
     expect(screens.work.execution.photoAssetIds).toEqual([
       "work-compressor",
@@ -154,6 +168,11 @@ describe("mobile readiness replacement model", () => {
       "Deck Watch Entry",
       "Condition Log",
       "Captain Signoff",
+    ]);
+    expect(screens.logs.complianceRows.map((row) => row.status)).toEqual([
+      "Signed",
+      "Signed",
+      "Signed",
     ]);
   });
 

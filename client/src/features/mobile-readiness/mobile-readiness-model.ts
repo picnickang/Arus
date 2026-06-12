@@ -1,5 +1,6 @@
 import {
   Anchor,
+  AlertTriangle,
   Bell,
   BookOpen,
   BriefcaseBusiness,
@@ -148,7 +149,14 @@ export interface WorkScreen {
   queue: QueueItem[];
   execution: {
     orderNumber: string;
+    vesselName: string;
+    assetId: MobileReadinessAssetId;
     title: string;
+    description: string;
+    priority: string;
+    due: string;
+    syncState: string;
+    technician: string;
     checklistProgress: string;
     percentComplete: number;
     checklist: Array<{
@@ -162,6 +170,7 @@ export interface WorkScreen {
     photoAssetIds: MobileReadinessAssetId[];
     offlineDraftAction: string;
     primaryAction: string;
+    notes: string;
   };
 }
 
@@ -175,6 +184,11 @@ export interface LogsScreen {
     status: string;
   }>;
   complianceHistory: SummaryMetric[];
+  complianceRows: Array<{
+    date: string;
+    status: string;
+    signer: string;
+  }>;
 }
 
 export interface CrewScreen {
@@ -904,7 +918,7 @@ function buildWorkScreen(): WorkScreen {
         owner: "J. Ramirez (Tech)",
         action: "Blocked by PdM Alert ALRT-8847",
         icon: Wrench,
-        href: "/work-orders",
+        href: "/work-orders/sr-1258",
       },
       {
         id: "so-4481",
@@ -916,7 +930,7 @@ function buildWorkScreen(): WorkScreen {
         owner: "R. Patel (Tech)",
         action: "Part needed PRT-7732",
         icon: Package,
-        href: "/work-orders",
+        href: "/work-orders/so-4481",
       },
       {
         id: "sr-1266",
@@ -928,12 +942,43 @@ function buildWorkScreen(): WorkScreen {
         owner: "Deck Crew",
         action: "Crew needed 1 rigger",
         icon: Users,
-        href: "/work-orders",
+        href: "/work-orders/sr-1266",
+      },
+      {
+        id: "so-4476",
+        title: "M/V Northern Light",
+        category: "SO-4476 - Assigned",
+        reason: "Generator #2 > Electrical",
+        detail: "Frequent overload trips",
+        severity: "high",
+        owner: "A. Kim (Tech)",
+        action: "PdM Alert ALRT-7712",
+        icon: AlertTriangle,
+        href: "/work-orders/so-4476",
+      },
+      {
+        id: "sr-1271",
+        title: "M/V Atlantic Trader",
+        category: "SR-1271 - Awaiting Approval",
+        reason: "Bilge System > Pump #1",
+        detail: "Approval required before dispatch",
+        severity: "normal",
+        owner: "C. Wilson",
+        action: "Approval required",
+        icon: ClipboardCheck,
+        href: "/work-orders/sr-1271",
       },
     ]),
     execution: {
       orderNumber: "SO-4481",
+      vesselName: "M/V Ocean Pioneer",
+      assetId: "vessel-borealis",
       title: "HVAC - Compressor #2",
+      description: "Compressor not cooling",
+      priority: "Medium",
+      due: "Tomorrow 09:00",
+      syncState: "Syncing...",
+      technician: "R. Patel (Tech)",
       checklistProgress: "4 / 6",
       percentComplete: 67,
       checklist: [
@@ -950,6 +995,7 @@ function buildWorkScreen(): WorkScreen {
       photoAssetIds: ["work-compressor", "work-motor", "work-gauge"],
       offlineDraftAction: "Save Draft Offline",
       primaryAction: "Complete Work",
+      notes: "Found oil level slightly low. Topped up. Fan belt tension adjusted. Running test.",
     },
   };
 }
@@ -990,6 +1036,11 @@ function buildLogsScreen(): LogsScreen {
       { id: "signed", label: "Signed", value: "100%", tone: "good" },
       { id: "overdue", label: "Overdue", value: "0", tone: "good" },
       { id: "remarks", label: "Remarks", value: "2", tone: "normal" },
+    ],
+    complianceRows: [
+      { date: "May 11, 2025", status: "Signed", signer: "CPT A. James" },
+      { date: "May 10, 2025", status: "Signed", signer: "CPT A. James" },
+      { date: "May 9, 2025", status: "Signed", signer: "CPT A. James" },
     ],
   };
 }

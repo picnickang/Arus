@@ -79,6 +79,7 @@ function pickNavVariant(path: string): MobileNavVariant {
   }
   if (
     currentPath === "/work-orders" ||
+    currentPath.startsWith("/work-orders/") ||
     currentPath === "/logs" ||
     currentPath.startsWith("/logs/")
   ) {
@@ -306,7 +307,7 @@ function KpiStrip({ metrics, compact = false }: { metrics: SummaryMetric[]; comp
         return (
           <div
             key={metric.id}
-            className="min-w-0 border-r border-slate-200 px-2 py-2 text-center last:border-r-0"
+            className="min-w-0 border-r border-slate-200 px-2 py-1 text-center last:border-r-0"
           >
             <div className={cn("truncate text-lg font-bold", tone.text)}>{metric.value}</div>
             <div className="truncate text-[11px] font-medium text-slate-500">{metric.label}</div>
@@ -361,9 +362,9 @@ function SectionCard({
       )}
     >
       {title || action ? (
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-3 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-3 py-2">
           {title ? (
-            <h2 className="text-[13px] font-extrabold uppercase tracking-wide text-slate-800">
+            <h2 className="text-[13px] font-extrabold uppercase tracking-normal text-slate-800">
               {title}
             </h2>
           ) : (
@@ -425,12 +426,18 @@ function MobileBottomNav() {
   const currentPath = location.split("?")[0] ?? "/";
   const variant = pickNavVariant(location);
   const nav = buildMobileReadinessNavigationForVariant(variant, roleHint);
+  const usesReferenceTabBar = variant === "technician";
   const isActive = (href: string) =>
     href === "/" ? currentPath === "/" : currentPath === href || currentPath.startsWith(`${href}/`);
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#0a376b] bg-[#03295a] pb-safe text-white shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.9)] md:hidden"
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-40 border-t pb-safe shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.35)] md:hidden",
+        usesReferenceTabBar
+          ? "border-slate-200 bg-white text-slate-600"
+          : "border-[#0a376b] bg-[#03295a] text-white"
+      )}
       aria-label="Mobile readiness navigation"
       data-testid="mobile-readiness-bottom-nav"
       data-nav-variant={variant}
@@ -448,7 +455,13 @@ function MobileBottomNav() {
               href={item.href}
               className={cn(
                 "flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold",
-                active ? "bg-white/15 text-white shadow-inner" : "text-blue-100"
+                usesReferenceTabBar
+                  ? active
+                    ? "text-[#03295a]"
+                    : "text-slate-500"
+                  : active
+                    ? "bg-white/15 text-white shadow-inner"
+                    : "text-blue-100"
               )}
               data-testid={`mobile-readiness-nav-${item.id}`}
             >
@@ -1235,6 +1248,16 @@ function MiniState({ label, value, tone }: { label: string; value: string; tone:
 
 export function MobileWorkOrdersPage() {
   const { work } = useScreens("crew");
+  const [location] = useLocation();
+  const currentPath = (location.split("?")[0] ?? location).split("#")[0] ?? location;
+  const workOrderId = currentPath.startsWith("/work-orders/")
+    ? currentPath.replace("/work-orders/", "").split("/")[0]
+    : null;
+
+  if (workOrderId) {
+    return <MobileWorkExecutionPage />;
+  }
+
   return (
     <MobilePageShell>
       <NavyHeader
@@ -1242,7 +1265,7 @@ export function MobileWorkOrdersPage() {
         subtitle="Work Queue"
         right={<Filter className="h-5 w-5" aria-hidden="true" />}
       />
-      <Content>
+      <Content className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-950">Work Queue</h1>
           <button className="inline-flex items-center gap-1 text-sm font-semibold text-[#0d4da1]">
@@ -1253,7 +1276,7 @@ export function MobileWorkOrdersPage() {
           {work.filters.map((filter) => (
             <button
               key={filter.id}
-              className="shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm font-semibold text-slate-600 first:border-[#0d4da1] first:text-[#0d4da1]"
+              className="shrink-0 border-b-2 border-transparent px-1 pb-1.5 text-sm font-semibold text-slate-600 first:border-[#0d4da1] first:text-[#0d4da1]"
             >
               {filter.label} ({filter.value})
             </button>
@@ -1264,7 +1287,7 @@ export function MobileWorkOrdersPage() {
             <button
               key={chip.id}
               className={cn(
-                "min-h-14 min-w-24 shrink-0 rounded-lg border px-3 text-sm font-semibold",
+                "min-h-12 min-w-24 shrink-0 rounded-lg border px-3 text-sm font-semibold",
                 chip.id === "in-progress"
                   ? "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
                   : "border-slate-200 bg-white text-slate-600"
@@ -1276,75 +1299,199 @@ export function MobileWorkOrdersPage() {
           ))}
         </div>
         <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-          <SectionCard>
+          <SectionCard className="lg:col-span-2">
             {work.queue.map((item) => (
-              <QueueCard key={item.id} item={item} />
+              <WorkQueueCard key={item.id} item={item} />
             ))}
           </SectionCard>
-          <SectionCard
-            title={`${work.execution.orderNumber} - ${work.execution.title}`}
-            action={<StatusPill tone="medium">MEDIUM</StatusPill>}
-          >
-            <div className="space-y-3 p-3">
-              <div>
-                <div className="flex items-center justify-between text-sm font-semibold">
-                  <span>Checklist ({work.execution.checklistProgress})</span>
-                  <span>{work.execution.percentComplete}%</span>
-                </div>
-                <ProgressBar value={work.execution.percentComplete} />
-              </div>
-              <div className="divide-y rounded-lg border border-slate-200">
-                {work.execution.checklist.map((step) => (
-                  <div
-                    key={step.label}
-                    className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm"
-                  >
-                    {step.state === "done" ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-                    ) : (
-                      <span className="h-5 w-5 rounded-full border border-slate-300" />
-                    )}
-                    <span className="min-w-0 flex-1">{step.label}</span>
-                    {step.telemetry ? <StatusPill tone="good">{step.telemetry}</StatusPill> : null}
+        </div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function WorkQueueCard({ item }: { item: QueueItem }) {
+  const tone = toneClasses(item.severity);
+  const Icon = item.icon;
+  const [orderCode, status = "Open"] = item.category.split(" - ");
+  const stripeClass =
+    item.severity === "critical" || item.severity === "high"
+      ? "bg-red-500"
+      : item.severity === "medium"
+        ? "bg-orange-400"
+        : "bg-blue-500";
+  const queueSeverity =
+    item.severity === "normal" ? "LOW" : severityLabel(item.severity).toUpperCase();
+  return (
+    <Link
+      href={item.href}
+      className="block border-b border-slate-200 bg-white px-3 py-2 last:border-b-0"
+      data-testid={`work-card-${item.id}`}
+    >
+      <div className="flex items-start gap-2.5">
+        <span className={cn("w-1 self-stretch rounded-full", stripeClass)} />
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-2 text-[11px] font-bold">
+            <StatusPill tone={item.severity}>{queueSeverity}</StatusPill>
+            <span className="text-[#0d4da1]">{orderCode}</span>
+            <span className="text-slate-500">- {status}</span>
+          </div>
+          <div className="truncate text-[13px] font-bold leading-tight text-slate-950">
+            {item.title}
+          </div>
+          <div className="truncate text-[11px] font-semibold leading-tight text-slate-600">
+            {item.reason}
+          </div>
+          <div className="truncate text-[11px] leading-tight text-slate-600">{item.detail}</div>
+          <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+            <span className="truncate">
+              Due: {item.id === "so-4481" ? "Tomorrow 09:00" : "Today 14:00"}
+            </span>
+            <span className="truncate">{item.owner}</span>
+          </div>
+        </div>
+        <div className="grid w-[72px] shrink-0 justify-items-end gap-1 text-right">
+          <span className={cn("grid h-7 w-7 place-items-center rounded-full", tone.bg)}>
+            <Icon className={cn("h-3.5 w-3.5", tone.icon)} aria-hidden="true" />
+          </span>
+          <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-slate-600">
+            {item.action}
+          </span>
+          <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function MobileWorkExecutionPage() {
+  const { work } = useScreens("crew");
+  const execution = work.execution;
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title={execution.orderNumber}
+        subtitle="In Progress"
+        left={<PdmBackLink href="/work-orders" />}
+        right={<span className="text-xs font-semibold text-blue-100">{execution.syncState}</span>}
+      />
+      <Content className="space-y-2 pb-28 pt-2">
+        <SectionCard>
+          <div className="flex gap-3 p-2">
+            <AssetImage
+              assetId={execution.assetId}
+              className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-bold text-slate-950">
+                    {execution.vesselName}
                   </div>
-                ))}
-              </div>
-              <div>
-                <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <Camera className="h-3.5 w-3.5" aria-hidden="true" />
-                    Required photos
-                  </span>
-                  <span>
-                    {work.execution.requiredPhotos} / {work.execution.requiredPhotos}
-                  </span>
+                  <div className="truncate text-xs font-medium text-slate-600">{execution.title}</div>
+                  <div className="truncate text-[11px] text-slate-500">{execution.description}</div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {work.execution.photoAssetIds.map((assetId) => (
-                    <AssetImage
-                      key={assetId}
-                      assetId={assetId}
-                      className="aspect-square rounded-lg border border-slate-200 object-cover"
-                    />
-                  ))}
-                  <button className="grid aspect-square place-items-center rounded-lg border border-slate-200 text-[#0d4da1]">
-                    <Plus className="h-6 w-6" aria-hidden="true" />
-                    <span className="text-xs font-semibold">Add</span>
-                  </button>
-                </div>
+                <StatusPill tone="medium">{execution.priority}</StatusPill>
               </div>
-              <InfoRow label="Parts Used" value={work.execution.partsUsed} />
-              <InfoRow label="Time & Labor" value={work.execution.labor} />
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button className="min-h-12 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-[#0d4da1]">
-                  {work.execution.offlineDraftAction}
-                </button>
-                <button className="min-h-12 rounded-lg bg-[#03295a] text-sm font-semibold text-white">
-                  {work.execution.primaryAction}
-                </button>
+              <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                <span>Due: {execution.due}</span>
+                <span className="truncate">{execution.technician}</span>
               </div>
             </div>
-          </SectionCard>
+          </div>
+        </SectionCard>
+        <div className="grid grid-cols-4 border-b border-slate-200 bg-white text-center text-xs font-semibold text-slate-600">
+          {["Work", "Details", "History", "Linked"].map((tab, index) => (
+            <button
+              key={tab}
+              type="button"
+              className={cn(
+                "min-h-9 border-b-2 border-transparent",
+                index === 0 && "border-[#0d4da1] text-[#0d4da1]"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <SectionCard>
+          <div className="space-y-1.5 p-2">
+            <div>
+              <div className="flex items-center justify-between text-[13px] font-semibold">
+                <span>Checklist ({execution.checklistProgress})</span>
+                <span>{execution.percentComplete}%</span>
+              </div>
+              <ProgressBar value={execution.percentComplete} />
+            </div>
+            <div className="divide-y rounded-lg border border-slate-200">
+              {execution.checklist.map((step) => (
+                <div
+                  key={step.label}
+                  className="flex min-h-8 items-center gap-2 px-2 py-1 text-[11px] leading-tight"
+                >
+                  {step.state === "done" ? (
+                    <CheckCircle2
+                      className="h-4 w-4 shrink-0 text-emerald-600"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <span className="h-4 w-4 shrink-0 rounded-full border border-slate-300" />
+                  )}
+                  <span className="min-w-0 flex-1">{step.label}</span>
+                  {step.telemetry ? (
+                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                      {step.telemetry}
+                    </span>
+                  ) : null}
+                  <Camera className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 px-2.5 py-1.5">
+            <h2 className="text-[12px] font-extrabold uppercase tracking-normal text-slate-800">
+              Photos
+            </h2>
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+              Required
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 p-2">
+            {execution.photoAssetIds.map((assetId) => (
+              <AssetImage
+                key={assetId}
+                assetId={assetId}
+                className="h-14 w-full rounded-lg border border-slate-200 object-cover"
+              />
+            ))}
+            <button className="grid h-14 place-items-center rounded-lg border border-slate-200 text-[#0d4da1]">
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              <span className="text-[11px] font-semibold">Add</span>
+            </button>
+          </div>
+        </section>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-2.5 py-1.5">
+            <div className="text-[12px] font-extrabold uppercase tracking-normal text-slate-800">
+              Notes
+            </div>
+            <div className="mt-1 text-xs leading-snug text-slate-700">{execution.notes}</div>
+          </div>
+          <CompactInfoRow label="Parts Used" value={`${execution.partsUsed} · Qty 1`} />
+          <CompactInfoRow label="Time & Labor" value={execution.labor} />
+        </section>
+        <div className="sticky bottom-16 z-20 grid grid-cols-[0.8fr_1fr_1.1fr] gap-2 bg-[#f6f8fb]/95 py-1.5">
+          <button className="min-h-10 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
+            Actions
+          </button>
+          <button className="min-h-10 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-[#0d4da1]">
+            {execution.offlineDraftAction}
+          </button>
+          <button className="min-h-10 rounded-lg bg-[#03295a] text-xs font-semibold text-white">
+            {execution.primaryAction}
+          </button>
         </div>
       </Content>
     </MobilePageShell>
@@ -1360,14 +1507,31 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CompactInfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-9 items-center justify-between border-b border-slate-200 px-2.5 py-1.5 text-xs last:border-b-0">
+      <span className="font-semibold text-slate-600">{label}</span>
+      <span className="text-right font-bold text-slate-950">{value}</span>
+    </div>
+  );
+}
+
 export function MobileLogsPage() {
   const { logs } = useScreens("captain");
   return (
     <MobilePageShell>
-      <NavyHeader title="Logs" subtitle="Daily Required" right={<CalendarIcon />} />
-      <Content>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {logs.requiredBanner}
+      <NavyHeader
+        title="Logs"
+        right={
+          <Link href="/logs" className="inline-flex items-center gap-2 text-xs font-semibold">
+            <CalendarIcon /> Daily Required <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        }
+      />
+      <Content className="space-y-2 pb-20 pt-2">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 truncate">{logs.requiredBanner}</span>
         </div>
         <div className="flex gap-4 overflow-x-auto border-b border-slate-200">
           {logs.tabs.map((tab, index) => (
@@ -1388,36 +1552,36 @@ export function MobileLogsPage() {
           title="Engine Log (Autofill Review)"
           action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
         >
-          <div className="p-3">
-            <div className="rounded-lg border border-slate-200 p-3">
-              <div className="grid grid-cols-[0.8fr_1.2fr] gap-3">
-                <div>
-                  <div className="text-xs text-slate-500">Auto-filled Entries</div>
-                  <div className="text-4xl font-bold text-slate-950">28</div>
-                  <div className="text-xs text-slate-500">Last 24 hours</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold text-slate-500">Telemetry Trust</div>
-                  {logs.autofillTrust.map((metric) => (
-                    <div key={metric.id} className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            metric.tone === "good"
-                              ? "bg-emerald-500"
-                              : metric.tone === "medium"
-                                ? "bg-amber-500"
-                                : "bg-red-500"
-                          )}
-                        />
-                        {metric.label}
-                      </span>
-                      <span className="font-semibold text-slate-700">{metric.value}</span>
-                    </div>
-                  ))}
-                </div>
+          <div className="space-y-2 p-2">
+            <div className="text-xs text-slate-600">Review and confirm auto-filled entries.</div>
+            <div className="grid grid-cols-[0.8fr_1.25fr_22px] items-center gap-2 rounded-lg border border-slate-200 p-2">
+              <div>
+                <div className="text-xs text-slate-500">Auto-filled Entries</div>
+                <div className="text-3xl font-bold text-slate-950">28</div>
+                <div className="text-xs text-slate-500">Last 24 hours</div>
               </div>
+              <div className="space-y-1.5">
+                <div className="text-xs font-semibold text-slate-500">Telemetry Trust</div>
+                {logs.autofillTrust.map((metric) => (
+                  <div key={metric.id} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          metric.tone === "good"
+                            ? "bg-emerald-500"
+                            : metric.tone === "medium"
+                              ? "bg-amber-500"
+                              : "bg-red-500"
+                        )}
+                      />
+                      {metric.label}
+                    </span>
+                    <span className="font-semibold text-slate-700">{metric.value}</span>
+                  </div>
+                ))}
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
             </div>
           </div>
         </SectionCard>
@@ -1426,7 +1590,7 @@ export function MobileLogsPage() {
             <Link
               key={card.title}
               href="/logs"
-              className="flex min-h-16 items-center justify-between border-b border-slate-200 px-3 py-3 last:border-b-0"
+              className="flex min-h-12 items-center justify-between border-b border-slate-200 px-3 py-1.5 last:border-b-0"
             >
               <div>
                 <div className="font-bold text-slate-950">
@@ -1445,8 +1609,25 @@ export function MobileLogsPage() {
           title="Compliance History"
           action={<span className="text-xs text-slate-500">Last 7 Days</span>}
         >
-          <div className="p-3">
+          <div className="space-y-2 p-3">
             <KpiStrip metrics={logs.complianceHistory} />
+            <div className="divide-y rounded-lg border border-slate-200 bg-white">
+              {logs.complianceRows.map((row) => (
+                <div
+                  key={row.date}
+                  className="grid grid-cols-[1fr_0.8fr_1fr_20px] items-center gap-2 px-3 py-1.5 text-xs"
+                >
+                  <span className="font-medium text-slate-600">{row.date}</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    {row.status}
+                  </span>
+                  <span className="truncate text-right text-slate-600">{row.signer}</span>
+                  <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
+            <button className="text-xs font-semibold text-[#0d4da1]">View More History</button>
           </div>
         </SectionCard>
         <div className="mx-auto flex w-fit items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
@@ -1771,6 +1952,7 @@ export function isMobileReadinessReplacementPath(path: string): boolean {
     currentPath.startsWith("/vessel-intelligence/") ||
     currentPath === "/maint" ||
     currentPath === "/work-orders" ||
+    currentPath.startsWith("/work-orders/") ||
     currentPath === "/pdm-platform" ||
     currentPath.startsWith("/pdm/equipment/") ||
     currentPath === "/logs" ||

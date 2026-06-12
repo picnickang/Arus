@@ -31,14 +31,21 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
   });
 
   it("shared mobile readiness screens contain the Figma panel concepts", async () => {
-    const screenSrc = await readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
-    const modelSrc = await readSrc("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    const screenSrc = await readSrc(
+      "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
+    );
+    const modelSrc = await readSrc(
+      "client/src/features/mobile-readiness/mobile-readiness-model.ts"
+    );
 
     expect(screenSrc).toContain("MobilePdmPage");
     expect(screenSrc).toContain("MobileCrewPage");
     expect(screenSrc).toContain("MobileInventoryPage");
     expect(screenSrc).toContain("MobileSettingsPage");
+    expect(screenSrc).toContain("MobileWorkExecutionPage");
     expect(screenSrc).toContain("PdM Risk Queue");
+    expect(screenSrc).toContain("Work Queue");
+    expect(screenSrc).toContain("Checklist");
     expect(screenSrc).toContain("Crew Readiness Overview");
     expect(screenSrc).toContain("Inventory & Logistics");
     expect(modelSrc).toContain("System Configuration");
@@ -47,6 +54,8 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
 
   it("routes service fulfillment lanes back into the work queue", async () => {
     const routes = await readSrc("client/src/routes/logistics.ts");
+    const maintenanceRoutes = await readSrc("client/src/routes/maintenance.ts");
+    expect(maintenanceRoutes).toContain('path: "/work-orders/:workOrderId"');
     expect(routes).toContain('path: "/service-orders"');
     expect(routes).toContain('path: "/service-requests"');
     expect(routes).toContain("component: WorkOrders");
@@ -111,7 +120,9 @@ describe("UI Align Phase 6 — RBAC behaviour stays in role-navigation-policy", 
     };
     const { getPrimaryCategoriesForRole } = await loadPolicy();
     const cats = getPrimaryCategoriesForRole("system_admin");
-    const byId = new Map(cats.map((category: { id: string; hubRoute: string }) => [category.id, category]));
+    const byId = new Map(
+      cats.map((category: { id: string; hubRoute: string }) => [category.id, category])
+    );
     for (const hubId of HUB_IDS) {
       const category = byId.get(hubId);
       expect(category?.hubRoute).toBe(expected[hubId].path);
