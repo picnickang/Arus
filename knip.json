@@ -4,6 +4,7 @@
     "client/src/main.tsx",
     "client/src/**/*.test.tsx",
     "jest.client.config.mjs",
+    "scripts/build-sidecar.mjs",
     "server/beast/index.ts",
     "server/compliance/routes.ts",
     "server/domains/agent/index.ts",
@@ -117,7 +118,12 @@
     "server/suppliers/index.ts",
     "shared/schema-runtime.ts"
   ],
-  "project": ["server/**/*.ts", "client/src/**/*.{ts,tsx}", "shared/**/*.ts"],
+  "project": [
+    "server/**/*.ts",
+    "client/src/**/*.{ts,tsx}",
+    "shared/**/*.ts",
+    "scripts/build-sidecar.mjs"
+  ],
   "paths": {
     "@/*": ["client/src/*"],
     "@shared/*": ["shared/*"]

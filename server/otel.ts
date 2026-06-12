@@ -34,7 +34,9 @@ let started = false;
 
 // `createRequire` keeps the lazy-load behaviour (the SDK is not pulled in
 // when the env var is absent) while avoiding `require` in this ESM module.
-const requireFromHere = createRequire(import.meta.url);
+const requireFromHere = createRequire(
+  typeof import.meta.url === "string" ? import.meta.url : __filename
+);
 
 interface NodeSDKLike {
   start(): void;
@@ -114,5 +116,3 @@ function parseHeaderEnv(raw: string): Record<string, string> {
   }
   return out;
 }
-
-export const otelEnabled = enabled && started;

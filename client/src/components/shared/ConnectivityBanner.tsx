@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/formatters";
 import { WifiOff, CloudOff, Loader2 } from "lucide-react";
 
 type ConnectionState = "online" | "degraded" | "offline" | "syncing";
 
 interface ConnectivityBannerProps {
   pendingSyncCount?: number;
+  lastSyncTime?: Date | null;
   className?: string;
 }
 
@@ -13,7 +15,18 @@ const FAST_INTERVAL_MS = 30 * 1000;
 const SLOW_INTERVAL_MS = 120 * 1000;
 const STABLE_THRESHOLD = 3;
 
-export function ConnectivityBanner({ pendingSyncCount = 0, className }: ConnectivityBannerProps) {
+function formatLastSync(lastSyncTime?: Date | null): string {
+  if (!lastSyncTime) {
+    return "No cloud sync yet.";
+  }
+  return `Last sync ${formatDate(lastSyncTime, { locale: "auto" })}.`;
+}
+
+export function ConnectivityBanner({
+  pendingSyncCount = 0,
+  lastSyncTime = null,
+  className,
+}: ConnectivityBannerProps) {
   const [state, setState] = useState<ConnectionState>("online");
   const [dismissed, setDismissed] = useState(false);
   const consecutiveSuccesses = useRef(0);
@@ -110,7 +123,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
   const config = {
     offline: {
       icon: WifiOff,
-      text: "Offline — supported vessel workflows are saved in the Offline Outbox and synced when connected",
+      text: `Local ready. Cloud offline — ${pendingSyncCount} queued item${pendingSyncCount !== 1 ? "s" : ""}. ${formatLastSync(lastSyncTime)}`,
       bg: "bg-destructive/10 border-destructive/30",
       iconColor: "text-destructive",
       textColor: "text-destructive",
@@ -118,7 +131,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
     },
     degraded: {
       icon: CloudOff,
-      text: "Slow connection — data may be delayed",
+      text: `Local ready. Cloud connection slow — sync may be delayed. ${formatLastSync(lastSyncTime)}`,
       bg: "bg-yellow-500/10 border-yellow-500/30",
       iconColor: "text-yellow-600 dark:text-yellow-400",
       textColor: "text-yellow-700 dark:text-yellow-300",
@@ -126,7 +139,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
     },
     syncing: {
       icon: Loader2,
-      text: `Syncing ${pendingSyncCount} item${pendingSyncCount !== 1 ? "s" : ""}...`,
+      text: `Local ready. Syncing ${pendingSyncCount} queued item${pendingSyncCount !== 1 ? "s" : ""} to cloud...`,
       bg: "bg-primary/10 border-primary/30",
       iconColor: "text-primary",
       textColor: "text-primary",

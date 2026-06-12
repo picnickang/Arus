@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getPendingCount } from "@/lib/offline-sync";
+import { getOfflineSyncSnapshot } from "@/lib/offline-sync";
 import { queryClient, replayQueuedApiRequests } from "@/lib/queryClient";
 
 import { ConnectivityBanner } from "./ConnectivityBanner";
 
 export function ConnectivityBannerWithSync() {
   const [pendingCount, setPendingCount] = useState(0);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const refreshPendingCount = useCallback(async () => {
     const cache = queryClient.getMutationCache();
     const activeMutations = cache.getAll().filter((m) => m.state.status === "pending").length;
-    const offlinePending = await getPendingCount().catch(() => 0);
-    setPendingCount(activeMutations + offlinePending);
+    const snapshot = await getOfflineSyncSnapshot().catch(() => ({
+      pending: [],
+      conflicts: [],
+      lastSyncTime: null,
+    }));
+    setPendingCount(activeMutations + snapshot.pending.length);
+    setLastSyncTime(snapshot.lastSyncTime);
   }, []);
 
   useEffect(() => {
@@ -57,5 +63,5 @@ export function ConnectivityBannerWithSync() {
     return () => window.clearInterval(interval);
   }, [pendingCount, refreshPendingCount]);
 
-  return <ConnectivityBanner pendingSyncCount={pendingCount} />;
+  return <ConnectivityBanner pendingSyncCount={pendingCount} lastSyncTime={lastSyncTime} />;
 }

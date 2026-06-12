@@ -1,17 +1,22 @@
 #!/usr/bin/env node
-import { execSync } from "node:child_process";
-import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { execFileSync, execSync } from "node:child_process";
+import { mkdirSync, copyFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, relative, extname } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { platform, arch } from "node:process";
+import { platform, arch, execPath } from "node:process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 const root = join(__dirname, "..");
 const distDir = join(root, "dist");
 const binDir = join(root, "src-tauri", "binaries");
 const bundleOut = join(distDir, "server-bundle.cjs");
 const assetsJson = join(distDir, "pkg-assets.json");
 const nmDir = join(root, "node_modules");
+const pkgPackageJsonPath = require.resolve("@yao-pkg/pkg/package.json");
+const pkgPackage = require("@yao-pkg/pkg/package.json");
+const pkgCli = join(dirname(pkgPackageJsonPath), pkgPackage.bin.pkg);
 
 const TARGETS = {
   "x86_64-pc-windows-msvc": { pkg: "node20-win-x64", ext: ".exe" },
@@ -41,6 +46,18 @@ function stage1_bundle() {
     "sharp",
     "cpu-features",
     "ssh2",
+    "../vite",
+    "vite",
+    "../vite.config",
+    "@vitejs/plugin-react",
+    "@replit/vite-plugin-runtime-error-modal",
+    "@replit/vite-plugin-cartographer",
+    "@replit/vite-plugin-dev-banner",
+    "lightningcss",
+    "fsevents",
+    "mock-aws-s3",
+    "aws-sdk",
+    "nock",
   ]
     .map((p) => `--external:${p}`)
     .join(" ");
@@ -48,6 +65,7 @@ function stage1_bundle() {
   execSync(
     `npx esbuild server/index.ts ` +
       `--platform=node --target=node20 --bundle --format=cjs ` +
+      `--loader:.html=text ` +
       `--outfile=${bundleOut} --allow-overwrite ` +
       externals,
     { stdio: "inherit", cwd: root }
@@ -77,18 +95,18 @@ function relToBundle(absPath) {
 function stage2_assetManifest() {
   console.log("\n📎 Stage 2 — Building asset manifest…");
 
-  const assets = {};
+  const assets = new Set();
 
   const libsqlDir = join(nmDir, "@libsql");
   const nodeFiles = findFiles(libsqlDir, (name) => extname(name) === ".node");
   for (const f of nodeFiles) {
-    assets[relToBundle(f)] = { isAsset: true };
+    assets.add(relToBundle(f));
     console.log(`  + ${relative(root, f)}`);
   }
 
   const wasmFiles = findFiles(libsqlDir, (name) => extname(name) === ".wasm");
   for (const f of wasmFiles) {
-    assets[relToBundle(f)] = { isAsset: true };
+    assets.add(relToBundle(f));
     console.log(`  + ${relative(root, f)} (wasm)`);
   }
 
@@ -97,14 +115,14 @@ function stage2_assetManifest() {
     const pkgDir = join(nmDir, pkg);
     const pkgNodes = findFiles(pkgDir, (name) => extname(name) === ".node");
     for (const f of pkgNodes) {
-      assets[relToBundle(f)] = { isAsset: true };
+      assets.add(relToBundle(f));
       console.log(`  + ${relative(root, f)}`);
     }
   }
 
-  const manifest = { assets, pkg: { assets } };
+  const manifest = { pkg: { assets: Array.from(assets) } };
   writeFileSync(assetsJson, JSON.stringify(manifest, null, 2));
-  console.log(`  ✅ Manifest: ${Object.keys(assets).length} asset(s)`);
+  console.log(`  ✅ Manifest: ${assets.size} asset(s)`);
 }
 
 function stage3_compile(triple) {
@@ -118,12 +136,20 @@ function stage3_compile(triple) {
   console.log(`\n🔨 Stage 3 — pkg compile → ${triple}…`);
   mkdirSync(binDir, { recursive: true });
 
-  execSync(
-    `npx pkg ${bundleOut} ` +
-      `--target ${t.pkg} ` +
-      `--config ${assetsJson} ` +
-      `--output ${outFile} ` +
-      `--compress GZip`,
+  execFileSync(
+    execPath,
+    [
+      pkgCli,
+      bundleOut,
+      "--target",
+      t.pkg,
+      "--config",
+      assetsJson,
+      "--output",
+      outFile,
+      "--compress",
+      "GZip",
+    ],
     { stdio: "inherit", cwd: root }
   );
   console.log(`  ✅ ${outFile}`);
@@ -144,6 +170,10 @@ function stage4_smokeTest(binPath) {
       env: {
         ...process.env,
         DATABASE_PATH: join(distDir, "smoke-test.db"),
+        DEPLOYMENT_MODE: "VESSEL",
+        EMBEDDED_MODE: "true",
+        LOCAL_MODE: "true",
+        NODE_ENV: "production",
         PORT: "0",
       },
     });
