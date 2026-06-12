@@ -607,4 +607,27 @@ describe("client tail component extractions", () => {
     expect(voice).toContain("toggleVoiceInput");
   });
 
+  it("keeps schedule planner types, filters, and sync helpers behind the public hook", () => {
+    const hook = read("client/src/features/crew/hooks/useSchedulePlannerData.ts");
+    const types = read("client/src/features/crew/hooks/useSchedulePlannerDataTypes.ts");
+    const filters = read("client/src/features/crew/hooks/useSchedulePlannerFilters.ts");
+    const sync = read("client/src/features/crew/hooks/useSchedulePlannerSync.ts");
+
+    expect(hook).toContain('from "./useSchedulePlannerDataTypes"');
+    expect(hook).toContain('from "./useSchedulePlannerFilters"');
+    expect(hook).toContain('from "./useSchedulePlannerSync"');
+    expect(hook).toContain("useSchedulePlannerSync()");
+    expect(hook).toContain("export function useSchedulePlannerData");
+    expect(hook).toContain("export type {");
+    expect(types).toContain("export interface ScheduleAssignment");
+    expect(types).toContain("export interface PlannerCrewMember");
+    expect(types).toContain("export interface PendingOperation");
+    expect(filters).toContain("export function getDateRangeFromPreset");
+    expect(filters).toContain("export function loadPersistedFilters");
+    expect(filters).toContain("export function persistFilters");
+    expect(sync).toContain("export function useSchedulePlannerSync");
+    expect(sync).toContain("flushPendingOperations");
+    expect(sync).toContain('"/api/crew-extensions/assignments"');
+  });
+
 });
