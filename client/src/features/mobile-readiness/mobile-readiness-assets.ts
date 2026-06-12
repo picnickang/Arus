@@ -1,4 +1,4 @@
-export type MobileReadinessAssetKind =
+type MobileReadinessAssetKind =
   | "vessel-thumbnail"
   | "crew-avatar"
   | "work-photo"
@@ -6,7 +6,7 @@ export type MobileReadinessAssetKind =
   | "chart"
   | "icon";
 
-export type MobileReadinessAssetStatus = "exported" | "recreated" | "fallback";
+type MobileReadinessAssetStatus = "exported" | "recreated" | "fallback";
 
 export interface MobileReadinessAsset {
   id: string;
@@ -78,13 +78,18 @@ function avatarSvg(initials: string, skin: string, shirt: string): string {
   `);
 }
 
+function workPhotoBody(kind: "compressor" | "gauge" | "motor"): string {
+  if (kind === "gauge") {
+    return '<circle cx="80" cy="58" r="34" fill="#f8fafc" stroke="#64748b" stroke-width="8"/><path d="M80 58l22-16" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/><text x="80" y="112" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">0.08</text>';
+  }
+  if (kind === "motor") {
+    return '<rect x="30" y="45" width="100" height="48" rx="12" fill="#64748b"/><circle cx="40" cy="69" r="28" fill="#334155"/><circle cx="128" cy="69" r="24" fill="#94a3b8"/><path d="M38 102h80" stroke="#475569" stroke-width="12" stroke-linecap="round"/>';
+  }
+  return '<rect x="22" y="42" width="116" height="50" rx="8" fill="#475569"/><path d="M35 54h90M35 68h90M35 82h90" stroke="#cbd5e1" stroke-width="5"/><circle cx="48" cy="106" r="14" fill="#334155"/><circle cx="112" cy="106" r="14" fill="#334155"/>';
+}
+
 function workPhotoSvg(kind: "compressor" | "gauge" | "motor"): string {
-  const body =
-    kind === "gauge"
-      ? '<circle cx="80" cy="58" r="34" fill="#f8fafc" stroke="#64748b" stroke-width="8"/><path d="M80 58l22-16" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/><text x="80" y="112" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">0.08</text>'
-      : kind === "motor"
-        ? '<rect x="30" y="45" width="100" height="48" rx="12" fill="#64748b"/><circle cx="40" cy="69" r="28" fill="#334155"/><circle cx="128" cy="69" r="24" fill="#94a3b8"/><path d="M38 102h80" stroke="#475569" stroke-width="12" stroke-linecap="round"/>'
-        : '<rect x="22" y="42" width="116" height="50" rx="8" fill="#475569"/><path d="M35 54h90M35 68h90M35 82h90" stroke="#cbd5e1" stroke-width="5"/><circle cx="48" cy="106" r="14" fill="#334155"/><circle cx="112" cy="106" r="14" fill="#334155"/>';
+  const body = workPhotoBody(kind);
   return svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 128">
       <rect width="160" height="128" rx="12" fill="#e5e7eb"/>

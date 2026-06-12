@@ -44,12 +44,11 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
 });
 
 /**
- * Push A1 — Serve the raw ONNX artifact for a deployed model so the
- * client-side onnxruntime-web adapter (client/src/lib/ml/onnx-web-adapter.ts)
- * can score offline / for what-if previews. Tenancy-scoped on orgId,
- * only deployed models are served, and the disk path is read from the
- * registry's training_metrics — not user input — so this cannot be
- * abused as an arbitrary-file read.
+ * Push A1 — Serve the raw ONNX artifact for a deployed model so future
+ * browser/offline scoring clients can consume the same deployed artifact.
+ * Tenancy-scoped on orgId, only deployed models are served, and the disk path
+ * is read from the registry's training_metrics — not user input — so this
+ * cannot be abused as an arbitrary-file read.
  */
 router.get("/ml/models/:id/artifact", async (req: AuthenticatedRequest, res: Response) => {
   try {

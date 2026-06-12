@@ -10,7 +10,7 @@ export type LogisticsTab =
   | "service-orders"
   | "service-requests";
 
-export interface LowStockSuggestion {
+interface LowStockSuggestion {
   partId?: string | null;
   partNumber?: string | null;
   partName?: string | null;
@@ -21,7 +21,7 @@ export interface LowStockSuggestion {
   vesselName?: string | null;
 }
 
-export interface LowStockResponse {
+interface LowStockResponse {
   total?: number;
   suggestions?: LowStockSuggestion[];
   estimatedTotalCost?: number | null;
@@ -45,7 +45,7 @@ export interface LogisticsQueueItem {
   action: string;
 }
 
-export interface LogisticsDataSourceStatus {
+interface LogisticsDataSourceStatus {
   id: string;
   label: string;
   state: "healthy" | "empty" | "degraded";

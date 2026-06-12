@@ -1,3 +1,5 @@
+import type { invoke as tauriCoreInvoke } from "@tauri-apps/api/core";
+
 import { isDesktop, getDesktopAPI } from "./desktop";
 
 const STORAGE_KEY = "arus_backend_url";
@@ -12,6 +14,30 @@ function tauriImport(mod: string): Promise<Record<string, unknown> | null> {
   );
 }
 
+type TauriInvoke = typeof tauriCoreInvoke;
+interface TauriCoreModule extends Record<string, unknown> {
+  invoke: TauriInvoke;
+}
+interface BackendConfig {
+  url: string;
+  mode: string;
+}
+
+function isTauriCoreModule(module: Record<string, unknown> | null): module is TauriCoreModule {
+  return typeof module?.["invoke"] === "function";
+}
+
+function isBackendConfig(value: unknown): value is BackendConfig {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "url" in value &&
+    typeof value.url === "string" &&
+    "mode" in value &&
+    typeof value.mode === "string"
+  );
+}
+
 export async function resolveBackendUrl(): Promise<string> {
   if (_cachedUrl) {
     return _cachedUrl;
@@ -20,12 +46,9 @@ export async function resolveBackendUrl(): Promise<string> {
   if (isDesktop()) {
     try {
       const core = await tauriImport("@tauri-apps/api/core");
-      if (core) {
-        const config = (await (core["invoke"] as (c: string) => unknown)("get_backend_config")) as {
-          url: string;
-          mode: string;
-        } | null;
-        if (config?.url) {
+      if (isTauriCoreModule(core)) {
+        const config = await core.invoke("get_backend_config");
+        if (isBackendConfig(config) && config.url) {
           _cachedUrl = config.url;
           return _cachedUrl;
         }

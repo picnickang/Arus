@@ -14,8 +14,9 @@
  *  - `groupCrewByRole` buckets ranks into the fixed display groups, in order.
  *  - `groupCrewByVessel` groups by vessel and always sinks the relief/unassigned
  *    pool to the end.
- *  - Source-scan: the new roster controls the spec requires (group-by chips,
- *    rehire filter chips, rehire badge) are actually wired in the components.
+ *  - Source-scan: the live mobile crew replacement still renders current and
+ *    former crew collections, document completion, blockers, and route
+ *    consolidation.
  *
  * What this does NOT verify (covered by the CI Playwright mobile spec and by
  * the backend crew API tests): live rendering, real API wiring, permissions.
@@ -166,95 +167,62 @@ describe("groupCrewByVessel", () => {
   });
 });
 
-describe("roster controls source-scan", () => {
+describe("mobile roster replacement source-scan", () => {
   const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-  it("Current roster wires the group-by chips (role / vessel / name)", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CurrentRoster.tsx");
-    expect(src).toContain("data-testid={`chip-group-${chip.mode}`}");
-    expect(src).toContain("groupCrewByRole");
-    expect(src).toContain("groupCrewByVessel");
+  it("renders current crew from the replacement model with status and document counts", () => {
+    const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    expect(src).toContain("crew.currentCrew.map");
+    expect(src).toContain("Current Crew (18)");
+    expect(src).toContain("{person.status}");
+    expect(src).toContain("{person.docs}");
   });
 
-  it("Former archive wires the rehire filter chips and the rehire badge", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/FormerArchive.tsx");
-    expect(src).toContain("data-testid={`chip-rehire-${chip.key}`}");
-    expect(src).toContain("testId={`pill-rehire-${member.id}`}");
-    expect(src).toContain("deriveRehireStatus");
+  it("renders former crew from the replacement model", () => {
+    const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    const model = read("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    expect(src).toContain("crew.formerCrew.map");
+    expect(src).toContain("Former Crew");
+    expect(model).toContain("formerCrew");
+    expect(model).toContain("Signed Off");
   });
 });
 
 /**
- * Consolidated crew page source-scan (Task #327).
+ * Consolidated crew page source-scan.
  *
- * Crew Overview (/crew) and Crew Management (/crew-management) are merged into
- * one landing. These checks pin the consolidation contract that the merge must
- * not regress: clustered fast actions (Crew / Admin / Go to), a single merged
- * "Needs attention" list, clickable summary counters that filter the roster,
- * and removal of the old admin tab bar from the page wrapper.
+ * Crew Overview (/crew) and Crew Management (/crew-management) now land on the
+ * mobile readiness replacement. These checks pin that the route consolidation
+ * keeps the active crew, former crew, blockers, and document state visible.
  */
-describe("consolidated crew landing source-scan", () => {
+describe("consolidated mobile crew route source-scan", () => {
   const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-  it("landing renders the three labeled fast-action clusters", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    expect(src).toContain('testId="cluster-crew"');
-    expect(src).toContain('testId="cluster-admin"');
-    expect(src).toContain('testId="cluster-goto"');
-  });
-
-  it("landing keeps admin/safety actions permission-gated", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    // User Accounts + Roles render only for admins; Safety only with the gate.
-    expect(src).toContain("{isAdmin &&");
-    expect(src).toContain("{canUseSafety &&");
-    expect(src).toContain("const showAdminCluster = isAdmin || canUseSafety;");
-  });
-
-  it("landing merges expiring certs + alerts into one attention list", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    expect(src).toContain('data-testid="attention-list"');
-    expect(src).toContain("data-testid={`attention-row-${item.id}`}");
-  });
-
-  it("landing exposes clickable counters that filter the roster", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    expect(src).toContain('testId="tile-onduty-count"');
-    expect(src).toContain('testId="tile-onleave-count"');
-    expect(src).toContain('onClick={() => onOpenCurrent("on_duty")}');
-    expect(src).toContain('onClick={() => onOpenCurrent("off_duty")}');
-    // The "Needs attention" counter focuses the on-page attention list
-    // instead of navigating away to the compliance surface.
-    expect(src).toContain("onClick={scrollToAttention}");
-    expect(src).toContain("scrollIntoView");
-  });
-
-  it("landing keeps counter tile rendering in a sibling component", () => {
-    const landing = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    const counterTile = read(
-      "client/src/components/UnifiedCrewManagement/CrewRegistryLandingCounterTile.tsx"
-    );
-
-    expect(landing).toContain('from "./CrewRegistryLandingCounterTile"');
-    expect(counterTile).toContain("export function CounterTile");
-    expect(counterTile).toContain("data-testid={testId}");
-  });
-
-  it("index merges cert + doc expiries into a ranked attention feed", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/index.tsx");
-    expect(src).toContain("attentionItems");
-    expect(src).toContain("URGENCY_RANK");
-    // Admin surfaces moved from the page tab bar into in-page views.
-    expect(src).toContain('view === "access"');
-    expect(src).toContain('deepLinkView === "roles"');
-    expect(src).toContain('view === "safety"');
-  });
-
-  it("page wrapper drops the old admin tab bar", () => {
+  it("page wrapper delegates to the mobile crew page and drops the old tab shell", () => {
     const src = read("client/src/pages/crew-management.tsx");
     expect(src).not.toContain("TabsTrigger");
     expect(src).not.toContain('data-testid="tab-crew-roster"');
+    expect(src).not.toContain("UnifiedCrewManagement");
     expect(src).toContain("MobileCrewPage");
+  });
+
+  it("replacement screen renders readiness, blockers, current crew, and former crew", () => {
+    const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    expect(src).toContain("Crew Readiness Overview");
+    expect(src).toContain("crew.blockers.map");
+    expect(src).toContain("crew.currentCrew.map");
+    expect(src).toContain("crew.formerCrew.map");
+    expect(src).toContain("Missing Required Roles");
+  });
+
+  it("replacement model keeps the consolidated crew summary data", () => {
+    const src = read("client/src/features/mobile-readiness/mobile-readiness-model.ts");
+    expect(src).toContain("function buildCrewScreen");
+    expect(src).toContain("currentCrew");
+    expect(src).toContain("formerCrew");
+    expect(src).toContain("Certificate Expired");
+    expect(src).toContain("Missing Roles");
+    expect(src).toContain('href: "/crew-management"');
   });
 
   it("retired /crew route redirects to the consolidated page", () => {
@@ -266,37 +234,35 @@ describe("consolidated crew landing source-scan", () => {
 });
 
 /**
- * Crew "Upload docs" destination (Task #328).
+ * Crew document destination source-scan.
  *
- * Crew documents are uploaded per individual crew member and stored with that
- * person's profile (`POST /api/crew/:id/documents`). The landing's "Upload docs"
- * fast-action must NOT dead-end on the compliance/governance page; it routes the
- * user into the current roster to pick a member, and each roster row exposes a
- * one-click "Documents" action that opens that member's profile on the Documents
- * tab. These checks pin that contract.
+ * Crew documents are still stored per individual crew member
+ * (`POST /api/crew/:id/documents`). The legacy upload shortcut was removed with
+ * the dead component tree, so these checks pin the live document hook and the
+ * mobile replacement's visible document status.
  */
-describe("crew upload-docs destination source-scan", () => {
+describe("crew document destination source-scan", () => {
   const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-  it("'Upload docs' no longer dead-ends on the compliance page", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/CrewRegistryLanding.tsx");
-    // The Upload docs tile must route into the roster, not the compliance surface.
-    expect(src).toContain('testId="action-upload-docs"');
-    const tileStart = src.indexOf('testId="action-upload-docs"');
-    const tileBlock = src.slice(Math.max(0, tileStart - 400), tileStart);
-    expect(tileBlock).toContain('onClick={() => onOpenCurrent("all")}');
-    expect(tileBlock).not.toContain("/compliance-consolidated");
+  it("the mobile crew page exposes document completion for each current crew member", () => {
+    const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    expect(src).toContain("crew.currentCrew.map");
+    expect(src).toContain("{person.docs}");
+    expect(src).toContain("Current Crew (18)");
   });
 
-  it("each roster member exposes a documents shortcut opening the Documents tab", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/crew-roster-shared.tsx");
-    expect(src).toContain("data-testid={`action-documents-${member.id}`}");
-    expect(src).toContain('d.handleViewProfile(member, "documents")');
+  it("document upload and renewal stay scoped to the selected crew member", () => {
+    const src = read("client/src/features/crew/hooks/useCrewDocumentsData.ts");
+    expect(src).toContain("useCrewDocumentsData(crewId: string)");
+    expect(src).toContain("`/api/crew/${crewId}/documents`");
+    expect(src).toContain("`/api/crew/${crewId}/documents/${docId}/file`");
+    expect(src).toContain("decideRenewalTask");
   });
 
-  it("the creation flow hands off to the new member's Documents tab", () => {
-    const src = read("client/src/components/UnifiedCrewManagement/OnboardingChecklistDialog.tsx");
-    expect(src).toContain('data-testid="button-onboarding-docs"');
-    expect(src).toContain('d.openOnboardingProfileTab("documents")');
+  it("renewal tasks link back to the crew document source", () => {
+    const src = read("client/src/features/crew/hooks/useCrewDocumentsData.ts");
+    expect(src).toContain('linkedSourceType: "crew_document"');
+    expect(src).toContain("linkedSourceId: doc.id");
+    expect(src).toContain("linkedSourceLabel: label");
   });
 });

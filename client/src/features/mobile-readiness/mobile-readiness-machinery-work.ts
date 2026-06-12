@@ -125,7 +125,7 @@ export function buildPdmScreen(): PdmScreen {
     telemetryAdvanced: {
       trust: "Good",
       confidence: 92,
-      lastUpdate: "2m ago (09:39)",
+      lastUpdate: "2m ago",
       rawReadingsAvailable: true,
       sensorHealthCount: 4,
       chartAssetId: "telemetry-risk-chart",

@@ -95,14 +95,18 @@ export function collectServerPaths() {
   const stdoutFd = openSync(routeDumpFile, "w");
   let result;
   try {
-    result = spawnSync("npx", ["tsx", join(ROOT, "scripts", "dump-routes.ts")], {
-      cwd: ROOT,
-      encoding: "utf8",
-      timeout: 180_000,
-      env: process.env,
-      maxBuffer: ROUTE_DUMP_MAX_BUFFER,
-      stdio: ["ignore", stdoutFd, "pipe"],
-    });
+    result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", join(ROOT, "scripts", "dump-routes.ts")],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        timeout: 180_000,
+        env: process.env,
+        maxBuffer: ROUTE_DUMP_MAX_BUFFER,
+        stdio: ["ignore", stdoutFd, "pipe"],
+      }
+    );
   } finally {
     closeSync(stdoutFd);
   }

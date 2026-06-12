@@ -1,3 +1,5 @@
+import type { invoke as tauriCoreInvoke } from "@tauri-apps/api/core";
+
 export interface UpdateInfo {
   version: string;
   date?: string | undefined;
@@ -34,20 +36,25 @@ const TAURI_UPDATER = "@tauri-apps/plugin-updater";
 const TAURI_PROCESS = "@tauri-apps/plugin-process";
 
 type TauriModule = Record<string, unknown>;
+type TauriInvoke = typeof tauriCoreInvoke;
+interface TauriCoreModule extends TauriModule {
+  invoke: TauriInvoke;
+}
 
 function dynamicImport(mod: string): Promise<TauriModule | null> {
   return (new Function("m", "return import(m)")(mod) as Promise<TauriModule>).catch(() => null);
 }
 
+function isTauriCoreModule(module: TauriModule | null): module is TauriCoreModule {
+  return typeof module?.["invoke"] === "function";
+}
+
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const core = await dynamicImport(TAURI_CORE);
-  if (!core) {
+  if (!isTauriCoreModule(core)) {
     throw new Error("Tauri core not available");
   }
-  return (core["invoke"] as (c: string, a?: Record<string, unknown>) => unknown)(
-    cmd,
-    args
-  ) as Promise<T>;
+  return core.invoke<T>(cmd, args);
 }
 
 interface TauriUpdate {

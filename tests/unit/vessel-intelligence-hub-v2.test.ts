@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "@jest/globals";
@@ -43,38 +43,6 @@ const MOBILE_READINESS_MODEL_PATHS = [
   resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts"),
   resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts"),
 ];
-const REGISTRY_API_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/registry-api.ts"
-);
-const REGISTRY_API_DIAGRAMS_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/registry-api-diagrams.ts"
-);
-const REGISTRY_API_HELPERS_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/registry-api-helpers.ts"
-);
-const REGISTRY_SCREENS_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/registry-screens.tsx"
-);
-const REGISTRY_SCREENS_DIR = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/registry-screens"
-);
-const SECTIONED_MAP_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/SectionedVesselMap.tsx"
-);
-const SIDE_ELEVATION_FIT_CONTROLS_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/SideElevationFitControls.tsx"
-);
-const SIDE_ELEVATION_CALIBRATION_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/side-elevation-calibration.ts"
-);
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 const DOMAIN_REGISTRY_CONFIG_PATHS = [
   DOMAIN_REGISTRY_PATH,
@@ -135,16 +103,6 @@ async function loadMobileReadinessScreens(): Promise<string> {
   return sources.join("\n");
 }
 
-/** The registry screens are split across the dispatcher module and one file
- * per screen in registry-screens/; pin test ids against the whole family. */
-async function loadRegistryScreens(): Promise<string> {
-  const names = (await readdir(REGISTRY_SCREENS_DIR)).filter((name) => name.endsWith(".tsx"));
-  const parts = await Promise.all(
-    names.sort().map((name) => load(resolve(REGISTRY_SCREENS_DIR, name)))
-  );
-  return [await load(REGISTRY_SCREENS_PATH), ...parts].join("\n");
-}
-
 describe("Vessel Intelligence Hub v2 route contract", () => {
   it("registers the full route family from the design package", async () => {
     const registry = await load(REGISTRY_PATH);
@@ -202,11 +160,18 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(mobileModel).toContain("nextAction");
   });
 
-  it("renders an explicit empty section state for blank maps", async () => {
-    const sectionedMap = await load(SECTIONED_MAP_PATH);
+  it("routes vessel detail through the mobile diagram replacement", async () => {
+    const page = await load(PAGE_PATH);
+    const mobileScreens = await loadMobileReadinessScreens();
+    const mobileModel = await loadMobileReadinessModel();
 
-    expect(sectionedMap).toContain("No sections yet. Draw or add your first section.");
-    expect(sectionedMap).toContain('data-testid="section-map-empty-sections"');
+    expect(page).toContain("MobileVesselDetailPage");
+    expect(mobileScreens).toContain("VesselDiagramPanel");
+    expect(mobileScreens).toContain("detail.diagramModes.map");
+    expect(mobileScreens).toContain("detail.selectedZone.actions.map");
+    expect(mobileScreens).toContain("data-asset-status={diagram.status}");
+    expect(mobileModel).toContain("diagramModes");
+    expect(mobileModel).toContain("selectedZone");
   });
 
   it("keeps the universal shell available while mobile replacement routes bypass it", async () => {
@@ -286,125 +251,21 @@ describe("Vessel Intelligence Hub v2 backend registry", () => {
   });
 });
 
-describe("Replaceable Diagram Registry controls", () => {
-  it("provides API hooks for every visible registry mutation surface", async () => {
-    const api = await load(REGISTRY_API_PATH);
-    const diagramApi = await load(REGISTRY_API_DIAGRAMS_PATH);
-    const helperApi = await load(REGISTRY_API_HELPERS_PATH);
-    const apiSurface = `${api}\n${diagramApi}\n${helperApi}`;
+describe("Vessel diagram mobile replacement controls", () => {
+  it("pins diagram modes, selected-zone context, and diagram asset rendering", async () => {
+    const screens = await loadMobileReadinessScreens();
+    const model = await loadMobileReadinessModel();
 
-    for (const hook of [
-      "useVesselDiagrams",
-      "useDiagramDetail",
-      "useDiagramVersions",
-      "useUploadDiagramVersion",
-      "usePublishDiagramVersion",
-      "useArchiveDiagramVersion",
-      "useRestoreDiagramVersion",
-      "useSectionMaps",
-      "useSectionMap",
-      "useCreateSectionMap",
-      "useCloneSectionMap",
-      "useUpdateSectionMapCalibration",
-      "useValidateSectionMap",
-      "usePublishSectionMap",
-      "useSectionAssignments",
-      "useAssignEquipmentToSection",
-      "useUploadSectionThumbnail",
-      "useUploadEquipmentThumbnail",
-      "useSectionMapTemplates",
-    ]) {
-      expect(apiSurface).toContain(`function ${hook}`);
-    }
-
-    expect(api).toContain("from \"./registry-api-diagrams\"");
-    expect(api).toContain("from \"./registry-api-helpers\"");
-    expect(apiSurface).toContain("/versions/upload");
-    expect(apiSurface).toContain("/publish");
-    expect(apiSurface).toContain("/archive");
-    expect(apiSurface).toContain("/restore-draft");
-    expect(apiSurface).toContain("/section-map-templates");
-    expect(apiSurface).toContain("/thumbnail");
-  });
-
-  it("pins replacement options, critical test ids, and permission-denied UI", async () => {
-    const screens = await loadRegistryScreens();
-    const sectionMap = await load(SECTIONED_MAP_PATH);
-    const fitControls = await load(SIDE_ELEVATION_FIT_CONTROLS_PATH);
-    const calibration = await load(SIDE_ELEVATION_CALIBRATION_PATH);
-
-    for (const testId of [
-      "diagram-manager",
-      "diagram-type-card-",
-      "button-upload-replace-diagram",
-      "dialog-upload-replace-diagram",
-      "replacement-option-keep-existing",
-      "replacement-option-start-blank",
-      "replacement-option-copy-vessel",
-      "replacement-option-copy-template",
-      "button-submit-upload-replace",
-      "button-view-versions",
-      "button-manage-thumbnails",
-      "button-validate-map",
-      "button-publish-map",
-      "thumbnail-manager",
-      "section-thumbnail-upload",
-      "equipment-thumbnail-upload",
-    ]) {
-      expect(screens).toContain(testId);
-    }
-
-    for (const testId of [
-      "section-equipment-list",
-      "section-equipment-empty",
-      "section-equipment-live",
-      "section-equipment-registry-only",
-      "button-manage-section-assignments",
-    ]) {
-      expect(sectionMap).toContain(testId);
-    }
-
-    for (const testId of [
-      "side-elevation-fit-controls",
-      "button-side-elevation-fit-contract",
-      "button-side-elevation-fit-reset",
-      "button-side-elevation-fit-expand",
-      "side-elevation-scale-slider",
-      "side-elevation-scale-value",
-      "side-elevation-length-slider",
-      "side-elevation-length-value",
-      "side-elevation-height-slider",
-      "side-elevation-height-value",
-      "side-elevation-pan-x-slider",
-      "side-elevation-pan-y-slider",
-      "button-save-side-elevation-fit",
-    ]) {
-      expect(fitControls).toContain(testId);
-    }
-
-    expect(sectionMap).toContain('preserveAspectRatio="xMidYMid meet"');
-    expect(calibration).toContain("DEFAULT_IMAGE_TRANSFORM");
-    expect(calibration).toContain("scaleX: 1");
-    expect(calibration).toContain("scaleY: 1");
-    expect(sectionMap).toContain("baseImageOffsetX");
-    expect(sectionMap).toContain("baseImageOffsetY");
-    expect(calibration).toContain("clampImageScale");
-    expect(calibration).toContain("imageFrameForScale");
-    expect(fitControls).toContain("useUpdateSectionMapCalibration");
-    expect(fitControls).toContain("Length");
-    expect(fitControls).toContain("Height");
-    expect(fitControls).toContain("Position");
-    expect(fitControls).toContain("Best fit");
-
-    expect(screens).toContain("Keep existing section map as draft overlay");
-    expect(screens).toContain("Start blank section map");
-    expect(screens).toContain("Copy section map from another vessel");
-    expect(screens).toContain("Copy section map from vessel type template");
-    expect(screens).toContain("PermissionDeniedInline");
-    expect(screens).toContain("Requires vessel-intelligence:upload-diagram");
-    expect(screens).toContain("Requires vessel-intelligence:publish-map");
-    expect(screens).toContain("No sections yet. Draw or add your first section.");
-    expect(screens).toContain("No equipment assigned to this section.");
+    expect(screens).toContain("VesselDiagramPanel");
+    expect(screens).toContain("detail.diagramModes.map");
+    expect(screens).toContain("detail.selectedZone.actions.map");
+    expect(screens).toContain('title="Vessel diagram"');
+    expect(screens).toContain("data-asset-status={diagram.status}");
+    expect(model).toContain("Side elevation");
+    expect(model).toContain("Machinery arrangement");
+    expect(model).toContain("Electrical single-line");
+    expect(model).toContain("selectedZone");
+    expect(model).toContain("Engine room");
   });
 
   it("routes legacy target query links to the intended hub tab", async () => {

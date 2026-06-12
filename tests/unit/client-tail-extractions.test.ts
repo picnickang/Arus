@@ -5,29 +5,6 @@ import { resolve } from "node:path";
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
 describe("client tail component extractions", () => {
-  it("keeps engine logbook row-components as the public import path", () => {
-    const barrel = read("client/src/components/engine-logbook/row-components.tsx");
-    const secondary = read("client/src/components/engine-logbook/row-secondary-components.tsx");
-
-    expect(barrel).toContain('export { EngineEventItem, EngineWatchCard }');
-    expect(barrel).toContain('export type { WatchData }');
-    expect(secondary).toContain("export function EngineEventItem");
-    expect(secondary).toContain("export function EngineWatchCard");
-    expect(secondary).toContain('data-testid={`event-${event.id}`}');
-    expect(secondary).toContain('data-testid={`input-watch-${period}-chief`}');
-  });
-  it("keeps logs compliance logbook status rendering in a page part", () => {
-    const page = read("client/src/pages/logs-compliance-hub.tsx");
-    const parts = read("client/src/pages/logs-compliance-hub-parts.tsx");
-
-    expect(page).toContain('from "./logs-compliance-hub-parts"');
-    expect(page).toContain("<LogbookStatusTab />");
-    expect(page).toContain('data-testid="tab-logbooks"');
-    expect(parts).toContain("export function LogbookStatusTab");
-    expect(parts).toContain('href="/stormgeo-settings"');
-    expect(parts).toContain("Notification Settings");
-  });
-
   it("keeps agent activity route rendering split behind the page", () => {
     const page = read("client/src/pages/agent-activity.tsx");
     const parts = read("client/src/pages/agent-activity-parts.tsx");
@@ -55,21 +32,6 @@ describe("client tail component extractions", () => {
     expect(vesselQueries).toContain("export async function fetchRequiredCrewPerVessel");
   });
 
-  it("keeps service request dialog controls behind the service requests page", () => {
-    const page = read("client/src/features/serviceRequests/pages/ServiceRequestsPage.tsx");
-    const dialogs = read(
-      "client/src/features/serviceRequests/pages/ServiceRequestsPageDialogs.tsx"
-    );
-
-    expect(page).toContain('from "./ServiceRequestsPageDialogs"');
-    expect(page).toContain("<ConvertToSODialog");
-    expect(page).toContain("<RejectDialog");
-    expect(dialogs).toContain("export function ConvertToSODialog");
-    expect(dialogs).toContain("export function RejectDialog");
-    expect(dialogs).toContain('data-testid="btn-submit-convert"');
-    expect(dialogs).toContain('data-testid="btn-submit-reject"');
-  });
-
   it("keeps shift-planning data shapes in a hook type module", () => {
     const hook = read("client/src/features/crew/hooks/useShiftPlanning.ts");
     const types = read("client/src/features/crew/hooks/useShiftPlanningTypes.ts");
@@ -79,33 +41,6 @@ describe("client tail component extractions", () => {
     expect(types).toContain("export interface SchedulePlanPayload");
     expect(types).toContain("export interface EnhancedSchedulePayload");
     expect(types).toContain("export interface CrewCertification");
-  });
-
-  it("keeps PDM equipment detail tail tabs in a sibling tab module", () => {
-    const page = read("client/src/pages/pdm-equipment-detail.tsx");
-    const tabs = read("client/src/pages/pdm-equipment-detail-tabs.tsx");
-
-    expect(page).toContain('from "./pdm-equipment-detail-tabs"');
-    expect(page).toContain("<AnomaliesTab equipmentId={equipmentId} />");
-    expect(page).toContain("<MaintenanceHistoryTab equipmentId={equipmentId} />");
-    expect(tabs).toContain("export function AnomaliesTab");
-    expect(tabs).toContain("export function MaintenanceHistoryTab");
-    expect(tabs).toContain("No anomalies detected for this equipment.");
-    expect(tabs).toContain("No maintenance history for this equipment.");
-  });
-
-  it("keeps scheduler qualification helpers behind crew scheduler cards", () => {
-    const cards = read("client/src/components/scheduling/crew-scheduler-cards.tsx");
-    const qualification = read(
-      "client/src/components/scheduling/crew-scheduler-qualification.tsx"
-    );
-
-    expect(cards).toContain('from "./crew-scheduler-qualification"');
-    expect(cards).toContain("export type { CrewCert, SchedulerCrew }");
-    expect(cards).toContain("export function SchedulingConfigCard");
-    expect(qualification).toContain("export function QualificationBridge");
-    expect(qualification).toContain("export const CREW_CERTIFICATION_TYPES");
-    expect(qualification).toContain('data-testid="qualification-bridge"');
   });
 
   it("keeps analytics hub presentation pieces in a page part", () => {
@@ -118,22 +53,6 @@ describe("client tail component extractions", () => {
     expect(parts).toContain("export function PredictiveInsightsCard");
     expect(parts).toContain("export function DomainStrip");
     expect(parts).toContain('data-testid="predictive-insights"');
-  });
-
-  it("keeps crew role default fields in a sibling module", () => {
-    const manager = read(
-      "client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx"
-    );
-    const defaults = read(
-      "client/src/components/UnifiedCrewManagement/CrewRoleManagerDefaults.tsx"
-    );
-
-    expect(manager).toContain('from "./CrewRoleManagerDefaults"');
-    expect(manager).toContain("<RoleDefaultsFields");
-    expect(manager).toContain("export function CrewRoleManager");
-    expect(defaults).toContain("export function RoleDefaultsFields");
-    expect(defaults).toContain("export function defaultsFromRole");
-    expect(defaults).toContain('data-testid={`select-${idPrefix}-department`}');
   });
 
   it("keeps system settings OpenAI key controls in a sibling card", () => {
@@ -233,21 +152,6 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
   });
 
-  it("keeps vessel dashboard UI behind the route orchestration file", () => {
-    const route = read("client/src/pages/vessel-dashboard/index.tsx");
-    const view = read("client/src/pages/vessel-dashboard/VesselDashboardView.tsx");
-
-    expect(route).toContain('from "./VesselDashboardView"');
-    expect(route).toContain("export default function VesselDashboard");
-    expect(route).toContain("<VesselDashboardView");
-    expect(view).toContain("export function VesselDashboardView");
-    expect(view).toContain("export function VesselDashboardLoading");
-    expect(view).toContain("export function VesselDashboardNotFound");
-    expect(view).toContain('data-testid="vessel-dashboard-page"');
-    expect(view).toContain('data-testid="btn-config-schematic"');
-    expect(view).toContain('data-testid="panel-inventory"');
-  });
-
   it("keeps mobile readiness screen clusters behind the route shell", () => {
     const route = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
     const shared = read("client/src/features/mobile-readiness/MobileReadinessShared.tsx");
@@ -331,24 +235,4 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid="button-submit"');
   });
 
-  it("keeps crew user access editor exports behind the public shell", () => {
-    const editor = read("client/src/components/crew-admin/UserAccessEditor.tsx");
-    const model = read("client/src/components/crew-admin/UserAccessEditorModel.ts");
-    const parts = read("client/src/components/crew-admin/UserAccessEditorParts.tsx");
-
-    expect(editor).toContain('from "./UserAccessEditorModel"');
-    expect(editor).toContain('from "./UserAccessEditorParts"');
-    expect(editor).toContain("export function UserAccessEditor");
-    expect(editor).toContain("export { previewLine }");
-    expect(editor).toContain("export type {");
-    expect(editor).toContain("CrewUser,");
-    expect(model).toContain("export function previewLine");
-    expect(parts).toContain("export function HubAccessSection");
-    expect(parts).toContain("export function CredentialsSection");
-    expect(parts).toContain("export function SaveResultList");
-    expect(parts).toContain('data-testid="checkbox-hub-admin"');
-    expect(parts).toContain('data-testid="button-reset-password"');
-    expect(parts).toContain('data-testid="access-save-result"');
-    expect(parts).toContain('data-testid="button-confirm-reset"');
-  });
 });

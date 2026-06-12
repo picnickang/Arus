@@ -71,6 +71,7 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("LogRequiredRow");
     expect(screenSrc).toContain("MessageSquare");
     expect(screenSrc).toContain("CalendarDays");
+    expect(screenSrc).toContain("KpiStrip");
     expect(screenSrc).toContain("Crew Readiness Overview");
     expect(screenSrc).toContain("View All Current Crew");
     expect(screenSrc).toContain("Former Crew (24)");
@@ -80,6 +81,15 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("Log Out");
     expect(modelSrc).toContain("System Configuration");
     expect(modelSrc).toContain("Copilot + Knowledge Base Settings");
+  });
+
+  it("captures all role-based Today reference states in the visual comparison sheet", async () => {
+    const scriptSrc = await readSrc("scripts/capture-mobile-readiness-comparison.mjs");
+
+    expect(scriptSrc).toContain('id: "role-today-captain"');
+    expect(scriptSrc).toContain('role: "captain"');
+    expect(scriptSrc).toContain('id: "role-today-crew"');
+    expect(scriptSrc).toContain('role: "maintenance_technician"');
   });
 
   it("routes service fulfillment lanes back into the work queue", async () => {
