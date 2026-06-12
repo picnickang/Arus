@@ -12,12 +12,7 @@ import {
 } from "@/features/crew";
 import { CREW_TASK_PRIORITIES, type CrewTaskPriority } from "@shared/schema";
 import { Field, Overlay } from "./dialogChrome";
-import {
-  certificateLabel,
-  documentLabel,
-  inputClass,
-  sourceKey,
-} from "./taskPresentation";
+import { certificateLabel, documentLabel, inputClass, sourceKey } from "./taskPresentation";
 import type { CertificateItem, CrewDocumentItem, CrewOption, VesselOption } from "./types";
 
 /**

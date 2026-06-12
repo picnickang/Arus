@@ -2,19 +2,13 @@ import multer from "multer";
 import type { Express } from "express";
 import { requireOrgId } from "../../../middleware/auth";
 import { enforceQuota } from "../../../middleware/tenant-quota";
-import {
-  mediaStoreResolver,
-  permission,
-  serviceResolver,
-} from "./route-helpers";
+import { mediaStoreResolver, permission, serviceResolver } from "./route-helpers";
 import { registerDiagramRoutes } from "./diagram-routes";
 import { registerSectionMapRoutes } from "./section-map-routes";
 import { registerSectionRoutes } from "./section-routes";
 import { registerTemplateSummaryRoutes } from "./template-summary-routes";
 import { registerThumbnailRoutes } from "./thumbnail-routes";
 import type { VesselDiagramRegistryRouteDeps } from "./route-context";
-
-export type { VesselDiagramRegistryRouteDeps } from "./route-context";
 
 const upload = multer({
   storage: multer.memoryStorage(),

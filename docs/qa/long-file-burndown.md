@@ -55,38 +55,38 @@ Completed splits:
 
 ## Top 30 Longest Files
 
-| Rank | Lines | File |
-| ---: | ----: | ---- |
-|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx` |
-|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx` |
-|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx` |
-|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx` |
-|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx` |
-|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx` |
-|    7 |   990 | `client/src/pages/ml-training.tsx` |
-|    8 |   937 | `shared/schema/ml-analytics-advanced.ts` |
-|    9 |   923 | `client/src/components/unified-crew-components.tsx` |
-|   10 |   917 | `server/domains/agent/application/orchestrator.ts` |
-|   11 |   899 | `client/src/pages/admin/3d-models.tsx` |
-|   12 |   880 | `server/services/domains/work-order-service.ts` |
-|   13 |   875 | `client/src/pages/copilot-admin.tsx` |
-|   14 |   869 | `client/src/pages/system-administration.tsx` |
-|   15 |   852 | `server/domains/workflow/application/attention-service.ts` |
-|   16 |   843 | `client/src/pages/findings.tsx` |
-|   17 |   836 | `client/src/components/analytics/FinanceMode.tsx` |
-|   18 |   832 | `shared/schema/logbooks.ts` |
-|   19 |   832 | `client/src/pages/deck-logbook/index.tsx` |
-|   20 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts` |
+| Rank | Lines | File                                                                      |
+| ---: | ----: | ------------------------------------------------------------------------- |
+|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`                       |
+|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx`                          |
+|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             |
+|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          |
+|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx`                         |
+|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    |
+|    7 |   990 | `client/src/pages/ml-training.tsx`                                        |
+|    8 |   937 | `shared/schema/ml-analytics-advanced.ts`                                  |
+|    9 |   923 | `client/src/components/unified-crew-components.tsx`                       |
+|   10 |   917 | `server/domains/agent/application/orchestrator.ts`                        |
+|   11 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
+|   12 |   880 | `server/services/domains/work-order-service.ts`                           |
+|   13 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
+|   14 |   869 | `client/src/pages/system-administration.tsx`                              |
+|   15 |   852 | `server/domains/workflow/application/attention-service.ts`                |
+|   16 |   843 | `client/src/pages/findings.tsx`                                           |
+|   17 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
+|   18 |   832 | `shared/schema/logbooks.ts`                                               |
+|   19 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
+|   20 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
 |   21 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   22 |   819 | `client/src/pages/inventory-management.tsx` |
-|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts` |
-|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` |
-|   25 |   809 | `client/src/pages/pdm-pack.tsx` |
-|   26 |   791 | `server/routes/service-request-routes.ts` |
-|   27 |   787 | `server/routes/rag-routes.ts` |
-|   28 |   786 | `client/src/pages/maintenance-schedules.tsx` |
-|   29 |   782 | `server/domains/crew-admin/interfaces/routes.ts` |
-|   30 |   779 | `client/src/components/CrewDocumentsTab.tsx` |
+|   22 |   819 | `client/src/pages/inventory-management.tsx`                               |
+|   23 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
+|   24 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts`  |
+|   25 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
+|   26 |   791 | `server/routes/service-request-routes.ts`                                 |
+|   27 |   787 | `server/routes/rag-routes.ts`                                             |
+|   28 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
+|   29 |   782 | `server/domains/crew-admin/interfaces/routes.ts`                          |
+|   30 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
 
 ## Recommended Extraction Plan
 

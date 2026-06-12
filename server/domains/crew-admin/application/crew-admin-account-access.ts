@@ -135,7 +135,10 @@ export async function linkExistingAccount(
   }
   const otherCrew = await repo.findCrewByUserId(orgId, userId);
   if (otherCrew) {
-    throw new CrewAdminError("That login is already linked to another crew member", "USER_ALREADY_LINKED");
+    throw new CrewAdminError(
+      "That login is already linked to another crew member",
+      "USER_ALREADY_LINKED"
+    );
   }
   await repo.setCrewUserLink(orgId, crewId, userId);
 }
@@ -197,7 +200,8 @@ export async function revokeCrewAccessForOffboarding(
     recordsPreserved: "yes",
     previousRole: account.role,
     previousAdditionalRoles: account.assignedRoleNames,
-    previousVesselAccessCount: account.assignments.filter((assignment) => assignment.isActive).length,
+    previousVesselAccessCount: account.assignments.filter((assignment) => assignment.isActive)
+      .length,
     previousHubAdmin: account.hubAdmin || isSuperAdminRole(account.role),
     failures: [],
   };
@@ -217,16 +221,20 @@ export async function revokeCrewAccessForOffboarding(
   };
 
   if (options.disableLogin ?? true) {
-    await runStep("Disable login", (value) => (result.loginDisabled = value), () =>
-      deps.setLoginEnabled(orgId, account.id, false)
+    await runStep(
+      "Disable login",
+      (value) => (result.loginDisabled = value),
+      () => deps.setLoginEnabled(orgId, account.id, false)
     );
   }
   if (options.removeVesselAccess ?? true) {
     if (result.previousVesselAccessCount === 0) {
       result.vesselAccessRemoved = "not_applicable";
     } else {
-      await runStep("Remove vessel access", (value) => (result.vesselAccessRemoved = value), () =>
-        deps.setAssignments(orgId, account.id, [], performedBy).then(() => undefined)
+      await runStep(
+        "Remove vessel access",
+        (value) => (result.vesselAccessRemoved = value),
+        () => deps.setAssignments(orgId, account.id, [], performedBy).then(() => undefined)
       );
     }
   }
@@ -234,8 +242,10 @@ export async function revokeCrewAccessForOffboarding(
     if (!result.previousHubAdmin) {
       result.dashboardAccessRemoved = "not_applicable";
     } else {
-      await runStep("Remove dashboard/admin access", (value) => (result.dashboardAccessRemoved = value), () =>
-        deps.repo.setHubAccessGrant(orgId, account.id, false, null)
+      await runStep(
+        "Remove dashboard/admin access",
+        (value) => (result.dashboardAccessRemoved = value),
+        () => deps.repo.setHubAccessGrant(orgId, account.id, false, null)
       );
     }
   }
@@ -243,8 +253,10 @@ export async function revokeCrewAccessForOffboarding(
     if (account.assignedRoleNames.length === 0) {
       result.additionalRolesRemoved = "not_applicable";
     } else {
-      await runStep("Remove additional roles", (value) => (result.additionalRolesRemoved = value), () =>
-        deps.repo.replaceRoleAssignments(orgId, account.id, [], performedBy)
+      await runStep(
+        "Remove additional roles",
+        (value) => (result.additionalRolesRemoved = value),
+        () => deps.repo.replaceRoleAssignments(orgId, account.id, [], performedBy)
       );
     }
   }
@@ -252,8 +264,10 @@ export async function revokeCrewAccessForOffboarding(
     if (account.role === OFFBOARDING_SAFE_ROLE) {
       result.primaryRoleDowngraded = "not_applicable";
     } else {
-      await runStep("Downgrade primary role", (value) => (result.primaryRoleDowngraded = value), () =>
-        deps.changeRole(orgId, account.id, OFFBOARDING_SAFE_ROLE)
+      await runStep(
+        "Downgrade primary role",
+        (value) => (result.primaryRoleDowngraded = value),
+        () => deps.changeRole(orgId, account.id, OFFBOARDING_SAFE_ROLE)
       );
     }
   }

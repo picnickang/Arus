@@ -20,9 +20,13 @@ export const diagramParamsSchema = vesselParamsSchema.extend({ diagramId: z.stri
 export const versionParamsSchema = diagramParamsSchema.extend({ versionId: z.string().min(1) });
 export const mapParamsSchema = vesselParamsSchema.extend({ mapId: z.string().min(1) });
 export const sectionParamsSchema = mapParamsSchema.extend({ sectionId: z.string().min(1) });
-export const assignmentParamsSchema = sectionParamsSchema.extend({ assignmentId: z.string().min(1) });
+export const assignmentParamsSchema = sectionParamsSchema.extend({
+  assignmentId: z.string().min(1),
+});
 export const templateParamsSchema = z.object({ templateId: z.string().min(1) });
-export const thumbnailSectionParamsSchema = vesselParamsSchema.extend({ sectionId: z.string().min(1) });
+export const thumbnailSectionParamsSchema = vesselParamsSchema.extend({
+  sectionId: z.string().min(1),
+});
 export const thumbnailEquipmentParamsSchema = vesselParamsSchema.extend({
   equipmentId: z.string().min(1),
 });
@@ -41,12 +45,12 @@ export const updateDiagramSchema = z.object({
   currentSectionMapId: z.string().min(1).nullable().optional(),
 });
 
-export const normalizedPointSchema = z.object({
+const normalizedPointSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
 });
 
-export const imageTransformSchema = z.object({
+const imageTransformSchema = z.object({
   scaleX: z.number().min(0.75).max(1.35),
   scaleY: z.number().min(0.75).max(1.35),
   offsetX: z.number().min(-0.2).max(0.2),

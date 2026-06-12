@@ -5,37 +5,29 @@ import {
   parseUpload,
   parseUploadBehavior,
   permission,
-  thumbnailResponse,
   versionResponse,
 } from "./route-helpers";
 import type { VesselDiagramRouteContext } from "./route-context";
 import {
-  assignmentParamsSchema,
-  assignEquipmentSchema,
-  cloneMapSchema,
   createDiagramSchema,
-  createSectionMapSchema,
   diagramParamsSchema,
-  fromTemplateSchema,
-  importSectionMapSchema,
-  mapParamsSchema,
-  polygonSchema,
-  sectionParamsSchema,
-  sectionSchema,
-  summariesQuerySchema,
-  templateParamsSchema,
-  thumbnailEquipmentParamsSchema,
-  thumbnailSectionParamsSchema,
   updateDiagramSchema,
-  updateEquipmentSchema,
-  updateSectionMapSchema,
-  updateSectionSchema,
   versionParamsSchema,
   vesselParamsSchema,
 } from "./route-schemas";
 
 export function registerDiagramRoutes(routeContext: VesselDiagramRouteContext): void {
-  const { app, deps, getMediaStore, getService, orgGate, readPermission, storageQuota, upload, writeLimit } = routeContext;
+  const {
+    app,
+    deps,
+    getMediaStore,
+    getService,
+    orgGate,
+    readPermission,
+    storageQuota,
+    upload,
+    writeLimit,
+  } = routeContext;
 
   app.get(
     "/api/vessel-intelligence/:vesselId/diagrams",

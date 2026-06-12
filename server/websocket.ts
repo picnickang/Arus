@@ -188,10 +188,7 @@ class TelemetryWebSocketServer {
     return `client_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
   }
 
-  private handleMessage(
-    client: WebSocketClient,
-    message: WebSocketClientMessage
-  ) {
+  private handleMessage(client: WebSocketClient, message: WebSocketClientMessage) {
     const messageHandlers: Record<string, () => void> = {
       subscribe: () => {
         if (!message.channel) {

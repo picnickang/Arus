@@ -21,7 +21,9 @@ const registryConfigPaths = [
   path.resolve(__dirname, "../../server/routes/domain-router-config-domain-routes.ts"),
   path.resolve(__dirname, "../../server/routes/domain-router-config-mounted-routes.ts"),
 ];
-const registrySource = registryConfigPaths.map((filePath) => fs.readFileSync(filePath, "utf-8")).join("\n");
+const registrySource = registryConfigPaths
+  .map((filePath) => fs.readFileSync(filePath, "utf-8"))
+  .join("\n");
 
 describe("Domain Router Registry", () => {
   it("registry file exists", () => {

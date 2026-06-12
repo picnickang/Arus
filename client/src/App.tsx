@@ -299,7 +299,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-20 md:pb-0" : ""}`}
+        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-14 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >

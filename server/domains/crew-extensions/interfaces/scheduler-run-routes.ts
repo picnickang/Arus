@@ -18,10 +18,7 @@ import {
   runsQuerySchema,
 } from "./scheduler-route-schemas.js";
 
-export function registerSchedulerRunRoutes(
-  app: Express,
-  config: CrewExtensionsRoutesConfig
-): void {
+export function registerSchedulerRunRoutes(app: Express, config: CrewExtensionsRoutesConfig): void {
   const { crewOperationRateLimit } = config;
 
   app.post(

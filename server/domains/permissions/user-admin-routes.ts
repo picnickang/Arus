@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { jsonRecordSchema } from "@shared/validation/json";
-import { insertUserRoleAssignmentSchema } from "../../../shared/schema/permissions";
+import { insertUserRoleAssignmentSchema } from "@shared/schema-runtime";
 import { validateResponse } from "../../lib/api-helpers";
 import { sendCreated, sendDeleted, withErrorHandling } from "../../lib/route-utils";
 import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
@@ -12,11 +12,7 @@ import {
   usersWithRolesResponseSchema,
 } from "./response-schemas";
 import { permissionService } from "./service";
-import {
-  auditQuerySchema,
-  userIdParamSchema,
-  userIdRoleIdParamSchema,
-} from "./route-shared";
+import { auditQuerySchema, userIdParamSchema, userIdRoleIdParamSchema } from "./route-shared";
 
 export function registerPermissionUserAdminRoutes(app: Express) {
   app.get(

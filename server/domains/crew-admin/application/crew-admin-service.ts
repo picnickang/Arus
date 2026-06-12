@@ -130,13 +130,8 @@ export class CrewAdminApplicationService {
     role: RoleSummary;
     previousHubState: { hubAdmin: boolean; hubAccess: string[] | null };
   }> {
-    return setRoleHubAccessForRepo(
-      this.repo,
-      orgId,
-      id,
-      hubAdmin,
-      hubAccess,
-      (targetOrgId) => this.permissionCacheInvalidator?.invalidateOrg(targetOrgId)
+    return setRoleHubAccessForRepo(this.repo, orgId, id, hubAdmin, hubAccess, (targetOrgId) =>
+      this.permissionCacheInvalidator?.invalidateOrg(targetOrgId)
     );
   }
 

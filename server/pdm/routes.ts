@@ -9,6 +9,7 @@ import { z } from "zod";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { validateResponse } from "../lib/api-helpers";
 import { logger } from "../utils/logger";
+import { db } from "../db";
 import { createAcknowledgeRiskUseCase } from "./application/acknowledge-risk.use-case";
 import { createCreateWorkOrderFromRiskUseCase } from "./application/create-work-order.use-case";
 import { createGetAssetDetailUseCase } from "./application/get-asset-detail.use-case";
@@ -24,11 +25,7 @@ import {
 } from "./domain/response-schemas";
 import { registerPdmEquipmentLiveRoutes } from "./equipment-live-routes";
 import { registerPdmExportRoutes } from "./export-routes";
-import {
-  dashboardFiltersSchema,
-  filterRiskQueue,
-  scheduleFiltersSchema,
-} from "./routes-shared";
+import { dashboardFiltersSchema, filterRiskQueue, scheduleFiltersSchema } from "./routes-shared";
 
 const router = Router();
 
@@ -187,6 +184,7 @@ registerPdmExportRoutes(router, {
   getScheduleUseCase,
 });
 registerPdmEquipmentLiveRoutes(router, {
+  database: db,
   getRiskQueueUseCase,
 });
 registerPdmAnalysisRoutes(router);

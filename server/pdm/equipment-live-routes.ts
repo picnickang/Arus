@@ -9,18 +9,19 @@ import {
 } from "@shared/schema-runtime";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import type { GetRiskQueueUseCase } from "./application/get-risk-queue.use-case";
-import { db } from "../db";
 import { DatabaseTelemetryStorage } from "../db/telemetry/db-telemetry";
 import { authenticatedRequest } from "../middleware/auth";
 import { logger } from "../utils/logger";
+import type { db as pdmDb } from "../db";
 
 interface PdmEquipmentLiveRouteDependencies {
+  database: typeof pdmDb;
   getRiskQueueUseCase: GetRiskQueueUseCase;
 }
 
 export function registerPdmEquipmentLiveRoutes(
   router: Router,
-  { getRiskQueueUseCase }: PdmEquipmentLiveRouteDependencies
+  { database, getRiskQueueUseCase }: PdmEquipmentLiveRouteDependencies
 ): void {
   const telemetryStorage = new DatabaseTelemetryStorage();
 
@@ -76,7 +77,7 @@ export function registerPdmEquipmentLiveRoutes(
         return res.json({ equipmentId, equipmentType: null, vesselId: null, items: [], total: 0 });
       }
 
-      const [target] = await db
+      const [target] = await database
         .select({
           id: equipment.id,
           orgId: equipment.orgId,
@@ -111,7 +112,7 @@ export function registerPdmEquipmentLiveRoutes(
       // table), this endpoint enforces it without further changes
       // — and a vessel inserted with a foreign orgId can never leak
       // through this path even if equipment.orgId were ever wrong.
-      const allowedVesselRows = await db
+      const allowedVesselRows = await database
         .select({ id: vessels.id })
         .from(vessels)
         .where(eq(vessels.orgId, orgId));
@@ -144,7 +145,7 @@ export function registerPdmEquipmentLiveRoutes(
         conditions.push(ne(equipment.vesselId, target.vesselId));
       }
 
-      const rows = await db
+      const rows = await database
         .select({
           failureId: failureHistoryPg.id,
           failureTimestamp: failureHistoryPg.failureTimestamp,

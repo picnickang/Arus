@@ -5,11 +5,7 @@ import { withErrorHandling } from "../../lib/route-utils";
 import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
 import { isDevAuthBypassEnabled, isDevBypassUser } from "../../security/dev-auth";
 import { mapCompiledToContract, type MapperLogger } from "./mapper";
-import {
-  getCrewLinkForUser,
-  getUserDiagnosticRow,
-  permissionRepository,
-} from "./repository";
+import { getCrewLinkForUser, getUserDiagnosticRow, permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { DEV_ORG_ID, DEV_USER_ID } from "./route-shared";
 

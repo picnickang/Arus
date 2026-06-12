@@ -9,7 +9,7 @@ export const dashboardFiltersSchema = z.object({
   search: z.string().optional(),
 });
 
-export type DashboardFilters = z.infer<typeof dashboardFiltersSchema>;
+export type PdmDashboardFilters = z.infer<typeof dashboardFiltersSchema>;
 
 export const scheduleFiltersSchema = z.object({
   vesselIds: z.string().optional(),
@@ -25,7 +25,7 @@ export const scheduleFiltersSchema = z.object({
 
 export function filterRiskQueue(
   items: RiskQueueItem[],
-  filters: DashboardFilters
+  filters: PdmDashboardFilters
 ): RiskQueueItem[] {
   return items.filter((item) => {
     if (filters.vesselId && item.vesselId !== filters.vesselId) {
