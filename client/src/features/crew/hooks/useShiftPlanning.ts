@@ -29,70 +29,16 @@ import {
   createDefaultPortCall,
   createDefaultDrydock,
 } from "@/features/crew";
-
-interface Crew {
-  id: string;
-  name: string;
-  rank: string;
-  vesselId?: string;
-  maxHours7d: number;
-  minRestH: number;
-  active: boolean;
-  skills: string[];
-}
-interface PortCall {
-  id: string;
-  vesselId: string;
-  port: string;
-  start: string;
-  end: string;
-  crewRequired: number;
-}
-interface DrydockWindow {
-  id: string;
-  vesselId: string;
-  description: string;
-  start: string;
-  end: string;
-  crewRequired: number;
-}
-interface CrewCertification {
-  id: string;
-  crewId: string;
-  cert: string;
-  expiresAt: string;
-  issuedBy?: string;
-}
-interface VesselData {
-  id: string;
-  name: string;
-}
-interface LeaveData {
-  id: string;
-  crewId: string;
-  start: string;
-  end: string;
-  type: string;
-}
-interface SchedulePlanPayload {
-  days: string[];
-  shifts: SelectShiftTemplate[];
-  crew: Crew[];
-  leaves: LeaveData[];
-  existing: unknown[];
-}
-interface EnhancedSchedulePayload {
-  engine: string;
-  days: string[];
-  shifts: SelectShiftTemplate[];
-  crew: Crew[];
-  leaves: LeaveData[];
-  portCalls: PortCall[];
-  drydocks: DrydockWindow[];
-  certifications: Record<string, CrewCertification[]>;
-  preferences: SchedulingPreferences;
-  validate_stcw: boolean;
-}
+import type {
+  Crew,
+  CrewCertification,
+  DrydockWindow,
+  EnhancedSchedulePayload,
+  LeaveData,
+  PortCall,
+  SchedulePlanPayload,
+  VesselData,
+} from "./useShiftPlanningTypes";
 
 export interface UseShiftPlanningReturn {
   selectedDays: string[];

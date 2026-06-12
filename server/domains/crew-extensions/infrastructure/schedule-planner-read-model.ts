@@ -8,7 +8,6 @@ import type {
   SchedulePlannerView,
   ScheduleDayCell,
   CrewMemberSummary,
-  VesselSummary,
   UnfilledShiftSummary,
   SchedulePlannerFilter,
 } from "../domain/read-models";
@@ -22,7 +21,6 @@ import {
   crewCertification,
   crewSkill,
   crewLeave,
-  shiftTemplate,
   crewAssignment,
 } from "@shared/schema";
 import { eq, and, gte, lte, inArray, sql, count } from "drizzle-orm";
@@ -43,6 +41,11 @@ import {
   recordDebounceSkip,
   updateViewStats,
 } from "./schedule-planner-metrics.js";
+import {
+  fetchCurrentCrewPerVessel,
+  fetchRequiredCrewPerVessel,
+  fetchVessels,
+} from "./schedule-planner-vessel-queries.js";
 
 const logger = createLogger("SchedulePlannerReadModel");
 
@@ -54,7 +57,7 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
     try {
       const [vesselList, crewMembers, assignments, unfilled, vesselCrewCounts, vesselRequirements] =
         await Promise.all([
-          this.fetchVessels(filter.orgId, filter.vesselIds),
+          fetchVessels(filter.orgId, filter.vesselIds),
           this.fetchCrewMembersWithDetails(
             filter.orgId,
             filter.crewIds,
@@ -64,8 +67,8 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
           ),
           this.fetchAssignments(filter),
           filter.includeUnfilled !== false ? this.fetchUnfilled(filter) : [],
-          this.fetchCurrentCrewPerVessel(filter.orgId),
-          this.fetchRequiredCrewPerVessel(filter.orgId),
+          fetchCurrentCrewPerVessel(filter.orgId),
+          fetchRequiredCrewPerVessel(filter.orgId),
         ]);
 
       const vesselMap = new Map(vesselList.map((v) => [v.id, v]));
@@ -151,90 +154,6 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
     logger.info("Read model refresh triggered", { orgId, triggeredBy });
 
     recordRefresh(orgId, triggeredBy, Date.now() - startTime);
-  }
-
-  private async fetchVessels(orgId: string, vesselIds?: string[]): Promise<VesselSummary[]> {
-    try {
-      const conditions = [eq(vessels.orgId, orgId)];
-      if (vesselIds?.length) {
-        conditions.push(inArray(vessels.id, vesselIds));
-      }
-
-      const result = await db
-        .select({
-          id: vessels.id,
-          name: vessels.name,
-          active: vessels.active,
-          condition: vessels.condition,
-        })
-        .from(vessels)
-        .where(and(...conditions))
-        .orderBy(vessels.name);
-
-      return result.map((row) => ({
-        id: row.id,
-        name: row.name || "Unknown Vessel",
-        requiredCrew: 0,
-        currentCrew: 0,
-        operationalStatus: (row.active ? "active" : "inactive") as
-          | "active"
-          | "maintenance"
-          | "docked",
-      }));
-    } catch (error) {
-      logger.warn("Failed to fetch vessels, returning empty list", { error });
-      return [];
-    }
-  }
-
-  private async fetchCurrentCrewPerVessel(
-    orgId: string
-  ): Promise<{ vesselId: string; count: number }[]> {
-    try {
-      const result = await db
-        .select({
-          vesselId: crew.vesselId,
-          count: count(),
-        })
-        .from(crew)
-        .where(and(eq(crew.orgId, orgId), eq(crew.active, true)))
-        .groupBy(crew.vesselId);
-
-      return result
-        .filter((r) => r.vesselId !== null)
-        .map((r) => ({
-          vesselId: r.vesselId!,
-          count: Number(r.count),
-        }));
-    } catch (error) {
-      logger.warn("Failed to fetch current crew per vessel", { error });
-      return [];
-    }
-  }
-
-  private async fetchRequiredCrewPerVessel(
-    orgId: string
-  ): Promise<{ vesselId: string; count: number }[]> {
-    try {
-      const result = await db
-        .select({
-          vesselId: shiftTemplate.vesselId,
-          count: count(),
-        })
-        .from(shiftTemplate)
-        .where(eq(shiftTemplate.orgId, orgId))
-        .groupBy(shiftTemplate.vesselId);
-
-      return result
-        .filter((r) => r.vesselId !== null)
-        .map((r) => ({
-          vesselId: r.vesselId!,
-          count: Number(r.count),
-        }));
-    } catch (error) {
-      logger.warn("Failed to fetch required crew per vessel", { error });
-      return [];
-    }
   }
 
   private async fetchCrewMembersWithDetails(

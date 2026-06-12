@@ -91,7 +91,7 @@ migration.
    migration must produce the same DDL: fresh DBs come from `db:push`,
    existing DBs from `npm run db:migrate`.
 4. Load-bearing index/FK/column? Extend the assertion arrays in
-   `server/scripts/migrate.ts` (`REQUIRED_INDEXES`, `REQUIRED_FKS`,
+   `server/scripts/migration-critical-objects.ts` (`REQUIRED_INDEXES`, `REQUIRED_FKS`,
    `REQUIRED_COLUMNS`) so a skipped migration fails the deploy loudly.
 5. Verify: `npm run check && npm run check:guards`, then against a
    scratch DB: `npm run db:push` (fresh) / `npm run db:migrate` +

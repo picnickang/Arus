@@ -2,27 +2,16 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
@@ -36,68 +25,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Calendar, Mail, FileText, Clock, Play, Trash2, Eye, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
 import { formatDate } from "@/lib/formatters";
 import type { ReportSchedule } from "@shared/schema/scheduled-reports";
-
-// Matches the previous `new Date(x).toLocaleString()` rendering exactly
-// (browser locale, all-numeric date + time).
-const RUN_DATE_FORMAT = {
-  locale: "auto",
-  month: "numeric",
-  hour: "numeric",
-  minute: "numeric",
-  second: "numeric",
-  fallback: "Never",
-} as const;
-
-const REPORT_TYPES = [
-  { id: "fleet_health", name: "Fleet Health Summary" },
-  { id: "maintenance_due", name: "Maintenance Due Report" },
-  { id: "inventory_status", name: "Inventory Status Report" },
-  { id: "crew_compliance", name: "Crew Compliance Report" },
-  { id: "cost_summary", name: "Cost Summary Report" },
-] as const;
-
-const FREQUENCIES = [
-  { id: "daily", name: "Daily", cron: "0 8 * * *" },
-  { id: "weekly", name: "Weekly", cron: "0 8 * * 1" },
-  { id: "monthly", name: "Monthly", cron: "0 8 1 * *" },
-] as const;
-
-const FORMATS = [
-  { id: "pdf", name: "PDF" },
-  { id: "csv", name: "CSV" },
-  { id: "json", name: "JSON" },
-] as const;
-
-const createScheduleFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-  reportType: z.enum([
-    "fleet_health",
-    "maintenance_due",
-    "inventory_status",
-    "crew_compliance",
-    "cost_summary",
-  ]),
-  frequency: z.enum(["daily", "weekly", "monthly"]),
-  format: z.enum(["pdf", "csv", "json"]),
-  recipients: z.string().min(1, "At least one recipient is required"),
-  enabled: z.boolean(),
-});
-
-type CreateScheduleForm = z.infer<typeof createScheduleFormSchema>;
+import { CreateScheduleDialog } from "./scheduled-reports-create-dialog";
+import {
+  FREQUENCIES,
+  REPORT_TYPES,
+  RUN_DATE_FORMAT,
+  createScheduleFormSchema,
+  type CreateScheduleForm,
+} from "./scheduled-reports-form";
 
 function PreviewModal({ scheduleId, reportType }: { scheduleId: string; reportType: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -336,146 +277,13 @@ export default function ScheduledReports() {
           <div>
             <p className="text-muted-foreground">Automate report generation and delivery</p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-create-schedule">
-                <Plus className="w-4 h-4 mr-2" />
-                New Schedule
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create Report Schedule</DialogTitle>
-                <DialogDescription>
-                  Set up automated report generation and delivery.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Schedule Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            data-testid="input-schedule-name"
-                            placeholder="Weekly Fleet Health Report"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="reportType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Report Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-report-type">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {REPORT_TYPES.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="frequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frequency</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-frequency">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {FREQUENCIES.map((freq) => (
-                                <SelectItem key={freq.id} value={freq.id}>
-                                  {freq.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="format"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Format</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-format">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {FORMATS.map((fmt) => (
-                                <SelectItem key={fmt.id} value={fmt.id}>
-                                  {fmt.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="recipients"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Recipients (comma-separated emails)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            data-testid="input-recipients"
-                            placeholder="admin@company.com, ops@company.com"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={createMutation.isPending}
-                      data-testid="button-submit-schedule"
-                    >
-                      {createMutation.isPending ? "Creating..." : "Create Schedule"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <CreateScheduleDialog
+            open={isCreateOpen}
+            onOpenChange={setIsCreateOpen}
+            form={form}
+            isSubmitting={createMutation.isPending}
+            onSubmit={handleSubmit}
+          />
         </div>
 
         {isLoading ? (

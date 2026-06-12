@@ -39,7 +39,12 @@ import type {
 } from "@shared/schema";
 import type { EquipmentHealthFilters, EquipmentHealth } from "./types.js";
 import { getWebSocketServer } from "./websocket.js";
-import { projectEquipment, retractInstalledOn } from "../../graph/projector";
+import {
+  projectCreatedEquipment,
+  retractDisassociatedEquipment,
+  syncAssociatedEquipment,
+  syncUpdatedEquipment,
+} from "./equipment-graph-sync.js";
 
 export class DatabaseEquipmentStorage {
   private validateOrgId(orgId: string | undefined, method: string): void {
@@ -100,27 +105,7 @@ export class DatabaseEquipmentStorage {
     if (!newEquipment) {
       throw new Error("createEquipment: insert returned no row");
     }
-    // Push A2 — project new equipment into the knowledge graph. No-op
-    // when GRAPH_ENABLED=false; never throws (best-effort wrapper).
-    // Failures are logged at warn level (with orgId/equipmentId) so
-    // graph drift is observable, not silent.
-    try {
-      if (!newEquipment.orgId) {
-        throw new Error("missing orgId");
-      }
-      await projectEquipment(newEquipment.orgId, {
-        id: newEquipment.id,
-        name: newEquipment.name,
-        type: newEquipment.type,
-        vesselId: newEquipment.vesselId,
-        systemType: newEquipment.systemType,
-      });
-    } catch (err) {
-      logger.warn(`[Graph] projectEquipment(${newEquipment.id}) failed`, {
-        orgId: newEquipment.orgId,
-        details: err instanceof Error ? err.message : String(err),
-      });
-    }
+    await projectCreatedEquipment(newEquipment);
     try {
       const mod = await import("../../equipment-analytics-service.js");
       const svc = mod.equipmentAnalyticsService as {
@@ -196,36 +181,7 @@ export class DatabaseEquipmentStorage {
     if (!updated) {
       throw new Error(`Equipment ${id} not found`);
     }
-    // Task #81 — re-project on update so the graph stays in lockstep
-    // with the live row. vesselId/type/name may have changed, which
-    // would otherwise leave a stale INSTALLED_ON edge or label.
-    // MERGE-keyed on id, so re-projection is idempotent. Best-effort
-    // by contract; never blocks the relational write.
-    //
-    // If vesselId moved (reassigned or cleared), retract the stale
-    // INSTALLED_ON edge first — projectEquipment only ADDS the new
-    // edge, so without retraction the equipment would appear
-    // simultaneously installed on both vessels (graph diverges from
-    // relational truth, which only stores one vesselId).
-    try {
-      if (updated.orgId) {
-        if (priorVesselId && priorVesselId !== updated.vesselId) {
-          await retractInstalledOn(updated.orgId, updated.id, priorVesselId);
-        }
-        await projectEquipment(updated.orgId, {
-          id: updated.id,
-          name: updated.name,
-          type: updated.type,
-          vesselId: updated.vesselId,
-          systemType: updated.systemType,
-        });
-      }
-    } catch (err) {
-      logger.warn(`[Graph] projectEquipment(${updated.id}) on update failed`, {
-        orgId: updated.orgId,
-        details: err instanceof Error ? err.message : String(err),
-      });
-    }
+    await syncUpdatedEquipment(updated, priorVesselId);
     const ws = getWebSocketServer();
     ws?.broadcastEquipmentChange("update", updated);
     return updated;
@@ -353,26 +309,7 @@ export class DatabaseEquipmentStorage {
     if (!updated) {
       throw new Error(`Equipment ${equipmentId} update returned no row`);
     }
-    // Task #81 — keep graph INSTALLED_ON edge in lockstep. Retract
-    // the old edge first (projectEquipment only ADDs), then re-project.
-    // Best-effort; never blocks the relational write.
-    try {
-      if (priorVesselId && priorVesselId !== vesselId) {
-        await retractInstalledOn(orgId, equipmentId, priorVesselId);
-      }
-      await projectEquipment(orgId, {
-        id: updated.id,
-        name: updated.name,
-        type: updated.type,
-        vesselId: updated.vesselId,
-        systemType: updated.systemType,
-      });
-    } catch (err) {
-      logger.warn(`[Graph] projectEquipment(${equipmentId}) on associate failed`, {
-        orgId,
-        details: err instanceof Error ? err.message : String(err),
-      });
-    }
+    await syncAssociatedEquipment(orgId, equipmentId, updated, priorVesselId, vesselId);
     return updated;
   }
   async disassociateEquipmentFromVessel(equipmentId: string, orgId: string): Promise<void> {
@@ -399,17 +336,7 @@ export class DatabaseEquipmentStorage {
     if (!result) {
       throw new Error(`Equipment ${equipmentId} not found`);
     }
-    // Task #81 — retract stale INSTALLED_ON edge. Best-effort.
-    if (priorVesselId) {
-      try {
-        await retractInstalledOn(orgId, equipmentId, priorVesselId);
-      } catch (err) {
-        logger.warn(`[Graph] retractInstalledOn(${equipmentId}) on disassociate failed`, {
-          orgId,
-          details: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
+    await retractDisassociatedEquipment(orgId, equipmentId, priorVesselId);
   }
 
   async getEquipmentLifecycle(equipmentId?: string): Promise<EquipmentLifecycle[]> {

@@ -17,15 +17,32 @@ const UNIVERSAL_NAV_PATH = resolve(
 const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry.ts");
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
+const NAV_RESOURCES_PATH = resolve(REPO_ROOT, "client/src/config/navigationResources.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
 const MOBILE_READINESS_SCREEN_PATH = resolve(
   REPO_ROOT,
   "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
 );
+const MOBILE_READINESS_SCREEN_PATHS = [
+  MOBILE_READINESS_SCREEN_PATH,
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/MobileReadinessShared.tsx"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx"),
+];
 const MOBILE_READINESS_MODEL_PATH = resolve(
   REPO_ROOT,
   "client/src/features/mobile-readiness/mobile-readiness-model.ts"
 );
+const MOBILE_READINESS_MODEL_PATHS = [
+  MOBILE_READINESS_MODEL_PATH,
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-model-types.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-navigation.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts"),
+];
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 const DOMAIN_REGISTRY_CONFIG_PATHS = [
   DOMAIN_REGISTRY_PATH,
@@ -76,6 +93,16 @@ async function loadDomainRouterRegistry(): Promise<string> {
   return sources.join("\n");
 }
 
+async function loadMobileReadinessModel(): Promise<string> {
+  const sources = await Promise.all(MOBILE_READINESS_MODEL_PATHS.map(load));
+  return sources.join("\n");
+}
+
+async function loadMobileReadinessScreens(): Promise<string> {
+  const sources = await Promise.all(MOBILE_READINESS_SCREEN_PATHS.map(load));
+  return sources.join("\n");
+}
+
 describe("Vessel Intelligence Hub v2 route contract", () => {
   it("registers the full route family from the design package", async () => {
     const registry = await load(REGISTRY_PATH);
@@ -101,6 +128,7 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
 
   it("surfaces Fleet Triage as the Fleet hub without weakening existing resources", async () => {
     const nav = await load(NAV_PATH);
+    const resources = await load(NAV_RESOURCES_PATH);
     expect(nav).toContain('hubRoute: "/fleet"');
     expect(nav.indexOf('name: "Fleet Triage"')).toBeLessThan(
       nav.indexOf('name: "Vessel Intelligence"')
@@ -108,16 +136,18 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(nav).toContain('href: "/fleet"');
     expect(nav).toContain('name: "Vessel Intelligence"');
     expect(nav).toContain("vessel-specific workflows");
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"');
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
+    expect(resources).toContain(
+      '"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"'
+    );
+    expect(resources).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
+    expect(resources).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
   });
 
   it("keeps /fleet as a real route instead of a legacy redirect", async () => {
     const redirectMap = new Map(legacyRedirects.map((redirect) => [redirect.from, redirect.to]));
     const fleetPage = await load(FLEET_PAGE_PATH);
-    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+    const mobileScreens = await loadMobileReadinessScreens();
+    const mobileModel = await loadMobileReadinessModel();
 
     expect(routeMigrations["/fleet"]).toBeUndefined();
     expect(redirectMap.has("/fleet")).toBe(false);
@@ -132,8 +162,8 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
 
   it("routes vessel detail through the mobile diagram replacement", async () => {
     const page = await load(PAGE_PATH);
-    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+    const mobileScreens = await loadMobileReadinessScreens();
+    const mobileModel = await loadMobileReadinessModel();
 
     expect(page).toContain("MobileVesselDetailPage");
     expect(mobileScreens).toContain("VesselDiagramPanel");
@@ -186,8 +216,8 @@ describe("Vessel Intelligence Hub v2 design registry", () => {
 describe("Vessel Intelligence Hub v2 mobile readiness binding", () => {
   it("delegates vessel detail to the shared mobile readiness replacement", async () => {
     const page = await load(PAGE_PATH);
-    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+    const mobileScreens = await loadMobileReadinessScreens();
+    const mobileModel = await loadMobileReadinessModel();
 
     expect(page).toContain("MobileVesselDetailPage");
     expect(mobileScreens).toContain("export function MobileVesselDetailPage");
@@ -223,8 +253,8 @@ describe("Vessel Intelligence Hub v2 backend registry", () => {
 
 describe("Vessel diagram mobile replacement controls", () => {
   it("pins diagram modes, selected-zone context, and diagram asset rendering", async () => {
-    const screens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const model = await load(MOBILE_READINESS_MODEL_PATH);
+    const screens = await loadMobileReadinessScreens();
+    const model = await loadMobileReadinessModel();
 
     expect(screens).toContain("VesselDiagramPanel");
     expect(screens).toContain("detail.diagramModes.map");
@@ -240,7 +270,7 @@ describe("Vessel diagram mobile replacement controls", () => {
 
   it("routes legacy target query links to the intended hub tab", async () => {
     const routes = await load(FLEET_ROUTES_PATH);
-    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
+    const mobileScreens = await loadMobileReadinessScreens();
 
     expect(routes).toContain('"/fleet/:vesselId"');
     expect(routes).toContain('"/equipment-schematic/:vesselId"');

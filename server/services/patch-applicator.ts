@@ -19,6 +19,13 @@ import { assertCloudMode, getCloudTable } from "../utils/cloud-guards";
 import crypto from "node:crypto";
 import { runTrustedExecutable, validatePath } from "../lib/secure-exec";
 import { createLogger } from "../lib/structured-logger";
+import {
+  cleanOldPatchBackups,
+  createPatchBackup,
+  listPatchBackups,
+  rollbackPatchBackup,
+  type PatchBackupSummary,
+} from "./patch-applicator-backups";
 const logger = createLogger("Services:PatchApplicator");
 
 /**
@@ -66,82 +73,14 @@ export class PatchApplicator {
    * Create a backup of files that will be modified
    */
   private async createBackup(files: string[]): Promise<string> {
-    const backupId = `backup-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
-    const backupPath = path.join(this.backupDir, backupId);
-
-    fs.mkdirSync(backupPath, { recursive: true });
-
-    logger.info(`[PatchApplicator] Creating backup: ${backupId}`);
-
-    for (const file of files) {
-      // Security: contain the backup source (app dir) and destination (backup
-      // dir). createBackup runs before per-change validation, so guard here too.
-      const sourcePath = validatePath(this.appDir, file);
-
-      if (fs.existsSync(sourcePath)) {
-        const destPath = validatePath(backupPath, file);
-        const destDir = path.dirname(destPath);
-
-        // Ensure destination directory exists
-        if (!fs.existsSync(destDir)) {
-          fs.mkdirSync(destDir, { recursive: true });
-        }
-
-        // Copy file to backup
-        fs.copyFileSync(sourcePath, destPath);
-      }
-    }
-
-    // Save backup manifest
-    const manifest = {
-      id: backupId,
-      timestamp: new Date().toISOString(),
-      files,
-      appVersion: this.getCurrentVersion(),
-    };
-
-    fs.writeFileSync(path.join(backupPath, "manifest.json"), JSON.stringify(manifest, null, 2));
-
-    logger.info(`[PatchApplicator] Backup created: ${backupId} (${files.length} files)`);
-    return backupId;
+    return createPatchBackup(files, this.backupDir, this.appDir, this.getCurrentVersion());
   }
 
   /**
    * Restore files from backup
    */
   async rollback(backupId: string): Promise<void> {
-    const backupPath = path.join(this.backupDir, backupId);
-
-    if (!fs.existsSync(backupPath)) {
-      throw new Error(`Backup not found: ${backupId}`);
-    }
-
-    logger.info(`[PatchApplicator] Rolling back to backup: ${backupId}`);
-
-    // Read backup manifest
-    const manifestPath = path.join(backupPath, "manifest.json");
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-
-    // Restore each file
-    for (const file of manifest.files) {
-      const sourcePath = path.join(backupPath, file);
-      const destPath = path.join(this.appDir, file);
-
-      if (fs.existsSync(sourcePath)) {
-        const destDir = path.dirname(destPath);
-
-        // Ensure destination directory exists
-        if (!fs.existsSync(destDir)) {
-          fs.mkdirSync(destDir, { recursive: true });
-        }
-
-        // Restore file
-        fs.copyFileSync(sourcePath, destPath);
-        logger.info(`[PatchApplicator] Restored: ${file}`);
-      }
-    }
-
-    logger.info(`[PatchApplicator] Rollback complete: ${backupId}`);
+    return rollbackPatchBackup(backupId, this.backupDir, this.appDir);
   }
 
   /**
@@ -533,53 +472,15 @@ export class PatchApplicator {
   /**
    * List available backups
    */
-  listBackups(): Array<{ id: string; timestamp: string; files: string[]; version: string }> {
-    const backups: Array<{ id: string; timestamp: string; files: string[]; version: string }> = [];
-
-    if (!fs.existsSync(this.backupDir)) {
-      return backups;
-    }
-
-    const entries = fs.readdirSync(this.backupDir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.startsWith("backup-")) {
-        const manifestPath = path.join(this.backupDir, entry.name, "manifest.json");
-
-        if (fs.existsSync(manifestPath)) {
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-          backups.push({
-            id: manifest.id,
-            timestamp: manifest.timestamp,
-            files: manifest.files,
-            version: manifest.appVersion,
-          });
-        }
-      }
-    }
-
-    return backups.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  listBackups(): PatchBackupSummary[] {
+    return listPatchBackups(this.backupDir);
   }
 
   /**
    * Clean old backups (keep last N)
    */
   cleanOldBackups(keepCount: number = 10): void {
-    const backups = this.listBackups();
-
-    if (backups.length <= keepCount) {
-      return;
-    }
-
-    const toDelete = backups.slice(keepCount);
-
-    logger.info(`[PatchApplicator] Cleaning ${toDelete.length} old backups...`);
-
-    for (const backup of toDelete) {
-      const backupPath = path.join(this.backupDir, backup.id);
-      fs.rmSync(backupPath, { recursive: true, force: true });
-      logger.info(`[PatchApplicator] Deleted backup: ${backup.id}`);
-    }
+    cleanOldPatchBackups(this.backupDir, keepCount);
   }
 }
 
