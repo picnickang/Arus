@@ -34,7 +34,7 @@ import {
   type MqttPayloadCallback,
 } from "./subscription.js";
 import { publishCatchupMessages } from "./catchup.js";
-import { setMqttConnectionStatus, incrementMqttReconnectionAttempts } from "../observability";
+import { setMqttConnectionStatus, recordMqttReconnection } from "../observability";
 import { logExpectedLimitation, logger } from "../utils/logger.js";
 
 export class MqttReliableSyncService extends EventEmitter {
@@ -190,7 +190,7 @@ export class MqttReliableSyncService extends EventEmitter {
     this.client.on("reconnect", () => {
       this.reconnectAttempts++;
       this.metrics.reconnectionAttempts++;
-      incrementMqttReconnectionAttempts();
+      recordMqttReconnection();
 
       const shouldLog =
         this.reconnectAttempts <= 10 ||

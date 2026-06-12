@@ -144,13 +144,6 @@ export {
   setMqttQueueUtilization,
   setMqttConnectionStatus,
   updateMqttMetrics,
-  // Backward-compatible aliases
-  incrementMqttMessagesPublished,
-  incrementMqttMessagesQueued,
-  incrementMqttMessagesDropped,
-  incrementMqttPublishFailures,
-  incrementMqttReconnectionAttempts,
-  incrementMqttQueueFlushes,
 } from "./mqtt-metrics";
 
 // Security metrics
@@ -236,16 +229,10 @@ export {
   recordKbVectorIndexRebuild,
   setKbVectorIndexLatency,
   setKbVectorIndexRowCount,
-  // Backward-compatible aliases
-  incrementKbChunksProcessed,
-  incrementKbEmbeddingCacheHit,
-  incrementKbEmbeddingCacheMiss,
   incrementKbDocumentsUploaded,
   incrementKbUploadBytes,
   incrementKbUploadInflight,
   decrementKbUploadInflight,
-  incrementKbSearch,
-  recordKbSearchResultsCount,
 } from "./rag-metrics";
 
 // Job queue metrics

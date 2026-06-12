@@ -169,11 +169,6 @@ export function setKbVectorIndexRowCount(count: number) {
   kbVectorIndexRowCount.set(count);
 }
 
-// Backward-compatible aliases
-export const incrementKbChunksProcessed = recordKbChunkProcessed;
-export const incrementKbEmbeddingCacheHit = recordKbEmbeddingCacheHit;
-export const incrementKbEmbeddingCacheMiss = recordKbEmbeddingCacheMiss;
-
 export function incrementKbDocumentsUploaded(
   orgId: string,
   fileType: string,
@@ -193,6 +188,3 @@ export function incrementKbUploadInflight(orgId: string) {
 export function decrementKbUploadInflight(orgId: string) {
   kbUploadInflight.dec({ org_id: orgId });
 }
-
-export const incrementKbSearch = recordKbSearch;
-export const recordKbSearchResultsCount = recordKbSearchResults;

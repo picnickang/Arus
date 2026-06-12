@@ -8,9 +8,9 @@ import type mqtt from "mqtt";
 import type { MqttMessage, MqttMetrics } from "./types.js";
 import { persistQueue } from "./queue-persistence.js";
 import {
-  incrementMqttQueueFlushes,
-  incrementMqttMessagesQueued,
-  incrementMqttMessagesDropped,
+  recordMqttQueueFlush,
+  recordMqttQueued,
+  recordMqttDropped,
   updateMqttMetrics,
 } from "../observability";
 import { logger } from "../utils/logger.js";
@@ -31,14 +31,14 @@ export function enqueueMessage(
     // Queue full - drop oldest message to make room
     const dropped = queue.shift();
     metrics.messagesDropped++;
-    incrementMqttMessagesDropped();
+    recordMqttDropped();
     logger.warn("MqttReliableSync", `Queue full (${maxQueueSize}), dropped oldest message`);
     emit("message_dropped", { dropped });
   }
 
   queue.push(message);
   metrics.messagesQueued++;
-  incrementMqttMessagesQueued();
+  recordMqttQueued();
 
   // Persist queue asynchronously (fire and forget)
   persistQueue(queueDir, queue).catch((error) => {
@@ -106,7 +106,7 @@ export async function flushMessageQueue(
 
   if (successCount > 0) {
     metrics.queueFlushes++;
-    incrementMqttQueueFlushes();
+    recordMqttQueueFlush();
     emit("queue_flushed", { sent: successCount, failed: failureCount });
   }
 

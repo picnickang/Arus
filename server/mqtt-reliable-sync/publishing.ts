@@ -9,7 +9,7 @@ import type { MqttMessage, MqttMetrics, PublishOptions, DataChangeOperation } fr
 import { getTopicForEntity } from "./config.js";
 import { enqueueMessage } from "./message-queue.js";
 import { nextSeq } from "../repos/sequenceRepo";
-import { incrementMqttMessagesPublished, incrementMqttPublishFailures } from "../observability";
+import { recordMqttPublish, recordMqttFailure } from "../observability";
 import { logger } from "../utils/logger.js";
 
 interface PublishContext {
@@ -45,7 +45,7 @@ export async function publishDataChange(
   } catch (error) {
     logger.error("MqttReliableSync", `Failed to generate sequence for ${entityType}`, error);
     ctx.metrics.publishFailures++;
-    incrementMqttPublishFailures();
+    recordMqttFailure();
     throw error;
   }
 
@@ -84,7 +84,7 @@ export async function publishDataChange(
   } catch (error) {
     logger.error("MqttReliableSync", `Failed to serialize ${operation} for ${entityType}`, error);
     ctx.metrics.publishFailures++;
-    incrementMqttPublishFailures();
+    recordMqttFailure();
     throw new Error(
       `Message serialization failed: ${error instanceof Error ? error.message : "Unknown error"}`
     );
@@ -131,7 +131,7 @@ export async function publishDataChange(
         `Published ${operation} for ${entityType} seq=${seq} (QoS ${qos})`
       );
       ctx.metrics.messagesPublished++;
-      incrementMqttMessagesPublished(entityType, operation, qos);
+      recordMqttPublish(entityType, operation, qos);
       ctx.emit("message_published", {
         eventTopic,
         stateTopic,
@@ -142,7 +142,7 @@ export async function publishDataChange(
       });
     } catch (error) {
       ctx.metrics.publishFailures++;
-      incrementMqttPublishFailures();
+      recordMqttFailure();
       // Queue both messages for retry
       enqueueMessage(
         ctx.messageQueue,

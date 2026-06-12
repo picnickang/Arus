@@ -102,11 +102,3 @@ export function updateMqttMetrics(metrics: {
     mqttConnectionStatusGauge.set(metrics.isConnected ? 1 : 0);
   }
 }
-
-// Backward-compatible aliases (original function names)
-export const incrementMqttMessagesPublished = recordMqttPublish;
-export const incrementMqttMessagesQueued = recordMqttQueued;
-export const incrementMqttMessagesDropped = recordMqttDropped;
-export const incrementMqttPublishFailures = recordMqttFailure;
-export const incrementMqttReconnectionAttempts = recordMqttReconnection;
-export const incrementMqttQueueFlushes = recordMqttQueueFlush;
