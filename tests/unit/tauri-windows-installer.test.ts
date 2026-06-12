@@ -234,6 +234,9 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   it("launches and terminates the installed desktop app during the smoke", () => {
     expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
     expect(windowsWorkflow).toContain("$appExe = $env:ARUS_APP_EXE");
+    expect(windowsWorkflow).toContain("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
+    expect(windowsWorkflow).toContain("--disable-gpu");
+    expect(windowsWorkflow).toContain("Get-WinEvent");
     expect(windowsWorkflow).toContain("Start-Process -FilePath $appExe");
     expect(windowsWorkflow).toContain("HasExited");
     expect(windowsWorkflow).toContain("Stop-Process");

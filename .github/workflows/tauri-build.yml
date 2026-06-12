@@ -274,10 +274,18 @@ jobs:
             exit 1
           }
 
+          $env:RUST_BACKTRACE = "1"
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--disable-gpu --enable-logging --v=1"
+          $startTime = Get-Date
           $process = Start-Process -FilePath $appExe -PassThru
           Start-Sleep -Seconds 10
           if ($process.HasExited) {
-            Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode)."
+            $exitHex = "0x{0:X8}" -f ($process.ExitCode -band 0xffffffff)
+            Write-Host "Recent Windows Application event log entries:"
+            Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = $startTime.AddSeconds(-5) } -MaxEvents 20 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+              Format-List
+            Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode) ($exitHex)."
             exit 1
           }
 
