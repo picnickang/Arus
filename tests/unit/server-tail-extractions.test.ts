@@ -45,4 +45,17 @@ describe("server tail extractions", () => {
     expect(graphSync).toContain("export async function syncAssociatedEquipment");
     expect(graphSync).toContain("export async function retractDisassociatedEquipment");
   });
+
+  it("keeps migration critical-object metadata in a script helper", () => {
+    const migrate = read("server/scripts/migrate.ts");
+    const criticalObjects = read("server/scripts/migration-critical-objects.ts");
+    const schemaReadme = read("shared/schema/README.md");
+
+    expect(migrate).toContain('from "./migration-critical-objects"');
+    expect(migrate).toContain("await assertCriticalObjects(pool)");
+    expect(criticalObjects).toContain("export const REQUIRED_INDEXES");
+    expect(criticalObjects).toContain("export const REQUIRED_FKS");
+    expect(criticalObjects).toContain("export const REQUIRED_COLUMNS");
+    expect(schemaReadme).toContain("server/scripts/migration-critical-objects.ts");
+  });
 });

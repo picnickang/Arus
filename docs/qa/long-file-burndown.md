@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-11T23:52:43.578Z
+Generated: 2026-06-11T23:59:21.132Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `93` counted files.
-- The current counted inventory is `93` files.
+- The temporary ceiling is `92` counted files.
+- The current counted inventory is `92` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    93 |
-| Server                    |    31 |
+| Total counted long files  |    92 |
+| Server                    |    30 |
 | Server route-like files   |     9 |
 | Server service-like files |     6 |
 | Client                    |    62 |
@@ -90,6 +90,7 @@ Completed splits:
 - `server/services/anomaly-correlation/anomaly-correlator.ts` dropped below the threshold by moving sensor normalization and failure-signature matching to a pure helper module while preserving `AnomalyCorrelator`.
 - `server/services/ml/prediction-outcome-tracker.ts` dropped below the threshold by moving tracker config and payload/data-shape types to a sibling type module while preserving `PredictionOutcomeTracker`.
 - `server/db/equipment/db-equipment.ts` dropped below the threshold by moving graph projection/retraction side effects to a sibling helper while preserving `DatabaseEquipmentStorage`.
+- `server/scripts/migrate.ts` dropped below the threshold by moving critical post-migration object metadata to a sibling script module while preserving `runBootMigrations` and CLI behavior.
 
 ## Top 30 Longest Files
 
@@ -238,5 +239,4 @@ Completed splits:
 568 client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx
 564 client/src/components/scheduling/crew-scheduler-cards.tsx
 561 client/src/pages/analytics-hub.tsx
-559 server/scripts/migrate.ts
 ```
