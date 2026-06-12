@@ -5,10 +5,18 @@ import { deriveHubHealthFields } from "../../server/domains/equipment-intelligen
 
 const PAGE = readFileSync(join(process.cwd(), "client/src/pages/pdm-platform.tsx"), "utf8");
 
-const MOBILE_SCREENS = readFileSync(
-  join(process.cwd(), "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"),
-  "utf8"
-);
+const MOBILE_SCREENS = [
+  "MobileReadinessScreens.tsx",
+  "MobileReadinessShared.tsx",
+  "MobileReadinessFleetScreens.tsx",
+  "MobileReadinessPdmScreens.tsx",
+  "MobileReadinessWorkLogsScreens.tsx",
+  "MobileReadinessAdminScreens.tsx",
+]
+  .map((file) =>
+    readFileSync(join(process.cwd(), "client/src/features/mobile-readiness", file), "utf8")
+  )
+  .join("\n");
 const MOBILE_MODEL = [
   "mobile-readiness-model.ts",
   "mobile-readiness-model-types.ts",

@@ -23,9 +23,21 @@ const MOBILE_MODEL_PATHS = [
   "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
   "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
 ];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
 
 async function readMobileModelSrc(): Promise<string> {
   return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
 }
 
 describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
@@ -44,7 +56,7 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
   });
 
   it("shared mobile readiness screens contain the Figma panel concepts", async () => {
-    const screenSrc = await readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    const screenSrc = await readMobileScreenSrc();
     const modelSrc = await readMobileModelSrc();
 
     expect(screenSrc).toContain("MobilePdmPage");

@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T08:12:05.520Z
+Generated: 2026-06-12T08:45:38.294Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `48` counted files.
-- The current counted inventory is `48` files.
+- The temporary ceiling is `47` counted files.
+- The current counted inventory is `47` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    48 |
+| Total counted long files  |    47 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    48 |
-| Client page files         |    19 |
+| Client                    |    47 |
+| Client page files         |    18 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -136,40 +136,42 @@ Completed splits:
 - `client/src/components/equipment/EquipmentFormDialog.tsx` dropped below the threshold by moving form fields and action controls to a sibling component while preserving create/edit dialog exports and test IDs.
 - `client/src/pages/vessel-dashboard/index.tsx` dropped below the threshold by moving dashboard rendering to a sibling view component while preserving the route export and dashboard test IDs.
 
+- `client/src/features/mobile-readiness/MobileReadinessScreens.tsx` dropped below the threshold by moving shared shell widgets plus fleet, PdM, work/logs, and admin screen clusters to sibling modules while preserving the public page exports.
+
 ## Top 30 Longest Files
 
 | Rank | Lines | File                                                                      |
 | ---: | ----: | ------------------------------------------------------------------------- |
-|    1 |  1786 | `client/src/features/mobile-readiness/MobileReadinessScreens.tsx`         |
-|    2 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`                       |
-|    3 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx`                          |
-|    4 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             |
-|    5 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          |
-|    6 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx`                         |
-|    7 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    |
-|    8 |   990 | `client/src/pages/ml-training.tsx`                                        |
-|    9 |   923 | `client/src/components/unified-crew-components.tsx`                       |
-|   10 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
-|   11 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
-|   12 |   869 | `client/src/pages/system-administration.tsx`                              |
-|   13 |   843 | `client/src/pages/findings.tsx`                                           |
-|   14 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
-|   15 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
-|   16 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
-|   17 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   18 |   819 | `client/src/pages/inventory-management.tsx`                               |
-|   19 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
-|   20 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
-|   21 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
-|   22 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
-|   23 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
-|   24 |   755 | `client/src/pages/organization-management.tsx`                            |
-|   25 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
-|   26 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
-|   27 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`                      |
-|   28 |   712 | `client/src/pages/equipment/index.tsx`                                    |
-|   29 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`          |
-|   30 |   704 | `client/src/pages/findings-cards.tsx`                                     |
+|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`                       |
+|    2 |  1095 | `client/src/components/crew-admin/SafetyTab.tsx`                          |
+|    3 |  1090 | `client/src/components/scheduling/ScheduleGeneratorPanel.tsx`             |
+|    4 |  1073 | `client/src/components/UnifiedCrewManagement/CrewFormDialog.tsx`          |
+|    5 |  1072 | `client/src/components/HoursOfRestGrid/index.tsx`                         |
+|    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    |
+|    7 |   990 | `client/src/pages/ml-training.tsx`                                        |
+|    8 |   923 | `client/src/components/unified-crew-components.tsx`                       |
+|    9 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
+|   10 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
+|   11 |   869 | `client/src/pages/system-administration.tsx`                              |
+|   12 |   843 | `client/src/pages/findings.tsx`                                           |
+|   13 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
+|   14 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
+|   15 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
+|   16 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   17 |   819 | `client/src/pages/inventory-management.tsx`                               |
+|   18 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
+|   19 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
+|   20 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
+|   21 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
+|   22 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
+|   23 |   755 | `client/src/pages/organization-management.tsx`                            |
+|   24 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
+|   25 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
+|   26 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`                      |
+|   27 |   712 | `client/src/pages/equipment/index.tsx`                                    |
+|   28 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`          |
+|   29 |   704 | `client/src/pages/findings-cards.tsx`                                     |
+|   30 |   697 | `client/src/components/crew-admin/RolesDashboardsTab.tsx`                 |
 
 ## Recommended Extraction Plan
 
@@ -192,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-1786 client/src/features/mobile-readiness/MobileReadinessScreens.tsx
 1111 client/src/pages/admin/equipment-dependencies.tsx
 1095 client/src/components/crew-admin/SafetyTab.tsx
 1090 client/src/components/scheduling/ScheduleGeneratorPanel.tsx

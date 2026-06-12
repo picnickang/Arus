@@ -45,9 +45,21 @@ const MOBILE_MODEL_PATHS = [
   "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
   "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
 ];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
 
 async function readMobileModelSrc(): Promise<string> {
   return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
 }
 
 describe("UI Align Phase 4 — user-portal route replacement contract", () => {
@@ -58,7 +70,7 @@ describe("UI Align Phase 4 — user-portal route replacement contract", () => {
   beforeAll(async () => {
     [homeSrc, screenSrc, modelSrc] = await Promise.all([
       readSrc("client/src/pages/home.tsx"),
-      readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx"),
+      readMobileScreenSrc(),
       readMobileModelSrc(),
     ]);
   });

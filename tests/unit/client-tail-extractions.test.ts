@@ -247,4 +247,31 @@ describe("client tail component extractions", () => {
     expect(view).toContain('data-testid="btn-config-schematic"');
     expect(view).toContain('data-testid="panel-inventory"');
   });
+
+  it("keeps mobile readiness screen clusters behind the route shell", () => {
+    const route = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
+    const shared = read("client/src/features/mobile-readiness/MobileReadinessShared.tsx");
+    const fleet = read("client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx");
+    const pdm = read("client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx");
+    const workLogs = read("client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx");
+    const admin = read("client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx");
+
+    expect(route).toContain('from "./MobileReadinessFleetScreens"');
+    expect(route).toContain('from "./MobileReadinessPdmScreens"');
+    expect(route).toContain('from "./MobileReadinessWorkLogsScreens"');
+    expect(route).toContain('from "./MobileReadinessAdminScreens"');
+    expect(route).toContain("export function MobileReadinessRoute");
+    expect(shared).toContain("export function MobilePageShell");
+    expect(shared).toContain("export function MobileReadinessBottomNav");
+    expect(fleet).toContain("export function MobileFleetPage");
+    expect(fleet).toContain("export function MobileVesselDetailPage");
+    expect(pdm).toContain("export function MobilePdmPage");
+    expect(pdm).toContain("Telemetry Evidence");
+    expect(workLogs).toContain("export function MobileWorkOrdersPage");
+    expect(workLogs).toContain("export function MobileLogsPage");
+    expect(workLogs).toContain("function MobileWorkExecutionPage");
+    expect(admin).toContain("export function MobileCrewPage");
+    expect(admin).toContain("export function MobileInventoryPage");
+    expect(admin).toContain("export function MobileSettingsPage");
+  });
 });
