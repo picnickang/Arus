@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T12:38:47.040Z
+Generated: 2026-06-12T12:53:32.651Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `9` counted files.
-- The current counted inventory is `9` files.
+- The temporary ceiling is `8` counted files.
+- The current counted inventory is `8` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |     9 |
+| Total counted long files  |     8 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |     9 |
-| Client page files         |     3 |
+| Client                    |     8 |
+| Client page files         |     2 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -158,26 +158,26 @@ Completed splits:
 - `client/src/components/ai-health/PerformanceTab.tsx` dropped below the threshold by moving summary cards/table, diagnostic collapsibles, marine/validation sections, explainability, and tab typing to sibling modules while preserving tab behavior and test IDs.
 - `client/src/pages/equipment/index.tsx` dropped below the threshold by moving header/stat cards, active/decommissioned registry tabs, dialogs/drawers, and route model typing to sibling page modules while preserving route behavior and test IDs.
 - `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx` dropped below the threshold by moving service order cards/timeline rendering and the create-service-request dialog to sibling modules while preserving the public panel export and test IDs.
+- `client/src/pages/findings-cards.tsx` dropped below the threshold by moving finding card types/constants, card renderers, and task cards/section logic to sibling modules while preserving the public findings-card import path and test IDs.
 
 ## Top Remaining Long Files
 
 | Rank | Lines | File                                                              |
 | ---: | ----: | ----------------------------------------------------------------- |
-|    1 |   704 | `client/src/pages/findings-cards.tsx`                             |
-|    2 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
-|    3 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
-|    4 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
-|    5 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
-|    6 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
-|    7 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
-|    8 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
-|    9 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
+|    1 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
+|    2 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
+|    3 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
+|    4 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
+|    5 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
+|    6 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
+|    7 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
+|    8 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
 
 ## Recommended Extraction Plan
 
 1. Continue with client characterization before large UI splits.
    - Server and shared counted sources are now under the threshold.
-   - Prioritize findings, agent chat, scheduling data hooks, settings panels, and AI-health tabs.
+   - Prioritize agent chat, scheduling data hooks, settings panels, equipment dialogs, and AI-health tabs.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Split client route pages and components by stable UI sub-surfaces.
@@ -194,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-704 client/src/pages/findings-cards.tsx
 687 client/src/components/agent/AgentChatPanel/index.tsx
 685 client/src/features/crew/hooks/useSchedulePlannerData.ts
 680 client/src/components/stormgeo-settings.tsx

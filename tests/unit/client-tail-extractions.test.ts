@@ -557,4 +557,29 @@ describe("client tail component extractions", () => {
     expect(dialog).toContain('data-testid="button-submit-service-request"');
   });
 
+  it("keeps findings cards and tasks behind the public findings card barrel", () => {
+    const barrel = read("client/src/pages/findings-cards.tsx");
+    const types = read("client/src/pages/findings-card-types.ts");
+    const cards = read("client/src/pages/findings-card-renderers.tsx");
+    const tasks = read("client/src/pages/findings-task-cards.tsx");
+
+    expect(barrel).toContain('from "./findings-card-types"');
+    expect(barrel).toContain('from "./findings-card-renderers"');
+    expect(barrel).toContain('from "./findings-task-cards"');
+    expect(barrel).toContain("export type {");
+    expect(barrel).toContain("export { FindingCard, EntityLink, timeAgo }");
+    expect(barrel).toContain("export { TaskCard, TasksSection }");
+    expect(types).toContain("export interface UnifiedFindingItem");
+    expect(types).toContain("export interface AgentTask");
+    expect(types).toContain("export const OUTCOME_CATEGORIES");
+    expect(cards).toContain("export function FindingCard");
+    expect(cards).toContain("export function EntityLink");
+    expect(cards).toContain('data-testid={`finding-card-${item.id}`}');
+    expect(cards).toContain('data-testid={`button-assistant-${item.id}`}');
+    expect(tasks).toContain("export function TaskCard");
+    expect(tasks).toContain("export function TasksSection");
+    expect(tasks).toContain('data-testid={`task-card-${task.id}`}');
+    expect(tasks).toContain('data-testid="tasks-section"');
+  });
+
 });
