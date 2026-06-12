@@ -38,6 +38,7 @@
     "db:migrate": "tsx server/scripts/migrate.ts",
     "db:migrate:status": "tsx server/scripts/migrate.ts --status",
     "db:migrate:deploy": "tsx server/scripts/migrate.ts --deploy",
+    "backfill:pdm": "tsx server/scripts/backfill-pdm-permissions.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --forceExit",
     "test:client:hooks": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.client.config.mjs",
