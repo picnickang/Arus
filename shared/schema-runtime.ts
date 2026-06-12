@@ -441,6 +441,8 @@ export {
   // Insert Schemas
   insertOrganizationSchema,
   insertUserSchema,
+  insertRoleSchema,
+  insertUserRoleAssignmentSchema,
   insertEquipmentSchema,
   insertDeviceSchema,
   insertHeartbeatSchema,

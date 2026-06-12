@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { jsonRecordSchema } from "@shared/validation/json";
-import { insertRoleSchema } from "../../../shared/schema/permissions";
+import { insertRoleSchema } from "@shared/schema-runtime";
 import { auditService } from "../../compliance/immutable-audit.service";
 import { validateResponse } from "../../lib/api-helpers";
 import { stripUndefined } from "../../lib/strip-undefined";
