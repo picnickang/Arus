@@ -1,16 +1,45 @@
-use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
 use serde::Serialize;
 use std::env;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::sync::Mutex;
 use std::time::Duration;
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::ShellExt;
 use tokio::time::sleep;
 
 pub struct SidecarState(pub Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
 fn is_packaged_runtime() -> bool {
     !cfg!(debug_assertions)
+}
+
+fn install_panic_logger() {
+    std::panic::set_hook(Box::new(|info| {
+        let Ok(path) = env::var("ARUS_DESKTOP_PANIC_LOG") else {
+            return;
+        };
+
+        if let Some(parent) = std::path::Path::new(&path).parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+
+        let message = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|s| (*s).to_string())
+            .or_else(|| info.payload().downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "unknown panic payload".to_string());
+        let location = info
+            .location()
+            .map(|loc| format!("{}:{}:{}", loc.file(), loc.line(), loc.column()))
+            .unwrap_or_else(|| "unknown location".to_string());
+
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
+            let _ = writeln!(file, "ARUS Desktop panic at {location}: {message}");
+        }
+    }));
 }
 
 #[derive(Serialize, Clone)]
@@ -105,8 +134,7 @@ fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 fn get_backend_config() -> BackendConfig {
-    let url = env::var("ARUS_BACKEND_URL")
-        .unwrap_or_else(|_| "http://localhost:5000".into());
+    let url = env::var("ARUS_BACKEND_URL").unwrap_or_else(|_| "http://localhost:5000".into());
     let mode = env::var("ARUS_MODE").unwrap_or_else(|_| {
         if cfg!(debug_assertions) {
             "development".into()
@@ -119,8 +147,7 @@ fn get_backend_config() -> BackendConfig {
 
 #[tauri::command]
 async fn get_backend_status(app: AppHandle) -> BackendStatus {
-    let url = env::var("ARUS_BACKEND_URL")
-        .unwrap_or_else(|_| "http://localhost:5000".into());
+    let url = env::var("ARUS_BACKEND_URL").unwrap_or_else(|_| "http://localhost:5000".into());
 
     #[cfg(target_os = "windows")]
     if service_is_running("ARUSBackend") {
@@ -164,8 +191,12 @@ async fn get_backend_diagnostics(app: AppHandle) -> Result<BackendDiagnostics, S
         .path()
         .app_data_dir()
         .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
-    let database_path = env::var("DATABASE_PATH")
-        .unwrap_or_else(|_| app_data.join("vessel-local.db").to_string_lossy().into_owned());
+    let database_path = env::var("DATABASE_PATH").unwrap_or_else(|_| {
+        app_data
+            .join("vessel-local.db")
+            .to_string_lossy()
+            .into_owned()
+    });
     let log_dir = app_data.join("logs").to_string_lossy().into_owned();
     let cloud_status = if env::var("ARUS_CLOUD_URL").is_ok() {
         "configured"
@@ -210,7 +241,12 @@ async fn ping_backend(base_url: &str) -> bool {
         .build();
 
     match client {
-        Ok(c) => c.get(&url).send().await.map(|r| r.status().is_success()).unwrap_or(false),
+        Ok(c) => c
+            .get(&url)
+            .send()
+            .await
+            .map(|r| r.status().is_success())
+            .unwrap_or(false),
         Err(_) => false,
     }
 }
@@ -233,27 +269,32 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
         .app_data_dir()
         .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
 
-    std::fs::create_dir_all(&app_data)
-        .map_err(|e| format!("Cannot create app data dir: {}", e))?;
+    std::fs::create_dir_all(&app_data).map_err(|e| format!("Cannot create app data dir: {}", e))?;
 
     let db_path = app_data.join("vessel-local.db");
     let log_dir = app_data.join("logs");
-    std::fs::create_dir_all(&log_dir)
-        .map_err(|e| format!("Cannot create log dir: {}", e))?;
+    std::fs::create_dir_all(&log_dir).map_err(|e| format!("Cannot create log dir: {}", e))?;
 
-    let backend_url = env::var("ARUS_BACKEND_URL")
-        .unwrap_or_else(|_| "http://localhost:5000".into());
+    let backend_url =
+        env::var("ARUS_BACKEND_URL").unwrap_or_else(|_| "http://localhost:5000".into());
 
     let cmd = app
         .shell()
         .sidecar("arus-server")
         .map_err(|e| format!("Sidecar binary not found: {}", e))?
-        .env("NODE_ENV",        if cfg!(debug_assertions) { "development" } else { "production" })
-        .env("PORT",            "5000")
+        .env(
+            "NODE_ENV",
+            if cfg!(debug_assertions) {
+                "development"
+            } else {
+                "production"
+            },
+        )
+        .env("PORT", "5000")
         .env("ARUS_BACKEND_URL", &backend_url)
-        .env("DATABASE_PATH",   db_path.to_string_lossy().as_ref())
+        .env("DATABASE_PATH", db_path.to_string_lossy().as_ref())
         .env("DEPLOYMENT_MODE", "VESSEL")
-        .env("LOCAL_MODE",      "true");
+        .env("LOCAL_MODE", "true");
 
     let (mut rx, child) = cmd
         .spawn()
@@ -284,10 +325,7 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
                     let _ = app_clone.emit("backend-error", msg);
                 }
                 CommandEvent::Terminated(status) => {
-                    let _ = app_clone.emit(
-                        "backend-terminated",
-                        format!("exit {:?}", status.code),
-                    );
+                    let _ = app_clone.emit("backend-terminated", format!("exit {:?}", status.code));
                     let state = app_clone.state::<SidecarState>();
                     *state.0.lock().unwrap() = None;
                     break;
@@ -312,12 +350,13 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_panic_logger();
+
     tauri::Builder::default()
         .manage(SidecarState(Mutex::new(None)))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_app_version,
             get_runtime_state,

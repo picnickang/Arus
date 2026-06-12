@@ -141,7 +141,8 @@ jobs:
       - name: Build sidecar (Windows)
         run: node scripts/build-sidecar.mjs
 
-      - name: Build Tauri (desktop setup installer)
+      - name: Build Tauri (desktop setup installer, release upload)
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,6 +154,11 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json
+
+      - name: Build Tauri (desktop setup installer, workflow smoke)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        shell: pwsh
+        run: npx tauri build --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json
 
       - name: Confirm NSIS setup exe exists
         shell: pwsh
@@ -199,18 +205,51 @@ jobs:
             exit $install.ExitCode
           }
 
-          $appExe = Join-Path $installDir "ARUS Desktop.exe"
-          if (-not (Test-Path $appExe)) {
-            Write-Error "Installed app executable missing: $appExe"
-            Get-ChildItem $installDir -Recurse | Select-Object FullName
+          $registryRoots = @(
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+          )
+          $registryInstallDirs = foreach ($root in $registryRoots) {
+            Get-ItemProperty $root -ErrorAction SilentlyContinue |
+              Where-Object { $_.DisplayName -eq "ARUS Desktop" } |
+              ForEach-Object { $_.InstallLocation } |
+              Where-Object { $_ -and (Test-Path $_) }
+          }
+          $defaultInstallDirs = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA) |
+            Where-Object { $_ } |
+            ForEach-Object { Join-Path $_ "ARUS Desktop" }
+          $candidateRoots = @($installDir) + @($registryInstallDirs) + @($defaultInstallDirs) |
+            Where-Object { $_ -and (Test-Path $_) } |
+            Select-Object -Unique
+
+          $appExe = $null
+          foreach ($root in $candidateRoots) {
+            $appExe = Get-ChildItem $root -Recurse -Filter "ARUS Desktop.exe" -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($appExe) {
+              break
+            }
+          }
+          if (-not $appExe) {
+            Write-Host "Searched install roots:"
+            $candidateRoots | ForEach-Object { Write-Host " - $_" }
+            Write-Host "Files under requested install directory:"
+            Get-ChildItem $installDir -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
+            Write-Error "Installed app executable missing: ARUS Desktop.exe"
             exit 1
           }
 
-          $sidecarExe = Get-ChildItem $installDir -Recurse -Filter "arus-server*.exe" |
+          $installedRoot = Split-Path $appExe.FullName -Parent
+          Add-Content -Path $env:GITHUB_ENV -Value "ARUS_APP_EXE=$($appExe.FullName)"
+          Add-Content -Path $env:GITHUB_ENV -Value "ARUS_INSTALL_DIR=$installedRoot"
+          Write-Host "Installed app executable: $($appExe.FullName)"
+
+          $sidecarExe = Get-ChildItem $installedRoot -Recurse -Filter "arus-server*.exe" |
             Select-Object -First 1
           if (-not $sidecarExe) {
             Write-Error "Installed sidecar executable matching arus-server*.exe was not found."
-            Get-ChildItem $installDir -Recurse | Select-Object FullName
+            Get-ChildItem $installedRoot -Recurse | Select-Object FullName
             exit 1
           }
 
@@ -229,17 +268,30 @@ jobs:
       - name: Smoke launch installed ARUS Desktop
         shell: pwsh
         run: |
-          $installDir = Join-Path $env:RUNNER_TEMP "ArusDesktopSmokeInstall"
-          $appExe = Join-Path $installDir "ARUS Desktop.exe"
+          $appExe = $env:ARUS_APP_EXE
           if (-not (Test-Path $appExe)) {
             Write-Error "Installed app executable missing: $appExe"
             exit 1
           }
 
+          $env:RUST_BACKTRACE = "1"
+          $panicLog = Join-Path $env:RUNNER_TEMP "arus-desktop-panic.log"
+          $env:ARUS_DESKTOP_PANIC_LOG = $panicLog
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--disable-gpu --enable-logging --v=1"
+          $startTime = Get-Date
           $process = Start-Process -FilePath $appExe -PassThru
           Start-Sleep -Seconds 10
           if ($process.HasExited) {
-            Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode)."
+            $exitHex = "0x{0:X8}" -f ($process.ExitCode -band 0xffffffff)
+            Write-Host "Recent Windows Application event log entries:"
+            Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = $startTime.AddSeconds(-5) } -MaxEvents 20 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+              Format-List
+            if (Test-Path $panicLog) {
+              Write-Host "ARUS Desktop panic log:"
+              Get-Content $panicLog
+            }
+            Write-Error "ARUS Desktop exited during smoke launch with exit code $($process.ExitCode) ($exitHex)."
             exit 1
           }
 
