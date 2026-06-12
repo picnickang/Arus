@@ -17,7 +17,7 @@
         }
       ]
     },
-    "process:allow-relaunch",
+    "process:allow-restart",
     "process:allow-exit",
     "updater:default",
     {

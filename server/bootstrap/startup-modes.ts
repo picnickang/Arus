@@ -1,6 +1,11 @@
 import type { createLogger } from "../lib/structured-logger";
+import { createRequire } from "node:module";
+import bcrypt from "bcryptjs";
 
 type StartupLogger = ReturnType<typeof createLogger>;
+const requireFromHere = createRequire(
+  typeof import.meta.url === "string" ? import.meta.url : __filename
+);
 
 export interface StartupModes {
   isInitDbMode: boolean;
@@ -43,13 +48,12 @@ export function runHealthCheckMode(modes: StartupModes, logger: StartupLogger): 
   logger.info("[ARUS] Health check: testing native module loading...");
   (async () => {
     try {
-      const { createClient } = await import("@libsql/client");
+      const { createClient } = requireFromHere("@libsql/client") as typeof import("@libsql/client");
       const client = createClient({ url: ":memory:" });
       await client.execute("SELECT 1 AS ok");
       client.close();
       logger.info("[ARUS] Health check: @libsql/client OK");
 
-      const bcrypt = await import("bcryptjs");
       const bcryptApi = bcrypt as object as {
         hash: (s: string, n: number) => Promise<string>;
         compare: (a: string, b: string) => Promise<boolean>;

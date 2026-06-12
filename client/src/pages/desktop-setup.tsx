@@ -15,6 +15,7 @@ import {
   LogIn,
 } from "lucide-react";
 import {
+  markCloudLinkPending,
   setBackendUrl,
   setVesselId,
   setVesselName,
@@ -23,7 +24,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { setApiSessionToken } from "@/lib/sessionToken";
 import { ROLE_STORAGE_KEY, BOTTOM_NAV_OVERRIDE_STORAGE_KEY } from "@/config/roles";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
-import { BackendStep, StepIndicator } from "./desktop-setup-steps";
+import { BackendStep, StepIndicator, type BackendStepOptions } from "./desktop-setup-steps";
 
 interface DesktopSetupProps {
   onComplete: () => void;
@@ -218,7 +219,15 @@ function VesselStep({
   );
 }
 
-function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
+function SignInStep({
+  cloudLinkPending,
+  onBack,
+  onComplete,
+}: {
+  cloudLinkPending: boolean;
+  onBack: () => void;
+  onComplete: () => void;
+}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -232,6 +241,7 @@ function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: ()
       }),
     onSuccess: (data) => {
       rememberRoleHint(data.user.role);
+      markCloudLinkPending(false);
       if (data.mustChangePassword) {
         // Do NOT adopt the session: the account must set a new password first.
         // Completing setup without a token routes the app to the full
@@ -257,6 +267,11 @@ function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: ()
     login.mutate();
   }
 
+  function finishOffline() {
+    markCloudLinkPending(true);
+    onComplete();
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -265,8 +280,8 @@ function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: ()
           Sign In
         </CardTitle>
         <CardDescription>
-          Sign in with your ARUS account to finish setup. Admin access requires an admin account —
-          there is no shared admin password.
+          Cloud link optional. Sign in now when connected, or finish offline and let ARUS sync
+          queued changes after the cloud link is available.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -316,15 +331,36 @@ function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: ()
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
+          {cloudLinkPending && (
+            <div
+              className="flex items-center gap-2 text-sm p-3 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              data-testid="text-cloud-link-pending"
+              aria-live="polite"
+            >
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              Local database ready. Cloud sync will remain pending until this desktop is linked.
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row">
             <Button
               type="button"
               variant="outline"
               onClick={onBack}
+              className="sm:w-auto"
               data-testid="button-back-signin"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={finishOffline}
+              className="sm:w-auto"
+              data-testid="button-finish-offline"
+            >
+              Finish Offline
             </Button>
             <Button
               type="submit"
@@ -349,12 +385,14 @@ function SignInStep({ onBack, onComplete }: { onBack: () => void; onComplete: ()
 export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
   const [step, setStep] = useState<SetupStep>("backend");
   const [backendUrl, setConnectedUrl] = useState("");
+  const [cloudLinkPending, setCloudLinkPending] = useState(true);
 
   const stepIndex = step === "backend" ? 0 : step === "vessel" ? 1 : 2;
-  const stepLabels = ["Connection", "Vessel", "Sign In"];
+  const stepLabels = ["Local Database", "Cloud Link", "Sync"];
 
-  function handleBackendNext(url: string) {
+  function handleBackendNext(url: string, options: BackendStepOptions = {}) {
     setConnectedUrl(url);
+    setCloudLinkPending(options.cloudLinkPending ?? !url.startsWith("https://"));
     setStep("vessel");
   }
 
@@ -385,7 +423,9 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-setup-title">
             ARUS Setup
           </h1>
-          <p className="text-muted-foreground text-sm">Configure your desktop application</p>
+          <p className="text-muted-foreground text-sm">
+            Local Database first. Cloud Link optional. Sync resumes when connected.
+          </p>
         </div>
 
         <StepIndicator current={stepIndex} steps={stepLabels} />
@@ -399,7 +439,11 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
           />
         )}
         {step === "signin" && (
-          <SignInStep onBack={() => setStep("vessel")} onComplete={onComplete} />
+          <SignInStep
+            cloudLinkPending={cloudLinkPending}
+            onBack={() => setStep("vessel")}
+            onComplete={onComplete}
+          />
         )}
       </div>
     </div>
