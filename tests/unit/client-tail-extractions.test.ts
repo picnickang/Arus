@@ -542,6 +542,18 @@ describe("client tail component extractions", () => {
     expect(explainability).toContain('data-testid="select-filter-equipment"');
   });
 
+  it("keeps AI health vessel intelligence behind the insights tab shell", () => {
+    const tab = read("client/src/components/ai-health/InsightsTab.tsx");
+    const vessel = read("client/src/components/ai-health/InsightsTabVesselIntelligence.tsx");
+
+    expect(tab).toContain('from "./InsightsTabVesselIntelligence"');
+    expect(tab).toContain("<VesselIntelligenceSection />");
+    expect(tab).toContain("export default function InsightsTab");
+    expect(vessel).toContain("export function VesselIntelligenceSection");
+    expect(vessel).toContain('data-testid="select-vessel-intelligence"');
+    expect(vessel).toContain('data-testid="button-load-intelligence"');
+  });
+
   it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
     const page = read("client/src/pages/equipment/index.tsx");
     const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");
