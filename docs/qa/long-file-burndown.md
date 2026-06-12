@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T10:58:20.527Z
+Generated: 2026-06-12T11:03:43.199Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `19` counted files.
-- The current counted inventory is `19` files.
+- The temporary ceiling is `18` counted files.
+- The current counted inventory is `18` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    19 |
+| Total counted long files  |    18 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    19 |
-| Client page files         |     8 |
+| Client                    |    18 |
+| Client page files         |     7 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -148,30 +148,30 @@ Completed splits:
 - `client/src/pages/admin/3d-models.tsx` dropped below the threshold by moving model metadata helpers, vessel upload cards, history management, and pin editor state/rendering to sibling modules while preserving route behavior and test IDs.
 - `client/src/pages/copilot-admin.tsx` dropped below the threshold by moving config dialog, data-management controls, and page data types to sibling modules while preserving route behavior, query keys, action callbacks, and test IDs.
 - `client/src/pages/system-administration.tsx` dropped below the threshold by moving configuration, software update, and GitHub settings tabs to sibling route modules while preserving tab IDs, route behavior, and admin update/password test IDs.
+- `client/src/pages/findings.tsx` dropped below the threshold by moving page header, filter/summary controls, and outcome/output dialogs to a sibling route-parts module while preserving finding query keys, action callbacks, tabs, and test IDs.
 
-## Top 19 Longest Files
+## Top 18 Longest Files
 
 | Rank | Lines | File                                                              |
 | ---: | ----: | ----------------------------------------------------------------- |
-|    1 |   843 | `client/src/pages/findings.tsx`                                   |
-|    2 |   836 | `client/src/components/analytics/FinanceMode.tsx`                 |
-|    3 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`             |
-|    4 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`            |
-|    5 |   786 | `client/src/pages/maintenance-schedules.tsx`                      |
-|    6 |   755 | `client/src/pages/organization-management.tsx`                    |
-|    7 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                   |
-|    8 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`              |
-|    9 |   712 | `client/src/pages/equipment/index.tsx`                            |
-|   10 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`  |
-|   11 |   704 | `client/src/pages/findings-cards.tsx`                             |
-|   12 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
-|   13 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
-|   14 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
-|   15 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
-|   16 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
-|   17 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
-|   18 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
-|   19 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
+|    1 |   836 | `client/src/components/analytics/FinanceMode.tsx`                 |
+|    2 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`             |
+|    3 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`            |
+|    4 |   786 | `client/src/pages/maintenance-schedules.tsx`                      |
+|    5 |   755 | `client/src/pages/organization-management.tsx`                    |
+|    6 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                   |
+|    7 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`              |
+|    8 |   712 | `client/src/pages/equipment/index.tsx`                            |
+|    9 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`  |
+|   10 |   704 | `client/src/pages/findings-cards.tsx`                             |
+|   11 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
+|   12 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
+|   13 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
+|   14 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
+|   15 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
+|   16 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
+|   17 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
+|   18 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
 
 ## Recommended Extraction Plan
 
@@ -194,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-843 client/src/pages/findings.tsx
 836 client/src/components/analytics/FinanceMode.tsx
 831 client/src/features/crew/lib/crewManagementUtils.ts
 811 client/src/features/crew/hooks/useHoursOfRestData.ts

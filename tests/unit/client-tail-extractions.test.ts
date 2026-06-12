@@ -362,4 +362,21 @@ describe("client tail component extractions", () => {
     expect(github).toContain('data-testid={`button-select-repo-${repo.name}`}');
   });
 
+  it("keeps findings page presentation controls behind the route shell", () => {
+    const page = read("client/src/pages/findings.tsx");
+    const parts = read("client/src/pages/findings-page-parts.tsx");
+
+    expect(page).toContain('from "./findings-page-parts"');
+    expect(page).toContain("<FindingsPageHeader");
+    expect(page).toContain("<SummaryStrip");
+    expect(page).toContain("<FilterBar");
+    expect(parts).toContain("export function FindingsPageHeader");
+    expect(parts).toContain("export function RunOutputDialog");
+    expect(parts).toContain("export function OutcomeDialog");
+    expect(parts).toContain("export function SummaryStrip");
+    expect(parts).toContain("export function FilterBar");
+    expect(parts).toContain('data-testid="dialog-run-output"');
+    expect(parts).toContain('data-testid="filter-source"');
+  });
+
 });
