@@ -254,7 +254,7 @@ describe("consolidated crew landing source-scan", () => {
     const src = read("client/src/pages/crew-management.tsx");
     expect(src).not.toContain("TabsTrigger");
     expect(src).not.toContain('data-testid="tab-crew-roster"');
-    expect(src).toContain("UnifiedCrewManagement");
+    expect(src).toContain("MobileCrewPage");
   });
 
   it("retired /crew route redirects to the consolidated page", () => {

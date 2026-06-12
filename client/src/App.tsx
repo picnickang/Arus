@@ -17,6 +17,7 @@ import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
 import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
+import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/MobileReadinessScreens";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -267,12 +268,12 @@ function Router() {
   }
 
   const isLoginRoute = routerLoc === "/portal-login";
-  const usesUniversalOpsShell = resolveCurrentRouteHubId(routerLoc) !== null;
-  // #218: the user portal has no visible BottomNav, so skip the ~56px
-  // `pb-14` clearance there. BottomNav still mounts on non-shell,
-  // non-login routes — it returns null for user-portal roles but its
-  // hooks run, so the #194 self-heal keeps pruning stale admin ids.
-  // Universal admin hub routes render their own shell navigation.
+  const usesMobileReadinessReplacement = isMobileReadinessReplacementPath(routerLoc);
+  const usesUniversalOpsShell =
+    !usesMobileReadinessReplacement && resolveCurrentRouteHubId(routerLoc) !== null;
+  // Mobile readiness replacement routes provide their own card-level
+  // spacing and role-specific bottom nav. Universal admin hub routes
+  // render their own shell navigation, so the legacy shell nav stays off.
   // Same `getPortalForRole` policy as the route guard; reading
   // localStorage at render is fine — portal switches do a full reload.
   const isAdminPortal =
@@ -299,7 +300,7 @@ function Router() {
 
       <main
         id="main-content"
-        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-14 md:pb-0" : ""}`}
+        className={`min-h-screen ${isAdminPortal && !usesUniversalOpsShell ? "pb-20 md:pb-0" : ""}`}
         role="main"
         aria-label="Main content"
       >
@@ -361,7 +362,7 @@ function Router() {
       {/* Gated off ops-shell routes (own nav rail); the #194 override
           self-heal still runs there via UniversalOpsShell's mirror effect. */}
       {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
-      {!isLoginRoute && !usesUniversalOpsShell && <CopilotFab />}
+      {!isLoginRoute && !usesUniversalOpsShell && !usesMobileReadinessReplacement && <CopilotFab />}
     </div>
   );
 }
