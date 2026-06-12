@@ -305,4 +305,23 @@ describe("server tail extractions", () => {
     expect(history).toContain("export async function recordMetricsHistory");
     expect(history).toContain("export async function getLatestInsightSnapshot");
   });
+
+  it("keeps object storage client, content-type, and signing helpers behind the service shell", () => {
+    const storage = read("server/objectStorage.ts");
+    const client = read("server/objectStorage-client.ts");
+    const contentType = read("server/objectStorage-content-type.ts");
+    const paths = read("server/objectStorage-paths.ts");
+
+    expect(storage).toContain('from "./objectStorage-client"');
+    expect(storage).toContain('from "./objectStorage-content-type"');
+    expect(storage).toContain('from "./objectStorage-paths"');
+    expect(storage).toContain("export class ObjectStorageService");
+    expect(storage).toContain("export { getObjectStorageClient }");
+    expect(storage).toContain("export { pickSafeContentType, sniffMimeFamily }");
+    expect(client).toContain("export async function getObjectStorageClient");
+    expect(contentType).toContain("export function sniffMimeFamily");
+    expect(contentType).toContain("export function pickSafeContentType");
+    expect(paths).toContain("export function parseObjectPath");
+    expect(paths).toContain("export async function signObjectURL");
+  });
 });
