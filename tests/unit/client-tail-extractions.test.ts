@@ -452,4 +452,24 @@ describe("client tail component extractions", () => {
     expect(dialogs).toContain('data-testid="edit-schedule-modal"');
   });
 
+  it("keeps organization management lists and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/organization-management.tsx");
+    const sections = read("client/src/pages/organization-management-sections.tsx");
+    const dialogs = read("client/src/pages/organization-management-dialogs.tsx");
+
+    expect(page).toContain('from "./organization-management-sections"');
+    expect(page).toContain('from "./organization-management-dialogs"');
+    expect(page).toContain("<OrganizationManagementSections");
+    expect(page).toContain("<OrganizationManagementDialogs");
+    expect(sections).toContain("export function OrganizationManagementSections");
+    expect(sections).toContain("function getRoleIcon");
+    expect(sections).toContain('data-testid="input-search"');
+    expect(sections).toContain('data-testid={`row-organization-${org.id}`}');
+    expect(sections).toContain('data-testid={`button-password-user-mobile-${user.id}`}');
+    expect(dialogs).toContain("export function OrganizationManagementDialogs");
+    expect(dialogs).toContain('data-testid="dialog-organization"');
+    expect(dialogs).toContain('data-testid="dialog-user"');
+    expect(dialogs).toContain('data-testid="dialog-password"');
+  });
+
 });
