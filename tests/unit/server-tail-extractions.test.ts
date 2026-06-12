@@ -324,4 +324,20 @@ describe("server tail extractions", () => {
     expect(paths).toContain("export function parseObjectPath");
     expect(paths).toContain("export async function signObjectURL");
   });
+
+  it("keeps enhanced report artifacts and formatting behind the tool registration shell", () => {
+    const tools = read("server/domains/agent/tools/enhanced-report-tools.ts");
+    const artifacts = read("server/domains/agent/tools/enhanced-report-artifacts.ts");
+    const formatters = read("server/domains/agent/tools/enhanced-report-formatters.ts");
+
+    expect(tools).toContain('from "./enhanced-report-artifacts"');
+    expect(tools).toContain('from "./enhanced-report-formatters"');
+    expect(tools).toContain('name: "generateReport"');
+    expect(tools).toContain('name: "shareReport"');
+    expect(tools).toContain("export { getReportArtifact }");
+    expect(artifacts).toContain("export function getReportArtifact");
+    expect(artifacts).toContain("export async function storeReportArtifact");
+    expect(formatters).toContain("export function resolveAudience");
+    expect(formatters).toContain("export async function generatePdfBuffer");
+  });
 });
