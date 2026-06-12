@@ -11,7 +11,7 @@ import { createRequire } from "node:module";
 import { structuredLog } from "../logging.js";
 import { sendSuccess, sendBadRequest, handleError } from "../utils/api-response.js";
 
-const require = createRequire(import.meta.url);
+const require = createRequire(typeof import.meta.url === "string" ? import.meta.url : __filename);
 interface FFTUtils {
   fftMag: (phasors: [number, number][]) => number[];
   fftFreq: (phasors: [number, number][], sampleRate: number) => number[];

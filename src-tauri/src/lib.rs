@@ -9,6 +9,10 @@ use tokio::time::sleep;
 
 pub struct SidecarState(pub Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
+fn is_packaged_runtime() -> bool {
+    !cfg!(debug_assertions)
+}
+
 #[derive(Serialize, Clone)]
 pub struct AppInfo {
     version: String,
@@ -37,8 +41,21 @@ pub struct BackendStatus {
     url: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct BackendDiagnostics {
+    running: bool,
+    mode: String,
+    url: String,
+    app_data_dir: String,
+    database_path: String,
+    log_dir: String,
+    queue_depth: u32,
+    cloud_status: String,
+    last_sync_at: Option<String>,
+}
+
 #[tauri::command]
-pub fn get_app_version(app: AppHandle) -> AppInfo {
+fn get_app_version(app: AppHandle) -> AppInfo {
     let config = app.config();
     AppInfo {
         version: config.version.clone().unwrap_or_else(|| "1.0.0".into()),
@@ -48,8 +65,8 @@ pub fn get_app_version(app: AppHandle) -> AppInfo {
 }
 
 #[tauri::command]
-pub fn get_runtime_state(app: AppHandle) -> RuntimeState {
-    let packaged = app.is_packaged();
+fn get_runtime_state(_app: AppHandle) -> RuntimeState {
+    let packaged = is_packaged_runtime();
     let debug = cfg!(debug_assertions);
 
     let platform = if cfg!(target_os = "macos") {
@@ -79,7 +96,7 @@ pub fn get_runtime_state(app: AppHandle) -> RuntimeState {
 }
 
 #[tauri::command]
-pub fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
+fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
     app.path()
         .app_data_dir()
         .map(|p| p.to_string_lossy().into_owned())
@@ -87,7 +104,7 @@ pub fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn get_backend_config() -> BackendConfig {
+fn get_backend_config() -> BackendConfig {
     let url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
     let mode = env::var("ARUS_MODE").unwrap_or_else(|_| {
@@ -101,7 +118,7 @@ pub fn get_backend_config() -> BackendConfig {
 }
 
 #[tauri::command]
-pub async fn get_backend_status(app: AppHandle) -> BackendStatus {
+async fn get_backend_status(app: AppHandle) -> BackendStatus {
     let url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
 
@@ -141,7 +158,36 @@ pub async fn get_backend_status(app: AppHandle) -> BackendStatus {
 }
 
 #[tauri::command]
-pub async fn start_backend_sidecar(app: AppHandle) -> Result<(), String> {
+async fn get_backend_diagnostics(app: AppHandle) -> Result<BackendDiagnostics, String> {
+    let status = get_backend_status(app.clone()).await;
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
+    let database_path = env::var("DATABASE_PATH")
+        .unwrap_or_else(|_| app_data.join("vessel-local.db").to_string_lossy().into_owned());
+    let log_dir = app_data.join("logs").to_string_lossy().into_owned();
+    let cloud_status = if env::var("ARUS_CLOUD_URL").is_ok() {
+        "configured"
+    } else {
+        "pending"
+    };
+
+    Ok(BackendDiagnostics {
+        running: status.running,
+        mode: status.mode,
+        url: status.url,
+        app_data_dir: app_data.to_string_lossy().into_owned(),
+        database_path,
+        log_dir,
+        queue_depth: 0,
+        cloud_status: cloud_status.into(),
+        last_sync_at: env::var("ARUS_LAST_SYNC_AT").ok(),
+    })
+}
+
+#[tauri::command]
+async fn start_backend_sidecar(app: AppHandle) -> Result<(), String> {
     launch_sidecar(&app).await
 }
 
@@ -178,7 +224,7 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
     }
 
     #[cfg(target_os = "windows")]
-    if app.is_packaged() && service_is_running("ARUSBackend") {
+    if is_packaged_runtime() && service_is_running("ARUSBackend") {
         return Ok(());
     }
 
@@ -278,6 +324,7 @@ pub fn run() {
             get_app_data_dir,
             get_backend_config,
             get_backend_status,
+            get_backend_diagnostics,
             start_backend_sidecar,
         ])
         .setup(|app| {
@@ -294,7 +341,7 @@ pub fn run() {
                 let should_launch = {
                     #[cfg(target_os = "windows")]
                     {
-                        !(handle.is_packaged() && service_is_running("ARUSBackend"))
+                        !(is_packaged_runtime() && service_is_running("ARUSBackend"))
                     }
                     #[cfg(not(target_os = "windows"))]
                     {
@@ -314,8 +361,12 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                let state = window.app_handle().state::<SidecarState>();
-                if let Some(child) = state.0.lock().unwrap().take() {
+                let child = {
+                    let state = window.app_handle().state::<SidecarState>();
+                    let child = state.0.lock().unwrap().take();
+                    child
+                };
+                if let Some(child) = child {
                     let _ = child.kill();
                 }
             }

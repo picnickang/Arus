@@ -8,6 +8,9 @@ import { getBackendUrlSync, testBackendConnection } from "@/lib/desktopFetch";
 import { validateBackendUrl } from "@/lib/urlValidation";
 
 type ConnectionStatus = "idle" | "testing" | "success" | "error";
+export interface BackendStepOptions {
+  cloudLinkPending?: boolean;
+}
 
 export function StepIndicator({ current, steps }: { current: number; steps: string[] }) {
   return (
@@ -47,7 +50,11 @@ export function StepIndicator({ current, steps }: { current: number; steps: stri
   );
 }
 
-export function BackendStep({ onNext }: { onNext: (url: string) => void }) {
+export function BackendStep({
+  onNext,
+}: {
+  onNext: (url: string, options?: BackendStepOptions) => void;
+}) {
   const existing = getBackendUrlSync();
   const [url, setUrl] = useState(existing || "http://localhost:5000");
   const [status, setStatus] = useState<ConnectionStatus>(existing ? "success" : "idle");
@@ -84,16 +91,35 @@ export function BackendStep({ onNext }: { onNext: (url: string) => void }) {
     }
   }
 
+  async function handleUseLocalOfflineMode() {
+    const localUrl = "http://localhost:5000";
+    setUrl(localUrl);
+    setIsInsecure(false);
+    setStatus("testing");
+    setStatusMessage("Checking local database...");
+    const result = await testBackendConnection(localUrl);
+    if (!result.ok) {
+      setStatus("error");
+      setStatusMessage(`Local backend is not ready: ${result.message}`);
+      setTestedUrl("");
+      return;
+    }
+    setStatus("success");
+    setStatusMessage("Local database ready. Cloud link pending; changes stay queued offline.");
+    setTestedUrl(localUrl);
+    onNext(localUrl, { cloudLinkPending: true });
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Server className="h-5 w-5" />
-          Backend Server
+          Local Database
         </CardTitle>
         <CardDescription>
-          Enter the URL of your ARUS backend server. For vessel deployments, this is typically the
-          local server address.
+          ARUS starts with the local database and backend sidecar. Cloud linking can happen later;
+          user changes and telemetry remain queued while offline.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -174,6 +200,17 @@ export function BackendStep({ onNext }: { onNext: (url: string) => void }) {
 
         <Button
           className="w-full"
+          onClick={handleUseLocalOfflineMode}
+          disabled={status === "testing"}
+          data-testid="button-use-local-offline-mode"
+        >
+          {status === "testing" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Use Local Offline Mode
+        </Button>
+
+        <Button
+          className="w-full"
+          variant="outline"
           onClick={() => onNext(testedUrl)}
           disabled={status !== "success" || !testedUrl}
           data-testid="button-next-backend"
