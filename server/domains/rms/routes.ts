@@ -1,56 +1,28 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { jsonRecordSchema } from "@shared/validation/json";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
-import { authenticatedRequest, requireOrgId } from "../../middleware/auth";
+import { requireOrgId } from "../../middleware/auth";
 import { logger } from "../../utils/logger";
+import {
+  acknowledgeBodySchema,
+  alertConfigPatchBodySchema,
+  alertsQuerySchema,
+  bunkeringQuerySchema,
+  createAlertConfigSchema,
+  daysQuerySchema,
+  getFirstRow,
+  getOrgId,
+  getRows,
+  hoursQuerySchema,
+  idParamSchema,
+  type Row,
+  vesselIdOptQuerySchema,
+  vesselIdParamSchema,
+} from "./route-support";
 
 const MODULE = "rms";
 const router = Router();
-
-const hoursQuerySchema = z.object({ hours: z.coerce.number().int().min(1).max(168).default(24) });
-const daysQuerySchema = z.object({ days: z.coerce.number().int().min(1).max(365).default(7) });
-const vesselIdParamSchema = z.object({ vesselId: z.string().min(1) });
-const idParamSchema = z.object({ id: z.string().min(1) });
-const bunkeringQuerySchema = z.object({
-  vesselId: z.string().optional(),
-  days: z.coerce.number().int().min(1).max(365).default(30),
-});
-const vesselIdOptQuerySchema = z.object({ vesselId: z.string().optional() });
-const alertsQuerySchema = z.object({
-  vesselId: z.string().optional(),
-  acknowledged: z.enum(["true", "false"]).optional(),
-  days: z.coerce.number().int().min(1).max(90).default(7),
-});
-const acknowledgeBodySchema = z.object({ acknowledgedBy: z.string().optional() });
-const alertConfigPatchBodySchema = z.object({
-  name: z.string().optional(),
-  config: jsonRecordSchema.optional(),
-  enabled: z.boolean().optional(),
-  notifyEmail: z.boolean().optional(),
-  notifyInApp: z.boolean().optional(),
-  cooldownMinutes: z.number().int().optional(),
-});
-
-function getOrgId(req: Request): string {
-  return authenticatedRequest(req).orgId as string;
-}
-
-type Row = Record<string, unknown>;
-function getRows(result: unknown): Row[] {
-  if (Array.isArray(result)) {
-    return result as Row[];
-  }
-  if (result && typeof result === "object" && Array.isArray((result as { rows?: unknown }).rows)) {
-    return (result as { rows: Row[] }).rows;
-  }
-  return [];
-}
-
-function getFirstRow(result: unknown): Row | undefined {
-  return getRows(result)[0];
-}
 
 // ===== Fleet Vessel Positions =====
 router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response) => {
@@ -302,16 +274,6 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
 });
 
 // ===== Alert Config CRUD =====
-const createAlertConfigSchema = z.object({
-  vesselId: z.string().min(1),
-  alertType: z.enum(["fuel_threshold", "daily_consumption", "geofence", "bunkering"]),
-  name: z.string().min(1),
-  config: z.record(z.any()),
-  notifyEmail: z.boolean().default(true),
-  notifyInApp: z.boolean().default(true),
-  cooldownMinutes: z.number().int().min(1).default(60),
-});
-
 router.get("/alerts/configs", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId } = vesselIdOptQuerySchema.parse(req.query);

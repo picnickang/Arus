@@ -2,11 +2,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import {
-  AttentionWorkflowService,
-  createAttentionWorkflowService,
-  type IssueReportRecord,
-} from "./attention-service.js";
+import { AttentionWorkflowService, createAttentionWorkflowService } from "./attention-service.js";
+import type { IssueReportRecord } from "./attention-types.js";
 import type { AttentionWorkflowSources } from "../domain/ports.js";
 
 const orgId = "org-attention";

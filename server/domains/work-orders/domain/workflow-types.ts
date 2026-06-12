@@ -41,7 +41,7 @@ export interface WorkOrderCloseoutDetails {
   supervisorVerified?: boolean | undefined;
 }
 
-export interface WorkOrderCompletionInput {
+export interface WorkflowWorkOrderCompletionInput {
   workOrderId: string;
   orgId: string;
   completionNotes?: string | undefined;
@@ -51,7 +51,7 @@ export interface WorkOrderCompletionInput {
   predictionFeedback?: CompletionPredictionFeedback | undefined;
 }
 
-export interface WorkOrderCompletionResult {
+export interface WorkflowWorkOrderCompletionResult {
   workOrderId: string;
   completed: boolean;
   error?: string | undefined;

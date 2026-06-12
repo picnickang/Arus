@@ -4,7 +4,7 @@ const required = [
   ["client/src/routes/operations.ts", "/attention-inbox"],
   ["client/src/config/navigationConfig.ts", "/attention-inbox"],
   ["client/src/pages/home.tsx", "MobileCommandCenterPage"],
-  ["client/src/lib/queryClient.ts", "headers.Authorization"],
+  ["client/src/lib/queryClient-request.ts", "headers.Authorization"],
   ["client/src/components/auth/SessionGate.tsx", "Unlock ARUS"],
   ["client/src/features/workflow/pages/AttentionInboxPage.tsx", "Attention Inbox"],
   ["client/src/features/workflow/pages/AttentionInboxPage.tsx", "waitingOnParts"],
@@ -15,7 +15,7 @@ const required = [
   ["server/domains/workflow/interfaces/routes.ts", "/api/attention/blocker-resolutions"],
   ["server/domains/workflow/interfaces/routes.ts", "/api/attention/handover"],
   ["server/domains/workflow/interfaces/routes.ts", "/api/attention/issues"],
-  ["server/domains/workflow/application/attention-service.ts", "AttentionSourceHealth"],
+  ["server/domains/workflow/application/attention-types.ts", "AttentionSourceHealth"],
   ["server/domains/workflow/application/attention-service.ts", "saveBlockerResolution"],
   ["server/domains/workflow/application/attention-service.ts", "saveHandover"],
   ["server/domains/workflow/application/attention-service.ts", "reportIssue"],
@@ -32,7 +32,7 @@ for (const [file, needle] of required) {
 }
 
 const attentionService = fs.readFileSync(
-  "server/domains/workflow/application/attention-service.ts",
+  "server/domains/workflow/application/attention-workflow-builder.ts",
   "utf8"
 );
 if (!attentionService.includes("count: nonPartsBlocked.length")) {

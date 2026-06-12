@@ -5,8 +5,6 @@ import type {
   DiagramUploadInput,
   RegistryContext,
   RegistrySummary,
-  SectionMapRecord,
-  SectionMapTemplateRecord,
   ThumbnailUploadInput,
   UpdateAssignmentInput,
   UpdateDiagramInput,
@@ -23,6 +21,19 @@ import {
   validateSectionMapDraft,
   validateThumbnailUpload,
 } from "./validation";
+import { getSectionMapTemplate, SECTION_MAP_TEMPLATES } from "./section-map-templates";
+import {
+  MetadataOnlyMediaStore,
+  notFound,
+  preparePersistedContent,
+  sectionsFromMap,
+} from "./service-helpers";
+import {
+  uploadDiagramVersionWithBehavior as uploadDiagramVersionWithBehaviorOperation,
+  type UploadDiagramVersionBehavior,
+} from "./version-behavior";
+
+export { SECTION_MAP_TEMPLATES } from "./section-map-templates";
 
 export class VesselDiagramRegistryService {
   constructor(
@@ -262,92 +273,9 @@ export class VesselDiagramRegistryService {
     ctx: RegistryContext,
     diagramId: string,
     input: DiagramUploadInput,
-    behavior: {
-      mode?: "keep_existing" | "start_blank" | "copy_vessel" | "copy_template" | undefined;
-      sourceVesselId?: string | undefined;
-      sourceMapId?: string | undefined;
-      templateId?: string | undefined;
-      mapName?: string | undefined;
-    }
+    behavior: UploadDiagramVersionBehavior
   ) {
-    const version = await this.uploadDiagramVersion(ctx, diagramId, input);
-    const diagram = await this.getDiagram(ctx, diagramId);
-    const mode = behavior.mode ?? "keep_existing";
-    const mapName = behavior.mapName ?? `${diagram.title} v${version.versionNumber} draft map`;
-    let draftMap: SectionMapRecord | null = null;
-    const warnings: string[] = [];
-
-    if (mode === "keep_existing") {
-      const maps = await this.listSectionMaps(ctx);
-      const source =
-        maps.find((map) => map.id === diagram.currentSectionMapId) ??
-        maps.find((map) => map.status === "published") ??
-        maps[0];
-      if (source) {
-        draftMap = await this.createSectionMap(ctx, {
-          name: mapName,
-          diagramId,
-          diagramVersionId: version.id,
-          sourceMapId: source.id,
-          diagramWidth: source.diagramWidth,
-          diagramHeight: source.diagramHeight,
-          diagramKind: diagram.diagramType,
-          imageTransform: source.imageTransform,
-          sections: sectionsFromMap(source, { copyEquipment: true }),
-        });
-        warnings.push(
-          "Existing normalized polygons were cloned as a draft overlay; validate alignment before publishing."
-        );
-      } else {
-        draftMap = await this.createSectionMap(ctx, {
-          name: mapName,
-          diagramId,
-          diagramVersionId: version.id,
-          diagramKind: diagram.diagramType,
-          sections: [],
-        });
-        warnings.push("No existing map was available, so a blank draft map was created.");
-      }
-    }
-
-    if (mode === "start_blank") {
-      draftMap = await this.createSectionMap(ctx, {
-        name: mapName,
-        diagramId,
-        diagramVersionId: version.id,
-        diagramKind: diagram.diagramType,
-        sections: [],
-      });
-    }
-
-    if (mode === "copy_vessel") {
-      if (!behavior.sourceVesselId || !behavior.sourceMapId) {
-        throw validationError("Copy from another vessel requires source vessel and map");
-      }
-      draftMap = await this.cloneSectionMapFromVessel(
-        ctx,
-        behavior.sourceVesselId,
-        behavior.sourceMapId,
-        { name: mapName, diagramId, diagramVersionId: version.id }
-      );
-      warnings.push(
-        "Equipment assignments were not copied unless explicitly rematched on this vessel."
-      );
-    }
-
-    if (mode === "copy_template") {
-      draftMap = await this.createSectionMapFromTemplate(
-        ctx,
-        behavior.templateId ?? "custom_blank",
-        {
-          name: mapName,
-          diagramId,
-          diagramVersionId: version.id,
-        }
-      );
-    }
-
-    return { version, draftMap, warnings };
+    return uploadDiagramVersionWithBehaviorOperation(this, ctx, diagramId, input, behavior);
   }
 
   async addSection(ctx: RegistryContext, mapId: string, input: CreateSectionInput) {
@@ -511,215 +439,4 @@ export class VesselDiagramRegistryService {
       // Preserve the original store failure; cleanup is best-effort only.
     }
   }
-}
-
-function notFound(message: string): Error & { statusCode: number } {
-  const error = new Error(message) as Error & { statusCode: number };
-  error.statusCode = 404;
-  return error;
-}
-
-function validationError(message: string): Error & { statusCode: number } {
-  const error = new Error(message) as Error & { statusCode: number };
-  error.statusCode = 400;
-  return error;
-}
-
-function sectionsFromMap(
-  source: SectionMapRecord,
-  options: { copyEquipment: boolean }
-): CreateSectionInput[] {
-  return source.sections.map((section) => ({
-    sectionKey: section.sectionKey,
-    sectionNo: section.sectionNo,
-    name: section.name,
-    color: section.color,
-    polygonNormalized: section.polygonNormalized,
-    labelNormalized: section.labelNormalized,
-    thumbnailFallback:
-      section.thumbnailFallback ??
-      "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
-    equipment: options.copyEquipment
-      ? section.equipment.map((assignment) => ({
-          equipmentId: assignment.equipmentId ?? undefined,
-          equipmentName: assignment.equipmentName,
-          assetCode: assignment.assetCode ?? undefined,
-          system: assignment.system ?? undefined,
-        }))
-      : [],
-  }));
-}
-
-const TEMPLATE_COLORS = ["#2563eb", "#16a34a", "#f97316", "#d946ef", "#06b6d4", "#eab308"];
-
-function templateSections(prefix: string, names: string[]): CreateSectionInput[] {
-  return names.map((name, index) => {
-    const column = index % 3;
-    const row = Math.floor(index / 3);
-    const x = 0.08 + column * 0.28;
-    const y = 0.18 + row * 0.24;
-    return {
-      sectionKey: `${prefix}_${index + 1}`,
-      sectionNo: index + 1,
-      name,
-      color: TEMPLATE_COLORS[index % TEMPLATE_COLORS.length] ?? "#2563eb",
-      polygonNormalized: [
-        { x, y },
-        { x: x + 0.22, y },
-        { x: x + 0.22, y: y + 0.16 },
-        { x, y: y + 0.16 },
-      ],
-      labelNormalized: { x: x + 0.11, y: y + 0.08 },
-      thumbnailFallback: "manual -> crop_from_diagram -> generated_placeholder -> section_icon",
-      equipment: [],
-    };
-  });
-}
-
-export const SECTION_MAP_TEMPLATES: SectionMapTemplateRecord[] = [
-  {
-    id: "osv_workboat",
-    name: "OSV / Workboat",
-    vesselType: "OSV / Workboat",
-    description: "Balanced working deck, machinery, accommodation, bridge, and utility zones.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("osv", [
-      "Aft Working Deck",
-      "Main Engine Room",
-      "Cargo / Utility Deck",
-      "Accommodation",
-      "Bridge",
-      "Bow / Forepeak",
-    ]),
-  },
-  {
-    id: "ahts",
-    name: "AHTS",
-    vesselType: "Anchor Handling Tug Supply",
-    description: "Stern roller, winch deck, machinery, accommodation, bridge, and bow sections.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("ahts", [
-      "Stern Roller",
-      "Winch Deck",
-      "Main Machinery",
-      "Accommodation",
-      "Bridge",
-      "Forward Store",
-    ]),
-  },
-  {
-    id: "psv",
-    name: "PSV",
-    vesselType: "Platform Supply Vessel",
-    description: "Cargo deck and tank/service sections for supply operations.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("psv", [
-      "Aft Cargo Deck",
-      "Mud / Brine Tanks",
-      "Engine Room",
-      "Accommodation",
-      "Bridge",
-      "Bow Thruster Room",
-    ]),
-  },
-  {
-    id: "tugboat",
-    name: "Tugboat",
-    vesselType: "Tugboat",
-    description: "Compact towing vessel section starter.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("tug", [
-      "Aft Deck",
-      "Engine Room",
-      "Galley",
-      "Wheelhouse",
-      "Forepeak",
-    ]),
-  },
-  {
-    id: "pilot_vessel",
-    name: "Pilot Vessel",
-    vesselType: "Pilot Vessel",
-    description: "Fast craft operating sections.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("pilot", [
-      "Aft Deck",
-      "Machinery",
-      "Passenger Cabin",
-      "Bridge",
-      "Foredeck",
-    ]),
-  },
-  {
-    id: "crew_boat",
-    name: "Crew Boat",
-    vesselType: "Crew Boat",
-    description: "Crew transport layout starter.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: templateSections("crew", [
-      "Aft Deck",
-      "Engine Room",
-      "Passenger Cabin",
-      "Bridge",
-      "Bow",
-    ]),
-  },
-  {
-    id: "custom_blank",
-    name: "Custom Blank",
-    vesselType: "Custom",
-    description: "Blank map with no sections.",
-    diagramKind: "side_elevation",
-    diagramWidth: 895,
-    diagramHeight: 420,
-    sections: [],
-  },
-];
-
-function getSectionMapTemplate(templateId: string): SectionMapTemplateRecord | null {
-  return SECTION_MAP_TEMPLATES.find((template) => template.id === templateId) ?? null;
-}
-
-class MetadataOnlyMediaStore implements VesselRegistryMediaStore {
-  async persist(_ctx: RegistryContext, input: { objectKeyHint: string }): Promise<string> {
-    return input.objectKeyHint;
-  }
-
-  async archive(): Promise<void> {}
-}
-
-async function preparePersistedContent(
-  mimeType: string,
-  content: Buffer,
-  sanitizedSvg?: string
-): Promise<Buffer> {
-  if (sanitizedSvg) {
-    return Buffer.from(sanitizedSvg, "utf8");
-  }
-
-  if (!["image/png", "image/jpeg", "image/webp"].includes(mimeType)) {
-    return content;
-  }
-
-  const { default: sharp } = await import("sharp");
-  const image = sharp(content, { failOn: "error" }).rotate();
-  if (mimeType === "image/png") {
-    return image.png().toBuffer();
-  }
-  if (mimeType === "image/jpeg") {
-    return image.jpeg().toBuffer();
-  }
-  return image.webp().toBuffer();
 }

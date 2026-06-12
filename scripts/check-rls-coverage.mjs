@@ -77,13 +77,28 @@ function sliceExport(src, name) {
   return end === -1 ? src.slice(start) : src.slice(start, end);
 }
 
+function listTypeScriptFiles(dir, prefix = "") {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listTypeScriptFiles(full, rel));
+    } else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+      files.push({ rel, full });
+    }
+  }
+  return files;
+}
+
 // ---------------------------------------------------------------- schema
 const schemaTables = new Map(); // physical name -> { file, columns body }
-for (const fileName of readdirSync(schemaDir).sort()) {
-  if (!fileName.endsWith(".ts") || fileName.endsWith(".d.ts")) continue;
-  const src = readFileSync(join(schemaDir, fileName), "utf8");
+for (const { rel, full } of listTypeScriptFiles(schemaDir)) {
+  const src = readFileSync(full, "utf8");
   for (const t of extractTables(src)) {
-    schemaTables.set(t.physical, { file: fileName, body: t.body });
+    schemaTables.set(t.physical, { file: rel, body: t.body });
   }
 }
 

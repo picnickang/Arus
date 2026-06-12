@@ -28,11 +28,11 @@ import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type {
-  AlertConfig,
   BunkeringEvent,
   DailyConsumption,
   FleetPosition,
   HourlyConsumption,
+  RmsAlertConfig,
   RmsAlert,
   RmsSummary,
   RobEstimate,
@@ -104,7 +104,7 @@ export default function RmsMonitoringPage() {
     },
   });
 
-  const { data: alertConfigs = [], isLoading: configsLoading } = useQuery<AlertConfig[]>({
+  const { data: alertConfigs = [], isLoading: configsLoading } = useQuery<RmsAlertConfig[]>({
     queryKey: [
       "/api/rms/alerts/configs",
       { vesselId: selectedVessel !== "all" ? selectedVessel : undefined },

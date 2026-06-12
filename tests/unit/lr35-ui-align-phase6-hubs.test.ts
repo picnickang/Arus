@@ -15,6 +15,31 @@ async function readSrc(path: string): Promise<string> {
   return readFile(resolve(REPO_ROOT, path), "utf8");
 }
 
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
 describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
   it.each([
     ["maintenance-hub.tsx", "MobilePdmPage"],
@@ -31,12 +56,8 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
   });
 
   it("shared mobile readiness screens contain the Figma panel concepts", async () => {
-    const screenSrc = await readSrc(
-      "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
-    );
-    const modelSrc = await readSrc(
-      "client/src/features/mobile-readiness/mobile-readiness-model.ts"
-    );
+    const screenSrc = await readMobileScreenSrc();
+    const modelSrc = await readMobileModelSrc();
 
     expect(screenSrc).toContain("MobilePdmPage");
     expect(screenSrc).toContain("MobileCrewPage");
@@ -50,7 +71,7 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("LogRequiredRow");
     expect(screenSrc).toContain("MessageSquare");
     expect(screenSrc).toContain("CalendarDays");
-    expect(screenSrc).toContain("FleetCardKpiStrip");
+    expect(screenSrc).toContain("KpiStrip");
     expect(screenSrc).toContain("Crew Readiness Overview");
     expect(screenSrc).toContain("View All Current Crew");
     expect(screenSrc).toContain("Former Crew (24)");

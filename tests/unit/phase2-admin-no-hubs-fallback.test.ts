@@ -17,6 +17,31 @@ async function readSrc(path: string): Promise<string> {
   return readFile(resolve(process.cwd(), path), "utf8");
 }
 
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+const MOBILE_SCREEN_PATHS = [
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessShared.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessFleetScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessPdmScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
+  "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
+async function readMobileScreenSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_SCREEN_PATHS.map(readSrc))).join("\n");
+}
+
 describe("Phase 2 — mobile readiness replaces admin no-hubs fallback", () => {
   it("policy: an empty hub allow-list still yields zero admin categories", () => {
     const cats = getAdminPrimaryCategories();
@@ -34,12 +59,8 @@ describe("Phase 2 — mobile readiness replaces admin no-hubs fallback", () => {
   });
 
   it("the replacement command center carries the actionable status-reason-action contract", async () => {
-    const screenSrc = await readSrc(
-      "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
-    );
-    const modelSrc = await readSrc(
-      "client/src/features/mobile-readiness/mobile-readiness-model.ts"
-    );
+    const screenSrc = await readMobileScreenSrc();
+    const modelSrc = await readMobileModelSrc();
 
     expect(screenSrc).toContain("MobileCommandCenterPage");
     expect(screenSrc).toContain("today-card-");

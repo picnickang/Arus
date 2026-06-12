@@ -77,6 +77,22 @@ function readExportedNames(filePath, visited = new Set()) {
     /export\s+(?:declare\s+)?(?:const|let|var|function|class|enum|interface|type|abstract\s+class)\s+([A-Za-z_$][\w$]*)/g;
   for (const m of content.matchAll(decl)) names.add(m[1]);
 
+  // export const { A, B, sourceName: aliasName } = source
+  const destructured = /export\s+const\s+\{([^}]+)\}\s*=/g;
+  for (const m of content.matchAll(destructured)) {
+    for (const part of m[1].split(",")) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const aliasMatch = trimmed.match(/^[A-Za-z_$][\w$]*\s*:\s*([A-Za-z_$][\w$]*)$/);
+      if (aliasMatch) {
+        names.add(aliasMatch[1]);
+        continue;
+      }
+      const simple = trimmed.match(/^([A-Za-z_$][\w$]*)$/);
+      if (simple) names.add(simple[1]);
+    }
+  }
+
   // export { A, B as C } [from "..."]
   const grouped = /export\s*(?:type\s+)?\{([^}]+)\}(?:\s*from\s*["'][^"']+["'])?/g;
   for (const m of content.matchAll(grouped)) {

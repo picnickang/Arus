@@ -6,6 +6,8 @@ export {
   useWorkOrderFormDialogData,
   type WorkOrderFormData,
   MAINTENANCE_TYPES,
+  WORK_ORDER_FORM_PRIORITY_OPTIONS,
+  WORK_ORDER_FORM_STATUS_OPTIONS,
 } from "./hooks/useWorkOrderFormDialogData";
 export { useWorkOrderTasksTabData } from "./hooks/useWorkOrderTasksTabData";
 export type { WorkOrderTaskItem as WorkOrderTask } from "./hooks/useWorkOrderTasksTabData";
