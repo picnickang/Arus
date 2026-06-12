@@ -431,4 +431,25 @@ describe("client tail component extractions", () => {
     expect(types).toContain("export interface UseHoursOfRestDataReturn");
   });
 
+  it("keeps maintenance schedules surfaces behind the route shell", () => {
+    const page = read("client/src/pages/maintenance-schedules.tsx");
+    const sections = read("client/src/pages/maintenance-schedules-sections.tsx");
+    const calendar = read("client/src/pages/maintenance-schedules-calendar.tsx");
+    const dialogs = read("client/src/pages/maintenance-schedules-dialogs.tsx");
+
+    expect(page).toContain('from "./maintenance-schedules-sections"');
+    expect(page).toContain('from "./maintenance-schedules-dialogs"');
+    expect(page).toContain("<MaintenanceScheduleSections");
+    expect(page).toContain("<MaintenanceScheduleDialogs");
+    expect(sections).toContain('from "./maintenance-schedules-calendar"');
+    expect(sections).toContain("export function MaintenanceScheduleSections");
+    expect(sections).toContain('data-testid="input-search-schedules"');
+    expect(sections).toContain('data-testid={`button-view-schedule-${schedule.id}`}');
+    expect(calendar).toContain("export function CalendarView");
+    expect(calendar).toContain('data-testid="button-current-week"');
+    expect(dialogs).toContain("export function MaintenanceScheduleDialogs");
+    expect(dialogs).toContain('data-testid="create-schedule-modal"');
+    expect(dialogs).toContain('data-testid="edit-schedule-modal"');
+  });
+
 });
