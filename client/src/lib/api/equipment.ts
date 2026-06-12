@@ -1,5 +1,5 @@
 import { apiRequest } from "../queryClient";
-import type { EquipmentTelemetry, InsertTelemetry, TelemetryTrend } from "@shared/schema";
+import type { TelemetryTrend } from "@shared/schema";
 
 export interface EquipmentHealth {
   equipmentId: string;
@@ -10,10 +10,6 @@ export interface EquipmentHealth {
 import {
   equipmentHealthResponseSchema,
   type EquipmentHealthResponse,
-  rulPredictionResponseSchema,
-  rulBatchResponseSchema,
-  type RulPredictionResponse,
-  type RulBatchResponse,
 } from "@shared/analytics-types";
 
 export async function fetchEquipmentHealth(vesselId?: string): Promise<EquipmentHealth[]> {
@@ -22,34 +18,6 @@ export async function fetchEquipmentHealth(vesselId?: string): Promise<Equipment
     params.append("vesselId", vesselId);
   }
   const url = `/api/equipment/health${params.toString() ? `?${params.toString()}` : ""}`;
-  return apiRequest("GET", url);
-}
-
-export async function fetchVesselFleetOverview(orgId?: string) {
-  const url = orgId ? `/api/fleet/overview?orgId=${orgId}` : "/api/fleet/overview";
-  return apiRequest("GET", url);
-}
-
-export async function fetchLatestTelemetryReadings(
-  vesselId?: string,
-  equipmentId?: string,
-  sensorType?: string,
-  limit?: number
-) {
-  const params = new URLSearchParams();
-  if (vesselId) {
-    params.set("vesselId", vesselId);
-  }
-  if (equipmentId) {
-    params.set("equipmentId", equipmentId);
-  }
-  if (sensorType) {
-    params.set("sensorType", sensorType);
-  }
-  if (limit) {
-    params.set("limit", limit.toString());
-  }
-  const url = `/api/telemetry/latest${params.toString() ? `?${params.toString()}` : ""}`;
   return apiRequest("GET", url);
 }
 
@@ -70,27 +38,6 @@ export async function fetchTelemetryTrends(
   }
   const url = `/api/telemetry/trends${params.toString() ? `?${params.toString()}` : ""}`;
   return await apiRequest("GET", url);
-}
-
-export async function createTelemetryReading(
-  reading: InsertTelemetry
-): Promise<EquipmentTelemetry> {
-  return await apiRequest("POST", "/api/telemetry/readings", reading);
-}
-
-export async function fetchTelemetryHistory(
-  equipmentId: string,
-  sensorType: string,
-  hours: number = 24
-): Promise<EquipmentTelemetry[]> {
-  return await apiRequest(
-    "GET",
-    `/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`
-  );
-}
-
-export async function fetchEquipmentReport(equipmentId: string): Promise<unknown> {
-  return apiRequest("GET", `/api/reports/equipment/${equipmentId}`);
 }
 
 function isValidUuid(value: unknown): value is string {
@@ -196,28 +143,6 @@ export async function fetchEquipmentHealthTyped(
       JSON.stringify(result.error.issues, null, 2)
     );
     return normalizedResponse;
-  }
-  return result.data;
-}
-
-export async function fetchRulPrediction(equipmentId: string): Promise<RulPredictionResponse> {
-  const url = `/api/equipment/${equipmentId}/rul`;
-  const response = await apiRequest("GET", url);
-  const result = rulPredictionResponseSchema.safeParse(response);
-  if (!result.success) {
-    console.error("[API] RUL prediction response validation failed:", result.error);
-    throw new Error(`Invalid RUL prediction response: ${result.error.message}`);
-  }
-  return result.data;
-}
-
-export async function fetchRulBatchPredictions(equipmentIds: string[]): Promise<RulBatchResponse> {
-  const url = `/api/equipment/rul/batch`;
-  const response = await apiRequest("POST", url, { equipmentIds });
-  const result = rulBatchResponseSchema.safeParse(response);
-  if (!result.success) {
-    console.error("[API] RUL batch response validation failed:", result.error);
-    throw new Error(`Invalid RUL batch response: ${result.error.message}`);
   }
   return result.data;
 }

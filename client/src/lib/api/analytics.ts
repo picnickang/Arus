@@ -4,8 +4,6 @@ import {
   type AnomalyDetectionListResponse,
   failurePredictionListResponseSchema,
   type FailurePredictionListResponse,
-  modelPerformanceListResponseSchema,
-  type ModelPerformanceListResponse,
   modelPerformanceSummaryResponseSchema,
   type ModelPerformanceSummaryResponse,
   reconciliationStatusSchema,
@@ -68,31 +66,6 @@ export async function fetchFailurePredictions(params?: {
   if (!result.success) {
     console.error("[API] Failure predictions response validation failed:", result.error);
     throw new Error(`Invalid failure predictions response: ${result.error.message}`);
-  }
-  return result.data;
-}
-
-export async function fetchModelPerformance(params?: {
-  modelType?: string;
-  page?: number;
-  limit?: number;
-}): Promise<ModelPerformanceListResponse> {
-  const queryParams = new URLSearchParams();
-  if (params?.modelType) {
-    queryParams.append("modelType", params.modelType);
-  }
-  if (params?.page) {
-    queryParams.append("page", params.page.toString());
-  }
-  if (params?.limit) {
-    queryParams.append("limit", params.limit.toString());
-  }
-  const url = `/api/analytics/ml/performance${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-  const response = await apiRequest("GET", url);
-  const result = modelPerformanceListResponseSchema.safeParse(response);
-  if (!result.success) {
-    console.error("[API] Model performance response validation failed:", result.error);
-    throw new Error(`Invalid model performance response: ${result.error.message}`);
   }
   return result.data;
 }

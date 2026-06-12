@@ -73,15 +73,6 @@ export async function fetchCostSavingsSummary(): Promise<CostSavingsSummary> {
   return response as CostSavingsSummary;
 }
 
-export async function updateSavingsValidation(
-  id: string,
-  validationStatus: "valid" | "disputed" | "voided",
-  reason: string
-): Promise<unknown> {
-  const url = `/api/cost-savings/${id}/validation`;
-  return apiRequest("PATCH", url, { validationStatus, reason });
-}
-
 export interface CostSummaryItem {
   month: string;
   totalCost: number;
