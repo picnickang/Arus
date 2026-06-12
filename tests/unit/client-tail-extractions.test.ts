@@ -582,4 +582,29 @@ describe("client tail component extractions", () => {
     expect(tasks).toContain('data-testid="tasks-section"');
   });
 
+  it("keeps agent chat panel shell and input hooks behind the public panel", () => {
+    const panel = read("client/src/components/agent/AgentChatPanel/index.tsx");
+    const shell = read("client/src/components/agent/AgentChatPanel/AgentChatPanelShell.tsx");
+    const attachments = read(
+      "client/src/components/agent/AgentChatPanel/useAgentChatAttachments.ts"
+    );
+    const voice = read("client/src/components/agent/AgentChatPanel/useAgentChatVoice.ts");
+
+    expect(panel).toContain('from "./AgentChatPanelShell"');
+    expect(panel).toContain('from "./useAgentChatAttachments"');
+    expect(panel).toContain('from "./useAgentChatVoice"');
+    expect(panel).toContain("<AgentChatPanelShell");
+    expect(panel).toContain("export function AgentChatPanel");
+    expect(shell).toContain("export function AgentChatPanelShell");
+    expect(shell).toContain('data-testid="card-agent-chat-panel"');
+    expect(shell).toContain('data-testid="button-show-history"');
+    expect(shell).toContain("<MessageInputBar");
+    expect(attachments).toContain("export function useAgentChatAttachments");
+    expect(attachments).toContain("handleFileSelect");
+    expect(attachments).toContain("handleDrop");
+    expect(voice).toContain("export function useAgentChatVoice");
+    expect(voice).toContain("SpeechRecognition");
+    expect(voice).toContain("toggleVoiceInput");
+  });
+
 });
