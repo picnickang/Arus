@@ -174,4 +174,16 @@ describe("server tail extractions", () => {
     expect(helpers).toContain("export function mapWorkOrderSummaryRow");
     expect(helpers).toContain("export function recommendedActionText");
   });
+
+  it("keeps WO-SO bridge operations behind the route compatibility module", () => {
+    const routes = read("server/routes/wo-so-bridge-routes.ts");
+    const operations = read("server/routes/wo-so-bridge-operations.ts");
+
+    expect(routes).toContain('from "./wo-so-bridge-operations"');
+    expect(routes).toContain("export function registerWoSoBridgeRoutes");
+    expect(routes).toContain("export type { CreatedServiceOrderRow, CreateSOParams }");
+    expect(operations).toContain("export async function createServiceOrderFromWorkOrder");
+    expect(operations).toContain("export async function syncWorkOrderFromServiceOrders");
+    expect(operations).toContain("export interface CreateSOParams");
+  });
 });
