@@ -625,25 +625,12 @@ export function MobileVesselDetailPage() {
           </>
         }
       />
-      <Content>
-        <div className="grid grid-cols-4 gap-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="border-r border-slate-200 pr-2">
-            <div className="text-xs text-slate-500">Readiness</div>
-            <div className="text-2xl font-bold text-emerald-600">{detail.readiness}%</div>
-            <ProgressBar value={detail.readiness} />
-          </div>
-          {detail.tiles.slice(1).map((tile) => {
-            const tone = toneClasses(tile.tone);
-            return (
-              <div key={tile.id} className="min-w-0 border-r border-slate-200 px-2 last:border-r-0">
-                <div className="truncate text-xs text-slate-500">{tile.label}</div>
-                <div className={cn("text-2xl font-bold", tone.text)}>{tile.value}</div>
-                <div className="truncate text-xs font-semibold text-slate-500">
-                  {severityLabel(tile.tone)}
-                </div>
-              </div>
-            );
-          })}
+      <Content className="space-y-2 pt-2">
+        <div className="grid grid-cols-4 gap-0 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm">
+          <VesselMetricTile label="Readiness" value={`${detail.readiness}%`} tone="good" />
+          <VesselMetricTile label="Active alarms" value="2" sublabel="Critical" tone="critical" />
+          <VesselMetricTile label="PdM risk" value="82" sublabel="High" tone="high" />
+          <VesselMetricTile label="Crew blocker" value="1" sublabel="Yes" tone="medium" />
         </div>
 
         <SectionCard title="Top priorities">
@@ -652,25 +639,9 @@ export function MobileVesselDetailPage() {
           ))}
         </SectionCard>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2">
           {detail.tiles.map((tile) => (
-            <Link
-              href={
-                tile.id === "inventory"
-                  ? "/logistics"
-                  : tile.id === "logs"
-                    ? "/logs"
-                    : "/work-orders"
-              }
-              key={tile.id}
-              className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-            >
-              <div>
-                <div className="text-sm font-semibold text-slate-600">{tile.label}</div>
-                <div className="mt-1 text-3xl font-bold text-slate-950">{tile.value}</div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
-            </Link>
+            <VesselActionTile key={tile.id} tile={tile} />
           ))}
         </div>
         <div className="flex gap-4 overflow-x-auto border-b border-slate-200 text-sm font-semibold">
@@ -691,7 +662,7 @@ export function MobileVesselDetailPage() {
           )}
         </div>
         <SectionCard title="Vessel Snapshot">
-          <div className="grid grid-cols-4 gap-3 p-3 text-xs">
+          <div className="grid grid-cols-4 gap-2 p-3 text-xs">
             <MiniState label="Vessel type" value="Container" tone="normal" />
             <MiniState label="Built" value="2015" tone="normal" />
             <MiniState label="GT / DWT" value="32,512" tone="normal" />
@@ -701,6 +672,68 @@ export function MobileVesselDetailPage() {
         <VesselDiagramPanel screens={useScreens("admin")} compact />
       </Content>
     </MobilePageShell>
+  );
+}
+
+function VesselMetricTile({
+  label,
+  value,
+  tone,
+  sublabel,
+}: {
+  label: string;
+  value: string;
+  tone: ReadinessTone;
+  sublabel?: string;
+}) {
+  const toneClass = toneClasses(tone);
+  return (
+    <div className="min-w-0 border-r border-slate-200 px-2 text-center last:border-r-0">
+      <div className="truncate text-[11px] font-medium text-slate-500">{label}</div>
+      <div className={cn("text-xl font-extrabold leading-tight", toneClass.text)}>{value}</div>
+      {label === "Readiness" ? (
+        <ProgressBar value={Number.parseInt(value, 10)} />
+      ) : (
+        <div className={cn("truncate text-[11px] font-semibold", toneClass.text)}>
+          {sublabel ?? severityLabel(tone)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VesselActionTile({ tile }: { tile: SummaryMetric }) {
+  const tone = toneClasses(tile.tone);
+  const sublabelById: Record<string, string> = {
+    "work-orders": "5 Overdue",
+    inventory: "Critical",
+    logs: "3 Overdue",
+    alerts: "2 Critical",
+  };
+  const iconById: Record<string, LucideIcon> = {
+    "work-orders": ClipboardList,
+    inventory: Package,
+    logs: FileText,
+    alerts: Bell,
+  };
+  const Icon = iconById[tile.id] ?? ChevronRight;
+  return (
+    <Link
+      href={tile.id === "inventory" ? "/logistics" : tile.id === "logs" ? "/logs" : "/work-orders"}
+      className="grid min-h-20 grid-cols-[28px_1fr_18px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm"
+    >
+      <Icon className="h-5 w-5 text-[#0d4da1]" aria-hidden="true" />
+      <span className="min-w-0">
+        <span className="block truncate text-xs font-semibold text-slate-600">{tile.label}</span>
+        <span className="block text-2xl font-extrabold leading-tight text-slate-950">
+          {tile.value}
+        </span>
+        <span className={cn("block truncate text-[11px] font-bold", tone.text)}>
+          {sublabelById[tile.id] ?? severityLabel(tile.tone)}
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+    </Link>
   );
 }
 
@@ -739,37 +772,39 @@ function VesselDiagramPanel({
       title="Vessel diagram"
       action={<button className="text-sm font-semibold text-[#0d4da1]">Legend</button>}
     >
-      <div className="flex gap-2 overflow-x-auto px-3 py-3">
+      <div className="grid grid-cols-6 gap-2 px-3 py-3">
         {detail.diagramModes.map((mode, index) => (
-          <button
-            key={mode}
-            type="button"
-            className={cn(
-              "min-h-12 shrink-0 rounded-lg border px-3 text-xs font-semibold",
-              index === 0
-                ? "border-[#03295a] bg-[#03295a] text-white"
-                : "border-slate-200 bg-white text-slate-600"
-            )}
-          >
-            {mode}
-          </button>
+          <DiagramModeButton key={mode} mode={mode} active={index === 0} />
         ))}
+      </div>
+      <div className="flex justify-end gap-2 px-3 pb-2">
+        <button className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+          <Package className="h-4 w-4" aria-hidden="true" />
+          Zones
+        </button>
+        <button className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+          <List className="h-4 w-4" aria-hidden="true" />
+          Legend
+        </button>
       </div>
       <div className="px-3 pb-3">
         <div
-          className={cn("relative overflow-hidden rounded-lg bg-white", compact ? "h-52" : "h-72")}
+          className={cn(
+            "relative overflow-hidden rounded-lg bg-white",
+            compact ? "h-52" : "h-[278px]"
+          )}
         >
           <img
             src={diagram.src}
             alt={diagram.alt}
-            className="h-full w-full object-contain"
+            className="h-full w-full scale-[1.18] object-contain"
             data-asset-status={diagram.status}
           />
-          <MapPin className="absolute left-[28%] top-[35%]" tone="critical" label="!" />
-          <MapPin className="absolute left-[36%] top-[46%]" tone="info" label="" />
-          <MapPin className="absolute left-[66%] top-[50%]" tone="medium" label="L" />
-          <MapPin className="absolute right-[13%] top-[44%]" tone="good" label="" />
-          <div className="absolute bottom-[20%] left-[40%] rounded-lg border-4 border-orange-400 bg-orange-100/70 px-8 py-5 text-orange-700 shadow-lg">
+          <MapPin className="absolute left-[33%] top-[34%]" tone="critical" label="!" />
+          <MapPin className="absolute left-[25%] top-[45%]" tone="info" label="" />
+          <MapPin className="absolute left-[62%] top-[54%]" tone="medium" label="L" />
+          <MapPin className="absolute right-[12%] top-[48%]" tone="good" label="" />
+          <div className="absolute bottom-[16%] left-[38%] rounded-lg border-4 border-orange-400 bg-orange-100/70 px-8 py-5 text-orange-700 shadow-lg">
             <Cog className="h-9 w-9" aria-hidden="true" />
           </div>
         </div>
@@ -795,8 +830,17 @@ function VesselDiagramPanel({
             {detail.selectedZone.actions.map((action) => (
               <span
                 key={action}
-                className="rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold"
               >
+                {action === "Machinery" ? (
+                  <Wrench className="h-3.5 w-3.5 text-[#0d4da1]" aria-hidden="true" />
+                ) : action === "Alarm" ? (
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-600" aria-hidden="true" />
+                ) : action === "Log" ? (
+                  <FileText className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                )}
                 {action}
               </span>
             ))}
@@ -804,6 +848,32 @@ function VesselDiagramPanel({
         </div>
       </div>
     </SectionCard>
+  );
+}
+
+function DiagramModeButton({ mode, active }: { mode: string; active: boolean }) {
+  const iconByMode: Record<string, LucideIcon> = {
+    "Side elevation": Package,
+    "Deck plan": Grid2X2,
+    "Machinery arrangement": Cog,
+    "Fire safety": AlertTriangle,
+    "Electrical single-line": SlidersHorizontal,
+    Custom: Plus,
+  };
+  const Icon = iconByMode[mode] ?? Grid2X2;
+  return (
+    <button
+      type="button"
+      className={cn(
+        "grid min-h-16 min-w-0 place-items-center rounded-lg border px-1.5 py-1 text-center text-[9px] font-semibold leading-tight",
+        active
+          ? "border-[#03295a] bg-[#03295a] text-white"
+          : "border-slate-200 bg-white text-slate-600"
+      )}
+    >
+      <Icon className="mb-1 h-4 w-4" aria-hidden="true" />
+      <span className="line-clamp-2">{mode}</span>
+    </button>
   );
 }
 
