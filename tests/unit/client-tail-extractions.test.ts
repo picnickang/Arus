@@ -185,4 +185,21 @@ describe("client tail component extractions", () => {
     expect(resources).toContain("export const routeResourceMap");
     expect(resources).toContain('"/system-administration": "system_settings"');
   });
+
+  it("keeps query request helpers behind the queryClient public module", () => {
+    const queryClient = read("client/src/lib/queryClient.ts");
+    const request = read("client/src/lib/queryClient-request.ts");
+
+    expect(queryClient).toContain('from "@/lib/queryClient-request"');
+    expect(queryClient).toContain("export const queryClient");
+    expect(queryClient).toContain("export function replayQueuedApiRequests");
+    expect(queryClient).toContain("apiRequest");
+    expect(queryClient).toContain("apiFormDataRequest");
+    expect(queryClient).toContain("createHeaders");
+    expect(request).toContain("export async function apiRequest");
+    expect(request).toContain("export async function apiFormDataRequest");
+    expect(request).toContain("export function getQueryFn");
+    expect(request).toContain("export class TenantQuotaExceededError");
+    expect(request).toContain("queueOfflineApiRequest");
+  });
 });

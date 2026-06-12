@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T06:45:47.389Z
+Generated: 2026-06-12T06:57:57.104Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `54` counted files.
-- The current counted inventory is `54` files.
+- The temporary ceiling is `53` counted files.
+- The current counted inventory is `53` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    54 |
+| Total counted long files  |    53 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    54 |
+| Client                    |    53 |
 | Client page files         |    21 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -128,6 +128,7 @@ Completed splits:
 - `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` dropped below the threshold by moving hub summary/fetch helpers and activity timeline assembly to sibling modules while preserving `PostgresEquipmentHubRepository`.
 - `server/routes/service-request-routes.ts` dropped below the threshold by moving read, edit/create, and review/convert route groups plus shared request helpers to sibling route modules while preserving `registerServiceRequestRoutes`.
 - `server/routes/rag-routes.ts` dropped below the threshold by moving ask/streaming, conversation/feedback/cache, extended export/analytics/compare/alert route groups, and shared RAG route helpers to sibling modules while preserving `registerRagRoutes`.
+- `client/src/lib/queryClient.ts` dropped below the threshold by moving request, header, envelope, timeout, quota-error, and query function mechanics to `queryClient-request.ts` while preserving the public `queryClient` import path.
 
 ## Top 30 Longest Files
 
@@ -236,7 +237,6 @@ Completed splits:
 615 client/src/pages/scheduled-reports.tsx
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
-598 client/src/lib/queryClient.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
 ```
