@@ -17,7 +17,19 @@ const baseUrl = readArg("--base-url", process.env.ARUS_VISUAL_BASE_URL ?? "http:
 const referenceDir = readArg("--reference-dir", path.resolve(process.cwd(), ".."));
 
 const captures = [
-  { id: "role-today", route: "/", reference: "figma-role-today.png" },
+  { id: "role-today", route: "/", reference: "figma-role-today.png", role: "system_admin" },
+  {
+    id: "role-today-captain",
+    route: "/",
+    reference: "figma-role-today.png",
+    role: "captain",
+  },
+  {
+    id: "role-today-crew",
+    route: "/",
+    reference: "figma-role-today.png",
+    role: "maintenance_technician",
+  },
   { id: "fleet", route: "/fleet", reference: "figma-fleet-vessel.png" },
   {
     id: "vessel-detail",
@@ -63,15 +75,16 @@ function htmlEscape(value) {
 mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport });
-await page.addInitScript(() => {
-  window.localStorage.setItem("arus-user-role", "system_admin");
-  window.localStorage.setItem("arus-landing-redirect-disabled", "true");
-  window.sessionStorage.setItem("arus-role-just-selected", "true");
-});
 const manifest = [];
 
 for (const capture of captures) {
+  const page = await browser.newPage({ viewport });
+  await page.addInitScript((role) => {
+    window.localStorage.setItem("arus-user-role", role);
+    window.localStorage.setItem("arus-landing-redirect-disabled", "true");
+    window.sessionStorage.setItem("arus-role-just-selected", "true");
+  }, capture.role ?? "system_admin");
+
   const url = new URL(capture.route, baseUrl).toString();
   const currentName = `current-${capture.id}-390x844.png`;
   const referenceName = `reference-${capture.id}.png`;
@@ -95,12 +108,14 @@ for (const capture of captures) {
   manifest.push({
     id: capture.id,
     route: capture.route,
+    role: capture.role ?? "system_admin",
     url,
     viewport,
     current: currentPath,
     reference: hasReference ? referencePath : null,
     referenceSource: hasReference ? referenceSource : null,
   });
+  await page.close();
 }
 
 await browser.close();
