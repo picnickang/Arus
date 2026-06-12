@@ -232,4 +232,19 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid={`button-submit-${isCreate ? "create" : "edit"}`}');
     expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
   });
+
+  it("keeps vessel dashboard UI behind the route orchestration file", () => {
+    const route = read("client/src/pages/vessel-dashboard/index.tsx");
+    const view = read("client/src/pages/vessel-dashboard/VesselDashboardView.tsx");
+
+    expect(route).toContain('from "./VesselDashboardView"');
+    expect(route).toContain("export default function VesselDashboard");
+    expect(route).toContain("<VesselDashboardView");
+    expect(view).toContain("export function VesselDashboardView");
+    expect(view).toContain("export function VesselDashboardLoading");
+    expect(view).toContain("export function VesselDashboardNotFound");
+    expect(view).toContain('data-testid="vessel-dashboard-page"');
+    expect(view).toContain('data-testid="btn-config-schematic"');
+    expect(view).toContain('data-testid="panel-inventory"');
+  });
 });
