@@ -576,6 +576,23 @@ describe("client tail component extractions", () => {
     expect(types).toContain("export type VesselManagementModel");
   });
 
+  it("keeps diagnostics health panels behind the dashboard route shell", () => {
+    const page = read("client/src/pages/DiagnosticsDashboard.tsx");
+    const health = read("client/src/pages/DiagnosticsDashboardHealthTab.tsx");
+    const types = read("client/src/pages/DiagnosticsDashboardTypes.ts");
+
+    expect(page).toContain('from "./DiagnosticsDashboardHealthTab"');
+    expect(page).toContain("<DiagnosticsHealthTab");
+    expect(page).toContain("<DiagnosticsStatusIcon");
+    expect(page).toContain("export default function DiagnosticsDashboard");
+    expect(health).toContain("export function DiagnosticsHealthTab");
+    expect(health).toContain("export function DiagnosticsStatusIcon");
+    expect(health).toContain('data-testid="card-overall-status"');
+    expect(health).toContain('data-testid="card-database-check"');
+    expect(health).toContain('data-testid="card-services"');
+    expect(types).toContain("export type DiagnosticsDashboardModel");
+  });
+
   it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
     const page = read("client/src/pages/equipment/index.tsx");
     const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");

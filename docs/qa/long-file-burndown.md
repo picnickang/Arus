@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T13:54:55.111Z
+Generated: 2026-06-12T13:59:59.287Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `2` counted files.
-- The current counted inventory is `2` files.
+- The temporary ceiling is `1` counted file.
+- The current counted inventory is `1` file.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |     2 |
+| Total counted long files  |     1 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |     2 |
-| Client page files         |     1 |
+| Client                    |     1 |
+| Client page files         |     0 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -165,13 +165,13 @@ Completed splits:
 - `client/src/components/equipment/EquipmentDecommissionDialog.tsx` dropped below the threshold by moving form defaults/helpers and decommission summary/detail/financial/action sections to sibling modules while preserving the public dialog export and test IDs.
 - `client/src/components/ai-health/InsightsTab.tsx` dropped below the threshold by moving vessel intelligence fetching and rendering to a sibling module while preserving the default tab export and test IDs.
 - `client/src/pages/vessel-management/index.tsx` dropped below the threshold by moving action/create-dialog, fleet table, and edit/delete dialog surfaces to sibling route modules while preserving the default route export and test IDs.
+- `client/src/pages/DiagnosticsDashboard.tsx` dropped below the threshold by moving health status panels and status icon rendering to sibling route modules while preserving the default route export and test IDs.
 
 ## Top Remaining Long Files
 
 | Rank | Lines | File                                                     |
 | ---: | ----: | -------------------------------------------------------- |
-|    1 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`              |
-|    2 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`    |
+|    1 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`    |
 
 ## Recommended Extraction Plan
 
@@ -194,6 +194,5 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-638 client/src/pages/DiagnosticsDashboard.tsx
 633 client/src/components/sensors/SensorSetupWizard.tsx
 ```
