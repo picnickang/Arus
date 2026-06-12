@@ -1,11 +1,11 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-06-12T15:29:08.293Z",
+  "generatedAt": "2026-06-12T15:40:53.357Z",
   "errors": 0,
-  "warnings": 1899,
+  "warnings": 1894,
   "summary": {
     "byTopRules": {
-      "@typescript-eslint/prefer-nullish-coalescing": 623,
+      "@typescript-eslint/prefer-nullish-coalescing": 618,
       "no-nested-ternary": 345,
       "@typescript-eslint/no-unused-vars": 197,
       "@typescript-eslint/explicit-function-return-type": 144,
