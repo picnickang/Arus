@@ -160,4 +160,29 @@ describe("client tail component extractions", () => {
     expect(parts).toContain("export function SemanticSearchResults");
     expect(parts).toContain('data-testid="upload-dropzone"');
   });
+
+  it("keeps desktop setup backend controls in a sibling steps module", () => {
+    const page = read("client/src/pages/desktop-setup.tsx");
+    const steps = read("client/src/pages/desktop-setup-steps.tsx");
+
+    expect(page).toContain('from "./desktop-setup-steps"');
+    expect(page).toContain("<BackendStep");
+    expect(page).toContain("function SignInStep");
+    expect(page).toContain("/api/portal/login");
+    expect(steps).toContain("export function BackendStep");
+    expect(steps).toContain("export function StepIndicator");
+    expect(steps).toContain("testBackendConnection");
+    expect(steps).toContain('data-testid="step-indicator"');
+  });
+
+  it("keeps route resource mapping behind navigation config", () => {
+    const config = read("client/src/config/navigationConfig.ts");
+    const resources = read("client/src/config/navigationResources.ts");
+
+    expect(config).toContain('export { routeResourceMap } from "./navigationResources"');
+    expect(config).toContain("export const navigationCategories");
+    expect(config).toContain("export const ADMIN_ONLY_ROUTES");
+    expect(resources).toContain("export const routeResourceMap");
+    expect(resources).toContain('"/system-administration": "system_settings"');
+  });
 });
