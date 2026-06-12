@@ -211,4 +211,16 @@ describe("server tail extractions", () => {
     expect(lifecycleRoutes).toContain('"/api/equipment/:id/decommission"');
     expect(lifecycleRoutes).toContain('"/api/equipment/:equipmentId/compatible-parts"');
   });
+
+  it("keeps scheduling settings routes behind the scheduling route module", () => {
+    const routes = read("server/domains/scheduling/routes.ts");
+    const settingsRoutes = read("server/domains/scheduling/scheduling-settings-routes.ts");
+
+    expect(routes).toContain('from "./scheduling-settings-routes"');
+    expect(routes).toContain("export function registerSchedulingRoutes");
+    expect(routes).toContain("registerSchedulingSettingsRoutes(app");
+    expect(settingsRoutes).toContain("export function registerSchedulingSettingsRoutes");
+    expect(settingsRoutes).toContain('"/api/scheduling-settings"');
+    expect(settingsRoutes).toContain('"/api/scheduling-settings/rotation-templates"');
+  });
 });

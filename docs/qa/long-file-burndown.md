@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T02:32:14.365Z
+Generated: 2026-06-12T02:39:30.940Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `73` counted files.
-- The current counted inventory is `73` files.
+- The temporary ceiling is `72` counted files.
+- The current counted inventory is `72` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    73 |
-| Server                    |    18 |
-| Server route-like files   |     6 |
+| Total counted long files  |    72 |
+| Server                    |    17 |
+| Server route-like files   |     5 |
 | Server service-like files |     1 |
 | Client                    |    55 |
 | Client page files         |    21 |
@@ -110,6 +110,7 @@ Completed splits:
 - `server/routes/wo-so-bridge-routes.ts` dropped below the threshold by moving create/sync bridge operations to a sibling module while preserving route URLs and compatibility exports.
 - `server/domains/agent/application/suggestion-engine.ts` dropped below the threshold by moving preference/severity helpers, prediction cost formatting, AI summarization, and notification queueing to a sibling support module while preserving `SuggestionEngine`.
 - `server/domains/equipment/routes.ts` dropped below the threshold by moving lifecycle, sensor setup, and parts lookup endpoints to a sibling route group while preserving `registerEquipmentRoutes` and route URLs.
+- `server/domains/scheduling/routes.ts` dropped below the threshold by moving scheduling-settings endpoints to a sibling route group while preserving `registerSchedulingRoutes` and route URLs.
 
 ## Top 30 Longest Files
 
@@ -235,7 +236,6 @@ Completed splits:
 612 server/domains/me-portal/me-portal-service.ts
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
-607 server/domains/scheduling/routes.ts
 598 client/src/lib/queryClient.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
