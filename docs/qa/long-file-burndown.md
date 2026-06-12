@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T00:33:15.755Z
+Generated: 2026-06-12T00:41:07.646Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `84` counted files.
-- The current counted inventory is `84` files.
+- The temporary ceiling is `83` counted files.
+- The current counted inventory is `83` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    84 |
-| Server                    |    29 |
-| Server route-like files   |     9 |
+| Total counted long files  |    83 |
+| Server                    |    28 |
+| Server route-like files   |     8 |
 | Server service-like files |     5 |
 | Client                    |    55 |
 | Client page files         |    21 |
@@ -99,6 +99,7 @@ Completed splits:
 - `client/src/pages/knowledge-base.tsx` dropped below the threshold by moving upload, filter, and semantic-search widgets to a sibling page-parts module while preserving the route component.
 - `client/src/pages/desktop-setup.tsx` dropped below the threshold by moving setup progress and backend connection controls to a sibling steps module while keeping real account sign-in in the route file.
 - `client/src/config/navigationConfig.ts` dropped below the threshold by moving the route-to-resource map to a sibling config module while preserving the original public export.
+- `server/routes/kb-routes.ts` dropped below the threshold by moving KB upload storage, MIME filtering, and multer error normalization to a sibling route middleware module while preserving route URLs.
 
 ## Top 30 Longest Files
 
@@ -238,5 +239,4 @@ Completed splits:
 584 server/domains/equipment-intelligence/infrastructure/postgres-repository.ts
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
 580 server/db/crew-extensions/db-crew-extensions.ts
-569 server/routes/kb-routes.ts
 ```

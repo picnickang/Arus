@@ -69,4 +69,17 @@ describe("server tail extractions", () => {
     expect(math).toContain("export function fitIsotonicRegression");
     expect(math).toContain("export interface CalibrationReport");
   });
+
+  it("keeps knowledge-base upload middleware behind the route module", () => {
+    const routes = read("server/routes/kb-routes.ts");
+    const middleware = read("server/routes/kb-upload-middleware.ts");
+
+    expect(routes).toContain('from "./kb-upload-middleware"');
+    expect(routes).toContain("export async function registerKnowledgeBaseRoutes");
+    expect(routes).toContain('app.use("/api/kb", router)');
+    expect(middleware).toContain("export const asyncUpload");
+    expect(middleware).toContain("export const syncUpload");
+    expect(middleware).toContain("export function handleSingleFileUpload");
+    expect(middleware).toContain("Invalid file type. Only PDF, PNG, and JPEG are allowed.");
+  });
 });
