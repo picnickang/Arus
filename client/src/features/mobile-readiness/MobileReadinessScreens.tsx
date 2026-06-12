@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  ArrowDown,
   ArrowLeft,
   AlertTriangle,
   Bell,
   CalendarDays,
   Camera,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Cloud,
   Cog,
@@ -235,7 +237,10 @@ function AppHeader({
           {vesselName || roleLabel ? (
             <div className="text-right">
               {vesselName ? (
-                <div className="text-sm font-semibold text-slate-900">{vesselName}</div>
+                <div className="inline-flex items-center justify-end gap-1 text-sm font-semibold text-slate-900">
+                  {vesselName}
+                  <ChevronDown className="h-4 w-4 text-slate-700" aria-hidden="true" />
+                </div>
               ) : null}
               {roleLabel ? (
                 <div className="text-xs font-semibold text-[#0d4da1]">{roleLabel}</div>
@@ -517,7 +522,7 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
           type="button"
           className="mx-auto flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500"
         >
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          <ArrowDown className="h-4 w-4" aria-hidden="true" />
           Pull to refresh
         </button>
       </Content>

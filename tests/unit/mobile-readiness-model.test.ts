@@ -56,11 +56,14 @@ describe("mobile readiness replacement model", () => {
     const screens = buildMobileReadinessScreens("admin");
 
     expect(screens.today.queueLabel).toBe("Command Queue");
-    expect(screens.today.items.map((item) => item.title).slice(0, 4)).toEqual([
+    expect(screens.today.items.map((item) => item.title)).toEqual([
       "Engine room fire alarm",
       "Port Generator vibration",
       "Chief Engineer certificate expired",
       "Fuel filter unavailable",
+      "Oil Record Book overdue",
+      "Offline - sync pending",
+      "ISM task overdue",
     ]);
     expect(
       screens.today.items.every(
@@ -68,6 +71,23 @@ describe("mobile readiness replacement model", () => {
       )
     ).toBe(true);
     expect(severityRank("critical")).toBeGreaterThan(severityRank("high"));
+  });
+
+  it("preserves role-board Today queue order instead of severity sorting every role", () => {
+    expect(buildMobileReadinessScreens("captain").today.items.map((item) => item.title)).toEqual([
+      "Vessel readiness - Good",
+      "Required log sign-off",
+      "Active alert",
+      "Crew readiness",
+      "Weather & condition log",
+    ]);
+    expect(buildMobileReadinessScreens("crew").today.items.map((item) => item.title)).toEqual([
+      "Clean bilge holding tank",
+      "Daily Engine Log (Draft)",
+      "Safety instruction",
+      "Medical certificate expiring",
+      "Offline draft",
+    ]);
   });
 
   it("builds fleet cards with thumbnails, readiness KPIs, telemetry trust, log status, and next action", () => {
