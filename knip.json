@@ -113,7 +113,8 @@
     "server/routes/vessel-3d-routes.ts",
     "server/routes/wo-so-bridge-routes.ts",
     "server/service-orders/index.ts",
-    "server/suppliers/index.ts"
+    "server/suppliers/index.ts",
+    "shared/schema-runtime.ts"
   ],
   "project": ["server/**/*.ts", "client/src/**/*.{ts,tsx}", "shared/**/*.ts"],
   "paths": {
