@@ -492,4 +492,28 @@ describe("client tail component extractions", () => {
     expect(dialogs).toContain('data-testid="button-confirm-delete"');
   });
 
+  it("keeps AI health performance tab sections behind the tab shell", () => {
+    const tab = read("client/src/components/ai-health/PerformanceTab.tsx");
+    const summary = read("client/src/components/ai-health/PerformanceTabSummary.tsx");
+    const sections = read("client/src/components/ai-health/PerformanceTabSections.tsx");
+    const explainability = read("client/src/components/ai-health/PerformanceTabExplainability.tsx");
+
+    expect(tab).toContain('from "./PerformanceTabSummary"');
+    expect(tab).toContain('from "./PerformanceTabSections"');
+    expect(tab).toContain('from "./PerformanceTabExplainability"');
+    expect(tab).toContain("<PerformanceStatsCards");
+    expect(tab).toContain("<PerformanceDiagnosticSections");
+    expect(tab).toContain("<PerformanceExplainabilitySection");
+    expect(summary).toContain("export function AccuracyBadge");
+    expect(summary).toContain("export function PerformanceStatsCards");
+    expect(summary).toContain("export function ModelSummaryCard");
+    expect(summary).toContain('data-testid="stat-active-models"');
+    expect(sections).toContain("export function PerformanceDiagnosticSections");
+    expect(sections).toContain("export function MarineAndValidationSections");
+    expect(sections).toContain('data-testid={`drift-alert-${idx}`}');
+    expect(sections).toContain('data-testid={`row-validation-${index}`}');
+    expect(explainability).toContain("export function PerformanceExplainabilitySection");
+    expect(explainability).toContain('data-testid="select-filter-equipment"');
+  });
+
 });
