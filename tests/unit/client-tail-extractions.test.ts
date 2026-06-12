@@ -259,4 +259,28 @@ describe("client tail component extractions", () => {
     expect(parts).toContain('data-testid="dialog-edge-notes"');
   });
 
+  it("keeps ML training route surfaces behind sibling page modules", () => {
+    const page = read("client/src/pages/ml-training.tsx");
+    const tabs = read("client/src/pages/ml-training-tabs.tsx");
+    const trainingTabs = read("client/src/pages/ml-training-training-tabs.tsx");
+    const modelsTab = read("client/src/pages/ml-training-models-tab.tsx");
+    const resetTab = read("client/src/pages/ml-training-reset-tab.tsx");
+    const exportCard = read("client/src/pages/ml-training-export-card.tsx");
+
+    expect(page).toContain('from "./ml-training-tabs"');
+    expect(page).toContain('from "./ml-training-export-card"');
+    expect(page).toContain("<MLTrainingTabs");
+    expect(page).toContain("<MLTrainingExportCard");
+    expect(tabs).toContain("export function MLTrainingTabs");
+    expect(tabs).toContain("<LstmTrainingTab");
+    expect(tabs).toContain("<ResetDataTab");
+    expect(trainingTabs).toContain("export function LstmTrainingTab");
+    expect(trainingTabs).toContain("export function RandomForestTrainingTab");
+    expect(trainingTabs).toContain("export function AcousticAnalysisTab");
+    expect(modelsTab).toContain("export function TrainedModelsTab");
+    expect(resetTab).toContain("export function ResetDataTab");
+    expect(exportCard).toContain("export function MLTrainingExportCard");
+    expect(exportCard).toContain('data-testid="button-export-complete-json"');
+  });
+
 });
