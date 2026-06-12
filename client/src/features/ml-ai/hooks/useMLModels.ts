@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { MLModel, TrainingJob, InsightReport, RULPrediction } from "../types";
 
-export const mlKeys = {
+const mlKeys = {
   all: ["/api/ml"] as const,
   models: (orgId?: string) => [...mlKeys.all, "models", orgId] as const,
   modelDetail: (id: string) => [...mlKeys.all, "models", id] as const,

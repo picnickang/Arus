@@ -42,7 +42,7 @@ export interface EquipmentFinancials {
   totalMaintenanceSavings: number;
 }
 
-export const savingsDashboardKeys = {
+const savingsDashboardKeys = {
   summary: ["/api/cost-savings/summary"] as const,
   trend: ["/api/cost-savings/trend"] as const,
   equipmentFinancials: ["/api/cost-savings/equipment-financials"] as const,

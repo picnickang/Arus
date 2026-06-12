@@ -36,7 +36,7 @@ interface Equipment {
   type?: string;
 }
 
-export const trainingKeys = {
+const trainingKeys = {
   models: (orgId: string) => ["/api/analytics/ml-models", orgId] as const,
   equipment: ["/api/equipment"] as const,
 };

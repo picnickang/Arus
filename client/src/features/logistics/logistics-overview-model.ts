@@ -98,7 +98,7 @@ export function parseLogisticsTab(search: string): LogisticsTab {
 }
 
 /** Compact "$1.2k" rendering for KPI helpers; NaN/null render "N/A". */
-export function formatCurrency(value: number | null | undefined): string {
+function formatCurrency(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) {
     return "N/A";
   }

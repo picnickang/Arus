@@ -7,7 +7,7 @@ interface EnrichedDtcFault extends Omit<DtcFault, "equipmentId"> {
   equipmentId?: string;
 }
 
-export const dtcDiagnosticsKeys = {
+const dtcDiagnosticsKeys = {
   vessels: ["/api/vessels"] as const,
   equipment: ["/api/equipment"] as const,
   activeDtc: (equipmentId: string) => [`/api/equipment/${equipmentId}/dtc/active`] as const,

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { VesselDetail as Vessel, VesselEquipment as Equipment, Device } from "../types";
 
-export const vesselKeys = {
+const vesselKeys = {
   all: ["/api/vessels"] as const,
   lists: () => [...vesselKeys.all] as const,
   detail: (id: string) => [...vesselKeys.all, id] as const,
@@ -10,7 +10,7 @@ export const vesselKeys = {
   devices: (vesselId: string) => [...vesselKeys.all, vesselId, "devices"] as const,
 };
 
-export const equipmentKeys = {
+const equipmentKeys = {
   all: ["/api/equipment"] as const,
   list: () => [...equipmentKeys.all] as const,
   detail: (id: string) => [...equipmentKeys.all, id] as const,
@@ -18,7 +18,7 @@ export const equipmentKeys = {
   telemetry: (equipmentId: string) => [...equipmentKeys.all, equipmentId, "telemetry"] as const,
 };
 
-export const deviceKeys = {
+const deviceKeys = {
   all: ["/api/devices"] as const,
   list: () => [...deviceKeys.all] as const,
   detail: (id: string) => [...deviceKeys.all, id] as const,

@@ -66,7 +66,7 @@ function formatOffboardingResult(result: OffboardingResult | undefined): string 
   return lines.join("\n");
 }
 
-export const lifecycleKeys = {
+const lifecycleKeys = {
   former: () => ["/api/crew/former"] as const,
   history: (crewId: string) => ["/api/crew", crewId, "history"] as const,
 };

@@ -8,7 +8,7 @@ import type {
   StorageConfig,
 } from "../types";
 
-export const settingsKeys = {
+const settingsKeys = {
   all: ["/api/settings"] as const,
   system: () => [...settingsKeys.all, "system"] as const,
   integrations: () => [...settingsKeys.all, "integrations"] as const,

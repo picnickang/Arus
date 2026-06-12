@@ -8,7 +8,7 @@ import type {
   VendorType,
 } from "../types";
 
-export const supplierKeys = {
+const supplierKeys = {
   all: ["/api/suppliers"] as const,
   list: (filters?: SupplierFilters) => [...supplierKeys.all, "list", filters] as const,
   detail: (id: string) => [...supplierKeys.all, id] as const,

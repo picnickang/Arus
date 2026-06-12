@@ -20,7 +20,7 @@ const systemSettingSchema = z.object({
 
 export type SystemSettingForm = z.infer<typeof systemSettingSchema>;
 
-export const systemSettingsKeys = {
+const systemSettingsKeys = {
   all: ["/api/admin/settings"] as const,
 };
 

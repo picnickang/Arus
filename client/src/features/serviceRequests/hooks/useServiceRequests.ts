@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { ServiceRequest, SRFilters } from "../types";
 
-export const srKeys = {
+const srKeys = {
   all: ["/api/service-requests"] as const,
   list: (filters?: SRFilters) => {
     const params = new URLSearchParams();

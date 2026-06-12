@@ -24,7 +24,7 @@ export interface LinkSupplierInput {
   notes?: string;
 }
 
-export const inventorySupplierKeys = {
+const inventorySupplierKeys = {
   all: ["/api/inventory", "suppliers"] as const,
   forItem: (inventoryItemId: string) => [...inventorySupplierKeys.all, inventoryItemId] as const,
   forSupplier: (supplierId: string) => ["/api/suppliers", supplierId, "inventory-items"] as const,

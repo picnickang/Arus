@@ -34,7 +34,7 @@ interface ComplianceResult {
   summary: { totalDays: number; violationDays: number; compliancePercentage: number };
 }
 
-export const stcwRestKeys = {
+const stcwRestKeys = {
   crew: ["/api/crew"] as const,
   rest: (crewId: string, year: number, month: string) =>
     ["/api/stcw/rest", crewId, year, month] as const,

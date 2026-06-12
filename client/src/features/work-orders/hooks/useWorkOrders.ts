@@ -7,7 +7,7 @@ import type {
   WorkOrderWorklog,
 } from "../types";
 
-export const workOrderKeys = {
+const workOrderKeys = {
   all: ["/api/work-orders"] as const,
   list: () => [...workOrderKeys.all] as const,
   detail: (id: string) => [...workOrderKeys.all, id] as const,

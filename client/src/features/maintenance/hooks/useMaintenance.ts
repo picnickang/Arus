@@ -8,7 +8,7 @@ import type {
   MaintenanceCost,
 } from "../types";
 
-export const maintenanceKeys = {
+const maintenanceKeys = {
   all: ["/api/maintenance"] as const,
   schedules: () => [...maintenanceKeys.all, "schedules"] as const,
   upcoming: (days: number) => [...maintenanceKeys.schedules(), "upcoming", days] as const,

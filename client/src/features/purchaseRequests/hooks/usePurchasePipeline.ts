@@ -18,7 +18,7 @@ export interface PurchasePipeline {
   stages: PipelineStage[];
 }
 
-export const pipelineKeys = {
+const pipelineKeys = {
   detail: (prId: string) => ["/api/purchase-requests", prId, "pipeline"] as const,
 };
 

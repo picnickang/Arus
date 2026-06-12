@@ -9,7 +9,7 @@ import type {
   PRSendResult,
 } from "../types";
 
-export const prKeys = {
+const prKeys = {
   all: ["/api/purchase-requests"] as const,
   list: (filters?: PRFilters) => [...prKeys.all, "list", filters] as const,
   detail: (id: string) => [...prKeys.all, id] as const,

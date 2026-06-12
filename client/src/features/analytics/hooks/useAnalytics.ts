@@ -8,7 +8,7 @@ import type {
   TrendPeriod,
 } from "../types";
 
-export const analyticsKeys = {
+const analyticsKeys = {
   all: ["/api/analytics"] as const,
   dashboard: (period: TrendPeriod) => [...analyticsKeys.all, "dashboard", period] as const,
   predictions: () => [...analyticsKeys.all, "predictions"] as const,

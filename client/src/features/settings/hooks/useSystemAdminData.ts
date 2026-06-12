@@ -10,7 +10,7 @@ import { publishPatchSchema, changePasswordSchema } from "../lib/adminSchemas";
 import type { PublishPatchForm, ChangePasswordForm } from "../lib/adminSchemas";
 import type { SoftwarePatch, UpdateSettings } from "@shared/schema";
 
-export const adminKeys = {
+const adminKeys = {
   patches: ["/api/admin/patches"] as const,
   patchHistory: ["/api/admin/patches", "history"] as const,
   updateSettings: ["/api/admin/update-settings"] as const,

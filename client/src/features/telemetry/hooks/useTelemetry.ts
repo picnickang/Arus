@@ -8,7 +8,7 @@ import type {
   DeviceHeartbeat,
 } from "../types";
 
-export const telemetryKeys = {
+const telemetryKeys = {
   all: ["/api/telemetry"] as const,
   readings: (equipmentId: string, sensorType?: string) =>
     [...telemetryKeys.all, "readings", equipmentId, sensorType] as const,

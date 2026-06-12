@@ -9,7 +9,7 @@ import type {
   PurchaseOrder,
 } from "../types";
 
-export const inventoryKeys = {
+const inventoryKeys = {
   all: ["/api/parts-inventory"] as const,
   parts: () => ["/api/parts"] as const,
   partDetail: (id: string) => [...inventoryKeys.parts(), id] as const,

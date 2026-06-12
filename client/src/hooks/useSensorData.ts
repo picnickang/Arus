@@ -22,9 +22,9 @@ import type {
 } from "@shared/schema";
 
 // Query key constants for cache invalidation
-export const SENSOR_BUNDLES_QUERY_KEY = "/api/sensor-bundles";
+const SENSOR_BUNDLES_QUERY_KEY = "/api/sensor-bundles";
 export const SENSOR_TEMPLATES_QUERY_KEY = "/api/sensor-templates";
-export const SENSOR_CONFIGS_QUERY_KEY = "/api/sensor-configs";
+const SENSOR_CONFIGS_QUERY_KEY = "/api/sensor-configs";
 
 // ============================================================================
 // Query Hooks - Data Fetching

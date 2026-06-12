@@ -11,7 +11,7 @@ interface ModelTypeConfig {
   bgColor: string;
 }
 
-export const modelTypeConfig: Record<ModelType, ModelTypeConfig> = {
+const modelTypeConfig: Record<ModelType, ModelTypeConfig> = {
   lstm: {
     icon: Brain,
     label: "LSTM Neural Network",

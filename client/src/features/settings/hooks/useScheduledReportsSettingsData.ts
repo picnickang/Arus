@@ -9,7 +9,7 @@ export interface ScheduledReportsSettings {
   reportGenerationTimeoutSeconds: number;
 }
 
-export const DEFAULT_SCHEDULED_REPORTS_SETTINGS: ScheduledReportsSettings = {
+const DEFAULT_SCHEDULED_REPORTS_SETTINGS: ScheduledReportsSettings = {
   reportRetentionDays: 7,
   defaultTimezone: "UTC",
   maxRecipientsPerSchedule: 10,
