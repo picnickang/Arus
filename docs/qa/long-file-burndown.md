@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T05:41:30.129Z
+Generated: 2026-06-12T05:57:30.597Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `59` counted files.
-- The current counted inventory is `59` files.
+- The temporary ceiling is `58` counted files.
+- The current counted inventory is `58` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    59 |
-| Server                    |     5 |
+| Total counted long files  |    58 |
+| Server                    |     4 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    54 |
@@ -123,6 +123,7 @@ Completed splits:
 - `server/objectStorage.ts` dropped below the threshold by moving lazy client initialization, MIME content-type policy, and object path signing helpers to sibling modules while preserving `ObjectStorageService` and public helper exports.
 - `server/domains/agent/tools/enhanced-report-tools.ts` dropped below the threshold by moving report artifact persistence and report formatting/export helpers to sibling modules while preserving registered tool names and `getReportArtifact`.
 - `server/db/checklists/db-checklists.ts` dropped below the threshold by moving template workflow and work-order task/checklist/worklog record groups to sibling storage base classes while preserving `DatabaseChecklistsStorage`.
+- `server/scheduler/scheduler-controller.ts` dropped below the threshold by moving scheduler input loading, simulation/apply/revert helpers, and run lifecycle actions to sibling modules while preserving the public controller exports.
 
 ## Top 30 Longest Files
 
@@ -210,7 +211,6 @@ Completed splits:
 748 client/src/components/ai-health/TrainingTab.tsx
 744 client/src/pages/home.tsx
 731 client/src/components/ai-health/PerformanceTab.tsx
-718 server/scheduler/scheduler-controller.ts
 712 client/src/pages/equipment/index.tsx
 711 client/src/components/work-orders/LinkedServiceOrdersPanel.tsx
 704 client/src/pages/findings-cards.tsx

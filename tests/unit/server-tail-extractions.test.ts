@@ -356,4 +356,23 @@ describe("server tail extractions", () => {
     expect(workOrders).toContain("async getWorkOrderTasks");
     expect(workOrders).toContain("async calculateWorklogCosts");
   });
+
+  it("keeps scheduler simulation and run actions behind the controller facade", () => {
+    const controller = read("server/scheduler/scheduler-controller.ts");
+    const inputs = read("server/scheduler/scheduler-controller-inputs.ts");
+    const simulation = read("server/scheduler/scheduler-controller-simulation.ts");
+    const runs = read("server/scheduler/scheduler-controller-runs.ts");
+
+    expect(controller).toContain('from "./scheduler-controller-inputs.js"');
+    expect(controller).toContain('from "./scheduler-controller-simulation.js"');
+    expect(controller).toContain('from "./scheduler-controller-runs.js"');
+    expect(controller).toContain("export async function planAndMaybeExecute");
+    expect(controller).toContain("export type { SimulatedAssignment, SimulationResult }");
+    expect(inputs).toContain("export async function loadShiftTemplates");
+    expect(inputs).toContain("export function aggregateReasons");
+    expect(simulation).toContain("export async function simulateSchedule");
+    expect(simulation).toContain("export async function applySimulatedSchedule");
+    expect(runs).toContain("export async function cancelScheduleRun");
+    expect(runs).toContain("export async function clearSchedulerRunHistory");
+  });
 });
