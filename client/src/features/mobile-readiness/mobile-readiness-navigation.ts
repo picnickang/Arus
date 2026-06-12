@@ -86,7 +86,7 @@ export function buildMobileReadinessNavigation(
       { id: "logs", label: "Logs", href: "/logs", icon: BookOpen },
       { id: "crew", label: "Crew", href: "/crew-management", icon: Users },
       { id: "maintenance", label: "Maintenance", href: "/pdm-platform", icon: Wrench },
-      { id: "settings", label: "Settings", href: "/system", icon: Settings },
+      { id: "settings", label: "Settings", href: "/profile", icon: Settings },
     ];
   }
   if (role === "crew") {
@@ -94,7 +94,7 @@ export function buildMobileReadinessNavigation(
       { id: "my-tasks", label: "My Tasks", href: "/", icon: ClipboardCheck },
       { id: "logs", label: "Logs", href: "/logs", icon: BookOpen },
       { id: "safety", label: "Safety", href: "/logs/compliance", icon: Shield },
-      { id: "documents", label: "Documents", href: "/knowledge-base", icon: Folder },
+      { id: "documents", label: "Documents", href: "/profile", icon: Folder },
       { id: "settings", label: "Settings", href: "/profile", icon: Settings },
     ];
   }
@@ -129,6 +129,11 @@ export function buildMobileReadinessNavigationForVariant(
   variant: MobileNavVariant,
   roleInput: string | null | undefined
 ): MobileNavItem[] {
+  const role = normalizeMobileRole(roleInput);
+  if (role === "captain" || role === "crew") {
+    return buildMobileReadinessNavigation(role);
+  }
+
   if (variant === "fleetOps") {
     return [
       { id: "fleet", label: "Fleet", href: "/fleet", icon: Ship },

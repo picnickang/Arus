@@ -172,7 +172,7 @@ const crewQueue: QueueItem[] = [
     owner: "You",
     action: "Open draft",
     icon: Cloud,
-    href: "/offline-outbox",
+    href: "/logs",
   },
 ];
 
@@ -223,7 +223,7 @@ export function buildTodayScreen(role: MobileRole): TodayScreen {
         owner: "Chief Engineer",
         action: "Explain risk",
         icon: Bell,
-        href: "/alerts",
+        href: "/logs/compliance",
       },
       {
         id: "crew-ready",

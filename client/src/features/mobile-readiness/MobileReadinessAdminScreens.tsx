@@ -48,12 +48,13 @@ export function MobileCrewPage() {
   const { crew } = useScreens("admin");
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Crew"
-        right={<Plus className="h-5 w-5" aria-hidden="true" />}
-      />
-      <Content className="space-y-2 pt-2">
+      <div data-testid="mobile-readiness-screen-crew">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Crew"
+          right={<Plus className="h-5 w-5" aria-hidden="true" />}
+        />
+        <Content className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-950">{crew.vesselName}</h1>
@@ -145,7 +146,8 @@ export function MobileCrewPage() {
             </div>
           ))}
         </SectionCard>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -199,17 +201,18 @@ export function MobileInventoryPage() {
   const { inventory } = useScreens("logistics");
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Inventory & Logistics"
-        right={
-          <>
-            <Search className="h-5 w-5" aria-hidden="true" />
-            <Bell className="h-5 w-5" aria-hidden="true" />
-          </>
-        }
-      />
-      <Content className="space-y-1.5 pt-2">
+      <div data-testid="mobile-readiness-screen-inventory">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Inventory & Logistics"
+          right={
+            <>
+              <Search className="h-5 w-5" aria-hidden="true" />
+              <Bell className="h-5 w-5" aria-hidden="true" />
+            </>
+          }
+        />
+        <Content className="space-y-1.5 pt-2">
         <div>
           <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
             Action Required
@@ -333,7 +336,8 @@ export function MobileInventoryPage() {
             />
           ))}
         </SectionCard>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -411,12 +415,13 @@ export function MobileSettingsPage() {
   const { settings } = useScreens("admin");
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Settings"
-        right={<MoreVertical className="h-5 w-5" aria-hidden="true" />}
-      />
-      <Content className="max-w-md space-y-2 pb-20 pt-3 md:max-w-3xl">
+      <div data-testid="mobile-readiness-screen-settings">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Settings"
+          right={<MoreVertical className="h-5 w-5" aria-hidden="true" />}
+        />
+        <Content className="max-w-md space-y-2 pb-20 pt-3 md:max-w-3xl">
         <SectionCard>
           <div className="flex items-center gap-3 p-3">
             <AssetImage
@@ -473,7 +478,8 @@ export function MobileSettingsPage() {
           <div>ARUS v2.18.0 (Build 321)</div>
           <div>(c) 2025 ARUS Maritime. All rights reserved.</div>
         </div>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }

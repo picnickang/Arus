@@ -7,6 +7,7 @@ const CORE_RELEASE_TESTS = [
   "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
   "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
 ];

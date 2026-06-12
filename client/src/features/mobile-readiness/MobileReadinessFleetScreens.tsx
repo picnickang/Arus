@@ -52,83 +52,87 @@ export function MobileFleetPage() {
   const { fleet } = useScreens("admin");
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Fleet triage"
-        right={
-          <>
-            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-            <span className="relative">
-              <Bell className="h-5 w-5" aria-hidden="true" />
-              <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] font-bold">
-                12
+      <div data-testid="mobile-readiness-screen-fleet">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Fleet triage"
+          right={
+            <>
+              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+              <span className="relative">
+                <Bell className="h-5 w-5" aria-hidden="true" />
+                <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] font-bold">
+                  12
+                </span>
               </span>
-            </span>
-          </>
-        }
-      />
-      <Content>
-        <KpiStrip metrics={fleet.summary} />
-        <div className="flex items-center gap-2">
-          <div className="flex min-h-11 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-500">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            Search vessels...
+            </>
+          }
+        />
+        <Content>
+          <KpiStrip metrics={fleet.summary} />
+          <div className="flex items-center gap-2">
+            <div className="flex min-h-11 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-500">
+              <Search className="h-4 w-4" aria-hidden="true" />
+              Search vessels...
+            </div>
+            <span className="text-xs font-semibold text-slate-500">Sort: Risk</span>
           </div>
-          <span className="text-xs font-semibold text-slate-500">Sort: Risk</span>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-3">
-          {fleet.vessels.map((vessel) => (
-            <Link
-              href="/vessel-intelligence/mv-atlas/overview"
-              key={vessel.id}
-              className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
-              data-testid={`fleet-vessel-card-${vessel.id}`}
-            >
-              <div className="flex gap-3 p-3">
-                <VesselThumbnail vessel={vessel} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-bold text-slate-950">
-                        {vessel.name}
+          <div className="grid gap-3 lg:grid-cols-3">
+            {fleet.vessels.map((vessel) => (
+              <Link
+                href="/vessel-intelligence/mv-atlas/overview"
+                key={vessel.id}
+                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+                data-testid={`fleet-vessel-card-${vessel.id}`}
+              >
+                <div className="flex gap-3 p-3">
+                  <VesselThumbnail vessel={vessel} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-base font-bold text-slate-950">
+                          {vessel.name}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          {vessel.operationalState}
+                        </div>
+                        <div className="mt-1 truncate text-xs text-slate-500">{vessel.route}</div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-slate-600">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        {vessel.operationalState}
+                      <div className="rounded-lg bg-red-50 px-3 py-2 text-center">
+                        <div
+                          className={cn("text-xl font-bold", toneClasses(vessel.riskTone).text)}
+                        >
+                          {vessel.pdmRiskScore}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-500">PdM risk</div>
                       </div>
-                      <div className="mt-1 truncate text-xs text-slate-500">{vessel.route}</div>
-                    </div>
-                    <div className="rounded-lg bg-red-50 px-3 py-2 text-center">
-                      <div className={cn("text-xl font-bold", toneClasses(vessel.riskTone).text)}>
-                        {vessel.pdmRiskScore}
-                      </div>
-                      <div className="text-[10px] font-semibold text-slate-500">PdM risk</div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="border-y border-slate-200 px-2 py-2">
-                <KpiStrip metrics={vessel.kpis} compact />
-              </div>
-              <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs">
-                <div>
-                  <div className="text-slate-500">Next action</div>
-                  <div className="font-semibold text-slate-900">{vessel.nextAction}</div>
+                <div className="border-y border-slate-200 px-2 py-2">
+                  <KpiStrip metrics={vessel.kpis} compact />
                 </div>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
-                  View <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Updated 2 min ago</span>
-          <button className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
-          </button>
-        </div>
-      </Content>
+                <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs">
+                  <div>
+                    <div className="text-slate-500">Next action</div>
+                    <div className="font-semibold text-slate-900">{vessel.nextAction}</div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+                    View <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>Updated 2 min ago</span>
+            <button className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
+            </button>
+          </div>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -142,62 +146,64 @@ export function MobileVesselDetailPage() {
   }
   return (
     <MobilePageShell>
-      <NavyHeader
-        title={detail.name}
-        subtitle={detail.subtitle}
-        right={
-          <>
-            <Star className="h-5 w-5" aria-hidden="true" />
-            <Share2 className="h-5 w-5" aria-hidden="true" />
-          </>
-        }
-      />
-      <Content className="space-y-2 pt-2">
-        <div className="grid grid-cols-4 gap-0 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm">
-          <VesselMetricTile label="Readiness" value={`${detail.readiness}%`} tone="good" />
-          <VesselMetricTile label="Active alarms" value="2" sublabel="Critical" tone="critical" />
-          <VesselMetricTile label="PdM risk" value="82" sublabel="High" tone="high" />
-          <VesselMetricTile label="Crew blocker" value="1" sublabel="Yes" tone="medium" />
-        </div>
-
-        <SectionCard title="Top priorities">
-          {detail.topPriorities.map((item) => (
-            <QueueCard key={item.id} item={item} />
-          ))}
-        </SectionCard>
-
-        <div className="grid grid-cols-2 gap-2">
-          {detail.tiles.map((tile) => (
-            <VesselActionTile key={tile.id} tile={tile} />
-          ))}
-        </div>
-        <div className="flex gap-4 overflow-x-auto border-b border-slate-200 text-sm font-semibold">
-          {["Overview", "Machinery", "Work", "Alerts", "Crew", "Inventory", "Documents"].map(
-            (tab, index) => (
-              <button
-                key={tab}
-                className={cn(
-                  "shrink-0 border-b-2 px-1 pb-2",
-                  index === 0
-                    ? "border-[#0d4da1] text-[#0d4da1]"
-                    : "border-transparent text-slate-600"
-                )}
-              >
-                {tab}
-              </button>
-            )
-          )}
-        </div>
-        <SectionCard title="Vessel Snapshot">
-          <div className="grid grid-cols-4 gap-2 p-3 text-xs">
-            <MiniState label="Vessel type" value="Container" tone="normal" />
-            <MiniState label="Built" value="2015" tone="normal" />
-            <MiniState label="GT / DWT" value="32,512" tone="normal" />
-            <MiniState label="Flag" value="Singapore" tone="normal" />
+      <div data-testid="mobile-readiness-screen-vessel-detail">
+        <NavyHeader
+          title={detail.name}
+          subtitle={detail.subtitle}
+          right={
+            <>
+              <Star className="h-5 w-5" aria-hidden="true" />
+              <Share2 className="h-5 w-5" aria-hidden="true" />
+            </>
+          }
+        />
+        <Content className="space-y-2 pt-2">
+          <div className="grid grid-cols-4 gap-0 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm">
+            <VesselMetricTile label="Readiness" value={`${detail.readiness}%`} tone="good" />
+            <VesselMetricTile label="Active alarms" value="2" sublabel="Critical" tone="critical" />
+            <VesselMetricTile label="PdM risk" value="82" sublabel="High" tone="high" />
+            <VesselMetricTile label="Crew blocker" value="1" sublabel="Yes" tone="medium" />
           </div>
-        </SectionCard>
-        <VesselDiagramPanel screens={useScreens("admin")} compact />
-      </Content>
+
+          <SectionCard title="Top priorities">
+            {detail.topPriorities.map((item) => (
+              <QueueCard key={item.id} item={item} />
+            ))}
+          </SectionCard>
+
+          <div className="grid grid-cols-2 gap-2">
+            {detail.tiles.map((tile) => (
+              <VesselActionTile key={tile.id} tile={tile} />
+            ))}
+          </div>
+          <div className="flex gap-4 overflow-x-auto border-b border-slate-200 text-sm font-semibold">
+            {["Overview", "Machinery", "Work", "Alerts", "Crew", "Inventory", "Documents"].map(
+              (tab, index) => (
+                <button
+                  key={tab}
+                  className={cn(
+                    "shrink-0 border-b-2 px-1 pb-2",
+                    index === 0
+                      ? "border-[#0d4da1] text-[#0d4da1]"
+                      : "border-transparent text-slate-600"
+                  )}
+                >
+                  {tab}
+                </button>
+              )
+            )}
+          </div>
+          <SectionCard title="Vessel Snapshot">
+            <div className="grid grid-cols-4 gap-2 p-3 text-xs">
+              <MiniState label="Vessel type" value="Container" tone="normal" />
+              <MiniState label="Built" value="2015" tone="normal" />
+              <MiniState label="GT / DWT" value="32,512" tone="normal" />
+              <MiniState label="Flag" value="Singapore" tone="normal" />
+            </div>
+          </SectionCard>
+          <VesselDiagramPanel screens={useScreens("admin")} compact />
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -268,19 +274,21 @@ function MobileVesselDiagramView({ screens }: { screens: MobileReadinessScreens 
   const detail = screens.fleet.vesselDetail;
   return (
     <MobilePageShell>
-      <NavyHeader
-        title={detail.name}
-        subtitle={detail.subtitle}
-        right={
-          <>
-            <Star className="h-5 w-5" aria-hidden="true" />
-            <Share2 className="h-5 w-5" aria-hidden="true" />
-          </>
-        }
-      />
-      <Content>
-        <VesselDiagramPanel screens={screens} />
-      </Content>
+      <div data-testid="mobile-readiness-screen-vessel-diagram">
+        <NavyHeader
+          title={detail.name}
+          subtitle={detail.subtitle}
+          right={
+            <>
+              <Star className="h-5 w-5" aria-hidden="true" />
+              <Share2 className="h-5 w-5" aria-hidden="true" />
+            </>
+          }
+        />
+        <Content>
+          <VesselDiagramPanel screens={screens} />
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }

@@ -123,19 +123,20 @@ function PdmTabs({ active }: { active: "summary" | "telemetry" }) {
 function MobilePdmQueuePage({ pdm }: { pdm: PdmScreen }) {
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Telemetry + PdM"
-        right={
-          <div className="relative">
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[9px] font-bold">
-              3
-            </span>
-          </div>
-        }
-      />
-      <Content>
+      <div data-testid="mobile-readiness-screen-pdm-queue">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Telemetry + PdM"
+          right={
+            <div className="relative">
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[9px] font-bold">
+                3
+              </span>
+            </div>
+          }
+        />
+        <Content>
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-950">PdM Risk Queue</h1>
           <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
@@ -155,7 +156,8 @@ function MobilePdmQueuePage({ pdm }: { pdm: PdmScreen }) {
             <PdmRiskQueueCard key={risk.equipmentId} risk={risk} />
           ))}
         </div>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -230,14 +232,15 @@ function MobilePdmAssetCasePage({
   const telemetryChart = getMobileReadinessAsset(pdm.telemetryAdvanced.chartAssetId);
   return (
     <MobilePageShell>
-      <NavyHeader
-        title={selectedRisk.asset}
-        subtitle={selectedRisk.subtitle}
-        left={<PdmBackLink href="/pdm-platform" />}
-        right={<PdmHeaderActions />}
-      />
-      <PdmTabs active="summary" />
-      <Content>
+      <div data-testid="mobile-readiness-screen-pdm-asset-case">
+        <NavyHeader
+          title={selectedRisk.asset}
+          subtitle={selectedRisk.subtitle}
+          left={<PdmBackLink href="/pdm-platform" />}
+          right={<PdmHeaderActions />}
+        />
+        <PdmTabs active="summary" />
+        <Content>
         <SectionCard>
           <div className="grid grid-cols-[0.9fr_1.3fr] divide-x divide-slate-200">
             <div className="bg-red-50 px-3 py-4 text-center">
@@ -290,7 +293,8 @@ function MobilePdmAssetCasePage({
             </span>
           </Link>
         </SectionCard>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -339,14 +343,15 @@ function MobilePdmTelemetryPage({
   const telemetryChart = getMobileReadinessAsset(pdm.telemetryAdvanced.chartAssetId);
   return (
     <MobilePageShell>
-      <NavyHeader
-        title={selectedRisk.asset}
-        subtitle={selectedRisk.subtitle}
-        left={<PdmBackLink href={`/pdm/equipment/${selectedRisk.equipmentId}`} />}
-        right={<PdmHeaderActions />}
-      />
-      <PdmTabs active="telemetry" />
-      <Content>
+      <div data-testid="mobile-readiness-screen-pdm-telemetry">
+        <NavyHeader
+          title={selectedRisk.asset}
+          subtitle={selectedRisk.subtitle}
+          left={<PdmBackLink href={`/pdm/equipment/${selectedRisk.equipmentId}`} />}
+          right={<PdmHeaderActions />}
+        />
+        <PdmTabs active="telemetry" />
+        <Content>
         <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
           {["Overview", "Advanced Graph", "Raw Data", "Sensors"].map((segment) => (
             <button
@@ -450,7 +455,8 @@ function MobilePdmTelemetryPage({
             <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
           </div>
         </SectionCard>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }

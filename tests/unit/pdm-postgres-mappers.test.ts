@@ -46,7 +46,8 @@ describe("PDM Postgres mappers", () => {
       status: "active",
       workOrderId: null,
     });
-    expect(item?.evidenceChips.map((chip) => chip.label)).toEqual([
+    expect(item?.evidenceChips).toBeDefined();
+    expect(item?.evidenceChips?.map((chip) => chip.label)).toEqual([
       "Low RUL",
       "High Failure Probability",
       "Critical Condition",
