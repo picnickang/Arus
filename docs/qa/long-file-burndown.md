@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T06:22:26.769Z
+Generated: 2026-06-12T06:30:48.282Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `56` counted files.
-- The current counted inventory is `56` files.
+- The temporary ceiling is `55` counted files.
+- The current counted inventory is `55` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,9 +20,9 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    56 |
-| Server                    |     2 |
-| Server route-like files   |     2 |
+| Total counted long files  |    55 |
+| Server                    |     1 |
+| Server route-like files   |     1 |
 | Server service-like files |     0 |
 | Client                    |    54 |
 | Client page files         |    21 |
@@ -126,6 +126,7 @@ Completed splits:
 - `server/scheduler/scheduler-controller.ts` dropped below the threshold by moving scheduler input loading, simulation/apply/revert helpers, and run lifecycle actions to sibling modules while preserving the public controller exports.
 - `server/domains/agent/application/orchestrator.ts` dropped below the threshold by moving shared run/context types, message/context assembly, and the unified iteration loop to orchestrator helper modules while preserving `AgentOrchestrator`.
 - `server/domains/equipment-intelligence/infrastructure/hub-repository.ts` dropped below the threshold by moving hub summary/fetch helpers and activity timeline assembly to sibling modules while preserving `PostgresEquipmentHubRepository`.
+- `server/routes/service-request-routes.ts` dropped below the threshold by moving read, edit/create, and review/convert route groups plus shared request helpers to sibling route modules while preserving `registerServiceRequestRoutes`.
 
 ## Top 30 Longest Files
 
@@ -150,22 +151,22 @@ Completed splits:
 |   17 |   819 | `client/src/pages/inventory-management.tsx`                               |
 |   18 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
 |   19 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
-|   20 |   791 | `server/routes/service-request-routes.ts`                                 |
-|   21 |   787 | `server/routes/rag-routes.ts`                                             |
-|   22 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
-|   23 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
-|   24 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
-|   25 |   755 | `client/src/pages/organization-management.tsx`                            |
-|   26 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
-|   27 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
-|   28 |   744 | `client/src/pages/home.tsx`                                               |
-|   29 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`                      |
-|   30 |   712 | `client/src/pages/equipment/index.tsx`                                    |
+|   20 |   787 | `server/routes/rag-routes.ts`                                             |
+|   21 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
+|   22 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
+|   23 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
+|   24 |   755 | `client/src/pages/organization-management.tsx`                            |
+|   25 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
+|   26 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
+|   27 |   744 | `client/src/pages/home.tsx`                                               |
+|   28 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`                      |
+|   29 |   712 | `client/src/pages/equipment/index.tsx`                                    |
+|   30 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`          |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize the remaining service-request and RAG route modules.
+   - Prioritize the remaining RAG route module.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -201,7 +202,6 @@ Completed splits:
 819 client/src/pages/inventory-management.tsx
 811 client/src/features/crew/hooks/useHoursOfRestData.ts
 809 client/src/pages/pdm-pack.tsx
-791 server/routes/service-request-routes.ts
 787 server/routes/rag-routes.ts
 786 client/src/pages/maintenance-schedules.tsx
 779 client/src/components/CrewDocumentsTab.tsx

@@ -209,6 +209,27 @@ describe("server tail extractions", () => {
     expect(operations).toContain("export interface CreateSOParams");
   });
 
+  it("keeps service request route groups behind the route facade", () => {
+    const routes = read("server/routes/service-request-routes.ts");
+    const readRoutes = read("server/routes/service-request-read-routes.ts");
+    const editRoutes = read("server/routes/service-request-edit-routes.ts");
+    const reviewRoutes = read("server/routes/service-request-review-routes.ts");
+    const utils = read("server/routes/service-request-route-utils.ts");
+
+    expect(routes).toContain("export function registerServiceRequestRoutes");
+    expect(routes).toContain("registerServiceRequestReadRoutes(app");
+    expect(routes).toContain("registerServiceRequestEditRoutes(app");
+    expect(routes).toContain("registerServiceRequestReviewRoutes(app");
+    expect(readRoutes).toContain('"/api/service-requests"');
+    expect(readRoutes).toContain('"/api/work-orders/:id/service-requests"');
+    expect(editRoutes).toContain('"/api/service-requests/:id"');
+    expect(editRoutes).toContain('"/api/work-orders/:id/service-requests"');
+    expect(reviewRoutes).toContain('"/api/service-requests/:id/review"');
+    expect(reviewRoutes).toContain('"/api/service-requests/:id/convert"');
+    expect(utils).toContain("export function getOrgId");
+    expect(utils).toContain("export interface ServiceRequestRow");
+  });
+
   it("keeps agent suggestion support helpers beside the engine shell", () => {
     const engine = read("server/domains/agent/application/suggestion-engine.ts");
     const support = read("server/domains/agent/application/suggestion-engine-support.ts");
