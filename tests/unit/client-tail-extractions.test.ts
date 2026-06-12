@@ -630,4 +630,24 @@ describe("client tail component extractions", () => {
     expect(sync).toContain('"/api/crew-extensions/assignments"');
   });
 
+  it("keeps StormGeo settings form and imports behind the public panel", () => {
+    const panel = read("client/src/components/stormgeo-settings.tsx");
+    const form = read("client/src/components/stormgeo-settings-form.tsx");
+    const imports = read("client/src/components/stormgeo-import-history.tsx");
+    const types = read("client/src/components/stormgeo-settings-types.ts");
+
+    expect(panel).toContain('from "./stormgeo-settings-form"');
+    expect(panel).toContain('from "./stormgeo-import-history"');
+    expect(panel).toContain("<StormGeoSettingsForm");
+    expect(panel).toContain("<StormGeoImportHistory");
+    expect(panel).toContain("export function StormGeoSettingsPanel");
+    expect(form).toContain("export function StormGeoSettingsForm");
+    expect(form).toContain('data-testid="select-stormgeo-vessel"');
+    expect(form).toContain('data-testid="button-save-stormgeo-settings"');
+    expect(imports).toContain("export function StormGeoImportHistory");
+    expect(imports).toContain('data-testid="button-import-stormgeo"');
+    expect(imports).toContain('data-testid="input-stormgeo-file"');
+    expect(types).toContain("export type StormGeoSettingsModel");
+  });
+
 });
