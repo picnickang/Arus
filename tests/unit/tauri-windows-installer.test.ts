@@ -177,7 +177,8 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   it("runs the Windows desktop job on a real Windows runner", () => {
     expect(windowsWorkflow).toContain("build-windows-desktop:");
     expect(windowsWorkflow).toContain("runs-on: windows-latest");
-    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer)");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
     expect(windowsWorkflow).toContain("--target x86_64-pc-windows-msvc");
     expect(windowsWorkflow).toContain("--config src-tauri/tauri.conf.json");
   });
@@ -195,6 +196,16 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
     expect(windowsWorkflow).toContain("npm ci --ignore-scripts");
     expect(windowsWorkflow).toContain("npm rebuild better-sqlite3");
     expect(windowsWorkflow).not.toContain("- run: npm ci\n\n      - name: Generate icons");
+  });
+
+  it("uses release publishing only for tag builds and plain Tauri build for workflow smoke", () => {
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("if: ${{ startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
+    expect(windowsWorkflow).toContain("if: ${{ !startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain(
+      "npx tauri build --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json"
+    );
   });
 
   it("silently installs the setup exe into a temporary Windows smoke directory", () => {
