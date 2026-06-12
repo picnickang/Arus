@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T04:37:25.339Z
+Generated: 2026-06-12T04:44:53.956Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `66` counted files.
-- The current counted inventory is `66` files.
+- The temporary ceiling is `65` counted files.
+- The current counted inventory is `65` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    66 |
-| Server                    |    11 |
+| Total counted long files  |    65 |
+| Server                    |    10 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    55 |
@@ -117,6 +117,7 @@ Completed splits:
 - `server/compliance/routes/data-privacy-routes.ts` dropped below the threshold by moving DSAR list, detail, state transition, collection, erasure, and statistics endpoints to a sibling route group while preserving `complianceDataPrivacyRouter` and route URLs.
 - `server/db/ml-analytics/db-ml-analytics.ts` dropped below the threshold by moving feature importance, calibration, engineer override, and RUL model helpers to a sibling cloud helper while preserving `DatabaseMlAnalyticsStorage`.
 - `server/import-adapters/shipmate/field-mapping.ts` dropped below the threshold by moving Shipmate value transforms and CSV header normalization to sibling helper modules while preserving the public mapping exports.
+- `server/domains/permissions/repository.ts` dropped below the threshold by moving access, dashboard seeding, and permissions diagnostic queries to a sibling repository query module while preserving the public repository exports.
 
 ## Top 30 Longest Files
 
@@ -223,7 +224,6 @@ Completed splits:
 652 client/src/components/ai-health/InsightsTab.tsx
 651 server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts
 647 client/src/pages/vessel-management/index.tsx
-646 server/domains/permissions/repository.ts
 643 client/src/pages/vessel-intelligence/registry-api.ts
 638 client/src/pages/DiagnosticsDashboard.tsx
 633 client/src/components/sensors/SensorSetupWizard.tsx
