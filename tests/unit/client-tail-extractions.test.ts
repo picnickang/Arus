@@ -152,6 +152,32 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
   });
 
+  it("keeps equipment decommission sections behind the public dialog component", () => {
+    const dialog = read("client/src/components/equipment/EquipmentDecommissionDialog.tsx");
+    const model = read("client/src/components/equipment/EquipmentDecommissionDialogModel.ts");
+    const sections = read("client/src/components/equipment/EquipmentDecommissionDialogSections.tsx");
+    const optionalSections = read(
+      "client/src/components/equipment/EquipmentDecommissionDialogOptionalSections.tsx"
+    );
+
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogModel"');
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogSections"');
+    expect(dialog).toContain('from "./EquipmentDecommissionDialogOptionalSections"');
+    expect(dialog).toContain("<DecommissionReasonFields");
+    expect(dialog).toContain("<DecommissionFinancialSummary");
+    expect(dialog).toContain("export function EquipmentDecommissionDialog");
+    expect(model).toContain("export const decommissionFormSchema");
+    expect(model).toContain("export function calculateDepreciation");
+    expect(sections).toContain("export function DecommissionReasonFields");
+    expect(sections).toContain("export function DecommissionFinancialSummary");
+    expect(sections).toContain('data-testid="select-decommission-reason"');
+    expect(sections).toContain('data-testid="button-submit-decommission"');
+    expect(optionalSections).toContain("export function DecommissionSaleDetails");
+    expect(optionalSections).toContain("export function DecommissionDisposalDetails");
+    expect(optionalSections).toContain('data-testid="collapsible-sale-details"');
+    expect(optionalSections).toContain('data-testid="collapsible-disposal-details"');
+  });
+
   it("keeps mobile readiness screen clusters behind the route shell", () => {
     const route = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
     const shared = read("client/src/features/mobile-readiness/MobileReadinessShared.tsx");
@@ -303,6 +329,415 @@ describe("client tail component extractions", () => {
     expect(managementSections).toContain("export function DataExportSection");
     expect(managementSections).toContain("export function ResetTrainingDataSection");
     expect(managementSections).toContain('data-testid="button-reset-ml-data-keep-models"');
+  });
+
+  it("keeps admin 3D model management behind route shell modules", () => {
+    const page = read("client/src/pages/admin/3d-models.tsx");
+    const model = read("client/src/pages/admin/3d-models-model.ts");
+    const card = read("client/src/pages/admin/3d-models-card.tsx");
+    const history = read("client/src/pages/admin/3d-models-history-panel.tsx");
+    const pins = read("client/src/pages/admin/3d-models-pin-editor.tsx");
+
+    expect(page).toContain('from "./3d-models-card"');
+    expect(page).toContain('from "./3d-models-model"');
+    expect(page).toContain("<VesselModelCard");
+    expect(model).toContain("export function formatBytes");
+    expect(model).toContain("export interface ModelMetadata");
+    expect(card).toContain("export function VesselModelCard");
+    expect(card).toContain("<PinEditor");
+    expect(card).toContain("<HistoryPanel");
+    expect(history).toContain("export function HistoryPanel");
+    expect(pins).toContain("export function PinEditor");
+    expect(pins).toContain('data-testid={`pin-editor-${vesselId}`}');
+    expect(pins).toContain('data-testid={`viewer-3d-${vesselId}`}');
+  });
+
+  it("keeps Copilot admin configuration behind sibling modules", () => {
+    const page = read("client/src/pages/copilot-admin.tsx");
+    const types = read("client/src/pages/copilot-admin-types.ts");
+    const dialog = read("client/src/pages/copilot-admin-config-dialog.tsx");
+
+    expect(page).toContain('from "./copilot-admin-config-dialog"');
+    expect(page).toContain('from "./copilot-admin-types"');
+    expect(page).toContain("<ConfigDialog");
+    expect(types).toContain("export interface AgentConfig");
+    expect(types).toContain("export interface UsageStats");
+    expect(types).toContain("export interface EffectivenessSummary");
+    expect(dialog).toContain("export function ConfigDialog");
+    expect(dialog).toContain('data-testid="button-save-config"');
+    expect(dialog).toContain('data-testid="select-permission-tier"');
+  });
+
+  it("keeps system administration tabs behind the route shell", () => {
+    const page = read("client/src/pages/system-administration.tsx");
+    const config = read("client/src/pages/system-administration-configuration-tab.tsx");
+    const software = read("client/src/pages/system-administration-software-updates-tab.tsx");
+    const github = read("client/src/pages/system-administration-github-settings-tab.tsx");
+
+    expect(page).toContain('from "./system-administration-configuration-tab"');
+    expect(page).toContain('from "./system-administration-software-updates-tab"');
+    expect(page).toContain("<ConfigurationTab />");
+    expect(page).toContain("<SoftwareUpdatesTab />");
+    expect(config).toContain("export function ConfigurationTab");
+    expect(config).toContain('data-testid="input-current-password"');
+    expect(config).toContain('data-testid="button-submit-password-change"');
+    expect(software).toContain("export function SoftwareUpdatesTab");
+    expect(software).toContain("<GitHubSettingsTab />");
+    expect(software).toContain('data-testid="button-check-updates"');
+    expect(github).toContain("export function GitHubSettingsTab");
+    expect(github).toContain('data-testid={`button-select-repo-${repo.name}`}');
+  });
+
+  it("keeps findings page presentation controls behind the route shell", () => {
+    const page = read("client/src/pages/findings.tsx");
+    const parts = read("client/src/pages/findings-page-parts.tsx");
+
+    expect(page).toContain('from "./findings-page-parts"');
+    expect(page).toContain("<FindingsPageHeader");
+    expect(page).toContain("<SummaryStrip");
+    expect(page).toContain("<FilterBar");
+    expect(parts).toContain("export function FindingsPageHeader");
+    expect(parts).toContain("export function RunOutputDialog");
+    expect(parts).toContain("export function OutcomeDialog");
+    expect(parts).toContain("export function SummaryStrip");
+    expect(parts).toContain("export function FilterBar");
+    expect(parts).toContain('data-testid="dialog-run-output"');
+    expect(parts).toContain('data-testid="filter-source"');
+  });
+
+  it("keeps finance mode KPI and savings-claim surfaces behind the mode shell", () => {
+    const mode = read("client/src/components/analytics/FinanceMode.tsx");
+    const kpis = read("client/src/components/analytics/FinanceModeKpiCards.tsx");
+    const savings = read("client/src/components/analytics/FinanceModeSavingsClaims.tsx");
+
+    expect(mode).toContain('from "./FinanceModeKpiCards"');
+    expect(mode).toContain('from "./FinanceModeSavingsClaims"');
+    expect(mode).toContain("<FinanceModeKpiCards");
+    expect(mode).toContain("<SavingsClaimsSection");
+    expect(kpis).toContain("export function FinanceModeKpiCards");
+    expect(kpis).toContain('data-testid="card-total-savings"');
+    expect(kpis).toContain('data-testid="card-savings-integrity"');
+    expect(savings).toContain("export function SavingsClaimsSection");
+    expect(savings).toContain("export interface SavingsRecord");
+    expect(savings).toContain('data-testid="savings-claims-list"');
+    expect(savings).toContain('data-testid={`button-dispute-${savingsId}`}');
+  });
+
+  it("keeps crew management utility groups behind compatibility exports", () => {
+    const utils = read("client/src/features/crew/lib/crewManagementUtils.ts");
+    const roles = read("client/src/features/crew/lib/crewManagementRoles.ts");
+    const vessels = read("client/src/features/crew/lib/crewManagementVesselGroups.ts");
+    const offboarding = read("client/src/features/crew/lib/crewManagementOffboarding.ts");
+
+    expect(utils).toContain('export * from "./crewManagementRoles"');
+    expect(utils).toContain('export * from "./crewManagementVesselGroups"');
+    expect(utils).toContain('export * from "./crewManagementOffboarding"');
+    expect(roles).toContain("export function formatRank");
+    expect(roles).toContain("export function groupCrewByRole");
+    expect(roles).toContain("export function buildRoleLookup");
+    expect(vessels).toContain("export function groupCrewByVessel");
+    expect(vessels).toContain('export const RELIEF_POOL_ID = "__relief_pool__"');
+    expect(offboarding).toContain("export function deriveRehireStatus");
+    expect(offboarding).toContain("export function composeOffboardingNote");
+  });
+
+  it("keeps hours-of-rest hook actions and types behind the public hook path", () => {
+    const hook = read("client/src/features/crew/hooks/useHoursOfRestData.ts");
+    const actions = read("client/src/features/crew/hooks/useHoursOfRestActions.ts");
+    const types = read("client/src/features/crew/hooks/useHoursOfRestDataTypes.ts");
+
+    expect(hook).toContain('from "./useHoursOfRestActions"');
+    expect(hook).toContain('from "./useHoursOfRestDataTypes"');
+    expect(hook).toContain("useHoursOfRestActions");
+    expect(actions).toContain("export function useHoursOfRestActions");
+    expect(actions).toContain("copyMonthToYear");
+    expect(actions).toContain("loadFromProposedPlan");
+    expect(types).toContain("export interface ComplianceResult");
+    expect(types).toContain("export interface HoursOfRestMeta");
+    expect(types).toContain("export interface UseHoursOfRestDataReturn");
+  });
+
+  it("keeps maintenance schedules surfaces behind the route shell", () => {
+    const page = read("client/src/pages/maintenance-schedules.tsx");
+    const sections = read("client/src/pages/maintenance-schedules-sections.tsx");
+    const calendar = read("client/src/pages/maintenance-schedules-calendar.tsx");
+    const dialogs = read("client/src/pages/maintenance-schedules-dialogs.tsx");
+
+    expect(page).toContain('from "./maintenance-schedules-sections"');
+    expect(page).toContain('from "./maintenance-schedules-dialogs"');
+    expect(page).toContain("<MaintenanceScheduleSections");
+    expect(page).toContain("<MaintenanceScheduleDialogs");
+    expect(sections).toContain('from "./maintenance-schedules-calendar"');
+    expect(sections).toContain("export function MaintenanceScheduleSections");
+    expect(sections).toContain('data-testid="input-search-schedules"');
+    expect(sections).toContain('data-testid={`button-view-schedule-${schedule.id}`}');
+    expect(calendar).toContain("export function CalendarView");
+    expect(calendar).toContain('data-testid="button-current-week"');
+    expect(dialogs).toContain("export function MaintenanceScheduleDialogs");
+    expect(dialogs).toContain('data-testid="create-schedule-modal"');
+    expect(dialogs).toContain('data-testid="edit-schedule-modal"');
+  });
+
+  it("keeps organization management lists and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/organization-management.tsx");
+    const sections = read("client/src/pages/organization-management-sections.tsx");
+    const dialogs = read("client/src/pages/organization-management-dialogs.tsx");
+
+    expect(page).toContain('from "./organization-management-sections"');
+    expect(page).toContain('from "./organization-management-dialogs"');
+    expect(page).toContain("<OrganizationManagementSections");
+    expect(page).toContain("<OrganizationManagementDialogs");
+    expect(sections).toContain("export function OrganizationManagementSections");
+    expect(sections).toContain("function getRoleIcon");
+    expect(sections).toContain('data-testid="input-search"');
+    expect(sections).toContain('data-testid={`row-organization-${org.id}`}');
+    expect(sections).toContain('data-testid={`button-password-user-mobile-${user.id}`}');
+    expect(dialogs).toContain("export function OrganizationManagementDialogs");
+    expect(dialogs).toContain('data-testid="dialog-organization"');
+    expect(dialogs).toContain('data-testid="dialog-user"');
+    expect(dialogs).toContain('data-testid="dialog-password"');
+  });
+
+  it("keeps maintenance template cards and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/MaintenanceTemplatesPage.tsx");
+    const cards = read("client/src/pages/MaintenanceTemplatesPageCards.tsx");
+    const dialogs = read("client/src/pages/MaintenanceTemplatesPageDialogs.tsx");
+
+    expect(page).toContain('from "./MaintenanceTemplatesPageCards"');
+    expect(page).toContain('from "./MaintenanceTemplatesPageDialogs"');
+    expect(page).toContain("<TemplateCard");
+    expect(page).toContain("<MaintenanceTemplateDialogs");
+    expect(cards).toContain("export function TemplateCard");
+    expect(cards).toContain("export function ChecklistSection");
+    expect(cards).toContain("export function ViewTemplateContent");
+    expect(cards).toContain('data-testid={`template-card-${template.id}`}');
+    expect(cards).toContain('data-testid="button-add-item"');
+    expect(dialogs).toContain("export function MaintenanceTemplateDialogs");
+    expect(dialogs).toContain('data-testid="dialog-title"');
+    expect(dialogs).toContain('data-testid="view-dialog-title"');
+    expect(dialogs).toContain('data-testid="button-confirm-delete"');
+  });
+
+  it("keeps AI health performance tab sections behind the tab shell", () => {
+    const tab = read("client/src/components/ai-health/PerformanceTab.tsx");
+    const summary = read("client/src/components/ai-health/PerformanceTabSummary.tsx");
+    const sections = read("client/src/components/ai-health/PerformanceTabSections.tsx");
+    const explainability = read("client/src/components/ai-health/PerformanceTabExplainability.tsx");
+
+    expect(tab).toContain('from "./PerformanceTabSummary"');
+    expect(tab).toContain('from "./PerformanceTabSections"');
+    expect(tab).toContain('from "./PerformanceTabExplainability"');
+    expect(tab).toContain("<PerformanceStatsCards");
+    expect(tab).toContain("<PerformanceDiagnosticSections");
+    expect(tab).toContain("<PerformanceExplainabilitySection");
+    expect(summary).toContain("export function AccuracyBadge");
+    expect(summary).toContain("export function PerformanceStatsCards");
+    expect(summary).toContain("export function ModelSummaryCard");
+    expect(summary).toContain('data-testid="stat-active-models"');
+    expect(sections).toContain("export function PerformanceDiagnosticSections");
+    expect(sections).toContain("export function MarineAndValidationSections");
+    expect(sections).toContain('data-testid={`drift-alert-${idx}`}');
+    expect(sections).toContain('data-testid={`row-validation-${index}`}');
+    expect(explainability).toContain("export function PerformanceExplainabilitySection");
+    expect(explainability).toContain('data-testid="select-filter-equipment"');
+  });
+
+  it("keeps AI health vessel intelligence behind the insights tab shell", () => {
+    const tab = read("client/src/components/ai-health/InsightsTab.tsx");
+    const vessel = read("client/src/components/ai-health/InsightsTabVesselIntelligence.tsx");
+
+    expect(tab).toContain('from "./InsightsTabVesselIntelligence"');
+    expect(tab).toContain("<VesselIntelligenceSection />");
+    expect(tab).toContain("export default function InsightsTab");
+    expect(vessel).toContain("export function VesselIntelligenceSection");
+    expect(vessel).toContain('data-testid="select-vessel-intelligence"');
+    expect(vessel).toContain('data-testid="button-load-intelligence"');
+  });
+
+  it("keeps vessel management actions, table, and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/vessel-management/index.tsx");
+    const table = read("client/src/pages/vessel-management/VesselManagementFleetTable.tsx");
+    const dialogs = read("client/src/pages/vessel-management/VesselManagementDialogs.tsx");
+    const types = read("client/src/pages/vessel-management/VesselManagementTypes.ts");
+
+    expect(page).toContain('from "./VesselManagementFleetTable"');
+    expect(page).toContain('from "./VesselManagementDialogs"');
+    expect(page).toContain("<VesselManagementActions");
+    expect(page).toContain("<VesselFleetOverview");
+    expect(page).toContain("<VesselManagementDialogs");
+    expect(page).toContain("export default function VesselManagement");
+    expect(table).toContain("export function VesselFleetOverview");
+    expect(table).toContain('data-testid={`button-view-${vessel.id}`}');
+    expect(dialogs).toContain("export function VesselManagementActions");
+    expect(dialogs).toContain("export function VesselManagementDialogs");
+    expect(dialogs).toContain('data-testid="input-vessel-name"');
+    expect(dialogs).toContain('data-testid="button-update-vessel"');
+    expect(dialogs).toContain('data-testid="button-confirm-delete"');
+    expect(types).toContain("export type VesselManagementModel");
+  });
+
+  it("keeps diagnostics health panels behind the dashboard route shell", () => {
+    const page = read("client/src/pages/DiagnosticsDashboard.tsx");
+    const health = read("client/src/pages/DiagnosticsDashboardHealthTab.tsx");
+    const types = read("client/src/pages/DiagnosticsDashboardTypes.ts");
+
+    expect(page).toContain('from "./DiagnosticsDashboardHealthTab"');
+    expect(page).toContain("<DiagnosticsHealthTab");
+    expect(page).toContain("<DiagnosticsStatusIcon");
+    expect(page).toContain("export default function DiagnosticsDashboard");
+    expect(health).toContain("export function DiagnosticsHealthTab");
+    expect(health).toContain("export function DiagnosticsStatusIcon");
+    expect(health).toContain('data-testid="card-overall-status"');
+    expect(health).toContain('data-testid="card-database-check"');
+    expect(health).toContain('data-testid="card-services"');
+    expect(types).toContain("export type DiagnosticsDashboardModel");
+  });
+
+  it("keeps sensor setup bundle selection behind the wizard shell", () => {
+    const wizard = read("client/src/components/sensors/SensorSetupWizard.tsx");
+    const bundle = read("client/src/components/sensors/SensorSetupWizardBundleStep.tsx");
+
+    expect(wizard).toContain('from "./SensorSetupWizardBundleStep"');
+    expect(wizard).toContain("<BundleStep");
+    expect(wizard).toContain("export function SensorSetupWizard");
+    expect(bundle).toContain("export function BundleStep");
+    expect(bundle).toContain('data-testid="bundle-option-custom"');
+    expect(bundle).toContain('data-testid={`checkbox-template-${template.kind}`}');
+    expect(bundle).toContain('data-testid="button-next-step"');
+  });
+
+  it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/equipment/index.tsx");
+    const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");
+    const tabs = read("client/src/pages/equipment/EquipmentPageTabs.tsx");
+    const dialogs = read("client/src/pages/equipment/EquipmentPageDialogs.tsx");
+
+    expect(page).toContain('from "./EquipmentPageStats"');
+    expect(page).toContain('from "./EquipmentPageTabs"');
+    expect(page).toContain('from "./EquipmentPageDialogs"');
+    expect(page).toContain("<EquipmentPageStats");
+    expect(page).toContain("<EquipmentRegistryTabs");
+    expect(page).toContain("<EquipmentPageDialogs");
+    expect(stats).toContain("export function EquipmentPageStats");
+    expect(stats).toContain('data-testid="button-add-equipment"');
+    expect(tabs).toContain("export function EquipmentRegistryTabs");
+    expect(tabs).toContain('data-testid="tab-active-equipment"');
+    expect(tabs).toContain('data-testid={`button-sensors-mobile-${item.id}`}');
+    expect(dialogs).toContain("export function EquipmentPageDialogs");
+    expect(dialogs).toContain("<SensorSetupWizard");
+    expect(dialogs).toContain("<EquipmentDecommissionDialog");
+  });
+
+  it("keeps linked service order cards and request dialog behind the public panel", () => {
+    const panel = read("client/src/components/work-orders/LinkedServiceOrdersPanel.tsx");
+    const cards = read("client/src/components/work-orders/LinkedServiceOrdersPanelCards.tsx");
+    const dialog = read("client/src/components/work-orders/LinkedServiceRequestDialog.tsx");
+
+    expect(panel).toContain('from "./LinkedServiceOrdersPanelCards"');
+    expect(panel).toContain('from "./LinkedServiceRequestDialog"');
+    expect(panel).toContain("<ServiceRequestCard");
+    expect(panel).toContain("<ServiceOrderCard");
+    expect(panel).toContain("<CreateServiceRequestDialog");
+    expect(panel).toContain('data-testid="linked-service-orders-panel"');
+    expect(cards).toContain("export function ServiceOrderCard");
+    expect(cards).toContain("export function ServiceRequestCard");
+    expect(cards).toContain('data-testid={`linked-so-${so.id}`}');
+    expect(cards).toContain('data-testid={`timeline-${so.id}`}');
+    expect(dialog).toContain("export function CreateServiceRequestDialog");
+    expect(dialog).toContain('data-testid="button-submit-service-request"');
+  });
+
+  it("keeps findings cards and tasks behind the public findings card barrel", () => {
+    const barrel = read("client/src/pages/findings-cards.tsx");
+    const types = read("client/src/pages/findings-card-types.ts");
+    const cards = read("client/src/pages/findings-card-renderers.tsx");
+    const tasks = read("client/src/pages/findings-task-cards.tsx");
+
+    expect(barrel).toContain('from "./findings-card-types"');
+    expect(barrel).toContain('from "./findings-card-renderers"');
+    expect(barrel).toContain('from "./findings-task-cards"');
+    expect(barrel).toContain("export type {");
+    expect(barrel).toContain("export { FindingCard, EntityLink, timeAgo }");
+    expect(barrel).toContain("export { TaskCard, TasksSection }");
+    expect(types).toContain("export interface UnifiedFindingItem");
+    expect(types).toContain("export interface AgentTask");
+    expect(types).toContain("export const OUTCOME_CATEGORIES");
+    expect(cards).toContain("export function FindingCard");
+    expect(cards).toContain("export function EntityLink");
+    expect(cards).toContain('data-testid={`finding-card-${item.id}`}');
+    expect(cards).toContain('data-testid={`button-assistant-${item.id}`}');
+    expect(tasks).toContain("export function TaskCard");
+    expect(tasks).toContain("export function TasksSection");
+    expect(tasks).toContain('data-testid={`task-card-${task.id}`}');
+    expect(tasks).toContain('data-testid="tasks-section"');
+  });
+
+  it("keeps agent chat panel shell and input hooks behind the public panel", () => {
+    const panel = read("client/src/components/agent/AgentChatPanel/index.tsx");
+    const shell = read("client/src/components/agent/AgentChatPanel/AgentChatPanelShell.tsx");
+    const attachments = read(
+      "client/src/components/agent/AgentChatPanel/useAgentChatAttachments.ts"
+    );
+    const voice = read("client/src/components/agent/AgentChatPanel/useAgentChatVoice.ts");
+
+    expect(panel).toContain('from "./AgentChatPanelShell"');
+    expect(panel).toContain('from "./useAgentChatAttachments"');
+    expect(panel).toContain('from "./useAgentChatVoice"');
+    expect(panel).toContain("<AgentChatPanelShell");
+    expect(panel).toContain("export function AgentChatPanel");
+    expect(shell).toContain("export function AgentChatPanelShell");
+    expect(shell).toContain('data-testid="card-agent-chat-panel"');
+    expect(shell).toContain('data-testid="button-show-history"');
+    expect(shell).toContain("<MessageInputBar");
+    expect(attachments).toContain("export function useAgentChatAttachments");
+    expect(attachments).toContain("handleFileSelect");
+    expect(attachments).toContain("handleDrop");
+    expect(voice).toContain("export function useAgentChatVoice");
+    expect(voice).toContain("SpeechRecognition");
+    expect(voice).toContain("toggleVoiceInput");
+  });
+
+  it("keeps schedule planner types, filters, and sync helpers behind the public hook", () => {
+    const hook = read("client/src/features/crew/hooks/useSchedulePlannerData.ts");
+    const types = read("client/src/features/crew/hooks/useSchedulePlannerDataTypes.ts");
+    const filters = read("client/src/features/crew/hooks/useSchedulePlannerFilters.ts");
+    const sync = read("client/src/features/crew/hooks/useSchedulePlannerSync.ts");
+
+    expect(hook).toContain('from "./useSchedulePlannerDataTypes"');
+    expect(hook).toContain('from "./useSchedulePlannerFilters"');
+    expect(hook).toContain('from "./useSchedulePlannerSync"');
+    expect(hook).toContain("useSchedulePlannerSync()");
+    expect(hook).toContain("export function useSchedulePlannerData");
+    expect(hook).toContain("export type {");
+    expect(types).toContain("export interface ScheduleAssignment");
+    expect(types).toContain("export interface PlannerCrewMember");
+    expect(types).toContain("export interface PendingOperation");
+    expect(filters).toContain("export function getDateRangeFromPreset");
+    expect(filters).toContain("export function loadPersistedFilters");
+    expect(filters).toContain("export function persistFilters");
+    expect(sync).toContain("export function useSchedulePlannerSync");
+    expect(sync).toContain("flushPendingOperations");
+    expect(sync).toContain('"/api/crew-extensions/assignments"');
+  });
+
+  it("keeps StormGeo settings form and imports behind the public panel", () => {
+    const panel = read("client/src/components/stormgeo-settings.tsx");
+    const form = read("client/src/components/stormgeo-settings-form.tsx");
+    const imports = read("client/src/components/stormgeo-import-history.tsx");
+    const types = read("client/src/components/stormgeo-settings-types.ts");
+
+    expect(panel).toContain('from "./stormgeo-settings-form"');
+    expect(panel).toContain('from "./stormgeo-import-history"');
+    expect(panel).toContain("<StormGeoSettingsForm");
+    expect(panel).toContain("<StormGeoImportHistory");
+    expect(panel).toContain("export function StormGeoSettingsPanel");
+    expect(form).toContain("export function StormGeoSettingsForm");
+    expect(form).toContain('data-testid="select-stormgeo-vessel"');
+    expect(form).toContain('data-testid="button-save-stormgeo-settings"');
+    expect(imports).toContain("export function StormGeoImportHistory");
+    expect(imports).toContain('data-testid="button-import-stormgeo"');
+    expect(imports).toContain('data-testid="input-stormgeo-file"');
+    expect(types).toContain("export type StormGeoSettingsModel");
   });
 
 });
