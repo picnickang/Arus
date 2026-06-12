@@ -551,7 +551,7 @@ const crewQueue: QueueItem[] = [
 
 function buildTodayScreen(role: MobileRole): TodayScreen {
   if (role === "crew") {
-    const items = sortQueue(crewQueue);
+    const items = crewQueue;
     return {
       roleLabel: "Crew",
       vesselName: "MV Atlas",
@@ -561,7 +561,7 @@ function buildTodayScreen(role: MobileRole): TodayScreen {
     };
   }
   if (role === "captain") {
-    const items = sortQueue([
+    const items: QueueItem[] = [
       {
         id: "vessel-ready",
         title: "Vessel readiness - Good",
@@ -622,7 +622,7 @@ function buildTodayScreen(role: MobileRole): TodayScreen {
         icon: Cloud,
         href: "/logs",
       },
-    ]);
+    ];
     return {
       roleLabel: "Captain",
       vesselName: "MV Atlas",
@@ -631,7 +631,7 @@ function buildTodayScreen(role: MobileRole): TodayScreen {
       items,
     };
   }
-  const items = sortQueue(adminQueue);
+  const items = adminQueue;
   return {
     roleLabel: role === "chief_engineer" ? "Chief Engineer" : "Admin",
     vesselName: "MV Atlas",

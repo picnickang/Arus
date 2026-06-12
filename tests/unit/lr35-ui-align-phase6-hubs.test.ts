@@ -46,6 +46,10 @@ describe("UI Align Phase 6 — mobile readiness hub replacements", () => {
     expect(screenSrc).toContain("PdM Risk Queue");
     expect(screenSrc).toContain("Work Queue");
     expect(screenSrc).toContain("Checklist");
+    expect(screenSrc).toContain("grid grid-cols-5");
+    expect(screenSrc).toContain("LogRequiredRow");
+    expect(screenSrc).toContain("MessageSquare");
+    expect(screenSrc).toContain("CalendarDays");
     expect(screenSrc).toContain("Crew Readiness Overview");
     expect(screenSrc).toContain("View All Current Crew");
     expect(screenSrc).toContain("Former Crew (24)");
