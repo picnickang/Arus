@@ -199,4 +199,16 @@ describe("server tail extractions", () => {
     expect(support).toContain("export function buildPredictionCostLine");
     expect(support).toContain("export async function queueSuggestionNotifications");
   });
+
+  it("keeps equipment lifecycle route groups behind the route module", () => {
+    const routes = read("server/domains/equipment/routes.ts");
+    const lifecycleRoutes = read("server/domains/equipment/lifecycle-routes.ts");
+
+    expect(routes).toContain('from "./lifecycle-routes"');
+    expect(routes).toContain("export function registerEquipmentRoutes");
+    expect(routes).toContain("registerEquipmentLifecycleRoutes(app");
+    expect(lifecycleRoutes).toContain("export function registerEquipmentLifecycleRoutes");
+    expect(lifecycleRoutes).toContain('"/api/equipment/:id/decommission"');
+    expect(lifecycleRoutes).toContain('"/api/equipment/:equipmentId/compatible-parts"');
+  });
 });
