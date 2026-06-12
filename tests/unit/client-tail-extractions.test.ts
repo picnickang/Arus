@@ -235,4 +235,28 @@ describe("client tail component extractions", () => {
     expect(fields).toContain('data-testid="button-submit"');
   });
 
+  it("keeps equipment dependency editor surfaces behind the admin route shell", () => {
+    const page = read("client/src/pages/admin/equipment-dependencies.tsx");
+    const model = read("client/src/pages/admin/equipment-dependencies-model.ts");
+    const state = read("client/src/pages/admin/equipment-dependencies-state.ts");
+    const parts = read("client/src/pages/admin/equipment-dependencies-parts.tsx");
+
+    expect(page).toContain('from "./equipment-dependencies-state"');
+    expect(page).toContain('from "./equipment-dependencies-parts"');
+    expect(page).toContain("useEquipmentDependenciesPageState");
+    expect(page).toContain("<DependencyGraphTab");
+    expect(page).toContain("<DependencyBulkTab");
+    expect(page).toContain("<EdgeNotesDialog");
+    expect(model).toContain("export function parseCsv");
+    expect(model).toContain("export function circularLayout");
+    expect(state).toContain('from "./equipment-dependencies-model"');
+    expect(state).toContain("export function useEquipmentDependenciesPageState");
+    expect(parts).toContain("export function DependencyGraphTab");
+    expect(parts).toContain("export function DependencyBulkTab");
+    expect(parts).toContain("export function EdgeNotesDialog");
+    expect(parts).toContain('data-testid="graph-canvas"');
+    expect(parts).toContain('data-testid="button-import-csv"');
+    expect(parts).toContain('data-testid="dialog-edge-notes"');
+  });
+
 });

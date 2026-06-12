@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T09:55:23.131Z
+Generated: 2026-06-12T10:16:39.806Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `25` counted files.
-- The current counted inventory is `25` files.
+- The temporary ceiling is `24` counted files.
+- The current counted inventory is `24` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    25 |
+| Total counted long files  |    24 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    25 |
-| Client page files         |    13 |
+| Client                    |    24 |
+| Client page files         |    12 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -142,42 +142,42 @@ Completed splits:
 - `client/src/components/analytics/OperationsMode.tsx` dropped below the threshold by moving active telemetry stream filters, fetching, and sparkline rendering to a sibling mode component while preserving test IDs.
 - `client/src/components/work-orders/WorkOrderFormDialog.tsx` dropped below the threshold by moving form fields and action controls to a sibling component while preserving the public dialog shell and test IDs.
 - Upstream dead-client-code cleanup removed obsolete client surfaces, including crew/admin, scheduling, logbook, and vessel-registry UI files, and the merge preserved those deletions instead of resurrecting stale split modules.
+- `client/src/pages/admin/equipment-dependencies.tsx` dropped below the threshold by moving graph/layout model helpers, page state orchestration, and tab/dialog presentation to sibling modules while preserving the admin route shell, query keys, and test IDs.
 
-## Top 25 Longest Files
+## Top 24 Longest Files
 
 | Rank | Lines | File                                                             |
 | ---: | ----: | ---------------------------------------------------------------- |
-|    1 |  1111 | `client/src/pages/admin/equipment-dependencies.tsx`              |
-|    2 |   990 | `client/src/pages/ml-training.tsx`                               |
-|    3 |   899 | `client/src/pages/admin/3d-models.tsx`                           |
-|    4 |   875 | `client/src/pages/copilot-admin.tsx`                             |
-|    5 |   869 | `client/src/pages/system-administration.tsx`                     |
-|    6 |   843 | `client/src/pages/findings.tsx`                                  |
-|    7 |   836 | `client/src/components/analytics/FinanceMode.tsx`                |
-|    8 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`            |
-|    9 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`           |
-|   10 |   786 | `client/src/pages/maintenance-schedules.tsx`                     |
-|   11 |   755 | `client/src/pages/organization-management.tsx`                   |
-|   12 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                  |
-|   13 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                |
-|   14 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`             |
-|   15 |   712 | `client/src/pages/equipment/index.tsx`                           |
-|   16 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx` |
-|   17 |   704 | `client/src/pages/findings-cards.tsx`                            |
-|   18 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`           |
-|   19 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`       |
-|   20 |   680 | `client/src/components/stormgeo-settings.tsx`                    |
-|   21 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
-|   22 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                |
-|   23 |   647 | `client/src/pages/vessel-management/index.tsx`                   |
-|   24 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                      |
-|   25 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`            |
+|    1 |   990 | `client/src/pages/ml-training.tsx`                               |
+|    2 |   899 | `client/src/pages/admin/3d-models.tsx`                           |
+|    3 |   875 | `client/src/pages/copilot-admin.tsx`                             |
+|    4 |   869 | `client/src/pages/system-administration.tsx`                     |
+|    5 |   843 | `client/src/pages/findings.tsx`                                  |
+|    6 |   836 | `client/src/components/analytics/FinanceMode.tsx`                |
+|    7 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`            |
+|    8 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`           |
+|    9 |   786 | `client/src/pages/maintenance-schedules.tsx`                     |
+|   10 |   755 | `client/src/pages/organization-management.tsx`                   |
+|   11 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                  |
+|   12 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                |
+|   13 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`             |
+|   14 |   712 | `client/src/pages/equipment/index.tsx`                           |
+|   15 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx` |
+|   16 |   704 | `client/src/pages/findings-cards.tsx`                            |
+|   17 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`           |
+|   18 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`       |
+|   19 |   680 | `client/src/components/stormgeo-settings.tsx`                    |
+|   20 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
+|   21 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                |
+|   22 |   647 | `client/src/pages/vessel-management/index.tsx`                   |
+|   23 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                      |
+|   24 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`            |
 
 ## Recommended Extraction Plan
 
 1. Continue with client characterization before large UI splits.
    - Server and shared counted sources are now under the threshold.
-   - Prioritize equipment dependencies, ML/admin pages, findings, FinanceMode, crew management utilities, hours-of-rest data, and maintenance scheduling.
+   - Prioritize ML/admin pages, findings, FinanceMode, crew management utilities, hours-of-rest data, and maintenance scheduling.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Split client route pages and components by stable UI sub-surfaces.
@@ -194,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-1111 client/src/pages/admin/equipment-dependencies.tsx
 990 client/src/pages/ml-training.tsx
 899 client/src/pages/admin/3d-models.tsx
 875 client/src/pages/copilot-admin.tsx
@@ -211,14 +210,10 @@ Completed splits:
 712 client/src/pages/equipment/index.tsx
 711 client/src/components/work-orders/LinkedServiceOrdersPanel.tsx
 704 client/src/pages/findings-cards.tsx
-697 client/src/components/crew-admin/RolesDashboardsTab.tsx
 687 client/src/components/agent/AgentChatPanel/index.tsx
 685 client/src/features/crew/hooks/useSchedulePlannerData.ts
-683 client/src/pages/governance-dashboard.tsx
 680 client/src/components/stormgeo-settings.tsx
-677 client/src/components/CrewScheduler.tsx
 672 client/src/components/equipment/EquipmentDecommissionDialog.tsx
-659 client/src/components/vessel/VesselSchematic/SchematicConfigPanel.tsx
 652 client/src/components/ai-health/InsightsTab.tsx
 647 client/src/pages/vessel-management/index.tsx
 638 client/src/pages/DiagnosticsDashboard.tsx
