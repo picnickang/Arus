@@ -55,7 +55,7 @@ export default defineConfig({
             if (id.includes("@tanstack")) {
               return "vendor-tanstack";
             }
-            if (id.includes("jspdf") || id.includes("xlsx") || id.includes("html2canvas") || id.includes("pdf-lib")) {
+            if (id.includes("jspdf") || id.includes("xlsx") || id.includes("pdf-lib")) {
               return "vendor-export";
             }
           }
@@ -78,7 +78,6 @@ export default defineConfig({
       "@radix-ui/react-scroll-area",
       "@radix-ui/react-tooltip",
       "@radix-ui/react-popover",
-      "@radix-ui/react-accordion",
       "@radix-ui/react-separator",
       "@radix-ui/react-switch",
       "@radix-ui/react-label",
@@ -96,9 +95,8 @@ export default defineConfig({
       "react-hook-form",
       "@hookform/resolvers",
       "recharts",
-      "framer-motion",
     ],
-    exclude: ["jspdf", "xlsx", "html2canvas", "pdf-lib"],
+    exclude: ["jspdf", "xlsx", "pdf-lib"],
     esbuildOptions: {
       target: "esnext",
     },
