@@ -219,6 +219,12 @@ describe("Vessel Intelligence Hub v2 mobile readiness binding", () => {
     expect(page).toContain("MobileVesselDetailPage");
     expect(mobileScreens).toContain("export function MobileVesselDetailPage");
     expect(mobileScreens).toContain("VesselDiagramPanel");
+    expect(mobileScreens).toContain("VesselMetricTile");
+    expect(mobileScreens).toContain("VesselActionTile");
+    expect(mobileScreens).toContain("DiagramModeButton");
+    expect(mobileScreens).toContain("Active alarms");
+    expect(mobileScreens).toContain("Crew blocker");
+    expect(mobileScreens).toContain("Zones");
     expect(mobileModel).toContain("vesselDetail");
     expect(mobileModel).toContain("Telemetry");
     expect(page).not.toMatch(/mockVessel|mockEquipment|fakeTelemetry|setInterval/);
