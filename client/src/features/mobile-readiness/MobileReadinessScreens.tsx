@@ -43,7 +43,6 @@ import { getMobileReadinessAsset } from "./mobile-readiness-assets";
 import {
   buildMobileReadinessNavigationForVariant,
   buildMobileReadinessScreens,
-  normalizeMobileRole,
   type FleetVesselCard,
   type MobileNavVariant,
   type MobileReadinessScreens,
@@ -53,8 +52,6 @@ import {
   type ReadinessTone,
   type SummaryMetric,
 } from "./mobile-readiness-model";
-
-type ScreenKind = "today" | "fleet" | "pdm" | "work" | "logs" | "crew" | "inventory" | "settings";
 
 function readRoleHint(): string | null {
   if (typeof window === "undefined") {
@@ -221,13 +218,13 @@ function AppHeader({
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
-            className="grid h-11 w-11 place-items-center rounded-lg text-[#062a58] md:hidden"
+            className="grid h-11 w-11 place-items-center rounded-lg text-blue-950 md:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
           <div className="min-w-0">
-            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-[#082756] md:text-2xl">
+            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-blue-950 md:text-2xl">
               {title}
             </div>
             {subtitle ? <div className="truncate text-sm text-slate-500">{subtitle}</div> : null}
@@ -243,7 +240,7 @@ function AppHeader({
                 </div>
               ) : null}
               {roleLabel ? (
-                <div className="text-xs font-semibold text-[#0d4da1]">{roleLabel}</div>
+                <div className="text-xs font-semibold text-blue-700">{roleLabel}</div>
               ) : null}
             </div>
           ) : null}
@@ -266,7 +263,7 @@ function NavyHeader({
   right?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-[#03295a] text-white shadow-sm">
+    <header className="sticky top-0 z-20 bg-blue-950 text-white shadow-sm">
       <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-3 px-4">
         {left ?? (
           <button
@@ -290,7 +287,7 @@ function NavyHeader({
 function MobilePageShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={cn("min-h-screen bg-[#f6f8fb] text-slate-950", className)}
+      className={cn("min-h-screen bg-slate-50 text-slate-950", className)}
       data-testid="mobile-readiness-shell"
     >
       {children}
@@ -423,13 +420,18 @@ function SectionCard({
   );
 }
 
+function progressBarColor(tone: ReadinessTone): string {
+  if (tone === "critical" || tone === "high") {
+    return "bg-red-500";
+  }
+  if (tone === "medium") {
+    return "bg-amber-500";
+  }
+  return "bg-emerald-500";
+}
+
 function ProgressBar({ value, tone = "good" }: { value: number; tone?: ReadinessTone }) {
-  const color =
-    tone === "critical" || tone === "high"
-      ? "bg-red-500"
-      : tone === "medium"
-        ? "bg-amber-500"
-        : "bg-emerald-500";
+  const color = progressBarColor(tone);
   return (
     <div className="h-2 overflow-hidden rounded-full bg-slate-200">
       <div
@@ -465,6 +467,16 @@ function AssetImage({ assetId, className }: { assetId: string; className: string
   );
 }
 
+function bottomNavItemTone(usesReferenceTabBar: boolean, active: boolean): string {
+  if (usesReferenceTabBar) {
+    return active ? "text-blue-950" : "text-slate-500";
+  }
+  if (active) {
+    return "bg-white/15 text-white shadow-inner";
+  }
+  return "text-blue-100";
+}
+
 function MobileBottomNav() {
   const roleHint = readRoleHint();
   const [location] = useLocation();
@@ -481,7 +493,7 @@ function MobileBottomNav() {
         "fixed bottom-0 left-0 right-0 z-40 border-t pb-safe shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.35)] md:hidden",
         usesReferenceTabBar
           ? "border-slate-200 bg-white text-slate-600"
-          : "border-[#0a376b] bg-[#03295a] text-white"
+          : "border-blue-900 bg-blue-950 text-white"
       )}
       aria-label="Mobile readiness navigation"
       data-testid="mobile-readiness-bottom-nav"
@@ -500,13 +512,7 @@ function MobileBottomNav() {
               href={item.href}
               className={cn(
                 "flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold",
-                usesReferenceTabBar
-                  ? active
-                    ? "text-[#03295a]"
-                    : "text-slate-500"
-                  : active
-                    ? "bg-white/15 text-white shadow-inner"
-                    : "text-blue-100"
+                bottomNavItemTone(usesReferenceTabBar, active)
               )}
               data-testid={`mobile-readiness-nav-${item.id}`}
             >
@@ -540,7 +546,7 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
             <h1 className="text-xl font-bold text-slate-950">Today</h1>
             <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
           </div>
-          <span className="text-sm font-semibold text-[#0d4da1]">
+          <span className="text-sm font-semibold text-blue-700">
             {screens.today.itemCount} items
           </span>
         </div>
@@ -628,7 +634,7 @@ export function MobileFleetPage() {
                   <div className="text-slate-500">Next action</div>
                   <div className="font-semibold text-slate-900">{vessel.nextAction}</div>
                 </div>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+                <span className="inline-flex items-center gap-1 font-semibold text-blue-700">
                   View <ChevronRight className="h-4 w-4" aria-hidden="true" />
                 </span>
               </div>
@@ -637,7 +643,7 @@ export function MobileFleetPage() {
         </div>
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>Updated 2 min ago</span>
-          <button className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+          <button className="inline-flex items-center gap-1 font-semibold text-blue-700">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
           </button>
         </div>
@@ -647,11 +653,12 @@ export function MobileFleetPage() {
 }
 
 export function MobileVesselDetailPage() {
-  const { fleet } = useScreens("admin");
+  const screens = useScreens("admin");
+  const { fleet } = screens;
   const [location] = useLocation();
   const detail = fleet.vesselDetail;
   if (location.includes("/3d") || location.includes("diagram")) {
-    return <MobileVesselDiagramView screens={useScreens("admin")} />;
+    return <MobileVesselDiagramView screens={screens} />;
   }
   return (
     <MobilePageShell>
@@ -692,7 +699,7 @@ export function MobileVesselDetailPage() {
                 className={cn(
                   "shrink-0 border-b-2 px-1 pb-2",
                   index === 0
-                    ? "border-[#0d4da1] text-[#0d4da1]"
+                    ? "border-blue-700 text-blue-700"
                     : "border-transparent text-slate-600"
                 )}
               >
@@ -709,7 +716,7 @@ export function MobileVesselDetailPage() {
             <MiniState label="Flag" value="Singapore" tone="normal" />
           </div>
         </SectionCard>
-        <VesselDiagramPanel screens={useScreens("admin")} compact />
+        <VesselDiagramPanel screens={screens} compact />
       </Content>
     </MobilePageShell>
   );
@@ -742,6 +749,16 @@ function VesselMetricTile({
   );
 }
 
+function vesselActionHref(tileId: string): string {
+  if (tileId === "inventory") {
+    return "/logistics";
+  }
+  if (tileId === "logs") {
+    return "/logs";
+  }
+  return "/work-orders";
+}
+
 function VesselActionTile({ tile }: { tile: SummaryMetric }) {
   const tone = toneClasses(tile.tone);
   const sublabelById: Record<string, string> = {
@@ -759,10 +776,10 @@ function VesselActionTile({ tile }: { tile: SummaryMetric }) {
   const Icon = iconById[tile.id] ?? ChevronRight;
   return (
     <Link
-      href={tile.id === "inventory" ? "/logistics" : tile.id === "logs" ? "/logs" : "/work-orders"}
+      href={vesselActionHref(tile.id)}
       className="grid min-h-20 grid-cols-[28px_1fr_18px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm"
     >
-      <Icon className="h-5 w-5 text-[#0d4da1]" aria-hidden="true" />
+      <Icon className="h-5 w-5 text-blue-700" aria-hidden="true" />
       <span className="min-w-0">
         <span className="block truncate text-xs font-semibold text-slate-600">{tile.label}</span>
         <span className="block text-2xl font-extrabold leading-tight text-slate-950">
@@ -810,7 +827,7 @@ function VesselDiagramPanel({
   return (
     <SectionCard
       title="Vessel diagram"
-      action={<button className="text-sm font-semibold text-[#0d4da1]">Legend</button>}
+      action={<button className="text-sm font-semibold text-blue-700">Legend</button>}
     >
       <div className="grid grid-cols-6 gap-2 px-3 py-3">
         {detail.diagramModes.map((mode, index) => (
@@ -854,7 +871,7 @@ function VesselDiagramPanel({
               <span className="h-2 w-2 rounded-full bg-orange-500" />
               {detail.selectedZone.name}
             </div>
-            <button className="text-xs font-semibold text-[#0d4da1]">View section</button>
+            <button className="text-xs font-semibold text-blue-700">View section</button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
             <div>
@@ -867,28 +884,36 @@ function VesselDiagramPanel({
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {detail.selectedZone.actions.map((action) => (
-              <span
-                key={action}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold"
-              >
-                {action === "Machinery" ? (
-                  <Wrench className="h-3.5 w-3.5 text-[#0d4da1]" aria-hidden="true" />
-                ) : action === "Alarm" ? (
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-600" aria-hidden="true" />
-                ) : action === "Log" ? (
-                  <FileText className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-                )}
-                {action}
-              </span>
-            ))}
+            {detail.selectedZone.actions.map((action) => {
+              const { Icon, className } = zoneActionIcon(action);
+              return (
+                <span
+                  key={action}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold"
+                >
+                  <Icon className={cn("h-3.5 w-3.5", className)} aria-hidden="true" />
+                  {action}
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>
     </SectionCard>
   );
+}
+
+function zoneActionIcon(action: string): { Icon: LucideIcon; className: string } {
+  switch (action) {
+    case "Machinery":
+      return { Icon: Wrench, className: "text-blue-700" };
+    case "Alarm":
+      return { Icon: AlertTriangle, className: "text-red-600" };
+    case "Log":
+      return { Icon: FileText, className: "text-amber-600" };
+    default:
+      return { Icon: CheckCircle2, className: "text-emerald-600" };
+  }
 }
 
 function DiagramModeButton({ mode, active }: { mode: string; active: boolean }) {
@@ -907,7 +932,7 @@ function DiagramModeButton({ mode, active }: { mode: string; active: boolean }) 
       className={cn(
         "grid min-h-16 min-w-0 place-items-center rounded-lg border px-1.5 py-1 text-center text-[9px] font-semibold leading-tight",
         active
-          ? "border-[#03295a] bg-[#03295a] text-white"
+          ? "border-blue-950 bg-blue-950 text-white"
           : "border-slate-200 bg-white text-slate-600"
       )}
     >
@@ -1005,7 +1030,7 @@ function PdmTabs({ active }: { active: "summary" | "telemetry" }) {
             type="button"
             className={cn(
               "min-h-10 border-b-2 border-transparent px-1",
-              selected && "border-[#0d4da1] text-[#0d4da1]"
+              selected && "border-blue-700 text-blue-700"
             )}
           >
             {tab}
@@ -1250,7 +1275,7 @@ function MobilePdmTelemetryPage({
               type="button"
               className={cn(
                 "min-h-10 border-r border-slate-200 px-1 last:border-r-0",
-                segment === "Advanced Graph" && "bg-[#03295a] text-white"
+                segment === "Advanced Graph" && "bg-blue-950 text-white"
               )}
             >
               {segment}
@@ -1265,7 +1290,7 @@ function MobilePdmTelemetryPage({
                 type="button"
                 className={cn(
                   "min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600",
-                  range === "7d" && "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  range === "7d" && "border-blue-700 bg-blue-50 text-blue-700"
                 )}
               >
                 {range}
@@ -1303,14 +1328,14 @@ function MobilePdmTelemetryPage({
           />
           <Link
             href={`/pdm/equipment/${selectedRisk.equipmentId}`}
-            className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-[#0d4da1]"
+            className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-blue-700"
           >
             Details <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
         <SectionCard
           title="Raw Readings (Latest)"
-          action={<span className="text-xs font-semibold text-[#0d4da1]">CSV</span>}
+          action={<span className="text-xs font-semibold text-blue-700">CSV</span>}
         >
           <div className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500">
             <span>Time (UTC)</span>
@@ -1383,7 +1408,7 @@ export function MobileWorkOrdersPage() {
       <Content className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-950">Work Queue</h1>
-          <button className="inline-flex items-center gap-1 text-sm font-semibold text-[#0d4da1]">
+          <button className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700">
             Filters <Filter className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -1391,7 +1416,7 @@ export function MobileWorkOrdersPage() {
           {work.filters.map((filter) => (
             <button
               key={filter.id}
-              className="shrink-0 border-b-2 border-transparent px-1 pb-1.5 text-sm font-semibold text-slate-600 first:border-[#0d4da1] first:text-[#0d4da1]"
+              className="shrink-0 border-b-2 border-transparent px-1 pb-1.5 text-sm font-semibold text-slate-600 first:border-blue-700 first:text-blue-700"
             >
               {filter.label} ({filter.value})
             </button>
@@ -1404,7 +1429,7 @@ export function MobileWorkOrdersPage() {
               className={cn(
                 "min-h-12 min-w-0 rounded-lg border px-1 py-1 text-center text-[10px] font-semibold leading-tight",
                 chip.id === "in-progress"
-                  ? "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  ? "border-blue-700 bg-blue-50 text-blue-700"
                   : "border-slate-200 bg-white text-slate-600"
               )}
             >
@@ -1423,16 +1448,31 @@ export function MobileWorkOrdersPage() {
   );
 }
 
+function workQueueStripeClass(severity: ReadinessTone): string {
+  if (severity === "critical" || severity === "high") {
+    return "bg-red-500";
+  }
+  if (severity === "medium") {
+    return "bg-orange-400";
+  }
+  return "bg-blue-500";
+}
+
+function workQueueMessageCount(itemId: string): string {
+  if (itemId === "sr-1258") {
+    return "2";
+  }
+  if (itemId === "so-4481") {
+    return "1";
+  }
+  return "0";
+}
+
 function WorkQueueCard({ item }: { item: QueueItem }) {
   const tone = toneClasses(item.severity);
   const Icon = item.icon;
   const [orderCode, status = "Open"] = item.category.split(" - ");
-  const stripeClass =
-    item.severity === "critical" || item.severity === "high"
-      ? "bg-red-500"
-      : item.severity === "medium"
-        ? "bg-orange-400"
-        : "bg-blue-500";
+  const stripeClass = workQueueStripeClass(item.severity);
   const queueSeverity =
     item.severity === "normal" ? "LOW" : severityLabel(item.severity).toUpperCase();
   return (
@@ -1446,7 +1486,7 @@ function WorkQueueCard({ item }: { item: QueueItem }) {
         <div className="min-w-0 flex-1">
           <div className="mb-0.5 flex items-center gap-2 text-[11px] font-bold">
             <StatusPill tone={item.severity}>{queueSeverity}</StatusPill>
-            <span className="text-[#0d4da1]">{orderCode}</span>
+            <span className="text-blue-700">{orderCode}</span>
             <span className="text-slate-500">- {status}</span>
           </div>
           <div className="truncate text-[13px] font-bold leading-tight text-slate-950">
@@ -1467,7 +1507,7 @@ function WorkQueueCard({ item }: { item: QueueItem }) {
             </span>
             <span className="inline-flex items-center justify-end gap-1">
               <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-              {item.id === "sr-1258" ? "2" : item.id === "so-4481" ? "1" : "0"}
+              {workQueueMessageCount(item.id)}
             </span>
           </div>
         </div>
@@ -1514,7 +1554,9 @@ function MobileWorkExecutionPage() {
                   <div className="truncate text-sm font-bold text-slate-950">
                     {execution.vesselName}
                   </div>
-                  <div className="truncate text-xs font-medium text-slate-600">{execution.title}</div>
+                  <div className="truncate text-xs font-medium text-slate-600">
+                    {execution.title}
+                  </div>
                   <div className="truncate text-[11px] text-slate-500">{execution.description}</div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -1528,7 +1570,7 @@ function MobileWorkExecutionPage() {
               </div>
               <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-500">
                 <span className="truncate">{execution.technician}</span>
-                <span className="inline-flex items-center gap-1 text-[#0d4da1]">
+                <span className="inline-flex items-center gap-1 text-blue-700">
                   <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" /> 1
                 </span>
               </div>
@@ -1542,7 +1584,7 @@ function MobileWorkExecutionPage() {
               type="button"
               className={cn(
                 "min-h-9 border-b-2 border-transparent",
-                index === 0 && "border-[#0d4da1] text-[#0d4da1]"
+                index === 0 && "border-blue-700 text-blue-700"
               )}
             >
               {tab}
@@ -1601,7 +1643,7 @@ function MobileWorkExecutionPage() {
                 className="h-16 w-full rounded-lg border border-slate-200 object-cover"
               />
             ))}
-            <button className="grid h-16 place-items-center rounded-lg border border-slate-200 text-[#0d4da1]">
+            <button className="grid h-16 place-items-center rounded-lg border border-slate-200 text-blue-700">
               <Camera className="h-4 w-4" aria-hidden="true" />
               <span className="text-[11px] font-semibold">Add</span>
             </button>
@@ -1617,28 +1659,19 @@ function MobileWorkExecutionPage() {
           <CompactInfoRow label="Parts Used" value={`${execution.partsUsed} · Qty 1`} />
           <CompactInfoRow label="Time & Labor" value={execution.labor} />
         </section>
-        <div className="sticky bottom-16 z-20 grid grid-cols-[0.8fr_1fr_1.1fr] gap-2 bg-[#f6f8fb]/95 py-1.5">
+        <div className="sticky bottom-16 z-20 grid grid-cols-[0.8fr_1fr_1.1fr] gap-2 bg-slate-50/95 py-1.5">
           <button className="min-h-10 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
             Actions
           </button>
-          <button className="min-h-10 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-[#0d4da1]">
+          <button className="min-h-10 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-blue-700">
             {execution.offlineDraftAction}
           </button>
-          <button className="min-h-10 rounded-lg bg-[#03295a] text-xs font-semibold text-white">
+          <button className="min-h-10 rounded-lg bg-blue-950 text-xs font-semibold text-white">
             {execution.primaryAction}
           </button>
         </div>
       </Content>
     </MobilePageShell>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-sm">
-      <span className="font-semibold text-slate-600">{label}</span>
-      <span className="text-right font-bold text-slate-950">{value}</span>
-    </div>
   );
 }
 
@@ -1649,6 +1682,16 @@ function CompactInfoRow({ label, value }: { label: string; value: string }) {
       <span className="text-right font-bold text-slate-950">{value}</span>
     </div>
   );
+}
+
+function metricDotClass(tone: ReadinessTone): string {
+  if (tone === "good") {
+    return "bg-emerald-500";
+  }
+  if (tone === "medium") {
+    return "bg-amber-500";
+  }
+  return "bg-red-500";
 }
 
 export function MobileLogsPage() {
@@ -1674,9 +1717,7 @@ export function MobileLogsPage() {
               key={tab}
               className={cn(
                 "min-h-9 min-w-0 border-b-2 px-1 pb-1 text-center text-[11px] font-semibold leading-tight",
-                index === 0
-                  ? "border-[#0d4da1] text-[#0d4da1]"
-                  : "border-transparent text-slate-600"
+                index === 0 ? "border-blue-700 text-blue-700" : "border-transparent text-slate-600"
               )}
             >
               <span className="line-clamp-2">{tab}</span>
@@ -1685,7 +1726,7 @@ export function MobileLogsPage() {
         </div>
         <SectionCard
           title="Engine Log (Autofill Review)"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           <div className="space-y-2 p-2">
             <div className="text-xs text-slate-600">Review and confirm auto-filled entries.</div>
@@ -1700,16 +1741,7 @@ export function MobileLogsPage() {
                 {logs.autofillTrust.map((metric) => (
                   <div key={metric.id} className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "h-2 w-2 rounded-full",
-                          metric.tone === "good"
-                            ? "bg-emerald-500"
-                            : metric.tone === "medium"
-                              ? "bg-amber-500"
-                              : "bg-red-500"
-                        )}
-                      />
+                      <span className={cn("h-2 w-2 rounded-full", metricDotClass(metric.tone))} />
                       {metric.label}
                     </span>
                     <span className="font-semibold text-slate-700">{metric.value}</span>
@@ -1747,7 +1779,7 @@ export function MobileLogsPage() {
                 </div>
               ))}
             </div>
-            <button className="text-xs font-semibold text-[#0d4da1]">View More History</button>
+            <button className="text-xs font-semibold text-blue-700">View More History</button>
           </div>
         </SectionCard>
         <div className="mx-auto flex w-fit items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
@@ -1823,7 +1855,7 @@ export function MobileCrewPage() {
         </SectionCard>
         <SectionCard
           title="Current Crew (18)"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           <div className="grid grid-cols-[32px_1.3fr_0.85fr_0.85fr_0.65fr_42px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase text-slate-500">
             <span />
@@ -1863,7 +1895,7 @@ export function MobileCrewPage() {
           ))}
           <Link
             href="/crew-management"
-            className="flex min-h-8 items-center justify-between px-3 text-xs font-semibold text-[#0d4da1]"
+            className="flex min-h-8 items-center justify-between px-3 text-xs font-semibold text-blue-700"
           >
             View All Current Crew
             <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
@@ -1871,7 +1903,7 @@ export function MobileCrewPage() {
         </SectionCard>
         <SectionCard
           title="Former Crew (24)"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">History</button>}
+          action={<button className="text-sm font-semibold text-blue-700">History</button>}
         >
           {crew.formerCrew.map((person) => (
             <div
@@ -1941,6 +1973,23 @@ function QueueSimple({
   );
 }
 
+function inventoryAvailableTextClass(tone: ReadinessTone): string {
+  if (tone === "critical") {
+    return "text-red-600";
+  }
+  return "text-slate-900";
+}
+
+function inventoryReorderStatusClass(tone: ReadinessTone): string {
+  if (tone === "good") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+  if (tone === "critical") {
+    return "bg-red-50 text-red-700";
+  }
+  return "bg-amber-50 text-amber-700";
+}
+
 export function MobileInventoryPage() {
   const { inventory } = useScreens("logistics");
   return (
@@ -1963,7 +2012,7 @@ export function MobileInventoryPage() {
           <ActionRequiredGrid metrics={inventory.actionRequired} />
         </div>
         <div className="grid grid-cols-3 rounded-lg bg-slate-100 p-1 text-sm font-semibold">
-          <button className="rounded-md bg-[#03295a] py-1.5 text-white">Inventory</button>
+          <button className="rounded-md bg-blue-950 py-1.5 text-white">Inventory</button>
           <button className="py-1.5 text-slate-600">Logistics</button>
           <button className="py-1.5 text-slate-600">Vendors</button>
         </div>
@@ -1984,7 +2033,7 @@ export function MobileInventoryPage() {
                   <Grid2X2 className="h-4 w-4" aria-hidden="true" />
                 </button>
                 <button
-                  className="grid h-7 w-7 place-items-center rounded bg-[#03295a] text-white"
+                  className="grid h-7 w-7 place-items-center rounded bg-blue-950 text-white"
                   aria-label="Table view"
                 >
                   <List className="h-4 w-4" aria-hidden="true" />
@@ -2021,21 +2070,14 @@ export function MobileInventoryPage() {
                 <span className="truncate text-slate-600">{row.location}</span>
                 <span className="text-right font-semibold text-slate-900">{row.onHand}</span>
                 <span
-                  className={cn(
-                    "text-right font-semibold",
-                    row.tone === "critical" ? "text-red-600" : "text-slate-900"
-                  )}
+                  className={cn("text-right font-semibold", inventoryAvailableTextClass(row.tone))}
                 >
                   {row.available}
                 </span>
                 <span
                   className={cn(
                     "justify-self-end rounded-md px-1.5 py-1 text-[10px] font-bold",
-                    row.tone === "good"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : row.tone === "critical"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-amber-50 text-amber-700"
+                    inventoryReorderStatusClass(row.tone)
                   )}
                 >
                   {row.reorderStatus}
@@ -2044,7 +2086,7 @@ export function MobileInventoryPage() {
             ))}
             <Link
               href="/logistics"
-              className="flex min-h-8 items-center justify-between px-3 text-xs font-semibold text-[#0d4da1]"
+              className="flex min-h-8 items-center justify-between px-3 text-xs font-semibold text-blue-700"
             >
               View Full Inventory
               <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
@@ -2053,7 +2095,7 @@ export function MobileInventoryPage() {
         </SectionCard>
         <SectionCard
           title="Linked Work Orders"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           {inventory.linkedWorkOrders.map((order) => (
             <InventoryLinkedRow
@@ -2067,7 +2109,7 @@ export function MobileInventoryPage() {
         </SectionCard>
         <SectionCard
           title="Logistics Tasks"
-          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+          action={<button className="text-sm font-semibold text-blue-700">View All</button>}
         >
           {inventory.logisticsTasks.map((task) => (
             <InventoryLinkedRow
@@ -2140,7 +2182,7 @@ function InventoryLinkedRow({
       href="/work-orders"
       className="grid min-h-10 grid-cols-[28px_1fr_auto_16px] items-center gap-2 border-b border-slate-200 px-3 py-1 text-xs last:border-b-0"
     >
-      <Icon className="h-5 w-5 text-[#0d4da1]" aria-hidden="true" />
+      <Icon className="h-5 w-5 text-blue-700" aria-hidden="true" />
       <span className="min-w-0">
         <span className="block truncate font-bold text-slate-950">{label}</span>
         <span className="block truncate text-[10px] text-slate-500">{detail}</span>
@@ -2151,6 +2193,16 @@ function InventoryLinkedRow({
       <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
     </Link>
   );
+}
+
+function settingsItemHref(label: string): string {
+  if (label.includes("Telemetry")) {
+    return "/sensors";
+  }
+  if (label.includes("Copilot")) {
+    return "/knowledge-base";
+  }
+  return "/system";
 }
 
 export function MobileSettingsPage() {
@@ -2183,13 +2235,7 @@ export function MobileSettingsPage() {
             return (
               <Link
                 key={item.label}
-                href={
-                  item.label.includes("Telemetry")
-                    ? "/sensors"
-                    : item.label.includes("Copilot")
-                      ? "/knowledge-base"
-                      : "/system"
-                }
+                href={settingsItemHref(item.label)}
                 className="flex min-h-11 items-center gap-3 border-b border-slate-200 px-3 py-1.5 last:border-b-0"
               >
                 <Icon className="h-4 w-4 text-slate-500" aria-hidden="true" />
@@ -2224,28 +2270,6 @@ export function MobileSettingsPage() {
   );
 }
 
-export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
-  switch (screen) {
-    case "fleet":
-      return <MobileFleetPage />;
-    case "pdm":
-      return <MobilePdmPage />;
-    case "work":
-      return <MobileWorkOrdersPage />;
-    case "logs":
-      return <MobileLogsPage />;
-    case "crew":
-      return <MobileCrewPage />;
-    case "inventory":
-      return <MobileInventoryPage />;
-    case "settings":
-      return <MobileSettingsPage />;
-    case "today":
-    default:
-      return <MobileCommandCenterPage role={normalizeMobileRole(readRoleHint())} />;
-  }
-}
-
 export function isMobileReadinessReplacementPath(path: string): boolean {
   const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
   return (
@@ -2265,8 +2289,4 @@ export function isMobileReadinessReplacementPath(path: string): boolean {
     currentPath === "/logistics" ||
     currentPath === "/system"
   );
-}
-
-export function MobileReadinessCopilotSuppressionMarker() {
-  return null;
 }

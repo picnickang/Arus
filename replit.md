@@ -80,15 +80,9 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
   `modelVersionId` so attributions stay tied to the deployed model.
   Bearing+pump retrains HARD-FAIL when Python is unavailable
   (`scripts/ml/train-model-sidecar.mjs`) rather than silently
-  downgrading to the calibration baseline. **Client-side ONNX
-  (`onnxruntime-web`, `client/src/lib/ml/onnx-web-adapter.ts`)** is
-  shipped opt-in (`VITE_PDM_ONNX_WEB=1`) for offline-PWA scoring
-  and UI what-if previews; it loads the deployed artifact through
-  `GET /api/v1/ml/models/:id/artifact` (org-scoped, deployed-only,
-  path-constrained to `models/`). The server path through
-  `serveWithShadowOrCanary` remains canonical for promotion,
-  rollback, and audit — the browser adapter is a read-only consumer
-  of whatever artifact the server has currently deployed.
+  downgrading to the calibration baseline. Browser-side ONNX scoring is
+  not currently shipped; the server path through `serveWithShadowOrCanary`
+  remains canonical for prediction, promotion, rollback, and audit.
 - **Workflow-Hexagonal Boundary**: Workflow Attention domain consumes other domains via four narrow ports in `server/domains/workflow/domain/ports.ts`. Real adapters wired in `server/composition/workflow-attention-sources.ts` and injected via the `createAttentionWorkflowService(sources)` factory. Setup route delegates admin-settings I/O to `server/domains/system-admin/application/setup-bootstrap-service.ts`. Enforced by `npm run check:domain-leaks`.
 - **Operational Workflow Layer**: Action-oriented layer including unified `/attention-inbox`, Operations Command Center, role-based "Today" panels, `WorkOrderCloseoutWizard` (work performed / cause / parts / labour / verification / PdM feedback), `/offline-outbox` page for queued mutations / conflicts / retries, `/equipment-scan` QR/text lookup (with optional `BarcodeDetector`), PdM decision-summary on schedule task detail. Legacy paths redirect to canonical routes via `buildRedirectTarget` in `client/src/App.tsx`. The shared API client queues mutating requests in an offline outbox and replays on connectivity return or on `ARUS_SYNC_OUTBOX_REQUEST` SW messages. Each op carries a unique `clientMutationId` and a `conflictPaused` flag for 409/412 handling (Keep-local / Merge / Use-server). WO completion via `POST /api/work-orders/:id/complete-with-feedback` accepts a structured `closeout` payload.
 
@@ -126,8 +120,7 @@ Implemented with Express.js and TypeScript, providing RESTful APIs with Zod vali
 - OpenAI, TensorFlow.js (`@tensorflow/tfjs-node`), XGBoost
 - Sentry (`@sentry/node` + `@sentry/react`, env-gated)
 - OpenTelemetry (`@opentelemetry/sdk-node` + `@opentelemetry/sdk-trace-web`, env-gated)
-- SSO (`@node-saml/passport-saml` v5 + `openid-client` v6, opt-in per tenant)
-- MFA (`otpauth`, opt-in per user), KMS (`@aws-sdk/client-kms`, env-gated), Loki (`pino`+`pino-loki`, env-gated)
+- MFA (`otpauth`, opt-in per user)
 - k6 load testing (installed out-of-band, scripts under `tests/load/`)
 - StormGeo, Aquametro FMCC
 - Edge Devices

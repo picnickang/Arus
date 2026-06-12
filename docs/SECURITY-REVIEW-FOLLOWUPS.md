@@ -90,8 +90,8 @@ before a second tenant is onboarded.
 - [ ] **Docker `--omit=dev` validation** — prod image now runs
       `npm prune --omit=dev`; validate the resulting image in a full prod build.
 
-> The lone remaining **critical** (`protobufjs`) is dev-tree-only (via
-> `@xenova/transformers`, a devDependency) and is not shipped to production.
+> The prior dev-tree-only `protobufjs` exposure was removed with the unused
+> transformer dependency.
 
 ## B. Pre-existing CI debt (fails on `main`, independent of the review)
 

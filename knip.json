@@ -3,6 +3,7 @@
   "entry": [
     "client/src/main.tsx",
     "client/src/**/*.test.tsx",
+    "jest.client.config.mjs",
     "server/beast/index.ts",
     "server/compliance/routes.ts",
     "server/domains/agent/index.ts",

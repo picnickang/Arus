@@ -36,7 +36,7 @@ export interface WorkflowQueue {
   severity: WorkflowSeverity;
 }
 
-export interface WorkflowAction {
+interface WorkflowAction {
   id: string;
   label: string;
   description: string;

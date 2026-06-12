@@ -14,7 +14,6 @@ import {
   Folder,
   Gauge,
   Home,
-  LifeBuoy,
   Package,
   RadioTower,
   Settings,
@@ -27,9 +26,6 @@ import {
 import type { MobileReadinessAssetId } from "./mobile-readiness-assets";
 
 export type MobileRole = "admin" | "captain" | "crew" | "chief_engineer" | "logistics";
-
-export const MOBILE_READINESS_DECISION_PATTERN =
-  "Status -> Reason -> Action -> Evidence -> Assisted Draft";
 
 export type ReadinessTone = "critical" | "high" | "medium" | "normal" | "good" | "offline" | "info";
 

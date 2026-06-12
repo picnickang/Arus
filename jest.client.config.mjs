@@ -3,10 +3,14 @@
  * Run via `npm run test:client:hooks`. The node-based runner in client/tests
  * (`npm run test:client`) is a separate, older lane.
  */
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const jsdomEnvironment = require.resolve("jest-environment-jsdom");
 
 /** @type {import('jest').Config} */
 export default {
-  testEnvironment: "jsdom",
+  testEnvironment: jsdomEnvironment,
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
@@ -15,10 +19,9 @@ export default {
     "^@/(.*)$": "<rootDir>/client/src/$1",
     "\\.(css|less|scss)$": "<rootDir>/client/src/test/style-stub.ts",
     // Browser-only export libs ship untransformed ESM dists; hook tests
-    // never exercise PDF/canvas export paths.
+    // never exercise PDF export paths.
     "^jspdf$": "<rootDir>/client/src/test/module-stub.ts",
     "^jspdf-autotable$": "<rootDir>/client/src/test/module-stub.ts",
-    "^html2canvas$": "<rootDir>/client/src/test/module-stub.ts",
   },
   transform: {
     "^.+\\.tsx?$": [

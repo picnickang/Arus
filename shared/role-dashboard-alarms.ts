@@ -3,7 +3,7 @@
  * ------------------------------------------------------------------ */
 
 export const ALARM_SEVERITIES = ["info", "warning", "critical", "emergency"] as const;
-export type AlarmSeverity = (typeof ALARM_SEVERITIES)[number];
+type AlarmSeverity = (typeof ALARM_SEVERITIES)[number];
 
 export const ALARM_MODES = ["real", "drill", "test"] as const;
 export type AlarmMode = (typeof ALARM_MODES)[number];
