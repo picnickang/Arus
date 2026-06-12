@@ -3,8 +3,7 @@
  *
  * BACKWARD COMPATIBILITY SHIM
  *
- * This file maintains backward compatibility by re-exporting all types
- * from the modularized domain files in ./domains/
+ * This file maintains backward compatibility for legacy IStorage consumers.
  *
  * The IStorage interface has been split into 19 domain-specific interfaces:
  * - ICoreStorage: Organizations, Users, Settings (~45 lines)
@@ -32,29 +31,3 @@
 
 // Re-export the combined IStorage interface
 export type { IStorage } from "./domains";
-
-// Re-export WorkOrderFilters (custom type defined in work-order.types)
-export type { WorkOrderFilters } from "./domains";
-
-// Re-export all domain-specific interfaces for granular typing
-export type {
-  ICoreStorage,
-  IDeviceStorage,
-  ITelemetryStorage,
-  IWorkOrderStorage,
-  IEquipmentStorage,
-  IMaintenanceStorage,
-  IAlertsStorage,
-  ISensorStorage,
-  IInventoryStorage,
-  ICrewStorage,
-  IVesselStorage,
-  IMlStorage,
-  IComplianceStorage,
-  IAnalyticsStorage,
-  IConditionMonitoringStorage,
-  ILogbookStorage,
-  IAdminStorage,
-  ISchedulingStorage,
-  IExternalStorage,
-} from "./domains";

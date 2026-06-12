@@ -26,27 +26,6 @@
  * - external.types.ts (~40 lines) - StormGeo Integration
  */
 
-// Domain interfaces
-export type { ICoreStorage } from "./core.types";
-export type { IDeviceStorage } from "./device.types";
-export type { ITelemetryStorage } from "./telemetry.types";
-export type { IWorkOrderStorage, WorkOrderFilters } from "./work-order.types";
-export type { IEquipmentStorage } from "./equipment.types";
-export type { IMaintenanceStorage } from "./maintenance.types";
-export type { IAlertsStorage } from "./alerts.types";
-export type { ISensorStorage } from "./sensor.types";
-export type { IInventoryStorage } from "./inventory.types";
-export type { ICrewStorage } from "./crew.types";
-export type { IVesselStorage } from "./vessel.types";
-export type { IMlStorage } from "./ml.types";
-export type { IComplianceStorage } from "./compliance.types";
-export type { IAnalyticsStorage } from "./analytics.types";
-export type { IConditionMonitoringStorage } from "./condition-monitoring.types";
-export type { ILogbookStorage } from "./logbook.types";
-export type { IAdminStorage } from "./admin.types";
-export type { ISchedulingStorage } from "./scheduling.types";
-export type { IExternalStorage } from "./external.types";
-
 import type { ICoreStorage } from "./core.types";
 import type { IDeviceStorage } from "./device.types";
 import type { ITelemetryStorage } from "./telemetry.types";
