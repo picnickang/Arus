@@ -30,7 +30,3 @@ export function recordAlertAcknowledged(equipmentId: string) {
 export function setAlertConfigurationsCount(count: number) {
   alertConfigurationsTotal.set(count);
 }
-
-// Backward-compatible aliases
-export const incrementAlertGenerated = recordAlertGenerated;
-export const incrementAlertAcknowledged = recordAlertAcknowledged;

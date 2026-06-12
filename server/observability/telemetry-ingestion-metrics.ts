@@ -72,9 +72,6 @@ export function recordTelemetryDropped(
   telemetryDroppedTotal.inc({ reason });
 }
 
-// Backward-compatible aliases
-export const incrementTelemetryProcessed = recordTelemetryProcessed;
-
 export function incrementTelemetryError(errorType: string, equipmentId: string) {
   telemetryErrorsTotal.inc({ error_type: errorType, equipment_id: equipmentId });
 }

@@ -23,7 +23,7 @@ import {
   analyticsInsightsAdapter,
 } from "../repositories";
 import { getWebSocketServer } from "../websocket-server";
-import { incrementAlertGenerated } from "../observability";
+import { recordAlertGenerated } from "../observability";
 
 const aiInsightsCache = new Map<string, number>();
 const DEFAULT_AI_INSIGHTS_THROTTLE_MS = 2 * 60 * 1000;
@@ -121,11 +121,7 @@ async function createAlert(
     orgId: telemetryReading.orgId,
   });
 
-  incrementAlertGenerated(
-    result.alertType,
-    telemetryReading.equipmentId,
-    telemetryReading.sensorType
-  );
+  recordAlertGenerated(result.alertType, telemetryReading.equipmentId, telemetryReading.sensorType);
 
   const wsServer = getWebSocketServer();
   wsServer?.broadcastAlert?.({

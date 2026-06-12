@@ -67,9 +67,6 @@ export function setWorkerUtilization(workerId: string, utilization: number) {
   jobQueueWorkerUtilization.set({ worker_id: workerId }, utilization);
 }
 
-// Backward-compatible aliases
-export const incrementJobEnqueued = recordJobEnqueued;
-export const incrementJobCompleted = recordJobCompleted;
 export function incrementJobFailed(queueName: string, errorType: string = "unknown") {
   jobQueueJobsFailedTotal.inc({ queue_name: queueName, error_type: errorType });
 }

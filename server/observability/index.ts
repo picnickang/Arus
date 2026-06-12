@@ -118,9 +118,6 @@ export {
   recordAlertGenerated,
   recordAlertAcknowledged,
   setAlertConfigurationsCount,
-  // Backward-compatible aliases
-  incrementAlertGenerated,
-  incrementAlertAcknowledged,
 } from "./alert-metrics";
 
 // MQTT metrics
@@ -238,9 +235,6 @@ export {
 // Job queue metrics
 export {
   jobQueueJobsEnqueuedTotal,
-  // Backward-compatible aliases
-  incrementJobEnqueued,
-  incrementJobCompleted,
   incrementJobFailed,
   setJobQueueSize,
   jobQueueJobsCompletedTotal,
@@ -284,8 +278,6 @@ export {
   recordTelemetryIngestionLatency,
   setTelemetryBufferUtilization,
   recordTelemetryDropped,
-  // Backward-compatible aliases
-  incrementTelemetryProcessed,
   incrementTelemetryError,
 } from "./telemetry-ingestion-metrics";
 

@@ -14,7 +14,7 @@ import type {
 import { alertsRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
 import { mqttReliableSync } from "../../mqtt-reliable-sync";
-import { incrementAlertAcknowledged } from "../../observability";
+import { recordAlertAcknowledged } from "../../observability";
 import { logger } from "../../utils/logger.js";
 
 /**
@@ -167,7 +167,7 @@ export class AlertsService {
 
     // Record alert acknowledgment metric (enhanced observability)
     if (notification) {
-      incrementAlertAcknowledged(notification.equipmentId || "unknown");
+      recordAlertAcknowledged(notification.equipmentId || "unknown");
     }
 
     // Broadcast alert acknowledgment via WebSocket

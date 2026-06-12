@@ -1,7 +1,7 @@
 import PgBoss from "pg-boss";
 import {
-  incrementJobEnqueued,
-  incrementJobCompleted,
+  recordJobEnqueued,
+  recordJobCompleted,
   incrementJobFailed,
   recordJobDuration,
 } from "./observability";
@@ -69,7 +69,7 @@ class JobQueueService {
     });
 
     // Emit Prometheus metric for job enqueued
-    incrementJobEnqueued("document-ingestion", "normal");
+    recordJobEnqueued("document-ingestion", "normal");
 
     log("JobQueue", `Enqueued document ingestion job: ${jobId}`);
     return jobId!;
@@ -138,7 +138,7 @@ class JobQueueService {
     }
 
     // Emit Prometheus metrics for job completion
-    incrementJobCompleted("document-ingestion");
+    recordJobCompleted("document-ingestion");
     if (durationMs !== undefined) {
       recordJobDuration("document-ingestion", durationMs / 1000);
     }
