@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T02:39:30.940Z
+Generated: 2026-06-12T03:48:26.628Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `72` counted files.
-- The current counted inventory is `72` files.
+- The temporary ceiling is `71` counted files.
+- The current counted inventory is `71` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,10 +20,10 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    72 |
-| Server                    |    17 |
+| Total counted long files  |    71 |
+| Server                    |    16 |
 | Server route-like files   |     5 |
-| Server service-like files |     1 |
+| Server service-like files |     0 |
 | Client                    |    55 |
 | Client page files         |    21 |
 | Shared                    |     0 |
@@ -111,6 +111,7 @@ Completed splits:
 - `server/domains/agent/application/suggestion-engine.ts` dropped below the threshold by moving preference/severity helpers, prediction cost formatting, AI summarization, and notification queueing to a sibling support module while preserving `SuggestionEngine`.
 - `server/domains/equipment/routes.ts` dropped below the threshold by moving lifecycle, sensor setup, and parts lookup endpoints to a sibling route group while preserving `registerEquipmentRoutes` and route URLs.
 - `server/domains/scheduling/routes.ts` dropped below the threshold by moving scheduling-settings endpoints to a sibling route group while preserving `registerSchedulingRoutes` and route URLs.
+- `server/domains/me-portal/me-portal-service.ts` dropped below the threshold by moving personal task-feed assembly to a sibling helper while preserving `MePortalService.getTasks`.
 
 ## Top 30 Longest Files
 
@@ -233,7 +234,6 @@ Completed splits:
 617 client/src/components/analytics/OperationsMode.tsx
 615 client/src/pages/scheduled-reports.tsx
 614 client/src/components/crew/CrewComplianceDashboard.tsx
-612 server/domains/me-portal/me-portal-service.ts
 612 client/src/components/admin/SchedulingSettingsTab.tsx
 611 client/src/pages/vessel-dashboard/index.tsx
 598 client/src/lib/queryClient.ts

@@ -223,4 +223,16 @@ describe("server tail extractions", () => {
     expect(settingsRoutes).toContain('"/api/scheduling-settings"');
     expect(settingsRoutes).toContain('"/api/scheduling-settings/rotation-templates"');
   });
+
+  it("keeps me-portal task feed assembly beside the service shell", () => {
+    const service = read("server/domains/me-portal/me-portal-service.ts");
+    const taskFeed = read("server/domains/me-portal/me-portal-task-feed.ts");
+
+    expect(service).toContain('from "./me-portal-task-feed"');
+    expect(service).toContain("export class MePortalService");
+    expect(service).toContain("return buildMePortalTasks(user");
+    expect(taskFeed).toContain("export async function buildMePortalTasks");
+    expect(taskFeed).toContain("scopeForSource(configs, \"work_orders\")");
+    expect(taskFeed).toContain("link: `/crew-management?taskId=${task.id}`");
+  });
 });
