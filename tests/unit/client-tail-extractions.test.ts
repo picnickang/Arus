@@ -107,4 +107,32 @@ describe("client tail component extractions", () => {
     expect(qualification).toContain("export const CREW_CERTIFICATION_TYPES");
     expect(qualification).toContain('data-testid="qualification-bridge"');
   });
+
+  it("keeps analytics hub presentation pieces in a page part", () => {
+    const page = read("client/src/pages/analytics-hub.tsx");
+    const parts = read("client/src/pages/analytics-hub-parts.tsx");
+
+    expect(page).toContain('from "./analytics-hub-parts"');
+    expect(page).toContain("<PredictiveInsightsCard />");
+    expect(page).toContain("<KeyFindings");
+    expect(parts).toContain("export function PredictiveInsightsCard");
+    expect(parts).toContain("export function DomainStrip");
+    expect(parts).toContain('data-testid="predictive-insights"');
+  });
+
+  it("keeps crew role default fields in a sibling module", () => {
+    const manager = read(
+      "client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx"
+    );
+    const defaults = read(
+      "client/src/components/UnifiedCrewManagement/CrewRoleManagerDefaults.tsx"
+    );
+
+    expect(manager).toContain('from "./CrewRoleManagerDefaults"');
+    expect(manager).toContain("<RoleDefaultsFields");
+    expect(manager).toContain("export function CrewRoleManager");
+    expect(defaults).toContain("export function RoleDefaultsFields");
+    expect(defaults).toContain("export function defaultsFromRole");
+    expect(defaults).toContain('data-testid={`select-${idPrefix}-department`}');
+  });
 });

@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T00:08:13.253Z
+Generated: 2026-06-12T00:16:42.987Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `90` counted files.
-- The current counted inventory is `90` files.
+- The temporary ceiling is `88` counted files.
+- The current counted inventory is `88` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    90 |
+| Total counted long files  |    88 |
 | Server                    |    29 |
 | Server route-like files   |     9 |
 | Server service-like files |     5 |
-| Client                    |    61 |
-| Client page files         |    24 |
+| Client                    |    59 |
+| Client page files         |    23 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -93,6 +93,8 @@ Completed splits:
 - `server/scripts/migrate.ts` dropped below the threshold by moving critical post-migration object metadata to a sibling script module while preserving `runBootMigrations` and CLI behavior.
 - `server/services/ml/prediction-calibration.ts` dropped below the threshold by moving calibration math/types to a sibling helper while preserving `PredictionCalibrator`.
 - `client/src/components/scheduling/crew-scheduler-cards.tsx` dropped below the threshold by moving certification/qualification helpers to a sibling component module while preserving the existing scheduler cards export surface.
+- `client/src/pages/analytics-hub.tsx` dropped below the threshold by moving predictive insights, metric cards, domain strips, findings, and response types to a sibling page-parts module while preserving the route component.
+- `client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx` dropped below the threshold by moving role default fields and payload helpers to a sibling component module while preserving `CrewRoleManager`.
 
 ## Top 30 Longest Files
 
@@ -237,6 +239,4 @@ Completed splits:
 577 client/src/pages/knowledge-base.tsx
 573 client/src/components/admin/SystemSettingsTab.tsx
 569 server/routes/kb-routes.ts
-568 client/src/components/UnifiedCrewManagement/CrewRoleManager.tsx
-561 client/src/pages/analytics-hub.tsx
 ```
