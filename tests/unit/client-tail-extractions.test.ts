@@ -538,4 +538,23 @@ describe("client tail component extractions", () => {
     expect(dialogs).toContain("<EquipmentDecommissionDialog");
   });
 
+  it("keeps linked service order cards and request dialog behind the public panel", () => {
+    const panel = read("client/src/components/work-orders/LinkedServiceOrdersPanel.tsx");
+    const cards = read("client/src/components/work-orders/LinkedServiceOrdersPanelCards.tsx");
+    const dialog = read("client/src/components/work-orders/LinkedServiceRequestDialog.tsx");
+
+    expect(panel).toContain('from "./LinkedServiceOrdersPanelCards"');
+    expect(panel).toContain('from "./LinkedServiceRequestDialog"');
+    expect(panel).toContain("<ServiceRequestCard");
+    expect(panel).toContain("<ServiceOrderCard");
+    expect(panel).toContain("<CreateServiceRequestDialog");
+    expect(panel).toContain('data-testid="linked-service-orders-panel"');
+    expect(cards).toContain("export function ServiceOrderCard");
+    expect(cards).toContain("export function ServiceRequestCard");
+    expect(cards).toContain('data-testid={`linked-so-${so.id}`}');
+    expect(cards).toContain('data-testid={`timeline-${so.id}`}');
+    expect(dialog).toContain("export function CreateServiceRequestDialog");
+    expect(dialog).toContain('data-testid="button-submit-service-request"');
+  });
+
 });
