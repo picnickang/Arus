@@ -200,6 +200,28 @@ describe("server tail extractions", () => {
     expect(support).toContain("export async function queueSuggestionNotifications");
   });
 
+  it("keeps agent orchestrator loop and context behind the facade", () => {
+    const orchestrator = read("server/domains/agent/application/orchestrator.ts");
+    const context = read(
+      "server/domains/agent/application/orchestrator-helpers/context.ts"
+    );
+    const iterationLoop = read(
+      "server/domains/agent/application/orchestrator-helpers/iteration-loop.ts"
+    );
+    const types = read("server/domains/agent/application/orchestrator-types.ts");
+
+    expect(orchestrator).toContain('from "./orchestrator-helpers/context"');
+    expect(orchestrator).toContain('from "./orchestrator-helpers/iteration-loop"');
+    expect(orchestrator).toContain("export class AgentOrchestrator");
+    expect(orchestrator).toContain("executeAgentLoop(");
+    expect(context).toContain("export async function buildAgentMessages");
+    expect(context).toContain("export async function appendAgentFileContext");
+    expect(iterationLoop).toContain("export async function executeAgentLoop");
+    expect(iterationLoop).toContain("getToolOpenAIDefinitions");
+    expect(types).toContain("export interface RunContext");
+    expect(types).toContain("export interface LoopResult");
+  });
+
   it("keeps equipment lifecycle route groups behind the route module", () => {
     const routes = read("server/domains/equipment/routes.ts");
     const lifecycleRoutes = read("server/domains/equipment/lifecycle-routes.ts");

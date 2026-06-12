@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T05:57:30.597Z
+Generated: 2026-06-12T06:10:45.079Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `58` counted files.
-- The current counted inventory is `58` files.
+- The temporary ceiling is `57` counted files.
+- The current counted inventory is `57` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    58 |
-| Server                    |     4 |
+| Total counted long files  |    57 |
+| Server                    |     3 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    54 |
@@ -124,6 +124,7 @@ Completed splits:
 - `server/domains/agent/tools/enhanced-report-tools.ts` dropped below the threshold by moving report artifact persistence and report formatting/export helpers to sibling modules while preserving registered tool names and `getReportArtifact`.
 - `server/db/checklists/db-checklists.ts` dropped below the threshold by moving template workflow and work-order task/checklist/worklog record groups to sibling storage base classes while preserving `DatabaseChecklistsStorage`.
 - `server/scheduler/scheduler-controller.ts` dropped below the threshold by moving scheduler input loading, simulation/apply/revert helpers, and run lifecycle actions to sibling modules while preserving the public controller exports.
+- `server/domains/agent/application/orchestrator.ts` dropped below the threshold by moving shared run/context types, message/context assembly, and the unified iteration loop to orchestrator helper modules while preserving `AgentOrchestrator`.
 
 ## Top 30 Longest Files
 
@@ -137,33 +138,33 @@ Completed splits:
 |    6 |  1051 | `client/src/components/scheduling/SchedulePlanner.tsx`                    |
 |    7 |   990 | `client/src/pages/ml-training.tsx`                                        |
 |    8 |   923 | `client/src/components/unified-crew-components.tsx`                       |
-|    9 |   917 | `server/domains/agent/application/orchestrator.ts`                        |
-|   10 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
-|   11 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
-|   12 |   869 | `client/src/pages/system-administration.tsx`                              |
-|   13 |   843 | `client/src/pages/findings.tsx`                                           |
-|   14 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
-|   15 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
-|   16 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
-|   17 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
-|   18 |   819 | `client/src/pages/inventory-management.tsx`                               |
-|   19 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
-|   20 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts`  |
-|   21 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
-|   22 |   791 | `server/routes/service-request-routes.ts`                                 |
-|   23 |   787 | `server/routes/rag-routes.ts`                                             |
-|   24 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
-|   25 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
-|   26 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
-|   27 |   755 | `client/src/pages/organization-management.tsx`                            |
-|   28 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
-|   29 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
-|   30 |   744 | `client/src/pages/home.tsx`                                               |
+|    9 |   899 | `client/src/pages/admin/3d-models.tsx`                                    |
+|   10 |   875 | `client/src/pages/copilot-admin.tsx`                                      |
+|   11 |   869 | `client/src/pages/system-administration.tsx`                              |
+|   12 |   843 | `client/src/pages/findings.tsx`                                           |
+|   13 |   836 | `client/src/components/analytics/FinanceMode.tsx`                         |
+|   14 |   832 | `client/src/pages/deck-logbook/index.tsx`                                 |
+|   15 |   831 | `client/src/features/crew/lib/crewManagementUtils.ts`                     |
+|   16 |   820 | `client/src/features/serviceOrders/components/ServiceOrderFormDialog.tsx` |
+|   17 |   819 | `client/src/pages/inventory-management.tsx`                               |
+|   18 |   811 | `client/src/features/crew/hooks/useHoursOfRestData.ts`                    |
+|   19 |   809 | `server/domains/equipment-intelligence/infrastructure/hub-repository.ts`  |
+|   20 |   809 | `client/src/pages/pdm-pack.tsx`                                           |
+|   21 |   791 | `server/routes/service-request-routes.ts`                                 |
+|   22 |   787 | `server/routes/rag-routes.ts`                                             |
+|   23 |   786 | `client/src/pages/maintenance-schedules.tsx`                              |
+|   24 |   779 | `client/src/components/CrewDocumentsTab.tsx`                              |
+|   25 |   768 | `client/src/components/CrewNotificationSettingsTab.tsx`                   |
+|   26 |   755 | `client/src/pages/organization-management.tsx`                            |
+|   27 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                           |
+|   28 |   748 | `client/src/components/ai-health/TrainingTab.tsx`                         |
+|   29 |   744 | `client/src/pages/home.tsx`                                               |
+|   30 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`                      |
 
 ## Recommended Extraction Plan
 
 1. Continue safety-first server splits.
-   - Prioritize agent orchestration and equipment intelligence repositories.
+   - Prioritize equipment intelligence repositories and route modules.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Add client characterization tests before large UI splits.
@@ -188,7 +189,6 @@ Completed splits:
 1051 client/src/components/scheduling/SchedulePlanner.tsx
 990 client/src/pages/ml-training.tsx
 923 client/src/components/unified-crew-components.tsx
-917 server/domains/agent/application/orchestrator.ts
 899 client/src/pages/admin/3d-models.tsx
 875 client/src/pages/copilot-admin.tsx
 869 client/src/pages/system-administration.tsx
