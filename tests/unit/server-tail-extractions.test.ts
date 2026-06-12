@@ -275,4 +275,18 @@ describe("server tail extractions", () => {
     expect(dsarRoutes).toContain('"/dsar/statistics"');
     expect(dsarRoutes).toContain("dbGdprStorage.collectUserDataForDsar");
   });
+
+  it("keeps ML analytics cloud helpers behind the storage shell", () => {
+    const storage = read("server/db/ml-analytics/db-ml-analytics.ts");
+    const cloud = read("server/db/ml-analytics/db-ml-analytics-cloud.ts");
+
+    expect(storage).toContain('from "./db-ml-analytics-cloud.js"');
+    expect(storage).toContain("export class DatabaseMlAnalyticsStorage");
+    expect(storage).toContain("return getFeatureImportancesByPrediction");
+    expect(storage).toContain("return expireEngineerOverride");
+    expect(storage).toContain("return createRulModel(model)");
+    expect(cloud).toContain("export async function getCalibrationCurves");
+    expect(cloud).toContain("export async function createEngineerOverride");
+    expect(cloud).toContain("export async function getRulModels");
+  });
 });

@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T04:18:31.586Z
+Generated: 2026-06-12T04:29:18.364Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `68` counted files.
-- The current counted inventory is `68` files.
+- The temporary ceiling is `67` counted files.
+- The current counted inventory is `67` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    68 |
-| Server                    |    13 |
+| Total counted long files  |    67 |
+| Server                    |    12 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    55 |
@@ -115,6 +115,7 @@ Completed splits:
 - `server/purchasing/po-routes.ts` dropped below the threshold by moving purchase-order fulfillment and events endpoints to a sibling route group while preserving the default router and route URLs.
 - `server/ml-routes/model-routes.ts` dropped below the threshold by moving ML promotion approval, promote, and rollback routes to a sibling route group while preserving `modelRoutes` and route URLs.
 - `server/compliance/routes/data-privacy-routes.ts` dropped below the threshold by moving DSAR list, detail, state transition, collection, erasure, and statistics endpoints to a sibling route group while preserving `complianceDataPrivacyRouter` and route URLs.
+- `server/db/ml-analytics/db-ml-analytics.ts` dropped below the threshold by moving feature importance, calibration, engineer override, and RUL model helpers to a sibling cloud helper while preserving `DatabaseMlAnalyticsStorage`.
 
 ## Top 30 Longest Files
 
@@ -226,7 +227,6 @@ Completed splits:
 638 client/src/pages/DiagnosticsDashboard.tsx
 636 server/import-adapters/shipmate/field-mapping.ts
 633 client/src/components/sensors/SensorSetupWizard.tsx
-632 server/db/ml-analytics/db-ml-analytics.ts
 632 client/src/components/crew-admin/UserAssignmentTab.tsx
 631 client/src/features/crew/hooks/useUnifiedCrewData.ts
 625 client/src/components/crew-admin/UserAccessEditor.tsx
