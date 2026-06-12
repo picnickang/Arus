@@ -135,4 +135,29 @@ describe("client tail component extractions", () => {
     expect(defaults).toContain("export function defaultsFromRole");
     expect(defaults).toContain('data-testid={`select-${idPrefix}-department`}');
   });
+
+  it("keeps system settings OpenAI key controls in a sibling card", () => {
+    const tab = read("client/src/components/admin/SystemSettingsTab.tsx");
+    const card = read("client/src/components/admin/SystemSettingsOpenAIKeyCard.tsx");
+
+    expect(tab).toContain('from "./SystemSettingsOpenAIKeyCard"');
+    expect(tab).toContain("<OpenAIKeyCard />");
+    expect(tab).toContain("export const SystemSettingsTab");
+    expect(card).toContain("export function OpenAIKeyCard");
+    expect(card).toContain('data-testid="card-openai-settings"');
+    expect(card).toContain('data-testid="button-save-key"');
+  });
+
+  it("keeps knowledge-base upload and search widgets in page parts", () => {
+    const page = read("client/src/pages/knowledge-base.tsx");
+    const parts = read("client/src/pages/knowledge-base-parts.tsx");
+
+    expect(page).toContain('from "./knowledge-base-parts"');
+    expect(page).toContain("<UploadDropZone");
+    expect(page).toContain("<SemanticSearchResults");
+    expect(parts).toContain("export function UploadDropZone");
+    expect(parts).toContain("export function DocumentFilterBar");
+    expect(parts).toContain("export function SemanticSearchResults");
+    expect(parts).toContain('data-testid="upload-dropzone"');
+  });
 });
