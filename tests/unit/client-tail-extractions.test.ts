@@ -274,4 +274,17 @@ describe("client tail component extractions", () => {
     expect(admin).toContain("export function MobileInventoryPage");
     expect(admin).toContain("export function MobileSettingsPage");
   });
+
+  it("keeps scheduling rotation templates behind the settings tab shell", () => {
+    const tab = read("client/src/components/admin/SchedulingSettingsTab.tsx");
+    const rotation = read("client/src/components/admin/SchedulingSettingsRotationSection.tsx");
+
+    expect(tab).toContain('from "./SchedulingSettingsRotationSection"');
+    expect(tab).toContain("<RotationTemplatesSection />");
+    expect(tab).toContain("export function SchedulingSettingsTab");
+    expect(rotation).toContain("export function RotationTemplatesSection");
+    expect(rotation).toContain('data-testid={`button-set-default-${template.id}`}');
+    expect(rotation).toContain('data-testid={`button-delete-template-${template.id}`}');
+    expect(rotation).toContain('data-testid="button-add-template"');
+  });
 });

@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T08:45:38.294Z
+Generated: 2026-06-12T09:01:57.363Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `47` counted files.
-- The current counted inventory is `47` files.
+- The temporary ceiling is `46` counted files.
+- The current counted inventory is `46` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    47 |
+| Total counted long files  |    46 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    47 |
+| Client                    |    46 |
 | Client page files         |    18 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -137,6 +137,7 @@ Completed splits:
 - `client/src/pages/vessel-dashboard/index.tsx` dropped below the threshold by moving dashboard rendering to a sibling view component while preserving the route export and dashboard test IDs.
 
 - `client/src/features/mobile-readiness/MobileReadinessScreens.tsx` dropped below the threshold by moving shared shell widgets plus fleet, PdM, work/logs, and admin screen clusters to sibling modules while preserving the public page exports.
+- `client/src/components/admin/SchedulingSettingsTab.tsx` dropped below the threshold by moving rotation template management to a sibling section module while preserving the exported settings tab and test IDs.
 
 ## Top 30 Longest Files
 
@@ -240,5 +241,4 @@ Completed splits:
 623 client/src/components/work-orders/WorkOrderFormDialog.tsx
 617 client/src/components/analytics/OperationsMode.tsx
 615 client/src/pages/scheduled-reports.tsx
-612 client/src/components/admin/SchedulingSettingsTab.tsx
 ```
