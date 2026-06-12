@@ -148,4 +148,15 @@ describe("server tail extractions", () => {
     expect(helpers).toContain("export function applySectionMapUpdate");
     expect(helpers).toContain("export function buildEquipmentAssignment");
   });
+
+  it("keeps PDM Postgres presentation mappers beside the repository", () => {
+    const repository = read("server/pdm/adapters/pdm-postgres.repository.ts");
+    const mappers = read("server/pdm/adapters/pdm-postgres-mappers.ts");
+
+    expect(repository).toContain('from "./pdm-postgres-mappers"');
+    expect(repository).toContain("export class PdmPostgresRepository");
+    expect(mappers).toContain("export function mapRiskQueueRows");
+    expect(mappers).toContain("export function generateEvidenceChips");
+    expect(mappers).toContain("export function formatTimeAgo");
+  });
 });

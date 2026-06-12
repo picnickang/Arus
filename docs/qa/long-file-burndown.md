@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T01:15:24.682Z
+Generated: 2026-06-12T01:20:56.247Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `78` counted files.
-- The current counted inventory is `78` files.
+- The temporary ceiling is `77` counted files.
+- The current counted inventory is `77` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    78 |
-| Server                    |    23 |
+| Total counted long files  |    77 |
+| Server                    |    22 |
 | Server route-like files   |     8 |
 | Server service-like files |     2 |
 | Client                    |    55 |
@@ -105,6 +105,7 @@ Completed splits:
 - `server/services/patch-applicator.ts` dropped below the threshold by moving backup creation, rollback, listing, and cleanup lifecycle helpers to a sibling module while preserving `PatchApplicator`.
 - `server/domains/crew/application/crew-service.ts` dropped below the threshold by moving crew application port contracts to a sibling type module while preserving public type exports from `crew-service`.
 - `server/domains/vessel-diagram-registry/infrastructure/in-memory-store.ts` dropped below the threshold by moving in-memory record builders and mutation helpers to a sibling module while preserving `InMemoryVesselDiagramRegistryStore`.
+- `server/pdm/adapters/pdm-postgres.repository.ts` dropped below the threshold by moving risk queue presentation mappers and relative-time helpers to a sibling module while preserving `pdmPostgresRepository`.
 
 ## Top 30 Longest Files
 
@@ -236,7 +237,6 @@ Completed splits:
 598 client/src/lib/queryClient.ts
 593 server/routes/wo-so-bridge-routes.ts
 593 client/src/components/equipment/EquipmentFormDialog.tsx
-591 server/pdm/adapters/pdm-postgres.repository.ts
 584 server/domains/equipment-intelligence/infrastructure/postgres-repository.ts
 581 client/src/components/work-orders/WorkOrderDetailDrawer.tsx
 ```
