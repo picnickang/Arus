@@ -262,4 +262,17 @@ describe("server tail extractions", () => {
     expect(promotionRoutes).toContain('"/ml/models/:id/rollback"');
     expect(promotionRoutes).toContain("PROMOTION_SELF_APPROVAL_FORBIDDEN");
   });
+
+  it("keeps data privacy DSAR routes behind the data privacy route shell", () => {
+    const routes = read("server/compliance/routes/data-privacy-routes.ts");
+    const dsarRoutes = read("server/compliance/routes/data-privacy-dsar-routes.ts");
+
+    expect(routes).toContain('from "./data-privacy-dsar-routes"');
+    expect(routes).toContain("registerDataPrivacyDsarRoutes(router)");
+    expect(routes).toContain("export { router as complianceDataPrivacyRouter }");
+    expect(dsarRoutes).toContain("export function registerDataPrivacyDsarRoutes");
+    expect(dsarRoutes).toContain('"/dsar/:id/execute-erasure"');
+    expect(dsarRoutes).toContain('"/dsar/statistics"');
+    expect(dsarRoutes).toContain("dbGdprStorage.collectUserDataForDsar");
+  });
 });
