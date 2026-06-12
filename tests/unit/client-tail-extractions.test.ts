@@ -379,4 +379,22 @@ describe("client tail component extractions", () => {
     expect(parts).toContain('data-testid="filter-source"');
   });
 
+  it("keeps finance mode KPI and savings-claim surfaces behind the mode shell", () => {
+    const mode = read("client/src/components/analytics/FinanceMode.tsx");
+    const kpis = read("client/src/components/analytics/FinanceModeKpiCards.tsx");
+    const savings = read("client/src/components/analytics/FinanceModeSavingsClaims.tsx");
+
+    expect(mode).toContain('from "./FinanceModeKpiCards"');
+    expect(mode).toContain('from "./FinanceModeSavingsClaims"');
+    expect(mode).toContain("<FinanceModeKpiCards");
+    expect(mode).toContain("<SavingsClaimsSection");
+    expect(kpis).toContain("export function FinanceModeKpiCards");
+    expect(kpis).toContain('data-testid="card-total-savings"');
+    expect(kpis).toContain('data-testid="card-savings-integrity"');
+    expect(savings).toContain("export function SavingsClaimsSection");
+    expect(savings).toContain("export interface SavingsRecord");
+    expect(savings).toContain('data-testid="savings-claims-list"');
+    expect(savings).toContain('data-testid={`button-dispute-${savingsId}`}');
+  });
+
 });
