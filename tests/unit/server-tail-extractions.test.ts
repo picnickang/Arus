@@ -82,4 +82,20 @@ describe("server tail extractions", () => {
     expect(middleware).toContain("export function handleSingleFileUpload");
     expect(middleware).toContain("Invalid file type. Only PDF, PNG, and JPEG are allowed.");
   });
+
+  it("keeps crew-extension persistence helpers behind the storage module", () => {
+    const storage = read("server/db/crew-extensions/db-crew-extensions.ts");
+    const notifications = read(
+      "server/db/crew-extensions/db-crew-extension-notifications.ts"
+    );
+    const scheduling = read("server/db/crew-extensions/db-crew-extension-scheduling.ts");
+
+    expect(storage).toContain('from "./db-crew-extension-notifications.js"');
+    expect(storage).toContain('from "./db-crew-extension-scheduling.js"');
+    expect(storage).toContain("export class DbCrewExtensionsStorage");
+    expect(notifications).toContain("export async function upsertCrewNotificationSettings");
+    expect(notifications).toContain("export async function acknowledgeCrewAlert");
+    expect(scheduling).toContain("export async function getPortCalls");
+    expect(scheduling).toContain("export async function getDrydockWindows");
+  });
 });
