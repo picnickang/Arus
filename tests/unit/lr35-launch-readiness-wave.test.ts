@@ -89,6 +89,7 @@ describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMidd
   // legacy callers without a key still pass through (matches the WO
   // complete-with-feedback / cancel mount style).
   const PO_ROUTES_PATH = "server/purchasing/po-routes.ts";
+  const PO_FULFILLMENT_ROUTES_PATH = "server/purchasing/po-fulfillment-routes.ts";
 
   it("POST /:id/receive carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
     const src = await loadSource(PO_ROUTES_PATH);
@@ -112,7 +113,7 @@ describe("LR-3.5 / TX-2 (Task #207) — PO mutation routes mount idempotencyMidd
   });
 
   it("POST /:id/fulfill-pr carries idempotencyMiddleware after requireOrgId, before writeLimit", async () => {
-    const src = await loadSource(PO_ROUTES_PATH);
+    const src = await loadSource(PO_FULFILLMENT_ROUTES_PATH);
     expect(src).toMatch(
       /router\.post\(\s*"\/:id\/fulfill-pr",\s*requireOrgId,\s*idempotencyMiddleware\(\),\s*writeLimit/
     );

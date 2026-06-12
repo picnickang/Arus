@@ -235,4 +235,17 @@ describe("server tail extractions", () => {
     expect(taskFeed).toContain("scopeForSource(configs, \"work_orders\")");
     expect(taskFeed).toContain("link: `/crew-management?taskId=${task.id}`");
   });
+
+  it("keeps purchase-order fulfillment routes behind the PO router", () => {
+    const routes = read("server/purchasing/po-routes.ts");
+    const fulfillmentRoutes = read("server/purchasing/po-fulfillment-routes.ts");
+
+    expect(routes).toContain('from "./po-fulfillment-routes"');
+    expect(routes).toContain("registerPurchaseOrderFulfillmentRoutes(router");
+    expect(routes).toContain("export default router");
+    expect(fulfillmentRoutes).toContain("export function registerPurchaseOrderFulfillmentRoutes");
+    expect(fulfillmentRoutes).toContain('"/:id/fulfill-pr"');
+    expect(fulfillmentRoutes).toContain('"/:id/events"');
+    expect(fulfillmentRoutes).toContain("await fulfillItem");
+  });
 });
