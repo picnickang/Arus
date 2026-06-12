@@ -159,4 +159,19 @@ describe("server tail extractions", () => {
     expect(mappers).toContain("export function generateEvidenceChips");
     expect(mappers).toContain("export function formatTimeAgo");
   });
+
+  it("keeps equipment-intelligence Postgres helpers beside the repository", () => {
+    const repository = read(
+      "server/domains/equipment-intelligence/infrastructure/postgres-repository.ts"
+    );
+    const helpers = read(
+      "server/domains/equipment-intelligence/infrastructure/postgres-repository-helpers.ts"
+    );
+
+    expect(repository).toContain('from "./postgres-repository-helpers.js"');
+    expect(repository).toContain("export class PostgresEquipmentIntelligenceRepository");
+    expect(helpers).toContain("export function computeRisk");
+    expect(helpers).toContain("export function mapWorkOrderSummaryRow");
+    expect(helpers).toContain("export function recommendedActionText");
+  });
 });
