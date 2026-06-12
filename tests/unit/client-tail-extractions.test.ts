@@ -554,6 +554,28 @@ describe("client tail component extractions", () => {
     expect(vessel).toContain('data-testid="button-load-intelligence"');
   });
 
+  it("keeps vessel management actions, table, and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/vessel-management/index.tsx");
+    const table = read("client/src/pages/vessel-management/VesselManagementFleetTable.tsx");
+    const dialogs = read("client/src/pages/vessel-management/VesselManagementDialogs.tsx");
+    const types = read("client/src/pages/vessel-management/VesselManagementTypes.ts");
+
+    expect(page).toContain('from "./VesselManagementFleetTable"');
+    expect(page).toContain('from "./VesselManagementDialogs"');
+    expect(page).toContain("<VesselManagementActions");
+    expect(page).toContain("<VesselFleetOverview");
+    expect(page).toContain("<VesselManagementDialogs");
+    expect(page).toContain("export default function VesselManagement");
+    expect(table).toContain("export function VesselFleetOverview");
+    expect(table).toContain('data-testid={`button-view-${vessel.id}`}');
+    expect(dialogs).toContain("export function VesselManagementActions");
+    expect(dialogs).toContain("export function VesselManagementDialogs");
+    expect(dialogs).toContain('data-testid="input-vessel-name"');
+    expect(dialogs).toContain('data-testid="button-update-vessel"');
+    expect(dialogs).toContain('data-testid="button-confirm-delete"');
+    expect(types).toContain("export type VesselManagementModel");
+  });
+
   it("keeps equipment page stats, tabs, and dialogs behind the route shell", () => {
     const page = read("client/src/pages/equipment/index.tsx");
     const stats = read("client/src/pages/equipment/EquipmentPageStats.tsx");
