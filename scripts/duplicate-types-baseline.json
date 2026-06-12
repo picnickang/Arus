@@ -1,6 +1,6 @@
 {
   "$note": "Monotonic-decrease ratchet for duplicate exported type names. Counts may only decrease unless --update is run. The HARD_GATE_TARGETS list in scripts/check-duplicate-domain-types.mjs (mirrored here as `hardGateTargets`) records the canonical names whose count MUST reach 1 by the end of the type-debt burndown (tasks #163–#167).",
-  "generatedAt": "2026-06-12T07:49:38.359Z",
+  "generatedAt": "2026-06-12T14:24:11.141Z",
   "hardGateTargets": {
     "Vessel": 1,
     "Equipment": 1,
@@ -86,7 +86,6 @@
     "HandoverRecord": 2,
     "HealthStatus": 2,
     "IEventPublisher": 2,
-    "ILogbookStorage": 2,
     "ImportOptions": 2,
     "ImportResult": 2,
     "InformationNeedCategory": 2,
