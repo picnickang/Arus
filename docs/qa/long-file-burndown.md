@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T04:44:53.956Z
+Generated: 2026-06-12T04:54:12.167Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `65` counted files.
-- The current counted inventory is `65` files.
+- The temporary ceiling is `64` counted files.
+- The current counted inventory is `64` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,8 +20,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    65 |
-| Server                    |    10 |
+| Total counted long files  |    64 |
+| Server                    |     9 |
 | Server route-like files   |     2 |
 | Server service-like files |     0 |
 | Client                    |    55 |
@@ -118,6 +118,7 @@ Completed splits:
 - `server/db/ml-analytics/db-ml-analytics.ts` dropped below the threshold by moving feature importance, calibration, engineer override, and RUL model helpers to a sibling cloud helper while preserving `DatabaseMlAnalyticsStorage`.
 - `server/import-adapters/shipmate/field-mapping.ts` dropped below the threshold by moving Shipmate value transforms and CSV header normalization to sibling helper modules while preserving the public mapping exports.
 - `server/domains/permissions/repository.ts` dropped below the threshold by moving access, dashboard seeding, and permissions diagnostic queries to a sibling repository query module while preserving the public repository exports.
+- `server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts` dropped below the threshold by moving crew user access, assignment, credential, session, and crew-login link persistence to a sibling infrastructure module while preserving `CrewAdminRepositoryAdapter`.
 
 ## Top 30 Longest Files
 
@@ -222,7 +223,6 @@ Completed splits:
 672 client/src/components/equipment/EquipmentDecommissionDialog.tsx
 659 client/src/components/vessel/VesselSchematic/SchematicConfigPanel.tsx
 652 client/src/components/ai-health/InsightsTab.tsx
-651 server/domains/crew-admin/infrastructure/crew-admin-repository-adapter.ts
 647 client/src/pages/vessel-management/index.tsx
 643 client/src/pages/vessel-intelligence/registry-api.ts
 638 client/src/pages/DiagnosticsDashboard.tsx
