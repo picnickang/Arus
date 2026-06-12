@@ -1,0 +1,1497 @@
+import type { ReactNode } from "react";
+import { Link, useLocation } from "wouter";
+import {
+  AlertTriangle,
+  Bell,
+  Camera,
+  CheckCircle2,
+  ChevronRight,
+  Cog,
+  Filter,
+  Grid2X2,
+  List,
+  Menu,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  Search,
+  Share2,
+  SlidersHorizontal,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
+import { ROLE_STORAGE_KEY } from "@/config/roles";
+import { cn } from "@/lib/utils";
+import { getMobileReadinessAsset } from "./mobile-readiness-assets";
+import {
+  buildMobileReadinessNavigationForVariant,
+  buildMobileReadinessScreens,
+  normalizeMobileRole,
+  type FleetVesselCard,
+  type MobileNavVariant,
+  type MobileReadinessScreens,
+  type QueueItem,
+  type ReadinessTone,
+  type SummaryMetric,
+} from "./mobile-readiness-model";
+
+type ScreenKind = "today" | "fleet" | "pdm" | "work" | "logs" | "crew" | "inventory" | "settings";
+
+function readRoleHint(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function useScreens(roleOverride?: string): MobileReadinessScreens {
+  return buildMobileReadinessScreens(roleOverride ?? readRoleHint());
+}
+
+function pickNavVariant(path: string): MobileNavVariant {
+  const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
+  if (
+    currentPath === "/fleet" ||
+    currentPath.startsWith("/fleet/") ||
+    currentPath.startsWith("/vessel-intelligence/") ||
+    currentPath.startsWith("/vessels/")
+  ) {
+    return "fleetOps";
+  }
+  if (
+    currentPath === "/work-orders" ||
+    currentPath === "/logs" ||
+    currentPath.startsWith("/logs/")
+  ) {
+    return "technician";
+  }
+  if (
+    currentPath === "/crew-management" ||
+    currentPath === "/logistics" ||
+    currentPath === "/system"
+  ) {
+    return "crewOps";
+  }
+  return "roleToday";
+}
+
+function toneClasses(tone: ReadinessTone): {
+  text: string;
+  bg: string;
+  border: string;
+  icon: string;
+} {
+  switch (tone) {
+    case "critical":
+      return {
+        text: "text-red-700",
+        bg: "bg-red-50",
+        border: "border-red-400",
+        icon: "text-red-600",
+      };
+    case "high":
+      return {
+        text: "text-orange-700",
+        bg: "bg-orange-50",
+        border: "border-orange-400",
+        icon: "text-orange-600",
+      };
+    case "medium":
+      return {
+        text: "text-amber-700",
+        bg: "bg-amber-50",
+        border: "border-amber-300",
+        icon: "text-amber-600",
+      };
+    case "good":
+      return {
+        text: "text-emerald-700",
+        bg: "bg-emerald-50",
+        border: "border-emerald-300",
+        icon: "text-emerald-600",
+      };
+    case "offline":
+      return {
+        text: "text-slate-600",
+        bg: "bg-slate-100",
+        border: "border-slate-300",
+        icon: "text-slate-500",
+      };
+    case "info":
+      return {
+        text: "text-blue-700",
+        bg: "bg-blue-50",
+        border: "border-blue-300",
+        icon: "text-blue-600",
+      };
+    case "normal":
+    default:
+      return {
+        text: "text-slate-700",
+        bg: "bg-slate-100",
+        border: "border-slate-300",
+        icon: "text-slate-500",
+      };
+  }
+}
+
+function severityLabel(tone: ReadinessTone): string {
+  if (tone === "good") {
+    return "Normal";
+  }
+  return tone.charAt(0).toUpperCase() + tone.slice(1);
+}
+
+function StatusPill({ tone, children }: { tone: ReadinessTone; children?: string }) {
+  const toneClass = toneClasses(tone);
+  return (
+    <span
+      className={cn(
+        "inline-flex min-h-6 shrink-0 items-center rounded-md px-2 text-[11px] font-bold",
+        toneClass.bg,
+        toneClass.text
+      )}
+    >
+      {children ?? severityLabel(tone)}
+    </span>
+  );
+}
+
+function IconTile({ icon: Icon, tone }: { icon: LucideIcon; tone: ReadinessTone }) {
+  const toneClass = toneClasses(tone);
+  return (
+    <span
+      className={cn(
+        "grid h-12 w-12 shrink-0 place-items-center rounded-lg border bg-white",
+        toneClass.border
+      )}
+    >
+      <Icon className={cn("h-5 w-5", toneClass.icon)} aria-hidden="true" />
+    </span>
+  );
+}
+
+function AppHeader({
+  title,
+  subtitle,
+  vesselName,
+  roleLabel,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  vesselName?: string;
+  roleLabel?: string;
+  right?: ReactNode;
+}) {
+  return (
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex min-h-[72px] w-full max-w-6xl items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            className="grid h-11 w-11 place-items-center rounded-lg text-[#062a58] md:hidden"
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </button>
+          <div className="min-w-0">
+            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-[#082756] md:text-2xl">
+              {title}
+            </div>
+            {subtitle ? <div className="truncate text-sm text-slate-500">{subtitle}</div> : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {vesselName || roleLabel ? (
+            <div className="text-right">
+              {vesselName ? (
+                <div className="text-sm font-semibold text-slate-900">{vesselName}</div>
+              ) : null}
+              {roleLabel ? (
+                <div className="text-xs font-semibold text-[#0d4da1]">{roleLabel}</div>
+              ) : null}
+            </div>
+          ) : null}
+          {right}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function NavyHeader({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+}) {
+  return (
+    <header className="sticky top-0 z-20 bg-[#03295a] text-white shadow-sm">
+      <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-3 px-4">
+        <button
+          type="button"
+          className="grid h-11 w-11 place-items-center rounded-lg"
+          aria-label="Open menu"
+        >
+          <Menu className="h-6 w-6" aria-hidden="true" />
+        </button>
+        <div className="min-w-0 text-center">
+          <div className="truncate text-xl font-extrabold tracking-normal">{title}</div>
+          {subtitle ? <div className="truncate text-xs text-blue-100">{subtitle}</div> : null}
+        </div>
+        <div className="flex h-11 min-w-11 items-center justify-end gap-2">{right}</div>
+      </div>
+    </header>
+  );
+}
+
+function MobilePageShell({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn("min-h-screen bg-[#f6f8fb] text-slate-950", className)}
+      data-testid="mobile-readiness-shell"
+    >
+      {children}
+    </div>
+  );
+}
+
+function Content({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn("mx-auto w-full max-w-md space-y-3 px-3 pb-24 pt-3 md:max-w-4xl", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
+function KpiStrip({ metrics, compact = false }: { metrics: SummaryMetric[]; compact?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "grid gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white",
+        compact ? "grid-cols-6" : "grid-cols-4"
+      )}
+    >
+      {metrics.map((metric) => {
+        const tone = toneClasses(metric.tone);
+        return (
+          <div
+            key={metric.id}
+            className="min-w-0 border-r border-slate-200 px-2 py-3 text-center last:border-r-0"
+          >
+            <div className={cn("truncate text-lg font-bold", tone.text)}>{metric.value}</div>
+            <div className="truncate text-[11px] font-medium text-slate-500">{metric.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function QueueCard({ item, testId }: { item: QueueItem; testId?: string }) {
+  return (
+    <Link
+      href={item.href}
+      className="flex min-h-[76px] items-center gap-3 border-b border-slate-200 bg-white px-3 py-2.5 last:border-b-0"
+      data-testid={testId}
+    >
+      <IconTile icon={item.icon} tone={item.severity} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[14px] font-bold leading-tight text-slate-900">
+          {item.title}
+        </div>
+        <div className="mt-0.5 truncate text-xs text-slate-600">
+          {item.category} - {item.reason}
+        </div>
+        <div className="mt-0.5 truncate text-xs text-slate-500">{item.detail}</div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <StatusPill tone={item.severity} />
+        <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+      </div>
+    </Link>
+  );
+}
+
+function SectionCard({
+  title,
+  action,
+  children,
+  className,
+}: {
+  title?: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm",
+        className
+      )}
+    >
+      {title || action ? (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-3 py-3">
+          {title ? (
+            <h2 className="text-[13px] font-extrabold uppercase tracking-wide text-slate-800">
+              {title}
+            </h2>
+          ) : (
+            <span />
+          )}
+          {action}
+        </div>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+function ProgressBar({ value, tone = "good" }: { value: number; tone?: ReadinessTone }) {
+  const color =
+    tone === "critical" || tone === "high"
+      ? "bg-red-500"
+      : tone === "medium"
+        ? "bg-amber-500"
+        : "bg-emerald-500";
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+      <div
+        className={cn("h-full rounded-full", color)}
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  );
+}
+
+function VesselThumbnail({ vessel }: { vessel: FleetVesselCard }) {
+  const asset = getMobileReadinessAsset(vessel.assetId);
+  return (
+    <img
+      src={asset.src}
+      alt={asset.alt}
+      className="h-24 w-36 shrink-0 rounded-md border border-slate-200 object-cover"
+      data-asset-status={asset.status}
+    />
+  );
+}
+
+function AssetImage({ assetId, className }: { assetId: string; className: string }) {
+  const asset = getMobileReadinessAsset(assetId);
+  return (
+    <img
+      src={asset.src}
+      alt={asset.alt}
+      className={className}
+      data-asset-id={asset.id}
+      data-asset-status={asset.status}
+    />
+  );
+}
+
+function MobileBottomNav() {
+  const roleHint = readRoleHint();
+  const [location] = useLocation();
+  const currentPath = location.split("?")[0] ?? "/";
+  const variant = pickNavVariant(location);
+  const nav = buildMobileReadinessNavigationForVariant(variant, roleHint);
+  const isActive = (href: string) =>
+    href === "/" ? currentPath === "/" : currentPath === href || currentPath.startsWith(`${href}/`);
+
+  return (
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#0a376b] bg-[#03295a] pb-safe text-white shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.9)] md:hidden"
+      aria-label="Mobile readiness navigation"
+      data-testid="mobile-readiness-bottom-nav"
+      data-nav-variant={variant}
+    >
+      <div
+        className="mx-auto grid h-16 max-w-md px-2"
+        style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
+      >
+        {nav.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={cn(
+                "flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold",
+                active ? "bg-white/15 text-white shadow-inner" : "text-blue-100"
+              )}
+              data-testid={`mobile-readiness-nav-${item.id}`}
+            >
+              <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span className="w-full truncate text-center">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+export function MobileReadinessBottomNav() {
+  return <MobileBottomNav />;
+}
+
+export function MobileCommandCenterPage({ role }: { role?: string }) {
+  const screens = useScreens(role);
+  return (
+    <MobilePageShell>
+      <AppHeader
+        title="ARUS"
+        subtitle={screens.today.queueLabel}
+        vesselName={screens.today.vesselName}
+        roleLabel={screens.today.roleLabel}
+      />
+      <Content className="max-w-md md:max-w-4xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-slate-950">Today</h1>
+            <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
+          </div>
+          <span className="text-sm font-semibold text-[#0d4da1]">
+            {screens.today.itemCount} items
+          </span>
+        </div>
+        <SectionCard>
+          {screens.today.items.map((item) => (
+            <QueueCard key={item.id} item={item} testId={`today-card-${item.id}`} />
+          ))}
+        </SectionCard>
+        <button
+          type="button"
+          className="mx-auto flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Pull to refresh
+        </button>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+export function MobileFleetPage() {
+  const { fleet } = useScreens("admin");
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Fleet triage"
+        right={
+          <>
+            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            <span className="relative">
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              <span className="absolute -right-1 -top-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] font-bold">
+                12
+              </span>
+            </span>
+          </>
+        }
+      />
+      <Content>
+        <KpiStrip metrics={fleet.summary} />
+        <div className="flex items-center gap-2">
+          <div className="flex min-h-11 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-500">
+            <Search className="h-4 w-4" aria-hidden="true" />
+            Search vessels...
+          </div>
+          <span className="text-xs font-semibold text-slate-500">Sort: Risk</span>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-3">
+          {fleet.vessels.map((vessel) => (
+            <Link
+              href="/vessel-intelligence/mv-atlas/overview"
+              key={vessel.id}
+              className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+              data-testid={`fleet-vessel-card-${vessel.id}`}
+            >
+              <div className="flex gap-3 p-3">
+                <VesselThumbnail vessel={vessel} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-base font-bold text-slate-950">
+                        {vessel.name}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-slate-600">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        {vessel.operationalState}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-slate-500">{vessel.route}</div>
+                    </div>
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-center">
+                      <div className={cn("text-xl font-bold", toneClasses(vessel.riskTone).text)}>
+                        {vessel.pdmRiskScore}
+                      </div>
+                      <div className="text-[10px] font-semibold text-slate-500">PdM risk</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="border-y border-slate-200 px-2 py-2">
+                <KpiStrip metrics={vessel.kpis} compact />
+              </div>
+              <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs">
+                <div>
+                  <div className="text-slate-500">Next action</div>
+                  <div className="font-semibold text-slate-900">{vessel.nextAction}</div>
+                </div>
+                <span className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+                  View <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span>Updated 2 min ago</span>
+          <button className="inline-flex items-center gap-1 font-semibold text-[#0d4da1]">
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
+          </button>
+        </div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+export function MobileVesselDetailPage() {
+  const { fleet } = useScreens("admin");
+  const [location] = useLocation();
+  const detail = fleet.vesselDetail;
+  if (location.includes("/3d") || location.includes("diagram")) {
+    return <MobileVesselDiagramView screens={useScreens("admin")} />;
+  }
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title={detail.name}
+        subtitle={detail.subtitle}
+        right={
+          <>
+            <Star className="h-5 w-5" aria-hidden="true" />
+            <Share2 className="h-5 w-5" aria-hidden="true" />
+          </>
+        }
+      />
+      <Content>
+        <div className="grid grid-cols-4 gap-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="border-r border-slate-200 pr-2">
+            <div className="text-xs text-slate-500">Readiness</div>
+            <div className="text-2xl font-bold text-emerald-600">{detail.readiness}%</div>
+            <ProgressBar value={detail.readiness} />
+          </div>
+          {detail.tiles.slice(1).map((tile) => {
+            const tone = toneClasses(tile.tone);
+            return (
+              <div key={tile.id} className="min-w-0 border-r border-slate-200 px-2 last:border-r-0">
+                <div className="truncate text-xs text-slate-500">{tile.label}</div>
+                <div className={cn("text-2xl font-bold", tone.text)}>{tile.value}</div>
+                <div className="truncate text-xs font-semibold text-slate-500">
+                  {severityLabel(tile.tone)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <SectionCard title="Top priorities">
+          {detail.topPriorities.map((item) => (
+            <QueueCard key={item.id} item={item} />
+          ))}
+        </SectionCard>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {detail.tiles.map((tile) => (
+            <Link
+              href={
+                tile.id === "inventory"
+                  ? "/logistics"
+                  : tile.id === "logs"
+                    ? "/logs"
+                    : "/work-orders"
+              }
+              key={tile.id}
+              className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div>
+                <div className="text-sm font-semibold text-slate-600">{tile.label}</div>
+                <div className="mt-1 text-3xl font-bold text-slate-950">{tile.value}</div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+        <div className="flex gap-4 overflow-x-auto border-b border-slate-200 text-sm font-semibold">
+          {["Overview", "Machinery", "Work", "Alerts", "Crew", "Inventory", "Documents"].map(
+            (tab, index) => (
+              <button
+                key={tab}
+                className={cn(
+                  "shrink-0 border-b-2 px-1 pb-2",
+                  index === 0
+                    ? "border-[#0d4da1] text-[#0d4da1]"
+                    : "border-transparent text-slate-600"
+                )}
+              >
+                {tab}
+              </button>
+            )
+          )}
+        </div>
+        <SectionCard title="Vessel Snapshot">
+          <div className="grid grid-cols-4 gap-3 p-3 text-xs">
+            <MiniState label="Vessel type" value="Container" tone="normal" />
+            <MiniState label="Built" value="2015" tone="normal" />
+            <MiniState label="GT / DWT" value="32,512" tone="normal" />
+            <MiniState label="Flag" value="Singapore" tone="normal" />
+          </div>
+        </SectionCard>
+        <VesselDiagramPanel screens={useScreens("admin")} compact />
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function MobileVesselDiagramView({ screens }: { screens: MobileReadinessScreens }) {
+  const detail = screens.fleet.vesselDetail;
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title={detail.name}
+        subtitle={detail.subtitle}
+        right={
+          <>
+            <Star className="h-5 w-5" aria-hidden="true" />
+            <Share2 className="h-5 w-5" aria-hidden="true" />
+          </>
+        }
+      />
+      <Content>
+        <VesselDiagramPanel screens={screens} />
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function VesselDiagramPanel({
+  screens,
+  compact = false,
+}: {
+  screens: MobileReadinessScreens;
+  compact?: boolean;
+}) {
+  const detail = screens.fleet.vesselDetail;
+  const diagram = getMobileReadinessAsset(detail.diagramAssetId);
+  return (
+    <SectionCard
+      title="Vessel diagram"
+      action={<button className="text-sm font-semibold text-[#0d4da1]">Legend</button>}
+    >
+      <div className="flex gap-2 overflow-x-auto px-3 py-3">
+        {detail.diagramModes.map((mode, index) => (
+          <button
+            key={mode}
+            type="button"
+            className={cn(
+              "min-h-12 shrink-0 rounded-lg border px-3 text-xs font-semibold",
+              index === 0
+                ? "border-[#03295a] bg-[#03295a] text-white"
+                : "border-slate-200 bg-white text-slate-600"
+            )}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+      <div className="px-3 pb-3">
+        <div
+          className={cn("relative overflow-hidden rounded-lg bg-white", compact ? "h-52" : "h-72")}
+        >
+          <img
+            src={diagram.src}
+            alt={diagram.alt}
+            className="h-full w-full object-contain"
+            data-asset-status={diagram.status}
+          />
+          <MapPin className="absolute left-[28%] top-[35%]" tone="critical" label="!" />
+          <MapPin className="absolute left-[36%] top-[46%]" tone="info" label="" />
+          <MapPin className="absolute left-[66%] top-[50%]" tone="medium" label="L" />
+          <MapPin className="absolute right-[13%] top-[44%]" tone="good" label="" />
+          <div className="absolute bottom-[20%] left-[40%] rounded-lg border-4 border-orange-400 bg-orange-100/70 px-8 py-5 text-orange-700 shadow-lg">
+            <Cog className="h-9 w-9" aria-hidden="true" />
+          </div>
+        </div>
+        <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <span className="h-2 w-2 rounded-full bg-orange-500" />
+              {detail.selectedZone.name}
+            </div>
+            <button className="text-xs font-semibold text-[#0d4da1]">View section</button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <div className="text-slate-500">Location</div>
+              <div className="font-semibold text-slate-900">{detail.selectedZone.location}</div>
+            </div>
+            <div>
+              <div className="text-slate-500">Related</div>
+              <div className="font-semibold text-slate-900">{detail.selectedZone.related}</div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {detail.selectedZone.actions.map((action) => (
+              <span
+                key={action}
+                className="rounded-md border border-slate-200 px-3 py-1 text-xs font-semibold"
+              >
+                {action}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function MapPin({
+  tone,
+  label,
+  className,
+}: {
+  tone: ReadinessTone;
+  label: string;
+  className?: string;
+}) {
+  const toneClass = toneClasses(tone);
+  return (
+    <span
+      className={cn(
+        "grid h-9 w-9 place-items-center rounded-full border-2 border-white text-xs font-bold shadow-md",
+        toneClass.bg,
+        toneClass.text,
+        className
+      )}
+    >
+      {label || <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
+    </span>
+  );
+}
+
+export function MobilePdmPage() {
+  const { pdm } = useScreens("chief_engineer");
+  const telemetryChart = getMobileReadinessAsset(pdm.telemetryAdvanced.chartAssetId);
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Telemetry + PdM"
+        right={<Bell className="h-5 w-5" aria-hidden="true" />}
+      />
+      <Content>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-950">PdM Risk Queue</h1>
+          <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+            <AlertTriangle className="h-4 w-4 text-red-600" aria-hidden="true" />
+            Rules
+          </button>
+        </div>
+        <KpiStrip metrics={pdm.summary} />
+        <div className="flex items-center justify-between text-sm text-slate-500">
+          <span>Sort by: Risk Score</span>
+          <span>Updated: 09:41</span>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-3">
+            {pdm.riskQueue.map((risk) => (
+              <section
+                key={risk.asset}
+                className={cn(
+                  "rounded-lg border-l-4 bg-white p-4 shadow-sm",
+                  toneClasses(risk.tone).border
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-bold text-slate-950">{risk.asset}</div>
+                    <div className="text-sm text-slate-500">{risk.subtitle}</div>
+                  </div>
+                  <StatusPill tone={risk.tone}>{risk.riskState}</StatusPill>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <div className="text-slate-500">{risk.signal}</div>
+                    <div className="font-semibold text-orange-600">Rising</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">{risk.action}</div>
+                    <div className="font-semibold text-red-600">Action</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Source</div>
+                    <div className="font-semibold text-emerald-600">{risk.sourceHealth}</div>
+                  </div>
+                </div>
+              </section>
+            ))}
+          </div>
+          <SectionCard
+            title={pdm.assetCase.asset}
+            action={<StatusPill tone="critical">HIGH RISK</StatusPill>}
+          >
+            <div className="space-y-3 p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-red-50 p-4 text-center">
+                  <div className="text-xs font-bold uppercase text-red-600">Risk Score</div>
+                  <div className="text-4xl font-bold text-slate-950">{pdm.assetCase.riskScore}</div>
+                  <div className="text-xs font-semibold text-red-600">Up 18 vs yesterday</div>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-4">
+                  <div className="text-xs font-semibold text-slate-500">Risk Trend (7d)</div>
+                  <img
+                    src={telemetryChart.src}
+                    alt={telemetryChart.alt}
+                    className="mt-3 h-24 w-full rounded-lg object-cover"
+                    data-asset-status={telemetryChart.status}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <MiniState label="Status" value={pdm.assetCase.status} tone="good" />
+                <MiniState label="Trend" value={pdm.assetCase.trend} tone="critical" />
+                <MiniState label="Source Health" value={pdm.assetCase.sourceHealth} tone="good" />
+                <MiniState label="Data" value={pdm.assetCase.dataFreshness} tone="good" />
+              </div>
+              {pdm.assetCase.evidenceSections.map((section) => (
+                <div key={section.title} className="rounded-lg border border-slate-200 p-3">
+                  <div className="text-sm font-bold text-slate-900">{section.title}</div>
+                  <div className="mt-1 text-sm text-slate-600">{section.body}</div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">Telemetry Evidence</div>
+                    <div className="text-xs text-slate-500">
+                      {pdm.telemetryAdvanced.lastUpdate} - Confidence{" "}
+                      {pdm.telemetryAdvanced.confidence}%
+                    </div>
+                  </div>
+                  <StatusPill tone="good">{pdm.telemetryAdvanced.trust}</StatusPill>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  <MiniState
+                    label="Raw readings"
+                    value={pdm.telemetryAdvanced.rawReadingsAvailable ? "Shown" : "Hidden"}
+                    tone="info"
+                  />
+                  <MiniState
+                    label="Sensors"
+                    value={`${pdm.telemetryAdvanced.sensorHealthCount} Good`}
+                    tone="good"
+                  />
+                  <MiniState label="Pipeline" value="Live" tone="good" />
+                </div>
+              </div>
+              <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-bold text-slate-900">Advanced Telemetry</div>
+                  <button className="text-xs font-semibold text-[#0d4da1]">Evidence</button>
+                </div>
+                <img
+                  src={telemetryChart.src}
+                  alt={telemetryChart.alt}
+                  className="h-40 w-full rounded-lg border border-slate-200 object-cover"
+                  data-asset-status={telemetryChart.status}
+                />
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <MiniState label="VIB DE" value="7.8 mm/s" tone="critical" />
+                  <MiniState label="VIB NDE" value="5.2 mm/s" tone="medium" />
+                  <MiniState label="Bearing" value="86.4 C" tone="high" />
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function MiniState({ label, value, tone }: { label: string; value: string; tone: ReadinessTone }) {
+  const toneClass = toneClasses(tone);
+  return (
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-2">
+      <div className="truncate text-[10px] text-slate-500">{label}</div>
+      <div className={cn("truncate text-xs font-bold", toneClass.text)}>{value}</div>
+    </div>
+  );
+}
+
+export function MobileWorkOrdersPage() {
+  const { work } = useScreens("crew");
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Work Queue"
+        right={<Filter className="h-5 w-5" aria-hidden="true" />}
+      />
+      <Content>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-950">Work Queue</h1>
+          <button className="inline-flex items-center gap-1 text-sm font-semibold text-[#0d4da1]">
+            Filters <Filter className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto border-b border-slate-200">
+          {work.filters.map((filter) => (
+            <button
+              key={filter.id}
+              className="shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm font-semibold text-slate-600 first:border-[#0d4da1] first:text-[#0d4da1]"
+            >
+              {filter.label} ({filter.value})
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto">
+          {work.stageChips.map((chip) => (
+            <button
+              key={chip.id}
+              className={cn(
+                "min-h-14 min-w-24 shrink-0 rounded-lg border px-3 text-sm font-semibold",
+                chip.id === "in-progress"
+                  ? "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  : "border-slate-200 bg-white text-slate-600"
+              )}
+            >
+              <span className="block">{chip.label}</span>
+              <span className="block text-lg">{chip.value}</span>
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <SectionCard>
+            {work.queue.map((item) => (
+              <QueueCard key={item.id} item={item} />
+            ))}
+          </SectionCard>
+          <SectionCard
+            title={`${work.execution.orderNumber} - ${work.execution.title}`}
+            action={<StatusPill tone="medium">MEDIUM</StatusPill>}
+          >
+            <div className="space-y-3 p-3">
+              <div>
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span>Checklist ({work.execution.checklistProgress})</span>
+                  <span>{work.execution.percentComplete}%</span>
+                </div>
+                <ProgressBar value={work.execution.percentComplete} />
+              </div>
+              <div className="divide-y rounded-lg border border-slate-200">
+                {work.execution.checklist.map((step) => (
+                  <div
+                    key={step.label}
+                    className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm"
+                  >
+                    {step.state === "done" ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                    ) : (
+                      <span className="h-5 w-5 rounded-full border border-slate-300" />
+                    )}
+                    <span className="min-w-0 flex-1">{step.label}</span>
+                    {step.telemetry ? <StatusPill tone="good">{step.telemetry}</StatusPill> : null}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+                  <span className="inline-flex items-center gap-1">
+                    <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+                    Required photos
+                  </span>
+                  <span>
+                    {work.execution.requiredPhotos} / {work.execution.requiredPhotos}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {work.execution.photoAssetIds.map((assetId) => (
+                    <AssetImage
+                      key={assetId}
+                      assetId={assetId}
+                      className="aspect-square rounded-lg border border-slate-200 object-cover"
+                    />
+                  ))}
+                  <button className="grid aspect-square place-items-center rounded-lg border border-slate-200 text-[#0d4da1]">
+                    <Plus className="h-6 w-6" aria-hidden="true" />
+                    <span className="text-xs font-semibold">Add</span>
+                  </button>
+                </div>
+              </div>
+              <InfoRow label="Parts Used" value={work.execution.partsUsed} />
+              <InfoRow label="Time & Labor" value={work.execution.labor} />
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button className="min-h-12 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-[#0d4da1]">
+                  {work.execution.offlineDraftAction}
+                </button>
+                <button className="min-h-12 rounded-lg bg-[#03295a] text-sm font-semibold text-white">
+                  {work.execution.primaryAction}
+                </button>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-sm">
+      <span className="font-semibold text-slate-600">{label}</span>
+      <span className="text-right font-bold text-slate-950">{value}</span>
+    </div>
+  );
+}
+
+export function MobileLogsPage() {
+  const { logs } = useScreens("captain");
+  return (
+    <MobilePageShell>
+      <NavyHeader title="Logs" subtitle="Daily Required" right={<CalendarIcon />} />
+      <Content>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {logs.requiredBanner}
+        </div>
+        <div className="flex gap-4 overflow-x-auto border-b border-slate-200">
+          {logs.tabs.map((tab, index) => (
+            <button
+              key={tab}
+              className={cn(
+                "shrink-0 border-b-2 px-1 pb-2 text-sm font-semibold",
+                index === 0
+                  ? "border-[#0d4da1] text-[#0d4da1]"
+                  : "border-transparent text-slate-600"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <SectionCard
+          title="Engine Log (Autofill Review)"
+          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+        >
+          <div className="p-3">
+            <div className="rounded-lg border border-slate-200 p-3">
+              <div className="grid grid-cols-[0.8fr_1.2fr] gap-3">
+                <div>
+                  <div className="text-xs text-slate-500">Auto-filled Entries</div>
+                  <div className="text-4xl font-bold text-slate-950">28</div>
+                  <div className="text-xs text-slate-500">Last 24 hours</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-slate-500">Telemetry Trust</div>
+                  {logs.autofillTrust.map((metric) => (
+                    <div key={metric.id} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "h-2 w-2 rounded-full",
+                            metric.tone === "good"
+                              ? "bg-emerald-500"
+                              : metric.tone === "medium"
+                                ? "bg-amber-500"
+                                : "bg-red-500"
+                          )}
+                        />
+                        {metric.label}
+                      </span>
+                      <span className="font-semibold text-slate-700">{metric.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+        <SectionCard>
+          {logs.requiredCards.slice(1).map((card) => (
+            <Link
+              key={card.title}
+              href="/logs"
+              className="flex min-h-16 items-center justify-between border-b border-slate-200 px-3 py-3 last:border-b-0"
+            >
+              <div>
+                <div className="font-bold text-slate-950">
+                  {card.title}{" "}
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                    {card.status}
+                  </span>
+                </div>
+                <div className="text-sm text-slate-500">{card.subtitle}</div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+            </Link>
+          ))}
+        </SectionCard>
+        <SectionCard
+          title="Compliance History"
+          action={<span className="text-xs text-slate-500">Last 7 Days</span>}
+        >
+          <div className="p-3">
+            <KpiStrip metrics={logs.complianceHistory} />
+          </div>
+        </SectionCard>
+        <div className="mx-auto flex w-fit items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Fresh
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> Delayed
+          <span className="h-2 w-2 rounded-full bg-red-500" /> Manual Required
+        </div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <span className="grid h-8 w-8 place-items-center rounded-md border border-white/20 text-xs font-bold">
+      DD
+    </span>
+  );
+}
+
+export function MobileCrewPage() {
+  const { crew } = useScreens("admin");
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Crew"
+        right={<Plus className="h-5 w-5" aria-hidden="true" />}
+      />
+      <Content>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-slate-950">{crew.vesselName}</h1>
+            <p className="text-sm text-slate-500">IMO 9876543</p>
+          </div>
+          <StatusPill tone="good">Vessel Ready</StatusPill>
+        </div>
+        <SectionCard title="Crew Readiness Overview">
+          <div className="p-3">
+            <KpiStrip metrics={crew.readiness} />
+          </div>
+        </SectionCard>
+        <div className="grid gap-2 md:grid-cols-2">
+          {crew.blockers.map((item) => (
+            <QueueCard key={item.id} item={item} />
+          ))}
+        </div>
+        <SectionCard title="Missing Required Roles">
+          <QueueSimple label="Chief Engineer" value="High Priority" tone="critical" />
+          <QueueSimple label="2nd Mate" value="Medium Priority" tone="medium" />
+        </SectionCard>
+        <SectionCard
+          title="Current Crew (18)"
+          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+        >
+          {crew.currentCrew.map((person) => (
+            <div
+              key={person.name}
+              className="grid grid-cols-[44px_1fr_auto_auto] items-center gap-3 border-b border-slate-200 px-3 py-3 last:border-b-0"
+            >
+              <AssetImage
+                assetId={person.avatarAssetId}
+                className="h-11 w-11 rounded-full border border-slate-200 object-cover"
+              />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold text-slate-950">{person.name}</div>
+                <div className="truncate text-xs text-slate-500">{person.rank}</div>
+              </div>
+              <StatusPill tone="good">{person.status}</StatusPill>
+              <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                {person.docs}
+              </span>
+            </div>
+          ))}
+        </SectionCard>
+        <SectionCard
+          title="Former Crew"
+          action={<button className="text-sm font-semibold text-[#0d4da1]">History</button>}
+        >
+          {crew.formerCrew.map((person) => (
+            <div
+              key={person.name}
+              className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-slate-200 px-3 py-3 last:border-b-0"
+            >
+              <AssetImage
+                assetId={person.avatarAssetId}
+                className="h-11 w-11 rounded-full border border-slate-200 object-cover opacity-80"
+              />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold text-slate-950">{person.name}</div>
+                <div className="truncate text-xs text-slate-500">
+                  {person.rank} - {person.date}
+                </div>
+              </div>
+              <StatusPill tone="normal">{person.status}</StatusPill>
+            </div>
+          ))}
+        </SectionCard>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+function QueueSimple({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: ReadinessTone;
+}) {
+  return (
+    <div className="flex min-h-14 items-center justify-between border-b border-slate-200 px-3 py-2 last:border-b-0">
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            tone === "critical" ? "bg-red-500" : "bg-amber-500"
+          )}
+        />
+        {label}
+      </div>
+      <StatusPill tone={tone}>{value}</StatusPill>
+    </div>
+  );
+}
+
+export function MobileInventoryPage() {
+  const { inventory } = useScreens("logistics");
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Inventory & Logistics"
+        right={
+          <>
+            <Search className="h-5 w-5" aria-hidden="true" />
+            <Bell className="h-5 w-5" aria-hidden="true" />
+          </>
+        }
+      />
+      <Content>
+        <div>
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+            Action Required
+          </div>
+          <KpiStrip metrics={inventory.actionRequired} />
+        </div>
+        <div className="grid grid-cols-3 rounded-lg bg-slate-100 p-1 text-sm font-semibold">
+          <button className="rounded-md bg-[#03295a] py-2 text-white">Inventory</button>
+          <button className="py-2 text-slate-600">Logistics</button>
+          <button className="py-2 text-slate-600">Vendors</button>
+        </div>
+        <div className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-500">
+          <Search className="h-4 w-4" aria-hidden="true" />
+          Search by Part #, Name, or Keyword
+        </div>
+        <SectionCard
+          title="Inventory List"
+          action={
+            <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 rounded-md border border-slate-200 bg-white p-0.5">
+                <button
+                  className="grid h-8 w-8 place-items-center rounded bg-[#03295a] text-white"
+                  aria-label="Card view"
+                >
+                  <Grid2X2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  className="grid h-8 w-8 place-items-center rounded text-slate-500"
+                  aria-label="Table view"
+                >
+                  <List className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                <span className="h-2 w-3.5 rounded-full bg-blue-600" />
+                Expert
+              </span>
+            </div>
+          }
+        >
+          <div className="divide-y divide-slate-200">
+            {inventory.rows.map((row) => (
+              <div key={row.partNumber} className="space-y-2 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-slate-950">{row.name}</div>
+                    <div className="truncate font-mono text-xs text-slate-500">
+                      {row.partNumber}
+                    </div>
+                  </div>
+                  <StatusPill tone={row.tone}>{row.reorderStatus}</StatusPill>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <MiniState label="Location" value={row.location} tone="normal" />
+                  <MiniState label="On hand" value={String(row.onHand)} tone="info" />
+                  <MiniState label="Available" value={String(row.available)} tone={row.tone} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+        <SectionCard
+          title="Linked Work Orders"
+          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+        >
+          {inventory.linkedWorkOrders.map((order) => (
+            <InfoRow key={order.id} label={`${order.id} - ${order.title}`} value={order.status} />
+          ))}
+        </SectionCard>
+        <SectionCard
+          title="Logistics Tasks"
+          action={<button className="text-sm font-semibold text-[#0d4da1]">View All</button>}
+        >
+          {inventory.logisticsTasks.map((task) => (
+            <InfoRow key={task.id} label={`${task.id} - ${task.title}`} value={task.eta} />
+          ))}
+        </SectionCard>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+export function MobileSettingsPage() {
+  const { settings } = useScreens("admin");
+  return (
+    <MobilePageShell>
+      <NavyHeader
+        title="ARUS"
+        subtitle="Settings"
+        right={<MoreVertical className="h-5 w-5" aria-hidden="true" />}
+      />
+      <Content className="max-w-md md:max-w-3xl">
+        <SectionCard>
+          <div className="flex items-center gap-3 p-3">
+            <AssetImage
+              assetId={settings.profile.avatarAssetId}
+              className="h-16 w-16 rounded-full border border-slate-200 object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-slate-950">{settings.profile.name}</div>
+              <div className="text-sm text-slate-600">{settings.profile.role}</div>
+              <div className="truncate text-sm text-slate-500">{settings.profile.email}</div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+          </div>
+        </SectionCard>
+        <SectionCard>
+          {settings.items.slice(1).map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.label}
+                href={
+                  item.label.includes("Telemetry")
+                    ? "/sensors"
+                    : item.label.includes("Copilot")
+                      ? "/knowledge-base"
+                      : "/system"
+                }
+                className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 py-3 last:border-b-0"
+              >
+                <Icon className="h-5 w-5 text-slate-500" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-slate-950">
+                    {item.label}
+                  </span>
+                  {item.detail ? (
+                    <span className="block truncate text-xs text-slate-500">{item.detail}</span>
+                  ) : null}
+                </span>
+                {item.tone ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                ) : (
+                  <span className="h-4 w-4" />
+                )}
+                <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </Link>
+            );
+          })}
+        </SectionCard>
+        <button className="min-h-12 w-full rounded-lg border border-red-200 bg-white text-left text-sm font-semibold text-red-600 px-4">
+          Log Out
+        </button>
+        <div className="text-center text-xs text-slate-500">ARUS v2.18.0 (Build 321)</div>
+      </Content>
+    </MobilePageShell>
+  );
+}
+
+export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
+  switch (screen) {
+    case "fleet":
+      return <MobileFleetPage />;
+    case "pdm":
+      return <MobilePdmPage />;
+    case "work":
+      return <MobileWorkOrdersPage />;
+    case "logs":
+      return <MobileLogsPage />;
+    case "crew":
+      return <MobileCrewPage />;
+    case "inventory":
+      return <MobileInventoryPage />;
+    case "settings":
+      return <MobileSettingsPage />;
+    case "today":
+    default:
+      return <MobileCommandCenterPage role={normalizeMobileRole(readRoleHint())} />;
+  }
+}
+
+export function isMobileReadinessReplacementPath(path: string): boolean {
+  const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
+  return (
+    currentPath === "/" ||
+    currentPath === "/fleet" ||
+    currentPath.startsWith("/fleet/") ||
+    currentPath === "/vessel-intelligence" ||
+    currentPath.startsWith("/vessel-intelligence/") ||
+    currentPath === "/maint" ||
+    currentPath === "/work-orders" ||
+    currentPath === "/pdm-platform" ||
+    currentPath.startsWith("/pdm/equipment/") ||
+    currentPath === "/logs" ||
+    currentPath.startsWith("/logs/") ||
+    currentPath === "/crew-management" ||
+    currentPath === "/logistics" ||
+    currentPath === "/system"
+  );
+}
+
+export function MobileReadinessCopilotSuppressionMarker() {
+  return null;
+}

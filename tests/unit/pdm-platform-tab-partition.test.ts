@@ -5,41 +5,33 @@ import { deriveHubHealthFields } from "../../server/domains/equipment-intelligen
 
 const PAGE = readFileSync(join(process.cwd(), "client/src/pages/pdm-platform.tsx"), "utf8");
 
-function extractArray(name: string): string[] {
-  const match = PAGE.match(new RegExp(`const ${name} = \\[([^\\]]+)\\]`));
-  if (!match?.[1]) {
-    throw new Error(`${name} not found in pdm-platform.tsx`);
-  }
-  return [...match[1].matchAll(/"([a-z-]+)"/g)].map((m) => m[1] as string);
-}
+const MOBILE_SCREENS = readFileSync(
+  join(process.cwd(), "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"),
+  "utf8"
+);
+const MOBILE_MODEL = readFileSync(
+  join(process.cwd(), "client/src/features/mobile-readiness/mobile-readiness-model.ts"),
+  "utf8"
+);
 
-describe("pdm-platform operator / ML Ops tab partition", () => {
-  const valid = extractArray("VALID_TABS");
-  const operator = extractArray("OPERATOR_TABS");
-  const mlOps = extractArray("ML_OPS_TABS");
-
-  it("keeps all 10 historical tab ids valid (deep links unchanged)", () => {
-    expect(valid).toHaveLength(10);
-    expect(valid).toEqual(
-      expect.arrayContaining(["schedule", "diagnostics", "governance", "decision-support"])
-    );
+describe("pdm-platform mobile readiness replacement", () => {
+  it("delegates the legacy tabbed page to the mobile PdM risk queue", () => {
+    expect(PAGE).toContain("MobilePdmPage");
+    expect(PAGE).not.toMatch(/VALID_TABS|OPERATOR_TABS|ML_OPS_TABS|hasPermission\(/);
   });
 
-  it("partitions VALID_TABS exactly, with no overlap", () => {
-    const union = [...operator, ...mlOps].sort();
-    expect(union).toEqual([...valid].sort());
-    expect(new Set(union).size).toBe(union.length);
+  it("keeps operator-facing PdM evidence, queue, and advanced telemetry visible", () => {
+    expect(MOBILE_SCREENS).toContain("MobilePdmPage");
+    expect(MOBILE_SCREENS).toContain("PdM Risk Queue");
+    expect(MOBILE_SCREENS).toContain("Telemetry Evidence");
+    expect(MOBILE_MODEL).toContain("Latest Abnormal Readings");
+    expect(MOBILE_MODEL).toContain("Recommended Next Action");
   });
 
-  it("defaults to an operator tab so gated users never land stranded", () => {
-    const def = PAGE.match(/const DEFAULT_TAB = "([a-z-]+)"/)?.[1];
-    expect(def).toBeDefined();
-    expect(operator).toContain(def);
-    expect(mlOps).not.toContain(def);
-  });
-
-  it("gates the ML Ops group on the existing predictive_maintenance permission", () => {
-    expect(PAGE).toContain('hasPermission("predictive_maintenance", "manage_config")');
+  it("keeps equipment deep links on the PdM replacement route", () => {
+    const routes = readFileSync(join(process.cwd(), "client/src/routes/maintenance.ts"), "utf8");
+    expect(routes).toContain('"/pdm/equipment/:equipmentId"');
+    expect(routes).toContain("component: PdmPlatform");
   });
 });
 
