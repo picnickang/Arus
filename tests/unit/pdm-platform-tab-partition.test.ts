@@ -24,12 +24,19 @@ describe("pdm-platform mobile readiness replacement", () => {
     expect(MOBILE_SCREENS).toContain("MobilePdmPage");
     expect(MOBILE_SCREENS).toContain("PdM Risk Queue");
     expect(MOBILE_SCREENS).toContain("Telemetry Evidence");
+    expect(MOBILE_SCREENS).toContain("MobilePdmAssetCasePage");
+    expect(MOBILE_SCREENS).toContain("MobilePdmTelemetryPage");
+    expect(MOBILE_SCREENS).toContain("/telemetry");
+    expect(MOBILE_SCREENS).toContain('params.get("view") === "telemetry"');
+    expect(MOBILE_SCREENS).toContain("data-nav-variant={variant}");
     expect(MOBILE_MODEL).toContain("Latest Abnormal Readings");
     expect(MOBILE_MODEL).toContain("Recommended Next Action");
+    expect(MOBILE_MODEL).toContain('"machineryOps"');
   });
 
   it("keeps equipment deep links on the PdM replacement route", () => {
     const routes = readFileSync(join(process.cwd(), "client/src/routes/maintenance.ts"), "utf8");
+    expect(routes).toContain('"/pdm/equipment/:equipmentId/telemetry"');
     expect(routes).toContain('"/pdm/equipment/:equipmentId"');
     expect(routes).toContain("component: PdmPlatform");
   });

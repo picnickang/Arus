@@ -12,6 +12,7 @@ export const maintenanceRoutes = [
   { path: "/work-orders", component: WorkOrders },
   { path: "/maintenance", component: MaintenanceSchedules },
   { path: "/maintenance-templates", component: MaintenanceTemplatesPage },
+  { path: "/pdm/equipment/:equipmentId/telemetry", component: PdmPlatform },
   { path: "/pdm/equipment/:equipmentId", component: PdmPlatform },
   { path: "/pdm-platform", component: PdmPlatform },
   { path: "/digital-twin", component: DigitalTwin },

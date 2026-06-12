@@ -43,6 +43,11 @@ describe("mobile readiness replacement model", () => {
       buildMobileReadinessNavigationForVariant("technician", "crew").map((item) => item.label)
     ).toEqual(["Today", "Work", "Logs", "Profile"]);
     expect(
+      buildMobileReadinessNavigationForVariant("machineryOps", "chief_engineer").map(
+        (item) => item.label
+      )
+    ).toEqual(["Today", "Machinery", "Work", "Logs", "Settings"]);
+    expect(
       buildMobileReadinessNavigationForVariant("crewOps", "logistics").map((item) => item.label)
     ).toEqual(["Home", "Crew", "Inventory", "Work", "Compliance", "Settings"]);
   });
@@ -97,6 +102,7 @@ describe("mobile readiness replacement model", () => {
     const screens = buildMobileReadinessScreens("chief_engineer");
 
     expect(screens.pdm.riskQueue[0]).toMatchObject({
+      equipmentId: "port-generator",
       asset: "Port Generator",
       riskState: "High Risk",
       riskScore: 62,

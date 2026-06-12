@@ -39,7 +39,7 @@ export interface MobileNavItem {
   icon: LucideIcon;
 }
 
-export type MobileNavVariant = "roleToday" | "fleetOps" | "technician" | "crewOps";
+export type MobileNavVariant = "roleToday" | "fleetOps" | "machineryOps" | "technician" | "crewOps";
 
 export interface SummaryMetric {
   id: string;
@@ -105,6 +105,7 @@ export interface FleetScreen {
 }
 
 export interface PdmRiskCard {
+  equipmentId: string;
   asset: string;
   subtitle: string;
   riskState: string;
@@ -113,6 +114,7 @@ export interface PdmRiskCard {
   action: string;
   sourceHealth: string;
   tone: ReadinessTone;
+  icon: LucideIcon;
 }
 
 export interface PdmScreen {
@@ -350,6 +352,15 @@ export function buildMobileReadinessNavigationForVariant(
       { id: "alerts", label: "Alerts", href: "/alerts", icon: Bell },
       { id: "crew", label: "Crew", href: "/crew-management", icon: Users },
       { id: "inventory", label: "Inventory", href: "/logistics", icon: Package },
+      { id: "settings", label: "Settings", href: "/system", icon: Settings },
+    ];
+  }
+  if (variant === "machineryOps") {
+    return [
+      { id: "today", label: "Today", href: "/", icon: CalendarCheck },
+      { id: "machinery", label: "Machinery", href: "/pdm-platform", icon: Wrench },
+      { id: "work", label: "Work", href: "/work-orders", icon: ClipboardList },
+      { id: "logs", label: "Logs", href: "/logs", icon: FileText },
       { id: "settings", label: "Settings", href: "/system", icon: Settings },
     ];
   }
@@ -770,6 +781,7 @@ function buildPdmScreen(): PdmScreen {
     ],
     riskQueue: [
       {
+        equipmentId: "port-generator",
         asset: "Port Generator",
         subtitle: "No. 1 Gen Set",
         riskState: "High Risk",
@@ -778,8 +790,10 @@ function buildPdmScreen(): PdmScreen {
         action: "Inspect within 48h",
         sourceHealth: "Fresh",
         tone: "critical",
+        icon: Gauge,
       },
       {
+        equipmentId: "starboard-thruster",
         asset: "Starboard Thruster",
         subtitle: "Tunnel Thruster",
         riskState: "Watch",
@@ -788,8 +802,10 @@ function buildPdmScreen(): PdmScreen {
         action: "Inspect within 7 days",
         sourceHealth: "Fresh",
         tone: "medium",
+        icon: Cog,
       },
       {
+        equipmentId: "main-engine",
         asset: "Main Engine",
         subtitle: "ME Port",
         riskState: "Normal",
@@ -798,8 +814,10 @@ function buildPdmScreen(): PdmScreen {
         action: "Continue watch",
         sourceHealth: "Fresh",
         tone: "good",
+        icon: Wrench,
       },
       {
+        equipmentId: "hydraulic-power-unit",
         asset: "Hydraulic Power Unit",
         subtitle: "HPU No.1",
         riskState: "Offline",
@@ -808,6 +826,7 @@ function buildPdmScreen(): PdmScreen {
         action: "Check sensor heartbeat",
         sourceHealth: "Offline",
         tone: "offline",
+        icon: Gauge,
       },
     ],
     assetCase: {

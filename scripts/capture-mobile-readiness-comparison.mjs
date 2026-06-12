@@ -30,6 +30,16 @@ const captures = [
     reference: "figma-fleet-vessel.png",
   },
   { id: "pdm", route: "/pdm-platform", reference: "figma-telemetry-pdm.png" },
+  {
+    id: "pdm-asset",
+    route: "/pdm/equipment/port-generator",
+    reference: "figma-telemetry-pdm.png",
+  },
+  {
+    id: "telemetry-advanced",
+    route: "/pdm/equipment/port-generator?view=telemetry",
+    reference: "figma-telemetry-pdm.png",
+  },
   { id: "work", route: "/work-orders", reference: "figma-work-logs.png" },
   { id: "logs", route: "/logs", reference: "figma-work-logs.png" },
   { id: "crew", route: "/crew-management", reference: "figma-crew-inventory-settings.png" },
