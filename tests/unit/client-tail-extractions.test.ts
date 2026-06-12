@@ -316,4 +316,39 @@ describe("client tail component extractions", () => {
     expect(telemetry).toContain('data-testid="select-equipment"');
     expect(telemetry).toContain('data-testid="button-refresh-streams"');
   });
+
+  it("keeps work-order form fields behind the public dialog shell", () => {
+    const dialog = read("client/src/components/work-orders/WorkOrderFormDialog.tsx");
+    const fields = read("client/src/components/work-orders/WorkOrderFormFields.tsx");
+
+    expect(dialog).toContain('from "./WorkOrderFormFields"');
+    expect(dialog).toContain("<WorkOrderFormFields");
+    expect(dialog).toContain("export function WorkOrderFormDialog");
+    expect(fields).toContain("export function WorkOrderFormFields");
+    expect(fields).toContain('data-testid="select-maintenance-type"');
+    expect(fields).toContain('data-testid="input-planned-start-date"');
+    expect(fields).toContain('data-testid="checkbox-affects-downtime"');
+    expect(fields).toContain('data-testid="button-submit"');
+  });
+
+  it("keeps crew user access editor exports behind the public shell", () => {
+    const editor = read("client/src/components/crew-admin/UserAccessEditor.tsx");
+    const model = read("client/src/components/crew-admin/UserAccessEditorModel.ts");
+    const parts = read("client/src/components/crew-admin/UserAccessEditorParts.tsx");
+
+    expect(editor).toContain('from "./UserAccessEditorModel"');
+    expect(editor).toContain('from "./UserAccessEditorParts"');
+    expect(editor).toContain("export function UserAccessEditor");
+    expect(editor).toContain("export { previewLine }");
+    expect(editor).toContain("export type {");
+    expect(editor).toContain("CrewUser,");
+    expect(model).toContain("export function previewLine");
+    expect(parts).toContain("export function HubAccessSection");
+    expect(parts).toContain("export function CredentialsSection");
+    expect(parts).toContain("export function SaveResultList");
+    expect(parts).toContain('data-testid="checkbox-hub-admin"');
+    expect(parts).toContain('data-testid="button-reset-password"');
+    expect(parts).toContain('data-testid="access-save-result"');
+    expect(parts).toContain('data-testid="button-confirm-reset"');
+  });
 });

@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T09:20:04.000Z
+Generated: 2026-06-12T09:46:11.527Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `44` counted files.
-- The current counted inventory is `44` files.
+- The temporary ceiling is `42` counted files.
+- The current counted inventory is `42` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    44 |
+| Total counted long files  |    42 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    44 |
+| Client                    |    42 |
 | Client page files         |    17 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -140,6 +140,8 @@ Completed splits:
 - `client/src/components/admin/SchedulingSettingsTab.tsx` dropped below the threshold by moving rotation template management to a sibling section module while preserving the exported settings tab and test IDs.
 - `client/src/pages/scheduled-reports.tsx` dropped below the threshold by moving create-schedule form constants and dialog controls to sibling route modules while preserving route behavior and test IDs.
 - `client/src/components/analytics/OperationsMode.tsx` dropped below the threshold by moving active telemetry stream filters, fetching, and sparkline rendering to a sibling mode component while preserving test IDs.
+- `client/src/components/work-orders/WorkOrderFormDialog.tsx` dropped below the threshold by moving form fields and action controls to a sibling component while preserving the public dialog shell and test IDs.
+- `client/src/components/crew-admin/UserAccessEditor.tsx` dropped below the threshold by moving exported model helpers and lower editor sections to sibling modules while preserving public exports and test IDs.
 
 ## Top 30 Longest Files
 
@@ -239,6 +241,4 @@ Completed splits:
 638 client/src/pages/DiagnosticsDashboard.tsx
 633 client/src/components/sensors/SensorSetupWizard.tsx
 632 client/src/components/crew-admin/UserAssignmentTab.tsx
-625 client/src/components/crew-admin/UserAccessEditor.tsx
-623 client/src/components/work-orders/WorkOrderFormDialog.tsx
 ```
