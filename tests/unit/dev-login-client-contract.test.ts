@@ -41,11 +41,10 @@ describe("temporary dev-login client contract", () => {
     expect(src).not.toMatch(/localStorage\.(getItem|setItem|removeItem)/);
   });
 
-  it("mounts the temporary user-role tabs only on the user portal branch", async () => {
+  it("routes dev user previews into the mobile readiness command center", async () => {
     const src = await readFile(HOME_PAGE, "utf8");
-    expect(src).toContain("DevUserRoleTabs");
-    expect(src).toContain("onRoleChanged");
-    expect(src).toContain("shell-user-portal");
+    expect(src).toContain("MobileCommandCenterPage");
+    expect(src).not.toMatch(/DevUserRoleTabs|onRoleChanged|shell-user-portal/);
   });
 
   it("removes old implicit client-side dev permission bypasses", async () => {

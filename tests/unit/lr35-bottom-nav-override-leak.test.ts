@@ -114,10 +114,10 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toMatch(/BOTTOM_NAV_OVERRIDE_STORAGE_KEY\s*=\s*"arus-bottom-nav-items"/);
     });
 
-    it("BottomNav.tsx imports the centralised key and the intersect helper", async () => {
+    it("BottomNav.tsx imports the centralised key and the prune helper", async () => {
       const src = await readFile(BOTTOM_NAV, "utf8");
       expect(src).toContain("BOTTOM_NAV_OVERRIDE_STORAGE_KEY");
-      expect(src).toContain("intersectOverrideWithPolicy");
+      expect(src).toContain("pruneOverrideToPolicyIds");
       // No raw magic string for the storage key anywhere in the file
       // except inside the constant import (which uses the symbol, not
       // the literal). The literal must only live in roles.ts.
@@ -159,21 +159,21 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(roleLiteralMatches.length).toBe(0);
     });
 
-    it("BottomNav.tsx renders nothing for user-portal roles (#218 render gate)", async () => {
+    it("BottomNav.tsx renders the Figma role nav after stale override self-heal", async () => {
       const src = await readFile(BOTTOM_NAV, "utf8");
-      // Pin the policy import + the early-return when hub-admin access is absent.
-      // The hooks above the return must still execute so the #194
-      // override self-heal keeps running for users who never see the
-      // bar — assert the return sits AFTER the useEffect block.
-      expect(src).toContain("isAdminPortalAccess");
-      expect(src).toMatch(/if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null\s*;\s*\}/);
+      // Mobile readiness replaces the old user-portal render gate:
+      // every mobile role gets the Figma role-specific nav, while the
+      // stale override self-heal still runs before rendering.
+      expect(src).toContain("MobileReadinessBottomNav");
+      expect(src).not.toContain("isAdminPortalAccess");
+      expect(src).not.toMatch(/return\s+null/);
       const useEffectIdx = src.indexOf("useEffect(");
-      const userReturnIdx = src.search(/if\s*\(\s*!\s*hasAdminAccess\s*\)\s*\{\s*return\s+null/);
+      const navReturnIdx = src.indexOf("return <MobileReadinessBottomNav />");
       expect(useEffectIdx).toBeGreaterThan(-1);
-      expect(userReturnIdx).toBeGreaterThan(useEffectIdx);
+      expect(navReturnIdx).toBeGreaterThan(useEffectIdx);
     });
 
-    it("App.tsx mounts BottomNav only outside the universal shell and only pads for the admin portal (#218)", async () => {
+    it("App.tsx mounts BottomNav on mobile replacement routes and suppresses the global Copilot FAB there", async () => {
       const APP_TSX = resolve(REPO_ROOT, "client/src/App.tsx");
       const src = await readFile(APP_TSX, "utf8");
       // CRITICAL #194 contract: BottomNav must still mount for
@@ -183,6 +183,11 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       // Universal admin hub routes provide their own navigation chrome,
       // so BottomNav must not mount there.
       expect(src).toContain("{!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}");
+      expect(src).toContain("usesMobileReadinessReplacement");
+      expect(src).toContain("isMobileReadinessReplacementPath");
+      expect(src).toContain(
+        "{!isLoginRoute && !usesUniversalOpsShell && !usesMobileReadinessReplacement && <CopilotFab />}"
+      );
       expect(src).not.toMatch(/\{\s*isAdminPortal\s*&&\s*<BottomNav\s*\/>\s*\}/);
       // Mobile clearance is scoped to the admin portal AND off the ops shell
       // (no orphan `pb-14` strip on routes where BottomNav isn't mounted).
@@ -190,7 +195,7 @@ describe("BottomNav override-leak hardening (follow-up #194)", () => {
       expect(src).toContain("isAdminPortalAccess");
       expect(src).toContain("permissions.hubAdmin");
       expect(src).toMatch(
-        /isAdminPortal\s*&&\s*!\s*usesUniversalOpsShell\s*\?\s*"pb-14 md:pb-0"\s*:\s*""/
+        /isAdminPortal\s*&&\s*!\s*usesUniversalOpsShell\s*\?\s*"pb-20 md:pb-0"\s*:\s*""/
       );
       // Must not reintroduce the legacy unconditional clearance.
       expect(src).not.toMatch(

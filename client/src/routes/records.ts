@@ -2,10 +2,6 @@ import { lazy } from "react";
 
 const LogsHub = lazy(() => import("@/pages/logs-hub"));
 const RmsMonitoring = lazy(() => import("@/pages/rms-monitoring"));
-const ComplianceConsolidated = lazy(() => import("@/pages/compliance-consolidated"));
-const DeckLogConsolidated = lazy(() => import("@/pages/deck-log-consolidated"));
-const EngineLogConsolidated = lazy(() => import("@/pages/engine-log-consolidated"));
-const EquipmentLogConsolidated = lazy(() => import("@/pages/equipment-log-consolidated"));
 
 // One canonical surface per records destination. The nav's per-log paths render
 // the same consolidated shells the /logs?tab=* hub loads, so every entry point
@@ -15,9 +11,9 @@ const EquipmentLogConsolidated = lazy(() => import("@/pages/equipment-log-consol
 // are handled by routeMigrations redirects, not duplicate registrations here.
 export const recordsRoutes = [
   { path: "/logs", component: LogsHub },
-  { path: "/logs/compliance", component: ComplianceConsolidated },
-  { path: "/logs/deck", component: DeckLogConsolidated },
-  { path: "/logs/engine", component: EngineLogConsolidated },
-  { path: "/logs/equipment", component: EquipmentLogConsolidated },
+  { path: "/logs/compliance", component: LogsHub },
+  { path: "/logs/deck", component: LogsHub },
+  { path: "/logs/engine", component: LogsHub },
+  { path: "/logs/equipment", component: LogsHub },
   { path: "/rms-monitoring", component: RmsMonitoring },
 ];

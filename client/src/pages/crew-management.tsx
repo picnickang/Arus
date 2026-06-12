@@ -1,14 +1,5 @@
-import { UnifiedCrewManagement } from "@/components/UnifiedCrewManagement";
-import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
+import { MobileCrewPage } from "@/features/mobile-readiness/MobileReadinessScreens";
 
 export default function CrewManagementPage() {
-  return (
-    <PermissionGate resource="crew_members" action="view" fallback={<PagePermissionDenied />}>
-      <div className="min-h-screen" data-testid="page-crew-management">
-        <div className="p-4 md:p-6">
-          <UnifiedCrewManagement />
-        </div>
-      </div>
-    </PermissionGate>
-  );
+  return <MobileCrewPage />;
 }

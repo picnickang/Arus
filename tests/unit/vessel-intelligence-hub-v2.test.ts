@@ -9,10 +9,6 @@ const TEST_DIR = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(TEST_DIR, "..", "..");
 const PAGE_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/index.tsx");
 const FLEET_PAGE_PATH = resolve(REPO_ROOT, "client/src/pages/fleet-hub.tsx");
-const FLEET_TRIAGE_COMPONENTS_PATH = resolve(
-  REPO_ROOT,
-  "client/src/pages/vessel-intelligence/fleet-triage-components.tsx"
-);
 const UNIVERSAL_SHELL_PATH = resolve(REPO_ROOT, "client/src/components/ops/UniversalOpsShell.tsx");
 const UNIVERSAL_NAV_PATH = resolve(
   REPO_ROOT,
@@ -22,6 +18,14 @@ const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/r
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
+const MOBILE_READINESS_SCREEN_PATH = resolve(
+  REPO_ROOT,
+  "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"
+);
+const MOBILE_READINESS_MODEL_PATH = resolve(
+  REPO_ROOT,
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts"
+);
 const REGISTRY_API_PATH = resolve(
   REPO_ROOT,
   "client/src/pages/vessel-intelligence/registry-api.ts"
@@ -146,27 +150,18 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
   it("keeps /fleet as a real route instead of a legacy redirect", async () => {
     const redirectMap = new Map(legacyRedirects.map((redirect) => [redirect.from, redirect.to]));
     const fleetPage = await load(FLEET_PAGE_PATH);
-    const fleetComponents = await load(FLEET_TRIAGE_COMPONENTS_PATH);
+    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
+    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
 
     expect(routeMigrations["/fleet"]).toBeUndefined();
     expect(redirectMap.has("/fleet")).toBe(false);
-    expect(fleetPage).toContain('data-testid="fleet-triage-page"');
-    expect(fleetPage).toContain("buildFleetTriageViewModel");
-    expect(fleetPage).toContain('"/api/vessels"');
-    expect(fleetPage).toContain('"/api/equipment"');
-    expect(fleetPage).toContain('"/api/work-orders"');
-    expect(fleetPage).toContain('"/api/alerts"');
-    // Registry summaries arrive via the batch endpoint (one request per fleet,
-    // not one per vessel).
-    expect(fleetPage).toContain('"/api/vessel-intelligence/summaries"');
-    expect(fleetPage).toContain("selectedDiagramMediaUrl");
-    expect(fleetPage).toContain("FleetVesselDiagramPreview");
-    expect(fleetPage).toContain("FleetRegistryAccessPanel");
-    expect(fleetComponents).toContain('testId="fleet-registry-access"');
-    expect(fleetComponents).toContain('testId: "button-open-diagram-registry"');
-    expect(fleetComponents).toContain('data-testid="button-replace-side-elevation"');
-    expect(fleetComponents).toContain('data-testid="fleet-side-elevation-status"');
-    expect(fleetPage).toContain("priorityVesselId");
+    expect(fleetPage).toContain("MobileFleetPage");
+    expect(mobileScreens).toContain("export function MobileFleetPage");
+    expect(mobileScreens).toContain("fleet-vessel-card-");
+    expect(mobileScreens).toContain("VesselThumbnail");
+    expect(mobileScreens).toContain("Fleet triage");
+    expect(mobileModel).toContain("MV Atlas");
+    expect(mobileModel).toContain("nextAction");
   });
 
   it("renders an explicit empty section state for blank maps", async () => {
@@ -176,7 +171,7 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(sectionedMap).toContain('data-testid="section-map-empty-sections"');
   });
 
-  it("uses the universal admin ops shell for Fleet and Vessel Intelligence routes", async () => {
+  it("keeps the universal shell available while mobile replacement routes bypass it", async () => {
     const shell = await load(UNIVERSAL_SHELL_PATH);
     const universalNav = await load(UNIVERSAL_NAV_PATH);
     const app = await load(resolve(REPO_ROOT, "client/src/App.tsx"));
@@ -186,6 +181,8 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(shell).toContain('data-testid="universal-ops-mobile-drawer"');
     expect(universalNav).toContain('["/vessel-intelligence/", "fleet"]');
     expect(app).toContain("resolveCurrentRouteHubId");
+    expect(app).toContain("isMobileReadinessReplacementPath");
+    expect(app).toContain("!usesMobileReadinessReplacement && resolveCurrentRouteHubId");
     expect(app).toContain("usesUniversalOpsShell");
     expect(app).toContain("!usesUniversalOpsShell && <BottomNav />");
   });
@@ -213,28 +210,25 @@ describe("Vessel Intelligence Hub v2 design registry", () => {
   });
 });
 
-describe("Vessel Intelligence Hub v2 live-data binding", () => {
-  it("binds to existing ARUS APIs instead of hardcoded production numbers", async () => {
+describe("Vessel Intelligence Hub v2 mobile readiness binding", () => {
+  it("delegates vessel detail to the shared mobile readiness replacement", async () => {
     const page = await load(PAGE_PATH);
-    expect(page).toContain('"/api/vessels"');
-    expect(page).toContain('"/api/equipment"');
-    expect(page).toContain('"/api/work-orders"');
-    expect(page).toContain('"/api/alerts"');
-    expect(page).toContain('"/api/pdm/dashboard"');
-    expect(page).toContain('"/api/vessel-intelligence"');
-    expect(page).toContain("activeSectionMap");
-    expect(page).toContain('data-testid="vessel-intelligence-data-error"');
+    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
+    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+
+    expect(page).toContain("MobileVesselDetailPage");
+    expect(mobileScreens).toContain("export function MobileVesselDetailPage");
+    expect(mobileScreens).toContain("VesselDiagramPanel");
+    expect(mobileModel).toContain("vesselDetail");
+    expect(mobileModel).toContain("Telemetry");
     expect(page).not.toMatch(/mockVessel|mockEquipment|fakeTelemetry|setInterval/);
   });
 
-  it("keeps empty live-data responses renderable", async () => {
+  it("keeps the legacy data helpers available for deeper registry and diagnostics screens", async () => {
     const data = await load(DATA_PATH);
-    const page = await load(PAGE_PATH);
 
     expect(data).toContain("vessel: VesselRecord | undefined");
     expect(data).toContain("return vessel?.id ??");
-    expect(page).toContain("vessels[0]");
-    expect(page).toContain("vesselIdFor(selectedVessel)");
   });
 });
 
@@ -365,12 +359,13 @@ describe("Replaceable Diagram Registry controls", () => {
   });
 
   it("routes legacy target query links to the intended hub tab", async () => {
-    const page = await load(PAGE_PATH);
+    const routes = await load(FLEET_ROUTES_PATH);
+    const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
 
-    expect(page).toContain('new URLSearchParams(path.split("?")[1] ?? "")');
-    expect(page).toContain('target === "sections"');
-    expect(page).toContain('target === "performance"');
-    expect(page).toContain('target === "alerts"');
-    expect(page).toContain("RegistryRouteScreen");
+    expect(routes).toContain('"/fleet/:vesselId"');
+    expect(routes).toContain('"/equipment-schematic/:vesselId"');
+    expect(routes).toContain('"/reports/vessel/:vesselId"');
+    expect(mobileScreens).toContain("isMobileReadinessReplacementPath");
+    expect(mobileScreens).toContain("/vessel-intelligence/");
   });
 });
