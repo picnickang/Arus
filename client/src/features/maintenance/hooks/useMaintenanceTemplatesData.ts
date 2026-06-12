@@ -18,6 +18,15 @@ interface MaintenanceTemplate {
   priority: string;
 }
 
+interface MaintenanceTemplateItem {
+  id: string;
+  stepNumber: number;
+  description: string;
+  required?: boolean;
+  estimatedMinutes?: number;
+  imageUrl?: string;
+}
+
 export function useMaintenanceTemplatesData() {
   const { toast } = useToast();
   const [selectedType, setSelectedType] = useState<string>("engine");
@@ -33,9 +42,13 @@ export function useMaintenanceTemplatesData() {
     queryKey: ["/api/maintenance-templates"],
     refetchInterval: 60000,
   });
-  const { data: templateItems = [] } = useQuery({
+  const { data: templateItems = [] } = useQuery<MaintenanceTemplateItem[]>({
     queryKey: ["/api/maintenance-templates", selectedTemplate?.id, "items"],
-    queryFn: () => apiRequest("GET", `/api/maintenance-templates/${selectedTemplate?.id}/items`),
+    queryFn: () =>
+      apiRequest<MaintenanceTemplateItem[]>(
+        "GET",
+        `/api/maintenance-templates/${selectedTemplate?.id}/items`
+      ),
     enabled: !!selectedTemplate?.id && isViewDialogOpen,
   });
   const filteredTemplates = allTemplates.filter((t) => t.equipmentType === selectedType);

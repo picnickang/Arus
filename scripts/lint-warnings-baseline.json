@@ -1,20 +1,20 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-06-12T13:54:23.360Z",
+  "generatedAt": "2026-06-12T14:46:18.308Z",
   "errors": 0,
-  "warnings": 1922,
+  "warnings": 1914,
   "summary": {
     "byTopRules": {
       "@typescript-eslint/prefer-nullish-coalescing": 634,
       "no-nested-ternary": 346,
-      "@typescript-eslint/no-unused-vars": 199,
+      "@typescript-eslint/no-unused-vars": 197,
       "@typescript-eslint/explicit-function-return-type": 144,
       "complexity": 141,
       "max-nested-callbacks": 140,
       "no-restricted-syntax": 60,
-      "max-lines-per-function": 44,
       "react-hooks/exhaustive-deps": 39,
       "require-atomic-updates": 38,
+      "max-lines-per-function": 38,
       "max-depth": 28,
       "no-console": 28,
       "no-return-await": 26,
@@ -30,8 +30,8 @@
       "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 19,
       "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/server/db/crew/index.ts": 19,
       "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/tests/unit/lr35-bottom-nav-override-leak.test.ts": 19,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/pages/maintenance-schedules.tsx": 15,
-      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/components/MultiPartSelector.tsx": 14
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/components/MultiPartSelector.tsx": 14,
+      "/Users/homeimac/Documents/Codex/2026-06-11/resolve-the-conflict-in-reach-the/work/Arus/client/src/features/analytics/hooks/useFinanceModeData.ts": 14
     }
   }
 }

@@ -12,6 +12,7 @@ const PRIMARY_CONF_PATH = "src-tauri/tauri.conf.json" as const;
 type TauriConf = {
   $schema: string;
   productName: string;
+  mainBinaryName?: string;
   version: string;
   identifier: string;
   build: {
@@ -63,6 +64,7 @@ describe("Tauri Windows Installer — Primary Desktop Configuration", () => {
   it("is the one default offline-first desktop product", () => {
     expect(conf.$schema).toMatch(/tauri\.app/);
     expect(conf.productName).toBe("ARUS Desktop");
+    expect(conf.mainBinaryName).toBe("ARUS Desktop");
     expect(conf.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(conf.identifier).toBe("com.arus.marine");
   });
@@ -136,14 +138,9 @@ describe("Tauri Windows Installer — Primary Desktop Configuration", () => {
     );
   });
 
-  it("does NOT contain an updater plugin with placeholder keys", () => {
+  it("keeps the updater plugin disabled until signed endpoints are configured", () => {
     const plugins = conf.plugins ?? {};
-    if ("updater" in plugins) {
-      const updater = plugins["updater"] as Record<string, unknown>;
-      const pubkey = (updater["pubkey"] as string) ?? "";
-      expect(pubkey).not.toMatch(/REPLACE_WITH/i);
-      expect(pubkey).not.toBe("");
-    }
+    expect(plugins).not.toHaveProperty("updater");
   });
 });
 
@@ -178,7 +175,8 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   it("runs the Windows desktop job on a real Windows runner", () => {
     expect(windowsWorkflow).toContain("build-windows-desktop:");
     expect(windowsWorkflow).toContain("runs-on: windows-latest");
-    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer)");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
     expect(windowsWorkflow).toContain("--target x86_64-pc-windows-msvc");
     expect(windowsWorkflow).toContain("--config src-tauri/tauri.conf.json");
   });
@@ -198,6 +196,16 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
     expect(windowsWorkflow).not.toContain("- run: npm ci\n\n      - name: Generate icons");
   });
 
+  it("uses release publishing only for tag builds and plain Tauri build for workflow smoke", () => {
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, release upload)");
+    expect(windowsWorkflow).toContain("if: ${{ startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain("Build Tauri (desktop setup installer, workflow smoke)");
+    expect(windowsWorkflow).toContain("if: ${{ !startsWith(github.ref, 'refs/tags/') }}");
+    expect(windowsWorkflow).toContain(
+      "npx tauri build --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json"
+    );
+  });
+
   it("silently installs the setup exe into a temporary Windows smoke directory", () => {
     expect(windowsWorkflow).toContain("Smoke install ARUS Desktop setup");
     expect(windowsWorkflow).toContain("Start-Process -FilePath $setup.FullName");
@@ -207,9 +215,12 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
   });
 
   it("asserts installed app and sidecar executables, then runs sidecar health check offline", () => {
-    expect(windowsWorkflow).toContain("$appExe = Join-Path $installDir");
+    expect(windowsWorkflow).toContain("$defaultInstallDirs");
+    expect(windowsWorkflow).toContain('Get-ChildItem $root -Recurse -Filter "ARUS Desktop.exe"');
+    expect(windowsWorkflow).toContain("Get-ItemProperty $root");
+    expect(windowsWorkflow).toContain("ARUS_APP_EXE");
     expect(windowsWorkflow).toContain("ARUS Desktop.exe");
-    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installDir -Recurse");
+    expect(windowsWorkflow).toContain("$sidecarExe = Get-ChildItem $installedRoot -Recurse");
     expect(windowsWorkflow).toContain("arus-server");
     expect(windowsWorkflow).toContain("--health-check");
     expect(windowsWorkflow).toContain("LOCAL_MODE");
@@ -218,6 +229,12 @@ describe("Tauri Windows Installer — GitHub Actions Windows Smoke", () => {
 
   it("launches and terminates the installed desktop app during the smoke", () => {
     expect(windowsWorkflow).toContain("Smoke launch installed ARUS Desktop");
+    expect(windowsWorkflow).toContain("$appExe = $env:ARUS_APP_EXE");
+    expect(windowsWorkflow).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(windowsWorkflow).toContain("ARUS Desktop panic log");
+    expect(windowsWorkflow).toContain("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
+    expect(windowsWorkflow).toContain("--disable-gpu");
+    expect(windowsWorkflow).toContain("Get-WinEvent");
     expect(windowsWorkflow).toContain("Start-Process -FilePath $appExe");
     expect(windowsWorkflow).toContain("HasExited");
     expect(windowsWorkflow).toContain("Stop-Process");
@@ -636,10 +653,10 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   });
 
   it("sidecar sets correct environment variables", () => {
-    expect(libRs).toContain('.env("NODE_ENV"');
-    expect(libRs).toContain('.env("PORT",');
+    expect(libRs).toMatch(/\.env\(\s*"NODE_ENV"/);
+    expect(libRs).toContain('.env("PORT", "5000")');
     expect(libRs).toContain('.env("DEPLOYMENT_MODE", "VESSEL")');
-    expect(libRs).toContain('.env("LOCAL_MODE",      "true")');
+    expect(libRs).toContain('.env("LOCAL_MODE", "true")');
     expect(libRs).toContain('.env("DATABASE_PATH"');
   });
 
@@ -672,6 +689,17 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
   it("hides console window in release builds on Windows", () => {
     const mainRs = read("src-tauri/src/main.rs");
     expect(mainRs).toContain('#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]');
+  });
+
+  it("installs a file-backed panic hook for Windows launch diagnostics", () => {
+    expect(libRs).toContain("fn install_panic_logger()");
+    expect(libRs).toContain("ARUS_DESKTOP_PANIC_LOG");
+    expect(libRs).toContain("std::panic::set_hook");
+    expect(libRs).toContain("install_panic_logger();");
+  });
+
+  it("does not initialize the updater plugin without updater config", () => {
+    expect(libRs).not.toContain("tauri_plugin_updater::Builder::new().build()");
   });
 });
 
