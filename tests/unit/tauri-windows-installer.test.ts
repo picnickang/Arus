@@ -138,14 +138,9 @@ describe("Tauri Windows Installer — Primary Desktop Configuration", () => {
     );
   });
 
-  it("does NOT contain an updater plugin with placeholder keys", () => {
+  it("keeps the updater plugin disabled until signed endpoints are configured", () => {
     const plugins = conf.plugins ?? {};
-    if ("updater" in plugins) {
-      const updater = plugins["updater"] as Record<string, unknown>;
-      const pubkey = (updater["pubkey"] as string) ?? "";
-      expect(pubkey).not.toMatch(/REPLACE_WITH/i);
-      expect(pubkey).not.toBe("");
-    }
+    expect(plugins).not.toHaveProperty("updater");
   });
 });
 
@@ -700,6 +695,10 @@ describe("Tauri Windows Installer — Rust Sidecar Logic", () => {
     expect(libRs).toContain("ARUS_DESKTOP_PANIC_LOG");
     expect(libRs).toContain("std::panic::set_hook");
     expect(libRs).toContain("install_panic_logger();");
+  });
+
+  it("does not initialize the updater plugin without updater config", () => {
+    expect(libRs).not.toContain("tauri_plugin_updater::Builder::new().build()");
   });
 });
 
