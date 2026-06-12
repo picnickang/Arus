@@ -9,10 +9,18 @@ const MOBILE_SCREENS = readFileSync(
   join(process.cwd(), "client/src/features/mobile-readiness/MobileReadinessScreens.tsx"),
   "utf8"
 );
-const MOBILE_MODEL = readFileSync(
-  join(process.cwd(), "client/src/features/mobile-readiness/mobile-readiness-model.ts"),
-  "utf8"
-);
+const MOBILE_MODEL = [
+  "mobile-readiness-model.ts",
+  "mobile-readiness-model-types.ts",
+  "mobile-readiness-navigation.ts",
+  "mobile-readiness-queue-fleet.ts",
+  "mobile-readiness-machinery-work.ts",
+  "mobile-readiness-support-screens.ts",
+]
+  .map((file) =>
+    readFileSync(join(process.cwd(), "client/src/features/mobile-readiness", file), "utf8")
+  )
+  .join("\n");
 
 describe("pdm-platform mobile readiness replacement", () => {
   it("delegates the legacy tabbed page to the mobile PdM risk queue", () => {

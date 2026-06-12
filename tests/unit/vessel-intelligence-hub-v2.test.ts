@@ -27,6 +27,14 @@ const MOBILE_READINESS_MODEL_PATH = resolve(
   REPO_ROOT,
   "client/src/features/mobile-readiness/mobile-readiness-model.ts"
 );
+const MOBILE_READINESS_MODEL_PATHS = [
+  MOBILE_READINESS_MODEL_PATH,
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-model-types.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-navigation.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts"),
+  resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts"),
+];
 const REGISTRY_API_PATH = resolve(
   REPO_ROOT,
   "client/src/pages/vessel-intelligence/registry-api.ts"
@@ -109,6 +117,11 @@ async function loadDomainRouterRegistry(): Promise<string> {
   return sources.join("\n");
 }
 
+async function loadMobileReadinessModel(): Promise<string> {
+  const sources = await Promise.all(MOBILE_READINESS_MODEL_PATHS.map(load));
+  return sources.join("\n");
+}
+
 /** The registry screens are split across the dispatcher module and one file
  * per screen in registry-screens/; pin test ids against the whole family. */
 async function loadRegistryScreens(): Promise<string> {
@@ -163,7 +176,7 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     const redirectMap = new Map(legacyRedirects.map((redirect) => [redirect.from, redirect.to]));
     const fleetPage = await load(FLEET_PAGE_PATH);
     const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+    const mobileModel = await loadMobileReadinessModel();
 
     expect(routeMigrations["/fleet"]).toBeUndefined();
     expect(redirectMap.has("/fleet")).toBe(false);
@@ -226,7 +239,7 @@ describe("Vessel Intelligence Hub v2 mobile readiness binding", () => {
   it("delegates vessel detail to the shared mobile readiness replacement", async () => {
     const page = await load(PAGE_PATH);
     const mobileScreens = await load(MOBILE_READINESS_SCREEN_PATH);
-    const mobileModel = await load(MOBILE_READINESS_MODEL_PATH);
+    const mobileModel = await loadMobileReadinessModel();
 
     expect(page).toContain("MobileVesselDetailPage");
     expect(mobileScreens).toContain("export function MobileVesselDetailPage");

@@ -13,6 +13,19 @@ async function readSrc(path: string): Promise<string> {
   return readFile(resolve(process.cwd(), path), "utf8");
 }
 
+const MOBILE_MODEL_PATHS = [
+  "client/src/features/mobile-readiness/mobile-readiness-model.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-model-types.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-navigation.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-queue-fleet.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts",
+  "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts",
+];
+
+async function readMobileModelSrc(): Promise<string> {
+  return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
+}
+
 describe("UI Align Phase 3B — mobile readiness replacement", () => {
   let homeSrc = "";
   let bottomNavSrc = "";
@@ -24,7 +37,7 @@ describe("UI Align Phase 3B — mobile readiness replacement", () => {
       readSrc("client/src/pages/home.tsx"),
       readSrc("client/src/components/BottomNav.tsx"),
       readSrc("client/src/features/mobile-readiness/MobileReadinessScreens.tsx"),
-      readSrc("client/src/features/mobile-readiness/mobile-readiness-model.ts"),
+      readMobileModelSrc(),
     ]);
   });
 
