@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T12:02:59.595Z
+Generated: 2026-06-12T12:12:33.664Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `13` counted files.
-- The current counted inventory is `13` files.
+- The temporary ceiling is `12` counted files.
+- The current counted inventory is `12` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,12 +20,12 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    13 |
+| Total counted long files  |    12 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    13 |
-| Client page files         |     5 |
+| Client                    |    12 |
+| Client page files         |     4 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
 | Excluded test fixtures    |     1 |
@@ -154,30 +154,30 @@ Completed splits:
 - `client/src/features/crew/hooks/useHoursOfRestData.ts` dropped below the threshold by moving exported hook types and hours-of-rest action callbacks to sibling hook modules while preserving the public `useHoursOfRestData` path.
 - `client/src/pages/maintenance-schedules.tsx` dropped below the threshold by moving calendar, filter/list sections, dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
 - `client/src/pages/organization-management.tsx` dropped below the threshold by moving organization/user list sections, form dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
+- `client/src/pages/MaintenanceTemplatesPage.tsx` dropped below the threshold by moving template cards, checklist/view helpers, dialogs, and route model typing to sibling page modules while preserving route behavior and test IDs.
 
-## Top 13 Longest Files
+## Top 12 Longest Files
 
 | Rank | Lines | File                                                              |
 | ---: | ----: | ----------------------------------------------------------------- |
-|    1 |   755 | `client/src/pages/MaintenanceTemplatesPage.tsx`                   |
-|    2 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`              |
-|    3 |   712 | `client/src/pages/equipment/index.tsx`                            |
-|    4 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`  |
-|    5 |   704 | `client/src/pages/findings-cards.tsx`                             |
-|    6 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
-|    7 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
-|    8 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
-|    9 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
-|   10 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
-|   11 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
-|   12 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
-|   13 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
+|    1 |   731 | `client/src/components/ai-health/PerformanceTab.tsx`              |
+|    2 |   712 | `client/src/pages/equipment/index.tsx`                            |
+|    3 |   711 | `client/src/components/work-orders/LinkedServiceOrdersPanel.tsx`  |
+|    4 |   704 | `client/src/pages/findings-cards.tsx`                             |
+|    5 |   687 | `client/src/components/agent/AgentChatPanel/index.tsx`            |
+|    6 |   685 | `client/src/features/crew/hooks/useSchedulePlannerData.ts`        |
+|    7 |   680 | `client/src/components/stormgeo-settings.tsx`                     |
+|    8 |   672 | `client/src/components/equipment/EquipmentDecommissionDialog.tsx` |
+|    9 |   652 | `client/src/components/ai-health/InsightsTab.tsx`                 |
+|   10 |   647 | `client/src/pages/vessel-management/index.tsx`                    |
+|   11 |   638 | `client/src/pages/DiagnosticsDashboard.tsx`                       |
+|   12 |   633 | `client/src/components/sensors/SensorSetupWizard.tsx`             |
 
 ## Recommended Extraction Plan
 
 1. Continue with client characterization before large UI splits.
    - Server and shared counted sources are now under the threshold.
-   - Prioritize admin pages, findings, FinanceMode, maintenance templates, and AI-health tabs.
+   - Prioritize admin pages, findings, FinanceMode, AI-health tabs, and equipment pages.
    - Required proof: focused unit/integration suites for each touched subsystem plus `npm run check`.
 
 2. Split client route pages and components by stable UI sub-surfaces.
@@ -194,7 +194,6 @@ Completed splits:
 ## Full Counted Inventory
 
 ```text
-755 client/src/pages/MaintenanceTemplatesPage.tsx
 731 client/src/components/ai-health/PerformanceTab.tsx
 712 client/src/pages/equipment/index.tsx
 711 client/src/components/work-orders/LinkedServiceOrdersPanel.tsx

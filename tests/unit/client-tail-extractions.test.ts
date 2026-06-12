@@ -472,4 +472,24 @@ describe("client tail component extractions", () => {
     expect(dialogs).toContain('data-testid="dialog-password"');
   });
 
+  it("keeps maintenance template cards and dialogs behind the route shell", () => {
+    const page = read("client/src/pages/MaintenanceTemplatesPage.tsx");
+    const cards = read("client/src/pages/MaintenanceTemplatesPageCards.tsx");
+    const dialogs = read("client/src/pages/MaintenanceTemplatesPageDialogs.tsx");
+
+    expect(page).toContain('from "./MaintenanceTemplatesPageCards"');
+    expect(page).toContain('from "./MaintenanceTemplatesPageDialogs"');
+    expect(page).toContain("<TemplateCard");
+    expect(page).toContain("<MaintenanceTemplateDialogs");
+    expect(cards).toContain("export function TemplateCard");
+    expect(cards).toContain("export function ChecklistSection");
+    expect(cards).toContain("export function ViewTemplateContent");
+    expect(cards).toContain('data-testid={`template-card-${template.id}`}');
+    expect(cards).toContain('data-testid="button-add-item"');
+    expect(dialogs).toContain("export function MaintenanceTemplateDialogs");
+    expect(dialogs).toContain('data-testid="dialog-title"');
+    expect(dialogs).toContain('data-testid="view-dialog-title"');
+    expect(dialogs).toContain('data-testid="button-confirm-delete"');
+  });
+
 });

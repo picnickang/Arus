@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-06-12T12:02:59.595Z",
+  "createdAt": "2026-06-12T12:12:33.664Z",
   "counts": {
     "catch-underscore": 0,
     "console-log": 0,
@@ -7,7 +7,7 @@
     "ts-expect-error": 0,
     "todo-markers": 7,
     "dense-oneliners": 1,
-    "long-files": 13
+    "long-files": 12
   },
   "policy": {
     "long-files": {
