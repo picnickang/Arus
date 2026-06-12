@@ -287,4 +287,33 @@ describe("client tail component extractions", () => {
     expect(rotation).toContain('data-testid={`button-delete-template-${template.id}`}');
     expect(rotation).toContain('data-testid="button-add-template"');
   });
+
+  it("keeps scheduled report creation controls behind the route shell", () => {
+    const page = read("client/src/pages/scheduled-reports.tsx");
+    const dialog = read("client/src/pages/scheduled-reports-create-dialog.tsx");
+    const form = read("client/src/pages/scheduled-reports-form.ts");
+
+    expect(page).toContain('from "./scheduled-reports-create-dialog"');
+    expect(page).toContain('from "./scheduled-reports-form"');
+    expect(page).toContain("<CreateScheduleDialog");
+    expect(dialog).toContain("export function CreateScheduleDialog");
+    expect(dialog).toContain('data-testid="button-create-schedule"');
+    expect(dialog).toContain('data-testid="input-schedule-name"');
+    expect(dialog).toContain('data-testid="button-submit-schedule"');
+    expect(form).toContain("export const createScheduleFormSchema");
+    expect(form).toContain("export type CreateScheduleForm");
+  });
+
+  it("keeps operations telemetry streams behind the mode shell", () => {
+    const mode = read("client/src/components/analytics/OperationsMode.tsx");
+    const telemetry = read("client/src/components/analytics/OperationsModeTelemetryStreams.tsx");
+
+    expect(mode).toContain('from "./OperationsModeTelemetryStreams"');
+    expect(mode).toContain("<OperationsModeTelemetryStreams />");
+    expect(mode).toContain("export function OperationsMode");
+    expect(telemetry).toContain("export function OperationsModeTelemetryStreams");
+    expect(telemetry).toContain('data-testid="select-vessel"');
+    expect(telemetry).toContain('data-testid="select-equipment"');
+    expect(telemetry).toContain('data-testid="button-refresh-streams"');
+  });
 });
