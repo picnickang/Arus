@@ -17,6 +17,7 @@ const UNIVERSAL_NAV_PATH = resolve(
 const REGISTRY_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/registry.ts");
 const FLEET_ROUTES_PATH = resolve(REPO_ROOT, "client/src/routes/fleet.ts");
 const NAV_PATH = resolve(REPO_ROOT, "client/src/config/navigationConfig.ts");
+const NAV_RESOURCES_PATH = resolve(REPO_ROOT, "client/src/config/navigationResources.ts");
 const DATA_PATH = resolve(REPO_ROOT, "client/src/pages/vessel-intelligence/data.ts");
 const MOBILE_READINESS_SCREEN_PATH = resolve(
   REPO_ROOT,
@@ -29,6 +30,14 @@ const MOBILE_READINESS_MODEL_PATH = resolve(
 const REGISTRY_API_PATH = resolve(
   REPO_ROOT,
   "client/src/pages/vessel-intelligence/registry-api.ts"
+);
+const REGISTRY_API_DIAGRAMS_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/registry-api-diagrams.ts"
+);
+const REGISTRY_API_HELPERS_PATH = resolve(
+  REPO_ROOT,
+  "client/src/pages/vessel-intelligence/registry-api-helpers.ts"
 );
 const REGISTRY_SCREENS_PATH = resolve(
   REPO_ROOT,
@@ -135,6 +144,7 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
 
   it("surfaces Fleet Triage as the Fleet hub without weakening existing resources", async () => {
     const nav = await load(NAV_PATH);
+    const resources = await load(NAV_RESOURCES_PATH);
     expect(nav).toContain('hubRoute: "/fleet"');
     expect(nav.indexOf('name: "Fleet Triage"')).toBeLessThan(
       nav.indexOf('name: "Vessel Intelligence"')
@@ -142,9 +152,11 @@ describe("Vessel Intelligence Hub v2 route contract", () => {
     expect(nav).toContain('href: "/fleet"');
     expect(nav).toContain('name: "Vessel Intelligence"');
     expect(nav).toContain("vessel-specific workflows");
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"');
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
-    expect(nav).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
+    expect(resources).toContain(
+      '"/vessel-intelligence/:vesselId/performance": "predictive_maintenance"'
+    );
+    expect(resources).toContain('"/vessel-intelligence/:vesselId/maintenance": "work_orders"');
+    expect(resources).toContain('"/vessel-intelligence/:vesselId/alerts": "alerts"');
   });
 
   it("keeps /fleet as a real route instead of a legacy redirect", async () => {
@@ -251,6 +263,9 @@ describe("Vessel Intelligence Hub v2 backend registry", () => {
 describe("Replaceable Diagram Registry controls", () => {
   it("provides API hooks for every visible registry mutation surface", async () => {
     const api = await load(REGISTRY_API_PATH);
+    const diagramApi = await load(REGISTRY_API_DIAGRAMS_PATH);
+    const helperApi = await load(REGISTRY_API_HELPERS_PATH);
+    const apiSurface = `${api}\n${diagramApi}\n${helperApi}`;
 
     for (const hook of [
       "useVesselDiagrams",
@@ -273,15 +288,17 @@ describe("Replaceable Diagram Registry controls", () => {
       "useUploadEquipmentThumbnail",
       "useSectionMapTemplates",
     ]) {
-      expect(api).toContain(`function ${hook}`);
+      expect(apiSurface).toContain(`function ${hook}`);
     }
 
-    expect(api).toContain("/versions/upload");
-    expect(api).toContain("/publish");
-    expect(api).toContain("/archive");
-    expect(api).toContain("/restore-draft");
-    expect(api).toContain("/section-map-templates");
-    expect(api).toContain("/thumbnail");
+    expect(api).toContain("from \"./registry-api-diagrams\"");
+    expect(api).toContain("from \"./registry-api-helpers\"");
+    expect(apiSurface).toContain("/versions/upload");
+    expect(apiSurface).toContain("/publish");
+    expect(apiSurface).toContain("/archive");
+    expect(apiSurface).toContain("/restore-draft");
+    expect(apiSurface).toContain("/section-map-templates");
+    expect(apiSurface).toContain("/thumbnail");
   });
 
   it("pins replacement options, critical test ids, and permission-denied UI", async () => {

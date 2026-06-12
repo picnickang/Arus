@@ -1,6 +1,6 @@
 # Long-File Burndown
 
-Generated: 2026-06-12T06:57:57.104Z
+Generated: 2026-06-12T07:05:45.439Z
 
 ## Policy
 
@@ -8,8 +8,8 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 - Files over 500 lines are reported by `scripts/hygiene-dashboard.mjs`.
 - CI fails when the counted long-file total increases above the committed ceiling.
-- The temporary ceiling is `53` counted files.
-- The current counted inventory is `53` files.
+- The temporary ceiling is `52` counted files.
+- The current counted inventory is `52` files.
 - The original release baseline was `52` files.
 - The end-state target is `0` counted files.
 - The ceiling should only decrease after safe refactors land.
@@ -20,11 +20,11 @@ Long files are no longer treated as an all-at-once release blocker. They are a r
 
 | Area                      | Count |
 | ------------------------- | ----: |
-| Total counted long files  |    53 |
+| Total counted long files  |    52 |
 | Server                    |     0 |
 | Server route-like files   |     0 |
 | Server service-like files |     0 |
-| Client                    |    53 |
+| Client                    |    52 |
 | Client page files         |    21 |
 | Shared                    |     0 |
 | Counted tests             |     0 |
@@ -129,6 +129,7 @@ Completed splits:
 - `server/routes/service-request-routes.ts` dropped below the threshold by moving read, edit/create, and review/convert route groups plus shared request helpers to sibling route modules while preserving `registerServiceRequestRoutes`.
 - `server/routes/rag-routes.ts` dropped below the threshold by moving ask/streaming, conversation/feedback/cache, extended export/analytics/compare/alert route groups, and shared RAG route helpers to sibling modules while preserving `registerRagRoutes`.
 - `client/src/lib/queryClient.ts` dropped below the threshold by moving request, header, envelope, timeout, quota-error, and query function mechanics to `queryClient-request.ts` while preserving the public `queryClient` import path.
+- `client/src/pages/vessel-intelligence/registry-api.ts` dropped below the threshold by moving registry API types, shared query/invalidation/upload helpers, and diagram/version hooks to sibling modules while preserving the public `registry-api` import path.
 
 ## Top 30 Longest Files
 
@@ -226,7 +227,6 @@ Completed splits:
 659 client/src/components/vessel/VesselSchematic/SchematicConfigPanel.tsx
 652 client/src/components/ai-health/InsightsTab.tsx
 647 client/src/pages/vessel-management/index.tsx
-643 client/src/pages/vessel-intelligence/registry-api.ts
 638 client/src/pages/DiagnosticsDashboard.tsx
 633 client/src/components/sensors/SensorSetupWizard.tsx
 632 client/src/components/crew-admin/UserAssignmentTab.tsx

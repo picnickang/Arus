@@ -1,262 +1,43 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiFormDataRequest, apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import type { SectionMapImageTransform } from "@shared/schema-runtime";
 import type {
-  RegistryDiagramRecord,
   RegistrySectionAssignmentRecord,
   RegistrySectionMapRecord,
 } from "./data";
+import {
+  assignmentsKey,
+  invalidateVessel,
+  sectionMapKey,
+  sectionMapsKey,
+  templatesKey,
+  uploadThumbnail,
+  useMutationToast,
+} from "./registry-api-helpers";
+import type {
+  RegistrySectionMapTemplateRecord,
+  RegistryValidationResult,
+} from "./registry-api-types";
 export { equipmentIdForThumbnail } from "./registry-identifiers";
-
-export interface RegistryDiagramVersionRecord {
-  id: string;
-  vesselId: string;
-  diagramId: string;
-  versionNumber: number;
-  status: string;
-  originalFileName: string;
-  mimeType: string;
-  fileSizeBytes: number;
-  uploadedBy?: string | null;
-  uploadedAt?: string | Date | null;
-  publishedBy?: string | null;
-  publishedAt?: string | Date | null;
-  mediaUrl?: string;
-}
-
-export interface RegistrySectionMapTemplateRecord {
-  id: string;
-  name: string;
-  vesselType: string;
-  description: string;
-  diagramKind: string;
-  diagramWidth: number;
-  diagramHeight: number;
-  sections: Array<{ name: string; sectionKey: string; color: string }>;
-}
-
-export interface RegistryValidationResult {
-  summary: { blockers: number; warnings: number; checkedAt: string };
-  issues: Array<{ severity: "blocker" | "warning"; code: string; message: string; path?: string }>;
-}
-
-export type ReplacementBehavior = "keep_existing" | "start_blank" | "copy_vessel" | "copy_template";
-
-export interface UploadDiagramVersionInput {
-  vesselId: string;
-  diagramId: string;
-  file: File;
-  replacementBehavior?: ReplacementBehavior;
-  sourceVesselId?: string | undefined;
-  sourceMapId?: string | undefined;
-  templateId?: string | undefined;
-  mapName?: string | undefined;
-}
-
-export interface UploadDiagramVersionResult {
-  version?: RegistryDiagramVersionRecord;
-  draftMap?: RegistrySectionMapRecord | null;
-  warnings?: string[];
-  id?: string;
-}
-
-type MutationMessage = {
-  success: string;
-  failure: string;
-};
-
-export function registrySummaryKey(vesselId: string) {
-  return ["/api/vessel-intelligence", vesselId, "summary"] as const;
-}
-
-function diagramsKey(vesselId: string) {
-  return ["/api/vessel-intelligence", vesselId, "diagrams"] as const;
-}
-
-function diagramKey(vesselId: string, diagramId: string) {
-  return ["/api/vessel-intelligence", vesselId, "diagrams", diagramId] as const;
-}
-
-function versionsKey(vesselId: string, diagramId: string) {
-  return ["/api/vessel-intelligence", vesselId, "diagrams", diagramId, "versions"] as const;
-}
-
-function sectionMapsKey(vesselId: string) {
-  return ["/api/vessel-intelligence", vesselId, "section-maps"] as const;
-}
-
-function sectionMapKey(vesselId: string, mapId: string) {
-  return ["/api/vessel-intelligence", vesselId, "section-maps", mapId] as const;
-}
-
-function assignmentsKey(vesselId: string, mapId: string) {
-  return ["/api/vessel-intelligence", vesselId, "section-maps", mapId, "assignments"] as const;
-}
-
-function templatesKey() {
-  return ["/api/vessel-intelligence", "section-map-templates"] as const;
-}
-
-function useMutationToast(message: MutationMessage) {
-  const { toast } = useToast();
-  return {
-    onSuccess: () => toast({ title: message.success }),
-    onError: (error: unknown) =>
-      toast({
-        title: message.failure,
-        description: error instanceof Error ? error.message : "The registry API returned an error.",
-        variant: "destructive",
-      }),
-  };
-}
-
-async function invalidateVessel(vesselId: string, diagramId?: string, mapId?: string) {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: registrySummaryKey(vesselId) }),
-    queryClient.invalidateQueries({ queryKey: diagramsKey(vesselId) }),
-    queryClient.invalidateQueries({ queryKey: sectionMapsKey(vesselId) }),
-    diagramId
-      ? queryClient.invalidateQueries({ queryKey: versionsKey(vesselId, diagramId) })
-      : Promise.resolve(),
-    diagramId
-      ? queryClient.invalidateQueries({ queryKey: diagramKey(vesselId, diagramId) })
-      : Promise.resolve(),
-    mapId
-      ? queryClient.invalidateQueries({ queryKey: sectionMapKey(vesselId, mapId) })
-      : Promise.resolve(),
-    mapId
-      ? queryClient.invalidateQueries({ queryKey: assignmentsKey(vesselId, mapId) })
-      : Promise.resolve(),
-  ]);
-}
-
-export function useVesselDiagrams(vesselId: string | undefined) {
-  return useQuery({
-    queryKey: vesselId
-      ? diagramsKey(vesselId)
-      : ["/api/vessel-intelligence", "no-vessel", "diagrams"],
-    queryFn: () =>
-      apiRequest<RegistryDiagramRecord[]>("GET", `/api/vessel-intelligence/${vesselId}/diagrams`),
-    enabled: Boolean(vesselId),
-  });
-}
-
-export function useCreateDiagram() {
-  const callbacks = useMutationToast({
-    success: "Diagram created",
-    failure: "Create diagram failed",
-  });
-  return useMutation({
-    mutationFn: (input: {
-      vesselId: string;
-      payload: { diagramType: string; title: string; description?: string };
-    }) =>
-      apiRequest<RegistryDiagramRecord>(
-        "POST",
-        `/api/vessel-intelligence/${input.vesselId}/diagrams`,
-        input.payload
-      ),
-    onSuccess: async (_result, input) => {
-      callbacks.onSuccess();
-      await invalidateVessel(input.vesselId);
-    },
-    onError: callbacks.onError,
-  });
-}
-
-export function useDiagramDetail(vesselId: string | undefined, diagramId: string | undefined) {
-  return useQuery({
-    queryKey:
-      vesselId && diagramId
-        ? diagramKey(vesselId, diagramId)
-        : ["/api/vessel-intelligence", "no-diagram"],
-    queryFn: () =>
-      apiRequest<RegistryDiagramRecord>(
-        "GET",
-        `/api/vessel-intelligence/${vesselId}/diagrams/${diagramId}`
-      ),
-    enabled: Boolean(vesselId && diagramId),
-  });
-}
-
-export function useDiagramVersions(vesselId: string | undefined, diagramId: string | undefined) {
-  return useQuery({
-    queryKey:
-      vesselId && diagramId
-        ? versionsKey(vesselId, diagramId)
-        : ["/api/vessel-intelligence", "no-versions"],
-    queryFn: () =>
-      apiRequest<RegistryDiagramVersionRecord[]>(
-        "GET",
-        `/api/vessel-intelligence/${vesselId}/diagrams/${diagramId}/versions`
-      ),
-    enabled: Boolean(vesselId && diagramId),
-  });
-}
-
-export function useUploadDiagramVersion() {
-  const callbacks = useMutationToast({
-    success: "Diagram version uploaded",
-    failure: "Diagram upload failed",
-  });
-  return useMutation({
-    mutationFn: uploadDiagramVersion,
-    onSuccess: async (_result, input) => {
-      callbacks.onSuccess();
-      await invalidateVessel(input.vesselId, input.diagramId);
-    },
-    onError: callbacks.onError,
-  });
-}
-
-export function usePublishDiagramVersion() {
-  const callbacks = useMutationToast({ success: "Version published", failure: "Publish failed" });
-  return useMutation({
-    mutationFn: (input: { vesselId: string; diagramId: string; versionId: string }) =>
-      apiRequest<RegistryDiagramVersionRecord>(
-        "POST",
-        `/api/vessel-intelligence/${input.vesselId}/diagrams/${input.diagramId}/versions/${input.versionId}/publish`
-      ),
-    onSuccess: async (_result, input) => {
-      callbacks.onSuccess();
-      await invalidateVessel(input.vesselId, input.diagramId);
-    },
-    onError: callbacks.onError,
-  });
-}
-
-export function useArchiveDiagramVersion() {
-  const callbacks = useMutationToast({ success: "Version archived", failure: "Archive failed" });
-  return useMutation({
-    mutationFn: (input: { vesselId: string; diagramId: string; versionId: string }) =>
-      apiRequest<RegistryDiagramVersionRecord>(
-        "POST",
-        `/api/vessel-intelligence/${input.vesselId}/diagrams/${input.diagramId}/versions/${input.versionId}/archive`
-      ),
-    onSuccess: async (_result, input) => {
-      callbacks.onSuccess();
-      await invalidateVessel(input.vesselId, input.diagramId);
-    },
-    onError: callbacks.onError,
-  });
-}
-
-export function useRestoreDiagramVersion() {
-  const callbacks = useMutationToast({ success: "Draft restored", failure: "Restore failed" });
-  return useMutation({
-    mutationFn: (input: { vesselId: string; diagramId: string; versionId: string }) =>
-      apiRequest<RegistryDiagramVersionRecord>(
-        "POST",
-        `/api/vessel-intelligence/${input.vesselId}/diagrams/${input.diagramId}/versions/${input.versionId}/restore-draft`
-      ),
-    onSuccess: async (_result, input) => {
-      callbacks.onSuccess();
-      await invalidateVessel(input.vesselId, input.diagramId);
-    },
-    onError: callbacks.onError,
-  });
-}
+export { registrySummaryKey } from "./registry-api-helpers";
+export {
+  useArchiveDiagramVersion,
+  useCreateDiagram,
+  useDiagramDetail,
+  useDiagramVersions,
+  usePublishDiagramVersion,
+  useRestoreDiagramVersion,
+  useUploadDiagramVersion,
+  useVesselDiagrams,
+} from "./registry-api-diagrams";
+export type {
+  RegistryDiagramVersionRecord,
+  RegistrySectionMapTemplateRecord,
+  RegistryValidationResult,
+  ReplacementBehavior,
+  UploadDiagramVersionInput,
+  UploadDiagramVersionResult,
+} from "./registry-api-types";
 
 export function useSectionMaps(vesselId: string | undefined) {
   return useQuery({
@@ -601,43 +382,4 @@ export function useRemoveEquipmentAssignment() {
     },
     onError: callbacks.onError,
   });
-}
-
-async function uploadDiagramVersion(
-  input: UploadDiagramVersionInput
-): Promise<UploadDiagramVersionResult> {
-  const data = new FormData();
-  data.set("file", input.file);
-  if (input.replacementBehavior) {
-    data.set("replacementBehavior", input.replacementBehavior);
-  }
-  if (input.sourceVesselId) {
-    data.set("sourceVesselId", input.sourceVesselId);
-  }
-  if (input.sourceMapId) {
-    data.set("sourceMapId", input.sourceMapId);
-  }
-  if (input.templateId) {
-    data.set("templateId", input.templateId);
-  }
-  if (input.mapName) {
-    data.set("mapName", input.mapName);
-  }
-  return uploadFormData(
-    `/api/vessel-intelligence/${input.vesselId}/diagrams/${input.diagramId}/versions/upload`,
-    data
-  );
-}
-
-async function uploadThumbnail(url: string, file: File) {
-  const data = new FormData();
-  data.set("file", file);
-  return uploadFormData(url, data);
-}
-
-async function uploadFormData<T = UploadDiagramVersionResult>(
-  url: string,
-  body: FormData
-): Promise<T> {
-  return apiFormDataRequest<T>("POST", url, body);
 }
