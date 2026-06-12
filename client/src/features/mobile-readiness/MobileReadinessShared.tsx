@@ -6,6 +6,7 @@ import {
   Bell,
   Camera,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Cog,
   ClipboardList,

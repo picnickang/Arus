@@ -3,9 +3,11 @@ import {
   ArrowLeft,
   AlertTriangle,
   Bell,
+  CalendarDays,
   Camera,
   CheckCircle2,
   ChevronRight,
+  Cloud,
   Cog,
   ClipboardList,
   Filter,
@@ -14,6 +16,7 @@ import {
   List,
   LogOut,
   Mail,
+  MessageSquare,
   Menu,
   MoreVertical,
   Package,
@@ -26,24 +29,37 @@ import {
   SlidersHorizontal,
   Star,
   Truck,
+  UserRound,
   Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMobileReadinessAsset } from "./mobile-readiness-assets";
-import type { QueueItem } from "./mobile-readiness-model";
+import type { MobileReadinessScreens, QueueItem } from "./mobile-readiness-model";
 import {
   AssetImage,
   Content,
   KpiStrip,
   MobilePageShell,
   NavyHeader,
+  ProgressBar,
   QueueCard,
   SectionCard,
   StatusPill,
+  severityLabel,
+  toneClasses,
   useScreens,
 } from "./MobileReadinessShared";
+
+function PdmBackLink({ href }: { href: string }) {
+  return (
+    <Link href={href} className="inline-flex items-center gap-1 text-xs font-semibold">
+      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+      Back
+    </Link>
+  );
+}
 
 export function MobileWorkOrdersPage() {
   const { work } = useScreens("crew");
