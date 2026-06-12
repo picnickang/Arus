@@ -218,4 +218,18 @@ describe("client tail component extractions", () => {
     expect(actions).toContain('data-testid="button-complete-wo-drawer"');
     expect(actions).toContain('data-testid="button-delete-wo-drawer"');
   });
+
+  it("keeps equipment form fields behind the public dialog component", () => {
+    const dialog = read("client/src/components/equipment/EquipmentFormDialog.tsx");
+    const fields = read("client/src/components/equipment/EquipmentFormFields.tsx");
+
+    expect(dialog).toContain('from "./EquipmentFormFields"');
+    expect(dialog).toContain("export function EquipmentFormDialog");
+    expect(dialog).toContain("export function EquipmentCreateDialog");
+    expect(dialog).toContain("export function EquipmentEditDialog");
+    expect(fields).toContain("export function EquipmentFormFields");
+    expect(fields).toContain('data-testid={`form-${isCreate ? "create" : "edit"}-equipment`}');
+    expect(fields).toContain('data-testid={`button-submit-${isCreate ? "create" : "edit"}`}');
+    expect(fields).toContain('data-testid={`input-${testIdPrefix}service-life-hours`}');
+  });
 });
