@@ -305,4 +305,25 @@ describe("client tail component extractions", () => {
     expect(managementSections).toContain('data-testid="button-reset-ml-data-keep-models"');
   });
 
+  it("keeps admin 3D model management behind route shell modules", () => {
+    const page = read("client/src/pages/admin/3d-models.tsx");
+    const model = read("client/src/pages/admin/3d-models-model.ts");
+    const card = read("client/src/pages/admin/3d-models-card.tsx");
+    const history = read("client/src/pages/admin/3d-models-history-panel.tsx");
+    const pins = read("client/src/pages/admin/3d-models-pin-editor.tsx");
+
+    expect(page).toContain('from "./3d-models-card"');
+    expect(page).toContain('from "./3d-models-model"');
+    expect(page).toContain("<VesselModelCard");
+    expect(model).toContain("export function formatBytes");
+    expect(model).toContain("export interface ModelMetadata");
+    expect(card).toContain("export function VesselModelCard");
+    expect(card).toContain("<PinEditor");
+    expect(card).toContain("<HistoryPanel");
+    expect(history).toContain("export function HistoryPanel");
+    expect(pins).toContain("export function PinEditor");
+    expect(pins).toContain('data-testid={`pin-editor-${vesselId}`}');
+    expect(pins).toContain('data-testid={`viewer-3d-${vesselId}`}');
+  });
+
 });
