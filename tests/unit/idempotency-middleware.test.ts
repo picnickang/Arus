@@ -53,6 +53,7 @@ function buildApp(options?: { required?: boolean; doubleMount?: boolean }) {
 
 beforeEach(() => {
   _internals.processedKeys.clear();
+  _internals.inFlightKeys.clear();
   getStoredResponse.mockReset().mockResolvedValue(undefined);
   storeResponse.mockReset().mockResolvedValue(undefined);
 });
@@ -198,6 +199,61 @@ describe("idempotencyMiddleware (WS1)", () => {
       .send({ part: "impeller" });
     expect(res.status).toBe(201);
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounces a concurrent same-key request with a retryable 425 while the first is in flight (B2)", async () => {
+    let releaseHandler!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseHandler = resolve;
+    });
+    let markEntered!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      markEntered = resolve;
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use("/api/work-orders", idempotencyMiddleware());
+    const handler = jest.fn(async (_req: express.Request, res: express.Response) => {
+      markEntered();
+      await gate;
+      res.status(201).json({ created: true });
+    });
+    app.post("/api/work-orders/:id/parts", handler);
+
+    // Start the first request and hold it inside the handler (key reserved).
+    const firstP = request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" })
+      .then((r) => r);
+    await entered;
+
+    // Second concurrent request with the same key must NOT run the handler.
+    const second = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+
+    expect(second.status).toBe(425);
+    expect(second.body.error.code).toBe("IDEMPOTENCY_IN_PROGRESS");
+    expect(second.headers["retry-after"]).toBe("1");
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    releaseHandler();
+    const first = await firstP;
+    expect(first.status).toBe(201);
+
+    // Reservation released on completion: a later retry is served, not bounced.
+    expect(_internals.inFlightKeys.size).toBe(0);
+    const third = await request(app)
+      .post("/api/work-orders/1/parts")
+      .set("Idempotency-Key", "key-1")
+      .set("x-org-id", "org-1")
+      .send({ part: "impeller" });
+    expect(third.status).toBe(201);
   });
 
   it("stacked mounts process the request exactly once (claim marker)", async () => {

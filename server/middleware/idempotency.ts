@@ -23,6 +23,18 @@ const processedKeys = new Map<
 const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Keys whose first request is still executing in THIS process. The cached
+ * response is only written when the handler responds, so without this guard
+ * two concurrent requests for the same key (a client timeout-retry, or the
+ * outbox replaying while the original is still in flight) both miss the cache
+ * and both run the mutation. The second concurrent caller is bounced with a
+ * retryable status instead; by the time it retries the first has populated the
+ * cache. Note: this is per-process — cross-replica concurrent double-submit
+ * still requires a durable reservation (tracked in the security ledger).
+ */
+const inFlightKeys = new Set<string>();
+
+/**
  * Marks requests already claimed by an idempotency middleware instance, so the
  * broad per-family mounts (bootstrap) and the older per-route mounts compose:
  * whichever runs first with a key present wins; the second becomes a no-op.
@@ -66,6 +78,23 @@ function sendKeyReused(res: Response): void {
       code: "IDEMPOTENCY_KEY_REUSED",
       message:
         "This Idempotency-Key was already used with a different request body. Use a fresh key for new work.",
+    },
+  });
+}
+
+/**
+ * A request with this key is already executing. 425 Too Early (not 409) is
+ * deliberate: the offline-outbox client treats 409/412 as a *data* conflict
+ * and would pause the operation, whereas 425 falls through to its transient
+ * retry path — the right behaviour, since the first request is about to
+ * populate the cache.
+ */
+function sendInProgress(res: Response): void {
+  res.setHeader("Retry-After", "1");
+  res.status(425).json({
+    error: {
+      code: "IDEMPOTENCY_IN_PROGRESS",
+      message: "A request with this Idempotency-Key is already being processed. Retry shortly.",
     },
   });
 }
@@ -164,6 +193,22 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
       logger.warn(LOG_CTX, `Durable idempotency lookup failed, proceeding: ${String(error)}`);
     }
 
+    // Reservation: no cached response exists yet. If another request for this
+    // exact key is mid-flight in this process, bounce this one as retryable so
+    // the mutation runs exactly once. The check+add is synchronous (no await),
+    // so it is atomic on the event loop — two concurrent callers cannot both
+    // pass it. Released on response finish/close so the retry hits the cache.
+    if (inFlightKeys.has(fullKey)) {
+      sendInProgress(res);
+      return;
+    }
+    inFlightKeys.add(fullKey);
+    const releaseInFlight = () => {
+      inFlightKeys.delete(fullKey);
+    };
+    res.on("finish", releaseInFlight);
+    res.on("close", releaseInFlight);
+
     const originalJson = res.json.bind(res);
     res.json = function (body: unknown) {
       if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -197,6 +242,7 @@ export default idempotencyMiddleware;
 export const _internals = {
   cleanupExpiredKeys,
   processedKeys,
+  inFlightKeys,
   stopCleanupInterval() {
     if (cleanupInterval) {
       clearInterval(cleanupInterval);

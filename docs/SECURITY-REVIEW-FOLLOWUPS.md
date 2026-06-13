@@ -162,6 +162,30 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
 
 ## B3. Data-layer remediation follow-ups (2026-06)
 
+- [x] **Conflict resolution now writes back to the domain record (B1).** A
+      resolved conflict previously only flipped the `sync_conflicts` row; because
+      the original guarded update matched no rows, the work order still held the
+      *server* value, so any non-server winner (lww-local / max / min / append)
+      was silently dropped. `manuallyResolveConflict`
+      (`server/conflict-resolution-service.ts`) now applies the winning value to
+      `work_orders` with a version bump inside the same transaction; "server
+      wins" stays a no-op so a stale snapshot can't revert newer state. Pinned by
+      `tests/unit/offline-conflict-resolution.test.ts`.
+
+- [ ] **Idempotency: cross-replica concurrent double-submit (B2 residual).**
+      The middleware (`server/middleware/idempotency.ts`) now holds an in-process
+      `inFlightKeys` reservation, so two concurrent requests for the same key in
+      one process can no longer both run the mutation (the second gets a
+      retryable `425 IDEMPOTENCY_IN_PROGRESS`). The remaining window is
+      *across replicas*: the L1/L2 caches only populate on first completion, so a
+      truly simultaneous duplicate hitting a second process is not yet deduped.
+      Close with a durable reservation (insert a pending row keyed by `fullKey`
+      with `ON CONFLICT DO NOTHING` at claim time; upsert the response on
+      completion; delete on failure) — the `request_idempotency` table already
+      has nullable `response_status`/`response_body`, so no schema change is
+      needed. Pinned by the concurrency case in
+      `tests/unit/idempotency-middleware.test.ts`.
+
 - [ ] **Remove error-envelope `message`/`code` mirrors (sunset 2026-11-18).**
       The canonical error envelope mirrors `error.message` and `error.code` at
       the top level for transition compatibility (`server/middleware/envelope.ts`

@@ -24,6 +24,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "./db.js";
 import { workOrders, syncConflicts } from "@shared/schema-runtime";
 import { insertWorkOrderSchema } from "@shared/schema-runtime";
+import { logger } from "./utils/logger";
 
 // ── Errors the route layer translates into HTTP 400 ──────────────────────
 
@@ -258,9 +259,54 @@ export async function getPendingConflicts(orgId: string): Promise<ConflictRecord
 // ── Resolve a single conflict (scoped) ───────────────────────────────────
 
 /**
- * Marks a conflict resolved. Returns false when the conflict does not
- * exist in the caller's scope or is already resolved, so the route can
- * surface a 404 instead of silently succeeding cross-tenant.
+ * Reduce a resolution decision to the set of work-order columns to write
+ * back. Returns null when the value carries no applicable field updates.
+ *
+ *   - Field-level conflict (`fieldName` set): the winner is a scalar for one
+ *     column, lifted into `{ [fieldName]: value }`.
+ *   - Whole-record conflict (`fieldName` null): the winner is an object of
+ *     field updates (e.g. the client's `updateData`, or the server snapshot).
+ *
+ * Either way the value is validated through `workOrderUpdateSchema`, which
+ * strips identity / version / server-managed columns so a resolution can
+ * never tamper with org scoping or the version counter.
+ */
+export function coerceResolvedWorkOrderFields(
+  resolvedValue: unknown,
+  fieldName: string | null
+): Record<string, unknown> | null {
+  let candidate: unknown;
+  if (fieldName) {
+    candidate = { [fieldName]: resolvedValue };
+  } else if (
+    resolvedValue !== null &&
+    typeof resolvedValue === "object" &&
+    !Array.isArray(resolvedValue)
+  ) {
+    candidate = resolvedValue;
+  } else {
+    return null;
+  }
+
+  const parsed = workOrderUpdateSchema.safeParse(candidate);
+  if (!parsed.success) {
+    return null;
+  }
+  const fields: Record<string, unknown> = { ...parsed.data };
+  return Object.keys(fields).length > 0 ? fields : null;
+}
+
+/**
+ * Marks a conflict resolved AND writes the winning value back to the domain
+ * record. Returns false when the conflict does not exist in the caller's
+ * scope or is already resolved, so the route can surface a 404 instead of
+ * silently succeeding cross-tenant.
+ *
+ * Write-back closes the gap where resolving a conflict only flipped the
+ * `sync_conflicts` row: because the original guarded update matched no rows,
+ * the work order still held the *server* value, so any non-server winner
+ * (lww-local / max / min / append) was silently discarded. The mark and the
+ * domain write share one transaction so they can never diverge.
  */
 export async function manuallyResolveConflict(
   conflictId: string,
@@ -268,24 +314,72 @@ export async function manuallyResolveConflict(
   resolvedBy: string,
   orgId: string
 ): Promise<boolean> {
-  const [updated] = await db
-    .update(syncConflicts)
-    .set({
-      resolved: true,
-      resolvedValue: JSON.stringify(resolvedValue),
-      resolvedBy,
-      resolvedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(syncConflicts.id, conflictId),
-        eq(syncConflicts.orgId, orgId),
-        eq(syncConflicts.resolved, false)
+  return db.transaction(async (tx) => {
+    const [resolved] = await tx
+      .update(syncConflicts)
+      .set({
+        resolved: true,
+        resolvedValue: JSON.stringify(resolvedValue),
+        resolvedBy,
+        resolvedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(syncConflicts.id, conflictId),
+          eq(syncConflicts.orgId, orgId),
+          eq(syncConflicts.resolved, false)
+        )
       )
-    )
-    .returning();
+      .returning();
 
-  return Boolean(updated);
+    if (!resolved) {
+      return false;
+    }
+
+    if (resolved.tableName !== "work_orders") {
+      // Only work_orders participates in conflict detection today; nothing to
+      // write back for any other (future) table until it gets a handler.
+      return true;
+    }
+
+    // "Server wins" is a no-op against the live row: the guarded update already
+    // left the server lineage in place, and re-applying the snapshot recorded
+    // at detection time could revert a change made since. Skip the domain write.
+    if (resolved.serverValue !== null && JSON.stringify(resolvedValue) === resolved.serverValue) {
+      return true;
+    }
+
+    const fields = coerceResolvedWorkOrderFields(resolvedValue, resolved.fieldName ?? null);
+    if (!fields) {
+      logger.warn(
+        "ConflictResolution",
+        `Conflict ${conflictId} resolved with no applicable work-order fields; domain record left unchanged`
+      );
+      return true;
+    }
+
+    const [current] = await tx
+      .select({ version: workOrders.version })
+      .from(workOrders)
+      .where(and(eq(workOrders.id, resolved.recordId), eq(workOrders.orgId, orgId)));
+
+    if (!current) {
+      // Record vanished between detection and resolution; the conflict is moot.
+      return true;
+    }
+
+    await tx
+      .update(workOrders)
+      .set({
+        ...fields,
+        version: (current.version ?? 0) + 1,
+        lastModifiedBy: resolvedBy,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(workOrders.id, resolved.recordId), eq(workOrders.orgId, orgId)));
+
+    return true;
+  });
 }
 
 // ── Bulk read for auto-resolve (scoped) ──────────────────────────────────
