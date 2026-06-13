@@ -1,15 +1,25 @@
-// Updated snippet suggestion: Replace the routing section with unified mobile handling
-// Example integration point (add/replace):
-const isMobilePath = isMobileReadinessReplacementPath(routerLoc);
+// Phase 2 guard integration example (add near the shell logic):
+import { classifyMobileRoute, shouldBlockUniversalOpsShellForMobile } from '@/features/mobile-readiness/mobile-readiness-route-contract';
 
-// ... later
-{isMobilePath ? (
+// Inside the route rendering:
+const currentClassification = classifyMobileRoute(routerLoc);
+const shouldUseMobileShell = isMobileContext(routerLoc) || currentClassification.status === 'mobileReplacement';
+
+const showUniversalOpsShell = usesUniversalOpsShell && !shouldBlockUniversalOpsShellForMobile(routerLoc);
+
+// Updated conditional:
+{showUniversalOpsShell ? (
+  <UniversalOpsShell />
+) : shouldUseMobileShell ? (
   <MobileShell path={routerLoc} />
 ) : (
-  // existing desktop / other flows
+  // normal desktop
   <>
     {!isLoginRoute && !usesUniversalOpsShell && <BottomNav />}
-    // ...
   </>
 )}
-// This unifies everything under one shell + nav when appropriate.
+
+// Additional runtime guard (dev warning if legacy shell shown on mobile):
+if (import.meta.env.DEV && usesUniversalOpsShell && isMobileContext(routerLoc)) {
+  console.warn('🚨 UniversalOpsShell shown on mobile context - guard triggered');
+}
