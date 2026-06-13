@@ -28,8 +28,12 @@ export interface PendingOperation {
   createdAt: string;
   retryCount: number;
   lastError?: string | undefined;
-  /** Epoch ms of the most recent failed replay attempt; gates jittered backoff. */
-  lastAttemptedAt?: number | undefined;
+  /**
+   * Epoch ms before which this op should not be retried. Set when a replay
+   * fails, to the failure time plus a jittered backoff delay computed once
+   * (so the wait is stable across replay passes rather than re-rolled).
+   */
+  nextRetryAt?: number | undefined;
   lastModifiedAt?: string | undefined;
   clientMutationId?: string | undefined;
   conflictPaused?: boolean | undefined;

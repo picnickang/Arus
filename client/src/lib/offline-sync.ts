@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from "idb";
 import { classifyOfflineEntityPath, isQueueableMutationPath } from "@shared/offline-queue-routes";
+import { computeBackoffDelay } from "./backoff";
 import type {
   EntityType,
   OfflineSyncDB,
@@ -151,7 +152,9 @@ export async function markOperationFailed(operationId: string, error: string): P
   if (op) {
     op.retryCount += 1;
     op.lastError = error;
-    op.lastAttemptedAt = Date.now();
+    // Roll the jittered backoff once, here, so the retry window is stable across
+    // replay passes (re-rolling it each pass would let an op retry early).
+    op.nextRetryAt = Date.now() + computeBackoffDelay(op.retryCount);
     await db.put("pendingOperations", op);
     broadcastOfflineSyncChange();
   }

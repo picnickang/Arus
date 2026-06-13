@@ -21,7 +21,7 @@ import {
 } from "@/lib/tenant-quota-notifications";
 import {
   createHeaders,
-  DEFAULT_GET_TIMEOUT_MS,
+  DEFAULT_REPLAY_TIMEOUT_MS,
   getQueryFn,
   resolveUrl,
   TenantQuotaExceededError,
@@ -181,12 +181,9 @@ async function doReplayQueuedApiRequests(): Promise<{
       continue;
     }
 
-    // Previously-failed ops wait out a jittered backoff window before being
-    // retried, so a flaky link doesn't get hammered by every replay pass.
-    if (
-      op.retryCount > 0 &&
-      now < (op.lastAttemptedAt ?? 0) + computeBackoffDelay(op.retryCount)
-    ) {
+    // Previously-failed ops wait out the jittered backoff window stamped at
+    // failure time, so a flaky link doesn't get hammered by every replay pass.
+    if (op.nextRetryAt !== undefined && now < op.nextRetryAt) {
       continue;
     }
 
@@ -206,9 +203,10 @@ async function doReplayQueuedApiRequests(): Promise<{
         : undefined);
 
     // A replay must not hang forever on a half-open link; bound each attempt.
+    // Replays are writes, so use the generous write bound, not the GET timeout.
     const replaySignal =
       typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(DEFAULT_GET_TIMEOUT_MS)
+        ? AbortSignal.timeout(DEFAULT_REPLAY_TIMEOUT_MS)
         : undefined;
 
     try {

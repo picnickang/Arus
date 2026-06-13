@@ -117,6 +117,12 @@ export const DEFAULT_GET_TIMEOUT_MS = 30_000;
 // on a dropped link. Callers can override via `options.timeoutMs`.
 export const DEFAULT_UPLOAD_TIMEOUT_MS = 120_000;
 
+// Outbox replays are writes, which we deliberately don't abort as aggressively
+// as GETs (aborting a write client-side doesn't stop it server-side). A
+// generous bound still prevents one stuck op from starving the sequential
+// replay loop; the idempotency key makes a later retry safe.
+export const DEFAULT_REPLAY_TIMEOUT_MS = 120_000;
+
 /**
  * Composes a caller/TanStack signal with a default timeout. Falls back
  * gracefully where AbortSignal.timeout/any are unavailable (older webviews).
