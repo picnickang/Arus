@@ -35,13 +35,68 @@ describe("mobile readiness replacement model", () => {
     expect(normalizeMobileRole("procurement_user")).toBe("logistics");
   });
 
+  it("maps admin and regular-user aliases to distinct mobile queues and nav labels", () => {
+    expect(normalizeMobileRole("system_admin")).toBe("admin");
+    expect(normalizeMobileRole("deck_officer")).toBe("captain");
+    expect(normalizeMobileRole("crew_member")).toBe("crew");
+    expect(normalizeMobileRole("viewer")).toBe("crew");
+
+    expect(buildMobileReadinessScreens("system_admin").today.queueLabel).toBe("Command Queue");
+    expect(buildMobileReadinessScreens("deck_officer").today.queueLabel).toBe("Command Queue");
+    expect(buildMobileReadinessScreens("crew_member").today.queueLabel).toBe("My Queue");
+    expect(buildMobileReadinessScreens("viewer").today.queueLabel).toBe("My Queue");
+
+    expect(buildMobileReadinessNavigation("system_admin").map((item) => item.label)).toEqual([
+      "Command",
+      "Vessels",
+      "Tasks",
+      "Reports",
+      "Settings",
+    ]);
+    expect(buildMobileReadinessNavigation("deck_officer").map((item) => item.label)).toEqual([
+      "Bridge",
+      "Logs",
+      "Crew",
+      "Maintenance",
+      "Settings",
+    ]);
+    expect(buildMobileReadinessNavigation("deck_officer").at(-1)).toMatchObject({
+      href: "/profile",
+    });
+    expect(buildMobileReadinessNavigation("crew_member").map((item) => item.label)).toEqual([
+      "My Tasks",
+      "Logs",
+      "Safety",
+      "Documents",
+      "Settings",
+    ]);
+    expect(
+      buildMobileReadinessNavigation("crew_member").find((item) => item.id === "documents")
+    ).toMatchObject({
+      href: "/profile",
+    });
+  });
+
   it("switches bottom-nav variants to match board-specific route groups", () => {
     expect(
       buildMobileReadinessNavigationForVariant("fleetOps", "admin").map((item) => item.label)
-    ).toEqual(["Fleet", "Work", "Alerts", "Crew", "Inventory", "Settings"]);
+    ).toEqual(["Fleet", "Work", "Attention", "Crew", "Inventory", "Settings"]);
+    expect(
+      buildMobileReadinessNavigationForVariant("fleetOps", "admin").map((item) => item.href)
+    ).toEqual([
+      "/fleet",
+      "/work-orders",
+      "/attention-inbox",
+      "/crew-management",
+      "/logistics",
+      "/system",
+    ]);
     expect(
       buildMobileReadinessNavigationForVariant("technician", "crew").map((item) => item.label)
-    ).toEqual(["Today", "Work", "Logs", "Profile"]);
+    ).toEqual(["My Tasks", "Logs", "Safety", "Documents", "Settings"]);
+    expect(
+      buildMobileReadinessNavigationForVariant("fleetOps", "deck_officer").map((item) => item.href)
+    ).toEqual(["/", "/logs", "/crew-management", "/pdm-platform", "/profile"]);
     expect(
       buildMobileReadinessNavigationForVariant("machineryOps", "chief_engineer").map(
         (item) => item.label
@@ -81,12 +136,26 @@ describe("mobile readiness replacement model", () => {
       "Crew readiness",
       "Weather & condition log",
     ]);
+    expect(buildMobileReadinessScreens("captain").today.items.map((item) => item.href)).toEqual([
+      "/fleet",
+      "/logs",
+      "/logs/compliance",
+      "/crew-management",
+      "/logs",
+    ]);
     expect(buildMobileReadinessScreens("crew").today.items.map((item) => item.title)).toEqual([
       "Clean bilge holding tank",
       "Daily Engine Log (Draft)",
       "Safety instruction",
       "Medical certificate expiring",
       "Offline draft",
+    ]);
+    expect(buildMobileReadinessScreens("crew").today.items.map((item) => item.href)).toEqual([
+      "/my-tasks",
+      "/logs",
+      "/logs/compliance",
+      "/profile",
+      "/logs",
     ]);
   });
 

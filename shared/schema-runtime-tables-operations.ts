@@ -35,7 +35,11 @@ export const dtcDefinitions = pickSchema(
 export const dtcFaults = pickSchema(isLocalMode, sqliteVessel.dtcFaultsSqlite, pgSchema.dtcFaults);
 
 // System & Configuration
-export const systemSettings = cloudOnly(pgSchema.systemSettings);
+export const systemSettings = pickSchema(
+  isLocalMode,
+  sqliteVessel.systemSettingsSqlite,
+  pgSchema.systemSettings
+);
 export const systemPerformanceMetrics = cloudOnly(pgSchema.systemPerformanceMetrics);
 export const systemHealthChecks = cloudOnly(pgSchema.systemHealthChecks);
 export const transportSettings = cloudOnly(pgSchema.transportSettings);

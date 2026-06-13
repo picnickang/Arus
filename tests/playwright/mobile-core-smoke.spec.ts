@@ -1,5 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { ROLE_STORAGE_KEY } from "../../client/src/config/roles";
+import {
+  getMobileReadinessExpectedScreen,
+  isMobileReadinessReplacementPath,
+} from "../../client/src/features/mobile-readiness/mobile-readiness-route-contract";
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const BASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 895 420"><rect width="895" height="420" fill="#031225"/><path d="M42 270 L130 205 L595 198 L670 95 L756 95 L805 205 L870 226 L835 355 L72 355 Z" fill="#123e60" stroke="#70b8e8" stroke-width="3"/></svg>`;
@@ -216,7 +220,7 @@ async function installMobileFixtures(
   await page.getByTestId("input-admin-username").fill("playwright-admin");
   await page.getByTestId("input-admin-password").fill("playwright-password");
   await page.getByTestId("button-admin-login").click();
-  await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+  await expectMobileReadinessShell(page, "/");
 }
 
 async function expectNoMobileOverflow(page: Page): Promise<void> {
@@ -263,6 +267,7 @@ async function expectMobileShellHasPageBody(page: Page): Promise<void> {
       "[data-testid='button-create-work-order']",
       "[data-testid='inventory-management-page']",
       "[data-testid='vessel-intelligence-hub']",
+      "[data-testid='mobile-readiness-screen-crew']",
       "[data-testid='text-page-title']",
     ];
     const pageMarker = pageMarkers.find((selector) => {
@@ -370,42 +375,46 @@ async function expectMobileUniversalShell(page: Page, activeHubName: string): Pr
   await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
 }
 
+async function expectMobileReadinessShell(page: Page, path: string): Promise<void> {
+  const marker = getMobileReadinessExpectedScreen(path);
+  expect(isMobileReadinessReplacementPath(path)).toBe(true);
+  expect(marker).not.toBeNull();
+  await expect(page.getByTestId("mobile-readiness-shell")).toBeVisible();
+  await expect(page.getByTestId(`mobile-readiness-screen-${marker}`)).toBeVisible();
+  await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
+  await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
+  await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
+}
+
 test.describe("mobile core operational smokes", () => {
   test("Fleet/Vessel Intelligence renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/overview");
-    await expectMobileUniversalShell(page, "Fleet");
-    await expect(page.getByTestId("vessel-intelligence-hub")).toBeVisible();
-    await expectMobileShellHasPageBody(page);
+    await expectMobileReadinessShell(page, "/vessel-intelligence/vessel-1/overview");
+    await expect(page.getByText("Vessel Snapshot")).toBeVisible();
     await expectPrimaryMobileTargetsAtLeast(page);
-    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 
   test("Crew renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
-    await expectMobileUniversalShell(page, "Crew");
-    await expect(page.getByTestId("page-crew-management")).toBeVisible();
-    await expectMobileShellHasPageBody(page);
+    await expectMobileReadinessShell(page, "/crew-management");
+    await expect(page.getByText("Crew Readiness Overview")).toBeVisible();
     await expectPrimaryMobileTargetsAtLeast(page);
-    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 
-  test("Crew Scheduler, Hours of Rest, Analytics, and Work Orders render guarded bodies on mobile", async ({
-    page,
-  }) => {
+  test("Universal and replacement routes render their current mobile bodies", async ({ page }) => {
     await installMobileFixtures(page);
 
-    const guardedRoutes = [
-      ["/crew-scheduler", "Crew", "button-generate-schedule"],
-      ["/hours-of-rest", "Crew", "rest-hours-grid"],
+    const universalRoutes = [
+      ["/crew-scheduler", "Crew", "mobile-readiness-screen-crew"],
+      ["/hours-of-rest", "Crew", "mobile-readiness-screen-crew"],
       ["/analytics", "Analytics", "analytics-hub"],
-      ["/work-orders", "Maintenance", "button-create-work-order"],
     ] as const;
 
-    for (const [path, activeHubName, marker] of guardedRoutes) {
+    for (const [path, activeHubName, marker] of universalRoutes) {
       await navigateWithinAuthenticatedSpa(page, path);
       await expectMobileUniversalShell(page, activeHubName);
       await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10_000 });
@@ -414,26 +423,27 @@ test.describe("mobile core operational smokes", () => {
       await expectHorizontalNavAffordance(page);
       await expectNoMobileOverflow(page);
     }
+
+    await navigateWithinAuthenticatedSpa(page, "/work-orders");
+    await expectMobileReadinessShell(page, "/work-orders");
+    await expect(page.getByText("Work Queue").first()).toBeVisible();
+    await expectPrimaryMobileTargetsAtLeast(page);
+    await expectNoMobileOverflow(page);
   });
 
-  test("permission-gated mobile routes show a visible loading state while permissions resolve", async ({
-    page,
-  }) => {
-    await installMobileFixtures(page, { permissionsDelayMs: 10_000 });
+  test("replacement mobile routes do not leak the universal admin shell", async ({ page }) => {
+    await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/crew-management");
-    await expectMobileUniversalShell(page, "Crew");
-    await expect(page.getByTestId("permission-gate-loading")).toBeVisible({ timeout: 3_000 });
-    await expectMobileShellHasPageBody(page);
+    await expectMobileReadinessShell(page, "/crew-management");
+    await expect(page.getByTestId("universal-ops-shell")).toHaveCount(0);
   });
 
   test("Inventory/Logistics renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/logistics?tab=inventory");
-    await expectMobileUniversalShell(page, "Logistics");
-    await expect(page.getByTestId("inventory-management-page")).toBeVisible();
-    await expectMobileShellHasPageBody(page);
+    await expectMobileReadinessShell(page, "/logistics");
+    await expect(page.getByText("Inventory & Logistics")).toBeVisible();
     await expectPrimaryMobileTargetsAtLeast(page);
-    await expectHorizontalNavAffordance(page);
     await expectNoMobileOverflow(page);
   });
 

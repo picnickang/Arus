@@ -24,7 +24,11 @@ export const updateSettings = pickSchema(
   pgSchema.updateSettings
 );
 export const patchDownloads = cloudOnly(pgSchema.patchDownloads);
-export const adminSessions = cloudOnly(pgSchema.adminSessions);
+export const adminSessions = pickSchema(
+  isLocalMode,
+  sqliteVessel.adminSessionsSqlite,
+  pgSchema.adminSessions
+);
 export const modelDeployments = cloudOnly(pgSchema.modelDeployments);
 export const entityOffsets = cloudOnly(pgSchema.entityOffsets);
 export const contextEvents = cloudOnly(pgSchema.contextEvents);

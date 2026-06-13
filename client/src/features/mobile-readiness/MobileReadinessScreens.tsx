@@ -34,35 +34,37 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
   const screens = useScreens(role);
   return (
     <MobilePageShell>
-      <AppHeader
-        title="ARUS"
-        subtitle={screens.today.queueLabel}
-        vesselName={screens.today.vesselName}
-        roleLabel={screens.today.roleLabel}
-      />
-      <Content className="max-w-md md:max-w-4xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-950">Today</h1>
-            <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
+      <div data-testid="mobile-readiness-screen-command">
+        <AppHeader
+          title="ARUS"
+          subtitle={screens.today.queueLabel}
+          vesselName={screens.today.vesselName}
+          roleLabel={screens.today.roleLabel}
+        />
+        <Content className="max-w-md md:max-w-4xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-slate-950">Today</h1>
+              <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
+            </div>
+            <span className="text-sm font-semibold text-primary">
+              {screens.today.itemCount} items
+            </span>
           </div>
-          <span className="text-sm font-semibold text-primary">
-            {screens.today.itemCount} items
-          </span>
-        </div>
-        <SectionCard>
-          {screens.today.items.map((item) => (
-            <QueueCard key={item.id} item={item} testId={`today-card-${item.id}`} />
-          ))}
-        </SectionCard>
-        <button
-          type="button"
-          className="mx-auto flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500"
-        >
-          <ArrowDown className="h-4 w-4" aria-hidden="true" />
-          Pull to refresh
-        </button>
-      </Content>
+          <SectionCard>
+            {screens.today.items.map((item) => (
+              <QueueCard key={item.id} item={item} testId={`today-card-${item.id}`} />
+            ))}
+          </SectionCard>
+          <button
+            type="button"
+            className="mx-auto flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500"
+          >
+            <ArrowDown className="h-4 w-4" aria-hidden="true" />
+            Pull to refresh
+          </button>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -87,25 +89,4 @@ export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
     default:
       return <MobileCommandCenterPage role={normalizeMobileRole(readRoleHint())} />;
   }
-}
-
-export function isMobileReadinessReplacementPath(path: string): boolean {
-  const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
-  return (
-    currentPath === "/" ||
-    currentPath === "/fleet" ||
-    currentPath.startsWith("/fleet/") ||
-    currentPath === "/vessel-intelligence" ||
-    currentPath.startsWith("/vessel-intelligence/") ||
-    currentPath === "/maint" ||
-    currentPath === "/work-orders" ||
-    currentPath.startsWith("/work-orders/") ||
-    currentPath === "/pdm-platform" ||
-    currentPath.startsWith("/pdm/equipment/") ||
-    currentPath === "/logs" ||
-    currentPath.startsWith("/logs/") ||
-    currentPath === "/crew-management" ||
-    currentPath === "/logistics" ||
-    currentPath === "/system"
-  );
 }

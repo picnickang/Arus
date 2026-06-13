@@ -36,12 +36,20 @@ describe("mobile readiness asset registry", () => {
   it("marks Figma-locked image replacements honestly and keeps every asset browser-resolvable", () => {
     const assets = listMobileReadinessAssets();
     const productionAssets = assets.filter((asset) => asset.id !== "fallback-generic");
+    const fallbackAssets = assets.filter((asset) => asset.status === "fallback");
 
     expect(productionAssets.every((asset) => asset.status === "recreated")).toBe(true);
+    expect(fallbackAssets).toHaveLength(1);
+    expect(fallbackAssets[0]?.id).toBe("fallback-generic");
     expect(assets.every((asset) => asset.src.startsWith("data:image/svg+xml;utf8,"))).toBe(true);
-    expect(assets.every((asset) => asset.alt.length > 0 && asset.figmaSource.length > 0)).toBe(
-      true
-    );
+    expect(
+      assets.every(
+        (asset) =>
+          asset.alt.length > 0 &&
+          asset.figmaSource.length > 0 &&
+          /reference|fallback|Figma|visual-match/i.test(asset.figmaSource)
+      )
+    ).toBe(true);
   });
 
   it("resolves stale asset ids to the declared fallback instead of throwing", () => {

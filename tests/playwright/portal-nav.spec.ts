@@ -6,10 +6,9 @@
  *   - /portal-login renders both portal cards (and bypasses the
  *     SessionGate in production thanks to the PUBLIC_PATHS allow-list).
  *   - Clicking "User Login" writes role=deck_officer and lands on
- *     /dashboard with ONLY Dashboard + Feedback in the bottom nav,
- *     and NO admin categories (Maintenance, System Admin, etc.).
- *   - Clicking "Admin Login" writes role=system_admin and surfaces
- *     the 5 admin categories from the policy.
+ *     the mobile readiness command center with bridge/captain nav.
+ *   - Clicking "Admin Login" writes role=system_admin and lands on
+ *     the mobile readiness command center without the removed hub shell.
  *
  * These tests assert visibility of bottom-nav labels — the admin
  * categories must not leak into the user portal at any layer
@@ -18,25 +17,7 @@
 
 import { test, expect, type Page, type Route } from "@playwright/test";
 
-const ADMIN_LABELS = [
-  "Maintenance",
-  "System Admin",
-  "Crew Management",
-  "Logistics",
-  "AI Analytics",
-] as const;
-
-// The user portal sidebar renders four primary items. Note the
-// feedback category is label-overridden to "Report / Flag Issue" in
-// the user shell (the policy id stays `user-feedback`).
-const USER_LABELS = ["Dashboard", "Assigned Tasks", "Report / Flag Issue", "Profile"] as const;
-
-const USER_NAV_ITEM_IDS = [
-  "mobile-nav-item-user-dashboard",
-  "mobile-nav-item-user-tasks",
-  "mobile-nav-item-user-feedback",
-  "mobile-nav-item-user-profile",
-] as const;
+const ADMIN_LABELS = ["System Admin", "Crew Management", "Logistics", "AI Analytics"] as const;
 
 const EMPTY_ATTENTION_WORKFLOW = {
   queues: [],
@@ -84,97 +65,136 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
-async function installPortalFixtures(page: Page) {
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname;
-
-    if (path === "/api/portal/dev-login" && request.method() === "POST") {
-      const payload = JSON.parse(request.postData() || "{}") as {
-        persona?: "admin" | "user";
-        role?: string;
-      };
-      const isAdmin = payload.persona === "admin";
-      const role = isAdmin ? "super_admin" : payload.role || "deck_officer";
-      await fulfillJson(route, {
-        sessionToken: isAdmin ? "playwright-dev-admin-token" : `playwright-dev-user-${role}-token`,
-        expiresIn: 28800,
-        mustChangePassword: false,
-        user: {
-          id: isAdmin ? "dev-admin-user" : `dev-login-user-${role}`,
-          name: isAdmin ? "Development Superuser" : "Development User Preview",
-          role,
-          orgId: "default-org-id",
-        },
-      });
-      return;
-    }
-
-    if (path === "/api/permissions/me") {
-      const token = authorizationToken(route);
-      const isAdmin = token.includes("admin");
-      const role = isAdmin ? "super_admin" : "deck_officer";
-      await fulfillJson(route, {
-        userId: isAdmin ? "dev-admin-user" : `dev-login-user-${role}`,
-        orgId: "default-org-id",
-        roles: [
-          {
-            id: `playwright-role-${role}`,
-            name: role,
-            displayName: isAdmin ? "Super Admin (Dev Mode)" : "Deck Officer (Dev Preview)",
-          },
+function portalFixtureResponse(path: string): unknown | undefined {
+  const responses: Record<string, unknown> = {
+    "/api/me/dashboard": {
+      config: {
+        widgets: [
+          "current_vessel",
+          "safety_status",
+          "safety_notices",
+          "active_alerts",
+          "user_tasks",
         ],
-        permissions: isAdmin
-          ? {
-              system: ["view", "create", "edit", "delete", "manage"],
-              admin: ["view", "create", "edit", "delete", "manage"],
-            }
-          : {},
-        hubAdmin: isAdmin,
-        hubAccess: isAdmin ? null : [],
-        isDevMode: isAdmin,
-      });
-      return;
-    }
-
-    const responses: Record<string, unknown> = {
-      "/api/me/dashboard": {
-        config: {
-          widgets: [
-            "current_vessel",
-            "safety_status",
-            "safety_notices",
-            "active_alerts",
-            "user_tasks",
-          ],
-          taskSources: [],
-          visibilityScope: "self",
-          quickActions: [],
-          filters: {},
-          highImpactQuestions: {},
-        },
+        taskSources: [],
+        visibilityScope: "self",
+        quickActions: [],
+        filters: {},
+        highImpactQuestions: {},
       },
-      "/api/me/tasks": [],
-      "/api/work-orders/my-assignments": [],
-      "/api/me/safety-alarms": [],
-      "/api/home/attention-summary": EMPTY_ATTENTION_SUMMARY,
-      "/api/attention/items": EMPTY_ATTENTION_WORKFLOW,
-      "/api/work-orders": [],
-      "/api/maintenance-schedules/upcoming": [],
-      "/api/shifts": [],
-      "/api/vessels": [],
-      "/api/alerts": [],
-      "/api/safety-bulletins": [],
-    };
+    },
+    "/api/me/tasks": [],
+    "/api/work-orders/my-assignments": [],
+    "/api/me/safety-alarms": [],
+    "/api/home/attention-summary": EMPTY_ATTENTION_SUMMARY,
+    "/api/attention/items": EMPTY_ATTENTION_WORKFLOW,
+    "/api/work-orders": [],
+    "/api/maintenance-schedules/upcoming": [],
+    "/api/shifts": [],
+    "/api/vessels": [],
+    "/api/alerts": [],
+    "/api/safety-bulletins": [],
+  };
+  return responses[path];
+}
 
-    if (Object.prototype.hasOwnProperty.call(responses, path)) {
-      await fulfillJson(route, responses[path]);
-      return;
-    }
-
-    await route.continue();
+async function handleDevLoginRoute(route: Route, path: string): Promise<boolean> {
+  const request = route.request();
+  if (path !== "/api/portal/dev-login" || request.method() !== "POST") {
+    return false;
+  }
+  const payload = JSON.parse(request.postData() || "{}") as {
+    persona?: "admin" | "user";
+    role?: string;
+  };
+  const isAdmin = payload.persona === "admin";
+  const role = isAdmin ? "super_admin" : payload.role || "deck_officer";
+  await fulfillJson(route, {
+    sessionToken: isAdmin ? "playwright-dev-admin-token" : `playwright-dev-user-${role}-token`,
+    expiresIn: 28800,
+    mustChangePassword: false,
+    user: {
+      id: isAdmin ? "dev-admin-user" : `dev-login-user-${role}`,
+      name: isAdmin ? "Development Superuser" : "Development User Preview",
+      role,
+      orgId: "default-org-id",
+    },
   });
+  return true;
+}
+
+async function handlePortalLoginRoute(route: Route, path: string): Promise<boolean> {
+  const request = route.request();
+  if (path !== "/api/portal/login" || request.method() !== "POST") {
+    return false;
+  }
+  const payload = JSON.parse(request.postData() || "{}") as { username?: string };
+  const isAdmin = payload.username?.includes("admin") ?? false;
+  const role = isAdmin ? "super_admin" : "deck_officer";
+  await fulfillJson(route, {
+    sessionToken: isAdmin ? "playwright-admin-token" : "playwright-user-token",
+    expiresIn: 28800,
+    mustChangePassword: false,
+    user: {
+      id: isAdmin ? "admin-user" : "deck-user",
+      name: isAdmin ? "Admin User" : "Deck Officer",
+      role,
+      orgId: "default-org-id",
+    },
+  });
+  return true;
+}
+
+async function handlePermissionsRoute(route: Route, path: string): Promise<boolean> {
+  if (path !== "/api/permissions/me") {
+    return false;
+  }
+  const token = authorizationToken(route);
+  const isAdmin = token.includes("admin");
+  const role = isAdmin ? "super_admin" : "deck_officer";
+  await fulfillJson(route, {
+    userId: isAdmin ? "dev-admin-user" : `dev-login-user-${role}`,
+    orgId: "default-org-id",
+    roles: [
+      {
+        id: `playwright-role-${role}`,
+        name: role,
+        displayName: isAdmin ? "Super Admin (Dev Mode)" : "Deck Officer (Dev Preview)",
+      },
+    ],
+    permissions: isAdmin
+      ? {
+          system: ["view", "create", "edit", "delete", "manage"],
+          admin: ["view", "create", "edit", "delete", "manage"],
+        }
+      : {},
+    hubAdmin: isAdmin,
+    hubAccess: isAdmin ? null : [],
+    isDevMode: isAdmin,
+  });
+  return true;
+}
+
+async function handlePortalFixtureRoute(route: Route): Promise<void> {
+  const url = new URL(route.request().url());
+  const path = url.pathname;
+  if (
+    (await handleDevLoginRoute(route, path)) ||
+    (await handlePortalLoginRoute(route, path)) ||
+    (await handlePermissionsRoute(route, path))
+  ) {
+    return;
+  }
+  const response = portalFixtureResponse(path);
+  if (response !== undefined) {
+    await fulfillJson(route, response);
+    return;
+  }
+  await route.continue();
+}
+
+async function installPortalFixtures(page: Page) {
+  await page.route("**/api/**", handlePortalFixtureRoute);
 }
 
 async function resetClientState(page: Page) {
@@ -195,14 +215,27 @@ async function resetClientState(page: Page) {
 
 async function loginDevUser(page: Page) {
   await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
-  await page.getByTestId("button-dev-login-user").click();
-  await expect(page.getByTestId("shell-user-portal")).toBeVisible();
+  await page.getByTestId("button-card-portal-user").click();
+  await page.getByTestId("input-login-username").fill("playwright-user");
+  await page.getByTestId("input-login-password").fill("playwright-password");
+  await page.getByTestId("button-login").click();
+  await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
 }
 
 async function loginDevAdmin(page: Page) {
   await page.goto("/portal-login", { waitUntil: "domcontentloaded" });
-  await page.getByTestId("button-dev-login-admin").click();
-  await expect(page.getByTestId("shell-admin-hubs")).toBeVisible();
+  await page.getByTestId("button-card-portal-admin").click();
+  await page.getByTestId("input-admin-username").fill("playwright-admin");
+  await page.getByTestId("input-admin-password").fill("playwright-password");
+  await page.getByTestId("button-admin-login").click();
+  await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
+}
+
+async function navigateWithinAuthenticatedSpa(page: Page, path: string): Promise<void> {
+  await page.evaluate((target) => {
+    window.history.pushState({}, "", target);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, path);
 }
 
 test.describe("Portal split landing", () => {
@@ -218,60 +251,50 @@ test.describe("Portal split landing", () => {
     await expect(page.getByTestId("card-portal-user")).toBeVisible();
     await expect(page.getByTestId("button-card-portal-admin")).toBeVisible();
     await expect(page.getByTestId("button-card-portal-user")).toBeVisible();
-    await expect(page.getByTestId("button-dev-login-admin")).toBeVisible();
-    await expect(page.getByTestId("button-dev-login-user")).toBeVisible();
   });
 
-  test("Dev admin login opens the admin hub shell", async ({ page }) => {
+  test("Dev admin login opens the mobile readiness command center", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await loginDevAdmin(page);
-    await expect(page.getByTestId("text-admin-hubs-title")).toBeVisible();
+    await expect(page.getByText("Command Queue", { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
+    await expect(page.getByTestId("shell-admin-hubs")).toHaveCount(0);
     await expect(page.getByTestId("shell-user-portal")).toHaveCount(0);
   });
 
-  test("User portal shows the 4 user items and no admin hubs", async ({ page }) => {
+  test("User portal shows role-specific mobile readiness items and no admin hubs", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await loginDevUser(page);
 
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-
-    // The user portal renders its own shell — the admin-only BottomNav
-    // (the hub launcher) must never appear for a user-portal account.
-    await expect(page.getByTestId("shell-user-portal")).toBeVisible();
+    await expect(page.getByTestId("mobile-readiness-screen-command")).toBeVisible();
+    await expect(page.getByTestId("mobile-readiness-bottom-nav")).toBeVisible();
+    await expect(page.getByTestId("shell-user-portal")).toHaveCount(0);
+    await expect(page.getByTestId("shell-admin-hubs")).toHaveCount(0);
     await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
 
-    // Open the mobile nav sheet and assert the four user items are
-    // present, each carrying its policy-driven test id.
-    await page.getByTestId("button-mobile-menu").click();
-    const sheet = page.getByTestId("sheet-mobile-nav");
-    await expect(sheet).toBeVisible();
-
-    for (const id of USER_NAV_ITEM_IDS) {
-      await expect(sheet.getByTestId(id)).toBeVisible();
-    }
-    for (const label of USER_LABELS) {
-      await expect(sheet.getByText(label, { exact: true })).toBeVisible();
+    for (const label of ["Bridge", "Logs", "Crew", "Maintenance", "Settings"]) {
+      await expect(page.getByTestId("mobile-readiness-bottom-nav").getByText(label)).toBeVisible();
     }
 
     // No admin hub label may leak into the user-portal nav.
     for (const label of ADMIN_LABELS) {
-      await expect(sheet.getByText(label, { exact: true })).toHaveCount(0);
+      await expect(
+        page.getByTestId("mobile-readiness-bottom-nav").getByText(label, { exact: true })
+      ).toHaveCount(0);
     }
   });
 
-  test("User portal HomePage surfaces the Feedback CTA and routes to /feedback", async ({
-    page,
-  }) => {
+  test("User portal mobile nav routes Logs to the replacement logs screen", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await loginDevUser(page);
 
-    // The simplified user-portal home renders at "/" once the role is
-    // set. Land there explicitly so the test is independent of any
-    // post-login redirect chain.
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-
-    const cta = page.getByTestId("button-user-open-feedback");
-    await expect(cta).toBeVisible();
-    await cta.click();
-    await expect(page.getByTestId("page-feedback")).toBeVisible();
+    const logs = page.getByTestId("mobile-readiness-nav-logs");
+    await expect(logs).toBeVisible();
+    await logs.click();
+    await expect(page).toHaveURL(/\/logs$/);
+    await expect(page.getByTestId("mobile-readiness-screen-logs")).toBeVisible();
   });
 });
 
@@ -281,7 +304,8 @@ test.describe("Feedback page", () => {
   });
 
   test("submits a valid feedback draft and surfaces a tracking id", async ({ page }) => {
-    await page.goto("/feedback", { waitUntil: "domcontentloaded" });
+    await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/feedback");
 
     await page.getByTestId("input-feedback-subject").fill("Pilot smoke subject");
     await page
@@ -294,7 +318,8 @@ test.describe("Feedback page", () => {
   });
 
   test("blocks submission when description is too short", async ({ page }) => {
-    await page.goto("/feedback", { waitUntil: "domcontentloaded" });
+    await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/feedback");
 
     await page.getByTestId("input-feedback-subject").fill("Valid subject");
     await page.getByTestId("textarea-feedback-description").fill("short");
@@ -312,15 +337,14 @@ test.describe("Feedback page", () => {
  * pick the other surface. This pins it for both portals to prevent the
  * affordance silently regressing when nav is refactored.
  */
-test.describe("Switch-portal affordance", () => {
+test.describe("Portal return affordance", () => {
   test.beforeEach(async ({ page }) => {
     await resetClientState(page);
   });
 
-  test("user portal exposes a switch-portal button that returns to /portal-login", async ({
-    page,
-  }) => {
+  test("profile exposes a switch-portal button that returns to /portal-login", async ({ page }) => {
     await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/profile");
 
     const switchBtn = page.getByTestId("button-switch-portal");
     await expect(switchBtn).toBeVisible();
@@ -330,10 +354,11 @@ test.describe("Switch-portal affordance", () => {
     await expect(page.getByTestId("page-portal-login")).toBeVisible();
   });
 
-  test("admin portal exposes a switch-portal button that returns to /portal-login", async ({
+  test("feedback exposes a switch-portal button that returns to /portal-login", async ({
     page,
   }) => {
-    await loginDevAdmin(page);
+    await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/feedback");
 
     const switchBtn = page.getByTestId("button-switch-portal");
     await expect(switchBtn).toBeVisible();
@@ -366,21 +391,23 @@ test.describe("Empty states", () => {
 
   test("attention inbox renders empty state when there is nothing to act on", async ({ page }) => {
     await loginDevAdmin(page);
-    await page.goto("/attention-inbox", { waitUntil: "domcontentloaded" });
+    await navigateWithinAuthenticatedSpa(page, "/attention-inbox");
     // Either the empty-state test-id is visible, or the page hasn't
     // rendered yet — `toBeVisible` with the default 5s expect timeout
     // covers the cold-cache fetch.
     await expect(page.getByTestId("empty-attention-inbox")).toBeVisible();
   });
 
-  test("user-portal home renders empty-my-tasks when no tasks are assigned", async ({ page }) => {
+  test("my tasks renders empty-my-tasks when no tasks are assigned", async ({ page }) => {
     await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/my-tasks");
 
     await expect(page.getByTestId("empty-my-tasks")).toBeVisible();
   });
 
   test("feedback page renders empty-feedback-history on a fresh session", async ({ page }) => {
-    await page.goto("/feedback", { waitUntil: "domcontentloaded" });
+    await loginDevUser(page);
+    await navigateWithinAuthenticatedSpa(page, "/feedback");
     await expect(page.getByTestId("empty-feedback-history")).toBeVisible();
   });
 });

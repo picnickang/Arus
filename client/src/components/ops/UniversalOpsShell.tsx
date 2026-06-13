@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { OpsShell } from "./OpsShell";
 import { OpsSidebar, type OpsSidebarItem } from "./OpsSidebar";
+import OpsStatusRail from "./OpsStatusRail";
 import { OpsTopBar } from "./OpsTopBar";
 
 interface UniversalOpsShellProps {
@@ -291,6 +292,7 @@ export function UniversalOpsShell({ currentPath, activeHubId, children }: Univer
       }
       topBar={
         <>
+          <OpsStatusRail />
           <OpsTopBar
             leading={
               <UniversalMobileDrawer

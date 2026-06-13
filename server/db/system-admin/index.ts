@@ -17,7 +17,9 @@
  * System Admin Repository - Modular Aggregator
  */
 
+import { randomUUID } from "node:crypto";
 import { createLogger } from "../../lib/structured-logger";
+import { isLocalMode } from "../../db-config";
 const logger = createLogger("Db:SystemAdmin:Index");
 import { DbAuditStorage } from "./db-audit.js";
 import { DbSettingsStorage } from "./db-settings.js";
@@ -36,6 +38,30 @@ type PartialSetting = Partial<InsertAdminSystemSetting>;
 type PartialConfig = Partial<InsertIntegrationConfig>;
 type PartialWindow = Partial<InsertMaintenanceWindow>;
 type PartialCheck = Partial<InsertSystemHealthCheck>;
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null;
+}
+
+function errorLogMessage(log: Record<string, unknown>): string {
+  return nonEmptyString(log["message"]) ?? String(log["errorMessage"] ?? "Unknown error");
+}
+
+function errorLogCategory(log: Record<string, unknown>): string {
+  return nonEmptyString(log["category"]) ?? nonEmptyString(log["errorType"]) ?? "application";
+}
+
+function errorLogContext(log: Record<string, unknown>): unknown {
+  const context = log["context"];
+  if (!isLocalMode || typeof context !== "object" || context === null) {
+    return context;
+  }
+  return JSON.stringify(context);
+}
+
+function dateFieldOrNow(value: unknown, now: Date): Date {
+  return value instanceof Date ? value : now;
+}
 
 export class DatabaseSystemAdminStorage extends DbAuditStorage {
   private s = new DbSettingsStorage();
@@ -184,9 +210,27 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     }
     const { errorLogs } = await import("@shared/schema-runtime");
     const { db: database } = await import("../../db-config");
+    const now = new Date();
+    const message = errorLogMessage(log);
+    const category = errorLogCategory(log);
+    const errorType = nonEmptyString(log["errorType"]) ?? category;
+    const values = {
+      ...log,
+      ...(isLocalMode && { id: typeof log["id"] === "string" ? log["id"] : randomUUID() }),
+      category,
+      context: errorLogContext(log),
+      createdAt: dateFieldOrNow(log["createdAt"], now),
+      errorMessage:
+        typeof log["errorMessage"] === "string" && log["errorMessage"]
+          ? log["errorMessage"]
+          : message,
+      errorType,
+      message,
+      timestamp: dateFieldOrNow(log["timestamp"], now),
+    };
     const [newLog] = await database
       .insert(errorLogs)
-      .values({ ...log, timestamp: new Date() } as never)
+      .values(values as never)
       .returning();
     if (!newLog) {
       throw new Error("Failed to create error log");

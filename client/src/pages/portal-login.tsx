@@ -211,7 +211,7 @@ export default function PortalLoginPage() {
   if (view === "choose") {
     return (
       <div
-        className="relative min-h-screen overflow-hidden bg-[#070b14]"
+        className="relative min-h-screen overflow-hidden bg-slate-950"
         data-testid="page-portal-login"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_70%_at_50%_-10%,rgba(56,120,200,0.18),transparent_60%)]" />
@@ -286,7 +286,7 @@ export default function PortalLoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-b from-[#0c1424] to-[#070b14]"
+      className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-12"
       data-testid="page-portal-login"
     >
       <Card className="w-full max-w-sm border-white/10 bg-white/95 backdrop-blur">

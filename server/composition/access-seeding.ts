@@ -28,6 +28,7 @@ import {
   defaultAccessLevelForRank,
 } from "@shared/role-dashboard";
 import { createLogger } from "../lib/structured-logger";
+import { isLocalMode } from "../config/runtimeEnv.js";
 
 const logger = createLogger("Composition:AccessSeeding");
 
@@ -111,6 +112,13 @@ export async function seedAccessAndDashboards(orgId: string): Promise<{
  * Swallows errors per-org so one bad org never blocks boot.
  */
 export async function seedAccessForAllOrgs(): Promise<void> {
+  if (isLocalMode) {
+    logger.info(
+      "Access seeding skipped in local SQLite mode; role tables are cloud runtime tables"
+    );
+    return;
+  }
+
   try {
     const orgIds = new Set<string>(await listDistinctRoleOrgIds());
     // Always include the default org even if it has no roles yet.

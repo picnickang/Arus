@@ -43,6 +43,10 @@ const MOBILE_READINESS_MODEL_PATHS = [
   resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-machinery-work.ts"),
   resolve(REPO_ROOT, "client/src/features/mobile-readiness/mobile-readiness-support-screens.ts"),
 ];
+const MOBILE_READINESS_ROUTE_CONTRACT_PATH = resolve(
+  REPO_ROOT,
+  "client/src/features/mobile-readiness/mobile-readiness-route-contract.ts"
+);
 const DOMAIN_REGISTRY_PATH = resolve(REPO_ROOT, "server/routes/domain-router-registry.ts");
 const DOMAIN_REGISTRY_CONFIG_PATHS = [
   DOMAIN_REGISTRY_PATH,
@@ -270,12 +274,12 @@ describe("Vessel diagram mobile replacement controls", () => {
 
   it("routes legacy target query links to the intended hub tab", async () => {
     const routes = await load(FLEET_ROUTES_PATH);
-    const mobileScreens = await loadMobileReadinessScreens();
+    const routeContract = await load(MOBILE_READINESS_ROUTE_CONTRACT_PATH);
 
     expect(routes).toContain('"/fleet/:vesselId"');
     expect(routes).toContain('"/equipment-schematic/:vesselId"');
     expect(routes).toContain('"/reports/vessel/:vesselId"');
-    expect(mobileScreens).toContain("isMobileReadinessReplacementPath");
-    expect(mobileScreens).toContain("/vessel-intelligence/");
+    expect(routeContract).toContain("export function isMobileReadinessReplacementPath");
+    expect(routeContract).toContain("/vessel-intelligence/");
   });
 });
