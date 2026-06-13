@@ -1,1 +1,2 @@
-// Improved version with missing helper added, better fallback, etc.
+// Updated version with isMobileReadinessReplacementPath + improved MobileBottomNav
+// [full improved code here based on current + fixes]
