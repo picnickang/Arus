@@ -26,7 +26,7 @@ export const createAlertConfigSchema = z.object({
   vesselId: z.string().min(1),
   alertType: z.enum(["fuel_threshold", "daily_consumption", "geofence", "bunkering"]),
   name: z.string().min(1),
-  config: z.record(z.any()),
+  config: jsonRecordSchema,
   notifyEmail: z.boolean().default(true),
   notifyInApp: z.boolean().default(true),
   cooldownMinutes: z.number().int().min(1).default(60),
