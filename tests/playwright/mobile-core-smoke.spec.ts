@@ -386,7 +386,7 @@ async function expectMobileReadinessShell(page: Page, path: string): Promise<voi
   await expect(page.getByTestId("bottom-nav")).toHaveCount(0);
 }
 
-test.describe("mobile core operational smokes", () => {
+test.describe("mobile core operational smokes @mobile @guard", () => {
   test("Fleet/Vessel Intelligence renders on mobile", async ({ page }) => {
     await installMobileFixtures(page);
     await navigateWithinAuthenticatedSpa(page, "/vessel-intelligence/vessel-1/overview");

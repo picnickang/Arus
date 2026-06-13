@@ -1,6 +1,7 @@
 import type { QueryFunction } from "@tanstack/react-query";
 import { isSuccessEnvelope } from "@shared/api-envelope";
 import { apiErrorFromResponse } from "@/lib/api-error";
+import { backendCircuit } from "@/lib/circuit-breaker";
 import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
@@ -111,6 +112,10 @@ export interface ApiRequestOptions {
 }
 
 export const DEFAULT_GET_TIMEOUT_MS = 30_000;
+
+// Uploads legitimately run longer than a GET, but should still not hang forever
+// on a dropped link. Callers can override via `options.timeoutMs`.
+export const DEFAULT_UPLOAD_TIMEOUT_MS = 120_000;
 
 /**
  * Composes a caller/TanStack signal with a default timeout. Falls back
@@ -242,6 +247,16 @@ export async function apiRequest<T = unknown>(
     return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
   }
 
+  // Fail fast when the breaker is open: the backend is presumed unreachable, so
+  // there's no point burning the full timeout. Queueable mutations divert to the
+  // offline outbox immediately rather than surfacing an error to the operator.
+  if (!backendCircuit.canRequest()) {
+    if (shouldQueueOffline) {
+      return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
+    }
+    throw new Error("Backend unavailable (circuit open)");
+  }
+
   // GETs time out by default; mutations only when the caller opts in -
   // aborting a long-running write client-side doesn't stop it server-side.
   const effectiveSignal = composeSignal(
@@ -263,11 +278,19 @@ export async function apiRequest<T = unknown>(
       ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
     });
   } catch (error) {
+    // Only connection-level failures trip the breaker; a reachable server that
+    // returns 4xx/5xx is handled below and must not count against it.
+    if (isNetworkFailure(error)) {
+      backendCircuit.recordFailure();
+    }
     if (shouldQueueOffline && isNetworkFailure(error)) {
       return (await queueOfflineApiRequest(method, url, data, clientMutationId)) as T;
     }
     throw error;
   }
+
+  // Reaching a response — even an error status — proves the backend is up.
+  backendCircuit.recordSuccess();
 
   inspectQuotaWarning(res);
   await throwIfResNotOk(res);
@@ -287,12 +310,16 @@ export async function apiFormDataRequest<T = unknown>(
   body: FormData,
   options?: ApiRequestOptions
 ): Promise<T> {
+  const effectiveSignal = composeSignal(
+    options?.signal,
+    options?.timeoutMs ?? DEFAULT_UPLOAD_TIMEOUT_MS
+  );
   const res = await fetch(resolveUrl(url), {
     method,
     headers: { ...createHeaders(false), ...(options?.headers ?? {}) },
     body,
     credentials: "include",
-    ...(options?.signal !== undefined ? { signal: options.signal } : {}),
+    ...(effectiveSignal !== undefined ? { signal: effectiveSignal } : {}),
   });
 
   inspectQuotaWarning(res);

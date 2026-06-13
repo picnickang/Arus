@@ -1,6 +1,10 @@
 import { ArrowDown } from "lucide-react";
 import { normalizeMobileRole } from "./mobile-readiness-model";
 import {
+  getMobileReadinessExpectedScreen,
+  type MobileReadinessScreenMarker,
+} from "./mobile-readiness-route-contract";
+import {
   AppHeader,
   Content,
   MobilePageShell,
@@ -30,6 +34,39 @@ export {
 } from "./MobileReadinessAdminScreens";
 
 type ScreenKind = "today" | "fleet" | "pdm" | "work" | "logs" | "crew" | "inventory" | "settings";
+
+/** Map a fine-grained route screen marker to the bottom-nav ScreenKind. */
+function markerToScreenKind(marker: MobileReadinessScreenMarker | null): ScreenKind {
+  switch (marker) {
+    case "fleet":
+    case "vessel-detail":
+    case "vessel-diagram":
+      return "fleet";
+    case "pdm-queue":
+    case "pdm-asset-case":
+    case "pdm-telemetry":
+      return "pdm";
+    case "work-queue":
+    case "work-execution":
+      return "work";
+    case "logs":
+      return "logs";
+    case "crew":
+      return "crew";
+    case "inventory":
+      return "inventory";
+    case "settings":
+      return "settings";
+    case "command":
+    default:
+      return "today";
+  }
+}
+
+/** Resolve the bottom-nav ScreenKind for an app path. */
+export function pathToScreenKind(path: string): ScreenKind {
+  return markerToScreenKind(getMobileReadinessExpectedScreen(path));
+}
 
 export function MobileCommandCenterPage({ role }: { role?: string }) {
   const screens = useScreens(role);
@@ -70,8 +107,15 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
   );
 }
 
-export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
-  switch (screen) {
+export function MobileReadinessRoute({
+  screen,
+  currentPath,
+}: {
+  screen?: ScreenKind;
+  currentPath?: string;
+}) {
+  const resolved: ScreenKind = screen ?? pathToScreenKind(currentPath ?? "/");
+  switch (resolved) {
     case "fleet":
       return <MobileFleetPage />;
     case "pdm":
@@ -95,3 +139,7 @@ export function MobileReadinessRoute({ screen }: { screen: ScreenKind }) {
 export function MobileReadinessCopilotSuppressionMarker() {
   return null;
 }
+
+// Phase 1 (#57) consolidation: surface the unified mobile shell from the
+// canonical screens barrel so callers have a single import site.
+export { MobileShell } from "./MobileShell";

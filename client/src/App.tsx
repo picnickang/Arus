@@ -18,6 +18,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
 import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
 import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/mobile-readiness-route-contract";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -35,6 +36,16 @@ const PortalLogin = lazy(() => import("@/pages/portal-login"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const MyTasksPage = lazy(() => import("@/pages/my-tasks"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
+const MobileProfilePage = lazy(() =>
+  import("@/features/mobile-readiness/MobileProfilePage").then((m) => ({
+    default: m.MobileProfilePage,
+  }))
+);
+const MobileAttentionInboxPage = lazy(() =>
+  import("@/features/mobile-readiness/MobileAttentionInboxPage").then((m) => ({
+    default: m.MobileAttentionInboxPage,
+  }))
+);
 
 const DevPerformanceOverlay = import.meta.env.DEV
   ? lazy(() =>
@@ -305,6 +316,7 @@ function Router() {
   const { currentOrgId, isLoading } = useOrganization();
   const { permissions } = usePermissions();
   const [routerLoc] = useLocation();
+  const isMobile = useIsMobile();
   useTrackPageVisit();
 
   if (isLoading || !currentOrgId) {
@@ -358,7 +370,10 @@ function Router() {
                   user can reach them. Auth is still enforced app-wide by
                   SessionGate; these carry no admin data. */}
               <Route path="/my-tasks" component={MyTasksPage} />
-              <Route path="/profile" component={ProfilePage} />
+              {/* Leaky-route remediation (#59): mobile gets the mobile-optimized
+                  page, desktop keeps the full page. */}
+              <Route path="/profile" component={isMobile ? MobileProfilePage : ProfilePage} />
+              {isMobile && <Route path="/attention-inbox" component={MobileAttentionInboxPage} />}
 
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>

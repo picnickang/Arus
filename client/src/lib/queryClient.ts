@@ -1,5 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api-error";
+import { computeBackoffDelay } from "@/lib/backoff";
+import { backendCircuit } from "@/lib/circuit-breaker";
 import { toast } from "@/hooks/use-toast";
 import {
   addConflict,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/tenant-quota-notifications";
 import {
   createHeaders,
+  DEFAULT_GET_TIMEOUT_MS,
   getQueryFn,
   resolveUrl,
   TenantQuotaExceededError,
@@ -119,6 +122,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: CACHE_TIMES.MODERATE,
       retry: 1,
+      retryDelay: (attempt) => computeBackoffDelay(attempt),
     },
     mutations: {
       // Never auto-retry mutations: most POSTs are not idempotent, and queueable
@@ -162,6 +166,7 @@ async function doReplayQueuedApiRequests(): Promise<{
   const operations = await getPendingOperations();
   const unresolvedConflictIds = await getUnresolvedConflictOperationIds();
   const apiOperations = operations.filter((op: PendingOperation) => op.request);
+  const now = Date.now();
   let synced = 0;
   let failed = 0;
   let conflicts = 0;
@@ -172,6 +177,15 @@ async function doReplayQueuedApiRequests(): Promise<{
       op.retryCount >= 5 ||
       op.conflictPaused ||
       unresolvedConflictIds.has(op.id)
+    ) {
+      continue;
+    }
+
+    // Previously-failed ops wait out a jittered backoff window before being
+    // retried, so a flaky link doesn't get hammered by every replay pass.
+    if (
+      op.retryCount > 0 &&
+      now < (op.lastAttemptedAt ?? 0) + computeBackoffDelay(op.retryCount)
     ) {
       continue;
     }
@@ -191,6 +205,12 @@ async function doReplayQueuedApiRequests(): Promise<{
         ? op.payload["__clientMutationId"]
         : undefined);
 
+    // A replay must not hang forever on a half-open link; bound each attempt.
+    const replaySignal =
+      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+        ? AbortSignal.timeout(DEFAULT_GET_TIMEOUT_MS)
+        : undefined;
+
     try {
       const response = await fetch(resolveUrl(op.request.url), {
         method: op.request.method,
@@ -200,8 +220,11 @@ async function doReplayQueuedApiRequests(): Promise<{
         },
         ...(op.request.method !== "DELETE" ? { body: JSON.stringify(payload) } : {}),
         credentials: "include",
+        ...(replaySignal !== undefined ? { signal: replaySignal } : {}),
       });
 
+      // Got a response — the backend is reachable even if it returns an error.
+      backendCircuit.recordSuccess();
       inspectQuotaWarning(response);
 
       if (response.status === 429) {
@@ -255,6 +278,9 @@ async function doReplayQueuedApiRequests(): Promise<{
       await removeOperation(op.id);
       synced++;
     } catch (error) {
+      // fetch only rejects on connection/abort failures (not HTTP status), so a
+      // throw here means the backend is unreachable — count it against the breaker.
+      backendCircuit.recordFailure();
       await markOperationFailed(
         op.id,
         error instanceof Error ? error.message : "Unknown sync error"

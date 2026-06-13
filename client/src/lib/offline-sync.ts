@@ -151,6 +151,7 @@ export async function markOperationFailed(operationId: string, error: string): P
   if (op) {
     op.retryCount += 1;
     op.lastError = error;
+    op.lastAttemptedAt = Date.now();
     await db.put("pendingOperations", op);
     broadcastOfflineSyncChange();
   }

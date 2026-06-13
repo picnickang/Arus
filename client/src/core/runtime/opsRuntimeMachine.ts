@@ -1,8 +1,8 @@
-import { setup, assign, type ActorRefFrom } from 'xstate';
+import { setup, assign, type ActorRefFrom } from "xstate";
 
-export type OpsMode = 'CLOUD' | 'VESSEL_LOCAL';
-export type Connectivity = 'ONLINE' | 'OFFLINE' | 'DEGRADED';
-export type SyncStatus = 'SYNCED' | 'SYNCING' | 'CONFLICT' | 'IDLE';
+export type OpsMode = "CLOUD" | "VESSEL_LOCAL";
+export type Connectivity = "ONLINE" | "OFFLINE" | "DEGRADED";
+export type SyncStatus = "SYNCED" | "SYNCING" | "CONFLICT" | "IDLE";
 
 export interface OpsRuntimeContext {
   mode: OpsMode;
@@ -15,20 +15,22 @@ export interface OpsRuntimeContext {
 }
 
 export type OpsRuntimeEvent =
-  | { type: 'INITIALIZED' }
-  | { type: 'SWITCH_MODE'; targetMode: OpsMode }
-  | { type: 'MODE_SWITCH_SUCCESS' }
-  | { type: 'MODE_SWITCH_FAILED' }
-  | { type: 'CONNECTION_LOST' }
-  | { type: 'CONNECTION_RESTORED' }
-  | { type: 'PERFORM_ACTION'; payload: { actionType: string; id?: string } }
-  | { type: 'ACTION_QUEUED' }
-  | { type: 'ACTION_FLUSHED' }
-  | { type: 'SYNC_START' }
-  | { type: 'SYNC_SUCCESS' }
-  | { type: 'SYNC_CONFLICT' }
-  | { type: 'RECOVER' };
+  | { type: "INITIALIZED" }
+  | { type: "SWITCH_MODE"; targetMode: OpsMode }
+  | { type: "MODE_SWITCH_SUCCESS" }
+  | { type: "MODE_SWITCH_FAILED" }
+  | { type: "CONNECTION_LOST" }
+  | { type: "CONNECTION_RESTORED" }
+  | { type: "PERFORM_ACTION"; payload: { actionType: string; id?: string } }
+  | { type: "ACTION_QUEUED" }
+  | { type: "ACTION_FLUSHED" }
+  | { type: "SYNC_START" }
+  | { type: "SYNC_SUCCESS" }
+  | { type: "SYNC_CONFLICT" }
+  | { type: "RECOVER" };
 
+// XState v5: implementations (guards/actions) live in setup(), and types are
+// declared there so guard/action params are inferred (not implicitly any).
 const opsRuntimeMachine = setup({
   types: {
     context: {} as OpsRuntimeContext,
@@ -36,19 +38,23 @@ const opsRuntimeMachine = setup({
   },
   guards: {
     canPerformCriticalAction: ({ context, event }) => {
-      if (event.type !== 'PERFORM_ACTION') {return false;}
-      const isOnline = context.connectivity === 'ONLINE';
+      if (event.type !== "PERFORM_ACTION") {return false;}
+      const isOnline = context.connectivity === "ONLINE";
       const notTransitioning = !context.isTransitioning;
-      const hasPerms = ['chiefEngineer', 'captain', 'superintendent'].includes(context.userRole);
+      const hasPerms = ["chiefEngineer", "captain", "superintendent"].includes(context.userRole);
       const notOverloaded = context.pendingActions < 10;
       return isOnline && notTransitioning && hasPerms && notOverloaded;
     },
     isSafeToSwitchMode: ({ context }) => {
-      return context.pendingActions === 0 && context.syncStatus !== 'CONFLICT' && !context.isTransitioning;
+      return (
+        context.pendingActions === 0 &&
+        context.syncStatus !== "CONFLICT" &&
+        !context.isTransitioning
+      );
     },
-    targetWasCloud: ({ context: _context, event }) => {
-      if (event.type !== 'SWITCH_MODE') {return false;}
-      return event.targetMode === 'CLOUD';
+    targetWasCloud: ({ event }) => {
+      if (event.type !== "SWITCH_MODE") {return false;}
+      return event.targetMode === "CLOUD";
     },
   },
   actions: {
@@ -60,42 +66,42 @@ const opsRuntimeMachine = setup({
     }),
   },
 }).createMachine({
-  id: 'opsRuntime',
-  initial: 'BOOTING',
+  id: "opsRuntime",
+  initial: "BOOTING",
   context: {
-    mode: 'VESSEL_LOCAL',
-    connectivity: 'ONLINE',
-    syncStatus: 'IDLE',
+    mode: "VESSEL_LOCAL",
+    connectivity: "ONLINE",
+    syncStatus: "IDLE",
     pendingActions: 0,
-    userRole: 'chiefEngineer',
+    userRole: "chiefEngineer",
     isTransitioning: false,
     lastSynced: null,
   },
   states: {
     BOOTING: {
       on: {
-        INITIALIZED: 'OPERATIONAL',
+        INITIALIZED: "OPERATIONAL",
       },
     },
     OPERATIONAL: {
-      type: 'parallel',
+      type: "parallel",
       states: {
         MODE: {
-          initial: 'VESSEL_LOCAL',
+          initial: "VESSEL_LOCAL",
           states: {
             VESSEL_LOCAL: {
               on: {
                 SWITCH_MODE: {
-                  target: 'TRANSITIONING',
-                  guard: 'isSafeToSwitchMode',
+                  target: "TRANSITIONING",
+                  guard: "isSafeToSwitchMode",
                 },
               },
             },
             CLOUD: {
               on: {
                 SWITCH_MODE: {
-                  target: 'TRANSITIONING',
-                  guard: 'isSafeToSwitchMode',
+                  target: "TRANSITIONING",
+                  guard: "isSafeToSwitchMode",
                 },
               },
             },
@@ -104,47 +110,47 @@ const opsRuntimeMachine = setup({
               exit: assign({ isTransitioning: false }),
               on: {
                 MODE_SWITCH_SUCCESS: [
-                  { target: 'CLOUD', guard: 'targetWasCloud' },
-                  { target: 'VESSEL_LOCAL' },
+                  { target: "CLOUD", guard: "targetWasCloud" },
+                  { target: "VESSEL_LOCAL" },
                 ],
-                MODE_SWITCH_FAILED: 'ERROR',
+                MODE_SWITCH_FAILED: "ERROR",
               },
             },
           },
         },
         CONNECTIVITY: {
-          initial: 'ONLINE',
+          initial: "ONLINE",
           states: {
             ONLINE: {
               on: {
-                CONNECTION_LOST: 'OFFLINE',
+                CONNECTION_LOST: "OFFLINE",
               },
             },
             OFFLINE: {
               on: {
-                CONNECTION_RESTORED: 'ONLINE',
+                CONNECTION_RESTORED: "ONLINE",
               },
             },
             DEGRADED: {},
           },
         },
         ACTION_QUEUE: {
-          initial: 'IDLE',
+          initial: "IDLE",
           states: {
             IDLE: {
               on: {
                 PERFORM_ACTION: {
-                  guard: 'canPerformCriticalAction',
-                  target: 'QUEUED',
-                  actions: 'incrementPending',
+                  guard: "canPerformCriticalAction",
+                  target: "QUEUED",
+                  actions: "incrementPending",
                 },
               },
             },
             QUEUED: {
               on: {
                 ACTION_FLUSHED: {
-                  target: 'IDLE',
-                  actions: 'decrementPending',
+                  target: "IDLE",
+                  actions: "decrementPending",
                 },
               },
             },
@@ -153,21 +159,21 @@ const opsRuntimeMachine = setup({
       },
       on: {
         SYNC_START: {
-          actions: assign({ syncStatus: 'SYNCING' as const }),
+          actions: assign({ syncStatus: "SYNCING" as const }),
         },
         SYNC_SUCCESS: {
           actions: [
-            assign({ syncStatus: 'SYNCED' as const, lastSynced: () => new Date().toISOString() }),
+            assign({ syncStatus: "SYNCED" as const, lastSynced: () => new Date().toISOString() }),
           ],
         },
         SYNC_CONFLICT: {
-          actions: assign({ syncStatus: 'CONFLICT' as const }),
+          actions: assign({ syncStatus: "CONFLICT" as const }),
         },
       },
     },
     ERROR: {
       on: {
-        RECOVER: 'OPERATIONAL',
+        RECOVER: "OPERATIONAL",
       },
     },
   },
