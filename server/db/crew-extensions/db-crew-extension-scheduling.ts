@@ -8,7 +8,7 @@ import {
   type InsertDrydockWindow,
   type InsertPortCall,
   type PortCall as SelectPortCall,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 
 export async function getPortCalls(vesselId?: string): Promise<SelectPortCall[]> {
   let q = db.select().from(portCall).$dynamic();
@@ -44,9 +44,7 @@ export async function deletePortCall(id: string): Promise<void> {
   }
 }
 
-export async function getDrydockWindows(
-  vesselId?: string
-): Promise<SelectDrydockWindow[]> {
+export async function getDrydockWindows(vesselId?: string): Promise<SelectDrydockWindow[]> {
   let q = db.select().from(drydockWindow).$dynamic();
   if (vesselId) {
     q = q.where(eq(drydockWindow.vesselId, vesselId));

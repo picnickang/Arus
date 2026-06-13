@@ -171,6 +171,8 @@ export const purchaseOrderItems = pickSchema(
   sqliteVessel.purchaseOrderItemsSqlite,
   pgSchema.purchaseOrderItems
 );
+// Cloud-only: no SQLite (vessel) variant — PO event history is shore-side.
+export const purchaseOrderEvents = cloudOnly(pgSchema.purchaseOrderEvents);
 export const purchaseRequests = cloudOnly(pgSchema.purchaseRequests);
 export const purchaseRequestItems = cloudOnly(pgSchema.purchaseRequestItems);
 export const serviceRequests = cloudOnly(pgSchema.serviceRequests);

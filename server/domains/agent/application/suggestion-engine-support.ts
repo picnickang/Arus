@@ -1,7 +1,7 @@
 import { db } from "../../../db";
 import { createLogger } from "../../../lib/structured-logger";
 import { llmGateway } from "../../../composition/llm-gateway";
-import { notificationQueue } from "@shared/schema";
+import { notificationQueue } from "@shared/schema-runtime";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
 

@@ -7,7 +7,7 @@ import {
   purchaseOrderItems,
   purchaseOrderEvents,
   purchaseRequestItems,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import { authenticatedRequest, requireOrgId, type AuthenticatedRequest } from "../middleware/auth";
 import { idempotencyMiddleware } from "../middleware/idempotency";
 import { fulfillItem } from "./fulfillment-service";
