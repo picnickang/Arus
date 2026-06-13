@@ -423,7 +423,7 @@ ${rows}
   await fs.writeFile(path.join(outputDir, "visual-fidelity-summary.md"), summary);
 }
 
-test.describe("mobile readiness visual fidelity gate", () => {
+test.describe("mobile readiness visual fidelity gate @visual @mobile", () => {
   test("captures comparison screenshots for each Figma/reference-board group", async ({
     page,
   }, testInfo) => {

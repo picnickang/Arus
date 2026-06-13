@@ -18,6 +18,16 @@ const CORE_RELEASE_TESTS = [
     : []),
 ];
 
+// Mobile spec subset run by the visual-regression projects below
+// (argos-visual-ci / playwright-visual-ci / mobile-qa-visual-argos).
+const MOBILE_VISUAL_TESTS = [
+  "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
+  "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
+  "**/static-mobile-boot.spec.ts",
+];
+
 /**
  * Prod-hardening Wave 5: minimal Playwright smoke harness.
  *
@@ -52,6 +62,19 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    // Mobile viewport projects for the visual-regression workflows. They run
+    // the mobile spec subset under a Pixel 5 (chromium engine) viewport, so the
+    // chromium browser install in CI is sufficient.
+    {
+      name: "mobile-chromium",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"] },
+    },
+    {
+      name: "mobile-visual",
+      testMatch: MOBILE_VISUAL_TESTS,
+      use: { ...devices["Pixel 5"] },
     },
   ],
 
