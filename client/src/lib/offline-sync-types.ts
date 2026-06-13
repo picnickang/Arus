@@ -28,6 +28,8 @@ export interface PendingOperation {
   createdAt: string;
   retryCount: number;
   lastError?: string | undefined;
+  /** Epoch ms of the most recent failed replay attempt; gates jittered backoff. */
+  lastAttemptedAt?: number | undefined;
   lastModifiedAt?: string | undefined;
   clientMutationId?: string | undefined;
   conflictPaused?: boolean | undefined;
