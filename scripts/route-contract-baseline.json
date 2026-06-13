@@ -80,8 +80,6 @@
   "/api/sensors/approve",
   "/api/sensors/unknown",
   "/api/stcw/rest",
-  "/api/stcw/rest/days",
-  "/api/stcw/rest/days/*",
   "/api/stormgeo/import-history*",
   "/api/stormgeo/settings*",
   "/api/telemetry",
