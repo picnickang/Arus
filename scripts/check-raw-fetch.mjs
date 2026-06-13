@@ -23,6 +23,9 @@ const baselinePath = path.join(root, "scripts/raw-fetch-baseline.json");
 // fetch patch, beacons that must not depend on app plumbing, tests).
 const ALLOWLIST = [
   "lib/queryClient.ts",
+  // The apiRequest/getQueryFn fetch primitives were split out of
+  // queryClient.ts into this file; they ARE the sanctioned raw-fetch owner.
+  "lib/queryClient-request.ts",
   "lib/errorHandler.ts",
   "lib/desktopFetch.ts",
   "lib/web-vitals.ts",

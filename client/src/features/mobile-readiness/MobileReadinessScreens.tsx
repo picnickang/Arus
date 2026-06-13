@@ -48,7 +48,7 @@ export function MobileCommandCenterPage({ role }: { role?: string }) {
               <h1 className="text-xl font-bold text-slate-950">Today</h1>
               <p className="text-sm text-slate-500">{screens.today.queueLabel}</p>
             </div>
-            <span className="text-sm font-semibold text-[#0d4da1]">
+            <span className="text-sm font-semibold text-brand">
               {screens.today.itemCount} items
             </span>
           </div>
