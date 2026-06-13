@@ -1,4 +1,4 @@
-import { createMachine, assign, type ActorRefFrom } from 'xstate';
+import { setup, assign, type ActorRefFrom } from 'xstate';
 
 export type OpsMode = 'CLOUD' | 'VESSEL_LOCAL';
 export type Connectivity = 'ONLINE' | 'OFFLINE' | 'DEGRADED';
@@ -29,7 +29,37 @@ export type OpsRuntimeEvent =
   | { type: 'SYNC_CONFLICT' }
   | { type: 'RECOVER' };
 
-const opsRuntimeMachine = createMachine({
+const opsRuntimeMachine = setup({
+  types: {
+    context: {} as OpsRuntimeContext,
+    events: {} as OpsRuntimeEvent,
+  },
+  guards: {
+    canPerformCriticalAction: ({ context, event }) => {
+      if (event.type !== 'PERFORM_ACTION') {return false;}
+      const isOnline = context.connectivity === 'ONLINE';
+      const notTransitioning = !context.isTransitioning;
+      const hasPerms = ['chiefEngineer', 'captain', 'superintendent'].includes(context.userRole);
+      const notOverloaded = context.pendingActions < 10;
+      return isOnline && notTransitioning && hasPerms && notOverloaded;
+    },
+    isSafeToSwitchMode: ({ context }) => {
+      return context.pendingActions === 0 && context.syncStatus !== 'CONFLICT' && !context.isTransitioning;
+    },
+    targetWasCloud: ({ context: _context, event }) => {
+      if (event.type !== 'SWITCH_MODE') {return false;}
+      return event.targetMode === 'CLOUD';
+    },
+  },
+  actions: {
+    incrementPending: assign({
+      pendingActions: ({ context }) => context.pendingActions + 1,
+    }),
+    decrementPending: assign({
+      pendingActions: ({ context }) => Math.max(0, context.pendingActions - 1),
+    }),
+  },
+}).createMachine({
   id: 'opsRuntime',
   initial: 'BOOTING',
   context: {
@@ -40,7 +70,7 @@ const opsRuntimeMachine = createMachine({
     userRole: 'chiefEngineer',
     isTransitioning: false,
     lastSynced: null,
-  } as OpsRuntimeContext,
+  },
   states: {
     BOOTING: {
       on: {
@@ -140,31 +170,6 @@ const opsRuntimeMachine = createMachine({
         RECOVER: 'OPERATIONAL',
       },
     },
-  },
-  guards: {
-    canPerformCriticalAction: ({ context, event }) => {
-      if (event.type !== 'PERFORM_ACTION') return false;
-      const isOnline = context.connectivity === 'ONLINE';
-      const notTransitioning = !context.isTransitioning;
-      const hasPerms = ['chiefEngineer', 'captain', 'superintendent'].includes(context.userRole);
-      const notOverloaded = context.pendingActions < 10;
-      return isOnline && notTransitioning && hasPerms && notOverloaded;
-    },
-    isSafeToSwitchMode: ({ context }) => {
-      return context.pendingActions === 0 && context.syncStatus !== 'CONFLICT' && !context.isTransitioning;
-    },
-    targetWasCloud: ({ context, event }) => {
-      if (event.type !== 'SWITCH_MODE') return false;
-      return event.targetMode === 'CLOUD';
-    },
-  },
-  actions: {
-    incrementPending: assign({
-      pendingActions: ({ context }) => context.pendingActions + 1,
-    }),
-    decrementPending: assign({
-      pendingActions: ({ context }) => Math.max(0, context.pendingActions - 1),
-    }),
   },
 });
 

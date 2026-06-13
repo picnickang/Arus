@@ -34,6 +34,7 @@ const OpsStatusRail: React.FC<OpsStatusRailProps> = ({
   className = '',
 }) => {
   const hasCritical = risks.some(r => r.severity === 'high');
+  const topRisk = risks[0];
 
   return (
     <div 
@@ -42,23 +43,23 @@ const OpsStatusRail: React.FC<OpsStatusRailProps> = ({
       aria-label="Persistent operational status rail"
     >
       {/* Highest Priority Risk / AI Finding */}
-      {risks.length > 0 && (
+      {topRisk && (
         <div className="flex items-center gap-2 bg-red-950/70 border border-red-500/60 rounded-lg px-3 py-1.5 text-red-300 flex-shrink-0">
           <span className="text-base" aria-hidden="true">🔴</span>
-          <span className="font-medium">{risks[0].label}</span>
-          {risks[0].confidence && (
-            <span className="text-xs text-red-400/80">{risks[0].confidence}%</span>
+          <span className="font-medium">{topRisk.label}</span>
+          {topRisk.confidence && (
+            <span className="text-xs text-red-400/80">{topRisk.confidence}%</span>
           )}
           <div className="flex gap-1 ml-2">
             <button
-              onClick={() => onAction?.('accept-risk', risks[0])}
+              onClick={() => onAction?.('accept-risk', topRisk)}
               className="px-2.5 py-1 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
-              aria-label={`Accept work order for ${risks[0].label}`}
+              aria-label={`Accept work order for ${topRisk.label}`}
             >
               Accept WO
             </button>
             <button
-              onClick={() => onAction?.('snooze-risk', risks[0])}
+              onClick={() => onAction?.('snooze-risk', topRisk)}
               className="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400"
             >
               Snooze
