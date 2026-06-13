@@ -372,7 +372,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run Playwright smoke (boots dev server via webServer)
-        run: npx playwright test
+        run: npx playwright test --project=chromium
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
           PLAYWRIGHT_BASE_URL: http://localhost:5000

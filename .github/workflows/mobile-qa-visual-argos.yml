@@ -34,7 +34,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Mobile + Visual + Guard Tests
-        run: npx playwright test --project=mobile-visual,mobile-chromium --grep "@mobile|@visual|@guard"
+        run: npx playwright test --project=mobile-visual --project=mobile-chromium --grep "@mobile|@visual|@guard"
         env:
           CI: true
 
