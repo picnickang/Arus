@@ -18,11 +18,20 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { crewStatusLabel, CREW_STATUSES } from "@/features/crew/lib/crewManagementUtils";
 
-const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+const read = (rel: string) => {
+  if (rel.includes("features/mobile-readiness/")) {
+    const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+    return readdirSync(dir)
+      .filter((f: string) => /\.(ts|tsx)$/.test(f))
+      .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+      .join("\n");
+  }
+  return readFileSync(resolve(process.cwd(), rel), "utf8");
+};
 
 describe("crewStatusLabel — explicit lifecycle status", () => {
   it("maps each lifecycle enum value to its explicit label", () => {

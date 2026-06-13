@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   deriveRehireStatus,
@@ -168,7 +168,16 @@ describe("groupCrewByVessel", () => {
 });
 
 describe("mobile roster replacement source-scan", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string) => {
+    if (rel.includes("features/mobile-readiness/")) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f: string) => /\.(ts|tsx)$/.test(f))
+        .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
   it("renders current crew from the replacement model with status and document counts", () => {
     const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
@@ -196,7 +205,16 @@ describe("mobile roster replacement source-scan", () => {
  * keeps the active crew, former crew, blockers, and document state visible.
  */
 describe("consolidated mobile crew route source-scan", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string) => {
+    if (rel.includes("features/mobile-readiness/")) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f: string) => /\.(ts|tsx)$/.test(f))
+        .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
   it("page wrapper delegates to the mobile crew page and drops the old tab shell", () => {
     const src = read("client/src/pages/crew-management.tsx");
@@ -242,7 +260,16 @@ describe("consolidated mobile crew route source-scan", () => {
  * mobile replacement's visible document status.
  */
 describe("crew document destination source-scan", () => {
-  const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
+  const read = (rel: string) => {
+    if (rel.includes("features/mobile-readiness/")) {
+      const dir = resolve(process.cwd(), "client/src/features/mobile-readiness");
+      return readdirSync(dir)
+        .filter((f: string) => /\.(ts|tsx)$/.test(f))
+        .map((f: string) => readFileSync(resolve(dir, f), "utf8"))
+        .join("\n");
+    }
+    return readFileSync(resolve(process.cwd(), rel), "utf8");
+  };
 
   it("the mobile crew page exposes document completion for each current crew member", () => {
     const src = read("client/src/features/mobile-readiness/MobileReadinessScreens.tsx");
