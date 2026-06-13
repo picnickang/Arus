@@ -78,7 +78,17 @@ describe("mobile readiness replacement model", () => {
   it("switches bottom-nav variants to match board-specific route groups", () => {
     expect(
       buildMobileReadinessNavigationForVariant("fleetOps", "admin").map((item) => item.label)
-    ).toEqual(["Fleet", "Work", "Alerts", "Crew", "Inventory", "Settings"]);
+    ).toEqual(["Fleet", "Work", "Attention", "Crew", "Inventory", "Settings"]);
+    expect(
+      buildMobileReadinessNavigationForVariant("fleetOps", "admin").map((item) => item.href)
+    ).toEqual([
+      "/fleet",
+      "/work-orders",
+      "/attention-inbox",
+      "/crew-management",
+      "/logistics",
+      "/system",
+    ]);
     expect(
       buildMobileReadinessNavigationForVariant("technician", "crew").map((item) => item.label)
     ).toEqual(["My Tasks", "Logs", "Safety", "Documents", "Settings"]);

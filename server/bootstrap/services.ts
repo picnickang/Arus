@@ -1,7 +1,13 @@
 import { createLogger } from "../lib/structured-logger";
+import type { InStatement, ResultSet } from "@libsql/client";
 import { runBootMigrations } from "../scripts/migrate";
 import { dbSystemAdminStorage } from "../db/system-admin/index.js";
 const logger = createLogger("Bootstrap:Services");
+
+export function canRunPostgresBootstrapMigration(dbHandle: unknown): boolean {
+  return Boolean(dbHandle && typeof (dbHandle as { execute?: unknown }).execute === "function");
+}
+
 /**
  * Service Initialization
  * Database, job queue, ML services, telemetry
@@ -108,30 +114,38 @@ export async function initializeDatabase(): Promise<void> {
 
       logger.info("✓ Database initialized successfully");
 
-      try {
-        const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
-        await migrateWorkOrderServiceOrderBridge(db);
-        logger.info("✓ WO ↔ SO bridge migration applied");
-      } catch (err) {
-        logger.warn("[WO-SO Bridge] Migration skipped or already applied:", {
-          details: err instanceof Error ? err.message : String(err),
-        });
+      if (canRunPostgresBootstrapMigration(db)) {
+        try {
+          const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
+          await migrateWorkOrderServiceOrderBridge(db);
+          logger.info("✓ WO ↔ SO bridge migration applied");
+        } catch (err) {
+          logger.warn("[WO-SO Bridge] Migration skipped or already applied:", {
+            details: err instanceof Error ? err.message : String(err),
+          });
+        }
+      } else {
+        logger.info("[WO-SO Bridge] Migration skipped in local SQLite mode");
       }
 
       // Wave 0.6 — Feature flag overrides table + cache priming.
-      try {
-        const { migrateFeatureFlagOverrides } = await import(
-          "../migrations/011-feature-flag-overrides"
-        );
-        await migrateFeatureFlagOverrides(db);
-        const { featureFlags } = await import("../infrastructure/feature-flags");
-        await featureFlags.refresh(db);
-        featureFlags.startAutoRefresh(db, 60_000);
-        logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
-      } catch (err) {
-        logger.warn("[FeatureFlags] Override table setup skipped:", {
-          details: err instanceof Error ? err.message : String(err),
-        });
+      if (canRunPostgresBootstrapMigration(db)) {
+        try {
+          const { migrateFeatureFlagOverrides } = await import(
+            "../migrations/011-feature-flag-overrides"
+          );
+          await migrateFeatureFlagOverrides(db);
+          const { featureFlags } = await import("../infrastructure/feature-flags");
+          await featureFlags.refresh(db);
+          featureFlags.startAutoRefresh(db, 60_000);
+          logger.info("✓ Feature flag overrides table ready (cache primed, auto-refresh every 60s)");
+        } catch (err) {
+          logger.warn("[FeatureFlags] Override table setup skipped:", {
+            details: err instanceof Error ? err.message : String(err),
+          });
+        }
+      } else {
+        logger.info("[FeatureFlags] Override table setup skipped in local SQLite mode");
       }
 
       // 0043 — one-shot move of any legacy plaintext OpenAI key into the
@@ -177,14 +191,95 @@ export async function initializeDatabase(): Promise<void> {
   }
 }
 
+type SeedEnvironment = Record<string, string | undefined>;
+
+export const DEFAULT_DEVELOPMENT_ADMIN_ROLE = "system_admin";
+
+export function isDevelopmentUserSeedEnabled(env: SeedEnvironment = process.env): boolean {
+  return env["NODE_ENV"] === "development" || env["ARUS_DEV_LOGIN"] === "1";
+}
+
+type LocalCrewRosterClient = {
+  execute: (statement: InStatement) => Promise<ResultSet>;
+};
+
+type DevelopmentCrewLinkInput = {
+  crewId: string;
+  email: string;
+  name: string;
+  now?: Date;
+  orgId: string;
+  rank: string;
+  userId: string;
+};
+
+export type DevelopmentCrewLinkResult = "already-linked" | "created" | "relinked";
+
+function splitCrewName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? "Development",
+    lastName: parts.length > 1 ? parts.slice(1).join(" ") : "Admin",
+  };
+}
+
+export async function linkDevelopmentUserToLocalCrewRoster(
+  client: LocalCrewRosterClient,
+  input: DevelopmentCrewLinkInput
+): Promise<DevelopmentCrewLinkResult> {
+  const linked = await client.execute({
+    sql: "SELECT id FROM crew WHERE user_id = ? LIMIT 1",
+    args: [input.userId],
+  });
+  if ((linked.rows ?? []).length > 0) {
+    return "already-linked";
+  }
+
+  const existing = await client.execute({
+    sql: "SELECT id FROM crew WHERE id = ? LIMIT 1",
+    args: [input.crewId],
+  });
+  const nowMs = (input.now ?? new Date()).getTime();
+
+  if ((existing.rows ?? []).length === 0) {
+    const { firstName, lastName } = splitCrewName(input.name);
+    await client.execute({
+      sql:
+        "INSERT INTO crew " +
+        "(id, org_id, first_name, last_name, name, email, rank, user_id, is_active, created_at, updated_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [
+        input.crewId,
+        input.orgId,
+        firstName,
+        lastName,
+        input.name,
+        input.email,
+        input.rank,
+        input.userId,
+        1,
+        nowMs,
+        nowMs,
+      ],
+    });
+    return "created";
+  }
+
+  await client.execute({
+    sql: "UPDATE crew SET user_id = ?, updated_at = ? WHERE id = ?",
+    args: [input.userId, nowMs, input.crewId],
+  });
+  return "relinked";
+}
+
 export async function seedDevelopmentUser(): Promise<void> {
-  if (process.env["NODE_ENV"] !== "development") {
+  if (!isDevelopmentUserSeedEnabled()) {
     return;
   }
 
   logger.info("→ Seeding development user...");
-  const { db } = await import("../db");
-  const { users } = await import("@shared/schema");
+  const { db, isLocalMode, libsqlClient } = await import("../db");
+  const { users } = await import("@shared/schema-runtime");
   const { eq } = await import("drizzle-orm");
 
   const devUserId = "dev-admin-user";
@@ -207,7 +302,7 @@ export async function seedDevelopmentUser(): Promise<void> {
         email: "admin@example.com",
         name: "Development Admin",
         username: DEFAULT_ADMIN_USERNAME,
-        role: "admin",
+        role: DEFAULT_DEVELOPMENT_ADMIN_ROLE,
         isActive: true,
         loginEnabled: true,
         mustChangePassword: true,
@@ -227,7 +322,7 @@ export async function seedDevelopmentUser(): Promise<void> {
           .update(users)
           .set({
             username: DEFAULT_ADMIN_USERNAME,
-            role: "admin",
+            role: DEFAULT_DEVELOPMENT_ADMIN_ROLE,
             loginEnabled: true,
             mustChangePassword: true,
             passwordHash,
@@ -242,7 +337,24 @@ export async function seedDevelopmentUser(): Promise<void> {
     // Link the default admin to a crew record so it appears in the crew roster
     // "Access & Login" tab (UserAccessEditor). Idempotent: skip once any crew
     // row already references this user.
-    const { crew } = await import("@shared/schema");
+    if (isLocalMode) {
+      if (!libsqlClient) {
+        logger.warn("⚠️  Could not link development admin to local crew roster: SQLite client missing");
+        return;
+      }
+      const result = await linkDevelopmentUserToLocalCrewRoster(libsqlClient, {
+        crewId: "dev-admin-crew",
+        email: "admin@example.com",
+        name: "Development Admin",
+        orgId: devOrgId,
+        rank: "Administrator",
+        userId: devUserId,
+      });
+      logger.info(`✓ Development admin crew roster link ${result}`);
+      return;
+    }
+
+    const { crew } = await import("@shared/schema-runtime");
     const linked = await db.select().from(crew).where(eq(crew.userId, devUserId)).limit(1);
     if (linked.length === 0) {
       const devCrewId = "dev-admin-crew";

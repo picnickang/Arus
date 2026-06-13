@@ -37,7 +37,7 @@ const adminQueue: QueueItem[] = [
     owner: "Chief Engineer",
     action: "Acknowledge after inspection",
     icon: Bell,
-    href: "/alerts",
+    href: "/attention-inbox",
   },
   {
     id: "port-generator-vibration",

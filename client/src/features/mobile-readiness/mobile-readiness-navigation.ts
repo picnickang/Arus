@@ -138,7 +138,7 @@ export function buildMobileReadinessNavigationForVariant(
     return [
       { id: "fleet", label: "Fleet", href: "/fleet", icon: Ship },
       { id: "work", label: "Work", href: "/work-orders", icon: ClipboardList },
-      { id: "alerts", label: "Alerts", href: "/alerts", icon: Bell },
+      { id: "attention", label: "Attention", href: "/attention-inbox", icon: Bell },
       { id: "crew", label: "Crew", href: "/crew-management", icon: Users },
       { id: "inventory", label: "Inventory", href: "/logistics", icon: Package },
       { id: "settings", label: "Settings", href: "/system", icon: Settings },

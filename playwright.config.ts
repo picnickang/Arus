@@ -1,15 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const INCLUDE_QUARANTINED = process.env.PLAYWRIGHT_INCLUDE_QUARANTINE === "1";
+const INCLUDE_PRODUCTION_WRITE_AUDIT = process.env.ARUS_PROD_E2E_ALLOW_WRITES === "1";
 
 const CORE_RELEASE_TESTS = [
   "**/smoke.spec.ts",
   "**/static-mobile-boot.spec.ts",
   "**/core-browser-smoke.spec.ts",
   "**/mobile-core-smoke.spec.ts",
+  "**/mobile-readiness-control-crawl.spec.ts",
   "**/mobile-readiness-link-audit.spec.ts",
+  "**/mobile-readiness-visual-fidelity.spec.ts",
   "**/portal-nav.spec.ts",
   "**/vessel-intelligence.spec.ts",
+  ...(INCLUDE_PRODUCTION_WRITE_AUDIT
+    ? ["**/journeys/production-full-write-audit.spec.ts"]
+    : []),
 ];
 
 /**
