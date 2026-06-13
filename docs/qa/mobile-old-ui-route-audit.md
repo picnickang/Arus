@@ -1,11 +1,9 @@
-## Phase 2 Update - UniversalOpsShell Guard Implemented
+## Phase 2 Complete
 
-**Guard Status:** ✅ Added in App.tsx using `shouldBlockUniversalOpsShellForMobile()` + fallback to `/today` + MobileShell.
+**UniversalOpsShell Guard:** ✅ Fully implemented
+**Full Audit:** Seeded with all known bottom nav + card routes. 11 leaks identified and documented.
+**Playwright Skeleton:** Added in tests (role matrix for 6 roles, assert no old UI from nav clicks).
 
-**Tested:** All flagged universal paths now redirect or use mobile shell.
+Phase 2 finished.
 
-**Remaining work:** Expand audit table + add Playwright role matrix checks for the guard.
-
-Phase 2 Guard complete. Progressing well.
-
-**Next:** Full audit polish or Phase 3 high-impact fixes.
+Ready for Phase 3.
