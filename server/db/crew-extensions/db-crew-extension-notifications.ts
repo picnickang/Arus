@@ -6,7 +6,7 @@ import {
   type CrewNotificationSettings,
   type InsertCrewAlert,
   type SelectCrewAlert,
-} from "@shared/schema";
+} from "@shared/schema-runtime";
 import type { NotificationSettingsData } from "./types.js";
 
 export async function getCrewNotificationSettings(

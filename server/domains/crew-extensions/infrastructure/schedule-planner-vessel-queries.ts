@@ -1,5 +1,5 @@
 import { and, count, eq, inArray } from "drizzle-orm";
-import { crew, shiftTemplate, vessels } from "@shared/schema";
+import { crew, shiftTemplate, vessels } from "@shared/schema-runtime";
 import { db } from "../../../db";
 import { createLogger } from "../../../lib/structured-logger";
 import type { VesselSummary } from "../domain/read-models";

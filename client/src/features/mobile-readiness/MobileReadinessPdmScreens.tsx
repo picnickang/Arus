@@ -109,7 +109,7 @@ function PdmTabs({ active }: { active: "summary" | "telemetry" }) {
             type="button"
             className={cn(
               "min-h-10 border-b-2 border-transparent px-1",
-              selected && "border-[#0d4da1] text-[#0d4da1]"
+              selected && "border-brand text-brand"
             )}
           >
             {tab}
@@ -137,25 +137,25 @@ function MobilePdmQueuePage({ pdm }: { pdm: PdmScreen }) {
           }
         />
         <Content>
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-950">PdM Risk Queue</h1>
-          <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
-            <SlidersHorizontal className="h-4 w-4 text-slate-500" aria-hidden="true" />
-            Filters
-          </button>
-        </div>
-        <KpiStrip metrics={pdm.summary} />
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-          <span>Sort by: Risk Score</span>
-          <span className="inline-flex items-center gap-1">
-            Updated: 09:41 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-          </span>
-        </div>
-        <div className="space-y-2">
-          {pdm.riskQueue.map((risk) => (
-            <PdmRiskQueueCard key={risk.equipmentId} risk={risk} />
-          ))}
-        </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-slate-950">PdM Risk Queue</h1>
+            <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+              <SlidersHorizontal className="h-4 w-4 text-slate-500" aria-hidden="true" />
+              Filters
+            </button>
+          </div>
+          <KpiStrip metrics={pdm.summary} />
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Sort by: Risk Score</span>
+            <span className="inline-flex items-center gap-1">
+              Updated: 09:41 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pdm.riskQueue.map((risk) => (
+              <PdmRiskQueueCard key={risk.equipmentId} risk={risk} />
+            ))}
+          </div>
         </Content>
       </div>
     </MobilePageShell>
@@ -241,58 +241,58 @@ function MobilePdmAssetCasePage({
         />
         <PdmTabs active="summary" />
         <Content>
-        <SectionCard>
-          <div className="grid grid-cols-[0.9fr_1.3fr] divide-x divide-slate-200">
-            <div className="bg-red-50 px-3 py-4 text-center">
-              <div className="text-xs font-bold uppercase text-red-600">High Risk</div>
-              <div className="text-5xl font-extrabold leading-none text-slate-950">
-                {selectedRisk.riskScore ?? pdm.assetCase.riskScore}
+          <SectionCard>
+            <div className="grid grid-cols-[0.9fr_1.3fr] divide-x divide-slate-200">
+              <div className="bg-red-50 px-3 py-4 text-center">
+                <div className="text-xs font-bold uppercase text-red-600">High Risk</div>
+                <div className="text-5xl font-extrabold leading-none text-slate-950">
+                  {selectedRisk.riskScore ?? pdm.assetCase.riskScore}
+                </div>
+                <div className="mt-1 text-xs font-semibold text-red-600">Up 18 vs yesterday</div>
               </div>
-              <div className="mt-1 text-xs font-semibold text-red-600">Up 18 vs yesterday</div>
+              <div className="p-3">
+                <div className="text-xs font-semibold text-slate-500">Risk Trend (7d)</div>
+                <img
+                  src={telemetryChart.src}
+                  alt={telemetryChart.alt}
+                  className="mt-2 h-24 w-full rounded-lg object-cover"
+                  data-asset-status={telemetryChart.status}
+                />
+              </div>
             </div>
-            <div className="p-3">
-              <div className="text-xs font-semibold text-slate-500">Risk Trend (7d)</div>
-              <img
-                src={telemetryChart.src}
-                alt={telemetryChart.alt}
-                className="mt-2 h-24 w-full rounded-lg object-cover"
-                data-asset-status={telemetryChart.status}
-              />
+          </SectionCard>
+          <div className="grid grid-cols-4 gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white text-center text-xs">
+            <MiniState label="Status" value={pdm.assetCase.status} tone="good" />
+            <MiniState label="Trend" value={pdm.assetCase.trend} tone="critical" />
+            <MiniState label="Source Health" value={pdm.assetCase.sourceHealth} tone="good" />
+            <MiniState label="Data" value={pdm.assetCase.dataFreshness} tone="good" />
+          </div>
+          <SectionCard>
+            <div className="divide-y divide-slate-200">
+              {pdm.assetCase.evidenceSections.map((section, index) => (
+                <PdmEvidenceRow key={section.title} section={section} index={index} />
+              ))}
             </div>
-          </div>
-        </SectionCard>
-        <div className="grid grid-cols-4 gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white text-center text-xs">
-          <MiniState label="Status" value={pdm.assetCase.status} tone="good" />
-          <MiniState label="Trend" value={pdm.assetCase.trend} tone="critical" />
-          <MiniState label="Source Health" value={pdm.assetCase.sourceHealth} tone="good" />
-          <MiniState label="Data" value={pdm.assetCase.dataFreshness} tone="good" />
-        </div>
-        <SectionCard>
-          <div className="divide-y divide-slate-200">
-            {pdm.assetCase.evidenceSections.map((section, index) => (
-              <PdmEvidenceRow key={section.title} section={section} index={index} />
-            ))}
-          </div>
-        </SectionCard>
-        <SectionCard>
-          <Link
-            href={`/pdm/equipment/${selectedRisk.equipmentId}/telemetry`}
-            className="flex min-h-20 items-center justify-between gap-3 px-3 py-3"
-            data-testid="link-pdm-telemetry-advanced"
-          >
-            <span className="min-w-0">
-              <span className="block text-sm font-bold text-slate-900">Telemetry Evidence</span>
-              <span className="mt-1 block text-xs text-slate-500">
-                Last update {pdm.telemetryAdvanced.lastUpdate} - confidence{" "}
-                {pdm.telemetryAdvanced.confidence}%
+          </SectionCard>
+          <SectionCard>
+            <Link
+              href={`/pdm/equipment/${selectedRisk.equipmentId}/telemetry`}
+              className="flex min-h-20 items-center justify-between gap-3 px-3 py-3"
+              data-testid="link-pdm-telemetry-advanced"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">Telemetry Evidence</span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  Last update {pdm.telemetryAdvanced.lastUpdate} - confidence{" "}
+                  {pdm.telemetryAdvanced.confidence}%
+                </span>
               </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <StatusPill tone="good">{pdm.telemetryAdvanced.trust}</StatusPill>
-              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
-            </span>
-          </Link>
-        </SectionCard>
+              <span className="flex shrink-0 items-center gap-2">
+                <StatusPill tone="good">{pdm.telemetryAdvanced.trust}</StatusPill>
+                <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              </span>
+            </Link>
+          </SectionCard>
         </Content>
       </div>
     </MobilePageShell>
@@ -352,109 +352,109 @@ function MobilePdmTelemetryPage({
         />
         <PdmTabs active="telemetry" />
         <Content>
-        <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
-          {["Overview", "Advanced Graph", "Raw Data", "Sensors"].map((segment) => (
-            <button
-              key={segment}
-              type="button"
-              className={cn(
-                "min-h-10 border-r border-slate-200 px-1 last:border-r-0",
-                segment === "Advanced Graph" && "bg-[#03295a] text-white"
-              )}
-            >
-              {segment}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-2">
-            {["1d", "7d", "30d", "Custom"].map((range) => (
+          <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600">
+            {["Overview", "Advanced Graph", "Raw Data", "Sensors"].map((segment) => (
               <button
-                key={range}
+                key={segment}
                 type="button"
                 className={cn(
-                  "min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600",
-                  range === "7d" && "border-[#0d4da1] bg-blue-50 text-[#0d4da1]"
+                  "min-h-10 border-r border-slate-200 px-1 last:border-r-0",
+                  segment === "Advanced Graph" && "bg-brand-navy text-white"
                 )}
               >
-                {range}
+                {segment}
               </button>
             ))}
           </div>
-          <button className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
-            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-            Compare
-          </button>
-        </div>
-        <SectionCard>
-          <div className="space-y-3 p-3">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-semibold text-slate-600">
-              <span className="text-blue-700">Vibration DE (RMS) mm/s</span>
-              <span className="text-red-600">Temp DE C</span>
-              <span className="text-sky-600">Vibration NDE (RMS) mm/s</span>
-              <span className="text-emerald-600">Pressure Oil bar</span>
-            </div>
-            <img
-              src={telemetryChart.src}
-              alt={telemetryChart.alt}
-              className="h-48 w-full rounded-lg border border-slate-200 object-cover"
-              data-asset-status={telemetryChart.status}
-            />
-          </div>
-        </SectionCard>
-        <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs">
-          <MiniState label="Last Update" value={pdm.telemetryAdvanced.lastUpdate} tone="info" />
-          <MiniState label="Source Health" value={pdm.telemetryAdvanced.trust} tone="good" />
-          <MiniState
-            label="Confidence"
-            value={`High ${pdm.telemetryAdvanced.confidence}%`}
-            tone="good"
-          />
-          <Link
-            href={`/pdm/equipment/${selectedRisk.equipmentId}`}
-            className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-[#0d4da1]"
-          >
-            Details <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-        <SectionCard
-          title="Raw Readings (Latest)"
-          action={<span className="text-xs font-semibold text-[#0d4da1]">CSV</span>}
-        >
-          <div className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500">
-            <span>Time (UTC)</span>
-            <span>Vib DE</span>
-            <span>Vib NDE</span>
-            <span>Temp DE</span>
-            <span>Oil Press</span>
-          </div>
-          {[
-            ["19 May 09:39", "7.8", "4.2", "86.4", "4.3"],
-            ["19 May 09:38", "7.6", "4.1", "86.1", "4.3"],
-            ["19 May 09:37", "7.4", "4.0", "85.9", "4.3"],
-            ["19 May 09:36", "7.2", "3.9", "85.7", "4.2"],
-          ].map((row) => (
-            <div
-              key={row[0]}
-              className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600 last:border-b-0"
-            >
-              {row.map((cell) => (
-                <span key={cell} className="truncate">
-                  {cell}
-                </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2">
+              {["1d", "7d", "30d", "Custom"].map((range) => (
+                <button
+                  key={range}
+                  type="button"
+                  className={cn(
+                    "min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600",
+                    range === "7d" && "border-brand bg-blue-50 text-brand"
+                  )}
+                >
+                  {range}
+                </button>
               ))}
             </div>
-          ))}
-        </SectionCard>
-        <SectionCard>
-          <div className="flex min-h-14 items-center justify-between px-3">
-            <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-900">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              Sensor Health ({pdm.telemetryAdvanced.sensorHealthCount})
-            </span>
-            <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+            <button className="inline-flex min-h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              Compare
+            </button>
           </div>
-        </SectionCard>
+          <SectionCard>
+            <div className="space-y-3 p-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-semibold text-slate-600">
+                <span className="text-blue-700">Vibration DE (RMS) mm/s</span>
+                <span className="text-red-600">Temp DE C</span>
+                <span className="text-sky-600">Vibration NDE (RMS) mm/s</span>
+                <span className="text-emerald-600">Pressure Oil bar</span>
+              </div>
+              <img
+                src={telemetryChart.src}
+                alt={telemetryChart.alt}
+                className="h-48 w-full rounded-lg border border-slate-200 object-cover"
+                data-asset-status={telemetryChart.status}
+              />
+            </div>
+          </SectionCard>
+          <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs">
+            <MiniState label="Last Update" value={pdm.telemetryAdvanced.lastUpdate} tone="info" />
+            <MiniState label="Source Health" value={pdm.telemetryAdvanced.trust} tone="good" />
+            <MiniState
+              label="Confidence"
+              value={`High ${pdm.telemetryAdvanced.confidence}%`}
+              tone="good"
+            />
+            <Link
+              href={`/pdm/equipment/${selectedRisk.equipmentId}`}
+              className="flex min-w-0 items-center justify-center gap-1 border-l border-slate-200 px-2 text-xs font-bold text-brand"
+            >
+              Details <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <SectionCard
+            title="Raw Readings (Latest)"
+            action={<span className="text-xs font-semibold text-brand">CSV</span>}
+          >
+            <div className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500">
+              <span>Time (UTC)</span>
+              <span>Vib DE</span>
+              <span>Vib NDE</span>
+              <span>Temp DE</span>
+              <span>Oil Press</span>
+            </div>
+            {[
+              ["19 May 09:39", "7.8", "4.2", "86.4", "4.3"],
+              ["19 May 09:38", "7.6", "4.1", "86.1", "4.3"],
+              ["19 May 09:37", "7.4", "4.0", "85.9", "4.3"],
+              ["19 May 09:36", "7.2", "3.9", "85.7", "4.2"],
+            ].map((row) => (
+              <div
+                key={row[0]}
+                className="grid grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_0.8fr] border-b border-slate-100 px-3 py-2 text-[11px] text-slate-600 last:border-b-0"
+              >
+                {row.map((cell) => (
+                  <span key={cell} className="truncate">
+                    {cell}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </SectionCard>
+          <SectionCard>
+            <div className="flex min-h-14 items-center justify-between px-3">
+              <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-900">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                Sensor Health ({pdm.telemetryAdvanced.sensorHealthCount})
+              </span>
+              <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
+            </div>
+          </SectionCard>
         </Content>
       </div>
     </MobilePageShell>

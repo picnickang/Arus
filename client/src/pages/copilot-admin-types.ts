@@ -15,7 +15,7 @@ export interface AgentConfig {
   autoTriggerThreshold?: number;
 }
 
-export interface UsageStats {
+export interface CopilotUsageStats {
   conversationCount: number;
   messageCount: number;
   totalTokens: number;
@@ -50,7 +50,7 @@ export interface ToolInfo {
   requiresApproval: boolean;
 }
 
-export interface EffectivenessSummary {
+export interface CopilotEffectivenessSummary {
   totalResolved: number;
   actedCount: number;
   dismissedCount: number;

@@ -40,7 +40,7 @@ describe("client tail component extractions", () => {
     expect(hook).toContain("export function useShiftPlanning");
     expect(types).toContain("export interface SchedulePlanPayload");
     expect(types).toContain("export interface EnhancedSchedulePayload");
-    expect(types).toContain("export interface CrewCertification");
+    expect(types).toContain("export interface ShiftPlanningCrewCertification");
   });
 
   it("keeps analytics hub presentation pieces in a page part", () => {
@@ -361,8 +361,8 @@ describe("client tail component extractions", () => {
     expect(page).toContain('from "./copilot-admin-types"');
     expect(page).toContain("<ConfigDialog");
     expect(types).toContain("export interface AgentConfig");
-    expect(types).toContain("export interface UsageStats");
-    expect(types).toContain("export interface EffectivenessSummary");
+    expect(types).toContain("export interface CopilotUsageStats");
+    expect(types).toContain("export interface CopilotEffectivenessSummary");
     expect(dialog).toContain("export function ConfigDialog");
     expect(dialog).toContain('data-testid="button-save-config"');
     expect(dialog).toContain('data-testid="select-permission-tier"');
@@ -711,7 +711,7 @@ describe("client tail component extractions", () => {
     expect(hook).toContain("export type {");
     expect(types).toContain("export interface ScheduleAssignment");
     expect(types).toContain("export interface PlannerCrewMember");
-    expect(types).toContain("export interface PendingOperation");
+    expect(types).toContain("export interface SchedulePlannerPendingOperation");
     expect(filters).toContain("export function getDateRangeFromPreset");
     expect(filters).toContain("export function loadPersistedFilters");
     expect(filters).toContain("export function persistFilters");

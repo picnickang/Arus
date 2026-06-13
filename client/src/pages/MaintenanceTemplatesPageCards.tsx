@@ -1,13 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckSquare, Clock, Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react";
@@ -15,7 +9,7 @@ import { EQUIPMENT_TYPES, getPriorityBadgeConfig } from "@/features/maintenance"
 import type { ChecklistItemFormData } from "@/features/maintenance/lib/templateUtils";
 import type { UseFormReturn } from "react-hook-form";
 
-export interface MaintenanceTemplate {
+export interface MaintenanceTemplateCardModel {
   id: string;
   name: string;
   description?: string;
@@ -43,9 +37,9 @@ export function TemplateCard({
   onDelete,
   cloneIsPending,
 }: {
-  template: MaintenanceTemplate;
-  onView: (t: MaintenanceTemplate) => void;
-  onEdit: (t: MaintenanceTemplate) => void;
+  template: MaintenanceTemplateCardModel;
+  onView: (t: MaintenanceTemplateCardModel) => void;
+  onEdit: (t: MaintenanceTemplateCardModel) => void;
   onClone: (id: string) => void;
   onDelete: (id: string) => void;
   cloneIsPending: boolean;
@@ -290,7 +284,7 @@ export function ViewTemplateContent({
   items,
   onClose,
 }: {
-  template: MaintenanceTemplate;
+  template: MaintenanceTemplateCardModel;
   items: TemplateItem[];
   onClose: () => void;
 }) {

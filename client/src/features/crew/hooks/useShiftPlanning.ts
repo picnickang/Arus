@@ -30,12 +30,12 @@ import {
   createDefaultDrydock,
 } from "@/features/crew";
 import type {
-  Crew,
-  CrewCertification,
-  DrydockWindow,
+  ShiftPlanningCrew,
+  ShiftPlanningCrewCertification,
+  ShiftPlanningDrydockWindow,
   EnhancedSchedulePayload,
   LeaveData,
-  PortCall,
+  ShiftPlanningPortCall,
   SchedulePlanPayload,
   VesselData,
 } from "./useShiftPlanningTypes";
@@ -62,8 +62,8 @@ export interface UseShiftPlanningReturn {
   setShowConstraints: (show: boolean) => void;
   validateSTCW: boolean;
   setValidateSTCW: (validate: boolean) => void;
-  portCalls: PortCall[];
-  drydockWindows: DrydockWindow[];
+  portCalls: ShiftPlanningPortCall[];
+  drydockWindows: ShiftPlanningDrydockWindow[];
   newPortCall: ReturnType<typeof createDefaultPortCall>;
   setNewPortCall: (pc: ReturnType<typeof createDefaultPortCall>) => void;
   newDrydock: ReturnType<typeof createDefaultDrydock>;
@@ -75,14 +75,14 @@ export interface UseShiftPlanningReturn {
   isShiftDialogOpen: boolean;
   setIsShiftDialogOpen: (open: boolean) => void;
   shiftForm: ReturnType<typeof useForm<ShiftFormData>>;
-  crew: Crew[];
+  crew: ShiftPlanningCrew[];
   isLoadingCrew: boolean;
   shiftTemplates: SelectShiftTemplate[];
   isLoadingShifts: boolean;
   vessels: VesselData[];
-  allPortCalls: PortCall[];
-  allDrydockWindows: DrydockWindow[];
-  certifications: CrewCertification[];
+  allPortCalls: ShiftPlanningPortCall[];
+  allDrydockWindows: ShiftPlanningDrydockWindow[];
+  certifications: ShiftPlanningCrewCertification[];
   leaves: LeaveData[];
   isLoadingLeaves: boolean;
   createShiftMutation: ReturnType<typeof useCreateMutation>;
@@ -121,8 +121,8 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showConstraints, setShowConstraints] = useState(false);
   const [validateSTCW, setValidateSTCW] = useState(false);
-  const [portCalls, _setPortCalls] = useState<PortCall[]>([]);
-  const [drydockWindows, _setDrydockWindows] = useState<DrydockWindow[]>([]);
+  const [portCalls, _setPortCalls] = useState<ShiftPlanningPortCall[]>([]);
+  const [drydockWindows, _setDrydockWindows] = useState<ShiftPlanningDrydockWindow[]>([]);
   const [newPortCall, setNewPortCall] = useState(createDefaultPortCall());
   const [newDrydock, setNewDrydock] = useState(createDefaultDrydock());
   const [preferences, setPreferences] = useState<SchedulingPreferences>(
@@ -137,23 +137,23 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   });
 
   const { data: crewRaw = [], isLoading: isLoadingCrew } = useCrewList();
-  const crew = crewRaw as object as Crew[];
+  const crew = crewRaw as object as ShiftPlanningCrew[];
   const { data: shiftTemplatesRaw = [], isLoading: isLoadingShifts } = useShiftTemplates();
   const shiftTemplates = shiftTemplatesRaw as object as SelectShiftTemplate[];
   const { data: vesselsRaw = [] } = useVessels();
   const vessels = vesselsRaw as object as VesselData[];
 
-  const { data: allPortCalls = [] } = useQuery<PortCall[]>({
+  const { data: allPortCalls = [] } = useQuery<ShiftPlanningPortCall[]>({
     queryKey: ["/api/port-calls"],
     staleTime: 300000,
     refetchInterval: 300000,
   });
-  const { data: allDrydockWindows = [] } = useQuery<DrydockWindow[]>({
+  const { data: allDrydockWindows = [] } = useQuery<ShiftPlanningDrydockWindow[]>({
     queryKey: ["/api/drydock-windows"],
     staleTime: 300000,
     refetchInterval: 300000,
   });
-  const { data: certifications = [] } = useQuery<CrewCertification[]>({
+  const { data: certifications = [] } = useQuery<ShiftPlanningCrewCertification[]>({
     queryKey: ["/api/crew/certifications"],
     staleTime: 300000,
     refetchInterval: 300000,
@@ -209,7 +209,9 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
       });
     },
     onError: () => {
-      const watchQualified = crew.filter((c: Crew) => c.skills?.includes("watchkeeping")).length;
+      const watchQualified = crew.filter((c: ShiftPlanningCrew) =>
+        c.skills?.includes("watchkeeping")
+      ).length;
       toast({
         title: "Unable to create schedule",
         variant: "destructive",
@@ -346,7 +348,10 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
       portCalls,
       drydocks: drydockWindows,
       certifications: certifications.reduce(
-        (acc: Record<string, CrewCertification[]>, cert: CrewCertification) => {
+        (
+          acc: Record<string, ShiftPlanningCrewCertification[]>,
+          cert: ShiftPlanningCrewCertification
+        ) => {
           (acc[cert.crewId] ||= []).push(cert);
           return acc;
         },
@@ -401,7 +406,7 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
 
   const getShiftTime = (start: string, end: string) => getShiftTimeRange(start, end);
   const getCrewName = (crewId: string) => {
-    const member = crew.find((c: Crew) => c.id === crewId);
+    const member = crew.find((c: ShiftPlanningCrew) => c.id === crewId);
     return member ? `${member.name} (${member.rank})` : "Unknown Crew";
   };
   const getVesselName = (vesselId: string) => {

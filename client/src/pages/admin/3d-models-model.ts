@@ -1,4 +1,4 @@
-export interface EquipmentPin {
+export interface ModelEquipmentPin {
   equipmentId: string;
   x: number;
   y: number;
@@ -13,7 +13,7 @@ export interface ModelMetadata {
   filename: string;
   mimetype: string;
   sizeBytes: number;
-  equipmentPins: EquipmentPin[];
+  equipmentPins: ModelEquipmentPin[];
   createdAt: string | null;
   updatedAt: string | null;
 }

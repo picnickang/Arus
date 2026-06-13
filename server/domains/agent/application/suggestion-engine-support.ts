@@ -1,13 +1,13 @@
 import { db } from "../../../db";
 import { createLogger } from "../../../lib/structured-logger";
 import { llmGateway } from "../../../composition/llm-gateway";
-import { notificationQueue } from "@shared/schema";
+import { notificationQueue } from "@shared/schema-runtime";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion } from "@shared/schema/agent";
 
 const logger = createLogger("Domains:Agent:Application:SuggestionEngine");
 
-export interface SuggestionPreferences {
+export interface SupportSuggestionPreferences {
   maintenance: boolean;
   predictions: boolean;
   crew: boolean;
@@ -16,7 +16,7 @@ export interface SuggestionPreferences {
   minSeverity: "info" | "warning" | "critical";
 }
 
-export const DEFAULT_PREFERENCES: SuggestionPreferences = {
+export const DEFAULT_PREFERENCES: SupportSuggestionPreferences = {
   maintenance: true,
   predictions: true,
   crew: true,

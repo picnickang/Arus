@@ -7,13 +7,9 @@ import { AlertTriangle, Eye, Inbox, ListTodo } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
+import { type UnifiedFindingItem, FindingCard, TasksSection } from "./findings-cards";
 import {
-  type UnifiedFindingItem,
-  FindingCard,
-  TasksSection,
-} from "./findings-cards";
-import {
-  type FindingsSummary,
+  type FindingsPageSummary,
   FilterBar,
   FindingsPageHeader,
   OutcomeDialog,
@@ -58,7 +54,7 @@ export default function FindingsPage() {
     refetchInterval: 30000,
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery<FindingsSummary>({
+  const { data: summary, isLoading: summaryLoading } = useQuery<FindingsPageSummary>({
     queryKey: ["/api/agent/findings/summary"],
     refetchInterval: 30000,
   });

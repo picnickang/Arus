@@ -32,7 +32,7 @@ interface TriggerContext {
   conversationId?: string | null;
 }
 
-export interface AgentActivityItem {
+export interface AgentActivityItemView {
   id: string;
   triggerType: "scheduled" | "user";
   scheduleName?: string | null;
@@ -51,7 +51,7 @@ export interface AgentActivityItem {
   triggerContext?: TriggerContext | null;
 }
 
-export interface ActivitySummary {
+export interface AgentActivitySummaryView {
   runsToday: number;
   successRate7d: number;
   avgTokensPerRun: number;
@@ -123,7 +123,7 @@ function TriggerIcon({ type }: { type: string }) {
   return <User className="h-3.5 w-3.5 text-green-500" />;
 }
 
-export function SummaryMetrics({ summary }: { summary: ActivitySummary | undefined }) {
+export function SummaryMetrics({ summary }: { summary: AgentActivitySummaryView | undefined }) {
   if (!summary) {
     return null;
   }
@@ -162,7 +162,10 @@ export function SummaryMetrics({ summary }: { summary: ActivitySummary | undefin
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" data-testid="activity-summary-metrics">
+    <div
+      className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"
+      data-testid="activity-summary-metrics"
+    >
       {metrics.map(({ label, value, icon: Icon, color }) => (
         <Card key={label}>
           <CardContent className="p-3">
@@ -182,7 +185,7 @@ export function SummaryMetrics({ summary }: { summary: ActivitySummary | undefin
   );
 }
 
-export function ActivityRow({ item }: { item: AgentActivityItem }) {
+export function ActivityRow({ item }: { item: AgentActivityItemView }) {
   const [expanded, setExpanded] = useState(false);
 
   return (

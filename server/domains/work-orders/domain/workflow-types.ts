@@ -1,13 +1,13 @@
-export type PredictionOutcome = "confirmed" | "partial" | "false_alarm";
+export type WorkOrderPredictionOutcome = "confirmed" | "partial" | "false_alarm";
 
 export interface CompletionPredictionFeedback {
   workOrderId: string;
   predictionId?: string | number | null | undefined;
-  outcome: PredictionOutcome;
+  outcome: WorkOrderPredictionOutcome;
   notes?: string | undefined;
 }
 
-export function mapOutcomeToValidation(outcome: PredictionOutcome): "valid" | "disputed" {
+export function mapOutcomeToValidation(outcome: WorkOrderPredictionOutcome): "valid" | "disputed" {
   if (outcome === "false_alarm") {
     return "disputed";
   }
@@ -41,7 +41,7 @@ export interface WorkOrderCloseoutDetails {
   supervisorVerified?: boolean | undefined;
 }
 
-export interface WorkOrderCompletionInput {
+export interface WorkflowCompletionInput {
   workOrderId: string;
   orgId: string;
   completionNotes?: string | undefined;
@@ -51,7 +51,7 @@ export interface WorkOrderCompletionInput {
   predictionFeedback?: CompletionPredictionFeedback | undefined;
 }
 
-export interface WorkOrderCompletionResult {
+export interface WorkflowCompletionResult {
   workOrderId: string;
   completed: boolean;
   error?: string | undefined;

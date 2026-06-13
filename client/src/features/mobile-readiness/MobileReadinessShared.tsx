@@ -1,11 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import {
-  ChevronDown,
-  ChevronRight,
-  Menu,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, type LucideIcon } from "lucide-react";
 import { ROLE_STORAGE_KEY } from "@/config/roles";
 import { cn } from "@/lib/utils";
 import { getMobileReadinessAsset } from "./mobile-readiness-assets";
@@ -185,13 +180,13 @@ export function AppHeader({
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
-            className="grid h-11 w-11 place-items-center rounded-lg text-[#062a58] md:hidden"
+            className="grid h-11 w-11 place-items-center rounded-lg text-brand-navy-850 md:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
           <div className="min-w-0">
-            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-[#082756] md:text-2xl">
+            <div className="truncate text-[26px] font-extrabold tracking-[0.08em] text-brand-navy-800 md:text-2xl">
               {title}
             </div>
             {subtitle ? <div className="truncate text-sm text-slate-500">{subtitle}</div> : null}
@@ -207,7 +202,7 @@ export function AppHeader({
                 </div>
               ) : null}
               {roleLabel ? (
-                <div className="text-xs font-semibold text-[#0d4da1]">{roleLabel}</div>
+                <div className="text-xs font-semibold text-brand">{roleLabel}</div>
               ) : null}
             </div>
           ) : null}
@@ -230,7 +225,7 @@ export function NavyHeader({
   right?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-[#03295a] text-white shadow-sm">
+    <header className="sticky top-0 z-20 bg-brand-navy text-white shadow-sm">
       <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between gap-3 px-4">
         {left ?? (
           <button
@@ -260,7 +255,7 @@ export function MobilePageShell({
 }) {
   return (
     <div
-      className={cn("min-h-screen bg-[#f6f8fb] text-slate-950", className)}
+      className={cn("min-h-screen bg-brand-mist text-slate-950", className)}
       data-testid="mobile-readiness-shell"
     >
       {children}
@@ -426,7 +421,7 @@ function MobileBottomNav() {
         "fixed bottom-0 left-0 right-0 z-40 border-t pb-safe shadow-[0_-12px_24px_-18px_rgba(3,41,90,0.35)] md:hidden",
         usesReferenceTabBar
           ? "border-slate-200 bg-white text-slate-600"
-          : "border-[#0a376b] bg-[#03295a] text-white"
+          : "border-brand-navy-700 bg-brand-navy text-white"
       )}
       aria-label="Mobile readiness navigation"
       data-testid="mobile-readiness-bottom-nav"
@@ -447,7 +442,7 @@ function MobileBottomNav() {
                 "flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold",
                 usesReferenceTabBar
                   ? active
-                    ? "text-[#03295a]"
+                    ? "text-brand-navy"
                     : "text-slate-500"
                   : active
                     ? "bg-white/15 text-white shadow-inner"

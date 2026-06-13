@@ -14,8 +14,8 @@ import { Link } from "wouter";
 import {
   ActivityRow,
   SummaryMetrics,
-  type ActivitySummary,
-  type AgentActivityItem,
+  type AgentActivitySummaryView,
+  type AgentActivityItemView,
 } from "./agent-activity-parts";
 
 export default function AgentActivityPage() {
@@ -39,11 +39,11 @@ export default function AgentActivityPage() {
   }
   queryParams.set("limit", "50");
 
-  const { data: summary, isLoading: summaryLoading } = useQuery<ActivitySummary>({
+  const { data: summary, isLoading: summaryLoading } = useQuery<AgentActivitySummaryView>({
     queryKey: ["/api/agent/activity/summary"],
   });
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery<AgentActivityItem[]>({
+  const { data: items = [], isLoading: itemsLoading } = useQuery<AgentActivityItemView[]>({
     queryKey: ["/api/agent/activity", triggerFilter, statusFilter, startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, {

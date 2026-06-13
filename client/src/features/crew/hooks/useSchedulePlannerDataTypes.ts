@@ -1,4 +1,4 @@
-export interface PendingOperation {
+export interface SchedulePlannerPendingOperation {
   id: string;
   type: "create" | "update" | "delete";
   payload: Record<string, unknown>;
@@ -85,4 +85,4 @@ export interface FatigueResult {
 }
 
 export type DateRangePreset = "2w" | "1m" | "3m";
-export type SyncStatus = "up_to_date" | "syncing" | "offline" | "error";
+export type SchedulePlannerSyncStatus = "up_to_date" | "syncing" | "offline" | "error";

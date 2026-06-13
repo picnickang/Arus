@@ -1,8 +1,12 @@
 import type { Express, Request, RequestHandler, Response } from "express";
 import { z } from "zod";
-import { authenticatedRequest, requireOrgId, requireOrgIdAndValidateBody } from "../../middleware/auth";
+import {
+  authenticatedRequest,
+  requireOrgId,
+  requireOrgIdAndValidateBody,
+} from "../../middleware/auth";
 import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route-utils";
-import { requirePermission } from "../permissions/middleware";
+import { requirePermission } from "../../lib/permissions/middleware.js";
 import { equipmentService } from "./service";
 import {
   equipmentLifecycleService,

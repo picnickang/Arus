@@ -1,12 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  Wrench,
-  DollarSign,
-  Shield,
-  Activity,
-} from "lucide-react";
+import { AlertTriangle, Wrench, DollarSign, Shield, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
 import {
@@ -14,10 +8,10 @@ import {
   HeadlineMetric,
   KeyFindings,
   PredictiveInsightsCard,
-  type CostSummary,
+  type AnalyticsHubCostSummary,
   type EquipmentHealthItem,
   type IntegrityStatus,
-  type WorkOrderSummary,
+  type AnalyticsHubWorkOrderSummary,
 } from "./analytics-hub-parts";
 
 export default function AnalyticsHub() {
@@ -30,12 +24,12 @@ export default function AnalyticsHub() {
     staleTime: 60000,
   });
 
-  const { data: workOrderSummary, error: woError } = useQuery<WorkOrderSummary>({
+  const { data: workOrderSummary, error: woError } = useQuery<AnalyticsHubWorkOrderSummary>({
     queryKey: ["/api/work-orders/summary"],
     staleTime: 60000,
   });
 
-  const { data: costSummary, error: costError } = useQuery<CostSummary>({
+  const { data: costSummary, error: costError } = useQuery<AnalyticsHubCostSummary>({
     queryKey: ["/api/pdm/cost-savings/summary"],
     staleTime: 120000,
   });

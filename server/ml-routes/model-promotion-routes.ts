@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requirePermission } from "../domains/permissions/middleware.js";
 import { idempotencyMiddleware } from "../middleware/idempotency.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
-import { dbMlAnalyticsStorage } from "../repositories.js";
+import { mlModelStore } from "./model-promotion-data.js";
 import { structuredLog } from "../logging.js";
 import { sendSuccess, sendNotFound, sendBadRequest, handleError } from "../utils/api-response.js";
 
@@ -58,7 +58,7 @@ function registerPromotionRequestRoute(router: Router): void {
         }
 
         const modelId = req.params["id"] ?? "";
-        const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
+        const candidate = await mlModelStore.getMlModel(modelId, req.orgId);
         if (!candidate) {
           return sendNotFound(res, "ML model");
         }
@@ -121,7 +121,10 @@ function registerPromoteRoute(router: Router): void {
 
         const parsed = promoteBodySchema.safeParse(req.body);
         if (!parsed.success) {
-          return sendBadRequest(res, parsed.error.issues[0]?.message ?? "Invalid promotion request");
+          return sendBadRequest(
+            res,
+            parsed.error.issues[0]?.message ?? "Invalid promotion request"
+          );
         }
 
         const modelId = req.params["id"] ?? "";
@@ -139,12 +142,13 @@ function registerPromoteRoute(router: Router): void {
         if (approval.proposerUserId === approverId) {
           return res.status(412).json({
             code: "PROMOTION_SELF_APPROVAL_FORBIDDEN",
-            message: "Two-person rule: the user who requested the promotion cannot also approve it.",
+            message:
+              "Two-person rule: the user who requested the promotion cannot also approve it.",
             error: "PreconditionFailed",
           });
         }
 
-        const candidate = await dbMlAnalyticsStorage.getMlModel(modelId, req.orgId);
+        const candidate = await mlModelStore.getMlModel(modelId, req.orgId);
         if (!candidate) {
           return sendNotFound(res, "ML model");
         }
@@ -158,7 +162,7 @@ function registerPromoteRoute(router: Router): void {
           return sendBadRequest(res, "Model is missing equipmentType");
         }
 
-        const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+        const all = await mlModelStore.getMlModels(req.orgId);
         const currentlyDeployed = all.filter(
           (m) =>
             m.status === "deployed" &&
@@ -167,13 +171,13 @@ function registerPromoteRoute(router: Router): void {
         );
 
         for (const prev of currentlyDeployed) {
-          await dbMlAnalyticsStorage.updateMlModel(
+          await mlModelStore.updateMlModel(
             prev.id,
             { status: "archived", archivedOn: new Date() },
             req.orgId
           );
         }
-        const promoted = await dbMlAnalyticsStorage.updateMlModel(
+        const promoted = await mlModelStore.updateMlModel(
           candidate.id,
           { status: "deployed", deployedOn: new Date(), archivedOn: null },
           req.orgId
@@ -212,7 +216,7 @@ function registerRollbackRoute(router: Router): void {
     idempotencyMiddleware({ required: true }),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
-        const current = await dbMlAnalyticsStorage.getMlModel(req.params["id"] ?? "", req.orgId);
+        const current = await mlModelStore.getMlModel(req.params["id"] ?? "", req.orgId);
         if (!current) {
           return sendNotFound(res, "ML model");
         }
@@ -223,7 +227,7 @@ function registerRollbackRoute(router: Router): void {
           return sendBadRequest(res, "Model is missing equipmentType");
         }
 
-        const all = await dbMlAnalyticsStorage.getMlModels(req.orgId);
+        const all = await mlModelStore.getMlModels(req.orgId);
         const previous = all
           .filter(
             (m) =>
@@ -245,12 +249,12 @@ function registerRollbackRoute(router: Router): void {
           );
         }
 
-        await dbMlAnalyticsStorage.updateMlModel(
+        await mlModelStore.updateMlModel(
           current.id,
           { status: "archived", archivedOn: new Date() },
           req.orgId
         );
-        const restored = await dbMlAnalyticsStorage.updateMlModel(
+        const restored = await mlModelStore.updateMlModel(
           previous.id,
           { status: "deployed", deployedOn: new Date(), archivedOn: null },
           req.orgId

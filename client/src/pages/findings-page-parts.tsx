@@ -33,13 +33,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  type UnifiedFindingItem,
-  OUTCOME_CATEGORIES,
-  STATUS_STYLES,
-} from "./findings-cards";
+import { type UnifiedFindingItem, OUTCOME_CATEGORIES, STATUS_STYLES } from "./findings-cards";
 
-export interface FindingsSummary {
+export interface FindingsPageSummary {
   pendingApprovals: number;
   pendingSuggestions: number;
   recentFailures: number;
@@ -58,8 +54,8 @@ export function FindingsPageHeader({ onRefresh }: { onRefresh: () => void }) {
               Agent Findings
             </h1>
             <p className="text-sm text-muted-foreground">
-              Unified view of all AI agent activity — suggestions, drafts, scheduled runs, and
-              agent findings
+              Unified view of all AI agent activity — suggestions, drafts, scheduled runs, and agent
+              findings
             </p>
           </div>
         </div>
@@ -229,7 +225,7 @@ export function SummaryStrip({
   summary,
   isLoading,
 }: {
-  summary?: FindingsSummary | undefined;
+  summary?: FindingsPageSummary | undefined;
   isLoading: boolean;
 }) {
   if (isLoading) {

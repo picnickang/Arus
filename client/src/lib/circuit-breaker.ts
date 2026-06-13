@@ -15,7 +15,7 @@
  * the clock rather than a timer, so the breaker holds no resources and is
  * trivially testable by stubbing `Date.now`.
  */
-export type CircuitState = "closed" | "open" | "halfOpen";
+export type ClientCircuitState = "closed" | "open" | "halfOpen";
 
 export interface CircuitBreakerOptions {
   /** Consecutive failures in `closed` before tripping to `open`. */
@@ -28,7 +28,7 @@ export interface CircuitBreaker {
   /** Whether a request may proceed now (also advances open -> halfOpen). */
   canRequest(): boolean;
   /** Current state (advances open -> halfOpen if the window has elapsed). */
-  getState(): CircuitState;
+  getState(): ClientCircuitState;
   recordSuccess(): void;
   recordFailure(): void;
   reset(): void;
@@ -41,11 +41,11 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}): Circu
   const failureThreshold = options.failureThreshold ?? DEFAULT_FAILURE_THRESHOLD;
   const resetTimeoutMs = options.resetTimeoutMs ?? DEFAULT_RESET_TIMEOUT_MS;
 
-  let state: CircuitState = "closed";
+  let state: ClientCircuitState = "closed";
   let failureCount = 0;
   let openedAt = 0;
 
-  function refresh(): CircuitState {
+  function refresh(): ClientCircuitState {
     if (state === "open" && Date.now() - openedAt >= resetTimeoutMs) {
       state = "halfOpen";
     }
@@ -57,7 +57,7 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}): Circu
       // Both closed and the single half-open probe are allowed through.
       return refresh() !== "open";
     },
-    getState(): CircuitState {
+    getState(): ClientCircuitState {
       return refresh();
     },
     recordSuccess(): void {

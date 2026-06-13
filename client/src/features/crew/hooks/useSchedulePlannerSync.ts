@@ -2,15 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { PendingOperation, SyncStatus } from "./useSchedulePlannerDataTypes";
+import type {
+  SchedulePlannerPendingOperation,
+  SchedulePlannerSyncStatus,
+} from "./useSchedulePlannerDataTypes";
 
 export function useSchedulePlannerSync() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>("up_to_date");
-  const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SchedulePlannerSyncStatus>("up_to_date");
+  const [pendingOperations, setPendingOperations] = useState<SchedulePlannerPendingOperation[]>([]);
 
-  const computedSyncStatus = useMemo((): SyncStatus => {
+  const computedSyncStatus = useMemo((): SchedulePlannerSyncStatus => {
     if (!navigator.onLine) {
       return "offline";
     }
@@ -21,8 +24,8 @@ export function useSchedulePlannerSync() {
   }, [syncStatus, pendingOperations.length]);
 
   const addPendingOperation = useCallback(
-    (op: Omit<PendingOperation, "id" | "timestamp" | "retryCount">) => {
-      const newOp: PendingOperation = {
+    (op: Omit<SchedulePlannerPendingOperation, "id" | "timestamp" | "retryCount">) => {
+      const newOp: SchedulePlannerPendingOperation = {
         ...op,
         id: `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: Date.now(),
@@ -39,7 +42,7 @@ export function useSchedulePlannerSync() {
       return;
     }
 
-    let operationsToFlush: PendingOperation[] = [];
+    let operationsToFlush: SchedulePlannerPendingOperation[] = [];
     setPendingOperations((prev) => {
       operationsToFlush = [...prev];
       return [];
@@ -49,7 +52,7 @@ export function useSchedulePlannerSync() {
       return;
     }
 
-    const failedOps: PendingOperation[] = [];
+    const failedOps: SchedulePlannerPendingOperation[] = [];
 
     for (const op of operationsToFlush) {
       try {

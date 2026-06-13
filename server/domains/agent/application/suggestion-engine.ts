@@ -18,7 +18,7 @@ import {
   meetsMinSeverity,
   queueSuggestionNotifications,
   summarizeSuggestionsWithAi,
-  type SuggestionPreferences,
+  type SupportSuggestionPreferences,
 } from "./suggestion-engine-support";
 
 export class SuggestionEngine {
@@ -80,7 +80,7 @@ export class SuggestionEngine {
 
   async generateProactiveSuggestions(
     orgId: string,
-    preferences?: SuggestionPreferences
+    preferences?: SupportSuggestionPreferences
   ): Promise<AgentSuggestion[]> {
     const prefs = preferences || DEFAULT_PREFERENCES;
     const newSuggestions: AgentSuggestion[] = [];
@@ -482,5 +482,4 @@ export class SuggestionEngine {
     }
     return results;
   }
-
 }

@@ -22,7 +22,7 @@ export type {
   FatigueRiskLevel,
   FatigueResult,
   DateRangePreset,
-  SyncStatus,
+  SchedulePlannerSyncStatus,
 } from "./hooks/useSchedulePlannerData";
 export {
   useDocumentExpiryData,
