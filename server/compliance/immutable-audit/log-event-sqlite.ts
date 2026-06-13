@@ -25,14 +25,16 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
     const serverTimestamp = new Date();
 
     const latestResult = await libsqlClient.execute({
-      sql: `SELECT hash FROM immutable_audit_trail 
+      sql: `SELECT hash, sequence_number FROM immutable_audit_trail
             WHERE org_id = ? 
-            ORDER BY event_timestamp DESC 
+            ORDER BY event_timestamp DESC, sequence_number DESC
             LIMIT 1`,
       args: [input.orgId],
     });
 
     const prevHash = (latestResult.rows[0]?.["hash"] as string | null) ?? null;
+    const latestSequence = Number(latestResult.rows[0]?.["sequence_number"] ?? 0);
+    const sequenceNumber = Number.isFinite(latestSequence) ? latestSequence + 1 : 1;
 
     const hash = computeAuditHash(
       prevHash,
@@ -46,6 +48,10 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
       input.previousState,
       input.newState
     );
+    const previousStateJson = input.previousState ? JSON.stringify(input.previousState) : null;
+    const newStateJson = input.newState ? JSON.stringify(input.newState) : null;
+    const changedFieldsJson = input.changedFields ? JSON.stringify(input.changedFields) : null;
+    const metadataJson = input.metadata ? JSON.stringify(input.metadata) : null;
 
     await libsqlClient.execute({
       sql: `INSERT INTO immutable_audit_trail (
@@ -53,8 +59,10 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         previous_state, new_state, changed_fields, performed_by, performed_by_type,
         performed_by_name, performed_by_role, ip_address, device_id, vessel_id,
         event_timestamp, server_timestamp, prev_hash, hash, hash_version,
-        compliance_standard, retention_required, retention_expires_at, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        compliance_standard, retention_required, retention_expires_at, metadata,
+        action, actor, actor_role, data_before, data_after, data_hash, previous_hash,
+        sequence_number, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         id,
         input.orgId,
@@ -62,9 +70,9 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         input.eventType,
         input.entityType,
         input.entityId,
-        input.previousState ? JSON.stringify(input.previousState) : null,
-        input.newState ? JSON.stringify(input.newState) : null,
-        input.changedFields ? JSON.stringify(input.changedFields) : null,
+        previousStateJson,
+        newStateJson,
+        changedFieldsJson,
         input.performedBy,
         input.performedByType ?? "user",
         input.performedByName ?? null,
@@ -80,7 +88,16 @@ export async function logEventSqlite(input: AuditEventInput): Promise<AuditRecor
         input.complianceStandard ?? null,
         (input.retentionRequired ?? true) ? 1 : 0,
         input.retentionExpiresAt?.toISOString() ?? null,
-        input.metadata ? JSON.stringify(input.metadata) : null,
+        metadataJson,
+        input.eventType,
+        input.performedBy,
+        input.performedByRole ?? null,
+        previousStateJson,
+        newStateJson,
+        hash,
+        prevHash,
+        sequenceNumber,
+        eventTimestamp.getTime(),
       ],
     });
 

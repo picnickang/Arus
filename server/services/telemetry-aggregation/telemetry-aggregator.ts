@@ -144,6 +144,10 @@ type AggregatorDb = {
   }>;
 };
 
+export function canEnsureAggregationTable(db: unknown): db is AggregatorDb {
+  return Boolean(db && typeof (db as { execute?: unknown }).execute === "function");
+}
+
 export class TelemetryAggregator {
   private db: AggregatorDb;
 

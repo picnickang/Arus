@@ -5,6 +5,19 @@
 
 import { sqliteTable, text, integer, index } from "./base";
 
+export const systemSettingsSqlite = sqliteTable("system_settings", {
+  id: text("id").primaryKey().default("system"),
+  hmacRequired: integer("hmac_required", { mode: "boolean" }).default(false),
+  maxPayloadBytes: integer("max_payload_bytes").default(2097152),
+  strictUnits: integer("strict_units", { mode: "boolean" }).default(false),
+  llmEnabled: integer("llm_enabled", { mode: "boolean" }).default(true),
+  llmModel: text("llm_model").default("gpt-4o-mini"),
+  openaiApiKey: text("openai_api_key"),
+  openaiApiKeyEncrypted: text("openai_api_key_encrypted"),
+  aiInsightsThrottleMinutes: integer("ai_insights_throttle_minutes").default(2),
+  timestampToleranceMinutes: integer("timestamp_tolerance_minutes").default(5),
+});
+
 export const adminSystemSettingsSqlite = sqliteTable(
   "admin_system_settings",
   {
@@ -52,6 +65,28 @@ export const adminAuditEventsSqlite = sqliteTable(
   })
 );
 
+export const adminSessionsSqlite = sqliteTable(
+  "admin_sessions",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id").notNull(),
+    sessionToken: text("session_token").notNull(),
+    userId: text("user_id"),
+    adminEmail: text("admin_email"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    lastActivityAt: integer("last_activity_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }),
+    isActive: integer("is_active", { mode: "boolean" }).default(true),
+  },
+  (table) => ({
+    sessionTokenIdx: index("idx_admin_sessions_token").on(table.sessionToken),
+    expiresAtIdx: index("idx_admin_sessions_expires").on(table.expiresAt),
+    orgIdx: index("idx_admin_sessions_org").on(table.orgId),
+  })
+);
+
 export const integrationConfigsSqlite = sqliteTable(
   "integration_configs",
   {
@@ -78,7 +113,10 @@ export const errorLogsSqlite = sqliteTable(
   {
     id: text("id").primaryKey(),
     orgId: text("org_id"),
+    timestamp: integer("timestamp", { mode: "timestamp" }),
+    category: text("category").notNull().default("application"),
     errorType: text("error_type").notNull(),
+    errorMessage: text("error_message"),
     errorCode: text("error_code"),
     message: text("message").notNull(),
     stackTrace: text("stack_trace"),
@@ -93,6 +131,8 @@ export const errorLogsSqlite = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
+    timestampIdx: index("idx_el_timestamp").on(table.timestamp),
+    categoryIdx: index("idx_el_category").on(table.category),
     severityIdx: index("idx_el_severity").on(table.severity),
     createdAtIdx: index("idx_el_created_at").on(table.createdAt),
     resolvedIdx: index("idx_el_resolved").on(table.resolved),

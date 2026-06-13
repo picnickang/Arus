@@ -26,10 +26,15 @@ import {
   ensureDeclaredTablesAndIndexes,
   getTableColumns,
   runAdminSettingsCompatibilityMigration,
+  runAdminSessionsCompatibilityMigration,
+  runCrewCompatibilityMigration,
   runEquipmentCompatibilityMigration,
+  runErrorLogsCompatibilityMigration,
+  runImmutableAuditTrailCompatibilityMigration,
   runImportManifestCompatibilityMigration,
   runPermissionCompatibilityMigration,
   runSystemSettingsCompatibilityMigration,
+  runUsersAuthCompatibilityMigration,
   safeAddColumn,
   safeRenameColumn,
 } from "./compatibility-migrations.js";
@@ -66,6 +71,11 @@ export async function initializeSqliteDatabase(): Promise<void> {
 
   await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runUsersAuthCompatibilityMigration(libsqlClient);
+  await runCrewCompatibilityMigration(libsqlClient);
+  await runAdminSessionsCompatibilityMigration(libsqlClient);
+  await runErrorLogsCompatibilityMigration(libsqlClient);
+  await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
   await runImportManifestCompatibilityMigration(libsqlClient);
@@ -84,6 +94,11 @@ export async function applyInventoryMigrations(): Promise<void> {
   await ensureDeclaredTablesAndIndexes();
   await runSystemSettingsCompatibilityMigration(libsqlClient);
   await runAdminSettingsCompatibilityMigration(libsqlClient);
+  await runUsersAuthCompatibilityMigration(libsqlClient);
+  await runCrewCompatibilityMigration(libsqlClient);
+  await runAdminSessionsCompatibilityMigration(libsqlClient);
+  await runErrorLogsCompatibilityMigration(libsqlClient);
+  await runImmutableAuditTrailCompatibilityMigration(libsqlClient);
   await runEquipmentCompatibilityMigration(libsqlClient);
   await runPermissionCompatibilityMigration(libsqlClient);
   await runImportManifestCompatibilityMigration(libsqlClient);

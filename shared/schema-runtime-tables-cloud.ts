@@ -17,7 +17,12 @@ export const updateSettings = (
   IS_POSTGRES ? pgSchema.updateSettings : _sqliteUpdateSettings
 ) as typeof pgSchema.updateSettings;
 export const patchDownloads = cloudOnly(pgSchema.patchDownloads);
-export const adminSessions = cloudOnly(pgSchema.adminSessions);
+const _sqliteAdminSessions = (sqliteVessel as Record<string, unknown>)["adminSessionsSqlite"] as
+  | typeof pgSchema.adminSessions
+  | undefined;
+export const adminSessions = (
+  IS_POSTGRES ? pgSchema.adminSessions : _sqliteAdminSessions
+) as typeof pgSchema.adminSessions;
 export const modelDeployments = cloudOnly(pgSchema.modelDeployments);
 export const entityOffsets = cloudOnly(pgSchema.entityOffsets);
 export const contextEvents = cloudOnly(pgSchema.contextEvents);

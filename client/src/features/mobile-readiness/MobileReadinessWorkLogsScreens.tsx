@@ -75,12 +75,13 @@ export function MobileWorkOrdersPage() {
 
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="ARUS"
-        subtitle="Work Queue"
-        right={<Filter className="h-5 w-5" aria-hidden="true" />}
-      />
-      <Content className="space-y-2 pt-2">
+      <div data-testid="mobile-readiness-screen-work-queue">
+        <NavyHeader
+          title="ARUS"
+          subtitle="Work Queue"
+          right={<Filter className="h-5 w-5" aria-hidden="true" />}
+        />
+        <Content className="space-y-2 pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-950">Work Queue</h1>
           <button className="inline-flex items-center gap-1 text-sm font-semibold text-[#0d4da1]">
@@ -118,7 +119,8 @@ export function MobileWorkOrdersPage() {
             <WorkQueueCard key={item.id} item={item} />
           ))}
         </div>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -190,18 +192,19 @@ function MobileWorkExecutionPage() {
   const execution = work.execution;
   return (
     <MobilePageShell>
-      <NavyHeader
-        title={execution.orderNumber}
-        subtitle="In Progress"
-        left={<PdmBackLink href="/work-orders" />}
-        right={
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-100">
-            <Cloud className="h-4 w-4" aria-hidden="true" />
-            {execution.syncState}
-          </span>
-        }
-      />
-      <Content className="space-y-2 pb-28 pt-2">
+      <div data-testid="mobile-readiness-screen-work-execution">
+        <NavyHeader
+          title={execution.orderNumber}
+          subtitle="In Progress"
+          left={<PdmBackLink href="/work-orders" />}
+          right={
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-100">
+              <Cloud className="h-4 w-4" aria-hidden="true" />
+              {execution.syncState}
+            </span>
+          }
+        />
+        <Content className="space-y-2 pb-28 pt-2">
         <SectionCard>
           <div className="flex gap-3 p-2.5">
             <AssetImage
@@ -328,7 +331,8 @@ function MobileWorkExecutionPage() {
             {execution.primaryAction}
           </button>
         </div>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }
@@ -355,15 +359,16 @@ export function MobileLogsPage() {
   const { logs } = useScreens("captain");
   return (
     <MobilePageShell>
-      <NavyHeader
-        title="Logs"
-        right={
-          <Link href="/logs" className="inline-flex items-center gap-2 text-xs font-semibold">
-            <CalendarIcon /> Daily Required <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        }
-      />
-      <Content className="space-y-2 pb-20 pt-2">
+      <div data-testid="mobile-readiness-screen-logs">
+        <NavyHeader
+          title="Logs"
+          right={
+            <Link href="/logs" className="inline-flex items-center gap-2 text-xs font-semibold">
+              <CalendarIcon /> Daily Required <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          }
+        />
+        <Content className="space-y-2 pb-20 pt-2">
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0 truncate">{logs.requiredBanner}</span>
@@ -455,7 +460,8 @@ export function MobileLogsPage() {
           <span className="h-2 w-2 rounded-full bg-amber-500" /> Delayed
           <span className="h-2 w-2 rounded-full bg-red-500" /> Manual Required
         </div>
-      </Content>
+        </Content>
+      </div>
     </MobilePageShell>
   );
 }

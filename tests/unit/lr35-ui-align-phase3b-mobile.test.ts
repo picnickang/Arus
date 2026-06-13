@@ -29,6 +29,8 @@ const MOBILE_SCREEN_PATHS = [
   "client/src/features/mobile-readiness/MobileReadinessWorkLogsScreens.tsx",
   "client/src/features/mobile-readiness/MobileReadinessAdminScreens.tsx",
 ];
+const MOBILE_ROUTE_CONTRACT_PATH =
+  "client/src/features/mobile-readiness/mobile-readiness-route-contract.ts";
 
 async function readMobileModelSrc(): Promise<string> {
   return (await Promise.all(MOBILE_MODEL_PATHS.map(readSrc))).join("\n");
@@ -85,6 +87,42 @@ describe("UI Align Phase 3B — mobile readiness replacement", () => {
     expect(screenSrc).toContain("NavyHeader");
     expect(screenSrc).toContain("KpiStrip");
     expect(screenSrc).toContain("QueueCard");
+  });
+
+  it("shares the replacement route contract outside the React screen module", async () => {
+    const appSrc = await readSrc("client/src/App.tsx");
+    const routeContractSrc = await readSrc(MOBILE_ROUTE_CONTRACT_PATH);
+
+    expect(appSrc).toContain("mobile-readiness-route-contract");
+    expect(routeContractSrc).toContain("export function isMobileReadinessReplacementPath");
+    expect(routeContractSrc).toContain('"/fleet"');
+    expect(routeContractSrc).toContain('"/vessel-intelligence"');
+    expect(routeContractSrc).toContain('"/work-orders"');
+    expect(routeContractSrc).toContain('"/logs"');
+    expect(routeContractSrc).toContain('"/crew-management"');
+    expect(routeContractSrc).toContain('"/logistics"');
+    expect(routeContractSrc).toContain('"/system"');
+    expect(screenSrc).not.toContain("export function isMobileReadinessReplacementPath");
+  });
+
+  it("exposes stable screen markers for replacement route and link audits", () => {
+    for (const testId of [
+      "mobile-readiness-screen-command",
+      "mobile-readiness-screen-fleet",
+      "mobile-readiness-screen-vessel-detail",
+      "mobile-readiness-screen-vessel-diagram",
+      "mobile-readiness-screen-pdm-queue",
+      "mobile-readiness-screen-pdm-asset-case",
+      "mobile-readiness-screen-pdm-telemetry",
+      "mobile-readiness-screen-work-queue",
+      "mobile-readiness-screen-work-execution",
+      "mobile-readiness-screen-logs",
+      "mobile-readiness-screen-crew",
+      "mobile-readiness-screen-inventory",
+      "mobile-readiness-screen-settings",
+    ]) {
+      expect(screenSrc).toContain(`data-testid="${testId}"`);
+    }
   });
 
   it("does not retain the legacy admin hub and user portal test ids", () => {

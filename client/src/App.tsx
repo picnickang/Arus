@@ -17,7 +17,7 @@ import { SessionGate } from "@/components/auth/SessionGate";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
 import { UniversalOpsShell } from "@/components/ops/UniversalOpsShell";
-import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/MobileReadinessScreens";
+import { isMobileReadinessReplacementPath } from "@/features/mobile-readiness/mobile-readiness-route-contract";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -208,6 +208,39 @@ function readCurrentRole(): string | null {
   }
 }
 
+function isRegularMobileReadinessRouteAllowed(role: string | null, path: string): boolean {
+  const roleName = (role ?? "").toLowerCase();
+  const currentPath = (path.split("?")[0] ?? path).split("#")[0] ?? path;
+  const isDeckRole =
+    roleName === "deck_officer" || roleName === "captain" || roleName === "vessel_master";
+  const isCrewRole =
+    roleName === "crew_member" ||
+    roleName === "crew" ||
+    roleName === "viewer" ||
+    roleName === "technician" ||
+    roleName === "maintenance_technician";
+
+  if (!isDeckRole && !isCrewRole) {
+    return false;
+  }
+  if (currentPath === "/logs" || currentPath.startsWith("/logs/")) {
+    return true;
+  }
+  if (
+    isDeckRole &&
+    (currentPath === "/fleet" ||
+      currentPath.startsWith("/fleet/") ||
+      currentPath === "/vessel-intelligence" ||
+      currentPath.startsWith("/vessel-intelligence/") ||
+      currentPath === "/crew-management" ||
+      currentPath === "/pdm-platform" ||
+      currentPath.startsWith("/pdm/equipment/"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function AdminPortalRouteGuard({
   path,
   hubId,
@@ -225,12 +258,23 @@ function AdminPortalRouteGuard({
   // explicit hub-admin grant (dev-mode bypasses). While permissions load we
   // fall back to the legacy role→portal map so an admin's first paint is not
   // a flash-redirect.
+  const regularMobileReadinessAllowed = isRegularMobileReadinessRouteAllowed(role, path);
   let allowed = isAdminPortalAccess(role, permissions.hubAdmin || permissions.isDevMode, ready);
+  if (!allowed && regularMobileReadinessAllowed) {
+    allowed = true;
+  }
   // Tier 2 — per-hub allow-list: once permissions have loaded, a granted
   // (non-super-admin, non-dev) account may only reach hubs in its allow-list.
   // `permissions.hubAccess === null` means "all hubs" (super-admins / dev
   // resolve to null server-side), so only a populated list restricts access.
-  if (allowed && ready && hubId && !permissions.isDevMode && !isSuperAdminRole(role)) {
+  if (
+    allowed &&
+    ready &&
+    hubId &&
+    !regularMobileReadinessAllowed &&
+    !permissions.isDevMode &&
+    !isSuperAdminRole(role)
+  ) {
     const access = permissions.hubAccess;
     if (access && !access.includes(hubId)) {
       allowed = false;
