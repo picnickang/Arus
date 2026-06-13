@@ -63,9 +63,9 @@ const opsRuntimeMachine = setup({
   id: 'opsRuntime',
   initial: 'BOOTING',
   context: {
-    mode: 'VESSEL_LOCAL' as OpsMode,
-    connectivity: 'ONLINE' as Connectivity,
-    syncStatus: 'IDLE' as SyncStatus,
+    mode: 'VESSEL_LOCAL',
+    connectivity: 'ONLINE',
+    syncStatus: 'IDLE',
     pendingActions: 0,
     userRole: 'chiefEngineer',
     isTransitioning: false,
