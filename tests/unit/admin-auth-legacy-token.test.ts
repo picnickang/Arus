@@ -88,6 +88,16 @@ describe("getAdminCredential — legacy plaintext token gate (Finding 5)", () =>
     expect(credential.hash).toBeUndefined();
   });
 
+  it("fails closed: ignores plaintext ADMIN_TOKEN when NODE_ENV is unset", async () => {
+    delete process.env["NODE_ENV"];
+    process.env["ADMIN_TOKEN"] = "container-default-plaintext";
+
+    const credential = await getAdminCredential();
+
+    expect(credential.legacyPlaintext).toBeUndefined();
+    expect(credential.hash).toBeUndefined();
+  });
+
   it("returns an empty credential when nothing is configured", async () => {
     process.env["NODE_ENV"] = "production";
 

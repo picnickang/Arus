@@ -76,6 +76,33 @@ export class OfflineQueueFullError extends Error {
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Recursively merge a dedup patch onto an existing queued payload. A shallow
+ * spread replaces a nested object wholesale — patching only `{ description }`
+ * onto `{ maintenanceWindow: {...}, description }` would drop
+ * `maintenanceWindow` — so plain-object branches merge key-by-key. Arrays and
+ * scalars are replaced (last write wins), matching the previous behaviour for
+ * non-object fields.
+ */
+function deepMergePayload(
+  base: Record<string, unknown>,
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const existing = out[key];
+    out[key] =
+      isPlainObject(existing) && isPlainObject(value)
+        ? deepMergePayload(existing, value)
+        : value;
+  }
+  return out;
+}
+
 export async function queueOperation(
   entityType: EntityType,
   entityId: string,
@@ -101,7 +128,7 @@ export async function queueOperation(
   if (existingOp) {
     const updatedOp: PendingOperation = {
       ...existingOp,
-      payload: { ...existingOp.payload, ...payload },
+      payload: deepMergePayload(existingOp.payload, payload),
       lastModifiedAt: lastModifiedAt || new Date().toISOString(),
     };
     await store.put(updatedOp);

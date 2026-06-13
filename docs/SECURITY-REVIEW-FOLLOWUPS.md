@@ -216,6 +216,41 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       reaper) and the replication slot / NOTIFY listener open. Shutdown now calls
       `getEventSpine().stop()` (timeout-bounded) before the producer/queue close.
 
+- [x] **PII redactor now covers multipart content (B5).**
+      `redactMessages` (`server/lib/llm-gateway/pii-redactor.ts`) previously
+      returned any non-string `content` untouched, so vision/multipart messages
+      (`content: [{type:"text", …}, {type:"image_url", …}]`) leaked text PII to
+      the provider. It now redacts text parts and leaves non-text parts (images)
+      untouched. Pinned by `tests/unit/llm-gateway.test.ts`.
+
+- [x] **Offline dedupe deep-merges nested payloads (B6).**
+      `queueOperation` (`client/src/lib/offline-sync.ts`) shallow-merged a dedup
+      patch, so a second offline edit touching only `{ description }` dropped a
+      previously-queued nested object (e.g. `maintenanceWindow`). It now
+      deep-merges plain-object branches; arrays/scalars still last-write-win.
+
+- [x] **Plaintext `ADMIN_TOKEN` fails closed on unset NODE_ENV (B8).**
+      `getAdminCredential` (`server/domains/system-admin/routes/auth-routes.ts`)
+      gated the plaintext fallback on `NODE_ENV !== "production"`, so an unset
+      `NODE_ENV` (common in bare containers) re-enabled it. It now requires
+      `NODE_ENV` to be EXPLICITLY `development` or `test`; unset/unknown is
+      treated as production. Pinned by `tests/unit/admin-auth-legacy-token.test.ts`.
+
+- [x] **LLM budget docstring corrected (B4).** `BudgetGuard.preflight`
+      (`server/lib/llm-gateway/budget-guard.ts`) called itself a "hard limit",
+      but usage is a per-process in-memory counter incremented only after the
+      call returns — N concurrent calls can pass preflight and overshoot. The
+      docstring now states it is a best-effort guardrail and notes that a true
+      hard cap needs a shared atomic reservation.
+
+- [ ] **LWW conflict ordering trusts unsynchronized vessel clocks (B7) — needs
+      a design decision.** `server/domains/sync/routes.ts` `lww` compares a
+      vessel-clock `localTimestamp` against a shore-clock `serverTimestamp`; a
+      skewed vessel clock flips the winner (non-safety fields only — safety
+      conflicts are blocked from auto-resolve). Resolve by switching ordering to
+      a server-receipt time or a logical version counter. Deferred pending the
+      ordering-source choice.
+
 - [ ] **Remove error-envelope `message`/`code` mirrors (sunset 2026-11-18).**
       The canonical error envelope mirrors `error.message` and `error.code` at
       the top level for transition compatibility (`server/middleware/envelope.ts`

@@ -321,6 +321,36 @@ describe("DefaultLLMGateway — PII redaction", () => {
   });
 });
 
+describe("redactMessages — multipart content (B5)", () => {
+  it("redacts text parts and leaves non-text parts untouched", () => {
+    const { messages, totalHits } = redactMessages([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "reach me at alice@example.com" },
+          { type: "image_url", image_url: { url: "data:image/png;base64,AAA" } },
+        ],
+      },
+    ]);
+
+    const parts = messages[0]!.content as Array<Record<string, unknown>>;
+    expect(parts[0]!["text"]).toBe("reach me at [REDACTED_EMAIL]");
+    expect(parts[1]).toEqual({
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,AAA" },
+    });
+    expect(totalHits).toBe(1);
+  });
+
+  it("leaves the message reference untouched when no text part contains PII", () => {
+    const input = [{ role: "user", content: [{ type: "text", text: "all clear" }] }];
+    const { messages, totalHits } = redactMessages(input);
+
+    expect(messages[0]).toBe(input[0]); // same reference — no needless copy
+    expect(totalHits).toBe(0);
+  });
+});
+
 describe("estimateCostUsd", () => {
   it("returns 0 for unknown models", () => {
     expect(estimateCostUsd("totally-made-up-model", 1000, 1000)).toBe(0);
