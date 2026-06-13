@@ -197,6 +197,18 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       into `check:guards`) fails on any new raw `setInterval(async …)`. Pinned by
       `tests/unit/single-flight.test.ts`.
 
+- [x] **Pinned RLS client no longer reused after an abort (B9).** The
+      per-request transaction (`server/middleware/db-context.ts`) finalizes on
+      res `finish` AND `close`. On a client disconnect mid-handler, `close` fired
+      while the route handler could still be mid-query on the pinned client;
+      returning it to the pool would hand a still-in-use connection (carrying
+      this request's `SET LOCAL` org context) to the next checkout — cross-tenant.
+      The abort path now destroys the connection (`client.release(true)`) instead
+      of pooling it, so the aborted handler's late queries fail harmlessly and
+      the connection can never be reused. Normal finish still commits + pools.
+      Pinned by `tests/unit/db-context-abort.test.ts`. (Live only when
+      `ENABLE_PG_RLS_CONTEXT`/`REQUIRE_TENANT_AUTH` is set.)
+
 - [x] **Event spine stopped on shutdown (B10).** `server/bootstrap/shutdown.ts`
       Phase 3 stopped every background service except the event-spine worker +
       CDC bridge; `process.exit(0)` hard-killed them, leaving an in-flight
