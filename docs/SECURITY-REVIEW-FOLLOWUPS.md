@@ -186,6 +186,24 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       needed. Pinned by the concurrency case in
       `tests/unit/idempotency-middleware.test.ts`.
 
+- [x] **Scheduler re-entrancy closed + guarded (B3).** `setInterval(async …)`
+      does not wait for the prior tick, so a refresh/expiry that runs longer than
+      its interval lapped itself and raced the same state. All four server
+      schedulers (twin refresh, prediction expiry — `server/bootstrap/schedulers.ts`;
+      digital-twin real-time updates — `server/digital-twin/index.ts`; agent
+      suggestion engine — `server/domains/agent/application/suggestion-engine.ts`)
+      now wrap the tick in `withSingleFlight` (`server/lib/single-flight.ts`).
+      A zero-tolerance guard (`scripts/check-scheduler-single-flight.mjs`, wired
+      into `check:guards`) fails on any new raw `setInterval(async …)`. Pinned by
+      `tests/unit/single-flight.test.ts`.
+
+- [x] **Event spine stopped on shutdown (B10).** `server/bootstrap/shutdown.ts`
+      Phase 3 stopped every background service except the event-spine worker +
+      CDC bridge; `process.exit(0)` hard-killed them, leaving an in-flight
+      dispatch stuck in `dispatching` (per-org head-of-line stall until the
+      reaper) and the replication slot / NOTIFY listener open. Shutdown now calls
+      `getEventSpine().stop()` (timeout-bounded) before the producer/queue close.
+
 - [ ] **Remove error-envelope `message`/`code` mirrors (sunset 2026-11-18).**
       The canonical error envelope mirrors `error.message` and `error.code` at
       the top level for transition compatibility (`server/middleware/envelope.ts`

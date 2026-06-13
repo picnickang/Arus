@@ -11,6 +11,7 @@ import type { DigitalTwin, TwinSimulation, VisualizationAsset } from "@shared/sc
 import { cast } from "@shared/lib/type-cast";
 import { eq, sql } from "drizzle-orm";
 import { createLogger } from "../lib/structured-logger";
+import { withSingleFlight } from "../lib/single-flight";
 const logger = createLogger("DigitalTwin:Index");
 
 import type { VesselSpecifications, PhysicsModel, TwinState, SimulationScenario } from "./types.js";
@@ -299,9 +300,15 @@ export class DigitalTwinService extends EventEmitter {
   }
 
   private startRealTimeUpdates(): void {
-    this.updateInterval = setInterval(async () => {
-      await this.processRealTimeUpdates();
-    }, 60 * 1000);
+    // Single-flight: a real-time update sweep that runs longer than 60s must
+    // not overlap the next tick (it would race the same twin states).
+    this.updateInterval = setInterval(
+      withSingleFlight(
+        () => this.processRealTimeUpdates(),
+        () => logger.warn("[Digital Twin] Previous update sweep still running; skipping tick")
+      ),
+      60 * 1000
+    );
     logger.info("[Digital Twin] Real-time update scheduler started");
   }
 

@@ -6,6 +6,10 @@ const logger = createLogger("Bootstrap:Shutdown");
  */
 
 import type { Socket } from "node:net";
+// Static (not dynamic like the heavy service stops below): getEventSpine is a
+// lightweight singleton accessor, and the event-spine module is already in the
+// boot graph via background-services.
+import { getEventSpine } from "../lib/event-spine";
 
 interface TrackedSocket {
   on(event: "close", listener: () => void): unknown;
@@ -107,6 +111,20 @@ async function shutdown(sig: string): Promise<void> {
       const { mlTrainingQueue } = await import("../ml-training-queue");
       await withTimeout(mlTrainingQueue.shutdown(), 3000);
       logger.info("  ✓ ML training queue stopped");
+    } catch {
+      /* module not loaded or already stopped */
+    }
+
+    try {
+      // Stop the event-spine worker + CDC bridge before the producer/queue it
+      // feeds: an in-flight dispatch left mid-claim would otherwise sit in
+      // `dispatching` until the reaper runs (per-org head-of-line stall), and
+      // the CDC replication slot / NOTIFY listener would not close cleanly.
+      const spine = getEventSpine();
+      if (spine) {
+        await withTimeout(spine.stop(), 4000);
+        logger.info("  ✓ Event spine stopped (worker + CDC bridge)");
+      }
     } catch {
       /* module not loaded or already stopped */
     }

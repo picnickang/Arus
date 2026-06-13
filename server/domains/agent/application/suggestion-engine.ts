@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 import { createLogger } from "../../../lib/structured-logger";
+import { withSingleFlight } from "../../../lib/single-flight";
 const logger = createLogger("Domains:Agent:Application:SuggestionEngine");
 import {
   alertNotifications,
@@ -46,18 +47,27 @@ export class SuggestionEngine {
       `[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`
     );
 
-    const id = setInterval(async () => {
-      try {
-        const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
-        await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
-      } catch (err) {
-        logger.error(
-          `[SuggestionEngine] Background evaluation error for org ${orgId}:`,
-          undefined,
-          err instanceof Error ? err.message : "unknown"
-        );
-      }
-    }, this.evaluationIntervalMs);
+    const id = setInterval(
+      withSingleFlight(
+        async () => {
+          try {
+            const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
+            await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
+          } catch (err) {
+            logger.error(
+              `[SuggestionEngine] Background evaluation error for org ${orgId}:`,
+              undefined,
+              err instanceof Error ? err.message : "unknown"
+            );
+          }
+        },
+        () =>
+          logger.warn(
+            `[SuggestionEngine] Previous evaluation still running for org ${orgId}; skipping tick`
+          )
+      ),
+      this.evaluationIntervalMs
+    );
     this.intervalIds.set(orgId, id);
   }
 
