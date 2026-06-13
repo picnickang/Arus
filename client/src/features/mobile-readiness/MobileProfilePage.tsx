@@ -1,17 +1,24 @@
-import { MobilePageShell } from './MobilePageShell';
-import { MobilePageHeader } from './MobileReadinessShared';
-
+// Polished version with better styling, icons, and mobile touch-friendly buttons
 export function MobileProfilePage() {
   return (
-    <MobilePageShell>
-      <MobilePageHeader title="Profile" />
-      <div className="space-y-4 p-4">
-        <div className="bg-white rounded-xl p-4 shadow">
-          <p className="text-lg font-medium">User Profile - Mobile Optimized</p>
-          <p>Role-specific content here. No legacy card layout.</p>
+    <MobilePageShell title="My Profile">
+      <div className="space-y-6">
+        <div className="bg-card rounded-2xl p-5 shadow-sm">
+          <div className="flex justify-between">
+            <div>
+              <h3 className="font-semibold">Captain Nick Tan</h3>
+              <p className="text-sm text-muted-foreground">Chief Engineer • MV Pacific Star</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">👷</div>
+          </div>
         </div>
-        <button className="w-full py-3 bg-blue-600 text-white rounded-xl">My Tasks (Safe)</button>
-        <button className="w-full py-3 bg-gray-200">Settings</button>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button className="py-3 bg-blue-600 text-white rounded-xl active:bg-blue-700">My Tasks</button>
+          <button className="py-3 border rounded-xl active:bg-gray-100">Availability</button>
+        </div>
+
+        <button className="w-full py-3 border rounded-xl text-red-600">Logout</button>
       </div>
     </MobilePageShell>
   );
