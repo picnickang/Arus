@@ -485,6 +485,27 @@ describe("coerceResolvedWorkOrderFields", () => {
   });
 });
 
+describe("lwwWinnerByServerReceipt (B7)", () => {
+  it("picks local when the shore recorded the vessel edit after its own last write", () => {
+    expect(
+      service.lwwWinnerByServerReceipt(new Date("2026-01-10"), new Date("2026-01-05"))
+    ).toBe("local");
+  });
+
+  it("picks server when its last write is newer than the recorded vessel edit", () => {
+    expect(
+      service.lwwWinnerByServerReceipt(new Date("2026-01-01"), new Date("2026-01-05"))
+    ).toBe("server");
+  });
+
+  it("only considers server-stamped times — the vessel wall-clock cannot flip it", () => {
+    // A null/missing server-receipt loses to any real server write, and a real
+    // server-receipt beats a missing server write; no vessel timestamp is read.
+    expect(service.lwwWinnerByServerReceipt(null, new Date("2026-01-05"))).toBe("server");
+    expect(service.lwwWinnerByServerReceipt(new Date("2026-01-05"), null)).toBe("local");
+  });
+});
+
 describe("getUnresolvedConflictsByIds", () => {
   it("short-circuits on an empty id list without querying", async () => {
     const rows = await service.getUnresolvedConflictsByIds(ORG_A, []);

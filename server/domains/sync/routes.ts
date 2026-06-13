@@ -333,9 +333,8 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
         return;
       }
 
-      const { manuallyResolveConflict, getUnresolvedConflictsByIds } = await import(
-        "../../conflict-resolution-service.js"
-      );
+      const { manuallyResolveConflict, getUnresolvedConflictsByIds, lwwWinnerByServerReceipt } =
+        await import("../../conflict-resolution-service.js");
 
       const conflicts = await getUnresolvedConflictsByIds(orgId, conflictIds);
 
@@ -369,9 +368,14 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
               ? `${serverValue}\n---\n${localValue}`
               : localValue,
           lww: () => {
-            const localTime = conflict.localTimestamp?.getTime() || 0;
-            const serverTime = conflict.serverTimestamp?.getTime() || 0;
-            return localTime > serverTime ? localValue : serverValue;
+            // Server-receipt ordering (audit B7): compare the shore's own
+            // timestamps, never the vessel wall-clock, so a skewed/forged
+            // vessel clock cannot flip the winner.
+            const winner = lwwWinnerByServerReceipt(
+              conflict.createdAt,
+              conflict.serverTimestamp
+            );
+            return winner === "local" ? localValue : serverValue;
           },
           or: () => Boolean(localValue) || Boolean(serverValue),
           server: () => serverValue,

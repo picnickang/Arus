@@ -243,13 +243,29 @@ Sidecar` to the required set (repo Settings → Branches). No code change.
       docstring now states it is a best-effort guardrail and notes that a true
       hard cap needs a shared atomic reservation.
 
-- [ ] **LWW conflict ordering trusts unsynchronized vessel clocks (B7) — needs
-      a design decision.** `server/domains/sync/routes.ts` `lww` compares a
-      vessel-clock `localTimestamp` against a shore-clock `serverTimestamp`; a
-      skewed vessel clock flips the winner (non-safety fields only — safety
-      conflicts are blocked from auto-resolve). Resolve by switching ordering to
-      a server-receipt time or a logical version counter. Deferred pending the
-      ordering-source choice.
+- [x] **LWW conflict ordering uses server-receipt time, not the vessel clock
+      (B7).** The auto-resolve `lww` strategy (`server/domains/sync/routes.ts`)
+      compared a vessel-clock `localTimestamp` against a shore-clock
+      `serverTimestamp`, so a skewed/forged vessel clock could flip the winner.
+      It now calls `lwwWinnerByServerReceipt`
+      (`server/conflict-resolution-service.ts`), which compares the conflict's
+      shore-stamped `createdAt` (receipt of the vessel edit) against
+      `serverTimestamp` (the shore's last write) — both on the shore clock, so
+      the vessel wall-clock cannot affect the outcome. The vessel's
+      `localTimestamp` is retained on the row for audit only. Decision:
+      server-receipt ordering (a logical/causal version counter was the
+      alternative; deferred). Pinned by `tests/unit/offline-conflict-resolution.test.ts`.
+
+- [x] **Outbox stale-dispatch reaper SLO documented (D1).** The per-org
+      head-of-line guard in the event outbox (`outbox-repository.ts`) means a row
+      stuck in `dispatching` (worker crash after claim, before publish) blocks
+      that org's later events until the reaper requeues it. The
+      `EventSpineWorker` reaper (`server/lib/event-spine/worker.ts`) sweeps every
+      `reapEveryMs` (default 60s) for rows older than `reapStaleMs` (default 60s),
+      so the worst-case per-org stall is ~60–120s. Operational SLO: keep at least
+      one worker replica live; if the single reaper is down, that ceiling does not
+      hold. Tune `reapEveryMs`/`reapStaleMs` down for tighter recovery at the cost
+      of more frequent sweeps.
 
 - [ ] **Remove error-envelope `message`/`code` mirrors (sunset 2026-11-18).**
       The canonical error envelope mirrors `error.message` and `error.code` at

@@ -147,6 +147,30 @@ const workOrderUpdateSchema = insertWorkOrderSchema
   })
   .partial();
 
+/**
+ * Last-write-wins winner for auto-resolution, ordered by SERVER-RECEIPT time
+ * (audit B7) — never the vessel wall-clock. `localReceipt` is when the shore
+ * recorded the incoming vessel edit (the conflict's `createdAt`); `serverWrite`
+ * is when the shore last wrote the current value (`serverTimestamp`). Both are
+ * stamped on the shore clock, so a skewed or forged vessel clock can no longer
+ * flip the winner. (The vessel's self-reported `localTimestamp` is retained on
+ * the conflict row for audit/display, but is intentionally not trusted here.)
+ *
+ * Note: because a synced vessel edit is recorded *after* the shore value it
+ * conflicts with, this rule makes the freshly-synced edit authoritative —
+ * deterministic and clock-skew-proof. If "stale offline edits should lose" is
+ * required instead, that is a logical-version (causal) ordering change, tracked
+ * separately.
+ */
+export function lwwWinnerByServerReceipt(
+  localReceipt: Date | null | undefined,
+  serverWrite: Date | null | undefined
+): "local" | "server" {
+  const local = localReceipt?.getTime() ?? 0;
+  const server = serverWrite?.getTime() ?? 0;
+  return local > server ? "local" : "server";
+}
+
 // ── Core: apply a guarded optimistic update ──────────────────────────────
 
 export async function applyOptimisticUpdate(
