@@ -24,10 +24,10 @@ import { ConfigDialog } from "./copilot-admin-config-dialog";
 import { CopilotDataManagement } from "./copilot-admin-data-management";
 import type {
   AgentConfig,
-  EffectivenessSummary,
+  CopilotEffectivenessSummary,
   Schedule,
   ToolInfo,
-  UsageStats,
+  CopilotUsageStats,
 } from "./copilot-admin-types";
 
 function StatusSidebar({
@@ -36,7 +36,7 @@ function StatusSidebar({
   schedules,
 }: {
   config: AgentConfig | undefined;
-  usage: UsageStats | undefined;
+  usage: CopilotUsageStats | undefined;
   schedules: Schedule[];
 }) {
   const tier = config?.permissionTier || "strict";
@@ -89,7 +89,11 @@ function StatusSidebar({
   );
 }
 
-function EffectivenessCard({ effectiveness }: { effectiveness: EffectivenessSummary | undefined }) {
+function EffectivenessCard({
+  effectiveness,
+}: {
+  effectiveness: CopilotEffectivenessSummary | undefined;
+}) {
   if (!effectiveness || effectiveness.totalResolved === 0) {
     return (
       <div className="p-3 rounded-lg border bg-card" data-testid="effectiveness-empty">
@@ -138,7 +142,7 @@ function EffectivenessCard({ effectiveness }: { effectiveness: EffectivenessSumm
   );
 }
 
-function UsageOverview({ usage }: { usage: UsageStats | undefined }) {
+function UsageOverview({ usage }: { usage: CopilotUsageStats | undefined }) {
   if (!usage) {
     return null;
   }
@@ -338,7 +342,7 @@ export default function CopilotAdminPage() {
   const { data: config, isLoading: configLoading } = useQuery<AgentConfig>({
     queryKey: ["/api/agent/config"],
   });
-  const { data: usage } = useQuery<UsageStats>({
+  const { data: usage } = useQuery<CopilotUsageStats>({
     queryKey: ["/api/agent/usage", { days: 30 }],
   });
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -347,7 +351,7 @@ export default function CopilotAdminPage() {
   const { data: availableTools = [] } = useQuery<ToolInfo[]>({
     queryKey: ["/api/agent/tools"],
   });
-  const { data: effectiveness } = useQuery<EffectivenessSummary>({
+  const { data: effectiveness } = useQuery<CopilotEffectivenessSummary>({
     queryKey: ["/api/agent/suggestions/effectiveness", { days: 30 }],
   });
 

@@ -36,7 +36,7 @@ export type {
   PlannerCrewMember,
   PlannerVessel,
   ScheduleAssignment,
-  SyncStatus,
+  SchedulePlannerSyncStatus,
 } from "./useSchedulePlannerDataTypes";
 
 export function useSchedulePlannerData() {

@@ -1,7 +1,7 @@
 import type { SelectShiftTemplate } from "@shared/schema";
 import type { SchedulingPreferences } from "@/features/crew";
 
-export interface Crew {
+export interface ShiftPlanningCrew {
   id: string;
   name: string;
   rank: string;
@@ -12,7 +12,7 @@ export interface Crew {
   skills: string[];
 }
 
-export interface PortCall {
+export interface ShiftPlanningPortCall {
   id: string;
   vesselId: string;
   port: string;
@@ -21,7 +21,7 @@ export interface PortCall {
   crewRequired: number;
 }
 
-export interface DrydockWindow {
+export interface ShiftPlanningDrydockWindow {
   id: string;
   vesselId: string;
   description: string;
@@ -30,7 +30,7 @@ export interface DrydockWindow {
   crewRequired: number;
 }
 
-export interface CrewCertification {
+export interface ShiftPlanningCrewCertification {
   id: string;
   crewId: string;
   cert: string;
@@ -54,7 +54,7 @@ export interface LeaveData {
 export interface SchedulePlanPayload {
   days: string[];
   shifts: SelectShiftTemplate[];
-  crew: Crew[];
+  crew: ShiftPlanningCrew[];
   leaves: LeaveData[];
   existing: unknown[];
 }
@@ -63,11 +63,11 @@ export interface EnhancedSchedulePayload {
   engine: string;
   days: string[];
   shifts: SelectShiftTemplate[];
-  crew: Crew[];
+  crew: ShiftPlanningCrew[];
   leaves: LeaveData[];
-  portCalls: PortCall[];
-  drydocks: DrydockWindow[];
-  certifications: Record<string, CrewCertification[]>;
+  portCalls: ShiftPlanningPortCall[];
+  drydocks: ShiftPlanningDrydockWindow[];
+  certifications: Record<string, ShiftPlanningCrewCertification[]>;
   preferences: SchedulingPreferences;
   validate_stcw: boolean;
 }

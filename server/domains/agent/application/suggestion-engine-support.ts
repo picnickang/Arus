@@ -7,7 +7,7 @@ import type { AgentSuggestion } from "@shared/schema/agent";
 
 const logger = createLogger("Domains:Agent:Application:SuggestionEngine");
 
-export interface SuggestionPreferences {
+export interface SupportSuggestionPreferences {
   maintenance: boolean;
   predictions: boolean;
   crew: boolean;
@@ -16,7 +16,7 @@ export interface SuggestionPreferences {
   minSeverity: "info" | "warning" | "critical";
 }
 
-export const DEFAULT_PREFERENCES: SuggestionPreferences = {
+export const DEFAULT_PREFERENCES: SupportSuggestionPreferences = {
   maintenance: true,
   predictions: true,
   crew: true,

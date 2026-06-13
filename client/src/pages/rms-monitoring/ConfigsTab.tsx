@@ -14,7 +14,7 @@ import {
 import { Settings, Trash2 } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { CreateAlertConfigDialog } from "./CreateAlertConfigDialog";
-import type { AlertConfig, RmsVessel as Vessel } from "./_shared";
+import type { RmsAlertConfig, RmsVessel as Vessel } from "./_shared";
 
 export function ConfigsTab({
   vessels,
@@ -23,7 +23,7 @@ export function ConfigsTab({
   deleteConfigMutation,
 }: {
   vessels: Vessel[];
-  alertConfigs: AlertConfig[];
+  alertConfigs: RmsAlertConfig[];
   configsLoading: boolean;
   deleteConfigMutation: UseMutationResult<void, Error, string, unknown>;
 }) {

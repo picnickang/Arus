@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Crosshair, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import type { Equipment } from "@shared/schema";
-import type { EquipmentPin, ModelMetadata, PlacementArm } from "./3d-models-model";
+import type { ModelEquipmentPin, ModelMetadata, PlacementArm } from "./3d-models-model";
 
 const Vessel3DTwin = lazy(() => import("@/components/vessel/Vessel3DTwin"));
 
@@ -33,7 +33,7 @@ interface PinEditorProps {
 
 export function PinEditor({ model, vesselId, onSaved }: PinEditorProps) {
   const { toast } = useToast();
-  const [pins, setPins] = useState<EquipmentPin[]>(model.equipmentPins ?? []);
+  const [pins, setPins] = useState<ModelEquipmentPin[]>(model.equipmentPins ?? []);
   const [dirty, setDirty] = useState(false);
   const [placement, setPlacement] = useState<PlacementArm>(null);
 
@@ -79,7 +79,7 @@ export function PinEditor({ model, vesselId, onSaved }: PinEditorProps) {
     },
   });
 
-  const updatePin = (index: number, patch: Partial<EquipmentPin>) => {
+  const updatePin = (index: number, patch: Partial<ModelEquipmentPin>) => {
     setPins((prev) => prev.map((pin, idx) => (idx === index ? { ...pin, ...patch } : pin)));
     setDirty(true);
   };
@@ -202,8 +202,8 @@ export function PinEditor({ model, vesselId, onSaved }: PinEditorProps) {
 
       {pins.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No pins yet. Use "Add via 3D click" to drop a pin directly on the model, or "Add empty row"
-          to enter coordinates manually.
+          No pins yet. Use "Add via 3D click" to drop a pin directly on the model, or "Add empty
+          row" to enter coordinates manually.
         </p>
       ) : (
         <PinTable
@@ -242,7 +242,12 @@ function PinEditorActions({
 }) {
   return (
     <div className="flex gap-2 flex-wrap">
-      <Button size="sm" variant="outline" onClick={onAddPin} data-testid={`button-add-pin-${vesselId}`}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onAddPin}
+        data-testid={`button-add-pin-${vesselId}`}
+      >
         <Plus className="h-4 w-4 mr-1" /> Add empty row
       </Button>
       <Button
@@ -287,12 +292,12 @@ function PinTable({
   onRemovePin,
 }: {
   vesselId: string;
-  pins: EquipmentPin[];
+  pins: ModelEquipmentPin[];
   equipmentList: Equipment[];
   equipmentById: Map<string, Equipment>;
   equipmentQuery: ReturnType<typeof useQuery<Equipment[]>>;
   placement: PlacementArm;
-  onUpdatePin: (index: number, patch: Partial<EquipmentPin>) => void;
+  onUpdatePin: (index: number, patch: Partial<ModelEquipmentPin>) => void;
   onMovePin: (index: number) => void;
   onCancelPlacement: () => void;
   onRemovePin: (index: number) => void;
@@ -344,14 +349,14 @@ function PinRow({
   onCancelPlacement,
   onRemovePin,
 }: {
-  pin: EquipmentPin;
+  pin: ModelEquipmentPin;
   index: number;
   vesselId: string;
   equipmentList: Equipment[];
   knownEquipment: Equipment | undefined;
   equipmentQuery: ReturnType<typeof useQuery<Equipment[]>>;
   isMoveTarget: boolean;
-  onUpdatePin: (index: number, patch: Partial<EquipmentPin>) => void;
+  onUpdatePin: (index: number, patch: Partial<ModelEquipmentPin>) => void;
   onMovePin: (index: number) => void;
   onCancelPlacement: () => void;
   onRemovePin: (index: number) => void;
@@ -360,7 +365,10 @@ function PinRow({
     <TableRow data-testid={`row-pin-${vesselId}-${index}`}>
       <TableCell>
         {equipmentList.length > 0 ? (
-          <Select value={pin.equipmentId || undefined} onValueChange={(v) => onUpdatePin(index, { equipmentId: v })}>
+          <Select
+            value={pin.equipmentId || undefined}
+            onValueChange={(v) => onUpdatePin(index, { equipmentId: v })}
+          >
             <SelectTrigger data-testid={`select-pin-equipment-${vesselId}-${index}`}>
               <SelectValue
                 placeholder={
@@ -404,7 +412,7 @@ function PinRow({
             step="0.01"
             value={pin[axis]}
             onChange={(e) =>
-              onUpdatePin(index, { [axis]: Number(e.target.value) } as Partial<EquipmentPin>)
+              onUpdatePin(index, { [axis]: Number(e.target.value) } as Partial<ModelEquipmentPin>)
             }
             data-testid={`input-pin-${axis}-${vesselId}-${index}`}
           />

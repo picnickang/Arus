@@ -1,15 +1,7 @@
 import type { ElementType } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Wrench,
-  DollarSign,
-  Shield,
-  ChevronRight,
-  Sparkles,
-  Brain,
-  Clock,
-} from "lucide-react";
+import { Wrench, DollarSign, Shield, ChevronRight, Sparkles, Brain, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +32,7 @@ export interface EquipmentHealthItem {
   healthScore?: number;
 }
 
-export interface WorkOrderSummary {
+export interface AnalyticsHubWorkOrderSummary {
   openCount?: number;
   open?: number;
   overdueCount?: number;
@@ -48,7 +40,7 @@ export interface WorkOrderSummary {
   completionRate?: number;
 }
 
-export interface CostSummary {
+export interface AnalyticsHubCostSummary {
   latestMonthCost?: number;
   monthlyChange?: number;
   totalSavings?: number;
