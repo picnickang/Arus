@@ -1,15 +1,12 @@
-import {
-  dbAlertStorage,
-  dbMaintenanceStorage,
-  workOrderService,
-} from "../../repositories";
-import { crewAdminService } from "../../services/crew-admin-facade";
-import { crewTaskService } from "../../services/crew-task-facade";
-import type { UserAlarmScope } from "../../services/safety-alarm-facade";
-import type { VesselAssignmentEntity } from "../../services/crew-admin-facade";
-import { getCrewLinkId } from "./infrastructure/me-portal-queries";
+import { crewAdminService } from "../../../services/crew-admin-facade";
+import { crewTaskService } from "../../../services/crew-task-facade";
+import type { UserAlarmScope } from "../../../services/safety-alarm-facade";
+import type { VesselAssignmentEntity } from "../../../services/crew-admin-facade";
+import { getCrewLinkId } from "../infrastructure/me-portal-queries";
 import { scopeForSource, type VisibilityScope } from "@shared/role-dashboard";
 import type { MeUser, TaskItem } from "./me-portal-service";
+import type { IMePortalTaskSources } from "../domain/ports.js";
+import { mePortalTaskSources } from "../../../composition/me-portal-data.js";
 
 type ScopeResolver = (
   assignments: VesselAssignmentEntity[],
@@ -33,7 +30,8 @@ function asPriority(value: unknown): string | null {
 
 export async function buildMePortalTasks(
   user: MeUser,
-  resolveScope: ScopeResolver
+  resolveScope: ScopeResolver,
+  taskSources: IMePortalTaskSources = mePortalTaskSources
 ): Promise<TaskItem[]> {
   const configs = await crewAdminService.resolveEffectiveConfigList(user.orgId, user.id, user.role);
   const assignments = await crewAdminService.getAssignments(user.orgId, user.id);
@@ -42,10 +40,7 @@ export async function buildMePortalTasks(
 
   if (sources.has("work_orders")) {
     const scope = resolveScope(assignments, scopeForSource(configs, "work_orders"));
-    const workOrders = (await workOrderService.getWorkOrdersWithDetails(
-      undefined,
-      user.orgId
-    )) as unknown[];
+    const workOrders = await taskSources.getWorkOrdersWithDetails(undefined, user.orgId);
     for (const raw of workOrders) {
       if (typeof raw !== "object" || raw === null) {
         continue;
@@ -73,10 +68,7 @@ export async function buildMePortalTasks(
 
   if (sources.has("maintenance_schedules")) {
     const scope = resolveScope(assignments, scopeForSource(configs, "maintenance_schedules"));
-    const schedules = (await dbMaintenanceStorage.getMaintenanceSchedules(
-      undefined,
-      user.orgId
-    )) as unknown[];
+    const schedules = await taskSources.getMaintenanceSchedules(undefined, user.orgId);
     for (const raw of schedules) {
       if (typeof raw !== "object" || raw === null) {
         continue;
@@ -107,7 +99,7 @@ export async function buildMePortalTasks(
 
   if (sources.has("alerts")) {
     const scope = resolveScope(assignments, scopeForSource(configs, "alerts"));
-    const alerts = (await dbAlertStorage.getAlertNotifications(false, user.orgId)) as unknown[];
+    const alerts = await taskSources.getAlertNotifications(false, user.orgId);
     for (const raw of alerts) {
       if (typeof raw !== "object" || raw === null) {
         continue;

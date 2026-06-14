@@ -25,11 +25,12 @@ import {
   listPilotFeedbackForOrg,
   updatePilotFeedbackReview,
   type PilotFeedbackWithSubmitter,
-} from "./infrastructure/me-portal-queries";
+} from "../infrastructure/me-portal-queries";
 import type { PilotFeedback, PilotFeedbackDraft, PilotFeedbackReview } from "@shared/schema";
-import { dbSystemAdminStorage, vesselService } from "../../repositories";
-import { crewAdminService } from "../../services/crew-admin-facade";
-import { safetyAlarmService, AlarmValidationError } from "../../services/safety-alarm-facade";
+import type { IMePortalExternalData } from "../domain/ports.js";
+import { mePortalExternalData } from "../../../composition/me-portal-data.js";
+import { crewAdminService } from "../../../services/crew-admin-facade";
+import { safetyAlarmService, AlarmValidationError } from "../../../services/safety-alarm-facade";
 import {
   type RoleDashboardConfig,
   type TaskSourceKey,
@@ -39,8 +40,8 @@ import {
   applyUserDashboardPrefs,
   scopeForAlarms,
 } from "@shared/role-dashboard";
-import type { SafetyAlarmWithAcks, UserAlarmScope } from "../../services/safety-alarm-facade";
-import type { VesselAssignmentEntity } from "../../services/crew-admin-facade";
+import type { SafetyAlarmWithAcks, UserAlarmScope } from "../../../services/safety-alarm-facade";
+import type { VesselAssignmentEntity } from "../../../services/crew-admin-facade";
 import { buildMePortalTasks } from "./me-portal-task-feed";
 
 const BCRYPT_COST = 12;
@@ -110,6 +111,8 @@ function hashSessionToken(token: string): string {
 }
 
 export class MePortalService {
+  constructor(private readonly externalData: IMePortalExternalData = mePortalExternalData) {}
+
   /**
    * Resolve a vessel-id scope for a SINGLE capability. `scope` is the
    * capability-specific visibility scope (null = the capability is not granted
@@ -180,7 +183,7 @@ export class MePortalService {
     // the user legitimately holds across any role.
     const scope = this.computeScope(assignments, config.visibilityScope);
 
-    const allVessels = await vesselService.getVessels(user.orgId);
+    const allVessels = await this.externalData.getVessels(user.orgId);
     const vesselList = allVessels.map((v: { id: string; name: string }) => ({
       id: v.id,
       name: v.name,
@@ -339,7 +342,7 @@ export class MePortalService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + SESSION_HOURS);
 
-    await dbSystemAdminStorage.createAdminSession({
+    await this.externalData.createAdminSession({
       orgId,
       sessionToken: hashSessionToken(sessionToken),
       userId: record.id,

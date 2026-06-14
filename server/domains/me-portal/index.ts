@@ -5,5 +5,5 @@
  * login and self password change.
  */
 
-export * from "./me-portal-service";
-export { registerMePortalRoutes } from "./routes";
+export * from "./application/me-portal-service";
+export { registerMePortalRoutes } from "./interfaces/routes";

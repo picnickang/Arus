@@ -8,21 +8,21 @@
 
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import { mePortalService, MePortalError, type MeUser } from "./me-portal-service";
-import { requireAuthentication } from "../../security/authentication";
-import { auditService } from "../../compliance/immutable-audit";
-import { withErrorHandling } from "../../lib/route-utils";
-import { broadcastSafetyAlarmEvent } from "../../lib/safety-alarm-events";
+import { mePortalService, MePortalError, type MeUser } from "../application/me-portal-service.js";
+import { requireAuthentication } from "../../../security/authentication";
+import { auditService } from "../../../compliance/immutable-audit";
+import { withErrorHandling } from "../../../lib/route-utils";
+import { broadcastSafetyAlarmEvent } from "../../../lib/safety-alarm-events";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 import { pilotFeedbackDraftSchema, pilotFeedbackReviewSchema } from "@shared/schema-runtime";
-import { authenticatedRequest } from "../../middleware/auth";
-import { requireRole } from "../../middleware/role-auth";
+import { authenticatedRequest } from "../../../middleware/auth";
+import { requireRole } from "../../../middleware/role-auth";
 import {
   createDevLoginSession,
   devLoginRequestSchema,
   isDevLoginEnabled,
   revokeDevLoginSessionToken,
-} from "../../security/dev-login";
+} from "../../../security/dev-login";
 
 // Feedback triage is an admin-portal surface: same role set as the
 // Attention Inbox (mirrors `getPortalForRole` in
@@ -74,8 +74,8 @@ function handleMeError(error: unknown, res: Response): boolean {
 export function registerMePortalRoutes(
   app: Express,
   rateLimit: {
-    generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit;
-    loginRateLimit?: import("../../lib/rate-limit-factory").RateLimit;
+    generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit;
+    loginRateLimit?: import("../../../lib/rate-limit-factory").RateLimit;
   }
 ) {
   const { generalApiRateLimit, loginRateLimit } = rateLimit;
@@ -355,7 +355,7 @@ export function registerMePortalRoutes(
 
 function registerFeedbackReviewRoutes(
   app: Express,
-  generalApiRateLimit: import("../../lib/rate-limit-factory").RateLimit
+  generalApiRateLimit: import("../../../lib/rate-limit-factory").RateLimit
 ) {
   app.get(
     "/api/feedback-review",
