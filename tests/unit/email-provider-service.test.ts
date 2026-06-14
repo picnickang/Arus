@@ -1,21 +1,16 @@
 /**
  * Unit tests for the multi-provider EmailProviderService (Stack A).
  *
- * No network and no real credentials: `nodemailer` and `decryptSecret` are
- * mocked, and `global.fetch` is stubbed. decryptSecret strips an "enc:" prefix
- * so tests can prove the encrypted credential was decrypted before use.
+ * This service is now a pure transport over PLAINTEXT credentials (decryption
+ * moved to the callers that own encrypted-at-rest storage), so there is no
+ * crypto-service mock here — credentials in the config are used verbatim.
+ * `nodemailer` is mocked and `global.fetch` is stubbed (no network).
  *
  * Only the `emailProviderService` singleton is exported, so the shared SMTP
  * transporter cache persists across tests — each SMTP case therefore uses a
  * UNIQUE host so cache keys never collide between tests.
  */
 import { jest } from "@jest/globals";
-
-const decryptMock = jest.fn((s: string) => s.replace(/^enc:/, ""));
-jest.unstable_mockModule("../../server/lib/crypto-service", () => ({
-  decryptSecret: decryptMock,
-  encryptSecret: (s: string) => `enc:${s}`,
-}));
 
 const sendMailMock = jest.fn<(opts: unknown) => Promise<{ messageId: string }>>();
 const verifyMock = jest.fn<() => Promise<boolean>>();
@@ -55,23 +50,21 @@ beforeEach(() => {
   sendMailMock.mockReset();
   verifyMock.mockReset();
   createTransportMock.mockClear();
-  decryptMock.mockClear();
 });
 
 describe("sendEmail via SendGrid", () => {
-  it("sends with decrypted bearer auth and maps the payload", async () => {
+  it("sends with the (plaintext) bearer key and maps the payload", async () => {
     fetchMock.mockResolvedValue(sgOk("sg-xyz"));
 
     const result = await emailProviderService.sendEmail(
-      cfg({ provider: "sendgrid", sendgridApiKey: "enc:secret", fromName: "ARUS Ops" }),
+      cfg({ provider: "sendgrid", sendgridApiKey: "secret-key", fromName: "ARUS Ops" }),
       { to: ["a@x.test"], subject: "Hi", text: "Body", html: "<p>Body</p>" }
     );
 
     expect(result).toEqual({ success: true, messageId: "sg-xyz", provider: "sendgrid" });
-    expect(decryptMock).toHaveBeenCalledWith("enc:secret");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.sendgrid.com/v3/mail/send");
-    expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer secret");
+    expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer secret-key");
     const body = JSON.parse(init.body as string);
     expect(body.from).toEqual({ email: "noreply@arus.test", name: "ARUS Ops" });
     expect(body.personalizations[0].to).toEqual([{ email: "a@x.test" }]);
@@ -79,7 +72,7 @@ describe("sendEmail via SendGrid", () => {
 
   it("maps cc/bcc/replyTo when present and omits them when absent", async () => {
     fetchMock.mockResolvedValue(sgOk());
-    await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+    await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
       to: ["a@x.test"],
       cc: ["c@x.test"],
       bcc: ["b@x.test"],
@@ -94,7 +87,7 @@ describe("sendEmail via SendGrid", () => {
     expect(body.from.name).toBe("ARUS Marine"); // default when fromName omitted
 
     fetchMock.mockClear();
-    await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+    await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
       to: ["a@x.test"],
       subject: "S",
       text: "T",
@@ -108,7 +101,7 @@ describe("sendEmail via SendGrid", () => {
   it("falls back to an sg- messageId when the header is missing", async () => {
     fetchMock.mockResolvedValue(sgOk(null));
     const r = await emailProviderService.sendEmail(
-      cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }),
+      cfg({ provider: "sendgrid", sendgridApiKey: "k" }),
       { to: ["a@x.test"], subject: "S", text: "T" }
     );
     expect(r.success).toBe(true);
@@ -118,7 +111,7 @@ describe("sendEmail via SendGrid", () => {
   it("classifies retriable status codes (503, 429) and non-retriable (400)", async () => {
     fetchMock.mockResolvedValueOnce(sgErr(503));
     expect(
-      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
         to: ["a@x.test"],
         subject: "S",
         text: "T",
@@ -127,7 +120,7 @@ describe("sendEmail via SendGrid", () => {
 
     fetchMock.mockResolvedValueOnce(sgErr(429));
     expect(
-      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
         to: ["a@x.test"],
         subject: "S",
         text: "T",
@@ -136,7 +129,7 @@ describe("sendEmail via SendGrid", () => {
 
     fetchMock.mockResolvedValueOnce(sgErr(400));
     expect(
-      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
         to: ["a@x.test"],
         subject: "S",
         text: "T",
@@ -147,7 +140,7 @@ describe("sendEmail via SendGrid", () => {
   it("classifies network exceptions as retriable only when fetch/network", async () => {
     fetchMock.mockRejectedValueOnce(new Error("fetch failed"));
     expect(
-      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
         to: ["a@x.test"],
         subject: "S",
         text: "T",
@@ -156,7 +149,7 @@ describe("sendEmail via SendGrid", () => {
 
     fetchMock.mockRejectedValueOnce(new Error("nope"));
     expect(
-      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" }), {
+      await emailProviderService.sendEmail(cfg({ provider: "sendgrid", sendgridApiKey: "k" }), {
         to: ["a@x.test"],
         subject: "S",
         text: "T",
@@ -185,7 +178,7 @@ describe("sendEmail via SMTP", () => {
         smtpHost: "smtp.success.test",
         smtpPort: 587,
         smtpUser: "user",
-        smtpPassword: "enc:pw",
+        smtpPassword: "pw",
         fromName: "ARUS Ops",
       }),
       { to: ["a@x.test", "b@x.test"], cc: ["c@x.test"], subject: "S", text: "T", html: "<p>T</p>" }
@@ -194,7 +187,7 @@ describe("sendEmail via SMTP", () => {
     expect(result).toEqual({ success: true, messageId: "smtp-1", provider: "smtp" });
     const transportCfg = createTransportMock.mock.calls[0]![0] as Record<string, unknown>;
     expect(transportCfg).toMatchObject({ host: "smtp.success.test", port: 587, secure: false });
-    expect((transportCfg["auth"] as Record<string, string>)["pass"]).toBe("pw"); // decrypted
+    expect((transportCfg["auth"] as Record<string, string>)["pass"]).toBe("pw");
     expect((transportCfg["tls"] as Record<string, boolean>)["rejectUnauthorized"]).toBe(true);
     const mail = sendMailMock.mock.calls[0]![0] as { from: string; to: string; cc?: string };
     expect(mail.from).toBe('"ARUS Ops" <noreply@arus.test>');
@@ -243,12 +236,12 @@ describe("sendEmail via SMTP", () => {
 });
 
 describe("sendEmail via SES", () => {
-  it("builds a fresh STARTTLS transporter on every send with decrypted keys", async () => {
+  it("builds a fresh STARTTLS transporter on every send with the given keys", async () => {
     sendMailMock.mockResolvedValue({ messageId: "ses-1" });
     const c = cfg({
       provider: "ses",
-      sesAccessKeyId: "enc:akid",
-      sesSecretAccessKey: "enc:secret",
+      sesAccessKeyId: "akid",
+      sesSecretAccessKey: "secret",
       sesRegion: "ap-southeast-1",
     });
 
@@ -272,7 +265,7 @@ describe("sendEmail via SES", () => {
   it("classifies ETIMEDOUT as retriable and missing creds as a hard error", async () => {
     sendMailMock.mockRejectedValueOnce(new Error("ETIMEDOUT"));
     const retriable = await emailProviderService.sendEmail(
-      cfg({ provider: "ses", sesAccessKeyId: "enc:a", sesSecretAccessKey: "enc:b" }),
+      cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" }),
       { to: ["a@x.test"], subject: "S", text: "T" }
     );
     expect(retriable).toMatchObject({ success: false, retriable: true, provider: "ses" });
@@ -300,23 +293,17 @@ describe("testConnection", () => {
   it("SendGrid: ok, non-ok, and thrown", async () => {
     fetchMock.mockResolvedValueOnce({ ok: true } as FetchResponse);
     expect(
-      await emailProviderService.testConnection(
-        cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" })
-      )
+      await emailProviderService.testConnection(cfg({ provider: "sendgrid", sendgridApiKey: "k" }))
     ).toEqual({ success: true });
 
     fetchMock.mockResolvedValueOnce({ ok: false, status: 401 } as FetchResponse);
     expect(
-      await emailProviderService.testConnection(
-        cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" })
-      )
+      await emailProviderService.testConnection(cfg({ provider: "sendgrid", sendgridApiKey: "k" }))
     ).toMatchObject({ success: false });
 
     fetchMock.mockRejectedValueOnce(new Error("down"));
     expect(
-      await emailProviderService.testConnection(
-        cfg({ provider: "sendgrid", sendgridApiKey: "enc:k" })
-      )
+      await emailProviderService.testConnection(cfg({ provider: "sendgrid", sendgridApiKey: "k" }))
     ).toMatchObject({ success: false, error: "down" });
 
     expect(await emailProviderService.testConnection(cfg({ provider: "sendgrid" }))).toEqual({
@@ -350,14 +337,14 @@ describe("testConnection", () => {
     verifyMock.mockResolvedValueOnce(true);
     expect(
       await emailProviderService.testConnection(
-        cfg({ provider: "ses", sesAccessKeyId: "enc:a", sesSecretAccessKey: "enc:b" })
+        cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" })
       )
     ).toEqual({ success: true });
 
     verifyMock.mockRejectedValueOnce(new Error("bad keys"));
     expect(
       await emailProviderService.testConnection(
-        cfg({ provider: "ses", sesAccessKeyId: "enc:a", sesSecretAccessKey: "enc:b" })
+        cfg({ provider: "ses", sesAccessKeyId: "a", sesSecretAccessKey: "b" })
       )
     ).toMatchObject({ success: false, error: "bad keys" });
 

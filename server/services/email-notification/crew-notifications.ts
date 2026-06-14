@@ -143,7 +143,7 @@ Please ensure this certification is renewed before the expiry date to maintain r
     recipients.push(adminEmail);
   }
 
-  const result = await emailSender.sendEmail({ to: recipients, subject, text, html });
+  const result = await emailSender.sendEmail({ to: recipients, subject, text, html }, orgId);
   return result.success;
 }
 
@@ -212,7 +212,7 @@ Please ensure this document is renewed before the expiry date to maintain regula
     recipients.push(adminEmail);
   }
 
-  const result = await emailSender.sendEmail({ to: recipients, subject, text, html });
+  const result = await emailSender.sendEmail({ to: recipients, subject, text, html }, orgId);
   return result.success;
 }
 
@@ -281,6 +281,6 @@ Please address this compliance issue promptly.
     recipients.push(adminEmail);
   }
 
-  const result = await emailSender.sendEmail({ to: recipients, subject, text, html });
+  const result = await emailSender.sendEmail({ to: recipients, subject, text, html }, orgId);
   return result.success;
 }

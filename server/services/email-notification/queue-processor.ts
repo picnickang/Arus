@@ -27,12 +27,15 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
   const maxAttempts = Number.parseInt(process.env["EMAIL_MAX_RETRIES"] || "3", 10) + 1;
   const retryConfig = emailSender.getRetryConfig();
 
-  const result = await emailSender.sendEmail({
-    to: item.recipients as string[],
-    subject: item.subject,
-    text: item.body,
-    html: item.bodyHtml || undefined,
-  });
+  const result = await emailSender.sendEmail(
+    {
+      to: item.recipients as string[],
+      subject: item.subject,
+      text: item.body,
+      html: item.bodyHtml || undefined,
+    },
+    item.orgId
+  );
 
   if (result.success) {
     await dbNotificationsStorage.updateNotificationQueueItem(
@@ -132,12 +135,15 @@ export async function processDigestQueue(): Promise<number> {
       </div>
     `;
 
-    const result = await emailSender.sendEmail({
-      to: items[0]!.recipients as string[],
-      subject: digestSubject,
-      text: digestText,
-      html: digestHtml,
-    });
+    const result = await emailSender.sendEmail(
+      {
+        to: items[0]!.recipients as string[],
+        subject: digestSubject,
+        text: digestText,
+        html: digestHtml,
+      },
+      items[0]!.orgId
+    );
 
     for (const item of items) {
       await dbNotificationsStorage.updateNotificationQueueItem(

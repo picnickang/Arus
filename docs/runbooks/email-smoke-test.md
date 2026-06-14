@@ -6,15 +6,19 @@ All steps run against a local dev server with the SendGrid sender in **dev-mode*
 configured. Use this to confirm the endpoints are wired, requests validate, and
 the queue transitions correctly after a change.
 
-## Background: two email stacks
+## Background: the email stacks
 
-- **Stack A — multi-provider** (`server/services/email-provider-service.ts`):
-  SendGrid/SMTP/SES, configured per-org in the `alert_settings` table. Drives the
-  alert-settings test endpoints and purchasing→supplier mail (`email_queue` +
-  the 30s worker).
-- **Stack B — notification queue** (`server/services/email-notification/*`):
-  SendGrid-only, configured by env (`SENDGRID_API_KEY` / `EMAIL_FROM`). Drives
+- **Transport — multi-provider** (`server/services/email-provider-service.ts`):
+  SendGrid/SMTP/SES over plaintext credentials. `alertSettingsService` builds the
+  per-org config from the `alert_settings` table (decrypting stored credentials)
+  and drives the alert-settings test endpoints and purchasing→supplier mail
+  (`email_queue` + the 30s worker).
+- **Notification queue** (`server/services/email-notification/*`): drives
   compliance/logbook/alert/crew notifications via the `notification_queue` table.
+  `EmailSender` now sends through the same multi-provider transport — it resolves
+  the org's configured provider (`alertSettingsService.resolveOrgEmailConfig`)
+  when available, falls back to the global env SendGrid key (`SENDGRID_API_KEY` /
+  `EMAIL_FROM`), and finally to dev-mode (log only) when neither is configured.
 
 `notification_queue` and `email_queue` are **cloud-only** tables, so the queue
 steps below are meaningful only when the dev server runs in CLOUD mode (with

@@ -10,7 +10,7 @@ import {
   type EmailConfig,
   type EmailPayload,
 } from "../../services/email-provider-service";
-import { encryptSecret } from "../../lib/crypto-service";
+import { encryptSecret, decryptSecret } from "../../lib/crypto-service";
 import { logger } from "../../utils/logger.js";
 import type {
   AlertSettings,
@@ -262,17 +262,42 @@ export class AlertSettingsService {
   }
 
   private buildEmailConfig(settings: AlertSettingsRaw): EmailConfig {
+    // emailProviderService is a plaintext transport, so decrypt the stored
+    // credentials here (this service owns their encrypted-at-rest storage).
     return {
       provider: (settings.provider || "sendgrid") as "sendgrid" | "smtp" | "ses",
-      sendgridApiKey: settings.apiKeyEncrypted || undefined,
+      sendgridApiKey: settings.apiKeyEncrypted
+        ? decryptSecret(settings.apiKeyEncrypted)
+        : undefined,
       smtpHost: settings.smtpHost || undefined,
       smtpPort: settings.smtpPort || 587,
       smtpUser: settings.smtpUser || undefined,
-      smtpPassword: settings.smtpEncryptedPassword || undefined,
+      smtpPassword: settings.smtpEncryptedPassword
+        ? decryptSecret(settings.smtpEncryptedPassword)
+        : undefined,
       smtpUseTls: settings.smtpUseTls ?? true,
       fromEmail: settings.fromEmail || "noreply@arus-marine.com",
       fromName: settings.fromName || "ARUS Marine",
     };
+  }
+
+  /**
+   * Resolve the org's send-ready (decrypted) email config, or null when the org
+   * has no usable provider configured. Used by the notification sender so that
+   * compliance/logbook/alert/crew emails honour the org's configured provider
+   * (SendGrid/SMTP/SES) instead of being SendGrid-env-only.
+   */
+  async resolveOrgEmailConfig(orgId: string): Promise<EmailConfig | null> {
+    const settings = await alertSettingsRepository.getOrgSettings(orgId);
+    if (!settings || !settings.emailEnabled) {
+      return null;
+    }
+    const config = this.buildEmailConfig(settings);
+    const hasUsableCreds =
+      (config.provider === "sendgrid" && !!config.sendgridApiKey) ||
+      (config.provider === "smtp" && !!config.smtpHost) ||
+      (config.provider === "ses" && !!config.sesAccessKeyId && !!config.sesSecretAccessKey);
+    return hasUsableCreds ? config : null;
   }
 
   async getVesselSettings(orgId: string, vesselId: string): Promise<AlertSettingsVessel | null> {

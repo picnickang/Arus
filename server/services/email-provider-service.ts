@@ -2,11 +2,14 @@
  * Multi-Provider Email Service
  *
  * Supports SendGrid, SMTP, and AWS SES for sending emails.
- * Uses per-organization settings from the database with encrypted credentials.
+ *
+ * This is a pure transport: credentials in EmailConfig are expected to be
+ * PLAINTEXT. Callers that persist encrypted credentials (see
+ * alertSettingsService.buildEmailConfig) decrypt them before building the
+ * config; the env-keyed sender passes its plaintext key directly.
  */
 
 import { createTransport, Transporter } from "nodemailer";
-import { decryptSecret } from "../lib/crypto-service";
 
 export type EmailProvider = "sendgrid" | "smtp" | "ses";
 
@@ -88,8 +91,6 @@ class EmailProviderService {
       return { success: false, error: "SendGrid API key not configured" };
     }
 
-    const decryptedKey = decryptSecret(apiKey);
-
     try {
       const personalizations: {
         to: Array<{ email: string }>;
@@ -111,7 +112,7 @@ class EmailProviderService {
       const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${decryptedKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -167,17 +168,15 @@ class EmailProviderService {
     let transporter = this.smtpTransporters.get(transporterKey);
 
     if (!transporter) {
-      const decryptedPassword = smtpPassword ? decryptSecret(smtpPassword) : undefined;
-
       transporter = createTransport({
         host: smtpHost,
         port: smtpPort || 587,
         secure: smtpUseTls !== false && smtpPort === 465,
         auth:
-          smtpUser && decryptedPassword
+          smtpUser && smtpPassword
             ? {
                 user: smtpUser,
-                pass: decryptedPassword,
+                pass: smtpPassword,
               }
             : undefined,
         tls:
@@ -234,8 +233,6 @@ class EmailProviderService {
       return { success: false, error: "AWS SES credentials not configured" };
     }
 
-    const decryptedAccessKey = decryptSecret(sesAccessKeyId);
-    const decryptedSecretKey = decryptSecret(sesSecretAccessKey);
     const region = sesRegion || "us-east-1";
 
     try {
@@ -247,8 +244,8 @@ class EmailProviderService {
         secure: false,
         requireTLS: true,
         auth: {
-          user: decryptedAccessKey,
-          pass: decryptedSecretKey,
+          user: sesAccessKeyId,
+          pass: sesSecretAccessKey,
         },
       });
 
@@ -293,10 +290,9 @@ class EmailProviderService {
         if (!apiKey) {
           return { success: false, error: "SendGrid API key not configured" };
         }
-        const decryptedKey = decryptSecret(apiKey);
         try {
           const response = await fetch("https://api.sendgrid.com/v3/user/profile", {
-            headers: { Authorization: `Bearer ${decryptedKey}` },
+            headers: { Authorization: `Bearer ${apiKey}` },
           });
           if (response.ok) {
             return { success: true };
@@ -316,18 +312,16 @@ class EmailProviderService {
           return { success: false, error: "SMTP host not configured" };
         }
 
-        const decryptedPassword = smtpPassword ? decryptSecret(smtpPassword) : undefined;
-
         try {
           const transporter = createTransport({
             host: smtpHost,
             port: smtpPort || 587,
             secure: smtpUseTls !== false && smtpPort === 465,
             auth:
-              smtpUser && decryptedPassword
+              smtpUser && smtpPassword
                 ? {
                     user: smtpUser,
-                    pass: decryptedPassword,
+                    pass: smtpPassword,
                   }
                 : undefined,
           });
@@ -348,8 +342,6 @@ class EmailProviderService {
           return { success: false, error: "AWS SES credentials not configured" };
         }
 
-        const decryptedAccessKey = decryptSecret(sesAccessKeyId);
-        const decryptedSecretKey = decryptSecret(sesSecretAccessKey);
         const region = sesRegion || "us-east-1";
 
         try {
@@ -361,8 +353,8 @@ class EmailProviderService {
             secure: false,
             requireTLS: true,
             auth: {
-              user: decryptedAccessKey,
-              pass: decryptedSecretKey,
+              user: sesAccessKeyId,
+              pass: sesSecretAccessKey,
             },
           });
 
