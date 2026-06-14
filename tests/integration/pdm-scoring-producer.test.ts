@@ -16,6 +16,8 @@ import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
 
 import { processPdmScoring } from "../../server/job-processors/pdm-scoring-processor";
+import { withTenantContext } from "../../server/middleware/db-context";
+import { dbEquipmentStorage } from "../../server/repositories";
 
 const databaseUrl = process.env["DATABASE_URL"];
 const RUN = randomUUID().slice(0, 8);
@@ -83,7 +85,9 @@ afterAll(async () => {
       }
     }
   } catch (err) {
-    console.warn(`[pdm-score] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(
+      `[pdm-score] cleanup skipped: ${err instanceof Error ? err.message : String(err)}`
+    );
   } finally {
     await pool.end().catch(() => undefined);
   }
@@ -116,5 +120,29 @@ describe("PdM scoring producer (cloud) — writes pdm_score_logs from telemetry"
     expect(Number(flat.health_idx)).toBeLessThanOrEqual(100);
     expect(Number(ramp.health_idx)).toBeGreaterThanOrEqual(0);
     expect(Number(ramp.p_fail_30d)).toBeGreaterThan(0);
+
+    // B2: getEquipmentHealth now reflects the producer's pdm_score_logs rows
+    // instead of the old hardcoded 100. Run it the way production does — under
+    // a pinned tenant context — and assert the data-driven health index +
+    // status bands flow through (the degrading unit is no longer "healthy").
+    const health = await withTenantContext(ORG_ID, () =>
+      dbEquipmentStorage.getEquipmentHealth(ORG_ID)
+    );
+    const healthByEquip = new Map(health.map((h) => [h.id, h]));
+    const flatHealth = healthByEquip.get(EQUIP_FLAT);
+    const rampHealth = healthByEquip.get(EQUIP_RAMP);
+    expect(flatHealth).toBeDefined();
+    expect(rampHealth).toBeDefined();
+
+    // The repository surfaces the same numbers it wrote to pdm_score_logs…
+    expect(flatHealth!.healthIndex).toBe(Number(flat.health_idx));
+    expect(rampHealth!.healthIndex).toBe(Number(ramp.health_idx));
+    // …the degrading unit scores strictly lower (the whole point of B2 — pre-B2
+    // both were a hardcoded 100)…
+    expect(rampHealth!.healthIndex).toBeLessThan(flatHealth!.healthIndex);
+    // …and status is derived from the index (healthy >=70 / warning >=30 /
+    // critical <30), so the degrading unit is no longer reported "healthy".
+    expect(flatHealth!.status).toBe("healthy");
+    expect(["warning", "critical"]).toContain(rampHealth!.status);
   });
 });
